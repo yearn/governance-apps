@@ -1,7 +1,7 @@
 # stYFI / stYFIMax / veYFI / LLYFI Frontend
 
 **Implementation Approach & Architecture Blueprint**
-Version 0.5 — 2025-11-20
+Version 0.6 — 2025-11-20
 Status: Draft
 Repo: `yearn/governance-apps`
 Author: Pickles
@@ -134,7 +134,9 @@ Non-goals in BR#1:
   - All reads go through React Query hooks
   - Invalidation after writes
 - **Zustand** (planned)
-  - UI state: modals, banners, feature toggles
+  - For **UI-global state only**: modals, banners, toasts, feature flags.
+  - MUST NOT store protocol data (balances, rewards, caps) — those live in React Query.
+  - MUST NOT store form inputs — those stay in component-local state or form libs.
 - **Zod**
   - For user inputs (amounts, addresses)
   - Not for contract outputs (overhead not justified)
@@ -177,7 +179,7 @@ docs/
   user-stories-veyfi.md
   architecture-blueprint.md  (this file)
   master-task-list.md
-  yip-88-summary.md          (optional mirror / FE-focused notes)
+  normative-spec-yip88.md
 
 lib/
   clients/
@@ -311,32 +313,43 @@ export type StyfiAccountState = {
 
 #### 6.1.2 Interface – `/lib/clients/styfi/client.ts`
 
-```ts
+````ts
+import type { Address } from "viem";
+import type { PreparedTransaction } from "@/lib/tx/types";
+import type {
+  EpochInfo,
+  StyfiAccountState,
+  StyfiCooldownState,
+} from "./types";
+
 export type StyfiStakeMode = "stYFI" | "stYFIMax";
 
 export interface StyfiClient {
   getAccountState(address: Address): Promise<StyfiAccountState>;
   getEpochInfo(): Promise<EpochInfo>;
 
-  // Read-only helpers if needed
-  // getPreviewStake(mode, amount): Promise<...>;
+  // Write-prep methods: return a PreparedTransaction for useTx.
+  prepareStake(mode: StyfiStakeMode, amount: bigint): Promise<PreparedTransaction>;
 
-  // Write-prep methods: return a function or tx descriptor for useTx
-  prepareStake(
-    mode: StyfiStakeMode,
-    amount: bigint
-  ): Promise<() => Promise<string>>;
   prepareStartCooldown(
     mode: StyfiStakeMode,
     amount: bigint
-  ): Promise<() => Promise<string>>;
-  prepareWithdraw(mode: StyfiStakeMode): Promise<() => Promise<string>>;
-  prepareClaimRewards(): Promise<() => Promise<string>>;
+  ): Promise<PreparedTransaction>;
+
+  prepareWithdraw(mode: StyfiStakeMode): Promise<PreparedTransaction>;
+
+  prepareClaimRewards(): Promise<PreparedTransaction>;
 }
-```
 
 **Important:**
-Clients **do not** auto-handle approvals. Approval logic is separated (handled either via dedicated helper or a separate “token” client, but in BR#1 it’s enough to call standard wagmi `approve` via `useTx` directly).
+**Approvals are not handled by domain clients.**
+Domain clients **MUST NOT** perform ERC-20 approvals automatically.
+
+Approvals are handled by shared hooks in `/lib/hooks/common`
+(`useTokenAllowance`, `useTokenApprove`), which internally use `useTx`.
+
+**No component and no client may call wagmi/viem write methods directly.**
+All approval transactions also go through `PreparedTransaction` → `useTx`.
 
 ---
 
@@ -392,34 +405,39 @@ export type VeyfiAccountState = {
   llyfiTokens: LlyfiTokenState[];
   redemptionCaps: RedemptionCaps;
 };
-```
+````
 
 #### 6.2.2 Interface – `/lib/clients/veyfi/client.ts`
 
 ```ts
+import type { PreparedTransaction } from "@/lib/tx/types";
+import type { VeyfiAccountState, LlyfiTokenId } from "./types";
+
 export interface VeyfiClient {
   getAccountState(address: Address): Promise<VeyfiAccountState>;
 
-  // Write-prep methods
-  prepareMigrateVeYfi(): Promise<() => Promise<string>>;
+  prepareMigrateVeYfi(): Promise<PreparedTransaction>;
+
   prepareStakeLlyfi(
     symbol: LlyfiTokenId,
     amount: bigint
-  ): Promise<() => Promise<string>>;
+  ): Promise<PreparedTransaction>;
+
   prepareStartCooldownLlyfi(
     symbol: LlyfiTokenId,
     amount: bigint
-  ): Promise<() => Promise<string>>;
-  prepareWithdrawLlyfi(symbol: LlyfiTokenId): Promise<() => Promise<string>>;
-  prepareClaimLlyfiRewards(): Promise<() => Promise<string>>; // may claim all tokens
+  ): Promise<PreparedTransaction>;
+
+  prepareWithdrawLlyfi(symbol: LlyfiTokenId): Promise<PreparedTransaction>;
+
+  prepareClaimLlyfiRewards(): Promise<PreparedTransaction>; // may claim all tokens
+
   prepareRedeemLlyfi(
     symbol: LlyfiTokenId,
     amount: bigint
-  ): Promise<() => Promise<string>>;
+  ): Promise<PreparedTransaction>;
 }
 ```
-
-Again, approvals are not hidden inside these methods.
 
 ---
 
@@ -494,6 +512,12 @@ This is **critical** and moved early (Phase 2), not an afterthought.
 ### 8.1 Types — `/lib/tx/types.ts`
 
 ```ts
+export type TransactionHash = `0x${string}`;
+
+// A function that, when called, submits the transaction and returns the hash.
+// It usually closes over the contract write configuration.
+export type PreparedTransaction = () => Promise<TransactionHash>;
+
 export type TxStatus =
   | "idle"
   | "simulating"
@@ -514,7 +538,7 @@ export type TxState = {
   status: TxStatus;
   errorType?: TxErrorType;
   errorMessage?: string;
-  txHash?: `0x${string}`;
+  txHash?: TransactionHash;
 };
 ```
 
@@ -522,12 +546,53 @@ export type TxState = {
 
 `useTx`:
 
-- Accepts an async function that produces a transaction (e.g. a client’s `prepare*` result or a direct wagmi write).
-- Drives the TxStatus state.
-- Emits events to a toast system.
-- On success: triggers React Query invalidation (via callback or shared helper).
+- Owns the entire transaction lifecycle: signing → submitted → mining → success/error.
+- Always operates on a **PreparedTransaction**: a function that submits the tx and returns the hash.
+- Is responsible for waiting for the transaction receipt via viem’s `waitForTransactionReceipt`.
 
-Example usage:
+Conceptual shape:
+
+```ts
+type UseTxOptions = {
+  onSuccess?: () => void | Promise<void>;
+  onError?: (error: unknown) => void | Promise<void>;
+};
+
+export function useTx(options?: UseTxOptions) {
+  const [state, setState] = useState<TxState>({ status: "idle" });
+  const publicClient = usePublicClient(); // from wagmi/viem
+
+  const execute = useCallback(
+    async (prepared: PreparedTransaction) => {
+      try {
+        setState({ status: "signing" });
+
+        const hash = await prepared(); // user signs here
+        setState({ status: "submitted", txHash: hash });
+
+        setState((prev) => ({ ...prev, status: "mining" }));
+        await publicClient.waitForTransactionReceipt({ hash });
+
+        setState((prev) => ({ ...prev, status: "success" }));
+        await options?.onSuccess?.();
+      } catch (err) {
+        const mapped = mapTxError(err); // maps to TxErrorType + message
+        setState({
+          status: "error",
+          errorType: mapped.type,
+          errorMessage: mapped.message,
+        });
+        await options?.onError?.(err);
+      }
+    },
+    [publicClient, options]
+  );
+
+  return { state, execute };
+}
+```
+
+Usage in a hook:
 
 ```ts
 const { execute, state } = useTx({
@@ -536,12 +601,71 @@ const { execute, state } = useTx({
 });
 
 const handleStake = async () => {
-  const txFn = await styfiClient.prepareStake(mode, amount);
-  await execute(txFn);
+  const prepared = await styfiClient.prepareStake(mode, amount);
+  await execute(prepared);
 };
 ```
 
-Components bind button disabled / spinners to `state.status`.
+All write flows (stake, cooldown, withdraw, claim, redeem, migrate, approvals) go through `useTx`.
+
+### 8.3 Token Approvals (Shared Hooks)
+
+The “no raw wagmi in components” rule also applies to ERC-20 approvals.
+
+We introduce small, shared hooks in `/lib/hooks/common`:
+
+```ts
+// /lib/hooks/common/useTokenAllowance.ts
+export function useTokenAllowance({
+  token,
+  owner,
+  spender,
+}: {
+  token: Address;
+  owner: Address | undefined;
+  spender: Address;
+}) {
+  // uses React Query + viem to read allowance
+}
+
+// /lib/hooks/common/useTokenApprove.ts
+export function useTokenApprove({
+  token,
+  spender,
+}: {
+  token: Address;
+  spender: Address;
+}) {
+  const { execute, state } = useTx();
+
+  const approve = useCallback(
+    async (amount: bigint) => {
+      const prepared: PreparedTransaction = async () => {
+        // build + submit ERC-20 approve tx via viem/wagmi
+        // and return the hash
+      };
+
+      await execute(prepared);
+    },
+    [execute]
+  );
+
+  return { approve, state };
+}
+```
+
+Components then look like:
+
+```tsx
+const { approve, state: approveState } = useTokenApprove({
+  token: yfiAddress,
+  spender: styfiStakingContract,
+});
+
+const onApproveClick = () => approve(inputAmount);
+```
+
+All approval UX (status, errors, toasts) is handled via `useTx`.
 
 ---
 
@@ -590,15 +714,22 @@ Approvals (ERC-20 `approve`) are handled similarly but via simple wrappers aroun
 
 **MockStyfiClient** & **MockVeyfiClient**:
 
-- Implement same interfaces as on-chain clients.
+- Implement the same interfaces as on-chain clients.
 - Store an in-memory “fake chain state”:
 
   - accounts, balances, cooldowns, rewards, caps, etc.
 
+- Start with two primary fixtures per domain:
+
+  - `StandardUser` – fresh user with no staked positions.
+  - `ActiveUser` – user with staked positions, some cooldowns, and claimable rewards.
+
 - Methods:
 
-  - `getAccountState` returns deterministic fixture data.
-  - `prepare*` returns functions that mutate this in-memory state and simulate tx hashes.
+  - `getAccountState` returns the selected fixture state.
+  - `prepare*` methods mutate this in-memory state and simulate tx hashes.
+
+- Simulate latency (500–1000ms) for all calls.
 
 ### 10.2 Latency & Errors
 
@@ -607,20 +738,9 @@ Mocks **must** simulate:
 - Latency: `await new Promise(r => setTimeout(r, 500–1000))`.
 - Occasional errors (configurable) for QA of error handling.
 
-### 10.3 Scenarios (nice-to-have, not mandatory in BR#1)
+### 10.3 Scenarios (optional, later)
 
-Allow switching scenarios via URL or environment:
-
-- `?scenario=fresh_user`
-- `?scenario=styfi_staked`
-- `?scenario=styfi_cooldown`
-- `?scenario=styfi_max_only`
-- `?scenario=ve_migration_ready`
-- `?scenario=llyfi_rewards`
-- `?scenario=redemption_full`
-- `?scenario=facility_closed`
-
-These scenarios define the mock state; used to exercise all branches of the UI.
+A richer scenario system (`?scenario=...`) can be added later if needed, but BR#1 only requires the two core fixtures above. Do not over-invest in scenario plumbing before contract semantics are finalized.
 
 ---
 

@@ -70,41 +70,47 @@ _(Foundation for all write flows)_
 ## 4. Implement Tx State Machine
 
 - [ ] Add `/lib/tx/types.ts` with:
-  - `TxStatus`
-  - `TxState`
-  - `TxErrorType`
+  - [ ] `TransactionHash`
+  - [ ] `PreparedTransaction`
+  - [ ] `TxStatus`
+  - [ ] `TxState`
+  - [ ] `TxErrorType`
 - [ ] Implement `/lib/tx/useTx.ts`
-  - centralises tx lifecycle
-  - emits toasts
-  - supports callbacks for invalidation
-  - consistent error mapping
+  - [ ] centralises tx lifecycle
+  - [ ] owns `waitForTransactionReceipt`
+  - [ ] emits toasts
+  - [ ] supports callbacks for invalidation
+  - [ ] consistent error mapping
 
 ## 5. MockStyfiClient
 
 - [ ] Build `/lib/clients/styfi/mock.ts`
   - [ ] In-memory fake state structure
-  - [ ] Deterministic initial fixture
+  - [ ] `StandardUser` fixture
+  - [ ] `ActiveUser` fixture
   - [ ] `getAccountState`
   - [ ] Simulated cooldowns, balances
   - [ ] Simulated rewards (accruing + claimable)
-  - [ ] Supports both stYFI and stYFIMax
   - [ ] Latency (500–1000ms)
   - [ ] Mutation in `prepare*` methods
+- [ ] Unit tests for MockStyfiClient behaviour (at least happy paths + basic edge cases)
 
 ## 6. MockVeyfiClient
 
 - [ ] `/lib/clients/veyfi/mock.ts`
-  - [ ] Legacy veYFI fixture
+  - [ ] `StandardUser` fixture
+  - [ ] `ActiveUser` fixture
+  - [ ] Legacy veYFI fixture (for relevant scenarios)
   - [ ] LLYFI tokens fixture: balances, allowances, cooldowns
   - [ ] Rewards
   - [ ] Caps fixture
   - [ ] Latency simulation
   - [ ] Mutations for stake, cooldown, withdraw, redeem
+- [ ] Unit tests for MockVeyfiClient behaviour
 
 ## 7. Mock Scenario System (Optional)
 
-- [ ] Basic infra for scenario selection (`NEXT_PUBLIC_SCENARIO`)
-- [ ] 3–4 sample scenarios (fresh user, staked, cooldown, migration-ready)
+- [ ] (Optional) Add simple scenario selection (`NEXT_PUBLIC_SCENARIO`) once core flows are stable.
 
 ---
 
@@ -119,7 +125,13 @@ _(All FE logic must go through domain hooks)_
   - [ ] `veyfiClient = mock|onchain`
 - [ ] Wrap in `RootLayout`
 
-## 9. Styfi Hooks
+## 9. Common Token Hooks
+
+- [ ] `useTokenAllowance` (React Query + viem)
+- [ ] `useTokenApprove` (wraps ERC-20 approve via `useTx`)
+- [ ] Ensure no raw approve calls from components
+
+## 10. Styfi Hooks
 
 - [ ] `useStyfiAccount`
 - [ ] `useStyfiStake`
@@ -128,7 +140,7 @@ _(All FE logic must go through domain hooks)_
 - [ ] `useStyfiClaimRewards`
 - [ ] Query keys: `["styfi", "account", address]`, `["styfi", "epoch"]`
 
-## 10. Veyfi Hooks
+## 11. Veyfi Hooks
 
 - [ ] `useVeyfiAccount`
 - [ ] `useVeyfiMigration`
@@ -144,7 +156,7 @@ _(All FE logic must go through domain hooks)_
 
 # Phase 4 — UI Foundations (Reusable Components)
 
-## 11. UI Primitives
+## 12. UI Primitives
 
 - [ ] `Button`
 - [ ] `Card`
@@ -157,14 +169,14 @@ _(All FE logic must go through domain hooks)_
 - [ ] `Skeleton`
 - [ ] `Toast` system
 
-## 12. Formatting Helpers (`/lib/format.ts`)
+## 13. Formatting Helpers (`/lib/format.ts`)
 
 - [ ] `formatTokenAmount(bigint)`
 - [ ] `formatUsd(bigint)`
 - [ ] `formatPercent(number)`
 - [ ] No usage of `.toFixed()` in UI
 
-## 13. Epoch Helpers
+## 14. Epoch Helpers
 
 - [ ] `readEpochFromContract` or part of account calls
 - [ ] `useEpochCountdown` with contract-sourced timestamps
@@ -173,14 +185,14 @@ _(All FE logic must go through domain hooks)_
 
 # Phase 5 — `/styfi` (stYFI + stYFIMax) UI
 
-## 14. Page Layout
+## 15. Page Layout
 
 - [ ] Implement `/styfi/page.tsx`
   - [ ] Wrapper layout
   - [ ] Error boundary
   - [ ] Responsive column layout
 
-## 15. Account Summary Panel
+## 16. Account Summary Panel
 
 - [ ] Wallet YFI balance
 - [ ] stYFI active/cooldown
@@ -188,7 +200,7 @@ _(All FE logic must go through domain hooks)_
 - [ ] Epoch information
 - [ ] Blacklist banner (if needed)
 
-## 16. Staking Panels
+## 17. Staking Panels
 
 - [ ] stYFI stake panel
   - [ ] Input + balance + max
@@ -197,13 +209,13 @@ _(All FE logic must go through domain hooks)_
 - [ ] stYFIMax stake panel
   - [ ] Same, but with shares-vs-assets explanation
 
-## 17. Cooldown & Withdraw Panels
+## 18. Cooldown & Withdraw Panels
 
 - [ ] stYFI cooldown + withdraw
 - [ ] stYFIMax cooldown + withdraw
 - [ ] Countdown to readiness
 
-## 18. Rewards Panel
+## 19. Rewards Panel
 
 - [ ] Accruing vs Claimable display
 - [ ] Unified “Claim Rewards” button
@@ -213,40 +225,40 @@ _(All FE logic must go through domain hooks)_
 
 # Phase 6 — `/veyfi` (Migration + LLYFI + Redemption) UI
 
-## 19. Page Layout
+## 20. Page Layout
 
 - [ ] `/veyfi/page.tsx` with sections:
   - Migration
   - LLYFI staking
   - Redemption
 
-## 20. Migration Card
+## 21. Migration Card
 
 - [ ] Show legacy veYFI balance
 - [ ] “Eligible for migration” indicator
 - [ ] Migrate CTA (if allowed)
 - [ ] Success feedback + reload
 
-## 21. LLYFI Staking Table
+## 22. LLYFI Staking Table
 
 - [ ] List all tokens (sdYFI, upYFI, etc.)
 - [ ] Balances, allowances
 - [ ] Approve → Stake CTAs
 - [ ] Collapsible rows for details (optional)
 
-## 22. LLYFI Cooldown & Withdraw
+## 23. LLYFI Cooldown & Withdraw
 
 - [ ] Cooldown start CTA
 - [ ] Cooldown progress indicator
 - [ ] Withdraw CTA
 - [ ] Disable if blacklisted or incomplete
 
-## 23. LLYFI Rewards Panel
+## 24. LLYFI Rewards Panel
 
 - [ ] Accruing vs claimable
 - [ ] Claim-all CTA
 
-## 24. Redemption Panel
+## 25. Redemption Panel
 
 - [ ] Token selector or table
 - [ ] Caps: global + per-token
@@ -259,18 +271,18 @@ _(All FE logic must go through domain hooks)_
 
 # Phase 7 — Error & Edge Behaviour
 
-## 25. Wrong Network UX
+## 26. Wrong Network UX
 
 - [ ] Global banner
 - [ ] Disable all write CTAs
 
-## 26. Blacklist Handling
+## 27. Blacklist Handling
 
 - [ ] Global banner
 - [ ] Disable all write CTAs
 - [ ] Read-only view remains accessible
 
-## 27. Query Error Handling
+## 28. Query Error Handling
 
 - [ ] Error banner with retry
 - [ ] No partial states
@@ -281,22 +293,22 @@ _(All FE logic must go through domain hooks)_
 
 _(Blocked until contract ABIs finalized)_
 
-## 28. OnchainStyfiClient
+## 29. OnchainStyfiClient
 
 - [ ] Implement multicall read logic
 - [ ] Implement tx prep (contract.write)
 
-## 29. OnchainVeyfiClient
+## 30. OnchainVeyfiClient
 
 - [ ] Implement multicall read logic
 - [ ] Implement tx prep
 
-## 30. Approval Helpers
+## 31. Approval Helpers
 
 - [ ] Wrapper around `approve(spender, amount)`
 - [ ] Used by both stYFI and LLYFI staking/redeeming
 
-## 31. Env Toggle
+## 32. Env Toggle
 
 - [ ] `NEXT_PUBLIC_USE_MOCKS=false` loads on-chain clients
 
@@ -304,7 +316,7 @@ _(Blocked until contract ABIs finalized)_
 
 # Phase 9 — QA, Cleanup, Launch Prep
 
-## 32. UI Consistency Audit
+## 33. UI Consistency Audit
 
 - [ ] Buttons
 - [ ] Banners
@@ -312,7 +324,7 @@ _(Blocked until contract ABIs finalized)_
 - [ ] Error states
 - [ ] Copy review
 
-## 33. End-to-End Smoke Tests (Mock Mode)
+## 34. End-to-End Smoke Tests (Mock Mode)
 
 - [ ] Stake stYFI
 - [ ] Stake stYFIMax
@@ -326,9 +338,9 @@ _(Blocked until contract ABIs finalized)_
 - [ ] Blacklist scenario
 - [ ] Wrong network
 
-## 34. Lighthouse / Performance Checks
+## 35. Lighthouse / Performance Checks
 
-## 35. Final Documentation Pass
+## 36. Final Documentation Pass
 
 - [ ] Update `frontend-frd.md`
 - [ ] Update both user story docs

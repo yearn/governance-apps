@@ -80,12 +80,15 @@ All interactive flows use a **global transaction state machine**.
 ### 2.3.2. Requirements
 
 1. All transactions **MUST** use a shared `useTx()` hook.
-2. No component may initiate a raw wagmi write directly.
-3. All domain client write methods **MUST** return a _prepared transaction descriptor_, not perform the write.
-4. Toasts and CTA state changes **MUST** reflect these TxStatus states.
+2. No component may initiate a raw wagmi/viem write directly.
+3. All domain client write methods **MUST** return a **PreparedTransaction**:
+   - A function that, when called, submits the transaction and returns the tx hash.
+   - `useTx` is responsible for waiting on the receipt and driving the status state.
+4. Toasts and CTA state changes **MUST** reflect the `TxStatus` states:
+   - `idle → simulating → signing → submitted → mining → success | error`.
 5. On success:
-
-   - React Query invalidation **MUST** refresh account state.
+   - React Query invalidation **MUST** refresh relevant account state.
+6. ERC-20 approvals **MUST** also use `useTx` (via shared hooks) and **MUST NOT** be executed directly in components.
 
 ---
 
@@ -444,7 +447,7 @@ These belong to later phases.
 - This FRD tracks the exact contract version deployed.
 - Any upstream change to YIP-88 MUST result in:
 
-  - update to `yip-88-summary.md`, and
+  - update to `0-normative-spec-yip88.md`, and
   - corresponding changes here.
 
 ---
