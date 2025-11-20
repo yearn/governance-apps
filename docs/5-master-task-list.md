@@ -36,7 +36,6 @@ _(All type definitions must strictly follow frontend FRD)_
 
 - [ ] `StyfiAccountState`
 - [ ] `StyfiMaxPosition`
-- [ ] `StyfiCooldownState`
 - [ ] `EpochInfo`
 - [ ] `StyfiAllowances`
 - [ ] Export tidy barrel file
