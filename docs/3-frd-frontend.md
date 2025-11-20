@@ -85,12 +85,17 @@ All interactive flows use a **global transaction state machine**.
 2. No component may initiate a raw wagmi/viem write directly.
 3. All domain client write methods **MUST** return a **PreparedTransaction**:
    - A function that, when called, submits the transaction and returns the tx hash.
-   - `useTx` is responsible for waiting on the receipt and driving the status state.
-4. Toasts and CTA state changes **MUST** reflect the `TxStatus` states:
-   - `idle → simulating → signing → submitted → mining → success | error`.
-5. On success:
-   - React Query invalidation **MUST** refresh relevant account state.
-6. ERC-20 approvals **MUST** also use `useTx` (via shared hooks) and **MUST NOT** be executed directly in components.
+   - `useTx` is responsible for waiting for the receipt (via `waitForTransactionReceipt`) and driving the status state.
+4. `TxStatus` **MUST** support at least:
+
+   - `idle → signing → submitted → mining → success | error`
+
+   The optional `simulating` state **MAY** be introduced later when we add client-side simulations.
+
+5. Toasts and CTA state changes **MUST** reflect the `TxStatus` states once the shared toast system is wired in. For **BR#1 Phase 2**, `useTx` **MUST** at minimum expose the current `status` and `error` details so callers can drive UI.
+6. On success:
+   - React Query invalidation **MUST** refresh relevant account state (callers pass invalidation callbacks into `useTx`).
+7. ERC-20 approvals **MUST** also use `useTx` (via shared hooks) and **MUST NOT** be executed directly in components.
 
 ---
 

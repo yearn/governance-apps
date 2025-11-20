@@ -88,43 +88,42 @@ _(Foundation for all write flows)_
 
 ## 4. Implement Tx State Machine
 
-- [ ] Extend `/lib/tx/types.ts` with:
+- [x] Extend `/lib/tx/types.ts` with:
   - [x] `TransactionHash` (already created in Phase 1)
   - [x] `PreparedTransaction` (already created in Phase 1)
-  - [ ] `TxStatus`
-  - [ ] `TxState`
-  - [ ] `TxErrorType`
-- [ ] Implement `/lib/tx/useTx.ts`
-  - [ ] centralises tx lifecycle
-  - [ ] owns `waitForTransactionReceipt`
-  - [ ] emits toasts
-  - [ ] supports callbacks for invalidation
-  - [ ] consistent error mapping
+  - [x] `TxStatus`
+  - [x] `TxState`
+  - [x] `TxErrorType`
+- [x] Implement `/lib/tx/useTx.ts`
+  - [x] centralises tx lifecycle
+  - [x] owns `waitForTransactionReceipt`
+  - [ ] integrates with shared toast system (to be done when UI primitives exist)
+  - [ ] adds retry + richer error normalization (optional later enhancement)
 
 ## 5. MockStyfiClient
 
-- [ ] Build `/lib/clients/styfi/mock.ts`
-  - [ ] In-memory fake state structure
-  - [ ] `StandardUser` fixture
-  - [ ] `ActiveUser` fixture
-  - [ ] `getAccountState`
-  - [ ] Simulated cooldowns, balances
-  - [ ] Simulated rewards (accruing + claimable)
-  - [ ] Latency (500–1000ms)
-  - [ ] Mutation in `prepare*` methods
+- [x] Build `/lib/clients/styfi/mock.ts`
+  - [x] In-memory fake state structure (per-address `Map` + default account state)
+  - [ ] `StandardUser` fixture (explicitly named scenario; currently implicit via default state)
+  - [ ] `ActiveUser` fixture (e.g. pre-staked / in-cooldown scenario)
+  - [x] `getAccountState`
+  - [ ] Simulated cooldowns, balances (actual movement into/out of cooldown over time)
+  - [x] Simulated rewards (initial accruing vs claimable values)
+  - [x] Latency (≈600ms) on reads and tx preparation
+  - [ ] Mutation in `prepare*` methods (stake/cooldown/withdraw/claim changing in-memory state)
 - [ ] Unit tests for MockStyfiClient behaviour (at least happy paths + basic edge cases)
 
 ## 6. MockVeyfiClient
 
-- [ ] `/lib/clients/veyfi/mock.ts`
-  - [ ] `StandardUser` fixture
-  - [ ] `ActiveUser` fixture
-  - [ ] Legacy veYFI fixture (for relevant scenarios)
-  - [ ] LLYFI tokens fixture: balances, allowances, cooldowns
-  - [ ] Rewards
-  - [ ] Caps fixture
-  - [ ] Latency simulation
-  - [ ] Mutations for stake, cooldown, withdraw, redeem
+- [x] `/lib/clients/veyfi/mock.ts`
+  - [x] `StandardUser`-equivalent fixture (default account with balances, veYFI, LLYFI, caps)
+  - [ ] `ActiveUser` fixture (e.g. migrated veYFI, staked LLYFI, in-cooldown)
+  - [x] Legacy veYFI fixture (migration-eligible veYFI state)
+  - [x] LLYFI tokens fixture: balances + allowances (structural cooldown fields present but unused)
+  - [x] Rewards (accruing vs claimable initial values)
+  - [x] Caps fixture (global + per-token limits/used)
+  - [x] Latency simulation for reads and tx preparation
+  - [ ] Mutations for stake, cooldown, withdraw, redeem (in-memory state updates)
 - [ ] Unit tests for MockVeyfiClient behaviour
 
 ## 7. Mock Scenario System (Optional)

@@ -153,23 +153,25 @@ All return a `PreparedTransaction`.
 
 # 4. Transaction Pipeline
 
-**Phase-1 reality:**
-`PreparedTransaction` is a minimal stub in `/lib/tx/types.ts`:
+**Phase-1 reality (done):**
+`PreparedTransaction` is defined in `/lib/tx/types.ts` as:
 
 ```ts
 export type PreparedTransaction = () => Promise<TransactionHash>;
 ```
 
-This allows all domain interfaces to compile cleanly during UI creation.
+**Phase-2 (current state):**
 
-**Phase-2 expands this:**
+- `TxStatus`, `TxErrorType`, and `TxState` are defined in `/lib/tx/types.ts`.
+- `useTx` in `/lib/tx/useTx.ts`:
 
-- `TxStatus` (`idle` → `pending` → `confirmed` / `reverted`)
-- `TxErrorType`
-- `TxState`
-- `waitForTransactionReceipt`
-- automatic toast lifecycle
-- retry and error normalization
+  - calls the `PreparedTransaction`,
+  - waits for confirmation via `waitForTransactionReceipt`,
+  - tracks `idle → signing → submitted → mining → success | error`,
+  - exposes `state` and `status`,
+  - accepts callbacks for invalidation and success/error handling.
+
+Automatic toast lifecycle and retry/error normalization are left to the shared UI layer and **MAY** be added in a later phase without changing the `useTx` interface.
 
 **Principle:**
 **Clients never send transactions themselves.**
@@ -363,17 +365,23 @@ consistent across stYFI, stYFIMax, and LLYFI.
 
 # 10. Mocks Architecture (Phase-2)
 
-Mocks simulate every domain behaviour deterministically.
+Mocks simulate domain behaviour deterministically and are the primary target for local UI development.
 
-### Shared patterns:
+### Shared patterns (target behaviour):
 
 - In-memory store per user
 - Controlled “time” for cooldowns
 - Configurable latency
-- Full mutation on stake/cooldown/withdraw/redeem
+- Mutation on stake/cooldown/withdraw/redeem
 - Deterministic “random” reward accrual
 
-Mocks must implement **every method** of their corresponding client interface.
+For **Phase 2**, mocks:
+
+- implement the full client interfaces for stYFI and veYFI/LLYFI,
+- provide realistic fixtures (balances, rewards, caps),
+- simulate latency and return deterministic tx hashes via `PreparedTransaction`.
+
+Per-address state mutation for stake/cooldown/withdraw/redeem can be layered in once the hooks and ProtocolProvider are wired, without changing the public client interfaces.
 
 Example control flow:
 
