@@ -417,6 +417,7 @@ These behaviours are **not** part of `/veyfi`:
 - These stories are the behavioural baseline for BR#1.
 - Any change to contract ABI or protocol rules requires updates.
 - All FE FRD changes MUST propagate to this file.
+- Cooldown handling uses a shared cross-domain primitive (CooldownState), consistent between stYFI, stYFIMax, and LLYFI flows.
 
 ---
 

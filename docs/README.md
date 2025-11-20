@@ -23,3 +23,4 @@ They define **what the frontend must do** and **how it is built**, and serve as 
 - No duplication between documents; each has a defined purpose.
 - All changes must reflect YIP-88 and currently targeted contract versions.
 - Keep formatting clean, concise, and consistent.
+- Shared frontend primitives (e.g., CooldownState) MUST be defined once in /lib/clients/shared and referenced consistently across domains.

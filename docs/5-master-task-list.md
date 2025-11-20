@@ -49,6 +49,12 @@ _(All type definitions must strictly follow frontend FRD)_
 - [ ] `RedemptionCaps`
 - [ ] `VeyfiAccountState`
 
+(NEW) Create shared cooldown type:
+
+- [ ] Add /lib/clients/shared/types.ts
+- [ ] Define CooldownState
+- [ ] Import CooldownState in styfi/types and veyfi/types
+
 ## 3. Client Interfaces
 
 - [ ] `/lib/clients/styfi/client.ts`

@@ -295,12 +295,14 @@ The UI MUST fetch:
 - `migrationEligible: boolean`
 - `llyfiBalances: Record<string, bigint>`
 - `llyfiAllowances: Record<string, bigint>`
-- `cooldownState: { active, start, end }`
+- `cooldownState: CooldownState` (shared cooldown primitive)
 - `claimableRewards: bigint`
 - `accruingRewards: bigint`
 - `redemptionCaps: { globalCap, used, remainingPerToken }`
 - `redemptionFeeBps: number`
 - `isBlacklisted: boolean`
+
+CooldownState is a shared domain type defined in /lib/clients/shared/types.ts and used by both stYFI and LLYFI domains.
 
 ---
 

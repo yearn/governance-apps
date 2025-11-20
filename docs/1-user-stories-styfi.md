@@ -341,6 +341,7 @@ These stories explicitly **not** part of this domain:
 - This user-story set reflects the frontend behaviour required for BR#1.
 - Changes to protocol or FE FRD MUST update this file.
 - All stories map 1:1 to FRD sections.
+- Cooldown handling uses a shared cross-domain primitive (CooldownState), consistent between stYFI, stYFIMax, and LLYFI flows.
 
 ---
 

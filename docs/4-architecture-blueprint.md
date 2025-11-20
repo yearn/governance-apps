@@ -70,7 +70,8 @@ Non-goals in BR#1:
    - `/styfi`
    - `/veyfi`
    - Future: `/governance`, `/dashboards`, etc.
-     DNS rewrites map subdomains to these paths.
+
+   DNS rewrites map subdomains to these paths.
 
 2. **UI-first, mock-backed**
    Build the full UI, transaction flows, and state handling using **mock clients** first.
@@ -100,11 +101,13 @@ Non-goals in BR#1:
 
 7. **Contracts are source of truth**
    No local re-implementation of:
+
    - reward formulas
    - boosts
    - epoch schedule
    - vault PPS
-     UI only displays what contracts report.
+
+   UI only displays what contracts report.
 
 ---
 
@@ -119,7 +122,9 @@ Non-goals in BR#1:
 
 - **Tailwind CSS v4** (already wired via `@tailwindcss/postcss`)
 - Custom components under `/ui` for:
+
   - Buttons, cards, tables, modals, banners, toasts, progress bars
+
 - Potential later addition: Storybook (optional, not required for BR#1)
 
 ### 4.3 Web3 Layer
@@ -131,12 +136,16 @@ Non-goals in BR#1:
 ### 4.4 Data & State Management
 
 - **React Query** (already configured in `/state/query-client.tsx`)
+
   - All reads go through React Query hooks
   - Invalidation after writes
+
 - **Zustand** (planned)
+
   - For **UI-global state only**: modals, banners, toasts, feature flags.
   - MUST NOT store protocol data (balances, rewards, caps) — those live in React Query.
   - MUST NOT store form inputs — those stay in component-local state or form libs.
+
 - **Zod**
   - For user inputs (amounts, addresses)
   - Not for contract outputs (overhead not justified)
@@ -183,16 +192,18 @@ docs/
 
 lib/
   clients/
+    shared/
+      types.ts              -> shared domain-agnostic primitives (e.g., CooldownState)
     styfi/
       types.ts              -> Styfi domain types
       client.ts             -> StyfiClient interface
       mock.ts               -> MockStyfiClient
       onchain.ts            -> OnchainStyfiClient
     veyfi/
-      types.ts
-      client.ts
-      mock.ts
-      onchain.ts
+      types.ts              -> Veyfi domain types
+      client.ts             -> VeyfiClient interface
+      mock.ts               -> MockVeyfiClient
+      onchain.ts            -> OnchainVeyfiClient
   hooks/
     useStyfiAccount.ts
     useStyfiActions.ts
@@ -245,6 +256,23 @@ Notes:
 
 ## 6. Domain Clients & Types
 
+### 6.0 Shared Cooldown Type
+
+Cooldown semantics (amount + end timestamp) are shared across stYFI, stYFIMax, and LLYFI. This is expressed as a domain-agnostic primitive in a shared module.
+
+**`/lib/clients/shared/types.ts`:**
+
+```ts
+export type CooldownState = {
+  amount: bigint;
+  endsAt: number; // unix seconds (from contract)
+} | null;
+```
+
+Both Styfi and Veyfi domains **import** and reuse this shared type (they do not define their own cooldown shapes).
+
+---
+
 ### 6.1 StyfiClient (stYFI + stYFIMax)
 
 **Responsibility:** Everything under `/styfi`:
@@ -261,6 +289,7 @@ Notes:
 
 ```ts
 import type { Address } from "viem";
+import type { CooldownState } from "@/lib/clients/shared/types";
 
 export type EpochInfo = {
   currentEpoch: number;
@@ -273,17 +302,12 @@ export type StyfiAllowances = {
   yfiToStyfiMax: bigint;
 };
 
-export type StyfiCooldownState = {
-  amount: bigint;
-  endsAt: number; // unix seconds
-} | null;
-
 export type StyfiMaxPosition = {
   sharesActive: bigint; // stYFIMax shares
   sharesInCooldown: bigint;
   assetsActive: bigint; // underlying YFI equivalent
   assetsInCooldown: bigint;
-  cooldown: StyfiCooldownState;
+  cooldown: CooldownState;
 };
 
 export type StyfiAccountState = {
@@ -295,7 +319,7 @@ export type StyfiAccountState = {
   // stYFI
   styfiActive: bigint;
   styfiInCooldown: bigint;
-  styfiCooldown: StyfiCooldownState;
+  styfiCooldown: CooldownState;
 
   // stYFIMax
   styfiMax: StyfiMaxPosition;
@@ -313,14 +337,10 @@ export type StyfiAccountState = {
 
 #### 6.1.2 Interface – `/lib/clients/styfi/client.ts`
 
-````ts
+```ts
 import type { Address } from "viem";
 import type { PreparedTransaction } from "@/lib/tx/types";
-import type {
-  EpochInfo,
-  StyfiAccountState,
-  StyfiCooldownState,
-} from "./types";
+import type { EpochInfo, StyfiAccountState } from "./types";
 
 export type StyfiStakeMode = "stYFI" | "stYFIMax";
 
@@ -329,7 +349,10 @@ export interface StyfiClient {
   getEpochInfo(): Promise<EpochInfo>;
 
   // Write-prep methods: return a PreparedTransaction for useTx.
-  prepareStake(mode: StyfiStakeMode, amount: bigint): Promise<PreparedTransaction>;
+  prepareStake(
+    mode: StyfiStakeMode,
+    amount: bigint
+  ): Promise<PreparedTransaction>;
 
   prepareStartCooldown(
     mode: StyfiStakeMode,
@@ -340,16 +363,18 @@ export interface StyfiClient {
 
   prepareClaimRewards(): Promise<PreparedTransaction>;
 }
+```
 
 **Important:**
-**Approvals are not handled by domain clients.**
-Domain clients **MUST NOT** perform ERC-20 approvals automatically.
 
-Approvals are handled by shared hooks in `/lib/hooks/common`
-(`useTokenAllowance`, `useTokenApprove`), which internally use `useTx`.
+- **Approvals are not handled by domain clients.**
+  Domain clients **MUST NOT** perform ERC-20 approvals automatically.
 
-**No component and no client may call wagmi/viem write methods directly.**
-All approval transactions also go through `PreparedTransaction` → `useTx`.
+- Approvals are handled by shared hooks in `/lib/hooks/common`
+  (`useTokenAllowance`, `useTokenApprove`), which internally use `useTx`.
+
+- **No component and no client may call wagmi/viem write methods directly.**
+  All approval transactions also go through `PreparedTransaction` → `useTx`.
 
 ---
 
@@ -365,6 +390,9 @@ All approval transactions also go through `PreparedTransaction` → `useTx`.
 #### 6.2.1 Types – `/lib/clients/veyfi/types.ts`
 
 ```ts
+import type { Address } from "viem";
+import type { CooldownState } from "@/lib/clients/shared/types";
+
 export type VeYfiMigrationState = {
   legacyBalance: bigint;
   migrationEligible: boolean;
@@ -380,7 +408,7 @@ export type LlyfiTokenState = {
   walletBalance: bigint;
   stakedBalance: bigint;
   cooldownBalance: bigint;
-  cooldown: StyfiCooldownState;
+  cooldown: CooldownState;
   claimableRewards: bigint;
   accruingRewards: bigint;
   allowance: bigint;
@@ -405,7 +433,7 @@ export type VeyfiAccountState = {
   llyfiTokens: LlyfiTokenState[];
   redemptionCaps: RedemptionCaps;
 };
-````
+```
 
 #### 6.2.2 Interface – `/lib/clients/veyfi/client.ts`
 
@@ -674,27 +702,33 @@ All approval UX (status, errors, toasts) is handled via `useTx`.
 ### 9.1 Reads
 
 1. Page mounts.
+
 2. `useStyfiAccount` / `useVeyfiAccount` called with `address`.
+
 3. Hook uses `useQuery` to call `client.getAccountState`.
+
 4. Under the hood, **on-chain clients** use viem `multicall` to fetch:
 
    - balances
    - rewards
    - epoch info
    - blacklist status
-     and aggregate into account types.
+
+   and aggregate into account types.
 
 5. UI renders from stable, typed, aggregated state.
 
 ### 9.2 Writes
 
 1. User presses a button (stake / migrate / redeem / etc).
+
 2. UI:
 
    - Validates inputs via Zod/small helpers.
    - Calls appropriate `prepare*` method on domain client.
 
 3. The client returns a `() => Promise<string>` function (send tx, return hash).
+
 4. `useTx.execute` runs the fn:
 
    - Sets `status` = `signing`, then `submitted`, `mining`, `success`/`error`.
@@ -715,6 +749,7 @@ Approvals (ERC-20 `approve`) are handled similarly but via simple wrappers aroun
 **MockStyfiClient** & **MockVeyfiClient**:
 
 - Implement the same interfaces as on-chain clients.
+
 - Store an in-memory “fake chain state”:
 
   - accounts, balances, cooldowns, rewards, caps, etc.
@@ -789,6 +824,7 @@ A richer scenario system (`?scenario=...`) can be added later if needed, but BR#
 
 ### Phase 1 — Types & Interfaces (NOW)
 
+- Add `/lib/clients/shared/types.ts` with `CooldownState`.
 - Add `/lib/clients/styfi/types.ts` + `client.ts`.
 - Add `/lib/clients/veyfi/types.ts` + `client.ts`.
 - Align types with `frontend-frd.md` and user stories.
@@ -809,6 +845,7 @@ A richer scenario system (`?scenario=...`) can be added later if needed, but BR#
 ### Phase 4 — UI Primitives & Patterns
 
 - Implement `/ui/components` primitives.
+
 - Build `/styfi` patterns:
 
   - Account panel, staking panel, cooldown panel, rewards panel, epoch banner.
@@ -846,6 +883,7 @@ All wired to mocks.
 - `governance-apps` is a single Next.js app hosting both `/styfi` and `/veyfi`.
 - All protocol interactions are abstracted behind `StyfiClient` and `VeyfiClient`.
 - The transaction lifecycle is centralized in `useTx`.
+- A shared `CooldownState` primitive lives in `/lib/clients/shared/types.ts` and is reused across stYFI, stYFIMax, and LLYFI.
 - BigInt and contract-sourced data are enforced throughout.
 - UI is developed against robust mocks first, then bound to real contracts via on-chain clients.
 
@@ -853,4 +891,4 @@ This blueprint is the implementation backbone for BR#1 and must be kept in sync 
 
 ---
 
-_End of Architecture Blueprint v0.5_
+_End of `4-architecture-blueprint.md`_
