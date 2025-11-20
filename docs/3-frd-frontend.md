@@ -1,7 +1,7 @@
 # `03-frontend-frd.md`
 
 **Frontend Functional Requirements — stYFI, stYFIMax, veYFI, LLYFI**
-**Version:** 0.1
+**Version:** 0.2
 **Applies to:** `governance-apps` repository
 **Scope:** Part I (stYFI/stYFIMax) and Part II (veYFI/LLYFI)
 
@@ -68,6 +68,7 @@ All interactive flows use a **global transaction state machine**.
 ### 2.3.1. TxStatus (unified)
 
 ```
+
 'idle'
 'simulating'
 'signing'
@@ -75,6 +76,7 @@ All interactive flows use a **global transaction state machine**.
 'mining'
 'success'
 'error'
+
 ```
 
 ### 2.3.2. Requirements
@@ -159,125 +161,318 @@ All interactive flows use a **global transaction state machine**.
 
 (Part I Domain)
 
----
-
-## 3.1. Required Reads (stYFI)
-
-The UI MUST fetch and display via `StyfiAccountState`:
-
-- `yfiBalance: bigint`
-- `stakedYfi: bigint`
-- `cooldownActive: boolean`
-- `cooldownStartTimestamp: number | null`
-- `cooldownEndTimestamp: number | null`
-- `claimableGenericRewards: bigint`
-- `claimableBoostedRewards: bigint`
-- `accruingGenericRewards: bigint`
-- `accruingBoostedRewards: bigint`
-- `isBlacklisted: boolean`
-- `allowances: { yfiToStyfi, yfiToStyfiMax }`
-
-### 3.1.1. Requirement: Reward Windows
-
-UI must distinguish:
-
-- **Accruing rewards** (in 7-epoch collection window)
-- **Claimable rewards** (in payout window)
-
-UI MUST NOT fake reward predictions.
+All stYFI / stYFIMax reads come from `StyfiAccountState` and associated types defined in
+`/lib/clients/styfi/types.ts` and shared cooldown type in `/lib/clients/shared/types.ts`.
 
 ---
 
-## 3.2. Required Reads (stYFIMax ERC-4626)
+## 3.1. Required Reads (stYFI & stYFIMax)
 
-The UI MUST display:
+The UI **MUST** use the following domain shapes:
 
-- `styfiMaxShares: bigint`
-- `styfiMaxAssets: bigint` (via `convertToAssets(shares)`)
-- `allowances.yfiToStyfiMax: bigint`
+### 3.1.1. `StyfiAccountState`
 
-### 3.2.1. Vault Semantics
+From the client:
 
-1. UI MUST explain:
+```ts
+type StyfiAccountState = {
+  address: Address;
+  isBlacklisted: boolean;
 
-   - Shares ≠ YFI.
-   - Shares increase in value (PPS) as rewards compound.
+  // Wallet
+  yfiBalance: bigint;
 
-2. UI MUST show both:
+  // stYFI
+  styfiActive: bigint;
+  styfiInCooldown: bigint;
+  styfiCooldown: CooldownState;
 
-   - **Shares held**
-   - **Underlying YFI value**
+  // stYFIMax
+  styfiMax: StyfiMaxPosition;
+
+  // Rewards
+  claimableGenericRewards: bigint;
+  claimableBoostedRewards: bigint;
+  accruingGenericRewards: bigint;
+  accruingBoostedRewards: bigint;
+
+  allowances: StyfiAllowances;
+  epoch: EpochInfo;
+};
+```
+
+UI requirements:
+
+- **Wallet section** must show:
+
+  - `yfiBalance`
+
+- **stYFI section** must show:
+
+  - `styfiActive` (active staked amount)
+  - `styfiInCooldown` (amount currently in cooldown)
+  - `styfiCooldown` (`CooldownState` — amount + `endsAt` if a cooldown is active, `null` otherwise)
+
+- **stYFIMax section** must show:
+
+  - `styfiMax` (see below)
+
+- **Rewards section** must show:
+
+  - `claimableGenericRewards`
+  - `claimableBoostedRewards`
+  - `accruingGenericRewards`
+  - `accruingBoostedRewards`
+
+- **Allowances**:
+
+  - `allowances.yfiToStyfi`
+  - `allowances.yfiToStyfiMax`
+  - These drive Approve vs Stake button states.
+
+- **Epoch info**:
+
+  - `epoch.currentEpoch`
+  - `epoch.epochEnd`
+  - `epoch.nextEpochStart`
+
+### 3.1.2. `StyfiMaxPosition`
+
+```ts
+type StyfiMaxPosition = {
+  sharesActive: bigint; // stYFIMax shares
+  sharesInCooldown: bigint;
+  assetsActive: bigint; // underlying YFI equivalent
+  assetsInCooldown: bigint;
+  cooldown: CooldownState;
+};
+```
+
+UI requirements:
+
+- Show both **share-level** exposure (`sharesActive`, `sharesInCooldown`) and **underlying YFI** (`assetsActive`, `assetsInCooldown`).
+- Explain via copy that:
+
+  - Shares ≠ YFI.
+  - Vault PPS increases over time (auto-compounding / rewards).
+
+### 3.1.3. `EpochInfo`
+
+```ts
+type EpochInfo = {
+  currentEpoch: number;
+  epochEnd: number; // unix seconds
+  nextEpochStart: number; // unix seconds
+};
+```
+
+UI requirements:
+
+- Countdown timers and “current epoch” displays **MUST** rely on these fields.
+- The frontend **MUST NOT** derive epochs from local wall-clock time.
+
+### 3.1.4. `StyfiAllowances`
+
+```ts
+type StyfiAllowances = {
+  yfiToStyfi: bigint;
+  yfiToStyfiMax: bigint;
+};
+```
+
+UI requirements:
+
+- For stYFI stake:
+
+  - Compare desired stake amount to `yfiToStyfi`.
+
+- For stYFIMax stake:
+
+  - Compare desired stake amount to `yfiToStyfiMax`.
 
 ---
 
-## 3.3. Actions & Preconditions
+### 3.1.5. Reward Windows
 
-### 3.3.1. Stake stYFI
+The UI must distinguish:
+
+- **Accruing rewards** — `accruingGenericRewards` and `accruingBoostedRewards`
+
+  - These represent rewards inside the 7-epoch **collection** window and are **not yet claimable**.
+
+- **Claimable rewards** — `claimableGenericRewards` and `claimableBoostedRewards`
+
+  - These represent rewards inside the **payout** window and can be claimed.
+
+The UI **MUST NOT**:
+
+- Fabricate projections or APR-based predictions.
+- Guess future claimable values from accrual; it should only surface the values provided by the client.
+
+---
+
+## 3.2. Actions & Preconditions (stYFI & stYFIMax)
+
+All write actions use `StyfiClient` methods:
+
+- `prepareStake(mode, amount)`
+- `prepareStartCooldown(mode, amount)`
+- `prepareWithdraw(mode)`
+- `prepareClaimRewards()`
+
+with:
+
+```ts
+type StyfiStakeMode = "stYFI" | "stYFIMax";
+```
+
+### 3.2.1. Stake stYFI
+
+Preconditions:
+
+- Connected wallet
+- Correct network (Ethereum mainnet)
+- `isBlacklisted = false`
+- `amount > 0`
+- `allowances.yfiToStyfi >= amount`
+
+Flow:
+
+1. If `allowances.yfiToStyfi < amount`:
+
+   - Show **Approve** CTA (uses shared approve helper + `useTx`).
+
+2. After approval:
+
+   - Show **Stake** CTA.
+
+3. On Stake:
+
+   - Call `prepareStake("stYFI", amount)` → `PreparedTransaction`
+   - Execute via `useTx`.
+
+4. On success:
+
+   - Invalidate Styfi account queries and refresh `StyfiAccountState`.
+
+---
+
+### 3.2.2. Stake stYFIMax
+
+Same as stYFI stake, with:
+
+- Allowance source: `allowances.yfiToStyfiMax`.
+- Mode: `prepareStake("stYFIMax", amount)`.
+- UI must additionally show:
+
+  - **Shares minted** (via `StyfiMaxPosition.sharesActive` delta after refresh).
+  - **Underlying YFI** via `assetsActive`.
+
+---
+
+### 3.2.3. Start Cooldown
 
 Preconditions:
 
 - Connected wallet
 - Correct network
-- Not blacklisted
-- `allowance >= amount`
+- `isBlacklisted = false`
+- For stYFI:
+
+  - `styfiActive > 0`
+
+- For stYFIMax:
+
+  - `styfiMax.sharesActive > 0`
+
+- No currently active cooldown for the given mode:
+
+  - stYFI: `styfiCooldown === null` or `styfiCooldown.amount === 0`
+  - stYFIMax: `styfiMax.cooldown === null` or `styfiMax.cooldown.amount === 0`
 
 Flow:
 
-- If allowance insufficient → show **Approve**
-- After approve → show **Stake**
-- Stake triggers the tx lifecycle
+- Call `prepareStartCooldown("stYFI" | "stYFIMax", amountOrFullPosition)` as defined by contract semantics.
+- Execute via `useTx`.
+- On success:
 
-Postconditions:
+  - `styfiInCooldown` / `styfiMax.sharesInCooldown` and their `CooldownState` are updated in `StyfiAccountState`.
 
-- Refresh account state on success
+UI:
 
----
-
-### 3.3.2. Stake stYFIMax
-
-Same as above, plus display of shares vs assets.
+- Must show cooldown start and end using `CooldownState.endsAt`.
+- Must use contract timestamps (no local derivation).
 
 ---
 
-### 3.3.3. Start Cooldown
+### 3.2.4. Withdraw
 
-Conditions:
+Preconditions:
 
-- Must have staked YFI or stYFIMax
-- Not currently in cooldown
-- Not blacklisted
+- Connected wallet
+- Correct network
+- `isBlacklisted = false`
+- For stYFI:
 
-Cooldown timestamps come directly from contract.
+  - `styfiCooldown !== null` and `now >= styfiCooldown.endsAt`
+
+- For stYFIMax:
+
+  - `styfiMax.cooldown !== null` and `now >= styfiMax.cooldown.endsAt`
+
+Flow:
+
+- Call `prepareWithdraw("stYFI" | "stYFIMax")`.
+- Execute via `useTx`.
+- On success:
+
+  - stYFI:
+
+    - `styfiInCooldown` reduced
+    - `yfiBalance` increased
+
+  - stYFIMax:
+
+    - `styfiMax.sharesInCooldown` reduced
+    - `yfiBalance` increased via `assetsInCooldown` conversion
+
+- Refresh `StyfiAccountState`.
+
+UI:
+
+- Withdraw button **MUST** be disabled until cooldown is fully complete.
+- For partial withdraw semantics (if supported later), follow updated client contract.
 
 ---
 
-### 3.3.4. Withdraw
+### 3.2.5. Claim Rewards
 
-Conditions:
+Preconditions:
 
-- In cooldown AND cooldown period is complete
-- Not blacklisted
+- Connected wallet
+- Correct network
+- `isBlacklisted = false`
+- `totalClaimable = claimableGenericRewards + claimableBoostedRewards > 0`
 
-On submit:
+Flow:
 
-- Tx lifecycle
-- Refresh account state
+- Call `prepareClaimRewards()`.
+- Execute via `useTx`.
+- On success:
 
----
+  - Claimable fields reset to zero (or reduced by claimed amount).
+  - Underlying wallet stablecoin / reward balances are reflected in external wallet.
+  - Refresh `StyfiAccountState`.
 
-### 3.3.5. Claim Rewards
+UI:
 
-Single unified claim endpoint for:
+- Shows:
 
-- Generic stYFI rewards
-- Boosted rewards
-- stYFIMax rewards (mechanism depends on contract design — see Open Questions)
+  - `accruingGenericRewards`, `accruingBoostedRewards`
+  - `claimableGenericRewards`, `claimableBoostedRewards`
 
-Requirements:
-
-- Show total `claimableGeneric + claimableBoosted`
-- Disabled if zero
-- After claim → invalidate data
+- “Claim Rewards” button disabled if total claimable is zero.
+- Must not split claim into multiple txs; this is a single unified claim-all for the domain.
 
 ---
 
@@ -285,74 +480,412 @@ Requirements:
 
 (Part II Domain)
 
+All veYFI / LLYFI reads come from `VeyfiAccountState` and related types defined in `/lib/clients/veyfi/types.ts` plus the shared `CooldownState`.
+
 ---
 
-## 4.1. Required Reads (VeyfiAccountState)
+## 4.1. Required Reads (`VeyfiAccountState`)
 
-The UI MUST fetch:
+The UI **MUST** rely on the following domain structure:
 
-- `legacyVeYfiBalance: bigint`
-- `migrationEligible: boolean`
-- `llyfiBalances: Record<string, bigint>`
-- `llyfiAllowances: Record<string, bigint>`
-- `cooldownState: CooldownState` (shared cooldown primitive)
-- `claimableRewards: bigint`
-- `accruingRewards: bigint`
-- `redemptionCaps: { globalCap, used, remainingPerToken }`
-- `redemptionFeeBps: number`
-- `isBlacklisted: boolean`
+```ts
+type VeYfiMigrationState = {
+  legacyBalance: bigint;
+  migrationEligible: boolean;
+  migrated: boolean;
+};
 
-CooldownState is a shared domain type defined in /lib/clients/shared/types.ts and used by both stYFI and LLYFI domains.
+type LlyfiTokenId = "sdYFI" | "upYFI" | "coveYFI"; // extensible
+
+type LlyfiTokenState = {
+  symbol: LlyfiTokenId;
+  name: string;
+  decimals: number;
+
+  walletBalance: bigint;
+  stakedBalance: bigint;
+  cooldownBalance: bigint;
+  cooldown: CooldownState;
+
+  claimableRewards: bigint;
+  accruingRewards: bigint;
+
+  allowance: bigint;
+};
+
+type RedemptionCaps = {
+  globalLimit: bigint;
+  globalUsed: bigint;
+  perToken: {
+    symbol: LlyfiTokenId;
+    limit: bigint;
+    used: bigint;
+  }[];
+  feeBps: number; // 0–10_000
+};
+
+type VeyfiAccountState = {
+  address: Address;
+  isBlacklisted: boolean;
+
+  veYfi: VeYfiMigrationState | null;
+  llyfiTokens: LlyfiTokenState[];
+  redemptionCaps: RedemptionCaps;
+};
+```
+
+UI requirements:
+
+- **Migration state:**
+
+  - If `veYfi === null`, show “No legacy veYFI” / no migration CTA.
+  - If `veYfi.legacyBalance > 0`, show balance and eligibility.
+  - Use `veYfi.migrationEligible` and `veYfi.migrated` flags to drive CTA states.
+
+- **LLYFI tokens:**
+
+  - List all `llyfiTokens` rows, each showing:
+
+    - `symbol`, `name`
+    - `walletBalance`
+    - `stakedBalance`
+    - `cooldownBalance`
+    - `cooldown` (via shared `CooldownState`: amount & `endsAt`)
+    - `claimableRewards`
+    - `accruingRewards`
+    - `allowance`
+
+- **Redemption caps:**
+
+  - Use `redemptionCaps.globalLimit` and `redemptionCaps.globalUsed` to compute remaining global capacity.
+  - For each token:
+
+    - Show remaining per-token capacity from `limit - used`.
+
+  - Use `redemptionCaps.feeBps` as the redemption fee rate for all tokens (unless contract later provides per-token overrides).
 
 ---
 
 ## 4.2. Migration
 
-UI MUST:
+Migration uses:
 
-- Display whether user has legacy veYFI
-- Allow migration only if:
+- `VeyfiAccountState.veYfi`
+- `VeyfiClient.prepareMigrateVeYfi()`
 
-  - Not blacklisted
-  - migrationEligible = true
+Preconditions:
 
-- Show “Migrate to veYFI”
-- After migrate, refresh account state
+- Connected wallet
+- Correct network
+- `isBlacklisted = false`
+- `veYfi !== null`
+- `veYfi.legacyBalance > 0`
+- `veYfi.migrationEligible = true`
+- `veYfi.migrated = false`
+
+Flow:
+
+1. Show card with:
+
+   - Legacy balance (`veYfi.legacyBalance`)
+   - Eligibility state
+
+2. On CTA click:
+
+   - Call `prepareMigrateVeYfi()` → `PreparedTransaction`
+   - Execute via `useTx`.
+
+3. On success:
+
+   - `veYfi.migrated` becomes `true` (as reflected by refreshed state).
+   - Any new veYFI / LLYFI state is reflected by updated `VeyfiAccountState`.
+
+UI:
+
+- If blacklisted → disabled CTA with clear explanation.
+- If not eligible → show reason (e.g. “Migration not yet enabled for your position”).
 
 ---
 
 ## 4.3. LLYFI Staking
 
-For each LLYFI token:
+Staking uses:
 
-- Show balance
-- Show allowance
-- Use two-step approve → stake flow
-- Show rewards accrued and claimable
-- Cooldown behaviour same as stYFI (14-day epoch-based)
+- `VeyfiAccountState.llyfiTokens[]`
+- `VeyfiClient.prepareStakeLlyfi(symbol, amount)`
+
+Preconditions (per token):
+
+- Connected wallet
+- Correct network
+- `isBlacklisted = false`
+- Selected token has `walletBalance > 0`
+- `amount > 0`
+- `allowance >= amount`
+
+Flow for each `LlyfiTokenState`:
+
+1. Show row with:
+
+   - `walletBalance`
+   - `stakedBalance`
+   - `cooldownBalance`
+   - `claimableRewards`, `accruingRewards`
+
+2. If `allowance < amount`:
+
+   - Show **Approve** CTA (ERC-20 approve via shared helper).
+
+3. After approval:
+
+   - Show **Stake** CTA.
+
+4. On Stake:
+
+   - Call `prepareStakeLlyfi(symbol, amount)`.
+   - Execute via `useTx`.
+
+5. On success:
+
+   - `walletBalance` decreases.
+   - `stakedBalance` increases.
+   - Rewards begin accruing.
+
+UI:
+
+- Staking is per-token.
+- Approve/Stake CTAs are per-token and **must not** auto-approve during staking.
 
 ---
 
-## 4.4. Redemption Panel
+## 4.4. LLYFI Cooldown
 
-UI MUST display:
+Cooldown uses:
 
-- User’s LLYFI token balances
-- Per-token redeemable YFI
-- Redemption cap availability (global + per token)
-- Expected fee %
-- Expected fee amount
-- Net YFI received
-- Disabled state when:
+- `VeyfiClient.prepareStartCooldownLlyfi(symbol, amount)`
+- `LlyfiTokenState.cooldown` (shared `CooldownState`)
 
-  - Not enough cap
-  - amount = 0
-  - user blacklisted
+Preconditions (per token):
 
-On redemption:
+- Connected wallet
+- Correct network
+- `isBlacklisted = false`
+- `stakedBalance > 0`
+- Either:
 
-- Standard tx lifecycle
-- Refresh account state post-success
+  - No active cooldown (`cooldown === null || cooldown.amount === 0`), or
+  - UI honours contract semantics for multiple cooldown tranches (if supported later).
+
+Flow:
+
+1. Show “Start Cooldown” CTA for each token with staked balance.
+2. On click:
+
+   - Call `prepareStartCooldownLlyfi(symbol, amountOrFullPosition)`.
+   - Execute via `useTx`.
+
+3. On success:
+
+   - `cooldownBalance` and `cooldown` (amount + `endsAt`) are updated.
+
+UI:
+
+- Show countdown (`endsAt`) based on contract timestamp.
+- MUST NOT compute epoch windows locally; only display what client provides via `CooldownState`.
+
+---
+
+## 4.5. LLYFI Withdraw
+
+Withdraw uses:
+
+- `VeyfiClient.prepareWithdrawLlyfi(symbol)`
+
+Preconditions (per token):
+
+- Connected wallet
+- Correct network
+- `isBlacklisted = false`
+- `cooldown !== null` and `now >= cooldown.endsAt`
+- `cooldownBalance > 0`
+
+Flow:
+
+1. Show “Withdraw” CTA once cooldown is complete.
+2. On click:
+
+   - Call `prepareWithdrawLlyfi(symbol)`.
+   - Execute via `useTx`.
+
+3. On success:
+
+   - `cooldownBalance` reduced.
+   - `walletBalance` increased.
+   - `cooldown` updated or cleared.
+
+UI:
+
+- Disable Withdraw CTA while cooldown is still active.
+- Error messaging if user attempts pre-mature withdraw.
+
+---
+
+## 4.6. LLYFI Rewards (Claim-All)
+
+Rewards use:
+
+- Per-token `claimableRewards` and `accruingRewards`
+- `VeyfiClient.prepareClaimLlyfiRewards()` (claim-all)
+
+Preconditions:
+
+- Connected wallet
+- Correct network
+- `isBlacklisted = false`
+- Sum of `claimableRewards` across all tokens > 0.
+
+Flow:
+
+1. Aggregate claimable across `llyfiTokens[]`.
+
+2. Show:
+
+   - Per-token breakdown (optional).
+   - Aggregate “Claimable rewards” total.
+
+3. Claim CTA:
+
+   - Disabled if aggregate claimable is zero.
+
+4. On click:
+
+   - Call `prepareClaimLlyfiRewards()`.
+   - Execute via `useTx`.
+
+5. On success:
+
+   - Per-token `claimableRewards` reset or reduced.
+   - Underlying reward balance shows up in wallet.
+   - `VeyfiAccountState` refreshed.
+
+UI:
+
+- Distinguish between **accruing** and **claimable** as in stYFI.
+- No speculative APR projections or future claim estimates.
+
+---
+
+## 4.7. Redemption Panel (LLYFI → YFI)
+
+Redemption uses:
+
+- `VeyfiAccountState.llyfiTokens[]`
+- `VeyfiAccountState.redemptionCaps`
+- `VeyfiClient.prepareRedeemLlyfi(symbol, amount)`
+
+### 4.7.1. Cap & Fee Visibility
+
+UI **MUST** show:
+
+- Global redemption usage:
+
+  - `globalLimit`
+  - `globalUsed`
+  - `globalRemaining = globalLimit - globalUsed` (masked as necessary if close to 0).
+
+- Per-token caps:
+
+  - For each `perToken` entry:
+
+    - token `symbol`
+    - `limit`, `used`
+    - remaining capacity `limit - used`
+
+- Redemption fee:
+
+  - Derived from `redemptionCaps.feeBps`:
+
+    - `feePct = feeBps / 10_000`.
+
+If `globalRemaining <= 0`:
+
+- Show that no YFI is available for redemption (global exhaustion).
+
+### 4.7.2. Redemption Preview
+
+For each token:
+
+Given user input `amount` (in LLYFI units):
+
+UI must compute and show:
+
+- Input LLYFI amount.
+- **Gross YFI** to be received before fees (per the client-provided rate/contract semantics; UI should not invent its own conversion logic beyond what the client exposes).
+- **Fee**:
+
+  - Amount: `grossYfi * feeBps / 10_000`.
+  - Percent: `feeBps / 10_000`.
+
+- **Net YFI** after fees.
+- Cap availability:
+
+  - Redemption cannot exceed:
+
+    - `globalRemaining`
+    - token-specific remaining from `perToken[matchingSymbol].limit - used`.
+
+### 4.7.3. Redeem Flow
+
+Preconditions:
+
+- Connected wallet
+- Correct network
+- `isBlacklisted = false`
+- Selected token has sufficient:
+
+  - `walletBalance` or `stakedBalance` / `cooldownBalance` according to contract rules.
+
+- `amount > 0`
+- Per-token and global caps are sufficient for `amount`.
+- Allowance for that token is sufficient (if redemption pulls directly from wallet/staked token).
+
+Flow:
+
+1. Approve step (if required by contract; FE will use `LlyfiTokenState.allowance` to determine):
+
+   - If `allowance < amount` → show **Approve** CTA.
+   - Approval uses shared helper + `useTx`.
+
+2. Redeem step:
+
+   - CTA disabled if:
+
+     - `amount = 0`
+     - caps insufficient
+     - user blacklisted
+
+   - On click:
+
+     - Call `prepareRedeemLlyfi(symbol, amount)`.
+     - Execute via `useTx`.
+
+3. On success:
+
+   - `llyfiTokens` balances (`walletBalance` / `stakedBalance` / `cooldownBalance`) updated as per contract.
+   - `redemptionCaps.globalUsed` and relevant `perToken[].used` updated in the refreshed state.
+   - `yfi` balance (in wallet) increased appropriately (on Styfi side or generic wallet view).
+
+### 4.7.4. Cap Exhaustion UX
+
+- If `globalRemaining <= 0`:
+
+  - Show “No YFI available for redemption right now” at the panel level.
+  - Disable all Redeem CTAs.
+
+- If a specific token’s remaining capacity is zero:
+
+  - Its Redeem CTA is disabled.
+  - Tooltip/message explaining “Redemption cap for this token is exhausted.”
 
 ---
 
@@ -364,12 +897,16 @@ On redemption:
 
 1. After any write tx:
 
-   - All relevant account queries MUST be invalidated.
+   - All relevant account queries **MUST** be invalidated.
+   - At minimum:
+
+     - `StyfiAccountState` after stYFI/stYFIMax writes.
+     - `VeyfiAccountState` after veYFI/LLYFI writes.
 
 2. On wallet switch:
 
-   - Clear old state
-   - Fetch new state
+   - Clear old state.
+   - Fetch new state for the selected address.
 
 ---
 
@@ -382,6 +919,7 @@ On redemption:
   - error state
 
 - Never show zeroes as placeholders.
+
 - Loading rows / skeletons must be stylistically consistent.
 
 ---
@@ -390,21 +928,22 @@ On redemption:
 
 The frontend:
 
-- MUST NOT compute boosts
-- MUST NOT compute epoch windows
-- MUST NOT compute PPS for stYFIMax
-- MUST NOT guess accrual → claimable timing
-- MUST NOT attempt redemptions beyond caps
-- MUST NOT perform silent approvals
-- MUST NOT fetch directly via wagmi inside components (only via clients)
+- MUST NOT compute boosts.
+- MUST NOT compute epoch windows.
+- MUST NOT compute PPS for stYFIMax.
+- MUST NOT guess accrual → claimable timing.
+- MUST NOT attempt redemptions beyond caps.
+- MUST NOT perform silent approvals.
+- MUST NOT fetch directly via wagmi inside components (only via clients).
+- MUST NOT introduce additional fields or shape deviations from the domain types defined in `/lib/clients/**/types.ts` for protocol-critical values.
 
-All calculations involving protocol semantics MUST rely on contract-provided data.
+All calculations involving protocol semantics MUST rely on contract-provided data (as exposed by the domain clients).
 
 ---
 
 # 7. Open Questions & Contract Dependencies
 
-These MUST be resolved before implementing final client logic.
+These MUST be resolved before implementing final on-chain client logic.
 
 ### 7.1. stYFIMax Reward Distribution
 
@@ -423,7 +962,7 @@ These MUST be resolved before implementing final client logic.
 
 ### 7.4. Redemption Accounting
 
-- Confirm if redemption accounting uses token balances directly or some alternative measure.
+- Confirm if redemption accounting uses token balances directly or some alternative measure (e.g. time-weighted amounts).
 
 ---
 
@@ -451,6 +990,18 @@ These belong to later phases.
 
   - update to `0-normative-spec-yip88.md`, and
   - corresponding changes here.
+
+## 9.1. Changelog
+
+- **0.2 — 2025-11-20**
+
+  - Aligned required read shapes with `StyfiAccountState`, `StyfiMaxPosition`, `StyfiAllowances`, `EpochInfo`.
+  - Aligned veYFI/LLYFI reads with `VeyfiAccountState`, `VeYfiMigrationState`, `LlyfiTokenState`, `RedemptionCaps`.
+  - Explicitly documented shared `CooldownState` usage for stYFI, stYFIMax and LLYFI.
+
+- **0.1**
+
+  - Initial FE FRD draft for stYFI/stYFIMax/veYFI/LLYFI.
 
 ---
 

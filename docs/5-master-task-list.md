@@ -45,7 +45,7 @@ _(All type definitions must strictly follow frontend FRD)_
 - [x] `StyfiMaxPosition`
 - [x] `EpochInfo`
 - [x] `StyfiAllowances`
-- [ ] Export tidy barrel file
+- [x] Export tidy barrel file
 
 _(Cooldown semantics are shared via `CooldownState` and imported from `/lib/clients/shared/types.ts` — no separate `StyfiCooldownState` type.)_
 
@@ -78,7 +78,7 @@ _(Cooldown semantics are shared via `CooldownState` and imported from `/lib/clie
   - [x] `prepareWithdrawLlyfi`
   - [x] `prepareClaimLlyfiRewards`
   - [x] `prepareRedeemLlyfi`
-- [ ] Export barrel files for `styfi` and `veyfi` client modules (optional but recommended)
+- [x] Export barrel files for `styfi` and `veyfi` client modules (optional but recommended)
 
 ---
 
