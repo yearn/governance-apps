@@ -1,6 +1,6 @@
 # Master Task List — Governance Apps (stYFI, stYFIMax, veYFI, LLYFI)
 
-Version 1.0 — 2025-11-20
+Version 1.1 — 2025-11-20
 Scope: BR#1 (UI-first, mock-backed), `/styfi` + `/veyfi`
 
 This is the **authoritative implementation roadmap** for the `governance-apps` repository.
@@ -32,39 +32,53 @@ This list reflects:
 
 _(All type definitions must strictly follow frontend FRD)_
 
+## 0. Minimal Tx Types (Shared)
+
+- [x] Create `lib/tx/types.ts` with minimal shared types:
+  - [x] `TransactionHash`
+  - [x] `PreparedTransaction` stub (function returning `TransactionHash`)
+- [ ] Extend with full tx state machine in Phase 2 (`TxStatus`, `TxState`, `TxErrorType`)
+
 ## 1. Create `Styfi` Types
 
-- [ ] `StyfiAccountState`
-- [ ] `StyfiMaxPosition`
-- [ ] `EpochInfo`
-- [ ] `StyfiAllowances`
+- [x] `StyfiAccountState`
+- [x] `StyfiMaxPosition`
+- [x] `EpochInfo`
+- [x] `StyfiAllowances`
 - [ ] Export tidy barrel file
+
+_(Cooldown semantics are shared via `CooldownState` and imported from `/lib/clients/shared/types.ts` — no separate `StyfiCooldownState` type.)_
 
 ## 2. Create `Veyfi` Types
 
-- [ ] `VeYfiMigrationState`
-- [ ] `LlyfiTokenId` enum
-- [ ] `LlyfiTokenState`
-- [ ] `RedemptionCaps`
-- [ ] `VeyfiAccountState`
+- [x] `VeYfiMigrationState`
+- [x] `LlyfiTokenId` enum
+- [x] `LlyfiTokenState`
+- [x] `RedemptionCaps`
+- [x] `VeyfiAccountState`
 
-(NEW) Create shared cooldown type:
+(Shared cooldown type):
 
-- [ ] Add /lib/clients/shared/types.ts
-- [ ] Define CooldownState
-- [ ] Import CooldownState in styfi/types and veyfi/types
+- [x] Add `/lib/clients/shared/types.ts`
+- [x] Define `CooldownState` and reuse it in both `styfi/types` and `veyfi/types`
 
 ## 3. Client Interfaces
 
-- [ ] `/lib/clients/styfi/client.ts`
-  - `getAccountState`
-  - `prepareStake`, `prepareStartCooldown`, `prepareWithdraw`, `prepareClaimRewards`
-- [ ] `/lib/clients/veyfi/client.ts`
-  - `getAccountState`
-  - `prepareMigrateVeYfi`, `prepareStakeLlyfi`, `prepareStartCooldownLlyfi`,
-    `prepareWithdrawLlyfi`, `prepareClaimLlyfiRewards`,
-    `prepareRedeemLlyfi`
-- [ ] Export barrel files
+- [x] `/lib/clients/styfi/client.ts`
+  - [x] `getAccountState`
+  - [x] `prepareStake`
+  - [x] `prepareStartCooldown`
+  - [x] `prepareWithdraw`
+  - [x] `prepareClaimRewards`
+- [x] `/lib/clients/veyfi/client.ts`
+  - [x] `getAccountState`
+  - [x] `prepareMigrateVeYfi`
+  - [x] `prepareStakeLlyfi`
+  - [x] `prepareStartCooldownLlyfi`
+  - [x] `prepareWithdrawLlyfi`
+  - [x] `prepareClaimLlyfiRewards`
+  - [x] `prepareRedeemLlyfi`
+- [ ] Export barrel files for `styfi` and `veyfi` client modules (optional but recommended)
 
 ---
 
@@ -74,9 +88,9 @@ _(Foundation for all write flows)_
 
 ## 4. Implement Tx State Machine
 
-- [ ] Add `/lib/tx/types.ts` with:
-  - [ ] `TransactionHash`
-  - [ ] `PreparedTransaction`
+- [ ] Extend `/lib/tx/types.ts` with:
+  - [x] `TransactionHash` (already created in Phase 1)
+  - [x] `PreparedTransaction` (already created in Phase 1)
   - [ ] `TxStatus`
   - [ ] `TxState`
   - [ ] `TxErrorType`
@@ -233,9 +247,9 @@ _(All FE logic must go through domain hooks)_
 ## 20. Page Layout
 
 - [ ] `/veyfi/page.tsx` with sections:
-  - Migration
-  - LLYFI staking
-  - Redemption
+  - [ ] Migration
+  - [ ] LLYFI staking
+  - [ ] Redemption
 
 ## 21. Migration Card
 
