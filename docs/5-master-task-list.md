@@ -142,10 +142,10 @@ _(All FE logic must go through domain hooks)_
 
 ## 8. ProtocolProvider
 
-- [ ] Implement provider creating:
-  - [ ] `styfiClient = mock|onchain`
-  - [ ] `veyfiClient = mock|onchain`
-- [ ] Wrap in `RootLayout`
+- [x] Implement provider creating:
+  - [x] `styfiClient = mock|onchain`
+  - [x] `veyfiClient = mock|onchain`
+- [x] Wrap in `RootLayout`
 
 ## 9. Common Token Hooks
 
