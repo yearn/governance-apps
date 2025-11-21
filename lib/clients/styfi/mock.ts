@@ -279,3 +279,43 @@ export class MockStyfiClient implements StyfiClient {
 export function createMockStyfiClient(options?: StyfiMockOptions): StyfiClient {
   return new MockStyfiClient(options);
 }
+
+/**
+ * Helper for hooks to simulate ERC-20 approvals in Mock mode.
+ * This is not part of the StyfiClient interface but is used by useTokenApprove.
+ */
+export function setMockStyfiAllowance(
+  user: Address,
+  spender: Address,
+  amount: bigint
+) {
+  const key = user.toLowerCase();
+  // Ensure state exists
+  if (!GLOBAL_STYFI_STORE.has(key)) {
+    // We can't set allowance for a user that hasn't been initialized.
+    // In a real flow, getAccountState is called first, so this should remain safe.
+    return;
+  }
+
+  const state = GLOBAL_STYFI_STORE.get(key)!;
+  const next = { ...state, allowances: { ...state.allowances } };
+
+  // Match spender to allowance field
+  // In a real app we'd check specific addresses.
+  // For this mock, we assume the Spender CONSTANTS map to these fields.
+  // We need to import these constants or hardcode check.
+  // To avoid circular deps, we'll check hardcoded strings or just update ALL for simplicity
+  // if the spender matches a heuristic, OR strictly match the constants we just defined.
+
+  // For simplicity in this mock iteration:
+  // If spender is "0x...01" -> yfiToStyfi
+  // If spender is "0x...02" -> yfiToStyfiMax
+
+  if (spender === "0x1000000000000000000000000000000000000001") {
+    next.allowances.yfiToStyfi = amount;
+  } else if (spender === "0x1000000000000000000000000000000000000002") {
+    next.allowances.yfiToStyfiMax = amount;
+  }
+
+  GLOBAL_STYFI_STORE.set(key, next);
+}

@@ -149,30 +149,30 @@ _(All FE logic must go through domain hooks)_
 
 ## 9. Common Token Hooks
 
-- [ ] `useTokenAllowance` (React Query + viem)
-- [ ] `useTokenApprove` (wraps ERC-20 approve via `useTx`)
-- [ ] Ensure no raw approve calls from components
+- [x] `useTokenAllowance` (React Query + viem)
+- [x] `useTokenApprove` (wraps ERC-20 approve via `useTx`)
+- [x] Ensure no raw approve calls from components
 
 ## 10. Styfi Hooks
 
-- [ ] `useStyfiAccount`
-- [ ] `useStyfiStake`
-- [ ] `useStyfiStartCooldown`
-- [ ] `useStyfiWithdraw`
-- [ ] `useStyfiClaimRewards`
-- [ ] Query keys: `["styfi", "account", address]`, `["styfi", "epoch"]`
+- [x] `useStyfiAccount`
+- [x] `useStyfiStake`
+- [x] `useStyfiStartCooldown`
+- [x] `useStyfiWithdraw`
+- [x] `useStyfiClaimRewards`
+- [x] Query keys: `["styfi", "account", address]`, `["styfi", "epoch"]`
 
 ## 11. Veyfi Hooks
 
-- [ ] `useVeyfiAccount`
-- [ ] `useVeyfiMigration`
-- [ ] `useLlyfiTokens`
-- [ ] `useRedemptionCaps`
-- [ ] `useVeyfiClaimRewards`
-- [ ] `useLlyfiStake`
-- [ ] `useLlyfiStartCooldown`
-- [ ] `useLlyfiWithdraw`
-- [ ] `useLlyfiRedeem`
+- [x] `useVeyfiAccount`
+- [x] `useVeyfiMigration`
+- [x] `useLlyfiTokens`
+- [x] `useRedemptionCaps`
+- [x] `useVeyfiClaimRewards`
+- [x] `useLlyfiStake`
+- [x] `useLlyfiStartCooldown`
+- [x] `useLlyfiWithdraw`
+- [x] `useLlyfiRedeem`
 
 ---
 

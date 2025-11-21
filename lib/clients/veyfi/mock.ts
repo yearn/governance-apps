@@ -12,6 +12,7 @@ import type {
   VeyfiAccountState,
 } from "./types";
 import type { VeyfiClient } from "./client";
+import { MOCK_LLYFI_MAP } from "@/lib/constants";
 
 // --- Global Mock State (Module Scope) ---
 // We move the store here so it acts as a singleton.
@@ -431,4 +432,36 @@ export class MockVeyfiClient implements VeyfiClient {
 
 export function createMockVeyfiClient(options?: VeyfiMockOptions): VeyfiClient {
   return new MockVeyfiClient(options);
+}
+
+/**
+ * Helper for hooks to simulate ERC-20 approvals in Mock mode.
+ * Updates the allowance for a specific LLYFI token.
+ */
+export function setMockLlyfiAllowance(
+  user: Address,
+  tokenAddress: Address,
+  amount: bigint
+) {
+  const key = user.toLowerCase();
+  if (!GLOBAL_VEYFI_STORE.has(key)) return;
+
+  const state = GLOBAL_VEYFI_STORE.get(key)!;
+
+  // Identify token symbol from address
+  const symbol = MOCK_LLYFI_MAP[tokenAddress.toLowerCase()];
+  if (!symbol) return; // Not a tracked mock LLYFI token
+
+  // Deep clone to mutate safely
+  const next = {
+    ...state,
+    llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+  };
+
+  const token = next.llyfiTokens.find((t) => t.symbol === symbol);
+  if (token) {
+    token.allowance = amount;
+  }
+
+  GLOBAL_VEYFI_STORE.set(key, next);
 }
