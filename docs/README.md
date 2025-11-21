@@ -12,6 +12,7 @@ They define **what the frontend must do** and **how it is built**, and serve as 
 - [**4-architecture-blueprint.md**](4-architecture-blueprint.md) — End-to-end implementation strategy and system design
 - [**5-master-task-list.md**](5-master-task-list.md) — Phase-based, actionable roadmap for BR#1
 - [**6-design-system.md**](6-design-system.md) — Visual guidelines, typography, and component usage
+- [**7-copy-and-tone.md**](7-copy-and-tone.md) — Copywriting guidelines and voice commandments
 
 ## Usage
 

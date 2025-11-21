@@ -210,6 +210,7 @@ _(All FE logic must go through domain hooks)_
 - [x] `Header` with AppLauncher and WalletButton
 - [x] `/debug/ui` Kitchen Sink page
 - [x] `docs/6-design-system.md`
+- [x] `docs/7-copy-and-tone.md` (Tone of Voice guide)
 
 ---
 
