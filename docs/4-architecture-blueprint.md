@@ -396,6 +396,14 @@ This produces a dev environment where:
 - No external calls are needed
 - Errors and edge cases can be tested cleanly
 
+### Mock Implementation Details (Dev Only)
+
+To ensure a smooth developer experience where UI updates immediately after transactions:
+
+1.  **Global State:** Mocks use a module-level global `Map` to persist state across React fast-refreshes and component remounts.
+2.  **Implicit Context:** Mocks track the `lastAddress` used in `getAccountState`. This allows `prepare*` methods (which do not accept an address argument) to know which account to mutate during the simulated transaction.
+    - _Note:_ This is a dev-only hack. Real clients rely on the wallet provider's active signer.
+
 ---
 
 # 11. On-Chain Integration (Phase-8+)

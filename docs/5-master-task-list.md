@@ -110,7 +110,8 @@ _(Foundation for all write flows)_
   - [ ] Simulated cooldowns, balances (actual movement into/out of cooldown over time)
   - [x] Simulated rewards (initial accruing vs claimable values)
   - [x] Latency (≈600ms) on reads and tx preparation
-  - [ ] Mutation in `prepare*` methods (stake/cooldown/withdraw/claim changing in-memory state)
+  - [x] Basic mutations in `prepare*` (using implicit "lastAddress" context)
+  - [ ] Advanced simulated scenarios (e.g. time travel) - Deferred to Phase 3/8; see mocks section in blueprint
 - [ ] Unit tests for MockStyfiClient behaviour (at least happy paths + basic edge cases)
 
 ## 6. MockVeyfiClient
@@ -123,7 +124,10 @@ _(Foundation for all write flows)_
   - [x] Rewards (accruing vs claimable initial values)
   - [x] Caps fixture (global + per-token limits/used)
   - [x] Latency simulation for reads and tx preparation
-  - [ ] Mutations for stake, cooldown, withdraw, redeem (in-memory state updates)
+  - [x] Global singleton Map
+  - [x] `getAccountState`
+  - [x] Basic mutations for Migration/Staking
+  - [ ] Full redemption cap logic simulation - Deferred
 - [ ] Unit tests for MockVeyfiClient behaviour
 
 ## 7. Mock Scenario System (Optional)

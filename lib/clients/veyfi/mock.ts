@@ -13,6 +13,20 @@ import type {
 } from "./types";
 import type { VeyfiClient } from "./client";
 
+// --- Global Mock State (Module Scope) ---
+// We move the store here so it acts as a singleton.
+// This prevents state from resetting during React Fast Refresh or component remounts.
+const GLOBAL_VEYFI_STORE = new Map<string, VeyfiAccountState>();
+
+/**
+ * Helper to reset state during tests or development
+ */
+export function resetMockVeyfiStore() {
+  GLOBAL_VEYFI_STORE.clear();
+}
+
+// --- Shared Mock Helpers ---
+
 // Shared with styfi mocks to keep hashes deterministic.
 let veyfiMockTxCounter = 0;
 
@@ -40,6 +54,8 @@ function delay(ms: number): Promise<void> {
 type VeyfiMockOptions = {
   latencyMs?: number; // default 600ms
 };
+
+// --- Default Fixtures ---
 
 /**
  * Default veYFI migration state fixture.
@@ -120,9 +136,15 @@ function createDefaultVeyfiAccount(address: Address): VeyfiAccountState {
   };
 }
 
+// --- Mock Client Implementation ---
+
 export class MockVeyfiClient implements VeyfiClient {
-  private store = new Map<string, VeyfiAccountState>();
   private readonly latencyMs: number;
+
+  // We track the last address used in getAccountState to provide context
+  // for the mutation methods (which don't accept an address argument).
+  // This is a dev-only pattern.
+  private lastAddress: Address | null = null;
 
   constructor(options: VeyfiMockOptions = {}) {
     this.latencyMs = options.latencyMs ?? 600;
@@ -134,26 +156,31 @@ export class MockVeyfiClient implements VeyfiClient {
 
   private getOrCreate(address: Address): VeyfiAccountState {
     const key = this.getKey(address);
-    const existing = this.store.get(key);
+    const existing = GLOBAL_VEYFI_STORE.get(key);
     if (existing) return existing;
 
     const created = createDefaultVeyfiAccount(address);
-    this.store.set(key, created);
+    GLOBAL_VEYFI_STORE.set(key, created);
     return created;
   }
 
   private setState(address: Address, next: VeyfiAccountState) {
     const key = this.getKey(address);
-    this.store.set(key, next);
+    GLOBAL_VEYFI_STORE.set(key, next);
   }
 
   async getAccountState(address: Address): Promise<VeyfiAccountState> {
+    this.lastAddress = address; // Capture context
     await delay(this.latencyMs);
     const state = this.getOrCreate(address);
-    // shallow clone to avoid external direct mutation
+
+    // Return a deep clone to avoid external direct mutation by the UI
     return {
       ...state,
-      llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+      llyfiTokens: state.llyfiTokens.map((t) => ({
+        ...t,
+        cooldown: t.cooldown ? { ...t.cooldown } : null,
+      })),
       redemptionCaps: {
         ...state.redemptionCaps,
         perToken: state.redemptionCaps.perToken.map((p) => ({ ...p })),
@@ -164,9 +191,23 @@ export class MockVeyfiClient implements VeyfiClient {
 
   async prepareMigrateVeYfi(): Promise<PreparedTransaction> {
     const latency = this.latencyMs;
+    const targetAddress = this.lastAddress;
 
     const tx: PreparedTransaction = async () => {
       await delay(latency);
+
+      if (!targetAddress) return nextMockHash();
+      const state = this.getOrCreate(targetAddress);
+
+      if (state.veYfi && state.veYfi.legacyBalance > 0n) {
+        const next = { ...state, veYfi: { ...state.veYfi } };
+        // Mutate: Move legacy balance out (in reality this mints veYFI/LLYFI)
+        // For mock simplicity we just mark it migrated and zero the legacy balance
+        next.veYfi.legacyBalance = 0n;
+        next.veYfi.migrated = true;
+        this.setState(targetAddress, next);
+      }
+
       return nextMockHash();
     };
 
@@ -177,19 +218,34 @@ export class MockVeyfiClient implements VeyfiClient {
     symbol: LlyfiTokenId,
     amount: bigint
   ): Promise<PreparedTransaction> {
-    if (amount <= 0n) {
-      throw new Error("Amount must be > 0");
-    }
-
-    // Explicitly use symbol so it's not considered unused and make constraints obvious.
-    if (!symbol) {
-      throw new Error("LLYFI symbol is required");
-    }
+    if (amount <= 0n) throw new Error("Amount must be > 0");
+    if (!symbol) throw new Error("LLYFI symbol is required");
 
     const latency = this.latencyMs;
+    const targetAddress = this.lastAddress;
 
     const tx: PreparedTransaction = async () => {
       await delay(latency);
+
+      if (!targetAddress) return nextMockHash();
+      const state = this.getOrCreate(targetAddress);
+
+      // Deep clone tokens array to mutate safely
+      const next = {
+        ...state,
+        llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+      };
+
+      const token = next.llyfiTokens.find((t) => t.symbol === symbol);
+      if (token) {
+        if (token.walletBalance < amount) {
+          throw new Error("Mock: Insufficient LLYFI wallet balance");
+        }
+        token.walletBalance -= amount;
+        token.stakedBalance += amount;
+        this.setState(targetAddress, next);
+      }
+
       return nextMockHash();
     };
 
@@ -200,18 +256,39 @@ export class MockVeyfiClient implements VeyfiClient {
     symbol: LlyfiTokenId,
     amount: bigint
   ): Promise<PreparedTransaction> {
-    if (amount < 0n) {
-      throw new Error("Amount must be >= 0");
-    }
-
-    if (!symbol) {
-      throw new Error("LLYFI symbol is required for cooldown");
-    }
+    if (amount < 0n) throw new Error("Amount must be >= 0");
+    if (!symbol) throw new Error("LLYFI symbol is required for cooldown");
 
     const latency = this.latencyMs;
+    const targetAddress = this.lastAddress;
 
     const tx: PreparedTransaction = async () => {
       await delay(latency);
+
+      if (!targetAddress) return nextMockHash();
+      const state = this.getOrCreate(targetAddress);
+
+      const next = {
+        ...state,
+        llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+      };
+
+      const token = next.llyfiTokens.find((t) => t.symbol === symbol);
+      if (token) {
+        if (token.stakedBalance < amount) {
+          throw new Error("Mock: Insufficient staked balance");
+        }
+        // Move from staked to cooldown
+        token.stakedBalance -= amount;
+        token.cooldownBalance += amount;
+        // Update cooldown struct
+        token.cooldown = {
+          amount: token.cooldownBalance,
+          endsAt: addDays(MOCK_COOLDOWN_DAYS),
+        };
+        this.setState(targetAddress, next);
+      }
+
       return nextMockHash();
     };
 
@@ -221,14 +298,34 @@ export class MockVeyfiClient implements VeyfiClient {
   async prepareWithdrawLlyfi(
     symbol: LlyfiTokenId
   ): Promise<PreparedTransaction> {
-    if (!symbol) {
-      throw new Error("LLYFI symbol is required for withdraw");
-    }
+    if (!symbol) throw new Error("LLYFI symbol is required for withdraw");
 
     const latency = this.latencyMs;
+    const targetAddress = this.lastAddress;
 
     const tx: PreparedTransaction = async () => {
       await delay(latency);
+
+      if (!targetAddress) return nextMockHash();
+      const state = this.getOrCreate(targetAddress);
+
+      const next = {
+        ...state,
+        llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+      };
+
+      const token = next.llyfiTokens.find((t) => t.symbol === symbol);
+      if (token) {
+        // Withdraw everything in cooldown
+        const amount = token.cooldownBalance;
+        if (amount > 0n) {
+          token.cooldownBalance = 0n;
+          token.cooldown = null;
+          token.walletBalance += amount;
+          this.setState(targetAddress, next);
+        }
+      }
+
       return nextMockHash();
     };
 
@@ -237,9 +334,32 @@ export class MockVeyfiClient implements VeyfiClient {
 
   async prepareClaimLlyfiRewards(): Promise<PreparedTransaction> {
     const latency = this.latencyMs;
+    const targetAddress = this.lastAddress;
 
     const tx: PreparedTransaction = async () => {
       await delay(latency);
+
+      if (!targetAddress) return nextMockHash();
+      const state = this.getOrCreate(targetAddress);
+
+      const next = {
+        ...state,
+        llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+      };
+
+      // Reset claimable rewards for all tokens
+      let claimedAny = false;
+      for (const token of next.llyfiTokens) {
+        if (token.claimableRewards > 0n) {
+          token.claimableRewards = 0n;
+          claimedAny = true;
+        }
+      }
+
+      if (claimedAny) {
+        this.setState(targetAddress, next);
+      }
+
       return nextMockHash();
     };
 
@@ -250,18 +370,58 @@ export class MockVeyfiClient implements VeyfiClient {
     symbol: LlyfiTokenId,
     amount: bigint
   ): Promise<PreparedTransaction> {
-    if (amount <= 0n) {
-      throw new Error("Amount must be > 0");
-    }
-
-    if (!symbol) {
-      throw new Error("LLYFI symbol is required for redeem");
-    }
+    if (amount <= 0n) throw new Error("Amount must be > 0");
+    if (!symbol) throw new Error("LLYFI symbol is required for redeem");
 
     const latency = this.latencyMs;
+    const targetAddress = this.lastAddress;
 
     const tx: PreparedTransaction = async () => {
       await delay(latency);
+
+      if (!targetAddress) return nextMockHash();
+      const state = this.getOrCreate(targetAddress);
+
+      const next = {
+        ...state,
+        llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+        redemptionCaps: {
+          ...state.redemptionCaps,
+          perToken: state.redemptionCaps.perToken.map((p) => ({ ...p })),
+        },
+      };
+
+      const token = next.llyfiTokens.find((t) => t.symbol === symbol);
+      if (token) {
+        // Check caps (simplified check for mock)
+        const cap = next.redemptionCaps.perToken.find(
+          (c) => c.symbol === symbol
+        );
+
+        if (cap && cap.used + amount > cap.limit) {
+          throw new Error("Mock: Redemption cap exceeded");
+        }
+
+        if (token.walletBalance < amount) {
+          throw new Error("Mock: Insufficient LLYFI balance for redemption");
+        }
+
+        // Burn LLYFI
+        token.walletBalance -= amount;
+
+        // Update Caps usage
+        next.redemptionCaps.globalUsed += amount;
+        if (cap) {
+          cap.used += amount;
+        }
+
+        // Note: In a real app, YFI balance would increase.
+        // Since StyfiClient manages YFI balance and we are in an isolated MockVeyfiClient,
+        // we don't update YFI here. This is acceptable for domain isolation in Phase 2/3.
+
+        this.setState(targetAddress, next);
+      }
+
       return nextMockHash();
     };
 
