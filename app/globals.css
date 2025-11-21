@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* --- Typography --- */
+  --font-sans: "Aeonik", system-ui, sans-serif;
+  --font-mono: "Aeonik Mono", "Courier New", monospace;
+
+  /* --- Colors: Neutrals (Good ol' Grey) --- */
+  --color-neutral-0: #ffffff;
+  --color-neutral-100: #f4f4f4; /* Page Background */
+  --color-neutral-200: #ebebeb; /* Hover states */
+  --color-neutral-300: #e1e1e1; /* Borders */
+  --color-neutral-400: #9d9d9d;
+  --color-neutral-500: #7e7e7e;
+  --color-neutral-600: #5b5b5b; /* Subtext */
+  --color-neutral-700: #424242;
+  --color-neutral-800: #282828;
+  --color-neutral-900: #0c0c0c; /* Main Text */
+
+  /* --- Colors: Metaverse Sunset (stYFI Brand) --- */
+  --color-sunset-100: #ffdc53;
+  --color-sunset-500: #f8a908; /* Primary */
+  --color-sunset-600: #f27f07; /* Hover */
+  --color-sunset-900: #8f0000;
+
+  /* --- Colors: Disco Salmon (veYFI Brand) --- */
+  --color-disco-100: #ff90a1;
+  --color-disco-600: #cc3767; /* Primary */
+  --color-disco-700: #b71962; /* Hover */
+  --color-disco-900: #6a0031;
+
+  /* --- Semantic Mappings --- */
+  --color-background: var(--color-neutral-100);
+  --color-surface: var(--color-neutral-0);
+  --color-text-main: var(--color-neutral-900);
+  --color-text-secondary: var(--color-neutral-600);
+  --color-border: var(--color-neutral-300);
+
+  --radius-box: 0.5rem; /* 8px */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* --- Font Declarations --- */
+
+/* Aeonik (Sans) */
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
 
+/* Aeonik Mono */
+@font-face {
+  font-family: "Aeonik Mono";
+  src: url("/fonts/AeonikMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Aeonik Mono";
+  src: url("/fonts/AeonikMono-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --- Base --- */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-main);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-number {
+  font-family: var(--font-mono);
 }

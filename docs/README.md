@@ -11,6 +11,7 @@ They define **what the frontend must do** and **how it is built**, and serve as 
 - [**3-frd-frontend.md**](3-frd-frontend.md) — Frontend Functional Requirements (canonical behaviour spec)
 - [**4-architecture-blueprint.md**](4-architecture-blueprint.md) — End-to-end implementation strategy and system design
 - [**5-master-task-list.md**](5-master-task-list.md) — Phase-based, actionable roadmap for BR#1
+- [**6-design-system.md**](6-design-system.md) — Visual guidelines, typography, and component usage
 
 ## Usage
 

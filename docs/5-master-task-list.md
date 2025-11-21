@@ -180,41 +180,49 @@ _(All FE logic must go through domain hooks)_
 
 ## 12. UI Primitives
 
-- [ ] `Button`
-- [ ] `Card`
-- [ ] `Input`
-- [ ] `Tabs`
-- [ ] `Table`
-- [ ] `Modal`
-- [ ] `Banner` (for errors, networks, blacklist)
-- [ ] `ProgressBar`
-- [ ] `Skeleton`
-- [ ] `Toast` system
+- [x] `Button`
+- [x] `Card`
+- [x] `Input`
+- [x] `Tabs`
+- [x] `Table`
+- [x] `Modal`
+- [x] `Banner` (for errors, networks, blacklist)
+- [x] `ProgressBar`
+- [x] `Skeleton`
+- [x] `Toast` system
 
 ## 13. Formatting Helpers (`/lib/format.ts`)
 
-- [ ] `formatTokenAmount(bigint)`
-- [ ] `formatUsd(bigint)`
-- [ ] `formatPercent(number)`
-- [ ] No usage of `.toFixed()` in UI
+- [x] `formatTokenAmount(bigint)`
+- [x] `formatUsd(bigint)`
+- [x] `formatPercent(number)`
+- [x] No usage of `.toFixed()` in UI
 
 ## 14. Epoch Helpers
 
-- [ ] `readEpochFromContract` or part of account calls
-- [ ] `useEpochCountdown` with contract-sourced timestamps
+- [x] `readEpochFromContract` or part of account calls
+- [x] `useEpochCountdown` with contract-sourced timestamps
+
+## 15. Design System & Layout
+
+- [x] `globals.css` with Yearn variables (Sunset/Disco/Neutral)
+- [x] `cn` utility
+- [x] `Header` with AppLauncher and WalletButton
+- [x] `/debug/ui` Kitchen Sink page
+- [x] `docs/6-design-system.md`
 
 ---
 
 # Phase 5 — `/styfi` (stYFI + stYFIMax) UI
 
-## 15. Page Layout
+## 16. Page Layout
 
 - [ ] Implement `/styfi/page.tsx`
   - [ ] Wrapper layout
   - [ ] Error boundary
   - [ ] Responsive column layout
 
-## 16. Account Summary Panel
+## 17. Account Summary Panel
 
 - [ ] Wallet YFI balance
 - [ ] stYFI active/cooldown
@@ -222,7 +230,7 @@ _(All FE logic must go through domain hooks)_
 - [ ] Epoch information
 - [ ] Blacklist banner (if needed)
 
-## 17. Staking Panels
+## 18. Staking Panels
 
 - [ ] stYFI stake panel
   - [ ] Input + balance + max
@@ -231,13 +239,13 @@ _(All FE logic must go through domain hooks)_
 - [ ] stYFIMax stake panel
   - [ ] Same, but with shares-vs-assets explanation
 
-## 18. Cooldown & Withdraw Panels
+## 19. Cooldown & Withdraw Panels
 
 - [ ] stYFI cooldown + withdraw
 - [ ] stYFIMax cooldown + withdraw
 - [ ] Countdown to readiness
 
-## 19. Rewards Panel
+## 20. Rewards Panel
 
 - [ ] Accruing vs Claimable display
 - [ ] Unified “Claim Rewards” button
@@ -247,40 +255,40 @@ _(All FE logic must go through domain hooks)_
 
 # Phase 6 — `/veyfi` (Migration + LLYFI + Redemption) UI
 
-## 20. Page Layout
+## 21. Page Layout
 
 - [ ] `/veyfi/page.tsx` with sections:
   - [ ] Migration
   - [ ] LLYFI staking
   - [ ] Redemption
 
-## 21. Migration Card
+## 22. Migration Card
 
 - [ ] Show legacy veYFI balance
 - [ ] “Eligible for migration” indicator
 - [ ] Migrate CTA (if allowed)
 - [ ] Success feedback + reload
 
-## 22. LLYFI Staking Table
+## 23. LLYFI Staking Table
 
 - [ ] List all tokens (sdYFI, upYFI, etc.)
 - [ ] Balances, allowances
 - [ ] Approve → Stake CTAs
 - [ ] Collapsible rows for details (optional)
 
-## 23. LLYFI Cooldown & Withdraw
+## 24. LLYFI Cooldown & Withdraw
 
 - [ ] Cooldown start CTA
 - [ ] Cooldown progress indicator
 - [ ] Withdraw CTA
 - [ ] Disable if blacklisted or incomplete
 
-## 24. LLYFI Rewards Panel
+## 25. LLYFI Rewards Panel
 
 - [ ] Accruing vs claimable
 - [ ] Claim-all CTA
 
-## 25. Redemption Panel
+## 26. Redemption Panel
 
 - [ ] Token selector or table
 - [ ] Caps: global + per-token
@@ -293,18 +301,18 @@ _(All FE logic must go through domain hooks)_
 
 # Phase 7 — Error & Edge Behaviour
 
-## 26. Wrong Network UX
+## 27. Wrong Network UX
 
 - [ ] Global banner
 - [ ] Disable all write CTAs
 
-## 27. Blacklist Handling
+## 28. Blacklist Handling
 
 - [ ] Global banner
 - [ ] Disable all write CTAs
 - [ ] Read-only view remains accessible
 
-## 28. Query Error Handling
+## 29. Query Error Handling
 
 - [ ] Error banner with retry
 - [ ] No partial states
@@ -315,22 +323,22 @@ _(All FE logic must go through domain hooks)_
 
 _(Blocked until contract ABIs finalized)_
 
-## 29. OnchainStyfiClient
+## 30. OnchainStyfiClient
 
 - [ ] Implement multicall read logic
 - [ ] Implement tx prep (contract.write)
 
-## 30. OnchainVeyfiClient
+## 31. OnchainVeyfiClient
 
 - [ ] Implement multicall read logic
 - [ ] Implement tx prep
 
-## 31. Approval Helpers
+## 32. Approval Helpers
 
 - [ ] Wrapper around `approve(spender, amount)`
 - [ ] Used by both stYFI and LLYFI staking/redeeming
 
-## 32. Env Toggle
+## 33. Env Toggle
 
 - [ ] `NEXT_PUBLIC_USE_MOCKS=false` loads on-chain clients
 
@@ -338,7 +346,7 @@ _(Blocked until contract ABIs finalized)_
 
 # Phase 9 — QA, Cleanup, Launch Prep
 
-## 33. UI Consistency Audit
+## 34. UI Consistency Audit
 
 - [ ] Buttons
 - [ ] Banners
@@ -346,7 +354,7 @@ _(Blocked until contract ABIs finalized)_
 - [ ] Error states
 - [ ] Copy review
 
-## 34. End-to-End Smoke Tests (Mock Mode)
+## 35. End-to-End Smoke Tests (Mock Mode)
 
 - [ ] Stake stYFI
 - [ ] Stake stYFIMax
@@ -360,9 +368,9 @@ _(Blocked until contract ABIs finalized)_
 - [ ] Blacklist scenario
 - [ ] Wrong network
 
-## 35. Lighthouse / Performance Checks
+## 36. Lighthouse / Performance Checks
 
-## 36. Final Documentation Pass
+## 37. Final Documentation Pass
 
 - [ ] Update `frontend-frd.md`
 - [ ] Update both user story docs

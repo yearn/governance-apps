@@ -1,5 +1,4 @@
 // lib/tx/useTx.ts
-
 "use client";
 
 import { useCallback, useState } from "react";
@@ -11,48 +10,31 @@ import type {
 } from "./types";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
+import { toast } from "@/components/ui/Toast";
 
-/**
- * Options passed to execute() to allow callers to hook into lifecycle.
- *
- * - onSuccess: called after tx is confirmed
- * - onError:   called when tx fails (user rejection / revert / network)
- * - invalidate: caller-provided invalidation logic (e.g. React Query invalidations)
- */
 type TxExecuteOptions = {
   onSuccess?: (hash: TransactionHash) => void | Promise<void>;
   onError?: (error: unknown, hash?: TransactionHash) => void | Promise<void>;
   invalidate?: () => void | Promise<void>;
-  /**
-   * In mock mode we skip waiting for an on-chain receipt.
-   */
   skipWaitForReceipt?: boolean;
 };
 
-/**
- * Default initial TxState.
- */
 const initialState: TxState = {
   status: "idle",
 };
 
-/**
- * Naive error classifier. We can refine this once we wire real on-chain clients
- * and see the concrete error types from viem/wagmi.
- */
 function classifyError(error: unknown): TxErrorType {
   if (!error) return "unknown";
 
-  // Narrow to an object with optional name/message fields
+  // Safely cast to a generic error shape
   const maybeObj =
     typeof error === "object" && error !== null
-      ? (error as { name?: string; message?: string })
+      ? (error as { name?: string; message?: string; shortMessage?: string })
       : null;
 
-  const name = maybeObj?.name ?? "";
-  const message = maybeObj?.message ?? "";
+  const name = maybeObj?.name || "";
+  const message = maybeObj?.shortMessage || maybeObj?.message || "";
 
-  // viem / wagmi UserRejectedRequestError (or similar flavours)
   if (
     name === "UserRejectedRequestError" ||
     /user rejected/i.test(message) ||
@@ -61,7 +43,6 @@ function classifyError(error: unknown): TxErrorType {
     return "user_rejected";
   }
 
-  // Simple heuristics for revert vs network
   if (/revert/i.test(message) || /execution reverted/i.test(message)) {
     return "revert";
   }
@@ -73,20 +54,6 @@ function classifyError(error: unknown): TxErrorType {
   return "unknown";
 }
 
-/**
- * useTx
- *
- * Centralised transaction lifecycle hook.
- *
- * Responsibilities:
- * - drive TxStatus transitions
- * - call PreparedTransaction to submit the tx
- * - wait for the receipt via wagmi.actions.waitForTransactionReceipt
- * - surface hash + error information
- * - call invalidation and callbacks on success/failure
- *
- * This hook is agnostic to domain (stYFI, stYFIMax, veYFI, LLYFI).
- */
 export function useTx() {
   const [state, setState] = useState<TxState>(initialState);
 
@@ -99,14 +66,13 @@ export function useTx() {
       if (!prepared) return;
 
       let hash: TransactionHash | undefined;
+      const toastId = toast.loading("Check your wallet...");
 
       try {
         setState({
           status: "signing",
         });
 
-        // PreparedTransaction is responsible for actually submitting the tx
-        // and returning the hash once sent.
         hash = await prepared();
 
         setState({
@@ -114,19 +80,19 @@ export function useTx() {
           hash,
         });
 
-        if (!options?.skipWaitForReceipt) {
-          // Wait for confirmation using wagmi actions.
-          // In mock clients, the prepared function may already represent
-          // a "confirmed" transaction, but this call will still be fast.
+        if (options?.skipWaitForReceipt) {
+          toast.success("Transaction submitted (Mock)", { id: toastId });
+        } else {
+          toast.loading("Transaction submitted. Waiting...", { id: toastId });
           setState({
             status: "mining",
             hash,
           });
 
           await waitForTransactionReceipt(wagmiConfig, { hash });
+          toast.success("Transaction confirmed!", { id: toastId });
         }
 
-        // Invalidate caches / queries first, then report success.
         if (options?.invalidate) {
           await options.invalidate();
         }
@@ -147,6 +113,12 @@ export function useTx() {
           const maybeErr = error as { shortMessage?: string; message?: string };
           errorMessage =
             maybeErr.shortMessage ?? maybeErr.message ?? errorMessage;
+        }
+
+        if (errorType === "user_rejected") {
+          toast.dismiss(toastId);
+        } else {
+          toast.error(errorMessage, { id: toastId });
         }
 
         setState({
