@@ -45,7 +45,7 @@ export function useStyfiEpoch() {
 // --- Write Hooks ---
 
 export function useStyfiStake() {
-  const { styfi } = useProtocol();
+  const { styfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -59,6 +59,7 @@ export function useStyfiStake() {
           queryKey: styfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 
@@ -66,7 +67,7 @@ export function useStyfiStake() {
 }
 
 export function useStyfiStartCooldown() {
-  const { styfi } = useProtocol();
+  const { styfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -80,6 +81,7 @@ export function useStyfiStartCooldown() {
           queryKey: styfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 
@@ -87,7 +89,7 @@ export function useStyfiStartCooldown() {
 }
 
 export function useStyfiWithdraw() {
-  const { styfi } = useProtocol();
+  const { styfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -101,6 +103,7 @@ export function useStyfiWithdraw() {
           queryKey: styfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 
@@ -108,7 +111,7 @@ export function useStyfiWithdraw() {
 }
 
 export function useStyfiClaimRewards() {
-  const { styfi } = useProtocol();
+  const { styfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -122,6 +125,7 @@ export function useStyfiClaimRewards() {
           queryKey: styfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 

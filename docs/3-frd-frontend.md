@@ -153,6 +153,7 @@ All interactive flows use a **global transaction state machine**.
    - **Action (Stake / Migrate / Redeem / etc.)**
 
 2. The UI **MUST** determine allowance sufficiency via account state.
+   - `useTokenAllowance` (wagmi `useReadContract`) is for on-chain mode only; in mock mode it returns a stub and callers **must** rely on allowances exposed by domain account state.
 
 3. The domain clients **MUST NOT** auto-approve or abstract approvals inside write calls.
 

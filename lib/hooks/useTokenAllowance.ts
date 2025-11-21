@@ -5,6 +5,10 @@ import { useReadContract, useAccount } from "wagmi";
 import { erc20Abi } from "viem";
 import { useProtocol } from "@/state/protocol";
 
+/**
+ * On-chain allowance reader. Do NOT use for mock-backed stYFI/LLYFI flows;
+ * prefer allowances returned from domain account state to avoid stale/stubbed data.
+ */
 export function useTokenAllowance(token: Address, spender: Address) {
   const { isMock } = useProtocol();
   const { address } = useAccount();

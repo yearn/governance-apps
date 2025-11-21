@@ -3,16 +3,9 @@
 export type TransactionHash = `0x${string}`;
 
 /**
- * Phase-1/2 definition:
- * A PreparedTransaction is a function that, when called,
- * submits the transaction, waits for confirmation, and returns the tx hash.
- *
- * - On-chain clients will use viem/wagmi to:
- *   - send the tx
- *   - wait for the receipt
- *   - then return the hash
- *
- * - Mock clients will simulate this behaviour in-memory.
+ * A PreparedTransaction is a function that, when called, submits the transaction
+ * and returns its hash. The caller (useTx) is responsible for waiting on the
+ * receipt and driving lifecycle state.
  */
 export type PreparedTransaction = () => Promise<TransactionHash>;
 

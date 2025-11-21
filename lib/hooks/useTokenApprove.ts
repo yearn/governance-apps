@@ -18,11 +18,16 @@ export function useTokenApprove() {
   const { address: userAddress } = useAccount();
   const { execute, state } = useTx();
 
+  /**
+   * Approve a spender for a given token.
+   * Note: For stYFI/LLYFI flows, prefer allowances exposed via domain account state;
+   * this hook is mainly for on-chain mode or auxiliary use.
+   */
   const write = async (
     token: Address,
     spender: Address,
     amount: bigint,
-    options?: { onSuccess?: () => void }
+    options?: { onSuccess?: () => void; invalidate?: () => void | Promise<void> }
   ) => {
     const prepare = async (): Promise<TransactionHash> => {
       if (isMock) {
@@ -51,9 +56,8 @@ export function useTokenApprove() {
 
     await execute(prepare, {
       onSuccess: options?.onSuccess,
-      invalidate: async () => {
-        // Generic invalidation usually handled by parent
-      },
+      invalidate: options?.invalidate,
+      skipWaitForReceipt: isMock,
     });
   };
 

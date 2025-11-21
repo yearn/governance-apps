@@ -23,6 +23,10 @@ type TxExecuteOptions = {
   onSuccess?: (hash: TransactionHash) => void | Promise<void>;
   onError?: (error: unknown, hash?: TransactionHash) => void | Promise<void>;
   invalidate?: () => void | Promise<void>;
+  /**
+   * In mock mode we skip waiting for an on-chain receipt.
+   */
+  skipWaitForReceipt?: boolean;
 };
 
 /**
@@ -110,15 +114,17 @@ export function useTx() {
           hash,
         });
 
-        // Wait for confirmation using wagmi actions.
-        // In mock clients, the prepared function may already represent
-        // a "confirmed" transaction, but this call will still be fast.
-        setState({
-          status: "mining",
-          hash,
-        });
+        if (!options?.skipWaitForReceipt) {
+          // Wait for confirmation using wagmi actions.
+          // In mock clients, the prepared function may already represent
+          // a "confirmed" transaction, but this call will still be fast.
+          setState({
+            status: "mining",
+            hash,
+          });
 
-        await waitForTransactionReceipt(wagmiConfig, { hash });
+          await waitForTransactionReceipt(wagmiConfig, { hash });
+        }
 
         // Invalidate caches / queries first, then report success.
         if (options?.invalidate) {

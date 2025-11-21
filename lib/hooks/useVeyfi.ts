@@ -49,7 +49,7 @@ export function useRedemptionCaps() {
 // --- Write Hooks ---
 
 export function useVeyfiMigration() {
-  const { veyfi } = useProtocol();
+  const { veyfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -63,6 +63,7 @@ export function useVeyfiMigration() {
           queryKey: veyfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 
@@ -70,7 +71,7 @@ export function useVeyfiMigration() {
 }
 
 export function useLlyfiStake() {
-  const { veyfi } = useProtocol();
+  const { veyfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -84,6 +85,7 @@ export function useLlyfiStake() {
           queryKey: veyfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 
@@ -91,7 +93,7 @@ export function useLlyfiStake() {
 }
 
 export function useLlyfiStartCooldown() {
-  const { veyfi } = useProtocol();
+  const { veyfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -105,6 +107,7 @@ export function useLlyfiStartCooldown() {
           queryKey: veyfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 
@@ -112,7 +115,7 @@ export function useLlyfiStartCooldown() {
 }
 
 export function useLlyfiWithdraw() {
-  const { veyfi } = useProtocol();
+  const { veyfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -126,6 +129,7 @@ export function useLlyfiWithdraw() {
           queryKey: veyfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 
@@ -133,7 +137,7 @@ export function useLlyfiWithdraw() {
 }
 
 export function useVeyfiClaimRewards() {
-  const { veyfi } = useProtocol();
+  const { veyfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -147,6 +151,7 @@ export function useVeyfiClaimRewards() {
           queryKey: veyfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 
@@ -154,7 +159,7 @@ export function useVeyfiClaimRewards() {
 }
 
 export function useLlyfiRedeem() {
-  const { veyfi } = useProtocol();
+  const { veyfi, isMock } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -168,6 +173,7 @@ export function useLlyfiRedeem() {
           queryKey: veyfiKeys.account(address),
         });
       },
+      skipWaitForReceipt: isMock,
     });
   };
 

@@ -2,7 +2,7 @@
 
 **Version 0.7 — 2025-11-20**
 Scope: stYFI • stYFIMax • veYFI • LLYFI (BR#1 UI-first architecture)
-Status: Updated after Phase-1 implementation
+Status: Updated after Phase-3 implementation
 
 This blueprint defines the front-end implementation architecture for the governance applications under YIP-88, aligned with:
 
@@ -165,8 +165,8 @@ export type PreparedTransaction = () => Promise<TransactionHash>;
 - `TxStatus`, `TxErrorType`, and `TxState` are defined in `/lib/tx/types.ts`.
 - `useTx` in `/lib/tx/useTx.ts`:
 
-  - calls the `PreparedTransaction`,
-  - waits for confirmation via `waitForTransactionReceipt`,
+  - calls the `PreparedTransaction` (which submits and returns a hash),
+  - waits for confirmation via `waitForTransactionReceipt` (skipped in mock mode),
   - tracks `idle → signing → submitted → mining → success | error`,
   - exposes `state` and `status`,
   - accepts callbacks for invalidation and success/error handling.
@@ -220,19 +220,18 @@ A single top-level provider binds domain clients to the UI.
 
 ```
 <ProtocolProvider>
-   <WalletProvider> (wagmi / rainbowkit)
-      <QueryClientProvider>
-         {children}
-      </QueryClientProvider>
+  <Web3Providers> (Wagmi -> QueryClient -> RainbowKit)
+    {children}
+  </Web3Providers>
 </ProtocolProvider>
 ```
 
 `ProtocolProvider` decides whether to use:
 
+- **On-chain clients** (default target)
 - **Mock clients** (`NEXT_PUBLIC_USE_MOCKS=true`)
-- **On-chain clients** (default in production)
 
-This enables rapid local iteration and safe UI-first development.
+Until Phase 8 lands, on-chain clients are not implemented; the provider falls back to mocks with a warning when on-chain is requested. This enables rapid local iteration and safe UI-first development while keeping the intended default clear.
 
 ---
 
@@ -256,6 +255,7 @@ These:
 - Have stable query keys
 - Cache and revalidate predictably
 - Derive UI-ready computed values
+- Allowances for stYFI/LLYFI must come from domain account state; `useTokenAllowance` is reserved for on-chain reads and returns a stub in mock mode.
 
 ## 7.2 Write Hooks
 

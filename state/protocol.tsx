@@ -15,31 +15,34 @@ type ProtocolContextValue = {
 
 const ProtocolContext = createContext<ProtocolContextValue | null>(null);
 
-function createClients(useMocks: boolean) {
-  if (useMocks) {
+function createClients(preferMocks: boolean) {
+  if (!preferMocks) {
+    console.warn(
+      "[Protocol] On-chain clients are not yet implemented; falling back to mocks. Set NEXT_PUBLIC_USE_MOCKS=true to silence this warning."
+    );
+  } else {
     console.log("🔌 [Protocol] Initializing MOCK clients");
-    return {
-      styfi: createMockStyfiClient({ latencyMs: 800 }),
-      veyfi: createMockVeyfiClient({ latencyMs: 800 }),
-    };
   }
 
-  throw new Error(
-    "On-chain clients are not yet implemented. Please set NEXT_PUBLIC_USE_MOCKS=true"
-  );
+  return {
+    styfi: createMockStyfiClient({ latencyMs: 800 }),
+    veyfi: createMockVeyfiClient({ latencyMs: 800 }),
+    isMock: true,
+  };
 }
 
 export function ProtocolProvider({ children }: { children: ReactNode }) {
-  const useMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
+  // Default to on-chain (per docs); explicit opt-in for mocks.
+  const preferMocks = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 
   const value = useMemo(() => {
-    const { styfi, veyfi } = createClients(useMocks);
+    const { styfi, veyfi, isMock } = createClients(preferMocks);
     return {
       styfi,
       veyfi,
-      isMock: useMocks,
+      isMock,
     };
-  }, [useMocks]);
+  }, [preferMocks]);
 
   return (
     <ProtocolContext.Provider value={value}>
