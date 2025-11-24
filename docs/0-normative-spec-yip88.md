@@ -179,14 +179,14 @@ bonus_yfi = team_bonus_amount / bonus_yfi_price
 12. Expelled members **MUST** forfeit future yield and vote power.
 13. Expulsion **MUST** require ≥ 66.7 % supermajority (excluding target).
 
-## 12. Delegation Vault (stYFIMax)
+## 12. Delegation Vault (stYFI+)
 
 1. The Delegation Vault **MUST** conform to the ERC-4626 standard.
-2. The vault **MUST** accept YFI deposits and mint `stYFIMax`.
+2. The vault **MUST** accept YFI deposits and mint `stYFI+`.
 3. The vault **MUST** stake YFI into stYFI and delegate voting to YBC.
 4. The vault **MUST NOT** hold direct governance vote weight.
 5. Rewards **MUST** mirror the stYFI APR and be paid in stables with 0 % performance fee.
-6. `stYFIMax` **MAY** be deposited into v3 vaults for compounding.
+6. `stYFI+` **MAY** be deposited into v3 vaults for compounding.
 
 ## 13. Migration and Redemption
 

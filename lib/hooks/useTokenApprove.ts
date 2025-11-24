@@ -6,7 +6,7 @@ import { useProtocol } from "@/state/protocol";
 import { useTx } from "@/lib/tx/useTx";
 import {
   SPENDER_STYFI,
-  SPENDER_STYFI_MAX,
+  SPENDER_STYFI_PLUS,
   MOCK_LLYFI_MAP,
 } from "@/lib/constants";
 import { setMockStyfiAllowance } from "@/lib/clients/styfi/mock";
@@ -35,8 +35,8 @@ export function useTokenApprove() {
         await new Promise((r) => setTimeout(r, 800));
 
         if (userAddress) {
-          // 1. Handle StYFI Approvals (YFI -> StYFI/StYfiMax)
-          if (spender === SPENDER_STYFI || spender === SPENDER_STYFI_MAX) {
+          // 1. Handle StYFI Approvals (YFI -> StYFI/stYFI+)
+          if (spender === SPENDER_STYFI || spender === SPENDER_STYFI_PLUS) {
             setMockStyfiAllowance(userAddress, spender, amount);
           }
 

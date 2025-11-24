@@ -10,11 +10,11 @@ export type EpochInfo = {
 
 export type StyfiAllowances = {
   yfiToStyfi: bigint;
-  yfiToStyfiMax: bigint;
+  yfiToStyfiPlus: bigint;
 };
 
-export type StyfiMaxPosition = {
-  sharesActive: bigint; // stYFIMax shares
+export type StyfiPlusPosition = {
+  sharesActive: bigint; // stYFI+ shares
   sharesInCooldown: bigint;
   assetsActive: bigint; // underlying YFI equivalent
   assetsInCooldown: bigint;
@@ -33,8 +33,8 @@ export type StyfiAccountState = {
   styfiInCooldown: bigint;
   styfiCooldown: CooldownState;
 
-  // stYFIMax
-  styfiMax: StyfiMaxPosition;
+  // stYFI+
+  styfiPlus: StyfiPlusPosition;
 
   // Rewards
   claimableGenericRewards: bigint;

@@ -54,9 +54,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
       // Brand Variants
       styfi:
-        "bg-sunset-500 text-white hover:bg-sunset-600 disabled:bg-sunset-100 disabled:text-sunset-900",
+        "bg-sunset-600 text-white hover:bg-sunset-500 disabled:bg-sunset-100 disabled:text-sunset-900",
       veyfi:
-        "bg-disco-600 text-white hover:bg-disco-700 disabled:bg-disco-100 disabled:text-disco-900",
+        "bg-disco-700 text-white hover:bg-disco-600 disabled:bg-disco-100 disabled:text-disco-900",
     };
 
     const sizes = {

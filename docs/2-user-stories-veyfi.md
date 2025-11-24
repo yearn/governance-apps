@@ -402,7 +402,7 @@ These mirror the shared stYFI stories and apply across migration, LLYFI staking,
 These behaviours are **not** part of `/veyfi`:
 
 - stYFI staking/cooldown/withdrawal
-- stYFIMax ERC-4626 semantics
+- stYFI+ ERC-4626 semantics
 - Governance voting
 - Voting power decay UI
 - YBC flows
@@ -417,7 +417,7 @@ These behaviours are **not** part of `/veyfi`:
 - These stories are the behavioural baseline for BR#1.
 - Any change to contract ABI or protocol rules requires updates.
 - All FE FRD changes MUST propagate to this file.
-- Cooldown handling uses a shared cross-domain primitive (CooldownState), consistent between stYFI, stYFIMax, and LLYFI flows.
+- Cooldown handling uses a shared cross-domain primitive (CooldownState), consistent between stYFI, stYFI+, and LLYFI flows.
 
 ---
 

@@ -3,7 +3,7 @@ import type { Address } from "viem";
 import type { PreparedTransaction } from "@/lib/tx/types";
 import type { EpochInfo, StyfiAccountState } from "./types";
 
-export type StyfiStakeMode = "stYFI" | "stYFIMax";
+export type StyfiStakeMode = "stYFI" | "stYFI+";
 
 export interface StyfiClient {
   getAccountState(address: Address): Promise<StyfiAccountState>;

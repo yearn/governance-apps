@@ -19,14 +19,14 @@
 
   /* --- Colors: Metaverse Sunset (stYFI Brand) --- */
   --color-sunset-100: #ffdc53;
-  --color-sunset-500: #f8a908; /* Primary */
-  --color-sunset-600: #f27f07; /* Hover */
+  --color-sunset-500: #f8a908; /* Hover */
+  --color-sunset-600: #f27f07; /* Primary */
   --color-sunset-900: #8f0000;
 
   /* --- Colors: Disco Salmon (veYFI Brand) --- */
   --color-disco-100: #ff90a1;
-  --color-disco-600: #cc3767; /* Primary */
-  --color-disco-700: #b71962; /* Hover */
+  --color-disco-600: #cc3767; /* Hover */
+  --color-disco-700: #b71962; /* Primary */
   --color-disco-900: #6a0031;
 
   /* --- Semantic Mappings --- */

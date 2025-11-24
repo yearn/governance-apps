@@ -8,7 +8,7 @@ import type {
   EpochInfo,
   StyfiAccountState,
   StyfiAllowances,
-  StyfiMaxPosition,
+  StyfiPlusPosition,
 } from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
 import { nowSeconds } from "@/lib/mocks/time";
@@ -42,10 +42,10 @@ function delay(ms: number): Promise<void> {
 
 // --- Default State Generators ---
 function defaultAllowances(): StyfiAllowances {
-  return { yfiToStyfi: 0n, yfiToStyfiMax: 0n };
+  return { yfiToStyfi: 0n, yfiToStyfiPlus: 0n };
 }
 
-function defaultStyfiMaxPosition(): StyfiMaxPosition {
+function defaultStyfiPlusPosition(): StyfiPlusPosition {
   return {
     sharesActive: 0n,
     sharesInCooldown: 0n,
@@ -77,7 +77,7 @@ function createDefaultAccountState(
     styfiActive: 0n,
     styfiInCooldown: 0n,
     styfiCooldown: null,
-    styfiMax: defaultStyfiMaxPosition(),
+    styfiPlus: defaultStyfiPlusPosition(),
     claimableGenericRewards: 0n,
     claimableBoostedRewards: 0n,
     accruingGenericRewards: 1n * 10n ** 17n,
@@ -156,7 +156,7 @@ export class MockStyfiClient implements StyfiClient {
     const state = this.getOrCreate(address);
     const key = this.getKey(address);
     const matured = this.applyAccrualAndMaturity(state, key);
-    return { ...matured, styfiMax: { ...matured.styfiMax } };
+    return { ...matured, styfiPlus: { ...matured.styfiPlus } };
   }
 
   async getEpochInfo(): Promise<EpochInfo> {
@@ -197,10 +197,10 @@ export class MockStyfiClient implements StyfiClient {
     if (next.styfiCooldown && next.styfiCooldown.endsAt <= now) {
       next.styfiCooldown = { ...next.styfiCooldown, endsAt: next.styfiCooldown.endsAt };
     }
-    if (next.styfiMax.cooldown && next.styfiMax.cooldown.endsAt <= now) {
-      next.styfiMax = {
-        ...next.styfiMax,
-        cooldown: { ...next.styfiMax.cooldown, endsAt: next.styfiMax.cooldown.endsAt },
+    if (next.styfiPlus.cooldown && next.styfiPlus.cooldown.endsAt <= now) {
+      next.styfiPlus = {
+        ...next.styfiPlus,
+        cooldown: { ...next.styfiPlus.cooldown, endsAt: next.styfiPlus.cooldown.endsAt },
       };
     }
 
@@ -238,13 +238,15 @@ export class MockStyfiClient implements StyfiClient {
 
       if (mode === "stYFI") {
         next.styfiActive += amount;
-      } else {
+      } else if (mode === "stYFI+") {
         // Simple 1:1 logic for mock
-        next.styfiMax = {
-          ...next.styfiMax,
-          sharesActive: next.styfiMax.sharesActive + amount,
-          assetsActive: next.styfiMax.assetsActive + amount,
+        next.styfiPlus = {
+          ...next.styfiPlus,
+          sharesActive: next.styfiPlus.sharesActive + amount,
+          assetsActive: next.styfiPlus.assetsActive + amount,
         };
+      } else {
+        throw new Error(`Unsupported stake mode: ${mode}`);
       }
 
       this.setState(targetAddress, next);
@@ -273,19 +275,21 @@ export class MockStyfiClient implements StyfiClient {
         next.styfiActive -= amount;
         next.styfiInCooldown += amount;
         next.styfiCooldown = { amount: next.styfiInCooldown, endsAt };
-      } else {
-        if (state.styfiMax.sharesActive < amount)
-          throw new Error("Insufficient stYFIMax");
-        next.styfiMax = {
-          ...state.styfiMax,
-          sharesActive: state.styfiMax.sharesActive - amount,
-          sharesInCooldown: state.styfiMax.sharesInCooldown + amount,
-          assetsInCooldown: state.styfiMax.assetsInCooldown + amount, // simplified
+      } else if (mode === "stYFI+") {
+        if (state.styfiPlus.sharesActive < amount)
+          throw new Error("Insufficient stYFI+");
+        next.styfiPlus = {
+          ...state.styfiPlus,
+          sharesActive: state.styfiPlus.sharesActive - amount,
+          sharesInCooldown: state.styfiPlus.sharesInCooldown + amount,
+          assetsInCooldown: state.styfiPlus.assetsInCooldown + amount, // simplified
           cooldown: {
-            amount: state.styfiMax.sharesInCooldown + amount,
+            amount: state.styfiPlus.sharesInCooldown + amount,
             endsAt,
           },
         };
+      } else {
+        throw new Error(`Unsupported cooldown mode: ${mode}`);
       }
 
       this.setState(targetAddress, next);
@@ -317,22 +321,24 @@ export class MockStyfiClient implements StyfiClient {
         next.styfiInCooldown = 0n;
         next.styfiCooldown = null;
         next.yfiBalance += amount;
-      } else {
+      } else if (mode === "stYFI+") {
         if (
-          next.styfiMax.cooldown &&
-          next.styfiMax.cooldown.endsAt > nowSeconds()
+          next.styfiPlus.cooldown &&
+          next.styfiPlus.cooldown.endsAt > nowSeconds()
         ) {
           throw new Error("Cooldown not complete");
         }
 
-        const amount = next.styfiMax.assetsInCooldown; // get back assets
-        next.styfiMax = {
-          ...next.styfiMax,
+        const amount = next.styfiPlus.assetsInCooldown; // get back assets
+        next.styfiPlus = {
+          ...next.styfiPlus,
           sharesInCooldown: 0n,
           assetsInCooldown: 0n,
           cooldown: null,
         };
         next.yfiBalance += amount;
+      } else {
+        throw new Error(`Unsupported withdraw mode: ${mode}`);
       }
 
       this.setState(targetAddress, next);
@@ -394,12 +400,12 @@ export function setMockStyfiAllowance(
 
   // For simplicity in this mock iteration:
   // If spender is "0x...01" -> yfiToStyfi
-  // If spender is "0x...02" -> yfiToStyfiMax
+  // If spender is "0x...02" -> yfiToStyfiPlus
 
   if (spender === "0x1000000000000000000000000000000000000001") {
     next.allowances.yfiToStyfi = amount;
   } else if (spender === "0x1000000000000000000000000000000000000002") {
-    next.allowances.yfiToStyfiMax = amount;
+    next.allowances.yfiToStyfiPlus = amount;
   }
 
   GLOBAL_STYFI_STORE.set(key, next);
