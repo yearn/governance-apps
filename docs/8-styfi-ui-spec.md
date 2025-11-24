@@ -1,4 +1,4 @@
-# stYFI UI Spec v0.3
+# stYFI UI Spec v0.4
 
 **Status:** Approved / Ready for Dev
 **Applies to:** `styfi.yearn.fi` (and `/styfi` route)
@@ -12,19 +12,21 @@ This document defines the **UI and interaction model** for `styfi.yearn.fi`.
 It specifically addresses:
 
 - **Mode Selection:** Switching between **stYFI** and **stYFI+**.
-- **Context-Aware Header:** Navigation and mode controls specific to the domain.
-- **Staking & Cooldown:** Full support for partial staking and partial cooldowns.
-- **Dynamic Rewards:** Rendering reward tokens dynamically based on contract state.
+- **URL-Driven State:** Using search params for deep-linking (`?mode=...`).
+- **Forced Active Choice:** Ensuring users explicitly select a mode before entering.
+- **Navigation:** Decoupling domain controls into a dedicated toolbar.
+- **Functionality:** Full support for partial staking, partial cooldowns, and dynamic rewards.
 
 ---
 
 ## 2. Design Principles
 
 1.  **Flat, Single-Surface:** One page, no tabs, no routing complexity.
-2.  **Mode as State:** stYFI and stYFI+ are views of the same account, toggled via state.
-3.  **Context-Aware Navigation:** The header adapts to the active domain (`/styfi` vs `/veyfi`).
-4.  **Explicit, Safe Interactions:** All write actions (Stake, Cooldown, Withdraw) require explicit inputs.
-5.  **Data-Driven:** Labels (like reward tokens) and Weights are driven by the client, not hardcoded.
+2.  **URL as Source of Truth:** The view state is determined strictly by the URL query parameter.
+3.  **Decoupled Navigation:** The Global Header remains "dumb." Domain-specific controls live in a **Domain Toolbar**.
+4.  **Active Choice:** New users (or those with no history) must explicitly select a mode via a Hero Banner.
+5.  **Explicit, Safe Interactions:** All write actions (Stake, Cooldown, Withdraw) require explicit inputs.
+6.  **Data-Driven:** Labels (token symbols) and Weights are driven by the client, not hardcoded.
 
 ---
 
@@ -34,11 +36,11 @@ It specifically addresses:
 
 **Page Structure:**
 
-1.  **Global Header** (Context-aware: shows Mode Switcher only on this route)
-2.  **Hero / Mode Selection Banner** (If first time/no position)
-3.  **Cockpit** (Two-column layout)
-    - Left: Your Position & Rewards
-    - Right: Stake / Manage Panel
+1.  **Global Header** (Standard Yearn Header)
+2.  **Domain Toolbar** (Mode Switcher & Balance — _Conditional Visibility_)
+3.  **Content Area:**
+    - **State A (No Mode selected):** Hero / Mode Selection Banner.
+    - **State B (Mode Active):** Cockpit (Two-column dashboard).
 
 ---
 
@@ -48,13 +50,13 @@ It specifically addresses:
 
 ```text
 --------------------------------------------------------------------
-| AppLauncher |      [ Mode Switcher ]      | YFI Balance | Wallet |  <-- Header
+| AppLauncher |              [ Yearn Logo ]          | Wallet |    <-- Global Header
 --------------------------------------------------------------------
-|           (Optional) First-Time Mode Selection Banner            |
+|      [ stYFI  |  stYFI+ ]                  [ Unlocked YFI: 12.5 ]| <-- Domain Toolbar
 --------------------------------------------------------------------
-|  [ Your Position ]         |                                     |
-|                            |         [ Stake / Manage ]          |
-|  [ Rewards ]               |                                     |
+|                                                                  |
+|               [ Hero Banner OR Two-Column Cockpit ]              |
+|                                                                  |
 --------------------------------------------------------------------
 ```
 
@@ -63,11 +65,12 @@ It specifically addresses:
 Stacked vertical layout.
 
 ```text
-[Header (Mode Switcher collapses to icon or dropdown)]
-[First-Time Banner (if applicable)]
-[Your Position]
-[Rewards]
-[Stake / Manage]
+[Global Header]
+[Domain Toolbar (Sticky or Scrollable)]
+[Hero Banner OR Cockpit]
+   L [Your Position]
+   L [Rewards]
+   L [Stake / Manage]
 ```
 
 ---
@@ -80,65 +83,85 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
 
 1.  **Tooltip on "Your Position":**
     - Shows Current Epoch #.
-    - Shows Start/End timestamps.
+    - Shows Start/End timestamps (e.g., "Epoch 4 ends Nov 24, 12:00 UTC").
 2.  **Stake / Manage (Cooldown Tab):**
     - Dynamic text updating based on current time: "Cooldown initiated now will be available on [Date]."
 
 ---
 
-## 6. Header Specification
+## 6. Navigation Components
 
-The `Header` component is shared but context-aware.
+### 6.1 Global Header
 
-### 6.1 Elements
+- **Standard Component:** Uses the shared `Header.tsx`.
+- **Behavior:** Dumb component. Does **not** know about stYFI modes. Does not contain the switch.
 
-- **Left:** `AppLauncher` (Yearn Ecosystem menu).
-- **Center (stYFI Specific):** **Mode Switcher**.
-  - **Visibility:** Visible **only** on `/styfi` route. Hidden entirely on `/veyfi`.
-  - **UI:** A toggle or pill selector: `stYFI` | `stYFI+`.
-  - **Behavior:** Visual state indicates the active mode. Switching modes updates the page content immediately without reloading.
-- **Right:**
+### 6.2 Domain Toolbar (New)
+
+- **Location:** Rendered inside `/app/styfi/page.tsx`, immediately below the Global Header.
+- **Visibility:**
+  - **Visible:** If URL has `?mode=styfi` or `?mode=plus`.
+  - **Hidden:** If URL has no mode (Hero Banner state).
+- **Content:**
+  - **Mode Switcher:** Toggle pill between `stYFI` and `stYFI+`.
+    - _Action:_ Clicking updates URL to `?mode=styfi` or `?mode=plus`.
   - **YFI Balance:** Displays user’s _unlocked_ wallet YFI (e.g., "12.50 YFI").
-  - **Wallet Button:** Standard Connect/Account button.
 
 ---
 
-## 7. Mode Logic & Persistence
+## 7. Routing Logic & Persistence
 
 ### 7.1 Mode Definitions
 
 - **stYFI:** Voting power retained.
-- **stYFI+:** Voting power delegated to YBC. Rewards are identical to stYFI.
+- **stYFI+:** Voting power delegated to YBC.
 
-### 7.2 Storage
+### 7.2 URL Parameters (Source of Truth)
 
-- Use **Zustand** with `persist` middleware to store `styfi-mode-preference`.
-- Key: `styfi-mode-preference`
-- Values: `'stYFI' | 'stYFI+'`
+- `?mode=styfi` → Renders stYFI Dashboard + Toolbar.
+- `?mode=plus` → Renders stYFI+ Dashboard + Toolbar.
+- `(No params)` → Triggers "Forced Choice" flow.
 
-### 7.3 Auto-Detection (On Load)
+### 7.3 Persistence (History)
 
-1.  **Check Local Storage:** If preference exists, use it.
-2.  **If New User (No Preference):**
-    - Check on-chain balances.
-    - If `stYFI > 0` and `stYFI+ == 0` → Default to **stYFI**.
-    - If `stYFI+ > 0` and `stYFI == 0` → Default to **stYFI+**.
-    - If both > 0 → Default to the mode with the **larger balance**.
-    - If both == 0 → Show **First-Time Mode Selection Banner**.
+- We use **LocalStorage** only to remember if a user has visited before to streamline returning visits.
+- Key: `styfi-last-mode`
+- Value: `'styfi' | 'plus'`
 
-### 7.4 First-Time Banner
+### 7.4 The "Forced Choice" Flow (On Load)
 
-- Appears between Header and Cockpit.
-- Two large cards comparing features.
-- Clicking a card sets the Mode, saves to Zustand, and collapses the banner.
+**Scenario A: User visits `/styfi` (Clean URL)**
+
+1.  **Check LocalStorage:**
+    - If `styfi-last-mode` exists → **Redirect** to `/styfi?mode=[last-mode]`.
+    - If **No History** → Render **Hero Selection Banner**.
+
+**Scenario B: User visits `/styfi?mode=plus` (Deep Link)**
+
+1.  **Render Dashboard** immediately in `stYFI+` mode.
+2.  **Update LocalStorage:** Set `styfi-last-mode = 'plus'`.
+
+### 7.5 Hero Selection Banner
+
+- **Purpose:** Force an active choice for new users.
+- **Content:** Two large cards side-by-side.
+  - **Card A (stYFI):** "Manage Vote. Standard Rewards."
+  - **Card B (stYFI+):** "Delegated Vote. Standard Rewards."
+- **Action:** Clicking a card:
+  1.  Updates URL to `?mode=...`.
+  2.  Saves choice to LocalStorage.
+  3.  Banner unmounts, Toolbar + Dashboard mounts.
 
 ---
 
-## 8. Core Components
+## 8. Core Components (Dashboard View)
+
+These components only render when a `mode` is present in the URL.
 
 ### 8.1 Your Position Card
 
 **Purpose:** Show live stake state for the _active mode_.
+**Data Source:** `useStyfiPosition(mode)`
 
 **Fields:**
 
@@ -158,6 +181,7 @@ The `Header` component is shared but context-aware.
 ### 8.2 Rewards Card
 
 **Purpose:** Unified claim panel with visibility into future rewards.
+**Data Source:** `useStyfiRewards()`
 
 **Fields:**
 
@@ -173,6 +197,7 @@ The `Header` component is shared but context-aware.
 ### 8.3 Stake / Manage Card
 
 **Single card, always visible.**
+**Data Source:** `useStyfiPosition(mode)` + `useTx()`.
 
 **Tabs:**
 
@@ -192,7 +217,26 @@ The `Header` component is shared but context-aware.
 
 ---
 
-## 9. Technical Amendments (Required for Spec Support)
+## 9. Data Architecture (Granular Hooks)
+
+We implement granular hooks for performance and component decoupling.
+
+1.  **`useStyfiPosition(mode: 'stYFI' | 'stYFI+')`**
+
+    - Returns: `stakedBalance`, `cooldownState`, `earningWeight`.
+    - Uses: `StyfiClient.getAccountState`.
+
+2.  **`useStyfiRewards()`**
+
+    - Returns: `claimable`, `accruing`, `rewardToken { symbol, address, decimals }`.
+    - _Note:_ Rewards are technically unified on the account, but this hook provides a clean interface for the Rewards Card.
+
+3.  **`useEpoch()`**
+    - Returns: `currentEpoch`, `timestamps`.
+
+---
+
+## 10. Technical Amendments (Required for Spec Support)
 
 To support this UI, the following updates are required in `lib/clients/styfi/types.ts` and `mock.ts`:
 
@@ -208,7 +252,7 @@ To support this UI, the following updates are required in `lib/clients/styfi/typ
     ```typescript
     // In StyfiAccountState
     rewardToken: {
-      address: Address; // Added per reviewer feedback
+      address: Address;
       symbol: string;
       decimals: number;
     }
@@ -220,7 +264,7 @@ To support this UI, the following updates are required in `lib/clients/styfi/typ
 
 ---
 
-## 10. Copy & Tone
+## 11. Copy & Tone
 
 - **Reward Token:** Use the symbol provided by the client (do not hardcode "yvUSDS" in text).
 - **Actions:**
@@ -228,14 +272,15 @@ To support this UI, the following updates are required in `lib/clients/styfi/typ
   - "Start Cooldown" (Exit initiation)
   - "Withdraw" (Final exit)
 - **Modes:** Strict usage of "stYFI" and "stYFI+".
+- **Hero Banner:** Clear value prop difference ("Manage Vote" vs "Delegated Vote").
 
 ---
 
-## 11. State Matrix (Revised)
+## 12. State Matrix
 
-| User State    | LocalStorage    | View                                                                    |
-| :------------ | :-------------- | :---------------------------------------------------------------------- |
-| **New User**  | Empty           | **Hero Banner** visible. Header toggle neutral or hidden.               |
-| **Returning** | 'stYFI'         | Cockpit shows **stYFI** data. Header switch set to stYFI.               |
-| **Returning** | 'stYFI+'        | Cockpit shows **stYFI+** data. Header switch set to stYFI+.             |
-| **Conflict**  | Empty (cleared) | Auto-detect. Default to **larger balance**. If equal/zero, Hero Banner. |
+| User State    | LocalStorage | URL Params   | View                                                           |
+| :------------ | :----------- | :----------- | :------------------------------------------------------------- |
+| **New User**  | Empty        | Empty        | **Hero Banner** visible. Toolbar Hidden.                       |
+| **Returning** | 'stYFI'      | Empty        | **Redirect** to `?mode=styfi`.                                 |
+| **Deep Link** | Empty        | `?mode=plus` | **Dashboard (stYFI+)**. Toolbar Visible. Updates LS to 'plus'. |
+| **Browsing**  | 'stYFI'      | `?mode=plus` | **Dashboard (stYFI+)**. Toolbar Visible. Updates LS to 'plus'. |
