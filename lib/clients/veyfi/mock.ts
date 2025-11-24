@@ -13,11 +13,14 @@ import type {
 } from "./types";
 import type { VeyfiClient } from "./client";
 import { MOCK_LLYFI_MAP } from "@/lib/constants";
+import { nowSeconds } from "@/lib/mocks/time";
+import { getMockScenario } from "@/lib/mocks/scenario";
 
 // --- Global Mock State (Module Scope) ---
 // We move the store here so it acts as a singleton.
 // This prevents state from resetting during React Fast Refresh or component remounts.
 const GLOBAL_VEYFI_STORE = new Map<string, VeyfiAccountState>();
+const GLOBAL_LAST_ACCRUAL = new Map<string, number>();
 
 /**
  * Helper to reset state during tests or development
@@ -36,10 +39,6 @@ function nextMockHash(): TransactionHash {
   return `0x${veyfiMockTxCounter
     .toString(16)
     .padStart(64, "0")}` as TransactionHash;
-}
-
-function nowSeconds(): number {
-  return Math.floor(Date.now() / 1000);
 }
 
 function addDays(days: number): number {
@@ -128,13 +127,48 @@ function defaultRedemptionCaps(): RedemptionCaps {
  * Default VeyfiAccountState for a previously unseen address.
  */
 function createDefaultVeyfiAccount(address: Address): VeyfiAccountState {
-  return {
+  const scenario = getMockScenario();
+  const base: VeyfiAccountState = {
     address,
     isBlacklisted: false,
     veYfi: defaultVeYfiState(),
     llyfiTokens: defaultLlyfiTokens(),
     redemptionCaps: defaultRedemptionCaps(),
   };
+
+  if (scenario === "active") {
+    const token = base.llyfiTokens[0];
+    token.walletBalance -= 2n * 10n ** 18n;
+    token.stakedBalance = 2n * 10n ** 18n;
+    token.cooldown = {
+      amount: 1n * 10n ** 18n,
+      endsAt: addDays(2),
+    };
+    token.cooldownBalance = 1n * 10n ** 18n;
+    token.allowance = 5n * 10n ** 18n;
+  }
+
+  if (scenario === "ready") {
+    const token = base.llyfiTokens[0];
+    token.walletBalance -= 2n * 10n ** 18n;
+    token.stakedBalance = 2n * 10n ** 18n;
+    token.cooldown = {
+      amount: 2n * 10n ** 18n,
+      endsAt: nowSeconds() - 60,
+    };
+    token.cooldownBalance = 2n * 10n ** 18n;
+    token.allowance = 5n * 10n ** 18n;
+  }
+
+  if (scenario === "caps-exhausted") {
+    base.redemptionCaps.globalUsed = base.redemptionCaps.globalLimit;
+    base.redemptionCaps.perToken = base.redemptionCaps.perToken.map((p) => ({
+      ...p,
+      used: p.limit,
+    }));
+  }
+
+  return base;
 }
 
 // --- Mock Client Implementation ---
@@ -162,6 +196,7 @@ export class MockVeyfiClient implements VeyfiClient {
 
     const created = createDefaultVeyfiAccount(address);
     GLOBAL_VEYFI_STORE.set(key, created);
+    GLOBAL_LAST_ACCRUAL.set(key, nowSeconds());
     return created;
   }
 
@@ -174,19 +209,21 @@ export class MockVeyfiClient implements VeyfiClient {
     this.lastAddress = address; // Capture context
     await delay(this.latencyMs);
     const state = this.getOrCreate(address);
+    const key = this.getKey(address);
+    const matured = this.applyAccrualAndMaturity(state, key);
 
     // Return a deep clone to avoid external direct mutation by the UI
     return {
-      ...state,
-      llyfiTokens: state.llyfiTokens.map((t) => ({
+      ...matured,
+      llyfiTokens: matured.llyfiTokens.map((t) => ({
         ...t,
         cooldown: t.cooldown ? { ...t.cooldown } : null,
       })),
       redemptionCaps: {
-        ...state.redemptionCaps,
-        perToken: state.redemptionCaps.perToken.map((p) => ({ ...p })),
+        ...matured.redemptionCaps,
+        perToken: matured.redemptionCaps.perToken.map((p) => ({ ...p })),
       },
-      veYfi: state.veYfi ? { ...state.veYfi } : null,
+      veYfi: matured.veYfi ? { ...matured.veYfi } : null,
     };
   }
 
@@ -213,6 +250,41 @@ export class MockVeyfiClient implements VeyfiClient {
     };
 
     return tx;
+  }
+
+  private applyAccrualAndMaturity(
+    state: VeyfiAccountState,
+    key: string
+  ): VeyfiAccountState {
+    const now = nowSeconds();
+    const last = GLOBAL_LAST_ACCRUAL.get(key) ?? now;
+    const elapsed = Math.max(0, now - last);
+    const next: VeyfiAccountState = {
+      ...state,
+      llyfiTokens: state.llyfiTokens.map((t) => ({ ...t, cooldown: t.cooldown ? { ...t.cooldown } : null })),
+      redemptionCaps: {
+        ...state.redemptionCaps,
+        perToken: state.redemptionCaps.perToken.map((p) => ({ ...p })),
+      },
+      veYfi: state.veYfi ? { ...state.veYfi } : null,
+    };
+
+    if (elapsed > 0) {
+      for (const token of next.llyfiTokens) {
+        const move = token.accruingRewards === 0n ? 0n : token.accruingRewards / 10n + 1n;
+        token.accruingRewards = token.accruingRewards > move ? token.accruingRewards - move : 0n;
+        token.claimableRewards += move;
+      }
+      GLOBAL_LAST_ACCRUAL.set(key, now);
+    }
+
+    for (const token of next.llyfiTokens) {
+      if (token.cooldown && token.cooldown.endsAt <= now) {
+        token.cooldown = { ...token.cooldown, endsAt: token.cooldown.endsAt };
+      }
+    }
+
+    return next;
   }
 
   async prepareStakeLlyfi(
@@ -317,6 +389,10 @@ export class MockVeyfiClient implements VeyfiClient {
 
       const token = next.llyfiTokens.find((t) => t.symbol === symbol);
       if (token) {
+        if (token.cooldown && token.cooldown.endsAt > nowSeconds()) {
+          throw new Error("Cooldown not complete");
+        }
+
         // Withdraw everything in cooldown
         const amount = token.cooldownBalance;
         if (amount > 0n) {
@@ -394,6 +470,11 @@ export class MockVeyfiClient implements VeyfiClient {
 
       const token = next.llyfiTokens.find((t) => t.symbol === symbol);
       if (token) {
+        // Global cap check
+        if (next.redemptionCaps.globalUsed + amount > next.redemptionCaps.globalLimit) {
+          throw new Error("Global redemption cap exceeded");
+        }
+
         // Check caps (simplified check for mock)
         const cap = next.redemptionCaps.perToken.find(
           (c) => c.symbol === symbol
@@ -463,5 +544,30 @@ export function setMockLlyfiAllowance(
     token.allowance = amount;
   }
 
+  GLOBAL_VEYFI_STORE.set(key, next);
+}
+
+/**
+ * Helper to preset redemption cap usage for dev/testing.
+ */
+export function setMockRedemptionUsage(
+  user: Address,
+  globalUsed: bigint,
+  perTokenUsed?: Partial<Record<LlyfiTokenId, bigint>>
+) {
+  const key = user.toLowerCase();
+  if (!GLOBAL_VEYFI_STORE.has(key)) return;
+  const state = GLOBAL_VEYFI_STORE.get(key)!;
+  const next = {
+    ...state,
+    redemptionCaps: {
+      ...state.redemptionCaps,
+      globalUsed,
+      perToken: state.redemptionCaps.perToken.map((p) => ({
+        ...p,
+        used: perTokenUsed?.[p.symbol] ?? p.used,
+      })),
+    },
+  };
   GLOBAL_VEYFI_STORE.set(key, next);
 }

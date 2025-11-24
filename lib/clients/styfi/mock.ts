@@ -11,9 +11,12 @@ import type {
   StyfiMaxPosition,
 } from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
+import { nowSeconds } from "@/lib/mocks/time";
+import { getMockScenario } from "@/lib/mocks/scenario";
 
 // --- Global Store (Module Scope) ---
 const GLOBAL_STYFI_STORE = new Map<string, StyfiAccountState>();
+const GLOBAL_LAST_ACCRUAL = new Map<string, number>();
 
 export function resetMockStyfiStore() {
   GLOBAL_STYFI_STORE.clear();
@@ -25,10 +28,6 @@ let mockTxCounter = 0;
 function nextMockHash(): TransactionHash {
   mockTxCounter += 1;
   return `0x${mockTxCounter.toString(16).padStart(64, "0")}` as TransactionHash;
-}
-
-function nowSeconds(): number {
-  return Math.floor(Date.now() / 1000);
 }
 
 function addDays(days: number): number {
@@ -69,9 +68,9 @@ function createDefaultAccountState(
   address: Address,
   options: StyfiMockOptions
 ): StyfiAccountState {
+  const scenario = getMockScenario();
   const initialYfi = options.initialYfiBalance ?? 100n * 10n ** 18n;
-
-  return {
+  const base: StyfiAccountState = {
     address,
     isBlacklisted: false,
     yfiBalance: initialYfi,
@@ -86,6 +85,32 @@ function createDefaultAccountState(
     allowances: defaultAllowances(),
     epoch: defaultEpochInfo(),
   };
+
+  if (scenario === "active") {
+    const stakeAmount = 40n * 10n ** 18n;
+    base.yfiBalance -= stakeAmount;
+    base.styfiActive = stakeAmount;
+    base.allowances.yfiToStyfi = 100n * 10n ** 18n;
+    base.styfiCooldown = {
+      amount: 10n * 10n ** 18n,
+      endsAt: addDays(3),
+    };
+    base.styfiInCooldown = 10n * 10n ** 18n;
+  }
+
+  if (scenario === "ready") {
+    const stakeAmount = 30n * 10n ** 18n;
+    base.yfiBalance -= stakeAmount;
+    base.styfiActive = stakeAmount;
+    base.allowances.yfiToStyfi = 100n * 10n ** 18n;
+    base.styfiCooldown = {
+      amount: 15n * 10n ** 18n,
+      endsAt: nowSeconds() - 60,
+    };
+    base.styfiInCooldown = 15n * 10n ** 18n;
+  }
+
+  return base;
 }
 
 type StyfiMockOptions = {
@@ -116,6 +141,7 @@ export class MockStyfiClient implements StyfiClient {
       initialYfiBalance: undefined,
     });
     GLOBAL_STYFI_STORE.set(key, created);
+    GLOBAL_LAST_ACCRUAL.set(key, nowSeconds());
     return created;
   }
 
@@ -128,12 +154,57 @@ export class MockStyfiClient implements StyfiClient {
     this.lastAddress = address; // Capture context
     await delay(this.latencyMs);
     const state = this.getOrCreate(address);
-    return { ...state, styfiMax: { ...state.styfiMax } };
+    const key = this.getKey(address);
+    const matured = this.applyAccrualAndMaturity(state, key);
+    return { ...matured, styfiMax: { ...matured.styfiMax } };
   }
 
   async getEpochInfo(): Promise<EpochInfo> {
     await delay(this.latencyMs / 2);
     return defaultEpochInfo();
+  }
+
+  private applyAccrualAndMaturity(
+    state: StyfiAccountState,
+    key: string
+  ): StyfiAccountState {
+    const now = nowSeconds();
+    const last = GLOBAL_LAST_ACCRUAL.get(key) ?? now;
+    const elapsed = Math.max(0, now - last);
+
+    const next = { ...state };
+
+    // Roll a small portion of accruing into claimable based on elapsed time
+    if (elapsed > 0) {
+      const roll = (current: bigint) =>
+        current === 0n ? 0n : current / 10n + 1n; // 10% + 1 wei
+      const moveGeneric = roll(next.accruingGenericRewards);
+      const moveBoosted = roll(next.accruingBoostedRewards);
+      next.accruingGenericRewards =
+        next.accruingGenericRewards > moveGeneric
+          ? next.accruingGenericRewards - moveGeneric
+          : 0n;
+      next.accruingBoostedRewards =
+        next.accruingBoostedRewards > moveBoosted
+          ? next.accruingBoostedRewards - moveBoosted
+          : 0n;
+      next.claimableGenericRewards += moveGeneric;
+      next.claimableBoostedRewards += moveBoosted;
+      GLOBAL_LAST_ACCRUAL.set(key, now);
+    }
+
+    // Mark cooldowns as effectively ready if ended
+    if (next.styfiCooldown && next.styfiCooldown.endsAt <= now) {
+      next.styfiCooldown = { ...next.styfiCooldown, endsAt: next.styfiCooldown.endsAt };
+    }
+    if (next.styfiMax.cooldown && next.styfiMax.cooldown.endsAt <= now) {
+      next.styfiMax = {
+        ...next.styfiMax,
+        cooldown: { ...next.styfiMax.cooldown, endsAt: next.styfiMax.cooldown.endsAt },
+      };
+    }
+
+    return next;
   }
 
   async prepareStake(
@@ -235,11 +306,25 @@ export class MockStyfiClient implements StyfiClient {
 
       // Logic: withdraw everything in cooldown
       if (mode === "stYFI") {
+        if (
+          next.styfiCooldown &&
+          next.styfiCooldown.endsAt > nowSeconds()
+        ) {
+          throw new Error("Cooldown not complete");
+        }
+
         const amount = next.styfiInCooldown;
         next.styfiInCooldown = 0n;
         next.styfiCooldown = null;
         next.yfiBalance += amount;
       } else {
+        if (
+          next.styfiMax.cooldown &&
+          next.styfiMax.cooldown.endsAt > nowSeconds()
+        ) {
+          throw new Error("Cooldown not complete");
+        }
+
         const amount = next.styfiMax.assetsInCooldown; // get back assets
         next.styfiMax = {
           ...next.styfiMax,

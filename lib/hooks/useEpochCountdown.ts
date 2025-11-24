@@ -23,7 +23,10 @@ function formatDuration(seconds: number): string {
   return parts.join(" ");
 }
 
-export function useEpochCountdown(epochEndTimestamp: number | undefined) {
+export function useEpochCountdown(
+  epochEndTimestamp: number | undefined,
+  epochStartTimestamp?: number
+) {
   const [timeRemaining, setTimeRemaining] = useState<string>("--");
   const [isComplete, setIsComplete] = useState(false);
   const [progress, setProgress] = useState(0); // 0 to 100
@@ -33,7 +36,9 @@ export function useEpochCountdown(epochEndTimestamp: number | undefined) {
 
     const tick = () => {
       const now = Math.floor(Date.now() / 1000);
-      const totalDuration = 14 * 24 * 60 * 60; // 14 days in seconds (approx max duration)
+      const totalDuration = epochStartTimestamp
+        ? Math.max(1, epochEndTimestamp - epochStartTimestamp)
+        : 14 * 24 * 60 * 60; // fallback assumption
       const remaining = epochEndTimestamp - now;
 
       if (remaining <= 0) {
@@ -47,7 +52,9 @@ export function useEpochCountdown(epochEndTimestamp: number | undefined) {
       // (In reality, start time should come from contract for exact progress bar,
       // but for Cooldowns, we usually just care about time left).
       // For visual smoothness, we can calculate reverse progress or just show strict time.
-      const elapsed = totalDuration - remaining;
+      const elapsed = epochStartTimestamp
+        ? Math.max(0, now - epochStartTimestamp)
+        : totalDuration - remaining;
       const pct = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
 
       setProgress(pct);

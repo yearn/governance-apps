@@ -11,6 +11,7 @@ import type {
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import { toast } from "@/components/ui/Toast";
+import { normalizeTxError } from "./errors";
 
 type TxExecuteOptions = {
   onSuccess?: (hash: TransactionHash) => void | Promise<void>;
@@ -43,7 +44,12 @@ function classifyError(error: unknown): TxErrorType {
     return "user_rejected";
   }
 
-  if (/revert/i.test(message) || /execution reverted/i.test(message)) {
+  if (
+    /revert/i.test(message) ||
+    /execution reverted/i.test(message) ||
+    /cooldown/i.test(message) ||
+    /not ready/i.test(message)
+  ) {
     return "revert";
   }
 
@@ -107,13 +113,9 @@ export function useTx() {
         }
       } catch (error: unknown) {
         const errorType = classifyError(error);
+        const normalized = normalizeTxError(error);
 
-        let errorMessage = "Transaction failed";
-        if (typeof error === "object" && error !== null) {
-          const maybeErr = error as { shortMessage?: string; message?: string };
-          errorMessage =
-            maybeErr.shortMessage ?? maybeErr.message ?? errorMessage;
-        }
+        let errorMessage = normalized.message || "Transaction failed";
 
         if (errorType === "user_rejected") {
           toast.dismiss(toastId);

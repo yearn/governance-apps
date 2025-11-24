@@ -16,7 +16,13 @@ type ProtocolContextValue = {
 const ProtocolContext = createContext<ProtocolContextValue | null>(null);
 
 function createClients(preferMocks: boolean) {
-  if (!preferMocks) {
+  // Until on-chain clients land (Phase 8), we always return mocks but keep
+  // `isMock` true only when mocks are explicitly requested. This lets the UI
+  // toggle behaviours like skipWaitForReceipt while still warning about the
+  // missing on-chain path when preferred.
+  const usingMocks = true;
+
+  if (!preferMocks && usingMocks) {
     console.warn(
       "[Protocol] On-chain clients are not yet implemented; falling back to mocks. Set NEXT_PUBLIC_USE_MOCKS=true to silence this warning."
     );
@@ -27,7 +33,8 @@ function createClients(preferMocks: boolean) {
   return {
     styfi: createMockStyfiClient({ latencyMs: 800 }),
     veyfi: createMockVeyfiClient({ latencyMs: 800 }),
-    isMock: true,
+    // `isMock` reflects the caller intent; keep true when explicitly requested.
+    isMock: preferMocks || usingMocks,
   };
 }
 

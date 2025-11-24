@@ -11,7 +11,6 @@ const APPS = [
   { name: "v2 Vaults", href: "https://yearn.fi/vaults" },
   { name: "yCRV", href: "https://ycrv.yearn.fi" },
   { name: "yETH", href: "https://yeth.yearn.fi" },
-  { name: "veYFI", href: "https://veyfi.yearn.fi" },
   { name: "Juiced", href: "https://juiced.yearn.fi" },
 ];
 
