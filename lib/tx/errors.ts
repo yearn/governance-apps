@@ -1,11 +1,14 @@
+type NormalizedErrorCode =
+  | "user_rejected"
+  | "cooldown_not_ready"
+  | "cap_exceeded"
+  | "insufficient_balance"
+  | "revert"
+  | "network"
+  | "unknown";
+
 type NormalizedError = {
-  code:
-    | "user_rejected"
-    | "cooldown_not_ready"
-    | "cap_exceeded"
-    | "insufficient_balance"
-    | "network"
-    | "unknown";
+  code: NormalizedErrorCode;
   message: string;
 };
 
@@ -50,5 +53,14 @@ export function normalizeTxError(raw: unknown): NormalizedError {
     return { code: "network", message: "Network issue. Please retry." };
   }
 
-  return { code: "unknown", message: maybeObj?.shortMessage || maybeObj?.message || "Something went wrong" };
+  if (text.includes("revert")) {
+    return { code: "revert", message: "Transaction reverted." };
+  }
+
+  return {
+    code: "unknown",
+    message: maybeObj?.shortMessage || maybeObj?.message || "Something went wrong",
+  };
 }
+
+export type { NormalizedError, NormalizedErrorCode };

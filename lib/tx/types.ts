@@ -21,7 +21,14 @@ export type TxStatus =
   | "success"
   | "error";
 
-export type TxErrorType = "user_rejected" | "revert" | "network" | "unknown";
+export type TxErrorType =
+  | "user_rejected"
+  | "revert"
+  | "network"
+  | "cooldown_not_ready"
+  | "cap_exceeded"
+  | "insufficient_balance"
+  | "unknown";
 
 export type TxState = {
   status: TxStatus;

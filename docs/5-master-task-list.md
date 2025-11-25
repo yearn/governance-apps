@@ -98,7 +98,7 @@ _(Foundation for all write flows)_
   - [x] centralises tx lifecycle
   - [x] owns `waitForTransactionReceipt`
   - [ ] integrates with shared toast system (to be done when UI primitives exist)
-  - [ ] adds retry + richer error normalization (optional later enhancement)
+  - [x] adds retry + richer error normalization (optional later enhancement)
 
 ## 5. MockStyfiClient
 
@@ -112,7 +112,7 @@ _(Foundation for all write flows)_
   - [x] Latency (≈600ms) on reads and tx preparation
   - [x] Basic mutations in `prepare*` (using implicit "lastAddress" context)
   - [ ] Advanced simulated scenarios (e.g. time travel) - Deferred to Phase 3/8; see mocks section in blueprint
-- [ ] Unit tests for MockStyfiClient behaviour (at least happy paths + basic edge cases)
+- [x] Unit tests for MockStyfiClient behaviour (at least happy paths + basic edge cases)
 
 ## 6. MockVeyfiClient
 
@@ -128,7 +128,7 @@ _(Foundation for all write flows)_
   - [x] `getAccountState`
   - [x] Basic mutations for Migration/Staking
   - [ ] Full redemption cap logic simulation - Deferred
-- [ ] Unit tests for MockVeyfiClient behaviour
+- [x] Unit tests for MockVeyfiClient behaviour
 
 ## 7. Mock Scenario System (Optional)
 

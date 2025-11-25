@@ -1,34 +1,21 @@
 // app/styfi/page.tsx
-"use client";
+import { StyfiPageClient } from "./StyfiPageClient";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
+type Mode = "styfi" | "plus";
 
-export default function StyfiPage() {
-  const { address, isConnected } = useAccount();
+function normalizeMode(raw?: string): Mode | undefined {
+  if (!raw) return undefined;
+  const lower = raw.toLowerCase();
+  if (lower === "styfi") return "styfi";
+  if (lower === "plus") return "plus";
+  return undefined;
+}
 
-  return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center gap-4">
-      <div>
-        <ConnectButton />
-      </div>
-
-      <h1 className="text-3xl font-semibold">styfi.yearn.fi (stub)</h1>
-
-      <p className="text-sm text-slate-300 max-w-md text-center">
-        This will become the stYFI staking, cooldown, withdrawal, and rewards
-        interface.
-      </p>
-
-      {isConnected ? (
-        <p className="text-xs text-slate-400">
-          Connected as <span className="font-mono">{address}</span>
-        </p>
-      ) : (
-        <p className="text-xs text-slate-500">
-          Connect your wallet to see your stYFI state.
-        </p>
-      )}
-    </main>
-  );
+export default function StyfiPage({
+  searchParams,
+}: {
+  searchParams: { mode?: string };
+}) {
+  const initialMode = normalizeMode(searchParams.mode);
+  return <StyfiPageClient initialMode={initialMode} />;
 }

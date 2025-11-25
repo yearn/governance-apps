@@ -18,46 +18,31 @@ type TxExecuteOptions = {
   onError?: (error: unknown, hash?: TransactionHash) => void | Promise<void>;
   invalidate?: () => void | Promise<void>;
   skipWaitForReceipt?: boolean;
+  retries?: number;
+  retryDelayMs?: number;
 };
 
 const initialState: TxState = {
   status: "idle",
 };
 
-function classifyError(error: unknown): TxErrorType {
-  if (!error) return "unknown";
-
-  // Safely cast to a generic error shape
-  const maybeObj =
-    typeof error === "object" && error !== null
-      ? (error as { name?: string; message?: string; shortMessage?: string })
-      : null;
-
-  const name = maybeObj?.name || "";
-  const message = maybeObj?.shortMessage || maybeObj?.message || "";
-
-  if (
-    name === "UserRejectedRequestError" ||
-    /user rejected/i.test(message) ||
-    /rejected by user/i.test(message)
-  ) {
-    return "user_rejected";
+function mapNormalizedCode(code: string): TxErrorType {
+  switch (code) {
+    case "user_rejected":
+      return "user_rejected";
+    case "cooldown_not_ready":
+      return "cooldown_not_ready";
+    case "cap_exceeded":
+      return "cap_exceeded";
+    case "insufficient_balance":
+      return "insufficient_balance";
+    case "network":
+      return "network";
+    case "revert":
+      return "revert";
+    default:
+      return "unknown";
   }
-
-  if (
-    /revert/i.test(message) ||
-    /execution reverted/i.test(message) ||
-    /cooldown/i.test(message) ||
-    /not ready/i.test(message)
-  ) {
-    return "revert";
-  }
-
-  if (/network/i.test(message) || /rpc/i.test(message)) {
-    return "network";
-  }
-
-  return "unknown";
 }
 
 export function useTx() {
@@ -73,67 +58,81 @@ export function useTx() {
 
       let hash: TransactionHash | undefined;
       const toastId = toast.loading("Check your wallet...");
+      const maxRetries = Math.max(0, options?.retries ?? 0);
+      const retryDelay = Math.max(0, options?.retryDelayMs ?? 750);
+      let attempt = 0;
 
-      try {
-        setState({
-          status: "signing",
-        });
-
-        hash = await prepared();
-
-        setState({
-          status: "submitted",
-          hash,
-        });
-
-        if (options?.skipWaitForReceipt) {
-          toast.success("Transaction submitted (Mock)", { id: toastId });
-        } else {
-          toast.loading("Transaction submitted. Waiting...", { id: toastId });
+      const attemptExecute = async () => {
+        try {
           setState({
-            status: "mining",
+            status: "signing",
+          });
+
+          hash = await prepared();
+
+          setState({
+            status: "submitted",
             hash,
           });
 
-          await waitForTransactionReceipt(wagmiConfig, { hash });
-          toast.success("Transaction confirmed!", { id: toastId });
+          if (options?.skipWaitForReceipt) {
+            toast.success("Transaction submitted (Mock)", { id: toastId });
+          } else {
+            toast.loading("Transaction submitted. Waiting...", { id: toastId });
+            setState({
+              status: "mining",
+              hash,
+            });
+
+            await waitForTransactionReceipt(wagmiConfig, { hash });
+            toast.success("Transaction confirmed!", { id: toastId });
+          }
+
+          if (options?.invalidate) {
+            await options.invalidate();
+          }
+
+          setState({
+            status: "success",
+            hash,
+          });
+
+          if (options?.onSuccess) {
+            await options.onSuccess(hash);
+          }
+        } catch (error: unknown) {
+          const normalized = normalizeTxError(error);
+          const errorType = mapNormalizedCode(normalized.code);
+
+          // Retry once for network errors if configured
+          if (normalized.code === "network" && attempt < maxRetries) {
+            attempt += 1;
+            await new Promise((r) => setTimeout(r, retryDelay));
+            return attemptExecute();
+          }
+
+          let errorMessage = normalized.message || "Transaction failed";
+
+          if (errorType === "user_rejected") {
+            toast.dismiss(toastId);
+          } else {
+            toast.error(errorMessage, { id: toastId });
+          }
+
+          setState({
+            status: "error",
+            hash,
+            errorType,
+            errorMessage,
+          });
+
+          if (options?.onError) {
+            await options.onError(error, hash);
+          }
         }
+      };
 
-        if (options?.invalidate) {
-          await options.invalidate();
-        }
-
-        setState({
-          status: "success",
-          hash,
-        });
-
-        if (options?.onSuccess) {
-          await options.onSuccess(hash);
-        }
-      } catch (error: unknown) {
-        const errorType = classifyError(error);
-        const normalized = normalizeTxError(error);
-
-        let errorMessage = normalized.message || "Transaction failed";
-
-        if (errorType === "user_rejected") {
-          toast.dismiss(toastId);
-        } else {
-          toast.error(errorMessage, { id: toastId });
-        }
-
-        setState({
-          status: "error",
-          hash,
-          errorType,
-          errorMessage,
-        });
-
-        if (options?.onError) {
-          await options.onError(error, hash);
-        }
-      }
+      await attemptExecute();
     },
     []
   );
