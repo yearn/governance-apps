@@ -8,6 +8,12 @@ import { cn } from "@/lib/cn";
 import { IconMenu } from "@/components/icons/IconMenu";
 import { IconClose } from "@/components/icons/IconClose";
 import { useState } from "react";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { formatTokenAmount } from "@/lib/format";
+import { useWalletYfiBalance } from "@/lib/hooks/useWalletYfiBalance";
+import { useStyfiEpoch } from "@/lib/hooks/useStyfi";
+import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
+import { useAccount } from "wagmi";
 
 const NAV_ITEMS = [
   { name: "stYFI", href: "/styfi" },
@@ -17,6 +23,14 @@ const NAV_ITEMS = [
 export function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { address, isConnected } = useAccount();
+  const {
+    balance: yfiBalance,
+    isLoading: yfiLoading,
+  } = useWalletYfiBalance();
+  const { data: epochData } = useStyfiEpoch();
+  const { timeRemaining } = useEpochCountdown(epochData?.epochEnd, undefined);
+  const displayEpoch = epochData?.currentEpoch ?? 0;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-200 bg-neutral-100/80 backdrop-blur-md">
@@ -46,8 +60,21 @@ export function Header() {
           </nav>
         </div>
 
-        {/* Right: Wallet & Mobile Toggle */}
+        {/* Right: YFI + Epoch + Wallet & Mobile Toggle */}
         <div className="flex items-center gap-4">
+          <HeaderPills
+            isConnected={isConnected}
+            yfiLoading={yfiLoading}
+            yfiBalance={yfiBalance}
+            epochLabel={
+              epochData
+                ? `Epoch ${displayEpoch}`
+                : "Epoch"
+            }
+            timeRemaining={
+              epochData ? `${timeRemaining ?? "--"} remaining` : undefined
+            }
+          />
           <WalletButton />
 
           <button
@@ -82,5 +109,43 @@ export function Header() {
         </div>
       )}
     </header>
+  );
+}
+
+function HeaderPills({
+  isConnected,
+  yfiLoading,
+  yfiBalance,
+  epochLabel,
+  timeRemaining,
+}: {
+  isConnected: boolean;
+  yfiLoading: boolean;
+  yfiBalance: bigint;
+  epochLabel: string;
+  timeRemaining?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-medium">
+        <span className="text-neutral-500">{epochLabel}</span>
+        <span className="font-number font-bold">
+          {timeRemaining ?? "--"}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-medium">
+        <span className="text-neutral-500">YFI</span>
+        {yfiLoading ? (
+          <Skeleton className="h-4 w-14" />
+        ) : isConnected ? (
+          <span className="font-number font-bold">
+            {formatTokenAmount(yfiBalance, 18, 4)}
+          </span>
+        ) : (
+          <span className="text-neutral-500">Not connected</span>
+        )}
+      </div>
+    </div>
   );
 }
