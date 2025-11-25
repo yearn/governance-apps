@@ -45,7 +45,7 @@ export function useStyfiEpoch() {
 // --- Write Hooks ---
 
 export function useStyfiStake() {
-  const { styfi, isMock } = useProtocol();
+  const { styfi, usesMockBackend } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -53,21 +53,21 @@ export function useStyfiStake() {
   const write = async (mode: StyfiStakeMode, amount: bigint) => {
     const prepare = await styfi.prepareStake(mode, amount);
 
-    await execute(prepare, {
-      invalidate: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: styfiKeys.account(address),
-        });
-      },
-      skipWaitForReceipt: isMock,
-    });
-  };
+      await execute(prepare, {
+        invalidate: async () => {
+          await queryClient.invalidateQueries({
+            queryKey: styfiKeys.account(address),
+          });
+        },
+        skipWaitForReceipt: usesMockBackend,
+      });
+    };
 
-  return { write, state };
+    return { write, state };
 }
 
 export function useStyfiStartCooldown() {
-  const { styfi, isMock } = useProtocol();
+  const { styfi, usesMockBackend } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -75,21 +75,21 @@ export function useStyfiStartCooldown() {
   const write = async (mode: StyfiStakeMode, amount: bigint) => {
     const prepare = await styfi.prepareStartCooldown(mode, amount);
 
-    await execute(prepare, {
-      invalidate: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: styfiKeys.account(address),
-        });
-      },
-      skipWaitForReceipt: isMock,
-    });
-  };
+      await execute(prepare, {
+        invalidate: async () => {
+          await queryClient.invalidateQueries({
+            queryKey: styfiKeys.account(address),
+          });
+        },
+        skipWaitForReceipt: usesMockBackend,
+      });
+    };
 
-  return { write, state };
+    return { write, state };
 }
 
 export function useStyfiWithdraw() {
-  const { styfi, isMock } = useProtocol();
+  const { styfi, usesMockBackend } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -97,21 +97,21 @@ export function useStyfiWithdraw() {
   const write = async (mode: StyfiStakeMode) => {
     const prepare = await styfi.prepareWithdraw(mode);
 
-    await execute(prepare, {
-      invalidate: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: styfiKeys.account(address),
-        });
-      },
-      skipWaitForReceipt: isMock,
-    });
-  };
+      await execute(prepare, {
+        invalidate: async () => {
+          await queryClient.invalidateQueries({
+            queryKey: styfiKeys.account(address),
+          });
+        },
+        skipWaitForReceipt: usesMockBackend,
+      });
+    };
 
-  return { write, state };
+    return { write, state };
 }
 
 export function useStyfiClaimRewards() {
-  const { styfi, isMock } = useProtocol();
+  const { styfi, usesMockBackend } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
   const { address } = useAccount();
@@ -119,15 +119,15 @@ export function useStyfiClaimRewards() {
   const write = async () => {
     const prepare = await styfi.prepareClaimRewards();
 
-    await execute(prepare, {
-      invalidate: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: styfiKeys.account(address),
-        });
-      },
-      skipWaitForReceipt: isMock,
-    });
-  };
+      await execute(prepare, {
+        invalidate: async () => {
+          await queryClient.invalidateQueries({
+            queryKey: styfiKeys.account(address),
+          });
+        },
+        skipWaitForReceipt: usesMockBackend,
+      });
+    };
 
-  return { write, state };
+    return { write, state };
 }

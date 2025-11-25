@@ -25,4 +25,15 @@ export interface VeyfiClient {
     symbol: LlyfiTokenId,
     amount: bigint
   ): Promise<PreparedTransaction>;
+
+  /**
+   * Mock-only helper to sync allowances without importing mock modules.
+   * No-op in on-chain clients.
+   */
+  debugSetAllowance?: (
+    user: `0x${string}`,
+    token: `0x${string}`,
+    spender: `0x${string}`,
+    amount: bigint
+  ) => void;
 }

@@ -4,17 +4,10 @@ import { Address } from "viem";
 import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { useTx } from "@/lib/tx/useTx";
-import {
-  SPENDER_STYFI,
-  SPENDER_STYFI_PLUS,
-  MOCK_LLYFI_MAP,
-} from "@/lib/constants";
-import { setMockStyfiAllowance } from "@/lib/clients/styfi/mock";
-import { setMockLlyfiAllowance } from "@/lib/clients/veyfi/mock";
 import { TransactionHash } from "@/lib/tx/types";
 
 export function useTokenApprove() {
-  const { isMock } = useProtocol();
+  const { styfi, veyfi, usesMockBackend } = useProtocol();
   const { address: userAddress } = useAccount();
   const { execute, state } = useTx();
 
@@ -30,21 +23,13 @@ export function useTokenApprove() {
     options?: { onSuccess?: () => void; invalidate?: () => void | Promise<void> }
   ) => {
     const prepare = async (): Promise<TransactionHash> => {
-      if (isMock) {
+      if (usesMockBackend) {
         // Simulate delay
         await new Promise((r) => setTimeout(r, 800));
 
         if (userAddress) {
-          // 1. Handle StYFI Approvals (YFI -> StYFI/stYFI+)
-          if (spender === SPENDER_STYFI || spender === SPENDER_STYFI_PLUS) {
-            setMockStyfiAllowance(userAddress, spender, amount);
-          }
-
-          // 2. Handle LLYFI Approvals (sdYFI/upYFI -> Staker)
-          // Check if the token being approved is a known Mock LLYFI token
-          if (MOCK_LLYFI_MAP[token.toLowerCase()]) {
-            setMockLlyfiAllowance(userAddress, token, amount);
-          }
+          styfi.debugSetAllowance?.(userAddress, token, spender, amount);
+          veyfi.debugSetAllowance?.(userAddress, token, spender, amount);
         }
 
         return "0xMOCK_APPROVAL_HASH" as TransactionHash;
@@ -57,7 +42,7 @@ export function useTokenApprove() {
     await execute(prepare, {
       onSuccess: options?.onSuccess,
       invalidate: options?.invalidate,
-      skipWaitForReceipt: isMock,
+      skipWaitForReceipt: usesMockBackend,
     });
   };
 

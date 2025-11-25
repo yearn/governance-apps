@@ -23,4 +23,15 @@ export interface StyfiClient {
   prepareWithdraw(mode: StyfiStakeMode): Promise<PreparedTransaction>;
 
   prepareClaimRewards(): Promise<PreparedTransaction>;
+
+  /**
+   * Mock-only helper to sync allowances without importing mock modules.
+   * No-op in on-chain clients.
+   */
+  debugSetAllowance?: (
+    user: Address,
+    token: Address,
+    spender: Address,
+    amount: bigint
+  ) => void;
 }

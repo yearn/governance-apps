@@ -234,7 +234,11 @@ export class MockVeyfiClient implements VeyfiClient {
     const tx: PreparedTransaction = async () => {
       await delay(latency);
 
-      if (!targetAddress) return nextMockHash();
+      if (!targetAddress) {
+        throw new Error(
+          "MockVeyfiClient: No address context. Call getAccountState first."
+        );
+      }
       const state = this.getOrCreate(targetAddress);
 
       if (state.veYfi && state.veYfi.legacyBalance > 0n) {
@@ -300,7 +304,11 @@ export class MockVeyfiClient implements VeyfiClient {
     const tx: PreparedTransaction = async () => {
       await delay(latency);
 
-      if (!targetAddress) return nextMockHash();
+      if (!targetAddress) {
+        throw new Error(
+          "MockVeyfiClient: No address context. Call getAccountState first."
+        );
+      }
       const state = this.getOrCreate(targetAddress);
 
       // Deep clone tokens array to mutate safely
@@ -338,7 +346,11 @@ export class MockVeyfiClient implements VeyfiClient {
     const tx: PreparedTransaction = async () => {
       await delay(latency);
 
-      if (!targetAddress) return nextMockHash();
+      if (!targetAddress) {
+        throw new Error(
+          "MockVeyfiClient: No address context. Call getAccountState first."
+        );
+      }
       const state = this.getOrCreate(targetAddress);
 
       const next = {
@@ -379,7 +391,11 @@ export class MockVeyfiClient implements VeyfiClient {
     const tx: PreparedTransaction = async () => {
       await delay(latency);
 
-      if (!targetAddress) return nextMockHash();
+      if (!targetAddress) {
+        throw new Error(
+          "MockVeyfiClient: No address context. Call getAccountState first."
+        );
+      }
       const state = this.getOrCreate(targetAddress);
 
       const next = {
@@ -416,7 +432,11 @@ export class MockVeyfiClient implements VeyfiClient {
     const tx: PreparedTransaction = async () => {
       await delay(latency);
 
-      if (!targetAddress) return nextMockHash();
+      if (!targetAddress) {
+        throw new Error(
+          "MockVeyfiClient: No address context. Call getAccountState first."
+        );
+      }
       const state = this.getOrCreate(targetAddress);
 
       const next = {
@@ -456,7 +476,11 @@ export class MockVeyfiClient implements VeyfiClient {
     const tx: PreparedTransaction = async () => {
       await delay(latency);
 
-      if (!targetAddress) return nextMockHash();
+      if (!targetAddress) {
+        throw new Error(
+          "MockVeyfiClient: No address context. Call getAccountState first."
+        );
+      }
       const state = this.getOrCreate(targetAddress);
 
       const next = {
@@ -508,6 +532,28 @@ export class MockVeyfiClient implements VeyfiClient {
     };
 
     return tx;
+  }
+
+  debugSetAllowance(
+    user: Address,
+    tokenAddress: Address,
+    _spender: Address,
+    amount: bigint
+  ) {
+    const state = this.getOrCreate(user);
+    const symbol = MOCK_LLYFI_MAP[tokenAddress.toLowerCase()];
+    if (!symbol) return;
+
+    const next = {
+      ...state,
+      llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+    };
+
+    const token = next.llyfiTokens.find((t) => t.symbol === symbol);
+    if (token) {
+      token.allowance = amount;
+      this.setState(user, next);
+    }
   }
 }
 

@@ -13,6 +13,7 @@ import type {
 import type { StyfiClient, StyfiStakeMode } from "./client";
 import { nowSeconds } from "@/lib/mocks/time";
 import { getMockScenario } from "@/lib/mocks/scenario";
+import { SPENDER_STYFI, SPENDER_STYFI_PLUS } from "@/lib/constants";
 
 // --- Global Store (Module Scope) ---
 const GLOBAL_STYFI_STORE = new Map<string, StyfiAccountState>();
@@ -222,8 +223,9 @@ export class MockStyfiClient implements StyfiClient {
       await delay(latency);
 
       if (!targetAddress) {
-        console.warn("MockStyfiClient: No address context for mutation");
-        return nextMockHash();
+        throw new Error(
+          "MockStyfiClient: No address context. Call getAccountState first."
+        );
       }
 
       const state = this.getOrCreate(targetAddress);
@@ -264,7 +266,11 @@ export class MockStyfiClient implements StyfiClient {
 
     return async () => {
       await delay(latency);
-      if (!targetAddress) return nextMockHash();
+      if (!targetAddress) {
+        throw new Error(
+          "MockStyfiClient: No address context. Call getAccountState first."
+        );
+      }
 
       const state = this.getOrCreate(targetAddress);
       const next = { ...state };
@@ -303,7 +309,11 @@ export class MockStyfiClient implements StyfiClient {
 
     return async () => {
       await delay(latency);
-      if (!targetAddress) return nextMockHash();
+      if (!targetAddress) {
+        throw new Error(
+          "MockStyfiClient: No address context. Call getAccountState first."
+        );
+      }
 
       const state = this.getOrCreate(targetAddress);
       const next = { ...state };
@@ -352,7 +362,11 @@ export class MockStyfiClient implements StyfiClient {
 
     return async () => {
       await delay(latency);
-      if (!targetAddress) return nextMockHash();
+      if (!targetAddress) {
+        throw new Error(
+          "MockStyfiClient: No address context. Call getAccountState first."
+        );
+      }
 
       const state = this.getOrCreate(targetAddress);
       const next = { ...state };
@@ -364,6 +378,24 @@ export class MockStyfiClient implements StyfiClient {
       this.setState(targetAddress, next);
       return nextMockHash();
     };
+  }
+
+  debugSetAllowance(
+    user: Address,
+    _token: Address,
+    spender: Address,
+    amount: bigint
+  ) {
+    const state = this.getOrCreate(user);
+    const next = { ...state, allowances: { ...state.allowances } };
+
+    if (spender === SPENDER_STYFI) {
+      next.allowances.yfiToStyfi = amount;
+    } else if (spender === SPENDER_STYFI_PLUS) {
+      next.allowances.yfiToStyfiPlus = amount;
+    }
+
+    this.setState(user, next);
   }
 }
 
