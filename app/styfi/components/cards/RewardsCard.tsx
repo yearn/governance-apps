@@ -45,7 +45,7 @@ export function RewardsCard() {
           <div className="text-right">
             <p className="text-xs text-neutral-500">Accruing (next epoch)</p>
             <p className="text-lg font-number font-bold">
-              {formatTokenAmount(accruing)} tokens
+              {formatTokenAmount(accruing)} {data?.rewardToken.symbol}
             </p>
           </div>
         )}
@@ -72,7 +72,7 @@ export function RewardsCard() {
           <div className="space-y-1">
             <p className="text-sm text-neutral-500">Claimable</p>
             <p className="text-2xl font-number font-bold">
-              {formatTokenAmount(claimable)} tokens
+              {formatTokenAmount(claimable)} {data.rewardToken.symbol}
             </p>
             <p className="text-xs text-neutral-500">
               Includes generic + boosted rewards.

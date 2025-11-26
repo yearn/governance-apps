@@ -85,6 +85,12 @@ function createDefaultAccountState(
     accruingBoostedRewards: 0n,
     allowances: defaultAllowances(),
     epoch: defaultEpochInfo(),
+    earningWeight: 10n ** 18n, // 1.0x default
+    rewardToken: {
+      address: "0x0000000000000000000000000000000000000000", // Mock address
+      symbol: "yvUSDS",
+      decimals: 18,
+    },
   };
 
   if (scenario === "active") {
@@ -196,12 +202,18 @@ export class MockStyfiClient implements StyfiClient {
 
     // Mark cooldowns as effectively ready if ended
     if (next.styfiCooldown && next.styfiCooldown.endsAt <= now) {
-      next.styfiCooldown = { ...next.styfiCooldown, endsAt: next.styfiCooldown.endsAt };
+      next.styfiCooldown = {
+        ...next.styfiCooldown,
+        endsAt: next.styfiCooldown.endsAt,
+      };
     }
     if (next.styfiPlus.cooldown && next.styfiPlus.cooldown.endsAt <= now) {
       next.styfiPlus = {
         ...next.styfiPlus,
-        cooldown: { ...next.styfiPlus.cooldown, endsAt: next.styfiPlus.cooldown.endsAt },
+        cooldown: {
+          ...next.styfiPlus.cooldown,
+          endsAt: next.styfiPlus.cooldown.endsAt,
+        },
       };
     }
 
@@ -320,10 +332,7 @@ export class MockStyfiClient implements StyfiClient {
 
       // Logic: withdraw everything in cooldown
       if (mode === "stYFI") {
-        if (
-          next.styfiCooldown &&
-          next.styfiCooldown.endsAt > nowSeconds()
-        ) {
+        if (next.styfiCooldown && next.styfiCooldown.endsAt > nowSeconds()) {
           throw new Error("Cooldown not complete");
         }
 

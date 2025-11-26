@@ -26,7 +26,7 @@ export function StyfiDomainToolbar({ activeMode, onSelectMode }: Props) {
     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
       <div className="max-w-xl">
         <h1 className="text-3xl font-bold text-neutral-900">Your position</h1>
-        <p className="text-sm text-neutral-600 flex items-center gap-2">
+        <div className="text-sm text-neutral-600 flex items-center gap-2">
           {isLoading ? (
             <Skeleton className="h-4 w-24" />
           ) : (
@@ -35,7 +35,7 @@ export function StyfiDomainToolbar({ activeMode, onSelectMode }: Props) {
             </span>
           )}
           <span className="text-neutral-500">as {modeLabel(activeMode)}</span>
-        </p>
+        </div>
         <p className="text-xs text-neutral-500">Earning weight: 1.00x</p>
       </div>
 

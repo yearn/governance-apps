@@ -44,4 +44,12 @@ export type StyfiAccountState = {
 
   allowances: StyfiAllowances;
   epoch: EpochInfo;
+
+  // Metadata
+  earningWeight: bigint; // Scaled 1e18
+  rewardToken: {
+    address: Address;
+    symbol: string;
+    decimals: number;
+  };
 };

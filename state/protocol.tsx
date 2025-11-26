@@ -26,8 +26,8 @@ function createClients(preferMocks: boolean) {
     );
   }
   return {
-    styfi: createMockStyfiClient({ latencyMs: 800 }),
-    veyfi: createMockVeyfiClient({ latencyMs: 800 }),
+    styfi: createMockStyfiClient({ latencyMs: 600 }),
+    veyfi: createMockVeyfiClient({ latencyMs: 600 }),
     // Reflect user intent while exposing actual backend type separately.
     isMock: preferMocks,
     usesMockBackend,
@@ -39,7 +39,8 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
   const preferMocks = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 
   const value = useMemo(() => {
-    const { styfi, veyfi, isMock, usesMockBackend } = createClients(preferMocks);
+    const { styfi, veyfi, isMock, usesMockBackend } =
+      createClients(preferMocks);
     return {
       styfi,
       veyfi,
