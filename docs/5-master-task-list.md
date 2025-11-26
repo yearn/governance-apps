@@ -1,4 +1,4 @@
-# Master Task List — Governance Apps (stYFI, stYFI+, veYFI, LLYFI)
+# Master Task List — Governance Apps (stYFI, stYFIx, veYFI, LLYFI)
 
 Version 1.1 — 2025-11-20
 Scope: BR#1 (UI-first, mock-backed), `/styfi` + `/veyfi`
@@ -42,7 +42,7 @@ _(All type definitions must strictly follow frontend FRD)_
 ## 1. Create `Styfi` Types
 
 - [x] `StyfiAccountState`
-- [x] `StyfiPlusPosition`
+- [x] `StyfiXPosition`
 - [x] `EpochInfo`
 - [x] `StyfiAllowances`
 - [x] Export tidy barrel file
@@ -214,7 +214,7 @@ _(All FE logic must go through domain hooks)_
 
 ---
 
-# Phase 5 — `/styfi` (stYFI + stYFI+) UI
+# Phase 5 — `/styfi` (stYFI + stYFIx) UI
 
 ## 16. Page Layout
 
@@ -227,7 +227,7 @@ _(All FE logic must go through domain hooks)_
 
 - [ ] Wallet YFI balance
 - [ ] stYFI active/cooldown
-- [ ] stYFI+ shares + assets
+- [ ] stYFIx shares + assets
 - [ ] Epoch information
 - [ ] Blacklist banner (if needed)
 
@@ -237,13 +237,13 @@ _(All FE logic must go through domain hooks)_
   - [ ] Input + balance + max
   - [ ] Approve → Stake flows
   - [ ] Disable states
-- [ ] stYFI+ stake panel
+- [ ] stYFIx stake panel
   - [ ] Same, but with shares-vs-assets explanation
 
 ## 19. Cooldown & Withdraw Panels
 
 - [ ] stYFI cooldown + withdraw
-- [ ] stYFI+ cooldown + withdraw
+- [ ] stYFIx cooldown + withdraw
 - [ ] Countdown to readiness
 
 ## 20. Rewards Panel
@@ -358,7 +358,7 @@ _(Blocked until contract ABIs finalized)_
 ## 35. End-to-End Smoke Tests (Mock Mode)
 
 - [ ] Stake stYFI
-- [ ] Stake stYFI+
+- [ ] Stake stYFIx
 - [ ] Start cooldown → withdraw
 - [ ] Claim rewards
 - [ ] Migrate veYFI

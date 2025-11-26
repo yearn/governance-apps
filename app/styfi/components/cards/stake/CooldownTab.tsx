@@ -31,13 +31,13 @@ export function CooldownTab({ mode }: Props) {
   const available =
     mode === "styfi"
       ? data?.styfiActive ?? 0n
-      : data?.styfiPlus.sharesActive ?? 0n;
+      : data?.styfiX.sharesActive ?? 0n;
   const outputAmount = isValid ? amount : 0n;
 
   const existingCooldown =
     mode === "styfi"
       ? data?.styfiCooldown?.amount ?? 0n
-      : data?.styfiPlus.cooldown?.amount ?? 0n;
+      : data?.styfiX.cooldown?.amount ?? 0n;
 
   const hasActiveCooldown = existingCooldown > 0n;
 
@@ -62,7 +62,7 @@ export function CooldownTab({ mode }: Props) {
 
   const handleStart = async () => {
     if (!isValid || amount <= 0n) return;
-    await startCooldown(mode === "styfi" ? "stYFI" : "stYFI+", amount);
+    await startCooldown(mode === "styfi" ? "stYFI" : "stYFIx", amount);
     setInput("");
   };
 
@@ -79,7 +79,7 @@ export function CooldownTab({ mode }: Props) {
           <span>Amount to move into cooldown</span>
           <div className="font-number text-neutral-500">
             Available: {formatTokenAmount(available)}{" "}
-            {mode === "styfi" ? "stYFI" : "stYFI+"}
+            {mode === "styfi" ? "stYFI" : "stYFIx"}
           </div>
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-neutral-900">
@@ -97,7 +97,7 @@ export function CooldownTab({ mode }: Props) {
         value={input}
         onChange={setInput}
         onMaxClick={onMax}
-        tokenSymbol={mode === "styfi" ? "stYFI" : "stYFI+"}
+        tokenSymbol={mode === "styfi" ? "stYFI" : "stYFIx"}
         error={insufficient ? "Exceeds available" : undefined}
         placeholder="0.00"
         disabled={

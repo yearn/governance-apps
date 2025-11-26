@@ -7,7 +7,7 @@ import {
 import {
   MOCK_YFI_ADDRESS,
   SPENDER_STYFI,
-  SPENDER_STYFI_PLUS,
+  SPENDER_STYFIX,
 } from "@/lib/constants";
 
 describe("MockStyfiClient", () => {
@@ -24,16 +24,16 @@ describe("MockStyfiClient", () => {
     await expect(prepared()).rejects.toThrow(/No address context/i);
   });
 
-  it("updates allowances via debugSetAllowance for stYFI and stYFI+", async () => {
+  it("updates allowances via debugSetAllowance for stYFI and stYFIx", async () => {
     const client = createMockStyfiClient({ latencyMs: 0 });
     await client.getAccountState(user); // ensure store exists
 
     client.debugSetAllowance?.(user, MOCK_YFI_ADDRESS, SPENDER_STYFI, 5n);
-    client.debugSetAllowance?.(user, MOCK_YFI_ADDRESS, SPENDER_STYFI_PLUS, 6n);
+    client.debugSetAllowance?.(user, MOCK_YFI_ADDRESS, SPENDER_STYFIX, 6n);
 
     const state = await client.getAccountState(user);
     expect(state.allowances.yfiToStyfi).toBe(5n);
-    expect(state.allowances.yfiToStyfiPlus).toBe(6n);
+    expect(state.allowances.yfiToStyfiX).toBe(6n);
   });
 
   it("enforces cooldown completion before withdraw", async () => {

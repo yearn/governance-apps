@@ -6,7 +6,7 @@ They define **what the frontend must do** and **how it is built**, and serve as 
 ## Contents
 
 - [**0-normative-spec-yip88.md**](0-normative-spec-yip88.md) — The protocol normative spec
-- [**1-user-stories-styfi.md**](1-user-stories-styfi.md) — User stories for stYFI + stYFI+ flows
+- [**1-user-stories-styfi.md**](1-user-stories-styfi.md) — User stories for stYFI + stYFIx flows
 - [**2-user-stories-veyfi.md**](2-user-stories-veyfi.md) — User stories for veYFI + LLYFI flows
 - [**3-frd-frontend.md**](3-frd-frontend.md) — Frontend Functional Requirements (canonical behaviour spec)
 - [**4-architecture-blueprint.md**](4-architecture-blueprint.md) — End-to-end implementation strategy and system design

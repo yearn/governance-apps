@@ -1,5 +1,5 @@
-export type StyfiMode = "styfi" | "plus";
+export type StyfiMode = "styfi" | "x";
 
 export function modeLabel(mode: StyfiMode) {
-  return mode === "styfi" ? "stYFI" : "stYFI+";
+  return mode === "styfi" ? "stYFI" : "stYFIx";
 }

@@ -1,7 +1,7 @@
 # 9. Frontend Architecture
 
 **Version 0.1 — 2025-11-24**
-Scope: stYFI • stYFI+ • veYFI (UI implementation architecture)
+Scope: stYFI • stYFIx • veYFI (UI implementation architecture)
 Status: Approved for Phase 5 (stYFI) and future veYFI work
 
 This document defines the **frontend implementation architecture** for the governance apps under YIP-88.
@@ -34,7 +34,7 @@ We use the Next.js App Router structure:
 /app
   layout.tsx          // Root layout with Global Header
   styfi/
-    page.tsx          // stYFI + stYFI+ UI
+    page.tsx          // stYFI + stYFIx UI
   veyfi/
     page.tsx          // veYFI + LLYFI UI (future)
 ```
@@ -61,7 +61,7 @@ The Global Header is a **dumb, stable** component:
 
 - **Does not know** about:
 
-  - stYFI / stYFI+ mode
+  - stYFI / stYFIx mode
   - veYFI-specific actions
   - Domain-specific state
 
@@ -77,7 +77,7 @@ For `/styfi`:
 - Rendered **under** the Global Header, inside `app/styfi/page.tsx` (or its client wrapper).
 - Contains:
 
-  - stYFI / stYFI+ **Mode Switcher** (when mode is active)
+  - stYFI / stYFIx **Mode Switcher** (when mode is active)
   - **Unlocked YFI balance** pill
 
 For `/veyfi` (future):
@@ -94,10 +94,10 @@ Each domain owns its Toolbar and layout.
 
 ### 3.1 Mode as URL, not Global State
 
-For stYFI, the **view state** (`stYFI` vs `stYFI+`) is driven by the URL query parameter:
+For stYFI, the **view state** (`stYFI` vs `stYFIx`) is driven by the URL query parameter:
 
 - `/styfi?mode=styfi` → stYFI mode
-- `/styfi?mode=plus` → stYFI+ mode
+- `/styfi?mode=x` → stYFIx mode
 
 **The URL is the source of truth.**
 
@@ -108,7 +108,7 @@ We explicitly avoid:
 
 This makes views:
 
-- Shareable (`/styfi?mode=plus` can be sent to someone)
+- Shareable (`/styfi?mode=x` can be sent to someone)
 - Deterministic (server knows mode from `searchParams`)
 - Back-button friendly (browser history contains view state)
 
@@ -117,7 +117,7 @@ This makes views:
 We use LocalStorage only as a **hint** for returning users:
 
 - Key: `styfi-last-mode`
-- Values: `'styfi' | 'plus'`
+- Values: `'styfi' | 'x'`
 - On `/styfi` with **no** `mode` param:
 
   - If `styfi-last-mode` exists → redirect to `/styfi?mode=[last-mode]`.
@@ -146,7 +146,7 @@ export default function StyfiPage({
 }: {
   searchParams: { mode?: string };
 }) {
-  const mode = normalizeMode(searchParams.mode); // 'styfi' | 'plus' | undefined
+  const mode = normalizeMode(searchParams.mode); // 'styfi' | 'x' | undefined
 
   return <StyfiPageClient initialMode={mode} />;
 }
@@ -159,7 +159,7 @@ export default function StyfiPage({
 export function StyfiPageClient({
   initialMode,
 }: {
-  initialMode?: "styfi" | "plus";
+  initialMode?: "styfi" | "x";
 }) {
   // LocalStorage check + redirect if needed
   // Decide between Hero vs Cockpit
@@ -218,16 +218,16 @@ This avoids a brief flash of the Hero for returning users before redirect.
   <StyfiHeroLayout>
     <StyfiHeroBanner>
       <StyfiModeCard mode="styfi" />
-      <StyfiModeCard mode="plus" />
+      <StyfiModeCard mode="x" />
     </StyfiHeroBanner>
   </StyfiHeroLayout>
 </StyfiPageClient>
 ```
 
-#### State B: Mode active (`/styfi?mode=styfi|plus` OR after Hero selection)
+#### State B: Mode active (`/styfi?mode=styfi|x` OR after Hero selection)
 
 ```text
-<StyfiPageClient initialMode="styfi" | "plus">
+<StyfiPageClient initialMode="styfi" | "x">
   <StyfiLayout>
     <StyfiDomainToolbar mode>
       <StyfiModeSwitcher mode />        // updates URL ?mode=...
@@ -304,7 +304,7 @@ Implementation-wise, we follow **granular hooks** per feature:
 
 Under `/lib/hooks` or `/lib/styfi/hooks` (depending on naming scheme decided in Phase 3):
 
-1. `useStyfiPosition(mode: "stYFI" | "stYFI+")`
+1. `useStyfiPosition(mode: "stYFI" | "stYFIx")`
 
    - Source: `StyfiClient.getAccountState`
    - Returns:

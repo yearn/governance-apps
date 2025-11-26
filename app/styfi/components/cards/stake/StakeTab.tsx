@@ -11,7 +11,7 @@ import {
   useStyfiStake,
 } from "@/lib/hooks/useStyfi";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
-import { MOCK_YFI_ADDRESS, SPENDER_STYFI, SPENDER_STYFI_PLUS } from "@/lib/constants";
+import { MOCK_YFI_ADDRESS, SPENDER_STYFI, SPENDER_STYFIX } from "@/lib/constants";
 import { StyfiMode, modeLabel } from "../../types";
 
 type Props = {
@@ -34,7 +34,7 @@ export function StakeTab({ mode }: Props) {
   const allowance =
     mode === "styfi"
       ? data?.allowances.yfiToStyfi ?? 0n
-      : data?.allowances.yfiToStyfiPlus ?? 0n;
+      : data?.allowances.yfiToStyfiX ?? 0n;
   const outputAmount = isValid ? amount : 0n;
 
   const needsApproval = isValid && amount > allowance;
@@ -61,13 +61,13 @@ export function StakeTab({ mode }: Props) {
 
   const handleApprove = async () => {
     if (!isValid || amount <= 0n) return;
-    const spender = mode === "styfi" ? SPENDER_STYFI : SPENDER_STYFI_PLUS;
+    const spender = mode === "styfi" ? SPENDER_STYFI : SPENDER_STYFIX;
     await approve(MOCK_YFI_ADDRESS, spender, amount);
   };
 
   const handleStake = async () => {
     if (!isValid || amount <= 0n) return;
-    await stake(mode === "styfi" ? "stYFI" : "stYFI+", amount);
+    await stake(mode === "styfi" ? "stYFI" : "stYFIx", amount);
     setInput("");
   };
 

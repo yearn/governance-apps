@@ -1,13 +1,13 @@
 // app/styfi/page.tsx
 import { StyfiPageClient } from "./StyfiPageClient";
 
-type Mode = "styfi" | "plus";
+type Mode = "styfi" | "x";
 
 function normalizeMode(raw?: string): Mode | undefined {
   if (!raw) return undefined;
   const lower = raw.toLowerCase();
   if (lower === "styfi") return "styfi";
-  if (lower === "plus") return "plus";
+  if (lower === "x") return "x";
   return undefined;
 }
 

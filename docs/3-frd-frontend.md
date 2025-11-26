@@ -1,9 +1,9 @@
 # `03-frontend-frd.md`
 
-**Frontend Functional Requirements — stYFI, stYFI+, veYFI, LLYFI**
+**Frontend Functional Requirements — stYFI, stYFIx, veYFI, LLYFI**
 **Version:** 0.2
 **Applies to:** `governance-apps` repository
-**Scope:** Part I (stYFI/stYFI+) and Part II (veYFI/LLYFI)
+**Scope:** Part I (stYFI/stYFIx) and Part II (veYFI/LLYFI)
 
 ---
 
@@ -12,7 +12,7 @@
 This document defines the **frontend functional requirements** for the Yearn Governance App that supports:
 
 - stYFI staking, cooldown, withdrawal
-- stYFI+ ERC-4626 vault staking
+- stYFIx ERC-4626 vault staking
 - unified reward claiming
 - veYFI migration
 - LLYFI staking, cooldown, redemption
@@ -163,16 +163,16 @@ All interactive flows use a **global transaction state machine**.
 
 ---
 
-# 3. stYFI & stYFI+ Frontend Requirements
+# 3. stYFI & stYFIx Frontend Requirements
 
 (Part I Domain)
 
-All stYFI / stYFI+ reads come from `StyfiAccountState` and associated types defined in
+All stYFI / stYFIx reads come from `StyfiAccountState` and associated types defined in
 `/lib/clients/styfi/types.ts` and shared cooldown type in `/lib/clients/shared/types.ts`.
 
 ---
 
-## 3.1. Required Reads (stYFI & stYFI+)
+## 3.1. Required Reads (stYFI & stYFIx)
 
 The UI **MUST** use the following domain shapes:
 
@@ -193,8 +193,8 @@ type StyfiAccountState = {
   styfiInCooldown: bigint;
   styfiCooldown: CooldownState;
 
-  // stYFI+
-  styfiPlus: StyfiPlusPosition;
+  // stYFIx
+  styfiX: StyfiXPosition;
 
   // Rewards
   claimableGenericRewards: bigint;
@@ -219,9 +219,9 @@ UI requirements:
   - `styfiInCooldown` (amount currently in cooldown)
   - `styfiCooldown` (`CooldownState` — amount + `endsAt` if a cooldown is active, `null` otherwise)
 
-- **stYFI+ section** must show:
+- **stYFIx section** must show:
 
-  - `styfiPlus` (see below)
+  - `styfiX` (see below)
 
 - **Rewards section** must show:
 
@@ -233,7 +233,7 @@ UI requirements:
 - **Allowances**:
 
   - `allowances.yfiToStyfi`
-  - `allowances.yfiToStyfiPlus`
+  - `allowances.yfiToStyfiX`
   - These drive Approve vs Stake button states.
 
 - **Epoch info**:
@@ -242,11 +242,11 @@ UI requirements:
   - `epoch.epochEnd`
   - `epoch.nextEpochStart`
 
-### 3.1.2. `StyfiPlusPosition`
+### 3.1.2. `StyfiXPosition`
 
 ```ts
-type StyfiPlusPosition = {
-  sharesActive: bigint; // stYFI+ shares
+type StyfiXPosition = {
+  sharesActive: bigint; // stYFIx shares
   sharesInCooldown: bigint;
   assetsActive: bigint; // underlying YFI equivalent
   assetsInCooldown: bigint;
@@ -282,7 +282,7 @@ UI requirements:
 ```ts
 type StyfiAllowances = {
   yfiToStyfi: bigint;
-  yfiToStyfiPlus: bigint;
+  yfiToStyfiX: bigint;
 };
 ```
 
@@ -292,9 +292,9 @@ UI requirements:
 
   - Compare desired stake amount to `yfiToStyfi`.
 
-- For stYFI+ stake:
+- For stYFIx stake:
 
-  - Compare desired stake amount to `yfiToStyfiPlus`.
+  - Compare desired stake amount to `yfiToStyfiX`.
 
 ---
 
@@ -317,7 +317,7 @@ The UI **MUST NOT**:
 
 ---
 
-## 3.2. Actions & Preconditions (stYFI & stYFI+)
+## 3.2. Actions & Preconditions (stYFI & stYFIx)
 
 All write actions use `StyfiClient` methods:
 
@@ -329,7 +329,7 @@ All write actions use `StyfiClient` methods:
 with:
 
 ```ts
-type StyfiStakeMode = "stYFI" | "stYFI+";
+type StyfiStakeMode = "stYFI" | "stYFIx";
 ```
 
 ### 3.2.1. Stake stYFI
@@ -363,15 +363,15 @@ Flow:
 
 ---
 
-### 3.2.2. Stake stYFI+
+### 3.2.2. Stake stYFIx
 
 Same as stYFI stake, with:
 
-- Allowance source: `allowances.yfiToStyfiPlus`.
-- Mode: `prepareStake("stYFI+", amount)`.
+- Allowance source: `allowances.yfiToStyfiX`.
+- Mode: `prepareStake("stYFIx", amount)`.
 - UI must additionally show:
 
-  - **Shares minted** (via `StyfiPlusPosition.sharesActive` delta after refresh).
+  - **Shares minted** (via `StyfiXPosition.sharesActive` delta after refresh).
   - **Underlying YFI** via `assetsActive`.
 
 ---
@@ -387,22 +387,22 @@ Preconditions:
 
   - `styfiActive > 0`
 
-- For stYFI+:
+- For stYFIx:
 
-  - `styfiPlus.sharesActive > 0`
+  - `styfiX.sharesActive > 0`
 
 - No currently active cooldown for the given mode:
 
   - stYFI: `styfiCooldown === null` or `styfiCooldown.amount === 0`
-  - stYFI+: `styfiPlus.cooldown === null` or `styfiPlus.cooldown.amount === 0`
+  - stYFIx: `styfiX.cooldown === null` or `styfiX.cooldown.amount === 0`
 
 Flow:
 
-- Call `prepareStartCooldown("stYFI" | "stYFI+", amountOrFullPosition)` as defined by contract semantics.
+- Call `prepareStartCooldown("stYFI" | "stYFIx", amountOrFullPosition)` as defined by contract semantics.
 - Execute via `useTx`.
 - On success:
 
-  - `styfiInCooldown` / `styfiPlus.sharesInCooldown` and their `CooldownState` are updated in `StyfiAccountState`.
+  - `styfiInCooldown` / `styfiX.sharesInCooldown` and their `CooldownState` are updated in `StyfiAccountState`.
 
 UI:
 
@@ -422,13 +422,13 @@ Preconditions:
 
   - `styfiCooldown !== null` and `now >= styfiCooldown.endsAt`
 
-- For stYFI+:
+- For stYFIx:
 
-  - `styfiPlus.cooldown !== null` and `now >= styfiPlus.cooldown.endsAt`
+  - `styfiX.cooldown !== null` and `now >= styfiX.cooldown.endsAt`
 
 Flow:
 
-- Call `prepareWithdraw("stYFI" | "stYFI+")`.
+- Call `prepareWithdraw("stYFI" | "stYFIx")`.
 - Execute via `useTx`.
 - On success:
 
@@ -437,9 +437,9 @@ Flow:
     - `styfiInCooldown` reduced
     - `yfiBalance` increased
 
-  - stYFI+:
+  - stYFIx:
 
-    - `styfiPlus.sharesInCooldown` reduced
+    - `styfiX.sharesInCooldown` reduced
     - `yfiBalance` increased via `assetsInCooldown` conversion
 
 - Refresh `StyfiAccountState`.
@@ -906,7 +906,7 @@ Flow:
    - All relevant account queries **MUST** be invalidated.
    - At minimum:
 
-     - `StyfiAccountState` after stYFI/stYFI+ writes.
+     - `StyfiAccountState` after stYFI/stYFIx writes.
      - `VeyfiAccountState` after veYFI/LLYFI writes.
 
 2. On wallet switch:
@@ -936,7 +936,7 @@ The frontend:
 
 - MUST NOT compute boosts.
 - MUST NOT compute epoch windows.
-- MUST NOT compute PPS for stYFI+.
+- MUST NOT compute PPS for stYFIx.
 - MUST NOT guess accrual → claimable timing.
 - MUST NOT attempt redemptions beyond caps.
 - MUST NOT perform silent approvals.
@@ -951,11 +951,11 @@ All calculations involving protocol semantics MUST rely on contract-provided dat
 
 These MUST be resolved before implementing final on-chain client logic.
 
-### 7.1. stYFI+ Reward Distribution
+### 7.1. stYFIx Reward Distribution
 
 - Is reward distribution done via a RewardsDistributor contract?
 - Is accounting based on shares or assets?
-- How are stablecoins assigned to stYFI+ users?
+- How are stablecoins assigned to stYFIx users?
 
 ### 7.2. Epoch Source
 
@@ -1001,13 +1001,13 @@ These belong to later phases.
 
 - **0.2 — 2025-11-20**
 
-  - Aligned required read shapes with `StyfiAccountState`, `StyfiPlusPosition`, `StyfiAllowances`, `EpochInfo`.
+  - Aligned required read shapes with `StyfiAccountState`, `StyfiXPosition`, `StyfiAllowances`, `EpochInfo`.
   - Aligned veYFI/LLYFI reads with `VeyfiAccountState`, `VeYfiMigrationState`, `LlyfiTokenState`, `RedemptionCaps`.
-  - Explicitly documented shared `CooldownState` usage for stYFI, stYFI+ and LLYFI.
+  - Explicitly documented shared `CooldownState` usage for stYFI, stYFIx and LLYFI.
 
 - **0.1**
 
-  - Initial FE FRD draft for stYFI/stYFI+/veYFI/LLYFI.
+  - Initial FE FRD draft for stYFI/stYFIx/veYFI/LLYFI.
 
 ---
 

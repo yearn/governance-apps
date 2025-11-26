@@ -19,7 +19,7 @@ export function StyfiDomainToolbar({ activeMode, onSelectMode }: Props) {
     if (!data) return 0n;
     return activeMode === "styfi"
       ? data.styfiActive
-      : data.styfiPlus.assetsActive;
+      : data.styfiX.assetsActive;
   }, [activeMode, data]);
 
   return (
@@ -41,7 +41,7 @@ export function StyfiDomainToolbar({ activeMode, onSelectMode }: Props) {
 
       <div className="flex flex-col gap-2 items-end w-full lg:w-auto lg:max-w-[220px] self-end">
         <div className="flex flex-wrap gap-2 justify-end">
-          {(["styfi", "plus"] as StyfiMode[]).map((mode) => (
+          {(["styfi", "x"] as StyfiMode[]).map((mode) => (
             <button
               key={mode}
               onClick={() => onSelectMode(mode)}
@@ -60,7 +60,7 @@ export function StyfiDomainToolbar({ activeMode, onSelectMode }: Props) {
         <p className="text-xs text-neutral-600 max-w-xs text-right leading-snug">
           {activeMode === "styfi"
             ? "stYFI keeps your vote and earns standard rewards with a fixed cooldown."
-            : "stYFI+ delegates voting to YBC and auto-compounds rewards in a shares vault."}
+            : "stYFIx delegates voting to YBC and auto-compounds rewards in a shares vault."}
         </p>
       </div>
     </div>

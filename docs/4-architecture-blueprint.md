@@ -1,7 +1,7 @@
 # 4. Architecture Blueprint
 
 **Version 0.7 — 2025-11-20**
-Scope: stYFI • stYFI+ • veYFI • LLYFI (BR#1 UI-first architecture)
+Scope: stYFI • stYFIx • veYFI • LLYFI (BR#1 UI-first architecture)
 Status: Updated after Phase-3 implementation
 
 This blueprint defines the front-end implementation architecture for the governance applications under YIP-88, aligned with:
@@ -21,7 +21,7 @@ It is the top-level design document guiding implementers of the `/styfi` and `/v
 ```
 
 /app
-├── styfi/        UI for stYFI + stYFI+
+├── styfi/        UI for stYFI + stYFIx
 ├── veyfi/        UI for veYFI + LLYFI
 └── layout.tsx
 
@@ -86,7 +86,7 @@ export type CooldownState = {
 Used by:
 
 - stYFI
-- stYFI+
+- stYFIx
 - LLYFI tokens (sdYFI, upYFI, coveYFI, etc.)
 
 This replaces any domain-specific cooldown types.
@@ -99,7 +99,7 @@ This replaces any domain-specific cooldown types.
 
 - **EpochInfo**
 - **StyfiAllowances**
-- **StyfiPlusPosition**
+- **StyfiXPosition**
 - **StyfiAccountState**
 
 All read through:
@@ -115,7 +115,7 @@ StyfiClient.getAccountState(address)
 - `prepareWithdraw(mode)`
 - `prepareClaimRewards()`
 
-Mode is `"stYFI" | "stYFI+"`.
+Mode is `"stYFI" | "stYFIx"`.
 
 All return:
 
@@ -300,7 +300,7 @@ All domain flows use these primitives, ensuring uniformity.
 /styfi
   ├── Account Summary
   ├── Stake (stYFI)
-  ├── Stake (stYFI+)
+  ├── Stake (stYFIx)
   ├── Cooldown & Withdraw (both)
   └── Rewards
 ```
@@ -359,7 +359,7 @@ CooldownPanel must handle:
 - countdown states
 - ready-for-withdrawal
 
-consistent across stYFI, stYFI+, and LLYFI.
+consistent across stYFI, stYFIx, and LLYFI.
 
 ---
 

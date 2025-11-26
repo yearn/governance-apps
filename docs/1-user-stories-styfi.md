@@ -1,8 +1,8 @@
 # `user-stories-styfi.md`
 
-**User Stories — stYFI & stYFI+**
+**User Stories — stYFI & stYFIx**
 **Version:** 1.0
-**Scope:** Part I of the Governance Apps (stYFI + stYFI+)
+**Scope:** Part I of the Governance Apps (stYFI + stYFIx)
 
 ---
 
@@ -164,13 +164,13 @@ We assume a technically literate DeFi user familiar with:
 
 ---
 
-# 4. User Stories (stYFI+ – ERC-4626 Vault)
+# 4. User Stories (stYFIx – ERC-4626 Vault)
 
 ---
 
-## Story MX-01 — View My stYFI+ Position
+## Story MX-01 — View My stYFIx Position
 
-**As a** stYFI+ user
+**As a** stYFIx user
 **I want** to see the number of vault shares I hold and their underlying YFI value
 **So that** I understand my position and how it changes over time
 
@@ -188,10 +188,10 @@ We assume a technically literate DeFi user familiar with:
 
 ---
 
-## Story MX-02 — Stake YFI into stYFI+
+## Story MX-02 — Stake YFI into stYFIx
 
 **As a** user choosing the maximized option
-**I want** to deposit YFI into the stYFI+ vault
+**I want** to deposit YFI into the stYFIx vault
 **So that** I get “set-and-forget” auto-compounding
 
 ### Acceptance Criteria
@@ -208,9 +208,9 @@ We assume a technically literate DeFi user familiar with:
 
 ---
 
-## Story MX-03 — Understand stYFI+ Reward Handling
+## Story MX-03 — Understand stYFIx Reward Handling
 
-**As a** stYFI+ user
+**As a** stYFIx user
 **I want** to understand how I receive my rewards
 **So that** I’m not confused by the shares mechanic
 
@@ -226,7 +226,7 @@ We assume a technically literate DeFi user familiar with:
 
 ## Story MX-04 — Start Cooldown (if applicable)
 
-**As a** stYFI+ user
+**As a** stYFIx user
 **I want** to begin withdrawal cooldown
 **So that** I can redeem my assets later
 
@@ -240,9 +240,9 @@ We assume a technically literate DeFi user familiar with:
 
 ---
 
-## Story MX-05 — Withdraw from stYFI+
+## Story MX-05 — Withdraw from stYFIx
 
-**As a** stYFI+ user
+**As a** stYFIx user
 **I want** to redeem my shares for YFI after cooldown
 **So that** I can exit my position
 
@@ -341,7 +341,7 @@ These stories explicitly **not** part of this domain:
 - This user-story set reflects the frontend behaviour required for BR#1.
 - Changes to protocol or FE FRD MUST update this file.
 - All stories map 1:1 to FRD sections.
-- Cooldown handling uses a shared cross-domain primitive (CooldownState), consistent between stYFI, stYFI+, and LLYFI flows.
+- Cooldown handling uses a shared cross-domain primitive (CooldownState), consistent between stYFI, stYFIx, and LLYFI flows.
 
 ---
 

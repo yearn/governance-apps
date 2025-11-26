@@ -39,7 +39,7 @@ export function StyfiPageClient({
     }
 
     const stored = window.localStorage.getItem(LAST_MODE_KEY);
-    if (stored === "styfi" || stored === "plus") {
+    if (stored === "styfi" || stored === "x") {
       setResolvedMode(stored);
       router.replace(`/styfi?mode=${stored}`);
     } else {
@@ -57,7 +57,7 @@ export function StyfiPageClient({
 
   const activeMode: StyfiMode | undefined = useMemo(() => {
     const modeParam = searchParams.get("mode");
-    if (modeParam === "styfi" || modeParam === "plus") return modeParam;
+    if (modeParam === "styfi" || modeParam === "x") return modeParam;
     return resolvedMode;
   }, [resolvedMode, searchParams]);
 

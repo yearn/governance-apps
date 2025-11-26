@@ -17,10 +17,10 @@ export function StyfiHero({ onSelectMode }: Props) {
           Choose your path
         </p>
         <h1 className="text-4xl font-bold text-neutral-900">
-          Stake with stYFI or stYFI+
+          Stake with stYFI or stYFIx
         </h1>
         <p className="text-neutral-600 text-lg">
-          stYFI earns standard rewards with a fixed cooldown. stYFI+ gives you
+          stYFI earns standard rewards with a fixed cooldown. stYFIx gives you
           boosted exposure with shares-based accounting. Pick a mode to enter
           the cockpit.
         </p>
@@ -36,11 +36,11 @@ export function StyfiHero({ onSelectMode }: Props) {
         />
 
         <ModeCard
-          title={modeLabel("plus")}
+          title={modeLabel("x")}
           description="Shares-based vault with boosted rewards and flexible deposits."
-          ctaLabel={`Enter ${modeLabel("plus")}`}
+          ctaLabel={`Enter ${modeLabel("x")}`}
           variant="veyfi"
-          onClick={() => onSelectMode("plus")}
+          onClick={() => onSelectMode("x")}
         />
       </div>
 

@@ -18,11 +18,11 @@ export function WithdrawTab({ mode }: Props) {
   const { data, isLoading } = useStyfiAccount();
   const { write: withdraw, state } = useStyfiWithdraw();
 
-  const cooldown = mode === "styfi" ? data?.styfiCooldown : data?.styfiPlus.cooldown;
+  const cooldown = mode === "styfi" ? data?.styfiCooldown : data?.styfiX.cooldown;
   const readyAmount =
     mode === "styfi"
       ? data?.styfiInCooldown ?? 0n
-      : data?.styfiPlus.assetsInCooldown ?? 0n;
+      : data?.styfiX.assetsInCooldown ?? 0n;
 
   const { timeRemaining, isComplete } = useEpochCountdown(
     cooldown?.endsAt,
@@ -42,7 +42,7 @@ export function WithdrawTab({ mode }: Props) {
     state.status === "mining";
 
   const handleWithdraw = async () => {
-    await withdraw(mode === "styfi" ? "stYFI" : "stYFI+");
+    await withdraw(mode === "styfi" ? "stYFI" : "stYFIx");
   };
 
   const emptyState = useMemo(() => readyAmount === 0n, [readyAmount]);
