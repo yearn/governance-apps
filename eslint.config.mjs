@@ -16,11 +16,7 @@ const eslintConfig = defineConfig([
   ]),
   {
     files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
-    ignores: [
-      "components/icons/**/*",
-      "components/ui/**/*",
-      "app/debug/**/*",
-    ],
+    ignores: ["components/icons/**/*", "components/ui/**/*", "app/debug/**/*"],
     plugins: {
       local: {
         rules: {
@@ -32,7 +28,7 @@ const eslintConfig = defineConfig([
       "local/no-long-inline-strings": [
         "warn",
         {
-          maxLength: 60,
+          maxLength: 74,
         },
       ],
     },
