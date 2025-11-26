@@ -63,6 +63,7 @@ export function WalletButton() {
                   className="w-5 h-5 rounded-full overflow-hidden mr-2"
                 >
                   {chain.iconUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       alt={chain.name ?? "Chain icon"}
                       src={chain.iconUrl}

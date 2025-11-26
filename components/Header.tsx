@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { AppLauncher } from "@/components/AppLauncher";
 import { WalletButton } from "@/components/WalletButton";
 import { cn } from "@/lib/cn";
+import { appCopy } from "@/app/_shared/messages";
 import { IconMenu } from "@/components/icons/IconMenu";
 import { IconClose } from "@/components/icons/IconClose";
 import { useState } from "react";
@@ -15,15 +16,10 @@ import { useStyfiEpoch } from "@/lib/hooks/useStyfi";
 import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
 import { useAccount } from "wagmi";
 
-const NAV_ITEMS = [
-  { name: "stYFI", href: "/styfi" },
-  { name: "veYFI", href: "/veyfi" },
-];
-
 export function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const {
     balance: yfiBalance,
     isLoading: yfiLoading,
@@ -31,6 +27,14 @@ export function Header() {
   const { data: epochData } = useStyfiEpoch();
   const { timeRemaining } = useEpochCountdown(epochData?.epochEnd, undefined);
   const displayEpoch = epochData?.currentEpoch ?? 0;
+
+  const epochLabel = epochData
+    ? appCopy.header.epoch.withNumber(displayEpoch)
+    : appCopy.header.epoch.label;
+
+  const epochRemaining = epochData
+    ? `${timeRemaining ?? appCopy.header.epoch.fallbackRemaining} ${appCopy.header.epoch.remainingSuffix}`
+    : undefined;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-200 bg-neutral-100/80 backdrop-blur-md">
@@ -42,7 +46,7 @@ export function Header() {
 
           {/* Desktop Nav */}
           <nav className="hidden gap-6 md:flex">
-            {NAV_ITEMS.map((item) => {
+            {appCopy.nav.items.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
                 <Link
@@ -53,7 +57,7 @@ export function Header() {
                     isActive ? "text-neutral-900" : "text-neutral-500"
                   )}
                 >
-                  {item.name}
+                  {item.label}
                 </Link>
               );
             })}
@@ -66,14 +70,8 @@ export function Header() {
             isConnected={isConnected}
             yfiLoading={yfiLoading}
             yfiBalance={yfiBalance}
-            epochLabel={
-              epochData
-                ? `Epoch ${displayEpoch}`
-                : "Epoch"
-            }
-            timeRemaining={
-              epochData ? `${timeRemaining ?? "--"} remaining` : undefined
-            }
+            epochLabel={epochLabel}
+            timeRemaining={epochRemaining}
           />
           <WalletButton />
 
@@ -90,7 +88,7 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="border-t border-neutral-200 bg-white p-4 md:hidden shadow-xl">
           <nav className="flex flex-col gap-4">
-            {NAV_ITEMS.map((item) => (
+            {appCopy.nav.items.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -102,7 +100,7 @@ export function Header() {
                     : "text-neutral-500"
                 )}
               >
-                {item.name}
+                {item.label}
               </Link>
             ))}
           </nav>
@@ -135,7 +133,7 @@ function HeaderPills({
       </div>
 
       <div className="flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-medium">
-        <span className="text-neutral-500">YFI</span>
+        <span className="text-neutral-500">{appCopy.header.yfi.symbol}</span>
         {yfiLoading ? (
           <Skeleton className="h-4 w-14" />
         ) : isConnected ? (
@@ -143,7 +141,9 @@ function HeaderPills({
             {formatTokenAmount(yfiBalance, 18, 4)}
           </span>
         ) : (
-          <span className="text-neutral-500">Not connected</span>
+          <span className="text-neutral-500">
+            {appCopy.header.yfi.notConnected}
+          </span>
         )}
       </div>
     </div>

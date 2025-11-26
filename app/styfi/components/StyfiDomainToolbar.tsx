@@ -6,6 +6,7 @@ import { useStyfiAccount } from "@/lib/hooks/useStyfi";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatTokenAmount } from "@/lib/format";
+import { styfiCopy as copy } from "../messages";
 
 type Props = {
   activeMode: StyfiMode;
@@ -25,7 +26,9 @@ export function StyfiDomainToolbar({ activeMode, onSelectMode }: Props) {
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
       <div className="max-w-xl">
-        <h1 className="text-3xl font-bold text-neutral-900">Your position</h1>
+        <h1 className="text-3xl font-bold text-neutral-900">
+          {copy.toolbar.title}
+        </h1>
         <div className="text-sm text-neutral-600 flex items-center gap-2">
           {isLoading ? (
             <Skeleton className="h-4 w-24" />
@@ -34,9 +37,11 @@ export function StyfiDomainToolbar({ activeMode, onSelectMode }: Props) {
               {formatTokenAmount(primaryBalance, 18, 4)} YFI
             </span>
           )}
-          <span className="text-neutral-500">as {modeLabel(activeMode)}</span>
+          <span className="text-neutral-500">
+            {copy.toolbar.summarySuffix(modeLabel(activeMode))}
+          </span>
         </div>
-        <p className="text-xs text-neutral-500">Earning weight: 1.00x</p>
+        <p className="text-xs text-neutral-500">{copy.toolbar.earningWeight}</p>
       </div>
 
       <div className="flex flex-col gap-2 items-end w-full lg:w-auto lg:max-w-[220px] self-end">
@@ -59,8 +64,8 @@ export function StyfiDomainToolbar({ activeMode, onSelectMode }: Props) {
         </div>
         <p className="text-xs text-neutral-600 max-w-xs text-right leading-snug">
           {activeMode === "styfi"
-            ? "stYFI keeps your vote and earns standard rewards with a fixed cooldown."
-            : "stYFIx delegates voting to YBC and auto-compounds rewards in a shares vault."}
+            ? copy.toolbar.descriptions.styfi
+            : copy.toolbar.descriptions.x}
         </p>
       </div>
     </div>

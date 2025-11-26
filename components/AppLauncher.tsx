@@ -5,14 +5,7 @@ import Link from "next/link";
 import { LogoYearn } from "@/components/icons/LogoYearn";
 import { useClickOutside } from "@/lib/hooks/useClickOutside";
 import { cn } from "@/lib/cn";
-
-const APPS = [
-  { name: "v3 Vaults", href: "https://yearn.fi/v3" },
-  { name: "v2 Vaults", href: "https://yearn.fi/vaults" },
-  { name: "yCRV", href: "https://ycrv.yearn.fi" },
-  { name: "yETH", href: "https://yeth.yearn.fi" },
-  { name: "Juiced", href: "https://juiced.yearn.fi" },
-];
+import { appCopy } from "@/app/_shared/messages";
 
 export function AppLauncher() {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,7 +30,7 @@ export function AppLauncher() {
         )}
       >
         <div className="grid grid-cols-2 gap-2">
-          {APPS.map((app) => (
+          {appCopy.launcher.apps.map((app) => (
             <Link
               key={app.name}
               href={app.href}

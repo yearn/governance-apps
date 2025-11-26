@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { modeLabel, StyfiMode } from "./types";
+import { styfiCopy as copy } from "../messages";
 
 type Props = {
   onSelectMode: (mode: StyfiMode) => void;
@@ -14,40 +15,36 @@ export function StyfiHero({ onSelectMode }: Props) {
     <main className="container mx-auto flex min-h-[70vh] flex-col items-center justify-center gap-6 px-4 py-12">
       <div className="space-y-3 text-center max-w-2xl">
         <p className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-          Choose your path
+          {copy.hero.kicker}
         </p>
         <h1 className="text-4xl font-bold text-neutral-900">
-          Stake with stYFI or stYFIx
+          {copy.hero.title}
         </h1>
-        <p className="text-neutral-600 text-lg">
-          stYFI earns standard rewards with a fixed cooldown. stYFIx gives you
-          boosted exposure with shares-based accounting. Pick a mode to enter
-          the cockpit.
-        </p>
+        <p className="text-neutral-600 text-lg">{copy.hero.body}</p>
       </div>
 
       <div className="flex flex-wrap justify-center gap-4">
         <ModeCard
           title={modeLabel("styfi")}
-          description="Fixed share price, straightforward staking and cooldown."
-          ctaLabel={`Enter ${modeLabel("styfi")}`}
+          description={copy.hero.cards.styfi.description}
+          ctaLabel={copy.hero.cards.styfi.cta(modeLabel("styfi"))}
           variant="styfi"
           onClick={() => onSelectMode("styfi")}
         />
 
         <ModeCard
           title={modeLabel("x")}
-          description="Shares-based vault with boosted rewards and flexible deposits."
-          ctaLabel={`Enter ${modeLabel("x")}`}
+          description={copy.hero.cards.x.description}
+          ctaLabel={copy.hero.cards.x.cta(modeLabel("x"))}
           variant="veyfi"
           onClick={() => onSelectMode("x")}
         />
       </div>
 
       <footer className="text-xs text-neutral-500">
-        Need veYFI?{" "}
+        {copy.hero.footer.text}{" "}
         <Link className="underline" href="/veyfi">
-          Go to veYFI
+          {copy.hero.footer.linkLabel}
         </Link>
       </footer>
     </main>

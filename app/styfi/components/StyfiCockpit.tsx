@@ -4,6 +4,7 @@ import { Banner } from "@/components/ui/Banner";
 import { StyfiMode } from "./types";
 import { RewardsCard } from "./cards/RewardsCard";
 import { StakeManageCard } from "./cards/StakeManageCard";
+import { styfiCopy as copy } from "../messages";
 
 type Props = {
   mode: StyfiMode;
@@ -17,8 +18,8 @@ export function StyfiCockpit({ mode }: Props) {
         <RewardsCard />
       </div>
 
-      <Banner variant="info" title="Mock mode">
-        This dashboard is running against mock clients while contracts finalize.
+      <Banner variant="info" title={copy.cockpit.mockBanner.title}>
+        {copy.cockpit.mockBanner.body}
       </Banner>
     </main>
   );

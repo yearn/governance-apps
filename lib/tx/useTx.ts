@@ -111,7 +111,7 @@ export function useTx() {
             return attemptExecute();
           }
 
-          let errorMessage = normalized.message || "Transaction failed";
+          const errorMessage = normalized.message || "Transaction failed";
 
           if (errorType === "user_rejected") {
             toast.dismiss(toastId);

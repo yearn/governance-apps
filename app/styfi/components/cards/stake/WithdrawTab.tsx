@@ -8,6 +8,7 @@ import { formatTokenAmount } from "@/lib/format";
 import { useStyfiAccount, useStyfiWithdraw } from "@/lib/hooks/useStyfi";
 import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
 import { StyfiMode, modeLabel } from "../../types";
+import { styfiCopy as copy } from "../../../messages";
 
 type Props = {
   mode: StyfiMode;
@@ -50,32 +51,36 @@ export function WithdrawTab({ mode }: Props) {
   return (
     <div className="space-y-4">
       {data?.isBlacklisted && (
-        <Banner variant="error" title="Blacklisted">
-          This address is restricted from using this interface.
+        <Banner variant="error" title={copy.shared.blacklistedTitle}>
+          {copy.shared.blacklistedBody}
         </Banner>
       )}
 
       {isLoading ? (
-        <p className="text-sm text-neutral-600">Loading cooldown data…</p>
+        <p className="text-sm text-neutral-600">{copy.withdrawTab.loading}</p>
       ) : !data ? (
         <p className="text-sm text-neutral-600">
-          Connect your wallet to see withdrawable amounts.
+          {copy.withdrawTab.disconnected}
         </p>
       ) : emptyState ? (
         <p className="text-sm text-neutral-600">
-          Nothing in cooldown right now. Start a cooldown first.
+          {copy.withdrawTab.empty}
         </p>
       ) : (
         <>
           <div className="space-y-1">
-            <p className="text-sm text-neutral-500">Available to withdraw</p>
+            <p className="text-sm text-neutral-500">
+              {copy.withdrawTab.availableLabel}
+            </p>
             <p className="text-2xl font-number font-bold">
               {formatTokenAmount(readyAmount)}{" "}
               {mode === "styfi" ? "YFI" : "YFI"}
             </p>
             {cooldown?.endsAt && !isComplete && (
               <p className="text-xs text-neutral-500">
-                Ready in {timeRemaining}
+                {timeRemaining
+                  ? copy.withdrawTab.readyIn(timeRemaining)
+                  : null}
               </p>
             )}
           </div>
@@ -87,7 +92,7 @@ export function WithdrawTab({ mode }: Props) {
               disabled={!canWithdraw || isSubmitting}
               isLoading={isSubmitting}
             >
-              Withdraw {modeLabel(mode)}
+              {copy.withdrawTab.cta(modeLabel(mode))}
             </Button>
           </div>
         </>

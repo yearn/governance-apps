@@ -7,6 +7,7 @@ import { StyfiMode, modeLabel } from "../types";
 import { StakeTab } from "./stake/StakeTab";
 import { CooldownTab } from "./stake/CooldownTab";
 import { WithdrawTab } from "./stake/WithdrawTab";
+import { styfiCopy as copy } from "../../messages";
 
 type Props = {
   mode: StyfiMode;
@@ -19,17 +20,17 @@ export function StakeManageCard({ mode }: Props) {
 
   const tabLabel =
     activeTab === "stake"
-      ? "Stake"
+      ? copy.stakeManage.tabs.stake
       : activeTab === "cooldown"
-      ? "Cooldown"
-      : "Withdraw";
+      ? copy.stakeManage.tabs.cooldown
+      : copy.stakeManage.tabs.withdraw;
 
   return (
     <Card className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-            {`Manage ${modeLabel(mode).toUpperCase()}`}
+            {copy.stakeManage.kicker(modeLabel(mode))}
           </p>
           <h3 className="text-xl font-bold text-neutral-900">
             {tabLabel}
@@ -41,9 +42,9 @@ export function StakeManageCard({ mode }: Props) {
             setActiveTab(tab as "stake" | "cooldown" | "withdraw")
           }
           tabs={[
-            { id: "stake", label: "Stake" },
-            { id: "cooldown", label: "Cooldown" },
-            { id: "withdraw", label: "Withdraw" },
+            { id: "stake", label: copy.stakeManage.tabs.stake },
+            { id: "cooldown", label: copy.stakeManage.tabs.cooldown },
+            { id: "withdraw", label: copy.stakeManage.tabs.withdraw },
           ]}
         />
       </div>

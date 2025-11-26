@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
-import { StyfiAccountState, StyfiStakeMode } from "@/lib/clients/styfi";
+import { StyfiStakeMode } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
 
 // --- Query Keys ---

@@ -406,7 +406,36 @@ The same patterns apply to `/veyfi` when we implement it:
 
 ---
 
-## 10. Summary
+## 10. Copy Guidelines
+
+- Each route/feature owns a co-located `messages.ts` with an `as const` export named `<feature>Copy` (or `copy` when obvious). Semantic nesting only (`page`, `cta`, `forms`, `errors`, `emptyState`, `status`, `shared`), no flat mega namespaces.
+- Shared shell copy (nav, header/footer, generic errors/toasts) lives in `app/_shared/messages.ts`. Do not pull copy into design-system components; they stay label/placeholder agnostic.
+- Use functions for interpolation (`positionSummary(amount: string) => string`), not string concatenation inside components.
+- Heuristic: avoid inline strings longer than ~60 characters in components unless they are accessibility attributes (`aria-*`, `title`).
+- Lint: `local/no-long-inline-strings` warns when inline strings exceed 60 chars (aria/title exempt); move copy to `messages.ts`.
+- Example:
+
+```ts
+// app/styfi/messages.ts
+export const styfiCopy = {
+  page: {
+    title: "Stake YFI and earn protocol rewards",
+    subtitle: "Lock YFI to secure governance and share in upside.",
+  },
+  cta: { primary: "Stake YFI" },
+  status: { summary: (amount: string) => `You have ${amount} staked.` },
+} as const;
+```
+
+```tsx
+import { styfiCopy as copy } from "./messages";
+<h1>{copy.page.title}</h1>
+<p>{copy.status.summary("1,234")}</p>
+```
+
+---
+
+## 11. Summary
 
 This frontend architecture:
 

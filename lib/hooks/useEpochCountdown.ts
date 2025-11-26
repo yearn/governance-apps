@@ -65,7 +65,7 @@ export function useEpochCountdown(
     tick();
     const interval = setInterval(tick, 60000); // Update every minute
     return () => clearInterval(interval);
-  }, [epochEndTimestamp]);
+  }, [epochEndTimestamp, epochStartTimestamp]);
 
   return { timeRemaining, isComplete, progress };
 }

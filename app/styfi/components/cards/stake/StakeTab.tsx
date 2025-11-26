@@ -13,6 +13,7 @@ import {
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
 import { MOCK_YFI_ADDRESS, SPENDER_STYFI, SPENDER_STYFIX } from "@/lib/constants";
 import { StyfiMode, modeLabel } from "../../types";
+import { styfiCopy as copy } from "../../../messages";
 
 type Props = {
   mode: StyfiMode;
@@ -75,9 +76,9 @@ export function StakeTab({ mode }: Props) {
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-neutral-600">
-          <span>Amount to stake</span>
+          <span>{copy.stakeTab.amountLabel}</span>
           <div className="font-number text-neutral-500">
-            Balance: {formatTokenAmount(yfiBalance)} YFI
+            {copy.stakeTab.balanceLabel(formatTokenAmount(yfiBalance))}
           </div>
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-neutral-900">
@@ -96,7 +97,7 @@ export function StakeTab({ mode }: Props) {
         maxLabel="Max"
         tokenSymbol="YFI"
         error={
-          insufficientBalance ? "Insufficient balance" : undefined
+          insufficientBalance ? copy.stakeTab.insufficientBalance : undefined
         }
         placeholder="0.00"
         disabled={isLoading || approveLoading || isSubmitting}
@@ -117,7 +118,7 @@ export function StakeTab({ mode }: Props) {
             }
             isLoading={approveLoading}
           >
-            Approve YFI
+            {copy.stakeTab.approve}
           </Button>
         ) : (
           <Button
@@ -126,13 +127,13 @@ export function StakeTab({ mode }: Props) {
             disabled={isDisabled}
             isLoading={isSubmitting}
           >
-            Stake {modeLabel(mode)}
+            {copy.stakeTab.stake(modeLabel(mode))}
           </Button>
         )}
 
         {data?.isBlacklisted && (
           <p className="text-xs text-red-600">
-            This address is restricted.
+            {copy.shared.blacklistedBody}
           </p>
         )}
       </div>

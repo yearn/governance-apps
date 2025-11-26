@@ -331,6 +331,18 @@ All data comes from:
 
 ---
 
+## 8.4 Copy and Text Management
+
+- All user-facing copy lives in co-located `messages.ts` files with an `as const` export.
+- Each route/feature owns its own `messages.ts` (e.g., `app/styfi/messages.ts`, `app/veyfi/messages.ts`); shared shell copy (nav, footer, generic errors) lives in `app/_shared/messages.ts`.
+- Exports follow `<feature>Copy` (or `copy` when obvious) and use semantic nesting (`page`, `cta`, `forms`, `errors`, `emptyState`, `status`, `shared`) instead of flat namespaces.
+- Dynamic text uses functions (`positionSummary(amount: string) => string`); avoid building long sentences inline in components.
+- Design system/shared components stay copy-agnostic: they take strings/ReactNodes via props and do not import `messages.ts` directly.
+- Heuristic: avoid inline strings longer than ~60 characters in components unless they are accessibility attributes.
+- Lint guard: `local/no-long-inline-strings` warns on inline strings over 60 chars (aria/title exempt) to keep copy centralized.
+
+---
+
 # 9. Error Handling & Edge Conditions
 
 ## 9.1 Wrong network

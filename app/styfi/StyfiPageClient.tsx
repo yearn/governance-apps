@@ -5,15 +5,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { StyfiHero } from "./components/StyfiHero";
 import { StyfiDomainToolbar } from "./components/StyfiDomainToolbar";
 import { StyfiCockpit } from "./components/StyfiCockpit";
-import { StyfiDashboardSkeleton } from "./components/StyfiDashboardSkeleton";
 import { StyfiMode } from "./components/types";
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { useAccount } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { Card } from "@/components/ui/Card";
+import { styfiCopy as copy } from "./messages";
 
 const LAST_MODE_KEY = "styfi-last-mode";
+
+function getStoredMode(): StyfiMode | undefined {
+  if (typeof window === "undefined") return undefined;
+  const stored = window.localStorage.getItem(LAST_MODE_KEY);
+  return stored === "styfi" || stored === "x" ? stored : undefined;
+}
 
 export function StyfiPageClient({
   initialMode,
@@ -22,31 +28,19 @@ export function StyfiPageClient({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isConnected, address } = useAccount();
+  const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
+  const storedInitMode = initialMode ? undefined : getStoredMode();
   const [resolvedMode, setResolvedMode] = useState<StyfiMode | undefined>(
-    initialMode
-  );
-  const [checkingStorage, setCheckingStorage] = useState(
-    initialMode === undefined
+    initialMode ?? storedInitMode
   );
 
-  // On mount, if no URL mode, try last-mode from localStorage.
+  // On mount, if we bootstrapped from localStorage and URL lacks mode, align URL.
   useEffect(() => {
-    if (initialMode) {
-      setCheckingStorage(false);
-      return;
+    if (!initialMode && storedInitMode) {
+      router.replace(`/styfi?mode=${storedInitMode}`);
     }
-
-    const stored = window.localStorage.getItem(LAST_MODE_KEY);
-    if (stored === "styfi" || stored === "x") {
-      setResolvedMode(stored);
-      router.replace(`/styfi?mode=${stored}`);
-    } else {
-      setResolvedMode(undefined);
-    }
-    setCheckingStorage(false);
-  }, [initialMode, router]);
+  }, [initialMode, router, storedInitMode]);
 
   // When a URL mode exists, persist it.
   useEffect(() => {
@@ -66,10 +60,6 @@ export function StyfiPageClient({
     router.replace(`/styfi?mode=${mode}`);
   };
 
-  if (checkingStorage) {
-    return <StyfiDashboardSkeleton />;
-  }
-
   if (!activeMode) {
     return <StyfiHero onSelectMode={handleSelectMode} />;
   }
@@ -78,21 +68,30 @@ export function StyfiPageClient({
     <div className="space-y-6">
       <main className="container mx-auto px-4 pt-10 space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
-          <StatCallout label="Total Supply" value="36,666 YFI" />
-          <StatCallout label="Staked" value="2,583 YFI" />
-          <StatCallout label="APR paid as USDS" value="84.58%" />
+          <StatCallout
+            label={copy.page.stats.totalSupply.label}
+            value={copy.page.stats.totalSupply.value}
+          />
+          <StatCallout
+            label={copy.page.stats.staked.label}
+            value={copy.page.stats.staked.value}
+          />
+          <StatCallout
+            label={copy.page.stats.apr.label}
+            value={copy.page.stats.apr.value}
+          />
         </div>
 
         {!isConnected && (
-          <Banner variant="warning" title="Wallet not connected">
+          <Banner variant="warning" title={copy.page.connectBanner.title}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <span>Connect your wallet to view and manage positions.</span>
+              <span>{copy.page.connectBanner.body}</span>
               <Button
                 size="sm"
                 variant="primary"
                 onClick={() => openConnectModal?.()}
               >
-                Connect wallet
+                {copy.page.connectBanner.cta}
               </Button>
             </div>
           </Banner>

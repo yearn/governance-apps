@@ -12,6 +12,7 @@ import {
   useStyfiStartCooldown,
 } from "@/lib/hooks/useStyfi";
 import { StyfiMode, modeLabel } from "../../types";
+import { styfiCopy as copy } from "../../../messages";
 
 type Props = {
   mode: StyfiMode;
@@ -69,17 +70,19 @@ export function CooldownTab({ mode }: Props) {
   return (
     <div className="space-y-4">
       {hasActiveCooldown && (
-        <Banner variant="info" title="Cooldown active">
-          You already have a cooldown running for this mode.
+        <Banner variant="info" title={copy.cooldownTab.bannerTitle}>
+          {copy.cooldownTab.bannerBody}
         </Banner>
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-neutral-600">
-          <span>Amount to move into cooldown</span>
+          <span>{copy.cooldownTab.amountLabel}</span>
           <div className="font-number text-neutral-500">
-            Available: {formatTokenAmount(available)}{" "}
-            {mode === "styfi" ? "stYFI" : "stYFIx"}
+            {copy.cooldownTab.availableLabel(
+              formatTokenAmount(available),
+              mode === "styfi" ? copy.toolbar.mode.styfiLabel : copy.toolbar.mode.xLabel
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-neutral-900">
@@ -98,7 +101,7 @@ export function CooldownTab({ mode }: Props) {
         onChange={setInput}
         onMaxClick={onMax}
         tokenSymbol={mode === "styfi" ? "stYFI" : "stYFIx"}
-        error={insufficient ? "Exceeds available" : undefined}
+        error={insufficient ? copy.cooldownTab.errorExceeds : undefined}
         placeholder="0.00"
         disabled={
           isLoading || isSubmitting || hasActiveCooldown || data?.isBlacklisted
@@ -107,7 +110,7 @@ export function CooldownTab({ mode }: Props) {
 
       <div className="flex flex-col items-end gap-2">
         <p className="text-xs text-neutral-600 text-right">
-          Starts a 14-day cooldown. You can withdraw after the timer ends.
+          {copy.cooldownTab.helper}
         </p>
         <Button
           variant="secondary"
@@ -115,7 +118,7 @@ export function CooldownTab({ mode }: Props) {
           disabled={isDisabled}
           isLoading={isSubmitting}
         >
-          Start cooldown for {modeLabel(mode)}
+          {copy.cooldownTab.startCta(modeLabel(mode))}
         </Button>
       </div>
     </div>

@@ -3,6 +3,7 @@
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Link from "next/link";
+import { homeCopy as copy } from "./messages";
 
 export default function Home() {
   return (
@@ -11,25 +12,24 @@ export default function Home() {
         <ConnectButton />
       </div>
 
-      <h1 className="text-3xl font-semibold">Yearn Governance Apps</h1>
+      <h1 className="text-3xl font-semibold">{copy.page.title}</h1>
 
       <p className="text-sm text-slate-300 text-center max-w-md">
-        This repo will host the stYFI and veYFI frontends (and later governance
-        and dashboards). For now, choose a section:
+        {copy.page.description}
       </p>
 
       <div className="flex gap-4">
         <Link
-          href="/styfi"
+          href={copy.cta.styfi.href}
           className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
         >
-          stYFI (styfi.yearn.fi)
+          {copy.cta.styfi.label}
         </Link>
         <Link
-          href="/veyfi"
+          href={copy.cta.veyfi.href}
           className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
         >
-          veYFI / LLYFI (veyfi.yearn.fi)
+          {copy.cta.veyfi.label}
         </Link>
       </div>
     </main>

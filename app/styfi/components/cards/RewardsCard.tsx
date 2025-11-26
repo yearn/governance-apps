@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Banner } from "@/components/ui/Banner";
 import { formatTokenAmount } from "@/lib/format";
 import { useStyfiAccount, useStyfiClaimRewards } from "@/lib/hooks/useStyfi";
+import { styfiCopy as copy } from "../../messages";
 
 export function RewardsCard() {
   const { data, isLoading } = useStyfiAccount();
@@ -35,15 +36,19 @@ export function RewardsCard() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-            Rewards
+            {copy.rewards.kicker}
           </p>
-          <h3 className="text-xl font-bold text-neutral-900">stYFI rewards</h3>
+          <h3 className="text-xl font-bold text-neutral-900">
+            {copy.rewards.title}
+          </h3>
         </div>
         {isLoading ? (
           <Skeleton className="h-10 w-28" />
         ) : (
           <div className="text-right">
-            <p className="text-xs text-neutral-500">Accruing (next epoch)</p>
+            <p className="text-xs text-neutral-500">
+              {copy.rewards.accruingLabel}
+            </p>
             <p className="text-lg font-number font-bold">
               {formatTokenAmount(accruing)} {data?.rewardToken.symbol}
             </p>
@@ -52,8 +57,8 @@ export function RewardsCard() {
       </div>
 
       {data?.isBlacklisted && (
-        <Banner variant="error" title="Blacklisted">
-          This address is restricted from using this interface.
+        <Banner variant="error" title={copy.shared.blacklistedTitle}>
+          {copy.shared.blacklistedBody}
         </Banner>
       )}
 
@@ -65,17 +70,19 @@ export function RewardsCard() {
         </div>
       ) : !data ? (
         <p className="text-sm text-neutral-600">
-          Connect your wallet to see rewards.
+          {copy.rewards.disconnected}
         </p>
       ) : (
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <p className="text-sm text-neutral-500">Claimable</p>
+            <p className="text-sm text-neutral-500">
+              {copy.rewards.claimableLabel}
+            </p>
             <p className="text-2xl font-number font-bold">
               {formatTokenAmount(claimable)} {data.rewardToken.symbol}
             </p>
             <p className="text-xs text-neutral-500">
-              Includes generic + boosted rewards.
+              {copy.rewards.claimableHelper}
             </p>
           </div>
 
@@ -91,7 +98,7 @@ export function RewardsCard() {
               }
               onClick={() => write()}
             >
-              Claim rewards
+              {copy.rewards.claimCta}
             </Button>
           </div>
         </div>
