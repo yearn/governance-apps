@@ -19,6 +19,7 @@ import {
 import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { IconWallet } from "@/components/icons/IconWallet";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export default function KitchenSinkPage() {
   const [activeTab, setActiveTab] = useState("tab1");
@@ -33,6 +34,26 @@ export default function KitchenSinkPage() {
           <p className="text-neutral-600 text-lg">
             Design system verification for Phase 4.
           </p>
+        </section>
+
+        {/* Tooltips */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
+            Tooltips
+          </h2>
+          <div className="flex flex-wrap items-center gap-6">
+            <Tooltip content="Primary action">
+              <Button variant="primary">Hover me</Button>
+            </Tooltip>
+            <Tooltip content="Secondary action" side="bottom">
+              <Button variant="secondary">Hover me</Button>
+            </Tooltip>
+            <Tooltip content="Icon button">
+              <Button variant="ghost" size="sm">
+                <IconWallet className="h-4 w-4" />
+              </Button>
+            </Tooltip>
+          </div>
         </section>
 
         {/* Buttons */}

@@ -1,8 +1,8 @@
-# stYFI UI Spec v0.4
+# stYFI UI Spec v0.5
 
 **Status:** Approved / Ready for Dev
 **Applies to:** `styfi.yearn.fi` (and `/styfi` route)
-**Last updated:** 2025-11-24
+**Last updated:** 2025-11-25
 
 ---
 
@@ -11,10 +11,9 @@
 This document defines the **UI and interaction model** for `styfi.yearn.fi`.
 It specifically addresses:
 
-- **Mode Selection:** Switching between **stYFI** and **stYFIx**.
-- **URL-Driven State:** Using search params for deep-linking (`?mode=...`).
-- **Forced Active Choice:** Ensuring users explicitly select a mode before entering.
-- **Navigation:** Decoupling domain controls into a dedicated toolbar.
+- **Unified Mode Selector:** Single “Your Position” card that owns onboarding (expanded) and dashboard (collapsed) states.
+- **Mode State:** Single source of truth via a shared provider + persistence (LS), with URL sync for shareability.
+- **Onboarding:** Drawer-based onboarding, no separate page.
 - **Functionality:** Full support for partial staking, partial cooldowns, and dynamic rewards.
 
 ---
@@ -22,11 +21,11 @@ It specifically addresses:
 ## 2. Design Principles
 
 1.  **Flat, Single-Surface:** One page, no tabs, no routing complexity.
-2.  **URL as Source of Truth:** The view state is determined strictly by the URL query parameter.
-3.  **Decoupled Navigation:** The Global Header remains "dumb." Domain-specific controls live in a **Domain Toolbar**.
-4.  **Active Choice:** New users (or those with no history) must explicitly select a mode via a Hero Banner.
+2.  **Card-Centric State:** The “Your Position” card controls mode + onboarding. No separate toolbar/hero gating.
+3.  **URL-Friendly:** URL may include `?mode=` for deep links but the provider is the source of truth; we sync URL for shareability.
+4.  **Soft Onboarding:** First-time users see the card expanded (drawer) until they pick a mode; returning users land collapsed.
 5.  **Explicit, Safe Interactions:** All write actions (Stake, Cooldown, Withdraw) require explicit inputs.
-6.  **Data-Driven:** Labels (token symbols) and Weights are driven by the client, not hardcoded.
+6.  **Data-Driven:** Labels (token symbols) and weights are driven by the client, not hardcoded.
 
 ---
 
@@ -37,10 +36,8 @@ It specifically addresses:
 **Page Structure:**
 
 1.  **Global Header** (Standard Yearn Header)
-2.  **Domain Toolbar** (Mode Switcher & Balance — _Conditional Visibility_)
-3.  **Content Area:**
-    - **State A (No Mode selected):** Hero / Mode Selection Banner.
-    - **State B (Mode Active):** Cockpit (Two-column dashboard).
+2.  **Your Position Card** (collapsed/expanded, owns mode and onboarding)
+3.  **Content Area:** Cockpit (Two-column dashboard)
 
 ---
 
@@ -96,16 +93,19 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
 - **Standard Component:** Uses the shared `Header.tsx`.
 - **Behavior:** Dumb component. Does **not** know about stYFI modes. Does not contain the switch.
 
-### 6.2 Domain Toolbar (New)
+### 6.2 Your Position Card (Unified Selector)
 
-- **Location:** Rendered inside `/app/styfi/page.tsx`, immediately below the Global Header.
-- **Visibility:**
-  - **Visible:** If URL has `?mode=styfi` or `?mode=x`.
-  - **Hidden:** If URL has no mode (Hero Banner state).
-- **Content:**
-  - **Mode Switcher:** Toggle pill between `stYFI` and `stYFIx`.
-    - _Action:_ Clicking updates URL to `?mode=styfi` or `?mode=x`.
-  - **YFI Balance:** Displays user’s _unlocked_ wallet YFI (e.g., "12.50 YFI").
+- **Location:** Rendered inside `/app/styfi/StyfiPageClient.tsx`, directly under the Global Header.
+- **States:**
+  - **Collapsed:** Shows active mode logos (primary + secondary), balance summary, “Compare modes” toggle.
+  - **Expanded (Drawer):** Shows two selection cards, explainer copy; selecting sets mode, marks onboarded, collapses.
+- **Interactions:**
+  - **Secondary logo:** Quick switch (focusable button, `aria-label`).
+  - **Compare modes:** Toggles drawer (`aria-expanded`, `aria-controls`).
+  - **Selection cards:** Sets mode, persists LS flags, collapses.
+- **Persistence:**
+  - `styfi_onboarded`: boolean; if missing → start expanded.
+  - `styfi-last-mode`: `"styfi" | "x"`; optional last-mode hint.
 
 ---
 
@@ -116,67 +116,44 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
 - **stYFI:** Voting power retained.
 - **stYFIx:** Voting power delegated to YBC.
 
-### 7.2 URL Parameters (Source of Truth)
+### 7.2 Mode State & Persistence
 
-- `?mode=styfi` → Renders stYFI Dashboard + Toolbar.
-- `?mode=x` → Renders stYFIx Dashboard + Toolbar.
-- `(No params)` → Triggers "Forced Choice" flow.
+- **Source of Truth:** `StyfiModeProvider` context (shared in `/app/styfi/state/StyfiModeProvider.tsx`).
+- **URL:** Synced for shareability/deep links (`?mode=styfi|x`), but the provider drives the UI.
+- **LocalStorage:**
+  - `styfi_onboarded`: `"true"` when user has closed onboarding.
+  - `styfi-last-mode`: optional last mode hint.
 
-### 7.3 Persistence (History)
+### 7.3 Onboarding Flow
 
-- We use **LocalStorage** only to remember if a user has visited before to streamline returning visits.
-- Key: `styfi-last-mode`
-- Value: `'styfi' | 'x'`
-
-### 7.4 The "Forced Choice" Flow (On Load)
-
-**Scenario A: User visits `/styfi` (Clean URL)**
-
-1.  **Check LocalStorage:**
-    - If `styfi-last-mode` exists → **Redirect** to `/styfi?mode=[last-mode]`.
-    - If **No History** → Render **Hero Selection Banner**.
-
-**Scenario B: User visits `/styfi?mode=x` (Deep Link)**
-
-1.  **Render Dashboard** immediately in `stYFIx` mode.
-2.  **Update LocalStorage:** Set `styfi-last-mode = 'x'`.
-
-### 7.5 Hero Selection Banner
-
-- **Purpose:** Force an active choice for new users.
-- **Content:** Two large cards side-by-side.
-  - **Card A (stYFI):** "Manage Vote. Standard Rewards."
-  - **Card B (stYFIx):** "Delegated Vote. Standard Rewards."
-- **Action:** Clicking a card:
-  1.  Updates URL to `?mode=...`.
-  2.  Saves choice to LocalStorage.
-  3.  Banner unmounts, Toolbar + Dashboard mounts.
+- **First visit (no `styfi_onboarded`):** “Your Position” drawer is expanded; user must pick a mode.
+- **Returning (flag present):** Card starts collapsed in last mode (from URL or LS).
+- **Selection:** Sets mode, marks onboarded, collapses drawer.
 
 ---
 
 ## 8. Core Components (Dashboard View)
 
-These components only render when a `mode` is present in the URL.
+These components render once mode is resolved by the provider (initially from URL/LS). Once resolved, the provider also persists `styfi-last-mode` as a hint for future loads.
 
-### 8.1 Your Position Card
+### 8.1 Your Position Card (Selector + Drawer)
 
-**Purpose:** Show live stake state for the _active mode_.
-**Data Source:** `useStyfiPosition(mode)`
+**Purpose:** Own mode selection and onboarding, plus surface balance summary.
+**State:**
 
-**Fields:**
+- **Collapsed (Dashboard header):**
+  - Primary logo (active) + secondary logo (quick switch).
+  - Balance summary: `X YFI in stYFI|stYFIx`.
+  - “Compare modes” toggle (expands drawer).
+- **Expanded (Onboarding/Drawer):**
+  - Explainer text.
+  - Two selection cards; active card visually highlighted.
+  - Selecting a card sets mode, marks onboarded, collapses.
 
-- **Title:** `Your stYFI Position` (dynamic based on mode).
-- **Staked Amount:** Huge number (e.g., `123.45 stYFI`).
-- **Earning Weight:**
-  - Display: `1.37x` (Value derived from `StyfiAccountState.earningWeight`).
-  - Tooltip: "Your effective earning power based on lock duration and boosters."
-- **Cooldown State:**
-  - If `cooldown.amount > 0`: Show "X.XX stYFI in cooldown".
-  - Tooltip/Subtext: "Available on [Date]".
-
-**Empty State:**
-
-- "No position." / "Stake YFI to start."
+**Accessibility:**
+- Toggle has `aria-expanded`, `aria-controls`.
+- Secondary logo has `aria-label="Switch to …"`.
+- Selection cards are focusable buttons; focus moves into drawer on open.
 
 ### 8.2 Rewards Card
 
@@ -278,9 +255,9 @@ To support this UI, the following updates are required in `lib/clients/styfi/typ
 
 ## 12. State Matrix
 
-| User State    | LocalStorage | URL Params   | View                                                           |
-| :------------ | :----------- | :----------- | :------------------------------------------------------------- |
-| **New User**  | Empty        | Empty        | **Hero Banner** visible. Toolbar Hidden.                       |
-| **Returning** | 'stYFI'      | Empty        | **Redirect** to `?mode=styfi`.                                 |
-| **Deep Link** | Empty        | `?mode=x`    | **Dashboard (stYFIx)**. Toolbar Visible. Updates LS to 'x'.    |
-| **Browsing**  | 'stYFI'      | `?mode=x`    | **Dashboard (stYFIx)**. Toolbar Visible. Updates LS to 'x'.    |
+| User State    | LocalStorage                              | URL Params   | View                                             |
+| :------------ | :---------------------------------------- | :----------- | :----------------------------------------------- |
+| **New User**  | `styfi_onboarded` missing                 | Empty        | **Your Position** expanded (drawer).             |
+| **Returning** | `styfi_onboarded` = true, last-mode maybe | Empty        | Collapsed card in last-mode; dashboard renders.  |
+| **Deep Link** | Any                                       | `?mode=x`    | Provider sets mode to `x`; card collapsed; dashboard renders. |
+| **Switching** | `styfi_onboarded` = true                  | `?mode=styfi|x` | Mode switches; LS updated with last-mode.        |

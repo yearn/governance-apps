@@ -104,6 +104,14 @@ A clean, unopinionated table structure.
 - Use for lists of LLYFI tokens or historical data.
 - Supports `font-mono` cells for financial data.
 
+### 4.5. `Tooltip`
+
+A lightweight, styled tooltip wrapper for hover/focus hints.
+
+- Usage: `<Tooltip content="Switch modes"><Button>...</Button></Tooltip>`
+- Positions: `top` (default), `bottom`, `left`, `right`.
+- Does not pull copy; consumers pass strings from feature `messages.ts`.
+
 ---
 
 ## 5. Layout Patterns

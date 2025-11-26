@@ -67,69 +67,44 @@ The Global Header is a **dumb, stable** component:
 
 This avoids coupling global navigation to domain details and keeps header changes rare and deliberate.
 
-### 2.2 Domain Toolbar (Per-Route)
+### 2.2 Domain Controls (Per-Route)
 
-Domain-specific controls live in a **Toolbar** rendered inside the route.
+Domain-specific controls live inside the route itself.
 
 For `/styfi`:
 
-- Component: `StyfiDomainToolbar`
-- Rendered **under** the Global Header, inside `app/styfi/page.tsx` (or its client wrapper).
-- Contains:
-
-  - stYFI / stYFIx **Mode Switcher** (when mode is active)
-  - **Unlocked YFI balance** pill
+- Component: `StyfiPositionCard` (collapsed/expanded). It owns mode selection + onboarding and lives directly under the header.
+- No separate toolbar; the card is the single source of truth for mode.
 
 For `/veyfi` (future):
 
-- A separate toolbar (`VeyfiDomainToolbar`) will host veYFI/LLYFI domain controls (filters, token selectors, etc.).
+- A domain-specific control surface (`VeyfiDomainToolbar` or equivalent) can be added under the header as needed.
 
 **Rule:**
-Global Header stays generic.
-Each domain owns its Toolbar and layout.
+Global Header stays generic. Each domain owns its control surface and layout.
 
 ---
 
 ## 3. URL-Driven View State
 
-### 3.1 Mode as URL, not Global State
+### 3.1 Mode via Provider (URL Synced)
 
-For stYFI, the **view state** (`stYFI` vs `stYFIx`) is driven by the URL query parameter:
+For stYFI, the **view state** (`styfi` vs `x`) is driven by `StyfiModeProvider`:
 
-- `/styfi?mode=styfi` → stYFI mode
-- `/styfi?mode=x` → stYFIx mode
+- Provider is the source of truth.
+- URL `?mode=` is synced for shareability/back-button friendliness but does not override the provider’s resolution loop.
+- LocalStorage is a hint, not authority.
 
-**The URL is the source of truth.**
+### 3.2 LocalStorage (Hints)
 
-We explicitly avoid:
+- `styfi_onboarded` (boolean) → if missing, open onboarding drawer.
+- `styfi-last-mode` (`'styfi' | 'x'`) → hint for last used mode.
 
-- Storing mode in Zustand or other global UI state as the primary source.
-- Mode-based SSR hydration mismatches.
+Flow:
 
-This makes views:
-
-- Shareable (`/styfi?mode=x` can be sent to someone)
-- Deterministic (server knows mode from `searchParams`)
-- Back-button friendly (browser history contains view state)
-
-### 3.2 LocalStorage (Optional Hint, Not Authority)
-
-We use LocalStorage only as a **hint** for returning users:
-
-- Key: `styfi-last-mode`
-- Values: `'styfi' | 'x'`
-- On `/styfi` with **no** `mode` param:
-
-  - If `styfi-last-mode` exists → redirect to `/styfi?mode=[last-mode]`.
-  - If not → show Hero Banner (forced choice).
-
-Once a `mode` is present in the URL:
-
-- The dashboard renders in that mode.
-- We update `styfi-last-mode` accordingly.
-
-**Rule:**
-LocalStorage is never the source of view truth; the **URL is**.
+- First visit (no flag): open drawer.
+- Returning: collapse in last-mode hint (or URL).
+- Deep link (`?mode=x`): provider sets mode to `x`, marks onboarded, collapses.
 
 ---
 
@@ -141,12 +116,9 @@ Each domain route follows this pattern:
 
 ```tsx
 // app/styfi/page.tsx (Server Component)
-export default function StyfiPage({
-  searchParams,
-}: {
-  searchParams: { mode?: string };
-}) {
-  const mode = normalizeMode(searchParams.mode); // 'styfi' | 'x' | undefined
+export default async function StyfiPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
+  const params = await searchParams;
+  const mode = normalizeMode(params.mode); // 'styfi' | 'x' | undefined
 
   return <StyfiPageClient initialMode={mode} />;
 }
@@ -156,13 +128,13 @@ export default function StyfiPage({
 // app/styfi/StyfiPageClient.tsx (Client Component)
 "use client";
 
-export function StyfiPageClient({
-  initialMode,
-}: {
-  initialMode?: "styfi" | "x";
-}) {
-  // LocalStorage check + redirect if needed
-  // Decide between Hero vs Cockpit
+export function StyfiPageClient({ initialMode }: { initialMode?: "styfi" | "x" }) {
+  return (
+    <StyfiModeProvider initialMode={initialMode}>
+      <StyfiPositionCard />
+      <StyfiCockpit />
+    </StyfiModeProvider>
+  );
 }
 ```
 
@@ -174,24 +146,15 @@ export function StyfiPageClient({
   - Normalize/validate mode string.
   - Pass mode as `initialMode` prop to client.
 
-- **Client (StyfiPageClient):**
+- **Client (StyfiPageClient + Provider):**
 
-  - Perform LocalStorage check.
-  - If no URL mode and LS has last-mode → `router.replace("/styfi?mode=...")`.
-  - If URL mode present → render Toolbar + Cockpit.
-  - If no URL mode and no LS → render Hero Banner.
+  - Hydrate from LS (`styfi_onboarded`, `styfi-last-mode`).
+  - Sync URL to mode for shareability.
+  - Render unified position card (collapsed/expanded) + cockpit.
 
 ### 4.2 Avoiding Flicker
 
-When `StyfiPageClient` is deciding whether to redirect based on LocalStorage:
-
-- While checking LS, it may temporarily render nothing (`return null`) or a lightweight skeleton.
-- The Hero Banner should only be rendered when we know that:
-
-  - No URL mode, and
-  - No prior mode saved.
-
-This avoids a brief flash of the Hero for returning users before redirect.
+The provider hydrates once on the client. The card can render immediately; no hero gating is used. Drawer opens on first visit until mode is chosen.
 
 ---
 
@@ -205,54 +168,18 @@ This avoids a brief flash of the Hero for returning users before redirect.
 /styfi
   ├── Global Header             (from app/layout.tsx)
   └── StyfiPageClient
-       ├─ [Hero Banner]         (if no mode)
-       └─ [Domain Toolbar + Cockpit] (if mode active)
+       ├─ [Your Position Card]  (collapsed/expanded; owns mode/onboarding)
+       └─ [Cockpit]             (two-column dashboard, mode-aware via provider)
 ```
 
 ### 5.2 Component Tree (Simplified)
 
-#### State A: No mode (`/styfi`, no history)
-
 ```text
-<StyfiPageClient initialMode={undefined}>
-  <StyfiHeroLayout>
-    <StyfiHeroBanner>
-      <StyfiModeCard mode="styfi" />
-      <StyfiModeCard mode="x" />
-    </StyfiHeroBanner>
-  </StyfiHeroLayout>
-</StyfiPageClient>
-```
-
-#### State B: Mode active (`/styfi?mode=styfi|x` OR after Hero selection)
-
-```text
-<StyfiPageClient initialMode="styfi" | "x">
-  <StyfiLayout>
-    <StyfiDomainToolbar mode>
-      <StyfiModeSwitcher mode />        // updates URL ?mode=...
-      <UnlockedYfiBalancePill />        // shows wallet YFI
-    </StyfiDomainToolbar>
-
-    <StyfiCockpit mode>
-      <StyfiTwoColumnGrid>
-        <StyfiLeftColumn>
-          <YourPositionCard mode />
-          <RewardsCard />
-        </StyfiLeftColumn>
-
-        <StyfiRightColumn>
-          <StakeManageCard mode>
-            <StakeTabs>
-              <StakeTabStake mode />
-              <StakeTabCooldown mode />
-              <StakeTabWithdraw mode />
-            </StakeTabs>
-          </StakeManageCard>
-        </StyfiRightColumn>
-      </StyfiTwoColumnGrid>
-    </StyfiCockpit>
-  </StyfiLayout>
+<StyfiPageClient initialMode="styfi" | "x" | undefined>
+  <StyfiModeProvider initialMode>
+    <StyfiPositionCard />        // mode selector + onboarding drawer
+    <StyfiCockpit>               // StakeManageCard, RewardsCard, etc. consume mode from provider
+  </StyfiModeProvider>
 </StyfiPageClient>
 ```
 
@@ -262,36 +189,33 @@ This avoids a brief flash of the Hero for returning users before redirect.
 
 ### 6.1 Directory Layout
 
-We group components by **feature** (hero, toolbar, cards) rather than by raw technical type:
+We group components by **feature** (selector card, cockpit, cards) rather than by raw technical type:
 
 ```text
 app/
   styfi/
     page.tsx
     StyfiPageClient.tsx
+    state/
+      StyfiModeProvider.tsx      // source of truth for mode + onboarding flags
 
     components/
-      StyfiHero.tsx               // layout + banner + mode cards
-      StyfiDomainToolbar.tsx      // mode switcher + YFI balance
-      StyfiCockpit.tsx            // outer layout + 2-column grid
+      StyfiPositionCard.tsx      // unified selector + onboarding drawer
+      StyfiCockpit.tsx           // outer layout + 2-column grid
 
       cards/
-        YourPositionCard.tsx
         RewardsCard.tsx
         StakeManageCard.tsx
         stake/
-          StakeTabs.tsx
-          StakeTabStake.tsx
-          StakeTabCooldown.tsx
-          StakeTabWithdraw.tsx
+          StakeTab.tsx
+          CooldownTab.tsx
+          WithdrawTab.tsx
 ```
 
 Notes:
 
-- `StyfiHero.tsx` can export both `StyfiHeroLayout` and `StyfiHeroBanner` if needed.
-- `StyfiCockpit.tsx` can contain the simple 2-column layout logic, no need for separate `LeftColumn/RightColumn` files unless they grow.
-
-This strikes a balance between clarity and avoiding folder sprawl.
+- Hero and domain toolbar are retired; onboarding lives in `StyfiPositionCard`.
+- Cockpit consumes mode from `StyfiModeProvider`.
 
 ---
 

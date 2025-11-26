@@ -81,7 +81,7 @@ export function CooldownTab({ mode }: Props) {
           <div className="font-number text-neutral-500">
             {copy.cooldownTab.availableLabel(
               formatTokenAmount(available),
-              mode === "styfi" ? copy.toolbar.mode.styfiLabel : copy.toolbar.mode.xLabel
+              modeLabel(mode)
             )}
           </div>
         </div>

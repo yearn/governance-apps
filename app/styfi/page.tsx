@@ -11,11 +11,12 @@ function normalizeMode(raw?: string): Mode | undefined {
   return undefined;
 }
 
-export default function StyfiPage({
+export default async function StyfiPage({
   searchParams,
 }: {
-  searchParams: { mode?: string };
+  searchParams: Promise<{ mode?: string }>;
 }) {
-  const initialMode = normalizeMode(searchParams.mode);
+  const resolvedParams = await searchParams;
+  const initialMode = normalizeMode(resolvedParams.mode);
   return <StyfiPageClient initialMode={initialMode} />;
 }

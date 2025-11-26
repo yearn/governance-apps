@@ -3,6 +3,20 @@ export const styfiCopy = {
     blacklistedTitle: "Blacklisted",
     blacklistedBody: "This address is restricted from using this interface.",
   },
+  modes: {
+    styfi: {
+      label: "stYFI",
+      kicker: "Standard staking",
+      description:
+        "stYFI keeps your vote and earns standard rewards with a fixed cooldown.",
+    },
+    x: {
+      label: "stYFIx",
+      kicker: "Boosted exposure",
+      description:
+        "stYFIx delegates voting to YBC and auto-compounds rewards in a shares vault.",
+    },
+  },
   page: {
     stats: {
       totalSupply: { label: "Total Supply", value: "36,666 YFI" },
@@ -13,6 +27,37 @@ export const styfiCopy = {
       title: "Wallet not connected",
       body: "Connect your wallet to view and manage positions.",
       cta: "Connect wallet",
+    },
+  },
+  modeSelector: {
+    kicker: "Your position",
+    compareLabel: "Compare modes",
+    compareAria: {
+      expand: "Expand mode drawer",
+      collapse: "Collapse mode drawer",
+    },
+    switchAria: (modeLabel: string) => `Switch to ${modeLabel}`,
+    balanceSuffix: (modeLabel: string) => `in ${modeLabel}`,
+    disconnected: "Connect your wallet to view balances.",
+    drawer: {
+      title: "Choose how you want to stake",
+      body:
+        "Pick between standard stYFI and boosted stYFIx. You can switch any time without leaving the cockpit.",
+    },
+    activeBadge: "Selected",
+    cards: {
+      styfi: {
+        title: "stYFI",
+        kicker: "Standard staking",
+        description:
+          "Fixed share price, straightforward staking and cooldown.",
+      },
+      x: {
+        title: "stYFIx",
+        kicker: "Boosted exposure",
+        description:
+          "Shares-based vault with boosted rewards and flexible deposits.",
+      },
     },
   },
   hero: {
