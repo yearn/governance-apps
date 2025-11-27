@@ -12,6 +12,7 @@ import { useId } from "react";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { IconChevron } from "@/components/icons/IconChevron";
+import { IconCheck } from "@/components/icons/IconCheck"; // Import Check icon
 import { LogoStyfi } from "@/components/icons/LogoStyfi";
 import { LogoStyfix } from "@/components/icons/LogoStyfix";
 import { cn } from "@/lib/cn";
@@ -29,6 +30,8 @@ export function StyfiPositionCard() {
 
   const styfiCardRef = useRef<HTMLButtonElement>(null);
   const styfixCardRef = useRef<HTMLButtonElement>(null);
+
+  const currentApr = copy.page.stats.apr.value;
 
   const primaryBalance = useMemo(() => {
     if (!data) return 0n;
@@ -56,15 +59,11 @@ export function StyfiPositionCard() {
       )}
     >
       {/* HEADER ROW */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        {/* ASSET FOCUS GROUP */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-5">
-          {/* Logo Cluster: Handles the Swapping Animation */}
           <LogoCluster mode={mode} onQuickSwitch={quickSwitch} />
 
-          {/* Text / Metadata Group */}
           <div className="space-y-1">
-            {/* The Label is now the Trigger for the drawer */}
             <button
               type="button"
               onClick={toggleDrawer}
@@ -99,6 +98,17 @@ export function StyfiPositionCard() {
             )}
           </div>
         </div>
+
+        {!isDrawerOpen && (
+          <div className="hidden md:block text-right animate-in fade-in duration-300">
+            <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+              Current APR
+            </p>
+            <p className="text-xl font-number font-bold text-neutral-900">
+              {currentApr}
+            </p>
+          </div>
+        )}
       </div>
 
       <ModeDrawer
@@ -108,6 +118,7 @@ export function StyfiPositionCard() {
         styfixCardRef={styfixCardRef}
         mode={mode}
         onSelect={handleSelect}
+        aprValue={currentApr}
       />
     </Card>
   );
@@ -129,8 +140,6 @@ function LogoCluster({
   ];
 
   return (
-    // Width = 48px (Base) + 16px (Shift) = 64px total to encompass both.
-    // Height = 12 (48px).
     <div className="relative h-12 w-16">
       {logos.map(({ mode: logoMode, Logo }) => {
         const isActive = mode === logoMode;
@@ -167,10 +176,8 @@ function LogoButton({
     <button
       type="button"
       onClick={onClick}
-      // Removed disabled={isActive} so clicking the active token also triggers switch
       className={cn(
         "absolute top-0 left-0 rounded-full bg-white p-0 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2",
-        // Using top-left origin makes the math for bottom alignment explicit via translate-y
         "origin-top-left",
         isActive
           ? "z-20 translate-x-4 translate-y-0 scale-100 shadow-sm opacity-100"
@@ -183,8 +190,6 @@ function LogoButton({
   );
 }
 
-// --- Drawer Components (Unchanged) ---
-
 function ModeDrawer({
   isOpen,
   drawerId,
@@ -192,6 +197,7 @@ function ModeDrawer({
   styfixCardRef,
   mode,
   onSelect,
+  aprValue,
 }: {
   isOpen: boolean;
   drawerId: string;
@@ -199,6 +205,7 @@ function ModeDrawer({
   styfixCardRef: RefObject<HTMLButtonElement | null>;
   mode: StyfiMode;
   onSelect: (mode: StyfiMode) => void;
+  aprValue: string;
 }) {
   return (
     <div
@@ -231,12 +238,16 @@ function ModeDrawer({
               mode="styfi"
               isActive={mode === "styfi"}
               onClick={() => onSelect("styfi")}
+              aprValue={aprValue}
+              aprType="Variable"
             />
             <ModeSelectionCard
               ref={styfixCardRef}
               mode="x"
               isActive={mode === "x"}
               onClick={() => onSelect("x")}
+              aprValue={aprValue}
+              aprType="Max"
             />
           </div>
         </div>
@@ -247,8 +258,17 @@ function ModeDrawer({
 
 const ModeSelectionCard = forwardRef<
   HTMLButtonElement,
-  { mode: StyfiMode; isActive: boolean; onClick: () => void }
->(function ModeSelectionCard({ mode, isActive, onClick }, ref) {
+  {
+    mode: StyfiMode;
+    isActive: boolean;
+    onClick: () => void;
+    aprValue: string;
+    aprType: string;
+  }
+>(function ModeSelectionCard(
+  { mode, isActive, onClick, aprValue, aprType },
+  ref
+) {
   const cardCopy =
     mode === "styfi"
       ? copy.modeSelector.cards.styfi
@@ -261,35 +281,52 @@ const ModeSelectionCard = forwardRef<
       type="button"
       onClick={onClick}
       className={cn(
-        "group w-full rounded-xl border p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2",
+        // Added h-full to ensure cards have same height
+        // Added flex flex-col to push description to fill space
+        "h-full flex flex-col group w-full rounded-xl border p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2",
         isActive
           ? "border-2 border-neutral-900 bg-neutral-900/5 shadow-inner"
           : "border border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-md hover:-translate-y-0.5"
       )}
       aria-pressed={isActive}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="w-full flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <Logo
             className="h-10 w-10 shadow-sm rounded-full bg-white"
             aria-hidden
           />
           <div className="space-y-0.5">
-            <p className="text-sm font-bold text-neutral-900">
-              {cardCopy.title}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-neutral-900">
+                {cardCopy.title}
+              </p>
+              {/* Badge Moved Here */}
+              {isActive && (
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-200">
+                  <IconCheck className="w-3 h-3" />
+                  {copy.modeSelector.activeBadge}
+                </span>
+              )}
+            </div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
               {cardCopy.kicker}
             </p>
           </div>
         </div>
-        {isActive && (
-          <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-900 bg-white border border-neutral-200 px-2 py-0.5 rounded-full">
-            {copy.modeSelector.activeBadge}
-          </span>
-        )}
+
+        <div className="text-right shrink-0">
+          <div className="text-xl font-number font-bold text-neutral-900 leading-none">
+            {aprValue}
+          </div>
+          <div className="text-[10px] font-bold uppercase tracking-wide text-neutral-500 mt-1">
+            APR {aprType}
+          </div>
+        </div>
       </div>
-      <p className="mt-4 text-sm text-neutral-600 leading-relaxed">
+
+      {/* Description grows to fill space, ensuring footer symmetry if we added one */}
+      <p className="mt-4 text-sm text-neutral-600 leading-relaxed pr-2 flex-grow">
         {cardCopy.description}
       </p>
     </button>

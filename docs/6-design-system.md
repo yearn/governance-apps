@@ -1,6 +1,6 @@
 # 6. Design System & UI Standards
 
-**Version:** 1.0
+**Version:** 1.1
 **Scope:** Visual language, typography, and component usage for `governance-apps`.
 
 ---
@@ -112,13 +112,23 @@ A lightweight, styled tooltip wrapper for hover/focus hints.
 - Positions: `top` (default), `bottom`, `left`, `right`.
 - Does not pull copy; consumers pass strings from feature `messages.ts`.
 
+### 4.6. `StatsBar`
+
+A full-width, slim informational strip.
+
+- **Usage:** Placed immediately below the Global Header.
+- **Purpose:** Display high-level ecosystem stats (e.g., Total Supply, Staked, Network).
+- **Styling:** `bg-neutral-100`, `border-b`, `py-2`.
+- **Typography:** Labels are uppercase/bold; values are `Aeonik Mono`.
+
 ---
 
 ## 5. Layout Patterns
 
-- **Header:** Sticky, backdrop-blur. Contains the `AppLauncher` (grid menu) and `WalletButton`.
-- **Page Layout:** Centered single-column layout for main interactions (max-width ~480px for forms, wider for dashboards).
-- **Cards:** All major interactions (Stake, Cooldown) live inside `Card` components with `p-6` padding.
+- **Header:** Sticky, backdrop-blur. Contains `AppLauncher` and `WalletButton`.
+- **Stats Bar:** Scrollable with page, distinct background to separate header from content.
+- **Page Layout:** Centered single-column layout. Standard padding `px-4 md:px-6` is enforced on all main containers to ensure grid alignment.
+- **Cards:** All major interactions (Stake, Cooldown) live inside `Card` components.
 
 ---
 

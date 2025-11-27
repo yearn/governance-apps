@@ -1,26 +1,10 @@
 # 9. Frontend Architecture
 
-**Version 0.1 — 2025-11-24**
+**Version 0.2 — 2025-11-27**
 Scope: stYFI • stYFIx • veYFI (UI implementation architecture)
-Status: Approved for Phase 5 (stYFI) and future veYFI work
+Status: Approved for Phase 5 (stYFI)
 
 This document defines the **frontend implementation architecture** for the governance apps under YIP-88.
-It sits **under** `4-architecture-blueprint.md` and describes:
-
-- How routes are structured (`/styfi`, `/veyfi`)
-- How we use **URL-driven view state**
-- How we separate **Global Header** vs **Domain Toolbar**
-- Component tree patterns
-- Hooks layout and SSR/CSR boundaries
-
-It is intentionally implementation-focused and complements:
-
-- `0-normative-spec-yip88.md`
-- `1-user-stories-styfi.md`
-- `2-user-stories-veyfi.md`
-- `3-frontend-frd.md`
-- `4-architecture-blueprint.md`
-- `8-styfi-ui-spec.md`
 
 ---
 
@@ -39,33 +23,13 @@ We use the Next.js App Router structure:
     page.tsx          // veYFI + LLYFI UI (future)
 ```
 
-Principles:
-
-- **Root layout** is shared.
-- Each domain (`/styfi`, `/veyfi`) owns its _own_ UI composition.
-- Cross-domain logic (clients, hooks, tx) lives under `/lib`.
-
 ---
 
 ## 2. Global Header vs Domain Toolbar
 
 ### 2.1 Global Header (`app/layout.tsx`)
 
-The Global Header is a **dumb, stable** component:
-
-- Contains:
-
-  - AppLauncher (Yearn ecosystem)
-  - Yearn logo / title
-  - Wallet connect/account control
-
-- **Does not know** about:
-
-  - stYFI / stYFIx mode
-  - veYFI-specific actions
-  - Domain-specific state
-
-This avoids coupling global navigation to domain details and keeps header changes rare and deliberate.
+The Global Header is a **dumb, stable** component containing AppLauncher, Logo, and Wallet Connect.
 
 ### 2.2 Domain Controls (Per-Route)
 
@@ -73,15 +37,8 @@ Domain-specific controls live inside the route itself.
 
 For `/styfi`:
 
-- Component: `StyfiPositionCard` (collapsed/expanded). It owns mode selection + onboarding and lives directly under the header.
-- No separate toolbar; the card is the single source of truth for mode.
-
-For `/veyfi` (future):
-
-- A domain-specific control surface (`VeyfiDomainToolbar` or equivalent) can be added under the header as needed.
-
-**Rule:**
-Global Header stays generic. Each domain owns its control surface and layout.
+- **Protocol Stats Bar:** A universal component for ecosystem health (Supply/Staked).
+- **StyfiPositionCard:** The primary controller for Mode selection (stYFI vs stYFIx) and Onboarding.
 
 ---
 
@@ -89,11 +46,7 @@ Global Header stays generic. Each domain owns its control surface and layout.
 
 ### 3.1 Mode via Provider (URL Synced)
 
-For stYFI, the **view state** (`styfi` vs `x`) is driven by `StyfiModeProvider`:
-
-- Provider is the source of truth.
-- URL `?mode=` is synced for shareability/back-button friendliness but does not override the provider’s resolution loop.
-- LocalStorage is a hint, not authority.
+For stYFI, the **view state** (`styfi` vs `x`) is driven by `StyfiModeProvider`.
 
 ### 3.2 LocalStorage (Hints)
 
@@ -176,8 +129,10 @@ The provider hydrates once on the client. The card can render immediately; no he
 /styfi
   ├── Global Header             (from app/layout.tsx)
   └── StyfiPageClient
-       ├─ [Your Position Card]  (collapsed/expanded; owns mode/onboarding)
-       └─ [Cockpit]             (two-column dashboard, mode-aware via provider)
+       ├─ [Protocol Stats Bar]  (Universal component, ecosystem data)
+       └─ Main Container
+            ├─ [Your Position Card]  (Collapsed/Expanded; owns mode, APR, onboarding)
+            └─ [Cockpit]             (StakeManageCard + RewardsCard)
 ```
 
 ### 5.2 Component Tree (Simplified)
@@ -185,8 +140,14 @@ The provider hydrates once on the client. The card can render immediately; no he
 ```text
 <StyfiPageClient initialMode="styfi" | "x" | undefined>
   <StyfiModeProvider initialMode>
-    <StyfiPositionCard />        // mode selector + onboarding drawer
-    <StyfiCockpit>               // StakeManageCard, RewardsCard, etc. consume mode from provider
+    <ProtocolStatsBar />         // Universal UI primitive
+    <main>
+       <StyfiPositionCard />     // APR logic moved here
+       <StyfiCockpit>
+         <StakeManageCard />
+         <RewardsCard />
+       </StyfiCockpit>
+    </main>
   </StyfiModeProvider>
 </StyfiPageClient>
 ```
@@ -197,7 +158,7 @@ The provider hydrates once on the client. The card can render immediately; no he
 
 ### 6.1 Directory Layout
 
-We group components by **feature** (selector card, cockpit, cards) rather than by raw technical type:
+We group components by **feature**:
 
 ```text
 app/
@@ -205,11 +166,12 @@ app/
     page.tsx
     StyfiPageClient.tsx
     state/
-      StyfiModeProvider.tsx      // source of truth for mode + onboarding flags
+      StyfiModeProvider.tsx
 
     components/
-      StyfiPositionCard.tsx      // unified selector + onboarding drawer
-      StyfiCockpit.tsx           // outer layout + 2-column grid
+      ProtocolStatsBar.tsx       (Wrapper around generic StatsBar)
+      StyfiPositionCard.tsx      (Mode selector + APR display)
+      StyfiCockpit.tsx           (Layout for cards)
 
       cards/
         RewardsCard.tsx
@@ -220,10 +182,7 @@ app/
           WithdrawTab.tsx
 ```
 
-Notes:
-
-- Hero and domain toolbar are retired; onboarding lives in `StyfiPositionCard`.
-- Cockpit consumes mode from `StyfiModeProvider`.
+**Note:** `ProtocolStatsBar` in `app/styfi/components` is just a thin wrapper injecting Styfi-specific data into the shared `StatsBar` UI primitive.
 
 ---
 
@@ -333,6 +292,8 @@ The same patterns apply to `/veyfi` when we implement it:
   - Granular, feature-driven hooks.
   - Cards for migration, staking, rewards, redemption.
 
+- The `StatsBar` pattern should be reused for `/veyfi` to show Global Redemption Caps or Total LLYFI Staked.
+
 `4-architecture-blueprint.md` continues to define the **domain model and clients.**
 `9-frontend-architecture.md` defines **how we wire routes, components, hooks and URL state**.
 
@@ -370,17 +331,11 @@ import { styfiCopy as copy } from "./messages";
 
 This frontend architecture:
 
-- Keeps the **Global Header** simple and domain-agnostic.
-- Uses **URL parameters as the canonical view state** for sharable, deterministic pages.
-- Encapsulates domain-specific controls in **Domain Toolbars**.
-- Implements `/styfi` with a clear **Hero vs Cockpit** state machine.
-- Structures components by **feature** (Hero, Toolbar, Cards) with a clean tree.
-- Uses **granular hooks** instead of monolithic “view model” hooks.
-- Cleanly separates:
-
-  - Product behavior (`8-styfi-ui-spec.md`)
-  - Domain architecture (`4-architecture-blueprint.md`)
-  - Implementation details (**this doc**).
+- Keeps the **Global Header** simple.
+- Uses **StatsBar** for high-level ecosystem context.
+- Centralizes decision drivers (APR) in the **Position Card**.
+- Uses **URL parameters** as canonical view state.
+- Separates product behavior (`8-styfi-ui-spec.md`) from implementation details (**this doc**).
 
 This doc should be updated when:
 

@@ -10,7 +10,7 @@ export function StyfiCockpit() {
   const { mode } = useStyfiMode();
 
   return (
-    <main className="container mx-auto px-4 py-10 space-y-6">
+    <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-2">
         <StakeManageCard mode={mode} />
         <RewardsCard />
@@ -19,6 +19,6 @@ export function StyfiCockpit() {
       <Banner variant="info" title={copy.cockpit.mockBanner.title}>
         {copy.cockpit.mockBanner.body}
       </Banner>
-    </main>
+    </div>
   );
 }

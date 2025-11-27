@@ -20,6 +20,7 @@ import { Modal } from "@/components/ui/Modal";
 import { toast } from "@/components/ui/Toast";
 import { IconWallet } from "@/components/icons/IconWallet";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { StatsBar } from "@/components/ui/StatsBar";
 
 export default function KitchenSinkPage() {
   const [activeTab, setActiveTab] = useState("tab1");
@@ -27,15 +28,25 @@ export default function KitchenSinkPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <main className="min-h-screen bg-neutral-100 p-8 space-y-12 font-sans text-neutral-900">
-      <div className="max-w-4xl mx-auto space-y-12">
-        <section className="space-y-4">
+    <main className="min-h-screen bg-neutral-100 space-y-12 font-sans text-neutral-900 pb-24">
+      {/* New Stats Bar Section */}
+      <section className="bg-white pb-8 border-b border-neutral-200">
+        <StatsBar
+          items={[
+            { label: "Total Supply", value: "36,666 YFI" },
+            { label: "Staked", value: "2,583 YFI" },
+            { label: "Network", value: "Ethereum Mainnet" },
+          ]}
+        />
+        <div className="container mx-auto px-4 pt-8">
           <h1 className="text-4xl font-bold">UI Kitchen Sink</h1>
           <p className="text-neutral-600 text-lg">
             Design system verification for Phase 4.
           </p>
-        </section>
+        </div>
+      </section>
 
+      <div className="max-w-4xl mx-auto px-4 space-y-12">
         {/* Tooltips */}
         <section className="space-y-4">
           <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
