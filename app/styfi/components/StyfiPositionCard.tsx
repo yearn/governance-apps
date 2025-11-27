@@ -320,7 +320,7 @@ const ModeSelectionCard = forwardRef<
         ref={ref}
         type="button"
         onClick={onClick}
-        className="h-full flex flex-col group w-full rounded-xl p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 border bg-white hover:shadow-md hover:-translate-y-0.5"
+        className="h-full flex flex-col group w-full rounded-xl p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 border border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-md hover:-translate-y-0.5"
         aria-pressed={false}
       >
         <CardContent
