@@ -12,7 +12,8 @@ import { useId } from "react";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { IconChevron } from "@/components/icons/IconChevron";
-import { IconCheck } from "@/components/icons/IconCheck"; // Import Check icon
+import { IconCheck } from "@/components/icons/IconCheck";
+import { IconStar } from "@/components/icons/IconStar"; // New Import
 import { LogoStyfi } from "@/components/icons/LogoStyfi";
 import { LogoStyfix } from "@/components/icons/LogoStyfix";
 import { cn } from "@/lib/cn";
@@ -47,8 +48,15 @@ export function StyfiPositionCard() {
     target?.focus();
   }, [isDrawerOpen, mode]);
 
+  // Updated Handler with Delay
   const handleSelect = (nextMode: StyfiMode) => {
-    selectMode(nextMode, { collapseDrawer: true, markOnboarded: true });
+    // 1. Update visual selection immediately (keep drawer open)
+    selectMode(nextMode, { collapseDrawer: false, markOnboarded: true });
+
+    // 2. Wait 600ms for user to register the choice, then collapse
+    setTimeout(() => {
+      selectMode(nextMode, { collapseDrawer: true, markOnboarded: true });
+    }, 600);
   };
 
   return (
@@ -248,6 +256,7 @@ function ModeDrawer({
               onClick={() => onSelect("x")}
               aprValue={aprValue}
               aprType="Max"
+              isRecommended={true}
             />
           </div>
         </div>
@@ -264,9 +273,10 @@ const ModeSelectionCard = forwardRef<
     onClick: () => void;
     aprValue: string;
     aprType: string;
+    isRecommended?: boolean;
   }
 >(function ModeSelectionCard(
-  { mode, isActive, onClick, aprValue, aprType },
+  { mode, isActive, onClick, aprValue, aprType, isRecommended },
   ref
 ) {
   const cardCopy =
@@ -275,21 +285,96 @@ const ModeSelectionCard = forwardRef<
       : copy.modeSelector.cards.x;
   const Logo = mode === "styfi" ? LogoStyfi : LogoStyfix;
 
+  // VISUAL LOGIC
+
+  // 1. Selected State
+  if (isActive) {
+    return (
+      <button
+        ref={ref}
+        type="button"
+        onClick={onClick}
+        className="h-full flex flex-col group w-full rounded-xl p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 border-2 border-neutral-900 bg-neutral-900/5 shadow-inner"
+        aria-pressed={true}
+      >
+        <CardContent
+          Logo={Logo}
+          cardCopy={cardCopy}
+          aprValue={aprValue}
+          aprType={aprType}
+          badge={
+            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-neutral-900 border border-neutral-900 bg-transparent px-1.5 py-0.5 rounded-full">
+              <IconCheck className="w-3 h-3" />
+              {copy.modeSelector.activeBadge}
+            </span>
+          }
+        />
+      </button>
+    );
+  }
+
+  // 2. Recommended (Unselected) State
+  if (isRecommended) {
+    return (
+      <button
+        ref={ref}
+        type="button"
+        onClick={onClick}
+        className="h-full flex flex-col group w-full rounded-xl p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 border bg-white hover:shadow-md hover:-translate-y-0.5"
+        aria-pressed={false}
+      >
+        <CardContent
+          Logo={Logo}
+          cardCopy={cardCopy}
+          aprValue={aprValue}
+          aprType={aprType}
+          badge={
+            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-yearn-blue border border-yearn-blue bg-transparent px-1.5 py-0.5 rounded-full">
+              <IconStar className="w-3 h-3 fill-yearn-blue" />
+              Recommended
+            </span>
+          }
+        />
+      </button>
+    );
+  }
+
+  // 3. Standard (Unselected) State
   return (
     <button
       ref={ref}
       type="button"
       onClick={onClick}
-      className={cn(
-        // Added h-full to ensure cards have same height
-        // Added flex flex-col to push description to fill space
-        "h-full flex flex-col group w-full rounded-xl border p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2",
-        isActive
-          ? "border-2 border-neutral-900 bg-neutral-900/5 shadow-inner"
-          : "border border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-md hover:-translate-y-0.5"
-      )}
-      aria-pressed={isActive}
+      className="h-full flex flex-col group w-full rounded-xl p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 border border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-md hover:-translate-y-0.5"
+      aria-pressed={false}
     >
+      <CardContent
+        Logo={Logo}
+        cardCopy={cardCopy}
+        aprValue={aprValue}
+        aprType={aprType}
+        badge={null}
+      />
+    </button>
+  );
+});
+
+// Helper to keep content consistent across the 3 states
+function CardContent({
+  Logo,
+  cardCopy,
+  aprValue,
+  aprType,
+  badge,
+}: {
+  Logo: React.ElementType;
+  cardCopy: { title: string; kicker: string; description: string };
+  aprValue: string;
+  aprType: string;
+  badge: React.ReactNode;
+}) {
+  return (
+    <>
       <div className="w-full flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <Logo
@@ -301,20 +386,13 @@ const ModeSelectionCard = forwardRef<
               <p className="text-sm font-bold text-neutral-900">
                 {cardCopy.title}
               </p>
-              {/* Badge Moved Here */}
-              {isActive && (
-                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-200">
-                  <IconCheck className="w-3 h-3" />
-                  {copy.modeSelector.activeBadge}
-                </span>
-              )}
+              {badge}
             </div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
               {cardCopy.kicker}
             </p>
           </div>
         </div>
-
         <div className="text-right shrink-0">
           <div className="text-xl font-number font-bold text-neutral-900 leading-none">
             {aprValue}
@@ -324,11 +402,9 @@ const ModeSelectionCard = forwardRef<
           </div>
         </div>
       </div>
-
-      {/* Description grows to fill space, ensuring footer symmetry if we added one */}
       <p className="mt-4 text-sm text-neutral-600 leading-relaxed pr-2 flex-grow">
         {cardCopy.description}
       </p>
-    </button>
+    </>
   );
-});
+}

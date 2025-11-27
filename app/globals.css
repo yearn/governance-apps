@@ -5,6 +5,9 @@
   --font-sans: "Aeonik", system-ui, sans-serif;
   --font-mono: "Aeonik Mono", "Courier New", monospace;
 
+  /* --- Colors: Yearn --- */
+  --color-yearn-blue: #0657f9;
+
   /* --- Colors: Neutrals (Good ol' Grey) --- */
   --color-neutral-0: #ffffff;
   --color-neutral-100: #f4f4f4; /* Page Background */
