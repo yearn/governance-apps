@@ -1,3 +1,9 @@
+const formatYfi = (value: number) =>
+  `${value.toLocaleString("en-US", { maximumFractionDigits: 0 })} YFI`;
+
+const totalSupplyAmount = 36_666;
+const stakedAmount = 2_583;
+
 export const styfiCopy = {
   shared: {
     blacklistedTitle: "Blacklisted",
@@ -6,8 +12,16 @@ export const styfiCopy = {
   },
   page: {
     stats: {
-      totalSupply: { label: "Total Supply", value: "36,666 YFI" },
-      staked: { label: "Staked", value: "2,583 YFI" },
+      totalSupply: {
+        label: "Total Supply",
+        value: formatYfi(totalSupplyAmount),
+        amount: totalSupplyAmount,
+      },
+      staked: {
+        label: "Staked",
+        value: formatYfi(stakedAmount),
+        amount: stakedAmount,
+      },
       apr: { label: "APR paid as USDS", value: "84.58%" },
     },
     connectBanner: {

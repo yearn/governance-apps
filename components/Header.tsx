@@ -63,7 +63,7 @@ export function Header() {
         </div>
 
         {/* Right: YFI + Epoch + Wallet & Mobile Toggle */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <HeaderPills
             isConnected={isConnected}
             yfiLoading={yfiLoading}

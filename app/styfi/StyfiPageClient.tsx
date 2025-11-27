@@ -22,6 +22,12 @@ export function StyfiPageClient({ initialMode }: { initialMode?: StyfiMode }) {
 function StyfiPageShell() {
   const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
+  const totalSupplyAmount = copy.page.stats.totalSupply.amount;
+  const stakedAmount = copy.page.stats.staked.amount;
+  const stakedPercentage =
+    totalSupplyAmount > 0
+      ? ((stakedAmount / totalSupplyAmount) * 100).toFixed(1)
+      : "0.0";
 
   return (
     <div className="space-y-0">
@@ -33,7 +39,7 @@ function StyfiPageShell() {
           },
           {
             label: copy.page.stats.staked.label,
-            value: copy.page.stats.staked.value,
+            value: `${copy.page.stats.staked.value} (${stakedPercentage}%)`,
           },
         ]}
       />
