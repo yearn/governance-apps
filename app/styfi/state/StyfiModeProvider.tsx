@@ -36,7 +36,9 @@ function readPersistedSettings() {
   try {
     const rawMode = window.localStorage.getItem(LAST_MODE_KEY);
     const mode =
-      rawMode === "styfi" || rawMode === "x" ? (rawMode as StyfiMode) : undefined;
+      rawMode === "styfi" || rawMode === "x"
+        ? (rawMode as StyfiMode)
+        : undefined;
     const onboarded = window.localStorage.getItem(ONBOARDED_KEY) === "true";
     return { mode, onboarded };
   } catch {
@@ -61,6 +63,7 @@ export function StyfiModeProvider({
     if (initialMode) return;
     const { mode: storedMode, onboarded } = readPersistedSettings();
     if (storedMode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMode(storedMode);
     }
     setIsOnboarded(onboarded);
