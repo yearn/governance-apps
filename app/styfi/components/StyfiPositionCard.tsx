@@ -36,12 +36,6 @@ export function StyfiPositionCard() {
     return mode === "styfi" ? data.styfiActive : data.styfiX.assetsActive;
   }, [data, mode]);
 
-  const activeCardCopy =
-    mode === "styfi"
-      ? copy.modeSelector.cards.styfi
-      : copy.modeSelector.cards.x;
-  const secondaryMode: StyfiMode = mode === "styfi" ? "x" : "styfi";
-
   useEffect(() => {
     if (!isDrawerOpen) return;
     const target =
@@ -56,17 +50,38 @@ export function StyfiPositionCard() {
   };
 
   return (
-    <Card className={cn("flex flex-col", isDrawerOpen ? "gap-4" : "gap-0")}>
+    <Card
+      className={cn(
+        "flex flex-col transition-all duration-300",
+        isDrawerOpen ? "gap-6" : "gap-0"
+      )}
+    >
+      {/* HEADER ROW */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-4">
-          <LogoCluster
-            mode={mode}
-            onQuickSwitch={quickSwitch}
-          />
+        {/* ASSET FOCUS GROUP */}
+        <div className="flex items-center gap-5">
+          {/* Logo Cluster: Handles the Swapping Animation */}
+          <LogoCluster mode={mode} onQuickSwitch={quickSwitch} />
+
+          {/* Text / Metadata Group */}
           <div className="space-y-1">
-            <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+            {/* The Label is now the Trigger for the drawer */}
+            <button
+              type="button"
+              onClick={toggleDrawer}
+              className="group flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-neutral-500 hover:text-neutral-900 transition-colors focus:outline-none"
+              aria-expanded={isDrawerOpen}
+              aria-controls={drawerId}
+            >
               {copy.modeSelector.kicker}
-            </p>
+              <IconChevron
+                className={cn(
+                  "h-3 w-3 text-neutral-400 transition-transform duration-300 group-hover:text-neutral-900",
+                  isDrawerOpen && "rotate-180"
+                )}
+              />
+            </button>
+
             {isLoading ? (
               <Skeleton className="h-8 w-40" />
             ) : data ? (
@@ -85,29 +100,6 @@ export function StyfiPositionCard() {
             )}
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={toggleDrawer}
-          className="group inline-flex items-center gap-2 text-sm font-semibold text-neutral-900 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2"
-          aria-expanded={isDrawerOpen}
-          aria-controls={drawerId}
-          aria-label={
-            isDrawerOpen
-              ? copy.modeSelector.compareAria.collapse
-              : copy.modeSelector.compareAria.expand
-          }
-        >
-          {copy.modeSelector.compareLabel}
-          <span
-            className={cn(
-              "rounded-full border border-neutral-300 p-1 transition-transform duration-200 group-hover:border-neutral-500",
-              isDrawerOpen && "rotate-180"
-            )}
-          >
-            <IconChevron className="h-4 w-4" />
-          </span>
-        </button>
       </div>
 
       <ModeDrawer
@@ -121,6 +113,78 @@ export function StyfiPositionCard() {
     </Card>
   );
 }
+
+function LogoCluster({
+  mode,
+  onQuickSwitch,
+}: {
+  mode: StyfiMode;
+  onQuickSwitch: () => void;
+}) {
+  const logos: {
+    mode: StyfiMode;
+    Logo: (props: React.SVGProps<SVGSVGElement>) => ReactElement;
+  }[] = [
+    { mode: "styfi", Logo: LogoStyfi },
+    { mode: "x", Logo: LogoStyfix },
+  ];
+
+  return (
+    // Width = 48px (Base) + 16px (Shift) = 64px total to encompass both.
+    // Height = 12 (48px).
+    <div className="relative h-12 w-16">
+      {logos.map(({ mode: logoMode, Logo }) => {
+        const isActive = mode === logoMode;
+        return (
+          <LogoButton
+            key={logoMode}
+            onClick={onQuickSwitch}
+            Logo={Logo}
+            label={
+              isActive
+                ? `Current mode: ${modeLabel(logoMode)}`
+                : copy.modeSelector.switchAria(modeLabel(logoMode))
+            }
+            isActive={isActive}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function LogoButton({
+  onClick,
+  Logo,
+  label,
+  isActive,
+}: {
+  onClick?: () => void;
+  Logo: (props: React.SVGProps<SVGSVGElement>) => ReactElement;
+  label: string;
+  isActive: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      // Removed disabled={isActive} so clicking the active token also triggers switch
+      className={cn(
+        "absolute top-0 left-0 rounded-full bg-white p-0 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2",
+        // Using top-left origin makes the math for bottom alignment explicit via translate-y
+        "origin-top-left",
+        isActive
+          ? "z-20 translate-x-4 translate-y-0 scale-100 shadow-sm opacity-100"
+          : "z-10 translate-x-0 translate-y-2 scale-75 opacity-60 grayscale hover:opacity-100 hover:scale-90 hover:grayscale-0 hover:translate-y-0.5 hover:-translate-x-4 cursor-pointer shadow-none"
+      )}
+      aria-label={label}
+    >
+      <Logo className="h-12 w-12" aria-hidden />
+    </button>
+  );
+}
+
+// --- Drawer Components (Unchanged) ---
 
 function ModeDrawer({
   isOpen,
@@ -141,26 +205,28 @@ function ModeDrawer({
     <div
       id={drawerId}
       className={cn(
-        "grid overflow-hidden transition-[grid-template-rows] duration-300 ease-in-out",
+        "grid overflow-hidden transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
         isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
       )}
     >
       <div
         className={cn(
-          "overflow-hidden transition-all duration-200",
-          isOpen ? "border-t border-neutral-200 pt-4 mt-2" : "border-t-0 pt-0"
+          "overflow-hidden transition-all duration-300",
+          isOpen
+            ? "border-t border-neutral-200 pt-6 mt-2 opacity-100"
+            : "border-t-0 pt-0 opacity-0"
         )}
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-neutral-900">
+            <h3 className="text-base font-bold text-neutral-900">
               {copy.modeSelector.drawer.title}
-            </p>
-            <p className="text-sm text-neutral-600">
+            </h3>
+            <p className="text-sm text-neutral-600 max-w-lg">
               {copy.modeSelector.drawer.body}
             </p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <ModeSelectionCard
               ref={styfiCardRef}
               mode="styfi"
@@ -195,95 +261,38 @@ const ModeSelectionCard = forwardRef<
       ref={ref}
       type="button"
       onClick={onClick}
-        className={cn(
-        "group w-full rounded-xl border p-5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2",
+      className={cn(
+        "group w-full rounded-xl border p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2",
         isActive
-          ? "border-2 border-neutral-900 bg-neutral-900/5 shadow-sm"
-          : "border border-neutral-200 bg-white hover:border-neutral-400"
+          ? "border-2 border-neutral-900 bg-neutral-900/5 shadow-inner"
+          : "border border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-md hover:-translate-y-0.5"
       )}
       aria-pressed={isActive}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Logo className="h-10 w-10" aria-hidden />
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-neutral-900">
+          <Logo
+            className="h-10 w-10 shadow-sm rounded-full bg-white"
+            aria-hidden
+          />
+          <div className="space-y-0.5">
+            <p className="text-sm font-bold text-neutral-900">
               {cardCopy.title}
             </p>
-            <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
               {cardCopy.kicker}
             </p>
           </div>
         </div>
-        {isActive ? (
-          <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-600">
+        {isActive && (
+          <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-900 bg-white border border-neutral-200 px-2 py-0.5 rounded-full">
             {copy.modeSelector.activeBadge}
           </span>
-        ) : null}
+        )}
       </div>
-      <p className="mt-3 text-sm text-neutral-600">{cardCopy.description}</p>
+      <p className="mt-4 text-sm text-neutral-600 leading-relaxed">
+        {cardCopy.description}
+      </p>
     </button>
   );
 });
-
-function LogoCluster({ mode, onQuickSwitch }: { mode: StyfiMode; onQuickSwitch: () => void }) {
-  const logos: { mode: StyfiMode; Logo: (props: React.SVGProps<SVGSVGElement>) => ReactElement }[] =
-    [
-      { mode: "styfi", Logo: LogoStyfi },
-      { mode: "x", Logo: LogoStyfix },
-    ];
-
-  return (
-    <div className="relative h-14 w-[120px]">
-      {logos.map(({ mode: logoMode, Logo }) => {
-        const isActive = mode === logoMode;
-        return (
-          <LogoButton
-            key={logoMode}
-            onClick={onQuickSwitch}
-            Logo={Logo}
-            label={copy.modeSelector.switchAria(modeLabel(logoMode))}
-            isActive={isActive}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function LogoButton({
-  onClick,
-  Logo,
-  label,
-  isActive,
-}: {
-  onClick: () => void;
-  Logo: (props: React.SVGProps<SVGSVGElement>) => ReactElement;
-  label: string;
-  isActive: boolean;
-}) {
-  return (
-    <Tooltip content="Switch modes">
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          "absolute bottom-0 left-1/2 flex h-12 w-12 -translate-x-1/2 items-end justify-center rounded-full bg-white shadow-md transition-transform duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2",
-          isActive
-            ? "z-20 translate-x-4 scale-100 shadow-lg"
-            : "z-10 -translate-x-4 scale-90 grayscale brightness-90 opacity-85"
-        )}
-        style={{ transformOrigin: "center bottom" }}
-        aria-label={label}
-      >
-        <Logo
-          className={cn(
-            "pointer-events-none relative transition-transform duration-200 ease-out",
-            isActive ? "h-12 w-12" : "h-12 w-12"
-          )}
-          aria-hidden
-        />
-      </button>
-    </Tooltip>
-  );
-}
