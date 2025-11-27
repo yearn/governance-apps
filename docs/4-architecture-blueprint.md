@@ -339,7 +339,6 @@ All data comes from:
 - Dynamic text uses functions (`positionSummary(amount: string) => string`); avoid building long sentences inline in components.
 - Design system/shared components stay copy-agnostic: they take strings/ReactNodes via props and do not import `messages.ts` directly.
 - Heuristic: avoid inline strings longer than ~60 characters in components unless they are accessibility attributes.
-- Lint guard: `local/no-long-inline-strings` warns on inline strings over 60 chars (aria/title exempt) to keep copy centralized.
 
 ---
 

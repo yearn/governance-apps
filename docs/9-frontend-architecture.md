@@ -116,7 +116,11 @@ Each domain route follows this pattern:
 
 ```tsx
 // app/styfi/page.tsx (Server Component)
-export default async function StyfiPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
+export default async function StyfiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
   const params = await searchParams;
   const mode = normalizeMode(params.mode); // 'styfi' | 'x' | undefined
 
@@ -128,7 +132,11 @@ export default async function StyfiPage({ searchParams }: { searchParams: Promis
 // app/styfi/StyfiPageClient.tsx (Client Component)
 "use client";
 
-export function StyfiPageClient({ initialMode }: { initialMode?: "styfi" | "x" }) {
+export function StyfiPageClient({
+  initialMode,
+}: {
+  initialMode?: "styfi" | "x";
+}) {
   return (
     <StyfiModeProvider initialMode={initialMode}>
       <StyfiPositionCard />
@@ -336,7 +344,6 @@ The same patterns apply to `/veyfi` when we implement it:
 - Shared shell copy (nav, header/footer, generic errors/toasts) lives in `app/_shared/messages.ts`. Do not pull copy into design-system components; they stay label/placeholder agnostic.
 - Use functions for interpolation (`positionSummary(amount: string) => string`), not string concatenation inside components.
 - Heuristic: avoid inline strings longer than ~60 characters in components unless they are accessibility attributes (`aria-*`, `title`).
-- Lint: `local/no-long-inline-strings` warns when inline strings exceed 60 chars (aria/title exempt); move copy to `messages.ts`.
 - Example:
 
 ```ts

@@ -17,7 +17,6 @@ import { LogoStyfix } from "@/components/icons/LogoStyfix";
 import { cn } from "@/lib/cn";
 import { formatTokenAmount } from "@/lib/format";
 import { useStyfiAccount } from "@/lib/hooks/useStyfi";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { styfiCopy as copy } from "../messages";
 import { StyfiMode, modeLabel } from "./types";
 import { useStyfiMode } from "../state/StyfiModeProvider";
