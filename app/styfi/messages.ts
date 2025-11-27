@@ -1,21 +1,8 @@
 export const styfiCopy = {
   shared: {
     blacklistedTitle: "Blacklisted",
-    blacklistedBody: "This address is restricted from using this interface.",
-  },
-  modes: {
-    styfi: {
-      label: "stYFI",
-      kicker: "Standard staking",
-      description:
-        "stYFI keeps your vote and earns standard rewards with a fixed cooldown.",
-    },
-    x: {
-      label: "stYFIx",
-      kicker: "Boosted exposure",
-      description:
-        "stYFIx delegates voting to YBC and auto-compounds rewards in a shares vault.",
-    },
+    blacklistedBody:
+      "This address is restricted from making token transfers or making governance proposals. Voting or unstaking is still allowed.",
   },
   page: {
     stats: {
@@ -41,30 +28,28 @@ export const styfiCopy = {
     disconnected: "Connect your wallet to view balances.",
     drawer: {
       title: "Choose how you want to stake",
-      body:
-        "Pick between standard stYFI and boosted stYFIx. You can switch any time without leaving the cockpit.",
+      body: "Pick between vote-enabled stYFI and APR maximized stYFIx. Switch any time.",
     },
     activeBadge: "Selected",
     cards: {
       styfi: {
         title: "stYFI",
-        kicker: "Standard staking",
+        kicker: "For active governance participants",
         description:
-          "Fixed share price, straightforward staking and cooldown.",
+          "Participate in Yearn Governance. Vote on proposals to increase your yield. If you do not participate, your yield may reduce.",
       },
       x: {
         title: "stYFIx",
-        kicker: "Boosted exposure",
+        kicker: "For max yield with no effort",
         description:
-          "Shares-based vault with boosted rewards and flexible deposits.",
+          "Voting is delegated to a group of individual Yearn contributors. Enjoy max yield without managing votes. Set, forget, and let builders steer.",
       },
     },
   },
   hero: {
     kicker: "Choose your path",
     title: "Stake with stYFI or stYFIx",
-    body:
-      "stYFI earns standard rewards with a fixed cooldown. stYFIx gives you boosted exposure with shares-based accounting. Pick a mode to enter the cockpit.",
+    body: "stYFI earns standard rewards with a fixed cooldown. stYFIx gives you boosted exposure with shares-based accounting. Pick a mode to enter the cockpit.",
     footer: {
       text: "Need veYFI?",
       linkLabel: "Go to veYFI",
@@ -123,8 +108,7 @@ export const styfiCopy = {
     availableLabel: (amount: string, modeLabel: string) =>
       `Available: ${amount} ${modeLabel}`,
     errorExceeds: "Exceeds available",
-    helper:
-      "Starts a 14-day cooldown. You can withdraw after the timer ends.",
+    helper: "Starts a 14-day cooldown. You can withdraw after the timer ends.",
     startCta: (modeLabel: string) => `Start cooldown for ${modeLabel}`,
   },
   withdrawTab: {
