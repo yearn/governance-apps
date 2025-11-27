@@ -1,8 +1,27 @@
 export const appCopy = {
   nav: {
     items: [
-      { label: "stYFI", href: "/styfi" },
-      { label: "veYFI", href: "/veyfi" },
+      { label: "stYFI", href: "/styfi", variant: "primary" as const },
+      {
+        label: "Docs",
+        href: "https://docs.yearn.fi/contributing/governance/stYFI-intro",
+        variant: "secondary" as const,
+      },
+      {
+        label: "Support",
+        href: "https://discord.gg/yearn",
+        variant: "secondary" as const,
+      },
+      {
+        label: "Blog",
+        href: "https://blog.yearn.fi/",
+        variant: "secondary" as const,
+      },
+      {
+        label: "Discourse",
+        href: "https://gov.yearn.fi/",
+        variant: "secondary" as const,
+      },
     ],
   },
   header: {
@@ -27,4 +46,3 @@ export const appCopy = {
     ],
   },
 } as const;
-

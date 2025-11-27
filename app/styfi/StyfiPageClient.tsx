@@ -40,8 +40,6 @@ function StyfiPageShell() {
 
       {/* Added md:px-6 to match Header alignment */}
       <main className="container mx-auto px-4 md:px-6 pt-8 space-y-6">
-        <StyfiPositionCard />
-
         {!isConnected && (
           <Banner variant="warning" title={copy.page.connectBanner.title}>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -56,6 +54,8 @@ function StyfiPageShell() {
             </div>
           </Banner>
         )}
+
+        <StyfiPositionCard />
 
         <StyfiCockpit />
       </main>

@@ -402,7 +402,7 @@ function CardContent({
           </div>
         </div>
       </div>
-      <p className="mt-4 text-sm text-neutral-600 leading-relaxed pr-2 flex-grow">
+      <p className="mt-4 text-sm text-neutral-600 leading-relaxed pr-2 grow">
         {cardCopy.description}
       </p>
     </>

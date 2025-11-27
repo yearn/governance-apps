@@ -55,12 +55,12 @@ export function WalletButton() {
               onClick={openChainModal}
               variant="ghost"
               size="sm"
-              className="hidden sm:flex"
+              className="hidden sm:flex items-center justify-center px-2"
             >
               {chain.hasIcon && (
                 <div
                   style={{ background: chain.iconBackground }}
-                  className="w-5 h-5 rounded-full overflow-hidden mr-2"
+                  className="w-5 h-5 rounded-full overflow-hidden"
                 >
                   {chain.iconUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -72,7 +72,10 @@ export function WalletButton() {
                   )}
                 </div>
               )}
-              {chain.name}
+              {!chain.hasIcon && (
+                <span className="text-xs font-medium">{chain.name}</span>
+              )}
+              <span className="sr-only">{chain.name}</span>
             </Button>
 
             <Button onClick={openAccountModal} variant="secondary" size="sm">
