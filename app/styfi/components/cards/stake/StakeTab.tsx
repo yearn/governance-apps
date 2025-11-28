@@ -75,12 +75,7 @@ export function StakeTab({ mode }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-neutral-600">
-          <span>{copy.stakeTab.amountLabel}</span>
-          <div className="font-number text-neutral-500">
-            {copy.stakeTab.balanceLabel(formatTokenAmount(yfiBalance))}
-          </div>
-        </div>
+        <p className="text-sm text-neutral-600">{copy.stakeTab.amountLabel}</p>
         <div className="flex items-center gap-2 text-sm font-medium text-neutral-900">
           <span className="font-number">{formatTokenAmount(outputAmount)} YFI</span>
           <span className="text-lg">→</span>
@@ -94,7 +89,7 @@ export function StakeTab({ mode }: Props) {
         value={input}
         onChange={setInput}
         onMaxClick={onMax}
-        maxLabel="Max"
+        maxLabel={copy.stakeTab.balanceLabel(formatTokenAmount(yfiBalance))}
         tokenSymbol="YFI"
         error={
           insufficientBalance ? copy.stakeTab.insufficientBalance : undefined

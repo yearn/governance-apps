@@ -76,15 +76,9 @@ export function CooldownTab({ mode }: Props) {
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-neutral-600">
-          <span>{copy.cooldownTab.amountLabel}</span>
-          <div className="font-number text-neutral-500">
-            {copy.cooldownTab.availableLabel(
-              formatTokenAmount(available),
-              modeLabel(mode)
-            )}
-          </div>
-        </div>
+        <p className="text-sm text-neutral-600">
+          {copy.cooldownTab.amountLabel}
+        </p>
         <div className="flex items-center gap-2 text-sm font-medium text-neutral-900">
           <span className="font-number">
             {formatTokenAmount(outputAmount)} {modeLabel(mode)}
@@ -100,6 +94,10 @@ export function CooldownTab({ mode }: Props) {
         value={input}
         onChange={setInput}
         onMaxClick={onMax}
+        maxLabel={copy.cooldownTab.availableLabel(
+          formatTokenAmount(available),
+          modeLabel(mode)
+        )}
         tokenSymbol={mode === "styfi" ? "stYFI" : "stYFIx"}
         error={insufficient ? copy.cooldownTab.errorExceeds : undefined}
         placeholder="0.00"
