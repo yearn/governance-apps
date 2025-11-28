@@ -41,6 +41,10 @@ function StyfiPageShell() {
             label: copy.page.stats.staked.label,
             value: `${copy.page.stats.staked.value} (${stakedPercentage}%)`,
           },
+          {
+            label: copy.page.stats.phase.label,
+            value: copy.page.stats.phase.value,
+          },
         ]}
       />
 

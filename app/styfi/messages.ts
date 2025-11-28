@@ -22,6 +22,10 @@ export const styfiCopy = {
         value: formatYfi(stakedAmount),
         amount: stakedAmount,
       },
+      phase: {
+        label: "Phase",
+        value: "1 - Staking only, voting coming soon",
+      },
       apr: { label: "APR paid as USDS", value: "84.58%" },
     },
     connectBanner: {
