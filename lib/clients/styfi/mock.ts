@@ -29,9 +29,16 @@ export function resetMockStyfiStore() {
 let mockTxCounter = 0;
 
 const EPOCH_DURATION = 14 * 24 * 60 * 60; // 14 days
-// Deterministic genesis aligned to when the mock module is first evaluated.
-// Time travel via debugAdvanceTime() will move "now" relative to this anchor.
 const MOCK_GENESIS = Math.floor(Date.now() / 1000);
+
+// --- MOCK ECONOMICS CONFIG ---
+// 1 YFI = $6,500 USDS (approx)
+// We need this scalar because we stake YFI but earn stablecoins (USDS).
+const MOCK_YFI_PRICE = 5000n;
+const MOCK_APY_BPS = 6800n; // 68.00% APY
+const SECONDS_PER_YEAR = 31536000n;
+const BASIS_POINTS = 10000n;
+const WEEK_SECONDS = 604800n;
 
 function nextMockHash(): TransactionHash {
   mockTxCounter += 1;
@@ -94,13 +101,13 @@ function createDefaultAccountState(
     styfiX: defaultStyfiXPosition(),
     claimableGenericRewards: 0n,
     claimableBoostedRewards: 0n,
-    accruingGenericRewards: 1n * 10n ** 17n,
+    accruingGenericRewards: 0n,
     accruingBoostedRewards: 0n,
     allowances: defaultAllowances(),
     epoch: computeEpochInfo(),
     earningWeight: 10n ** 18n, // 1.0x default
     rewardToken: {
-      address: "0x0000000000000000000000000000000000000000", // Mock address
+      address: "0x0000000000000000000000000000000000000000",
       symbol: "yvUSDS",
       decimals: 18,
     },
@@ -117,6 +124,8 @@ function createDefaultAccountState(
       claimedProgress: 0,
     };
     base.styfiInCooldown = 10n * 10n ** 18n;
+    // Pre-seed some rewards ($500 USDS approx)
+    base.claimableGenericRewards = 500n * 10n ** 18n;
   }
 
   if (scenario === "ready") {
@@ -142,7 +151,6 @@ type StyfiMockOptions = {
 
 export class MockStyfiClient implements StyfiClient {
   private readonly latencyMs: number;
-  // Track the last address accessed to enable mutations in prepare*
   private lastAddress: Address | null = null;
 
   constructor(options: StyfiMockOptions = {}) {
@@ -173,7 +181,7 @@ export class MockStyfiClient implements StyfiClient {
   }
 
   async getAccountState(address: Address): Promise<StyfiAccountState> {
-    this.lastAddress = address; // Capture context
+    this.lastAddress = address;
     await delay(this.latencyMs);
     const state = this.getOrCreate(address);
     const key = this.getKey(address);
@@ -196,26 +204,37 @@ export class MockStyfiClient implements StyfiClient {
   ): StyfiAccountState {
     const now = nowSeconds();
     const last = GLOBAL_LAST_ACCRUAL.get(key) ?? now;
-    const elapsed = Math.max(0, now - last);
+    const elapsed = BigInt(Math.max(0, now - last));
 
     const next = { ...state };
 
-    // Roll a small portion of accruing into claimable based on elapsed time
-    if (elapsed > 0) {
-      const roll = (current: bigint) =>
-        current === 0n ? 0n : current / 10n + 1n; // 10% + 1 wei
-      const moveGeneric = roll(next.accruingGenericRewards);
-      const moveBoosted = roll(next.accruingBoostedRewards);
-      next.accruingGenericRewards =
-        next.accruingGenericRewards > moveGeneric
-          ? next.accruingGenericRewards - moveGeneric
-          : 0n;
-      next.accruingBoostedRewards =
-        next.accruingBoostedRewards > moveBoosted
-          ? next.accruingBoostedRewards - moveBoosted
-          : 0n;
-      next.claimableGenericRewards += moveGeneric;
-      next.claimableBoostedRewards += moveBoosted;
+    // 1. Reward Generation (The Source)
+    // Formula: (Staked YFI * PRICE * APY * Elapsed) / (Year * 10000)
+    const totalStaked = next.styfiActive + next.styfiX.assetsActive;
+
+    if (elapsed > 0n && totalStaked > 0n) {
+      // Multiply by MOCK_YFI_PRICE to convert YFI wei -> USDS wei (assuming 18 decimals for both)
+      const freshRewards =
+        (totalStaked * MOCK_YFI_PRICE * MOCK_APY_BPS * elapsed) /
+        (SECONDS_PER_YEAR * BASIS_POINTS);
+
+      next.accruingGenericRewards += freshRewards;
+    }
+
+    // 2. Reward Maturity (The Flow)
+    // Move ~1 week's worth of accruing rewards into claimable per week of elapsed time.
+    if (elapsed > 0n && next.accruingGenericRewards > 0n) {
+      const pending = next.accruingGenericRewards;
+      let moveAmount = (pending * elapsed) / WEEK_SECONDS;
+
+      if (moveAmount > pending) moveAmount = pending;
+      if (moveAmount === 0n && pending > 0n) moveAmount = 1n; // Ensure flow
+
+      next.accruingGenericRewards -= moveAmount;
+      next.claimableGenericRewards += moveAmount;
+    }
+
+    if (elapsed > 0n) {
       GLOBAL_LAST_ACCRUAL.set(key, now);
     }
 
@@ -316,7 +335,6 @@ export class MockStyfiClient implements StyfiClient {
       const endsAt = addDays(MOCK_COOLDOWN_DAYS);
       const now = nowSeconds();
 
-      // Helper to calculate progress (duplicated from prepareWithdraw for safety)
       const computeScaledProgress = (endsAt: number) => {
         const start = endsAt - COOLDOWN_DURATION_SECONDS;
         if (now >= endsAt) return 10000;
@@ -327,7 +345,6 @@ export class MockStyfiClient implements StyfiClient {
       if (mode === "stYFI") {
         if (state.styfiActive < amount) throw new Error("Insufficient stYFI");
 
-        // 1. Check for and Auto-Claim Liquid Funds
         if (next.styfiCooldown) {
           const totalAmount =
             next.styfiCooldown.totalAmount ?? next.styfiInCooldown;
@@ -340,18 +357,15 @@ export class MockStyfiClient implements StyfiClient {
           if (progressDelta > 0) {
             const liquid = (totalAmount * BigInt(progressDelta)) / 10000n;
             if (liquid > 0n) {
-              // Auto-withdraw liquid portion to wallet
               next.styfiInCooldown -= liquid;
               next.yfiBalance += liquid;
             }
           }
         }
 
-        // 2. Process New Cooldown
         next.styfiActive -= amount;
         next.styfiInCooldown += amount;
 
-        // 3. Reset Timer
         next.styfiCooldown = {
           amount: next.styfiInCooldown,
           endsAt,
@@ -362,7 +376,6 @@ export class MockStyfiClient implements StyfiClient {
         if (state.styfiX.sharesActive < amount)
           throw new Error("Insufficient stYFIx");
 
-        // 1. Check for and Auto-Claim Liquid Funds (stYFIx)
         if (next.styfiX.cooldown) {
           const totalAssets = next.styfiX.assetsInCooldown;
           const totalShares = next.styfiX.sharesInCooldown;
@@ -387,7 +400,6 @@ export class MockStyfiClient implements StyfiClient {
           }
         }
 
-        // 2. Process New Cooldown
         next.styfiX = {
           ...next.styfiX,
           sharesActive: state.styfiX.sharesActive - amount,
@@ -427,7 +439,6 @@ export class MockStyfiClient implements StyfiClient {
 
       const now = nowSeconds();
 
-      // Helper to calculate progress (0 to 10000)
       const computeScaledProgress = (endsAt: number) => {
         const start = endsAt - COOLDOWN_DURATION_SECONDS;
         if (now >= endsAt) return 10000;
@@ -458,7 +469,6 @@ export class MockStyfiClient implements StyfiClient {
         }
 
         if (liquid > next.styfiInCooldown) {
-          // Safety clamp for rounding errors
           next.yfiBalance += next.styfiInCooldown;
           next.styfiInCooldown = 0n;
         } else {
@@ -485,8 +495,6 @@ export class MockStyfiClient implements StyfiClient {
 
         const totalAssets = next.styfiX.assetsInCooldown;
         const totalAmount = cooldown.totalAmount ?? totalAssets;
-
-        // Note: stYFIx shares logic is approximate in mock
         const totalShares = next.styfiX.sharesInCooldown;
 
         const scaledProgress = computeScaledProgress(cooldown.endsAt);
@@ -498,7 +506,6 @@ export class MockStyfiClient implements StyfiClient {
         }
 
         const liquidAssets = (totalAmount * BigInt(progressDelta)) / 10000n;
-        // Approximate share reduction proportionally
         const shareReduction = (totalShares * BigInt(progressDelta)) / 10000n;
 
         if (liquidAssets <= 0n) {
@@ -544,7 +551,6 @@ export class MockStyfiClient implements StyfiClient {
       const state = this.getOrCreate(targetAddress);
       const next = { ...state };
 
-      // Reset claimable
       next.claimableGenericRewards = 0n;
       next.claimableBoostedRewards = 0n;
 
@@ -576,36 +582,16 @@ export function createMockStyfiClient(options?: StyfiMockOptions): StyfiClient {
   return new MockStyfiClient(options);
 }
 
-/**
- * Helper for hooks to simulate ERC-20 approvals in Mock mode.
- * This is not part of the StyfiClient interface but is used by useTokenApprove.
- */
 export function setMockStyfiAllowance(
   user: Address,
   spender: Address,
   amount: bigint
 ) {
   const key = user.toLowerCase();
-  // Ensure state exists
-  if (!GLOBAL_STYFI_STORE.has(key)) {
-    // We can't set allowance for a user that hasn't been initialized.
-    // In a real flow, getAccountState is called first, so this should remain safe.
-    return;
-  }
+  if (!GLOBAL_STYFI_STORE.has(key)) return;
 
   const state = GLOBAL_STYFI_STORE.get(key)!;
   const next = { ...state, allowances: { ...state.allowances } };
-
-  // Match spender to allowance field
-  // In a real app we'd check specific addresses.
-  // For this mock, we assume the Spender CONSTANTS map to these fields.
-  // We need to import these constants or hardcode check.
-  // To avoid circular deps, we'll check hardcoded strings or just update ALL for simplicity
-  // if the spender matches a heuristic, OR strictly match the constants we just defined.
-
-  // For simplicity in this mock iteration:
-  // If spender is "0x...01" -> yfiToStyfi
-  // If spender is "0x...02" -> yfiToStyfiX
 
   if (spender === "0x1000000000000000000000000000000000000001") {
     next.allowances.yfiToStyfi = amount;
