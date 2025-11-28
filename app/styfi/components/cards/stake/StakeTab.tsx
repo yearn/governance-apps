@@ -1,17 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/Button";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { formatTokenAmount } from "@/lib/format";
 import { parseAmount } from "@/lib/parse";
 import {
+  styfiKeys,
   useStyfiAccount,
   useStyfiStake,
 } from "@/lib/hooks/useStyfi";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
-import { MOCK_YFI_ADDRESS, SPENDER_STYFI, SPENDER_STYFIX } from "@/lib/constants";
+import {
+  MOCK_YFI_ADDRESS,
+  SPENDER_STYFI,
+  SPENDER_STYFIX,
+} from "@/lib/constants";
 import { StyfiMode, modeLabel } from "../../types";
 import { styfiCopy as copy } from "../../../messages";
 
@@ -20,16 +26,14 @@ type Props = {
 };
 
 export function StakeTab({ mode }: Props) {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
+  const queryClient = useQueryClient();
   const { data, isLoading } = useStyfiAccount();
   const { write: stake, state: stakeState } = useStyfiStake();
   const { write: approve, isLoading: approveLoading } = useTokenApprove();
 
   const [input, setInput] = useState<string>("");
-  const { amount, isValid } = useMemo(
-    () => parseAmount(input || "0"),
-    [input]
-  );
+  const { amount, isValid } = useMemo(() => parseAmount(input || "0"), [input]);
 
   const yfiBalance = data?.yfiBalance ?? 0n;
   const allowance =
@@ -63,7 +67,13 @@ export function StakeTab({ mode }: Props) {
   const handleApprove = async () => {
     if (!isValid || amount <= 0n) return;
     const spender = mode === "styfi" ? SPENDER_STYFI : SPENDER_STYFIX;
-    await approve(MOCK_YFI_ADDRESS, spender, amount);
+    await approve(MOCK_YFI_ADDRESS, spender, amount, {
+      invalidate: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: styfiKeys.account(address),
+        });
+      },
+    });
   };
 
   const handleStake = async () => {
@@ -77,7 +87,9 @@ export function StakeTab({ mode }: Props) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-neutral-600">{copy.stakeTab.amountLabel}</p>
         <div className="flex items-center gap-2 text-sm font-medium text-neutral-900">
-          <span className="font-number">{formatTokenAmount(outputAmount)} YFI</span>
+          <span className="font-number">
+            {formatTokenAmount(outputAmount)} YFI
+          </span>
           <span className="text-lg">→</span>
           <span className="font-number">
             {formatTokenAmount(outputAmount)} {modeLabel(mode)}
@@ -122,14 +134,12 @@ export function StakeTab({ mode }: Props) {
             disabled={isDisabled}
             isLoading={isSubmitting}
           >
-            {copy.stakeTab.stake(modeLabel(mode))}
+            {copy.stakeTab.stake}
           </Button>
         )}
 
         {data?.isBlacklisted && (
-          <p className="text-xs text-red-600">
-            {copy.shared.blacklistedBody}
-          </p>
+          <p className="text-xs text-red-600">{copy.shared.blacklistedBody}</p>
         )}
       </div>
     </div>

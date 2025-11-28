@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { StyfiStakeMode } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
+import { walletKeys } from "@/lib/hooks/useWalletYfiBalance";
 
 // --- Query Keys ---
 export const styfiKeys = {
@@ -53,17 +54,22 @@ export function useStyfiStake() {
   const write = async (mode: StyfiStakeMode, amount: bigint) => {
     const prepare = await styfi.prepareStake(mode, amount);
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
+    await execute(prepare, {
+      invalidate: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({
             queryKey: styfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+          }),
+          queryClient.invalidateQueries({
+            queryKey: walletKeys.yfi(address),
+          }),
+        ]);
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }
 
 export function useStyfiStartCooldown() {
@@ -75,17 +81,17 @@ export function useStyfiStartCooldown() {
   const write = async (mode: StyfiStakeMode, amount: bigint) => {
     const prepare = await styfi.prepareStartCooldown(mode, amount);
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: styfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+    await execute(prepare, {
+      invalidate: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: styfiKeys.account(address),
+        });
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }
 
 export function useStyfiWithdraw() {
@@ -97,17 +103,22 @@ export function useStyfiWithdraw() {
   const write = async (mode: StyfiStakeMode) => {
     const prepare = await styfi.prepareWithdraw(mode);
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
+    await execute(prepare, {
+      invalidate: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({
             queryKey: styfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+          }),
+          queryClient.invalidateQueries({
+            queryKey: walletKeys.yfi(address),
+          }),
+        ]);
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }
 
 export function useStyfiClaimRewards() {
@@ -119,15 +130,15 @@ export function useStyfiClaimRewards() {
   const write = async () => {
     const prepare = await styfi.prepareClaimRewards();
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: styfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+    await execute(prepare, {
+      invalidate: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: styfiKeys.account(address),
+        });
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }

@@ -52,12 +52,20 @@ export function CooldownTab({ mode }: Props) {
     !isConnected ||
     !data ||
     data.isBlacklisted ||
-    hasActiveCooldown ||
     !isValid ||
     amount <= 0n ||
     insufficient ||
     isLoading ||
     isSubmitting;
+
+  const isTopUp = amount > 0n && hasActiveCooldown;
+  const bannerVariant = isTopUp ? "warning" : "info";
+  const bannerTitle = isTopUp
+    ? "Warning: Timer Reset"
+    : copy.cooldownTab.bannerTitle;
+  const bannerBody = isTopUp
+    ? "Adding to your cooldown will reset the 14-day timer for your entire cooldown balance."
+    : copy.cooldownTab.bannerBody;
 
   const onMax = () => setInput(formatTokenAmount(available));
 
@@ -70,8 +78,8 @@ export function CooldownTab({ mode }: Props) {
   return (
     <div className="space-y-4">
       {hasActiveCooldown && (
-        <Banner variant="info" title={copy.cooldownTab.bannerTitle}>
-          {copy.cooldownTab.bannerBody}
+        <Banner variant={bannerVariant} title={bannerTitle}>
+          {bannerBody}
         </Banner>
       )}
 
@@ -101,9 +109,7 @@ export function CooldownTab({ mode }: Props) {
         tokenSymbol={mode === "styfi" ? "stYFI" : "stYFIx"}
         error={insufficient ? copy.cooldownTab.errorExceeds : undefined}
         placeholder="0.00"
-        disabled={
-          isLoading || isSubmitting || hasActiveCooldown || data?.isBlacklisted
-        }
+        disabled={isLoading || isSubmitting || data?.isBlacklisted}
       />
 
       <div className="flex flex-col items-end gap-2">

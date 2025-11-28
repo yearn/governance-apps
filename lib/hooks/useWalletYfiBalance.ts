@@ -4,7 +4,7 @@ import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { useProtocol } from "@/state/protocol";
 
-const walletKeys = {
+export const walletKeys = {
   yfi: (address?: string | null) => ["wallet", "yfi", address] as const,
 };
 

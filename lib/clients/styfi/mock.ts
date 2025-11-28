@@ -230,7 +230,6 @@ export class MockStyfiClient implements StyfiClient {
 
     const latency = this.latencyMs;
 
-    // Capture the address at the time of preparation
     const targetAddress = this.lastAddress;
 
     return async () => {
@@ -244,23 +243,32 @@ export class MockStyfiClient implements StyfiClient {
 
       const state = this.getOrCreate(targetAddress);
 
-      // Basic mutation logic
+      const currentAllowance =
+        mode === "stYFI"
+          ? state.allowances.yfiToStyfi
+          : state.allowances.yfiToStyfiX;
+
+      if (currentAllowance < amount) {
+        throw new Error("Mock: Insufficient allowance. Please approve first.");
+      }
+
       if (state.yfiBalance < amount) {
         throw new Error("Mock: Insufficient YFI balance");
       }
 
-      const next = { ...state };
+      const next = { ...state, allowances: { ...state.allowances } };
       next.yfiBalance -= amount;
 
       if (mode === "stYFI") {
         next.styfiActive += amount;
+        next.allowances.yfiToStyfi -= amount;
       } else if (mode === "stYFIx") {
-        // Simple 1:1 logic for mock
         next.styfiX = {
           ...next.styfiX,
           sharesActive: next.styfiX.sharesActive + amount,
           assetsActive: next.styfiX.assetsActive + amount,
         };
+        next.allowances.yfiToStyfiX -= amount;
       } else {
         throw new Error(`Unsupported stake mode: ${mode}`);
       }

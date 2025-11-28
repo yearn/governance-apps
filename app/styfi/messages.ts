@@ -122,7 +122,7 @@ export const styfiCopy = {
     balanceLabel: (balance: string) => `Balance: ${balance} YFI`,
     insufficientBalance: "Insufficient balance",
     approve: "Approve YFI",
-    stake: (modeLabel: string) => `Stake ${modeLabel}`,
+    stake: "Stake YFI",
   },
   cooldownTab: {
     bannerTitle: "Cooldown active",
@@ -132,7 +132,7 @@ export const styfiCopy = {
       `Available: ${amount} ${modeLabel}`,
     errorExceeds: "Exceeds available",
     helper: "Starts a 14-day cooldown. You can withdraw after the timer ends.",
-    startCta: (modeLabel: string) => `Start cooldown for ${modeLabel}`,
+    startCta: (modeLabel: string) => `Start ${modeLabel} cooldown`,
   },
   withdrawTab: {
     loading: "Loading cooldown data…",
@@ -144,7 +144,7 @@ export const styfiCopy = {
   },
   rewards: {
     kicker: "Rewards",
-    title: "stYFI rewards",
+    title: "Stablecoin yield",
     accruingLabel: "Accruing (next epoch)",
     claimableLabel: "Claimable",
     claimableHelper: "Includes generic + boosted rewards.",
