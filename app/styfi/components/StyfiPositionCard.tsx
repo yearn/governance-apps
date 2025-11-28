@@ -9,6 +9,7 @@ import {
   type RefObject,
 } from "react";
 import { useId } from "react";
+import { Banner } from "@/components/ui/Banner";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { IconChevron } from "@/components/icons/IconChevron";
@@ -240,6 +241,9 @@ function ModeDrawer({
               {copy.modeSelector.drawer.body}
             </p>
           </div>
+          <Banner variant="info" title={copy.modeSelector.voteBanner.title}>
+            {copy.modeSelector.voteBanner.body}
+          </Banner>
           <div className="grid gap-4 md:grid-cols-2">
             <ModeSelectionCard
               ref={styfiCardRef}

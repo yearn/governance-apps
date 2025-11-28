@@ -48,7 +48,6 @@ function StyfiPageShell() {
         ]}
       />
 
-      {/* Added md:px-6 to match Header alignment */}
       <main className="container mx-auto px-4 md:px-6 pt-8 space-y-6">
         {!isConnected && (
           <Banner variant="warning" title={copy.page.connectBanner.title}>
