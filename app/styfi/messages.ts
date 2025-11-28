@@ -23,8 +23,8 @@ export const styfiCopy = {
         amount: stakedAmount,
       },
       phase: {
-        label: "Phase",
-        value: "1 - Staking only, voting coming soon",
+        label: "State",
+        value: "Staking live, voting coming soon",
       },
       apr: { label: "APR paid as USDS", value: "84.58%" },
     },
@@ -43,6 +43,8 @@ export const styfiCopy = {
     },
     switchAria: (modeLabel: string) => `Switch to ${modeLabel}`,
     balanceSuffix: (modeLabel: string) => `in ${modeLabel}`,
+    balanceWithExiting: (exiting: string) => `Active (+ ${exiting} exiting)`,
+    balanceExitingOnly: (exiting: string) => `(${exiting} exiting)`,
     disconnected: "Connect your wallet to view balances.",
     drawer: {
       title: "Choose how you want to stake",
@@ -113,8 +115,7 @@ export const styfiCopy = {
     kicker: (modeLabel: string) => `Manage ${modeLabel.toUpperCase()}`,
     tabs: {
       stake: "Stake",
-      cooldown: "Cooldown",
-      withdraw: "Withdraw",
+      unstake: "Unstake",
     },
   },
   stakeTab: {
@@ -124,23 +125,27 @@ export const styfiCopy = {
     approve: "Approve YFI",
     stake: "Stake YFI",
   },
-  cooldownTab: {
-    bannerTitle: "Cooldown active",
-    bannerBody: "You already have a cooldown running for this mode.",
-    amountLabel: "Amount to move into cooldown",
-    availableLabel: (amount: string, modeLabel: string) =>
-      `Available: ${amount} ${modeLabel}`,
-    errorExceeds: "Exceeds available",
-    helper: "Starts a 14-day cooldown. You can withdraw after the timer ends.",
-    startCta: (modeLabel: string) => `Start ${modeLabel} cooldown`,
-  },
-  withdrawTab: {
-    loading: "Loading cooldown data…",
-    disconnected: "Connect your wallet to see withdrawable amounts.",
+  unstakeTab: {
+    loading: "Loading exit data…",
+    disconnected: "Connect your wallet to manage cooldowns.",
     empty: "Nothing in cooldown right now. Start a cooldown first.",
-    availableLabel: "Available to withdraw",
-    readyIn: (time: string) => `Ready in ${time}`,
-    cta: (modeLabel: string) => `Withdraw ${modeLabel}`,
+    progressTitle: "Unstaking Progress",
+    availableLabel: (amount: string) => `${amount} YFI Available`,
+    streamingLabel: (amount: string, time?: string) =>
+      time
+        ? `${amount} YFI Streaming (${time} left)`
+        : `${amount} YFI Streaming`,
+    withdrawHelper: "Funds available to withdraw",
+    withdrawCta: "Withdraw YFI",
+    amountLabel: "Start new cooldown",
+    availableBalance: (amount: string, modeLabel: string) =>
+      `Available: ${amount} ${modeLabel}`,
+    insufficientBalance: "Exceeds available",
+    warningTitle: "Timer reset warning",
+    warningBody:
+      "Adding to cooldown will automatically claim any available funds and reset the 14-day timer for the remaining stream.",
+    helper: "Starts a 14-day cooldown. You can withdraw after the timer ends.",
+    startCta: "Start Cooldown",
   },
   rewards: {
     kicker: "Rewards",

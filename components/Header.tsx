@@ -14,6 +14,7 @@ import { formatTokenAmount } from "@/lib/format";
 import { useWalletYfiBalance } from "@/lib/hooks/useWalletYfiBalance";
 import { useStyfiEpoch } from "@/lib/hooks/useStyfi";
 import { useAccount } from "wagmi";
+import { nowSeconds } from "@/lib/mocks/time";
 
 export function Header() {
   const pathname = usePathname();
@@ -164,14 +165,13 @@ function EpochCountdownBadge({
 
   const activeSeconds =
     epochEnd && secondsRemaining !== null ? secondsRemaining : null;
-  const intervalMs =
-    activeSeconds !== null && activeSeconds < 3600 ? 1000 : 60_000;
+  const intervalMs = 1000; // update frequently so mock time travel reflects instantly
 
   useEffect(() => {
     if (!epochEnd) return;
 
     const tick = () => {
-      const now = Math.floor(Date.now() / 1000);
+      const now = nowSeconds();
       const remaining = Math.max(0, epochEnd - now);
       setSecondsRemaining(remaining);
     };

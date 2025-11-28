@@ -10,11 +10,16 @@ import { StyfiPositionCard } from "./components/StyfiPositionCard";
 import { StyfiMode } from "./components/types";
 import { styfiCopy as copy } from "./messages";
 import { StyfiModeProvider } from "./state/StyfiModeProvider";
+import { MockControls } from "./components/MockControls";
+import { useProtocol } from "@/state/protocol";
 
 export function StyfiPageClient({ initialMode }: { initialMode?: StyfiMode }) {
+  const { usesMockBackend } = useProtocol();
+
   return (
     <StyfiModeProvider initialMode={initialMode}>
       <StyfiPageShell />
+      {usesMockBackend && <MockControls />}
     </StyfiModeProvider>
   );
 }

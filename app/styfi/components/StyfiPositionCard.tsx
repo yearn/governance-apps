@@ -44,10 +44,29 @@ export function StyfiPositionCard() {
 
   const currentApr = copy.page.stats.apr.value;
 
-  const primaryBalance = useMemo(() => {
-    if (!data) return 0n;
-    return mode === "styfi" ? data.styfiActive : data.styfiX.assetsActive;
+  const balances = useMemo(() => {
+    if (!data) return { active: 0n, exiting: 0n };
+
+    return mode === "styfi"
+      ? {
+          active: data.styfiActive,
+          exiting: data.styfiInCooldown,
+        }
+      : {
+          active: data.styfiX.assetsActive,
+          exiting: data.styfiX.assetsInCooldown,
+        };
   }, [data, mode]);
+  const primaryBalance = balances.active;
+  const exitingBalance = balances.exiting;
+  const hasExiting = exitingBalance > 0n;
+  const hasActive = primaryBalance > 0n;
+  const formattedExiting = formatTokenAmount(exitingBalance, 18, 4);
+  const balanceLabel = hasExiting
+    ? hasActive
+      ? copy.modeSelector.balanceWithExiting(formattedExiting)
+      : copy.modeSelector.balanceExitingOnly(formattedExiting)
+    : copy.modeSelector.balanceSuffix(modeLabel(mode));
 
   // Handle focus management when drawer opens
   useEffect(() => {
@@ -115,7 +134,7 @@ export function StyfiPositionCard() {
                     {formatTokenAmount(primaryBalance, 18, 4)} YFI
                   </span>
                   <span className="text-sm font-semibold text-neutral-600">
-                    {copy.modeSelector.balanceSuffix(modeLabel(mode))}
+                    {balanceLabel}
                   </span>
                 </div>
               ) : (

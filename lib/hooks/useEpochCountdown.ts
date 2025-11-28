@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { nowSeconds } from "@/lib/mocks/time";
 
 /**
  * formats seconds into "2d 4h 30m"
@@ -35,7 +36,7 @@ export function useEpochCountdown(
     if (!epochEndTimestamp) return;
 
     const tick = () => {
-      const now = Math.floor(Date.now() / 1000);
+      const now = nowSeconds();
       const totalDuration = epochStartTimestamp
         ? Math.max(1, epochEndTimestamp - epochStartTimestamp)
         : 14 * 24 * 60 * 60; // fallback assumption
@@ -63,7 +64,7 @@ export function useEpochCountdown(
     };
 
     tick();
-    const interval = setInterval(tick, 60000); // Update every minute
+    const interval = setInterval(tick, 1000); // Update every second for responsive mock time travel
     return () => clearInterval(interval);
   }, [epochEndTimestamp, epochStartTimestamp]);
 

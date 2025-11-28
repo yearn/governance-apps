@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 export interface Tab {
   id: string;
   label: string;
+  badge?: React.ReactNode;
 }
 
 interface TabsProps {
@@ -33,7 +34,10 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
                 : "text-neutral-500 hover:text-neutral-900"
             )}
           >
-            {tab.label}
+            <span className="inline-flex items-center gap-2">
+              {tab.label}
+              {tab.badge}
+            </span>
           </button>
         );
       })}

@@ -28,6 +28,11 @@ export function resetMockStyfiStore() {
 // --- Shared Mock Helpers ---
 let mockTxCounter = 0;
 
+const EPOCH_DURATION = 14 * 24 * 60 * 60; // 14 days
+// Deterministic genesis aligned to when the mock module is first evaluated.
+// Time travel via debugAdvanceTime() will move "now" relative to this anchor.
+const MOCK_GENESIS = Math.floor(Date.now() / 1000);
+
 function nextMockHash(): TransactionHash {
   mockTxCounter += 1;
   return `0x${mockTxCounter.toString(16).padStart(64, "0")}` as TransactionHash;
@@ -38,6 +43,7 @@ function addDays(days: number): number {
 }
 
 const MOCK_COOLDOWN_DAYS = 14;
+const COOLDOWN_DURATION_SECONDS = MOCK_COOLDOWN_DAYS * 24 * 60 * 60;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -58,12 +64,17 @@ function defaultStyfiXPosition(): StyfiXPosition {
   };
 }
 
-function defaultEpochInfo(): EpochInfo {
-  const end = addDays(MOCK_COOLDOWN_DAYS);
+function computeEpochInfo(): EpochInfo {
+  const now = nowSeconds();
+  const timeSinceGenesis = Math.max(0, now - MOCK_GENESIS);
+  const epochIndex = Math.floor(timeSinceGenesis / EPOCH_DURATION);
+  const currentEpoch = 1 + epochIndex;
+  const epochEnd = MOCK_GENESIS + (epochIndex + 1) * EPOCH_DURATION;
+
   return {
-    currentEpoch: 1,
-    epochEnd: end,
-    nextEpochStart: end,
+    currentEpoch,
+    epochEnd,
+    nextEpochStart: epochEnd,
   };
 }
 
@@ -86,7 +97,7 @@ function createDefaultAccountState(
     accruingGenericRewards: 1n * 10n ** 17n,
     accruingBoostedRewards: 0n,
     allowances: defaultAllowances(),
-    epoch: defaultEpochInfo(),
+    epoch: computeEpochInfo(),
     earningWeight: 10n ** 18n, // 1.0x default
     rewardToken: {
       address: "0x0000000000000000000000000000000000000000", // Mock address
@@ -103,6 +114,7 @@ function createDefaultAccountState(
     base.styfiCooldown = {
       amount: 10n * 10n ** 18n,
       endsAt: addDays(3),
+      claimedProgress: 0,
     };
     base.styfiInCooldown = 10n * 10n ** 18n;
   }
@@ -115,6 +127,7 @@ function createDefaultAccountState(
     base.styfiCooldown = {
       amount: 15n * 10n ** 18n,
       endsAt: nowSeconds() - 60,
+      claimedProgress: 10000,
     };
     base.styfiInCooldown = 15n * 10n ** 18n;
   }
@@ -165,12 +178,16 @@ export class MockStyfiClient implements StyfiClient {
     const state = this.getOrCreate(address);
     const key = this.getKey(address);
     const matured = this.applyAccrualAndMaturity(state, key);
-    return { ...matured, styfiX: { ...matured.styfiX } };
+    return {
+      ...matured,
+      styfiX: { ...matured.styfiX },
+      epoch: computeEpochInfo(),
+    };
   }
 
   async getEpochInfo(): Promise<EpochInfo> {
     await delay(this.latencyMs / 2);
-    return defaultEpochInfo();
+    return computeEpochInfo();
   }
 
   private applyAccrualAndMaturity(
@@ -297,23 +314,91 @@ export class MockStyfiClient implements StyfiClient {
       const state = this.getOrCreate(targetAddress);
       const next = { ...state };
       const endsAt = addDays(MOCK_COOLDOWN_DAYS);
+      const now = nowSeconds();
+
+      // Helper to calculate progress (duplicated from prepareWithdraw for safety)
+      const computeScaledProgress = (endsAt: number) => {
+        const start = endsAt - COOLDOWN_DURATION_SECONDS;
+        if (now >= endsAt) return 10000;
+        if (now <= start) return 0;
+        return Math.floor(((now - start) * 10000) / COOLDOWN_DURATION_SECONDS);
+      };
 
       if (mode === "stYFI") {
         if (state.styfiActive < amount) throw new Error("Insufficient stYFI");
+
+        // 1. Check for and Auto-Claim Liquid Funds
+        if (next.styfiCooldown) {
+          const totalAmount =
+            next.styfiCooldown.totalAmount ?? next.styfiInCooldown;
+          const scaledProgress = computeScaledProgress(
+            next.styfiCooldown.endsAt
+          );
+          const previousProgress = next.styfiCooldown.claimedProgress ?? 0;
+          const progressDelta = scaledProgress - previousProgress;
+
+          if (progressDelta > 0) {
+            const liquid = (totalAmount * BigInt(progressDelta)) / 10000n;
+            if (liquid > 0n) {
+              // Auto-withdraw liquid portion to wallet
+              next.styfiInCooldown -= liquid;
+              next.yfiBalance += liquid;
+            }
+          }
+        }
+
+        // 2. Process New Cooldown
         next.styfiActive -= amount;
         next.styfiInCooldown += amount;
-        next.styfiCooldown = { amount: next.styfiInCooldown, endsAt };
+
+        // 3. Reset Timer
+        next.styfiCooldown = {
+          amount: next.styfiInCooldown,
+          endsAt,
+          claimedProgress: 0,
+          totalAmount: next.styfiInCooldown,
+        };
       } else if (mode === "stYFIx") {
         if (state.styfiX.sharesActive < amount)
           throw new Error("Insufficient stYFIx");
+
+        // 1. Check for and Auto-Claim Liquid Funds (stYFIx)
+        if (next.styfiX.cooldown) {
+          const totalAssets = next.styfiX.assetsInCooldown;
+          const totalShares = next.styfiX.sharesInCooldown;
+          const totalAmount = next.styfiX.cooldown.totalAmount ?? totalAssets;
+
+          const scaledProgress = computeScaledProgress(
+            next.styfiX.cooldown.endsAt
+          );
+          const previousProgress = next.styfiX.cooldown.claimedProgress ?? 0;
+          const progressDelta = scaledProgress - previousProgress;
+
+          if (progressDelta > 0) {
+            const liquidAssets = (totalAmount * BigInt(progressDelta)) / 10000n;
+            const shareReduction =
+              (totalShares * BigInt(progressDelta)) / 10000n;
+
+            if (liquidAssets > 0n) {
+              next.styfiX.assetsInCooldown -= liquidAssets;
+              next.styfiX.sharesInCooldown -= shareReduction;
+              next.yfiBalance += liquidAssets;
+            }
+          }
+        }
+
+        // 2. Process New Cooldown
         next.styfiX = {
-          ...state.styfiX,
+          ...next.styfiX,
           sharesActive: state.styfiX.sharesActive - amount,
-          sharesInCooldown: state.styfiX.sharesInCooldown + amount,
-          assetsInCooldown: state.styfiX.assetsInCooldown + amount, // simplified
+          assetsActive: state.styfiX.assetsActive - amount,
+          sharesInCooldown: next.styfiX.sharesInCooldown + amount,
+          assetsInCooldown: next.styfiX.assetsInCooldown + amount,
           cooldown: {
-            amount: state.styfiX.sharesInCooldown + amount,
+            amount: next.styfiX.sharesInCooldown + amount,
             endsAt,
+            claimedProgress: 0,
+            totalAmount: next.styfiX.assetsInCooldown + amount,
           },
         };
       } else {
@@ -340,32 +425,101 @@ export class MockStyfiClient implements StyfiClient {
       const state = this.getOrCreate(targetAddress);
       const next = { ...state };
 
-      // Logic: withdraw everything in cooldown
+      const now = nowSeconds();
+
+      // Helper to calculate progress (0 to 10000)
+      const computeScaledProgress = (endsAt: number) => {
+        const start = endsAt - COOLDOWN_DURATION_SECONDS;
+        if (now >= endsAt) return 10000;
+        if (now <= start) return 0;
+        return Math.floor(((now - start) * 10000) / COOLDOWN_DURATION_SECONDS);
+      };
+
       if (mode === "stYFI") {
-        if (next.styfiCooldown && next.styfiCooldown.endsAt > nowSeconds()) {
-          throw new Error("Cooldown not complete");
+        const cooldown = next.styfiCooldown;
+        if (!cooldown) {
+          throw new Error("No active cooldown");
         }
 
-        const amount = next.styfiInCooldown;
-        next.styfiInCooldown = 0n;
-        next.styfiCooldown = null;
-        next.yfiBalance += amount;
+        const totalAmount = cooldown.totalAmount ?? next.styfiInCooldown;
+
+        const scaledProgress = computeScaledProgress(cooldown.endsAt);
+        const previousProgress = cooldown.claimedProgress ?? 0;
+        const progressDelta = scaledProgress - previousProgress;
+
+        if (progressDelta <= 0) {
+          throw new Error("No funds available to withdraw yet");
+        }
+
+        const liquid = (totalAmount * BigInt(progressDelta)) / 10000n;
+
+        if (liquid <= 0n) {
+          throw new Error("No funds available to withdraw yet");
+        }
+
+        if (liquid > next.styfiInCooldown) {
+          // Safety clamp for rounding errors
+          next.yfiBalance += next.styfiInCooldown;
+          next.styfiInCooldown = 0n;
+        } else {
+          next.styfiInCooldown -= liquid;
+          next.yfiBalance += liquid;
+        }
+
+        if (next.styfiInCooldown <= 0n) {
+          next.styfiInCooldown = 0n;
+          next.styfiCooldown = null;
+        } else {
+          next.styfiCooldown = {
+            amount: next.styfiInCooldown,
+            endsAt: cooldown.endsAt,
+            claimedProgress: scaledProgress,
+            totalAmount: totalAmount,
+          };
+        }
       } else if (mode === "stYFIx") {
-        if (
-          next.styfiX.cooldown &&
-          next.styfiX.cooldown.endsAt > nowSeconds()
-        ) {
-          throw new Error("Cooldown not complete");
+        const cooldown = next.styfiX.cooldown;
+        if (!cooldown) {
+          throw new Error("No active cooldown");
         }
 
-        const amount = next.styfiX.assetsInCooldown; // get back assets
+        const totalAssets = next.styfiX.assetsInCooldown;
+        const totalAmount = cooldown.totalAmount ?? totalAssets;
+
+        // Note: stYFIx shares logic is approximate in mock
+        const totalShares = next.styfiX.sharesInCooldown;
+
+        const scaledProgress = computeScaledProgress(cooldown.endsAt);
+        const previousProgress = cooldown.claimedProgress ?? 0;
+        const progressDelta = scaledProgress - previousProgress;
+
+        if (progressDelta <= 0) {
+          throw new Error("No funds available to withdraw yet");
+        }
+
+        const liquidAssets = (totalAmount * BigInt(progressDelta)) / 10000n;
+        // Approximate share reduction proportionally
+        const shareReduction = (totalShares * BigInt(progressDelta)) / 10000n;
+
+        if (liquidAssets <= 0n) {
+          throw new Error("No funds available to withdraw yet");
+        }
+
         next.styfiX = {
           ...next.styfiX,
-          sharesInCooldown: 0n,
-          assetsInCooldown: 0n,
-          cooldown: null,
+          assetsInCooldown: totalAssets - liquidAssets,
+          sharesInCooldown: totalShares - shareReduction,
+          cooldown:
+            totalAssets - liquidAssets <= 0n
+              ? null
+              : {
+                  amount: totalAssets - liquidAssets,
+                  endsAt: cooldown.endsAt,
+                  claimedProgress: scaledProgress,
+                  totalAmount: totalAmount,
+                },
         };
-        next.yfiBalance += amount;
+        next.yfiBalance += liquidAssets;
       } else {
         throw new Error(`Unsupported withdraw mode: ${mode}`);
       }

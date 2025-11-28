@@ -83,9 +83,14 @@ export function useStyfiStartCooldown() {
 
     await execute(prepare, {
       invalidate: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: styfiKeys.account(address),
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: styfiKeys.account(address),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: walletKeys.yfi(address),
+          }),
+        ]);
       },
       skipWaitForReceipt: usesMockBackend,
     });

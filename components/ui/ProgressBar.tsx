@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 interface ProgressBarProps extends React.HTMLAttributes<HTMLDivElement> {
   value: number; // 0 to 100
   max?: number;
-  variant?: "default" | "success" | "warning";
+  variant?: "default" | "success" | "warning" | "styfi" | "veyfi";
 }
 
 export function ProgressBar({
@@ -22,6 +22,8 @@ export function ProgressBar({
     default: "bg-yearn-blue",
     success: "bg-green-500",
     warning: "bg-orange-500",
+    styfi: "bg-sunset-600",
+    veyfi: "bg-disco-700",
   };
 
   return (
