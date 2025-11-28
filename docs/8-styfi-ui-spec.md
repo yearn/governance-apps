@@ -1,4 +1,4 @@
-# stYFI UI Spec v0.6
+# stYFI UI Spec v0.7
 
 **Status:** Approved / In Development
 **Applies to:** `styfi.yearn.fi` (and `/styfi` route)
@@ -142,18 +142,24 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
 ### 8.1 Your Position Card (Selector + Drawer)
 
 **Purpose:** Own mode selection, onboarding, and key decision metrics (APR).
-**State:**
 
-- **Collapsed (Dashboard header):**
-  - Primary logo (active) + secondary logo (quick switch).
-  - Balance summary: `X YFI in stYFI|stYFIx`.
-  - **APR Display:** Right-aligned `84.5%` (Aeonik Mono).
-  - “Compare modes” toggle (expands drawer).
-- **Expanded (Onboarding/Drawer):**
-  - Explainer text.
-  - Two selection cards (`h-full` for symmetry).
-  - **Cards Layout:** Two-column internal layout (Left: Identity, Right: APR/Type).
-  - Active card gets a green "Selected" badge next to the title.
+**States:**
+
+1.  **Onboarding (First Visit):**
+
+    - **Header:** Hidden (reduces noise).
+    - **Cards:** Both render in "Neutral" state (White background, raised).
+    - **Animation:** Cards slide down (staggered). "Recommended" badge pulses.
+    - **Interaction:** Clicking a card triggers the "Selected" state -> Header animates in -> Drawer collapses.
+
+2.  **Collapsed (Dashboard):**
+
+    - Standard view for returning users.
+    - Shows active mode logos, balance summary, and **Current APR**.
+
+3.  **Expanded (Switching):**
+    - Header remains visible.
+    - Active mode card appears "Pressed" (Gray background, inner shadow).
 
 ### 8.2 Rewards Card
 

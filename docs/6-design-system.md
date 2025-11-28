@@ -1,6 +1,6 @@
 # 6. Design System & UI Standards
 
-**Version:** 1.1
+**Version:** 1.2
 **Scope:** Visual language, typography, and component usage for `governance-apps`.
 
 ---
@@ -150,3 +150,12 @@ We maintain a "Kitchen Sink" page to audit components without needing to connect
 4. Ensure it accepts `className` for Tailwind styling.
 
 ---
+
+## 7. Animation & Motion
+
+We use `tailwindcss-animate` for declarative, hardware-accelerated transitions.
+
+- **Entrance Standard:** `duration-700` with `ease-out`.
+- **Direction:** "Drawer" content slides **down** (`slide-in-from-top-4`) to mimic physical expansion.
+- **Stagger:** Sequential elements use `delay-150`.
+- **Beacon:** Important, unselected recommendations may use `animate-pulse` subtly.

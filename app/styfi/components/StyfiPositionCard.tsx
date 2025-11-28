@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactElement,
   type RefObject,
 } from "react";
@@ -14,7 +15,7 @@ import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { IconChevron } from "@/components/icons/IconChevron";
 import { IconCheck } from "@/components/icons/IconCheck";
-import { IconStar } from "@/components/icons/IconStar"; // New Import
+import { IconStar } from "@/components/icons/IconStar";
 import { LogoStyfi } from "@/components/icons/LogoStyfi";
 import { LogoStyfix } from "@/components/icons/LogoStyfix";
 import { cn } from "@/lib/cn";
@@ -24,10 +25,18 @@ import { styfiCopy as copy } from "../messages";
 import { StyfiMode, modeLabel } from "./types";
 import { useStyfiMode } from "../state/StyfiModeProvider";
 
+const COLLAPSE_DELAY_MS = 650;
+
 export function StyfiPositionCard() {
   const drawerId = useId();
-  const { mode, isDrawerOpen, selectMode, toggleDrawer, quickSwitch } =
-    useStyfiMode();
+  const {
+    mode,
+    isDrawerOpen,
+    isOnboarded,
+    selectMode,
+    toggleDrawer,
+    quickSwitch,
+  } = useStyfiMode();
   const { data, isLoading } = useStyfiAccount();
 
   const styfiCardRef = useRef<HTMLButtonElement>(null);
@@ -40,85 +49,95 @@ export function StyfiPositionCard() {
     return mode === "styfi" ? data.styfiActive : data.styfiX.assetsActive;
   }, [data, mode]);
 
+  // Handle focus management when drawer opens
   useEffect(() => {
+    if (!isOnboarded) return;
     if (!isDrawerOpen) return;
     const target =
       (mode === "styfi" ? styfiCardRef.current : styfixCardRef.current) ??
       styfiCardRef.current ??
       styfixCardRef.current;
     target?.focus();
-  }, [isDrawerOpen, mode]);
+  }, [isDrawerOpen, isOnboarded, mode]);
 
-  // Updated Handler with Delay
+  // Local state for "Optimistic" selection feedback
+  const [optimisticMode, setOptimisticMode] = useState<StyfiMode | null>(null);
+
   const handleSelect = (nextMode: StyfiMode) => {
-    // 1. Update visual selection immediately (keep drawer open)
-    selectMode(nextMode, { collapseDrawer: false, markOnboarded: true });
+    // 1. Immediate visual feedback (Selection State turns Gray)
+    setOptimisticMode(nextMode);
 
-    // 2. Wait 600ms for user to register the choice, then collapse
+    // 2. Pause to let the user register the selection
     setTimeout(() => {
+      // 3. Commit to global state (Triggers Header Entry + Drawer Collapse)
       selectMode(nextMode, { collapseDrawer: true, markOnboarded: true });
-    }, 600);
+
+      // Cleanup local state after the transition is settled
+      setTimeout(() => setOptimisticMode(null), 500);
+    }, COLLAPSE_DELAY_MS);
   };
 
   return (
     <Card
       className={cn(
         "flex flex-col transition-all duration-300",
-        isDrawerOpen ? "gap-6" : "gap-0"
+        isDrawerOpen && isOnboarded ? "gap-6" : "gap-0"
       )}
     >
-      {/* HEADER ROW */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-5">
-          <LogoCluster mode={mode} onQuickSwitch={quickSwitch} />
+      {/* HEADER ROW - Only visible after onboarding */}
+      {isOnboarded && (
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between animate-in fade-in slide-in-from-top-4 duration-700 fill-mode-backwards">
+          <div className="flex items-center gap-5">
+            <LogoCluster mode={mode} onQuickSwitch={quickSwitch} />
 
-          <div className="space-y-1">
-            <button
-              type="button"
-              onClick={toggleDrawer}
-              className="group flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-neutral-500 hover:text-neutral-900 transition-colors focus:outline-none"
-              aria-expanded={isDrawerOpen}
-              aria-controls={drawerId}
-            >
-              {copy.modeSelector.kicker}
-              <IconChevron
-                className={cn(
-                  "h-3 w-3 text-neutral-400 transition-transform duration-300 group-hover:text-neutral-900",
-                  isDrawerOpen && "rotate-180"
-                )}
-              />
-            </button>
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={toggleDrawer}
+                className="group flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-neutral-500 hover:text-neutral-900 transition-colors focus:outline-none"
+                aria-expanded={isDrawerOpen}
+                aria-controls={drawerId}
+              >
+                {copy.modeSelector.kicker}
+                <IconChevron
+                  className={cn(
+                    "h-3 w-3 text-neutral-400 transition-transform duration-300 group-hover:text-neutral-900",
+                    isDrawerOpen && "rotate-180"
+                  )}
+                />
+              </button>
 
-            {isLoading ? (
-              <Skeleton className="h-8 w-40" />
-            ) : data ? (
-              <div className="flex flex-wrap items-baseline gap-2 text-neutral-900">
-                <span className="text-2xl font-number font-bold">
-                  {formatTokenAmount(primaryBalance, 18, 4)} YFI
-                </span>
-                <span className="text-sm font-semibold text-neutral-600">
-                  {copy.modeSelector.balanceSuffix(modeLabel(mode))}
-                </span>
-              </div>
-            ) : (
-              <p className="text-sm text-neutral-600">
-                {copy.modeSelector.disconnected}
+              {isLoading ? (
+                <Skeleton className="h-8 w-40" />
+              ) : data ? (
+                <div className="flex flex-wrap items-baseline gap-2 text-neutral-900">
+                  <span className="text-2xl font-number font-bold">
+                    {formatTokenAmount(primaryBalance, 18, 4)} YFI
+                  </span>
+                  <span className="text-sm font-semibold text-neutral-600">
+                    {copy.modeSelector.balanceSuffix(modeLabel(mode))}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-600">
+                  {copy.modeSelector.disconnected}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {!isDrawerOpen && (
+            <div className="hidden md:block text-right animate-in fade-in duration-300">
+              <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                Current APR
               </p>
-            )}
-          </div>
+              <p className="text-xl font-number font-bold text-neutral-900">
+                {currentApr}
+              </p>
+            </div>
+          )}
         </div>
-
-        {!isDrawerOpen && (
-          <div className="hidden md:block text-right animate-in fade-in duration-300">
-            <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-              Current APR
-            </p>
-            <p className="text-xl font-number font-bold text-neutral-900">
-              {currentApr}
-            </p>
-          </div>
-        )}
-      </div>
+      )}
 
       <ModeDrawer
         isOpen={isDrawerOpen}
@@ -128,6 +147,8 @@ export function StyfiPositionCard() {
         mode={mode}
         onSelect={handleSelect}
         aprValue={currentApr}
+        isOnboarded={isOnboarded}
+        optimisticMode={optimisticMode}
       />
     </Card>
   );
@@ -207,6 +228,8 @@ function ModeDrawer({
   mode,
   onSelect,
   aprValue,
+  isOnboarded,
+  optimisticMode,
 }: {
   isOpen: boolean;
   drawerId: string;
@@ -215,6 +238,8 @@ function ModeDrawer({
   mode: StyfiMode;
   onSelect: (mode: StyfiMode) => void;
   aprValue: string;
+  isOnboarded: boolean;
+  optimisticMode: StyfiMode | null;
 }) {
   return (
     <div
@@ -228,8 +253,10 @@ function ModeDrawer({
         className={cn(
           "overflow-hidden transition-all duration-300",
           isOpen
-            ? "border-t border-neutral-200 pt-6 mt-2 opacity-100"
-            : "border-t-0 pt-0 opacity-0"
+            ? isOnboarded
+              ? "border-t border-neutral-200 pt-6 mt-2 opacity-100"
+              : "border-t-0 pt-0 mt-0 opacity-100"
+            : "border-t-0 pt-0 mt-0 opacity-0"
         )}
       >
         <div className="space-y-6">
@@ -244,24 +271,51 @@ function ModeDrawer({
           <Banner variant="info" title={copy.modeSelector.voteBanner.title}>
             {copy.modeSelector.voteBanner.body}
           </Banner>
+
           <div className="grid gap-4 md:grid-cols-2">
-            <ModeSelectionCard
-              ref={styfiCardRef}
-              mode="styfi"
-              isActive={mode === "styfi"}
-              onClick={() => onSelect("styfi")}
-              aprValue={aprValue}
-              aprType="Variable"
-            />
-            <ModeSelectionCard
-              ref={styfixCardRef}
-              mode="x"
-              isActive={mode === "x"}
-              onClick={() => onSelect("x")}
-              aprValue={aprValue}
-              aprType="Max"
-              isRecommended={true}
-            />
+            {/* WRAPPER 1: stYFI Card (Slides in from Top) */}
+            <div
+              className={
+                !isOnboarded
+                  ? "animate-in fade-in slide-in-from-top-4 duration-700 fill-mode-backwards"
+                  : undefined
+              }
+            >
+              <ModeSelectionCard
+                ref={styfiCardRef}
+                mode="styfi"
+                isActive={
+                  optimisticMode === "styfi" ||
+                  (!optimisticMode && isOnboarded && mode === "styfi")
+                }
+                onClick={() => onSelect("styfi")}
+                aprValue={aprValue}
+                aprType="Variable"
+              />
+            </div>
+
+            {/* WRAPPER 2: stYFIx Card (Slides in from Top, Delayed) */}
+            <div
+              className={
+                !isOnboarded
+                  ? "animate-in fade-in slide-in-from-top-4 duration-700 delay-150 fill-mode-backwards"
+                  : undefined
+              }
+            >
+              <ModeSelectionCard
+                ref={styfixCardRef}
+                mode="x"
+                isActive={
+                  optimisticMode === "x" ||
+                  (!optimisticMode && isOnboarded && mode === "x")
+                }
+                onClick={() => onSelect("x")}
+                aprValue={aprValue}
+                aprType="Max"
+                isRecommended={true}
+                showPulse={!isOnboarded}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -278,9 +332,10 @@ const ModeSelectionCard = forwardRef<
     aprValue: string;
     aprType: string;
     isRecommended?: boolean;
+    showPulse?: boolean;
   }
 >(function ModeSelectionCard(
-  { mode, isActive, onClick, aprValue, aprType, isRecommended },
+  { mode, isActive, onClick, aprValue, aprType, isRecommended, showPulse },
   ref
 ) {
   const cardCopy =
@@ -333,7 +388,12 @@ const ModeSelectionCard = forwardRef<
           aprValue={aprValue}
           aprType={aprType}
           badge={
-            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-yearn-blue border border-yearn-blue bg-transparent px-1.5 py-0.5 rounded-full">
+            <span
+              className={cn(
+                "flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-yearn-blue border border-yearn-blue bg-transparent px-1.5 py-0.5 rounded-full",
+                showPulse && "animate-pulse"
+              )}
+            >
               <IconStar className="w-3 h-3 fill-yearn-blue" />
               Recommended
             </span>
