@@ -1,7 +1,7 @@
 # `user-stories-styfi.md`
 
 **User Stories — stYFI & stYFIx**
-**Version:** 1.0
+**Version:** 1.1
 **Scope:** Part I of the Governance Apps (stYFI + stYFIx)
 
 ---
@@ -131,36 +131,33 @@ We assume a technically literate DeFi user familiar with:
 ### Acceptance Criteria
 
 - Only visible when user has stYFI staked
-- Blocked during cooldown
+- **Partial resets:** If I already have a cooldown active:
+  - I am warned that adding more will **reset the timer** for the streaming portion.
+  - Any funds currently **liquid** (available) are automatically claimed to my wallet to prevent re-locking.
 - Shows cooldown start immediately on success
 - Shows cooldown end using contract epoch data
 - If blacklisted:
-
   - disabled
 
 ---
 
-## Story ST-06 — Withdraw YFI After Cooldown
+## Story ST-06 — Monitor & Withdraw YFI (Linear Streaming)
 
-**As a** stYFI user
-**I want** to withdraw my YFI once cooldown ends
-**So that** I can exit the position
+**As a** stYFI user in cooldown
+**I want** to see my funds unlocking over time and withdraw them as they become available
+**So that** I don't have to wait for the full 14 days to access some liquidity
 
 ### Acceptance Criteria
 
-- Withdraw button only enabled when:
-
-  - cooldown is active
-  - cooldown is complete
-
-- After success:
-
-  - staked YFI reduces accordingly
-  - wallet balance increases
-
-- If blacklisted:
-
-  - disabled
+- **Progress Bar:** Visualizes the ratio of Liquid vs. Streaming funds.
+- **Linear Access:** Withdraw button enabled as soon as `Liquid > 0`.
+- **Clarity:** UI distinguishes between:
+  - "Available to Withdraw" (Liquid)
+  - "Streaming" (Still locked, with time remaining)
+- After withdrawal success:
+  - Liquid amount reduces/zeros
+  - Wallet balance increases
+  - Streaming portion continues unaffected
 
 ---
 
@@ -232,7 +229,7 @@ We assume a technically literate DeFi user familiar with:
 
 ### Acceptance Criteria
 
-- Same rules as stYFI cooldown
+- Same linear streaming rules as stYFI cooldown
 - Reflects timestamps from contract
 - If blacklisted:
 
@@ -243,12 +240,12 @@ We assume a technically literate DeFi user familiar with:
 ## Story MX-05 — Withdraw from stYFIx
 
 **As a** stYFIx user
-**I want** to redeem my shares for YFI after cooldown
+**I want** to redeem my shares for YFI as they unlock
 **So that** I can exit my position
 
 ### Acceptance Criteria
 
-- Enabled only after cooldown completion
+- Enabled as soon as `Liquid Assets > 0`
 - Withdraw returns YFI (converted via `convertToAssets`)
 - After success:
 

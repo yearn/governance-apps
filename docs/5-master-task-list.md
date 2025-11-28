@@ -1,19 +1,12 @@
 # Master Task List — Governance Apps (stYFI, stYFIx, veYFI, LLYFI)
 
-Version 1.1 — 2025-11-20
+Version 1.2 — 2025-11-28
 Scope: BR#1 (UI-first, mock-backed), `/styfi` + `/veyfi`
 
 This is the **authoritative implementation roadmap** for the `governance-apps` repository.
 Tasks are grouped in phases.
 Each main task is a sensible, self-contained unit of work.
 Sub-tasks: 1 level deep, atomic, actionable.
-
-This list reflects:
-
-- `frontend-frd.md`
-- `user-stories-styfi.md`
-- `user-stories-veyfi.md`
-- `architecture-blueprint.md`
 
 ---
 
@@ -28,229 +21,78 @@ This list reflects:
 
 ---
 
-# Phase 1 — Domain Types & Client Interfaces
+# Phase 1 — Domain Types & Client Interfaces (Done)
 
-_(All type definitions must strictly follow frontend FRD)_
-
-## 0. Minimal Tx Types (Shared)
-
-- [x] Create `lib/tx/types.ts` with minimal shared types:
-  - [x] `TransactionHash`
-  - [x] `PreparedTransaction` stub (function returning `TransactionHash`)
-- [ ] Extend with full tx state machine in Phase 2 (`TxStatus`, `TxState`, `TxErrorType`)
-
-## 1. Create `Styfi` Types
-
-- [x] `StyfiAccountState`
-- [x] `StyfiXPosition`
-- [x] `EpochInfo`
-- [x] `StyfiAllowances`
-- [x] Export tidy barrel file
-
-_(Cooldown semantics are shared via `CooldownState` and imported from `/lib/clients/shared/types.ts` — no separate `StyfiCooldownState` type.)_
-
-## 2. Create `Veyfi` Types
-
-- [x] `VeYfiMigrationState`
-- [x] `LlyfiTokenId` enum
-- [x] `LlyfiTokenState`
-- [x] `RedemptionCaps`
-- [x] `VeyfiAccountState`
-
-(Shared cooldown type):
-
-- [x] Add `/lib/clients/shared/types.ts`
-- [x] Define `CooldownState` and reuse it in both `styfi/types` and `veyfi/types`
-
-## 3. Client Interfaces
-
-- [x] `/lib/clients/styfi/client.ts`
-  - [x] `getAccountState`
-  - [x] `prepareStake`
-  - [x] `prepareStartCooldown`
-  - [x] `prepareWithdraw`
-  - [x] `prepareClaimRewards`
-- [x] `/lib/clients/veyfi/client.ts`
-  - [x] `getAccountState`
-  - [x] `prepareMigrateVeYfi`
-  - [x] `prepareStakeLlyfi`
-  - [x] `prepareStartCooldownLlyfi`
-  - [x] `prepareWithdrawLlyfi`
-  - [x] `prepareClaimLlyfiRewards`
-  - [x] `prepareRedeemLlyfi`
-- [x] Export barrel files for `styfi` and `veyfi` client modules (optional but recommended)
+- [x] Minimal Tx Types
+- [x] `Styfi` Types
+- [x] `Veyfi` Types
+- [x] Client Interfaces (`StyfiClient`, `VeyfiClient`)
 
 ---
 
-# Phase 2 — Transaction Layer (`useTx`) + Mocks
+# Phase 2 — Transaction Layer (`useTx`) + Mocks (Done)
 
-_(Foundation for all write flows)_
-
-## 4. Implement Tx State Machine
-
-- [x] Extend `/lib/tx/types.ts` with:
-  - [x] `TransactionHash` (already created in Phase 1)
-  - [x] `PreparedTransaction` (already created in Phase 1)
-  - [x] `TxStatus`
-  - [x] `TxState`
-  - [x] `TxErrorType`
-- [x] Implement `/lib/tx/useTx.ts`
-  - [x] centralises tx lifecycle
-  - [x] owns `waitForTransactionReceipt`
-  - [ ] integrates with shared toast system (to be done when UI primitives exist)
-  - [x] adds retry + richer error normalization (optional later enhancement)
-
-## 5. MockStyfiClient
-
-- [x] Build `/lib/clients/styfi/mock.ts`
-  - [x] In-memory fake state structure (per-address `Map` + default account state)
-  - [ ] `StandardUser` fixture (explicitly named scenario; currently implicit via default state)
-  - [ ] `ActiveUser` fixture (e.g. pre-staked / in-cooldown scenario)
-  - [x] `getAccountState`
-  - [ ] Simulated cooldowns, balances (actual movement into/out of cooldown over time)
-  - [x] Simulated rewards (initial accruing vs claimable values)
-  - [x] Latency (≈600ms) on reads and tx preparation
-  - [x] Basic mutations in `prepare*` (using implicit "lastAddress" context)
-  - [ ] Advanced simulated scenarios (e.g. time travel) - Deferred to Phase 3/8; see mocks section in blueprint
-- [x] Unit tests for MockStyfiClient behaviour (at least happy paths + basic edge cases)
-
-## 6. MockVeyfiClient
-
-- [x] `/lib/clients/veyfi/mock.ts`
-  - [x] `StandardUser`-equivalent fixture (default account with balances, veYFI, LLYFI, caps)
-  - [ ] `ActiveUser` fixture (e.g. migrated veYFI, staked LLYFI, in-cooldown)
-  - [x] Legacy veYFI fixture (migration-eligible veYFI state)
-  - [x] LLYFI tokens fixture: balances + allowances (structural cooldown fields present but unused)
-  - [x] Rewards (accruing vs claimable initial values)
-  - [x] Caps fixture (global + per-token limits/used)
-  - [x] Latency simulation for reads and tx preparation
-  - [x] Global singleton Map
-  - [x] `getAccountState`
-  - [x] Basic mutations for Migration/Staking
-  - [ ] Full redemption cap logic simulation - Deferred
-- [x] Unit tests for MockVeyfiClient behaviour
-
-## 7. Mock Scenario System (Optional)
-
-- [ ] (Optional) Add simple scenario selection (`NEXT_PUBLIC_SCENARIO`) once core flows are stable.
+- [x] Implement Tx State Machine
+- [x] MockStyfiClient (with latency, balance mutation)
+- [x] MockVeyfiClient
+- [x] **New:** Implement Linear Streaming logic in `MockStyfiClient`
+- [x] **New:** Implement Auto-Claim logic in `MockStyfiClient.prepareStartCooldown`
+- [x] **New:** Mock Time Travel debugging (`lib/mocks/time.ts`)
 
 ---
 
-# Phase 3 — ProtocolProvider & Hooks
+# Phase 3 — ProtocolProvider & Hooks (Done)
 
-_(All FE logic must go through domain hooks)_
-
-## 8. ProtocolProvider
-
-- [x] Implement provider creating:
-  - [x] `styfiClient = mock|onchain`
-  - [x] `veyfiClient = mock|onchain`
-- [x] Wrap in `RootLayout`
-
-## 9. Common Token Hooks
-
-- [x] `useTokenAllowance` (React Query + viem)
-- [x] `useTokenApprove` (wraps ERC-20 approve via `useTx`)
-- [x] Ensure no raw approve calls from components
-
-## 10. Styfi Hooks
-
-- [x] `useStyfiAccount`
-- [x] `useStyfiStake`
-- [x] `useStyfiStartCooldown`
-- [x] `useStyfiWithdraw`
-- [x] `useStyfiClaimRewards`
-- [x] Query keys: `["styfi", "account", address]`, `["styfi", "epoch"]`
-
-## 11. Veyfi Hooks
-
-- [x] `useVeyfiAccount`
-- [x] `useVeyfiMigration`
-- [x] `useLlyfiTokens`
-- [x] `useRedemptionCaps`
-- [x] `useVeyfiClaimRewards`
-- [x] `useLlyfiStake`
-- [x] `useLlyfiStartCooldown`
-- [x] `useLlyfiWithdraw`
-- [x] `useLlyfiRedeem`
+- [x] ProtocolProvider
+- [x] Common Token Hooks
+- [x] Styfi Hooks
+- [x] Veyfi Hooks
 
 ---
 
-# Phase 4 — UI Foundations (Reusable Components)
+# Phase 4 — UI Foundations (Reusable Components) (Done)
 
-## 12. UI Primitives
-
-- [x] `Button`
-- [x] `Card`
-- [x] `Input`
-- [x] `Tabs`
-- [x] `Table`
-- [x] `Modal`
-- [x] `Banner` (for errors, networks, blacklist)
-- [x] `ProgressBar`
-- [x] `Skeleton`
-- [x] `Toast` system
-
-## 13. Formatting Helpers (`/lib/format.ts`)
-
-- [x] `formatTokenAmount(bigint)`
-- [x] `formatUsd(bigint)`
-- [x] `formatPercent(number)`
-- [x] No usage of `.toFixed()` in UI
-
-## 14. Epoch Helpers
-
-- [x] `readEpochFromContract` or part of account calls
-- [x] `useEpochCountdown` with contract-sourced timestamps
-
-## 15. Design System & Layout
-
-- [x] `globals.css` with Yearn variables (Sunset/Disco/Neutral)
-- [x] `cn` utility
-- [x] `Header` with AppLauncher and WalletButton
-- [x] `/debug/ui` Kitchen Sink page
-- [x] `docs/6-design-system.md`
-- [x] `docs/7-copy-and-tone.md` (Tone of Voice guide)
+- [x] UI Primitives (Button, Card, Input, Tabs, Banner, ProgressBar, etc.)
+- [x] Formatting Helpers
+- [x] Epoch Helpers
+- [x] Design System & Layout
 
 ---
 
-# Phase 5 — `/styfi` (stYFI + stYFIx) UI
+# Phase 5 — `/styfi` (stYFI + stYFIx) UI (Done)
 
 ## 16. Page Layout
 
-- [ ] Implement `/styfi/page.tsx`
-  - [ ] Wrapper layout
-  - [ ] Error boundary
-  - [ ] Responsive column layout
+- [x] Implement `/styfi/page.tsx`
 
 ## 17. Account Summary Panel
 
-- [ ] Wallet YFI balance
-- [ ] stYFI active/cooldown
-- [ ] stYFIx shares + assets
-- [ ] Epoch information
-- [ ] Blacklist banner (if needed)
+- [x] Wallet YFI balance
+- [x] stYFI active/cooldown split (Active vs Exiting)
+- [x] stYFIx shares + assets
+- [x] Epoch information
 
 ## 18. Staking Panels
 
-- [ ] stYFI stake panel
-  - [ ] Input + balance + max
-  - [ ] Approve → Stake flows
-  - [ ] Disable states
-- [ ] stYFIx stake panel
-  - [ ] Same, but with shares-vs-assets explanation
+- [x] stYFI stake panel
+- [x] stYFIx stake panel
 
-## 19. Cooldown & Withdraw Panels
+## 19. Unstake Panel (Unified)
 
-- [ ] stYFI cooldown + withdraw
-- [ ] stYFIx cooldown + withdraw
-- [ ] Countdown to readiness
+- [x] **Refactor:** Merge Cooldown & Withdraw into `UnstakeTab`.
+- [x] **Feature:** Linear Progress Bar (Orange/Brand colored).
+- [x] **Feature:** Withdraw available liquid funds (Linear streaming).
+- [x] **Feature:** Progressive Disclosure for "Start Cooldown" input ("+ Unstake more").
+- [x] **Feature:** Dynamic status icons (Spinner for streaming, Dot for ready).
 
 ## 20. Rewards Panel
 
-- [ ] Accruing vs Claimable display
-- [ ] Unified “Claim Rewards” button
-- [ ] Success feedback
+- [x] Accruing vs Claimable display
+- [x] Unified “Claim Rewards” button
+
+## 20.5. Debug Tools
+
+- [x] Implement on-screen "Time Travel" controls for mock mode.
 
 ---
 
@@ -360,6 +202,8 @@ _(Blocked until contract ABIs finalized)_
 - [ ] Stake stYFI
 - [ ] Stake stYFIx
 - [ ] Start cooldown → withdraw
+- [ ] **Test:** Linear streaming withdrawals (partial claim).
+- [ ] **Test:** Cooldown reset auto-claim behavior.
 - [ ] Claim rewards
 - [ ] Migrate veYFI
 - [ ] Stake LLYFI
@@ -377,32 +221,6 @@ _(Blocked until contract ABIs finalized)_
 - [ ] Update both user story docs
 - [ ] Update architecture blueprint
 - [ ] Patch notes & release notes
-
----
-
-# Phase 10 — Optional (Future)
-
-These are not BR#1 tasks but worth tracking:
-
-- [ ] Storybook setup
-- [ ] Analytics (page interaction tracking)
-- [ ] Governance (proposals, voting)
-- [ ] P&L dashboards
-- [ ] YBC interfaces
-- [ ] Delegation UI
-- [ ] Notifications
-
----
-
-# Summary
-
-This task list is the authoritative, phased roadmap from **empty UI** → **mock-backed UI** → **on-chain integrated application**, fully aligned with the user stories, FE FRD, and architecture blueprint.
-
-Every commit touching behaviour MUST update:
-
-- this file
-- `frontend-frd.md`
-- relevant user stories
 
 ---
 

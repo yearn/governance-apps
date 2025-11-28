@@ -1,8 +1,8 @@
-# stYFI UI Spec v0.7
+# stYFI UI Spec v0.8
 
 **Status:** Approved / In Development
 **Applies to:** `styfi.yearn.fi` (and `/styfi` route)
-**Last updated:** 2025-11-27
+**Last updated:** 2025-11-28
 
 ---
 
@@ -14,7 +14,7 @@ It specifically addresses:
 - **Unified Mode Selector:** Single “Your Position” card that owns onboarding (expanded) and dashboard (collapsed) states.
 - **Mode State:** Single source of truth via a shared provider + persistence (LS), with URL sync for shareability.
 - **Onboarding:** Drawer-based onboarding, no separate page.
-- **Functionality:** Full support for partial staking, partial cooldowns, and dynamic rewards.
+- **Functionality:** Full support for partial staking, **linear streaming** cooldowns, and dynamic rewards.
 - **Stats & Hierarchy:** Separation of ecosystem health (Total Supply) from decision drivers (APR).
 
 ---
@@ -85,9 +85,9 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
 
 1.  **Tooltip on "Your Position":**
     - Shows Current Epoch #.
-    - Shows Start/End timestamps (e.g., "Epoch 4 ends Nov 24, 12:00 UTC").
-2.  **Stake / Manage (Cooldown Tab):**
-    - Dynamic text updating based on current time: "Cooldown initiated now will be available on [Date]."
+    - Shows Start/End timestamps.
+2.  **Unstake Tab:**
+    - Streaming progress shows "Time Remaining" dynamically using contract timestamps.
 
 ---
 
@@ -161,6 +161,11 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
     - Header remains visible.
     - Active mode card appears "Pressed" (Gray background, inner shadow).
 
+**Refinement (v0.8):**
+The balance display splits "Active" (earning) vs "Exiting" (idle) funds.
+
+- **Format:** `12.00 YFI` `active (+ 1.50 exiting)`
+
 ### 8.2 Rewards Card
 
 **Purpose:** Unified claim panel with visibility into future rewards.
@@ -183,16 +188,33 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
 **Tabs:**
 
 1.  **Stake**
+
     - **Input:** `AmountInput` (supports specific amounts).
-    - **CTA:** "Approve YFI" -> "Stake".
-2.  **Cooldown**
-    - **Input:** `AmountInput`.
-    - **Info:** "Starts a 14-day cooldown."
-    - **CTA:** "Start Cooldown".
-3.  **Withdraw**
-    - **Display:** Amount available to withdraw.
-    - **Status:** Cooldown timer if active.
-    - **CTA:** "Withdraw YFI".
+    - **CTA:** "Approve YFI" -> "Stake YFI" (Black button).
+
+2.  **Unstake (Unified)**
+
+    - **Purpose:** Handle the entire exit flow (Monitoring, Withdrawing, and Starting/Resetting).
+    - **Visuals:**
+
+      - **Tab Badge:** If streaming, show Spinner. If complete/ready, show Orange Dot.
+
+    - **Section A: Status (Progress Bar)**
+
+      - **Visual:** **Orange** linear progress bar showing Liquid vs. Streaming ratio.
+      - **Labels:** "Total Unstaking", "Available", "Streaming (Time Left)".
+
+    - **Section B: Withdraw Action**
+
+      - **Condition:** Only visible if `Liquid > 0`.
+      - **Action:** "Withdraw YFI" (Black button).
+
+    - **Section C: Start/Reset Cooldown (Progressive Disclosure)**
+      - **Condition:**
+        - If NO active cooldown: Input is visible.
+        - If ACTIVE cooldown: Input is hidden behind a **"+ Unstake more"** ghost button.
+      - **Interaction:** Clicking "+ Unstake more" reveals the input.
+      - **Warning:** If user types an amount while streaming is active, warn: _"Adding to cooldown will automatically claim available funds and reset the 14-day timer for the remaining stream."_
 
 ---
 
@@ -208,6 +230,8 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
   - stYFI: "APR Variable" (indicates work/voting required).
   - stYFIx: "APR Max" (indicates auto-compounding).
 - **Stats Bar:** Keep labels short and uppercase (e.g., "TOTAL SUPPLY").
+- **Buttons:** "Stake YFI", "Withdraw YFI" (Explicit asset naming).
+- **Progress Bar:** Use Yearn Orange (`bg-sunset-600`) to tie to stYFI brand.
 
 ---
 

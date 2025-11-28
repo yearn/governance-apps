@@ -1,6 +1,6 @@
 # 9. Frontend Architecture
 
-**Version 0.2 — 2025-11-27**
+**Version 0.3 — 2025-11-28**
 Scope: stYFI • stYFIx • veYFI (UI implementation architecture)
 Status: Approved for Phase 5 (stYFI)
 
@@ -133,6 +133,7 @@ The provider hydrates once on the client. The card can render immediately; no he
        └─ Main Container
             ├─ [Your Position Card]  (Collapsed/Expanded; owns mode, APR, onboarding)
             └─ [Cockpit]             (StakeManageCard + RewardsCard)
+            └─ [Mock Controls]       (Debug widget if NEXT_PUBLIC_USE_MOCKS=true)
 ```
 
 ### 5.2 Component Tree (Simplified)
@@ -144,7 +145,7 @@ The provider hydrates once on the client. The card can render immediately; no he
     <main>
        <StyfiPositionCard />     // APR logic moved here
        <StyfiCockpit>
-         <StakeManageCard />
+         <StakeManageCard />     // Contains StakeTab and UnstakeTab
          <RewardsCard />
        </StyfiCockpit>
     </main>
@@ -172,14 +173,14 @@ app/
       ProtocolStatsBar.tsx       (Wrapper around generic StatsBar)
       StyfiPositionCard.tsx      (Mode selector + APR display)
       StyfiCockpit.tsx           (Layout for cards)
+      MockControls.tsx           (Debug tools)
 
       cards/
         RewardsCard.tsx
         StakeManageCard.tsx
         stake/
           StakeTab.tsx
-          CooldownTab.tsx
-          WithdrawTab.tsx
+          UnstakeTab.tsx         (Unified Cooldown + Withdraw logic)
 ```
 
 **Note:** `ProtocolStatsBar` in `app/styfi/components` is just a thin wrapper injecting Styfi-specific data into the shared `StatsBar` UI primitive.
@@ -240,9 +241,8 @@ Each card/component uses **only the hooks it needs**:
 
 - `YourPositionCard` → `useStyfiPosition(mode)` + `useEpoch()`
 - `RewardsCard` → `useStyfiRewards()`
-- `StakeTabStake` → wallet YFI balance + `prepareStake`
-- `StakeTabCooldown` → `useStyfiPosition(mode)` + `useEpoch()`
-- `StakeTabWithdraw` → `useStyfiPosition(mode)`
+- `StakeTab` → wallet YFI balance + `prepareStake`
+- `UnstakeTab` → `useStyfiPosition(mode)` + `useEpoch()` + `prepareWithdraw` + `prepareStartCooldown`
 
 This avoids:
 
