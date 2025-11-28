@@ -14,15 +14,17 @@ import { StakeManageCard } from "./cards/StakeManageCard";
 import { styfiCopy as copy } from "../messages";
 
 export function StyfiCockpit() {
-  const { mode } = useStyfiMode();
+  const { mode, isOnboarded } = useStyfiMode();
   const { usesMockBackend } = useProtocol();
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
-        <StakeManageCard mode={mode} />
-        <RewardsCard />
-      </div>
+      {isOnboarded && (
+        <div className="grid gap-6 lg:grid-cols-2 animate-in fade-in duration-1000 delay-200 fill-mode-backwards">
+          <StakeManageCard mode={mode} />
+          <RewardsCard />
+        </div>
+      )}
 
       {usesMockBackend && <MockModeBanner />}
     </div>
@@ -37,19 +39,16 @@ function MockModeBanner() {
   const handleReset = useCallback(async () => {
     setIsResetting(true);
     try {
-      // Disconnect wallet session if possible to mimic a first-visit experience.
       try {
         await disconnectAsync?.();
       } catch {
         // best effort only
       }
 
-      // Clear mock stores and cached queries so data resets instantly.
       resetMockStyfiStore();
       resetMockVeyfiStore();
       queryClient.clear();
 
-      // Drop any persisted client-side state, then reload fresh.
       if (typeof window !== "undefined") {
         try {
           window.localStorage.clear();

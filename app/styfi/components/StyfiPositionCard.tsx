@@ -83,15 +83,10 @@ export function StyfiPositionCard() {
   const [optimisticMode, setOptimisticMode] = useState<StyfiMode | null>(null);
 
   const handleSelect = (nextMode: StyfiMode) => {
-    // 1. Immediate visual feedback (Selection State turns Gray)
     setOptimisticMode(nextMode);
 
-    // 2. Pause to let the user register the selection
     setTimeout(() => {
-      // 3. Commit to global state (Triggers Header Entry + Drawer Collapse)
       selectMode(nextMode, { collapseDrawer: true, markOnboarded: true });
-
-      // Cleanup local state after the transition is settled
       setTimeout(() => setOptimisticMode(null), 500);
     }, COLLAPSE_DELAY_MS);
   };
@@ -99,64 +94,85 @@ export function StyfiPositionCard() {
   return (
     <Card
       className={cn(
-        "flex flex-col transition-all duration-300",
+        "flex flex-col transition-all duration-500 ease-out",
         isDrawerOpen && isOnboarded ? "gap-6" : "gap-0"
       )}
     >
-      {/* HEADER ROW - Only visible after onboarding */}
-      {isOnboarded && (
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between animate-in fade-in slide-in-from-top-4 duration-700 fill-mode-backwards">
-          <div className="flex items-center gap-5">
-            <LogoCluster mode={mode} onQuickSwitch={quickSwitch} />
+      {/*
+        HEADER ANIMATION:
+        Using CSS Grid transition for height from 0fr -> 1fr.
+        This ensures the header "grows" in place smoothly rather than popping in.
+      */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-500 ease-in-out",
+          isOnboarded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="overflow-hidden">
+          {/* Inner padding container to handle spacing inside the collapsible area */}
+          <div
+            className={cn(
+              "pb-1",
+              isOnboarded
+                ? "opacity-100 transition-opacity duration-700 delay-100"
+                : "opacity-0"
+            )}
+          >
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-5">
+                <LogoCluster mode={mode} onQuickSwitch={quickSwitch} />
 
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={toggleDrawer}
-                className="group flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-neutral-500 hover:text-neutral-900 transition-colors focus:outline-none"
-                aria-expanded={isDrawerOpen}
-                aria-controls={drawerId}
-              >
-                {copy.modeSelector.kicker}
-                <IconChevron
-                  className={cn(
-                    "h-3 w-3 text-neutral-400 transition-transform duration-300 group-hover:text-neutral-900",
-                    isDrawerOpen && "rotate-180"
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={toggleDrawer}
+                    className="group flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-neutral-500 hover:text-neutral-900 transition-colors focus:outline-none"
+                    aria-expanded={isDrawerOpen}
+                    aria-controls={drawerId}
+                  >
+                    {copy.modeSelector.kicker}
+                    <IconChevron
+                      className={cn(
+                        "h-3 w-3 text-neutral-400 transition-transform duration-300 group-hover:text-neutral-900",
+                        isDrawerOpen && "rotate-180"
+                      )}
+                    />
+                  </button>
+
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-40" />
+                  ) : data ? (
+                    <div className="flex flex-wrap items-baseline gap-2 text-neutral-900">
+                      <span className="text-2xl font-number font-bold">
+                        {formatTokenAmount(primaryBalance, 18, 4)} YFI
+                      </span>
+                      <span className="text-sm font-semibold text-neutral-600">
+                        {balanceLabel}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-neutral-600">
+                      {copy.modeSelector.disconnected}
+                    </p>
                   )}
-                />
-              </button>
-
-              {isLoading ? (
-                <Skeleton className="h-8 w-40" />
-              ) : data ? (
-                <div className="flex flex-wrap items-baseline gap-2 text-neutral-900">
-                  <span className="text-2xl font-number font-bold">
-                    {formatTokenAmount(primaryBalance, 18, 4)} YFI
-                  </span>
-                  <span className="text-sm font-semibold text-neutral-600">
-                    {balanceLabel}
-                  </span>
                 </div>
-              ) : (
-                <p className="text-sm text-neutral-600">
-                  {copy.modeSelector.disconnected}
-                </p>
+              </div>
+
+              {!isDrawerOpen && (
+                <div className="hidden md:block text-right animate-in fade-in duration-500">
+                  <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                    Current APR
+                  </p>
+                  <p className="text-xl font-number font-bold text-neutral-900">
+                    {currentApr}
+                  </p>
+                </div>
               )}
             </div>
           </div>
-
-          {!isDrawerOpen && (
-            <div className="hidden md:block text-right animate-in fade-in duration-300">
-              <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-                Current APR
-              </p>
-              <p className="text-xl font-number font-bold text-neutral-900">
-                {currentApr}
-              </p>
-            </div>
-          )}
         </div>
-      )}
+      </div>
 
       <ModeDrawer
         isOpen={isDrawerOpen}
@@ -264,7 +280,7 @@ function ModeDrawer({
     <div
       id={drawerId}
       className={cn(
-        "grid overflow-hidden transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        "grid overflow-hidden transition-[grid-template-rows] duration-500 ease-in-out",
         isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
       )}
     >
@@ -274,7 +290,7 @@ function ModeDrawer({
           isOpen
             ? isOnboarded
               ? "border-t border-neutral-200 pt-6 mt-2 opacity-100"
-              : "border-t-0 pt-0 mt-0 opacity-100"
+              : "border-t-0 pt-0 mt-0 opacity-100" // Initial onboarding state (no top border)
             : "border-t-0 pt-0 mt-0 opacity-0"
         )}
       >
@@ -292,7 +308,6 @@ function ModeDrawer({
           </Banner>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {/* WRAPPER 1: stYFI Card (Slides in from Top) */}
             <div
               className={
                 !isOnboarded
@@ -313,7 +328,6 @@ function ModeDrawer({
               />
             </div>
 
-            {/* WRAPPER 2: stYFIx Card (Slides in from Top, Delayed) */}
             <div
               className={
                 !isOnboarded
@@ -330,7 +344,7 @@ function ModeDrawer({
                 }
                 onClick={() => onSelect("x")}
                 aprValue={aprValue}
-                aprType="Max"
+                aprType="Maximized"
                 isRecommended={true}
                 showPulse={!isOnboarded}
               />
@@ -363,9 +377,6 @@ const ModeSelectionCard = forwardRef<
       : copy.modeSelector.cards.x;
   const Logo = mode === "styfi" ? LogoStyfi : LogoStyfix;
 
-  // VISUAL LOGIC
-
-  // 1. Selected State
   if (isActive) {
     return (
       <button
@@ -391,7 +402,6 @@ const ModeSelectionCard = forwardRef<
     );
   }
 
-  // 2. Recommended (Unselected) State
   if (isRecommended) {
     return (
       <button
@@ -422,7 +432,6 @@ const ModeSelectionCard = forwardRef<
     );
   }
 
-  // 3. Standard (Unselected) State
   return (
     <button
       ref={ref}
@@ -442,7 +451,6 @@ const ModeSelectionCard = forwardRef<
   );
 });
 
-// Helper to keep content consistent across the 3 states
 function CardContent({
   Logo,
   cardCopy,
@@ -481,7 +489,7 @@ function CardContent({
             {aprValue}
           </div>
           <div className="text-[10px] font-bold uppercase tracking-wide text-neutral-500 mt-1">
-            APR {aprType}
+            {aprType} APR
           </div>
         </div>
       </div>
