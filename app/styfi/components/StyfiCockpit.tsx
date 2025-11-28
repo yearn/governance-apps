@@ -1,6 +1,13 @@
 "use client";
 
 import { Banner } from "@/components/ui/Banner";
+import { Button } from "@/components/ui/Button";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useState } from "react";
+import { useDisconnect } from "wagmi";
+import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
+import { resetMockVeyfiStore } from "@/lib/clients/veyfi/mock";
+import { useProtocol } from "@/state/protocol";
 import { useStyfiMode } from "../state/StyfiModeProvider";
 import { RewardsCard } from "./cards/RewardsCard";
 import { StakeManageCard } from "./cards/StakeManageCard";
@@ -8,6 +15,7 @@ import { styfiCopy as copy } from "../messages";
 
 export function StyfiCockpit() {
   const { mode } = useStyfiMode();
+  const { usesMockBackend } = useProtocol();
 
   return (
     <div className="space-y-6">
@@ -16,9 +24,65 @@ export function StyfiCockpit() {
         <RewardsCard />
       </div>
 
-      <Banner variant="info" title={copy.cockpit.mockBanner.title}>
-        {copy.cockpit.mockBanner.body}
-      </Banner>
+      {usesMockBackend && <MockModeBanner />}
     </div>
+  );
+}
+
+function MockModeBanner() {
+  const queryClient = useQueryClient();
+  const [isResetting, setIsResetting] = useState(false);
+  const { disconnectAsync } = useDisconnect();
+
+  const handleReset = useCallback(async () => {
+    setIsResetting(true);
+    try {
+      // Disconnect wallet session if possible to mimic a first-visit experience.
+      try {
+        await disconnectAsync?.();
+      } catch {
+        // best effort only
+      }
+
+      // Clear mock stores and cached queries so data resets instantly.
+      resetMockStyfiStore();
+      resetMockVeyfiStore();
+      queryClient.clear();
+
+      // Drop any persisted client-side state, then reload fresh.
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.clear();
+        } catch {
+          // best effort only
+        }
+
+        try {
+          window.sessionStorage?.clear();
+        } catch {
+          // best effort only
+        }
+
+        window.location.reload();
+      }
+    } finally {
+      setIsResetting(false);
+    }
+  }, [disconnectAsync, queryClient]);
+
+  return (
+    <Banner variant="info" title={copy.cockpit.mockBanner.title}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span>{copy.cockpit.mockBanner.body}</span>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={handleReset}
+          isLoading={isResetting}
+        >
+          {copy.cockpit.mockBanner.resetCta}
+        </Button>
+      </div>
+    </Banner>
   );
 }

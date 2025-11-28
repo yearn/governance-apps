@@ -27,6 +27,8 @@ const GLOBAL_LAST_ACCRUAL = new Map<string, number>();
  */
 export function resetMockVeyfiStore() {
   GLOBAL_VEYFI_STORE.clear();
+  GLOBAL_LAST_ACCRUAL.clear();
+  veyfiMockTxCounter = 0;
 }
 
 // --- Shared Mock Helpers ---

@@ -106,6 +106,7 @@ export const styfiCopy = {
     mockBanner: {
       title: "Mock mode",
       body: "This dashboard is running against mock clients while contracts finalize.",
+      resetCta: "Reset mock state",
     },
   },
   stakeManage: {

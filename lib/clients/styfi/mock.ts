@@ -21,6 +21,8 @@ const GLOBAL_LAST_ACCRUAL = new Map<string, number>();
 
 export function resetMockStyfiStore() {
   GLOBAL_STYFI_STORE.clear();
+  GLOBAL_LAST_ACCRUAL.clear();
+  mockTxCounter = 0;
 }
 
 // --- Shared Mock Helpers ---
