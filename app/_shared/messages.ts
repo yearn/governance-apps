@@ -31,10 +31,6 @@ export const appCopy = {
       remainingSuffix: "remaining",
       fallbackRemaining: "--",
     },
-    yfi: {
-      symbol: "YFI",
-      notConnected: "Not connected",
-    },
   },
   launcher: {
     apps: [

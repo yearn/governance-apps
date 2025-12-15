@@ -9,18 +9,12 @@ import { appCopy } from "@/app/_shared/messages";
 import { IconMenu } from "@/components/icons/IconMenu";
 import { IconClose } from "@/components/icons/IconClose";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { formatTokenAmount } from "@/lib/format";
-import { useWalletYfiBalance } from "@/lib/hooks/useWalletYfiBalance";
 import { useStyfiEpoch } from "@/lib/hooks/useStyfi";
-import { useAccount } from "wagmi";
 import { nowSeconds } from "@/lib/mocks/time";
 
 export function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isConnected } = useAccount();
-  const { balance: yfiBalance, isLoading: yfiLoading } = useWalletYfiBalance();
   const { data: epochData } = useStyfiEpoch();
   const epochNumber = epochData?.currentEpoch;
   const epochEnd = epochData?.epochEnd;
@@ -63,15 +57,9 @@ export function Header() {
           </nav>
         </div>
 
-        {/* Right: YFI + Epoch + Wallet & Mobile Toggle */}
+        {/* Right: Epoch + Wallet & Mobile Toggle */}
         <div className="flex items-center gap-2">
-          <HeaderPills
-            isConnected={isConnected}
-            yfiLoading={yfiLoading}
-            yfiBalance={yfiBalance}
-            epochNumber={epochNumber}
-            epochEnd={epochEnd}
-          />
+          <EpochCountdownBadge epochNumber={epochNumber} epochEnd={epochEnd} />
           <WalletButton />
 
           <button
@@ -114,41 +102,6 @@ export function Header() {
         </div>
       )}
     </header>
-  );
-}
-
-function HeaderPills({
-  isConnected,
-  yfiLoading,
-  yfiBalance,
-  epochNumber,
-  epochEnd,
-}: {
-  isConnected: boolean;
-  yfiLoading: boolean;
-  yfiBalance: bigint;
-  epochNumber?: number;
-  epochEnd?: number;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <EpochCountdownBadge epochNumber={epochNumber} epochEnd={epochEnd} />
-
-      <div className="flex items-center gap-2 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-medium">
-        <span className="text-neutral-500">{appCopy.header.yfi.symbol}</span>
-        {yfiLoading ? (
-          <Skeleton className="h-4 w-14" />
-        ) : isConnected ? (
-          <span className="font-number font-bold">
-            {formatTokenAmount(yfiBalance, 18, 4)}
-          </span>
-        ) : (
-          <span className="text-neutral-500">
-            {appCopy.header.yfi.notConnected}
-          </span>
-        )}
-      </div>
-    </div>
   );
 }
 
