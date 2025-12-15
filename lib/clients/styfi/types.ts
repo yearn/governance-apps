@@ -50,6 +50,7 @@ export type StyfiAccountState = {
   rewardToken: {
     address: Address;
     symbol: string;
+    name: string;
     decimals: number;
   };
 };

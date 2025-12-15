@@ -13,7 +13,11 @@ import type {
 import type { StyfiClient, StyfiStakeMode } from "./client";
 import { nowSeconds } from "@/lib/mocks/time";
 import { getMockScenario } from "@/lib/mocks/scenario";
-import { SPENDER_STYFI, SPENDER_STYFIX } from "@/lib/constants";
+import {
+  SPENDER_STYFI,
+  SPENDER_STYFIX,
+  REWARD_TOKEN_CONFIG,
+} from "@/lib/constants";
 
 // --- Global Store (Module Scope) ---
 const GLOBAL_STYFI_STORE = new Map<string, StyfiAccountState>();
@@ -107,9 +111,7 @@ function createDefaultAccountState(
     epoch: computeEpochInfo(),
     earningWeight: 10n ** 18n, // 1.0x default
     rewardToken: {
-      address: "0x0000000000000000000000000000000000000000",
-      symbol: "yvUSDS",
-      decimals: 18,
+      ...REWARD_TOKEN_CONFIG,
     },
   };
 

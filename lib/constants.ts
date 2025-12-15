@@ -11,6 +11,17 @@ export const MOCK_YFI_ADDRESS: Address =
 export const SPENDER_STYFI = MOCK_STYFI_ADDRESS;
 export const SPENDER_STYFIX = MOCK_STYFIX_ADDRESS;
 
+// --- Reward Configuration ---
+export const REWARD_TOKEN_CONFIG = {
+  // In a real app, this would be the mainnet address of yvUSDC
+  address: "0x0000000000000000000000000000000000000000" as Address,
+  symbol: "yvUSDC",
+  name: "Yearn yvUSDC-1 Vault",
+  decimals: 18,
+  // placeholder for future logo property
+  // logo: "/tokens/yvusds.svg"
+} as const;
+
 // --- VeYFI / LLYFI Domain ---
 // Mock Tokens
 export const MOCK_SDYFI_ADDRESS: Address =
