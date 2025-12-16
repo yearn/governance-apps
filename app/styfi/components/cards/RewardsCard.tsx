@@ -18,11 +18,6 @@ export function RewardsCard() {
     return data.claimableGenericRewards + data.claimableBoostedRewards;
   }, [data]);
 
-  const accruing = useMemo(() => {
-    if (!data) return 0n;
-    return data.accruingGenericRewards + data.accruingBoostedRewards;
-  }, [data]);
-
   const isDisabled =
     !data ||
     data.isBlacklisted ||
@@ -32,28 +27,11 @@ export function RewardsCard() {
     state.status === "mining";
 
   return (
-    <Card className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-            {copy.rewards.kicker}
-          </p>
-          <h3 className="text-xl font-bold text-neutral-900">
-            {copy.rewards.title}
-          </h3>
-        </div>
-        {isLoading ? (
-          <Skeleton className="h-10 w-28" />
-        ) : (
-          <div className="text-right">
-            <p className="text-xs text-neutral-500">
-              {copy.rewards.accruingLabel}
-            </p>
-            <p className="text-lg font-number font-bold">
-              {formatTokenAmount(accruing)} {data?.rewardToken.symbol}
-            </p>
-          </div>
-        )}
+    <Card className="h-full space-y-4">
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+          {copy.rewards.title}
+        </h3>
       </div>
 
       {data?.isBlacklisted && (
@@ -63,45 +41,37 @@ export function RewardsCard() {
       )}
 
       {isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-4 w-40" />
+        <div className="flex items-center justify-between gap-4">
+          <Skeleton className="h-10 w-32" />
           <Skeleton className="h-10 w-32" />
         </div>
       ) : !data ? (
-        <p className="text-sm text-neutral-600">
-          {copy.rewards.disconnected}
-        </p>
+        <p className="text-sm text-neutral-600">{copy.rewards.disconnected}</p>
       ) : (
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm text-neutral-500">
-              {copy.rewards.claimableLabel}
-            </p>
-            <p className="text-2xl font-number font-bold">
-              {formatTokenAmount(claimable)} {data.rewardToken.symbol}
-            </p>
-            <p className="text-xs text-neutral-500">
-              {copy.rewards.claimableHelper}
-            </p>
-          </div>
-
-          <div className="flex w-full justify-end md:w-auto">
-            <Button
-              variant="primary"
-              className="md:self-start"
-              disabled={isDisabled}
-              isLoading={
-                state.status === "signing" ||
-                state.status === "submitted" ||
-                state.status === "mining"
-              }
-              onClick={() => write()}
-            >
-              {copy.rewards.claimCta}
-            </Button>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-2xl font-number font-bold text-neutral-900">
+            {formatTokenAmount(claimable)} {data.rewardToken.symbol}
+          </p>
+          <Button
+            variant="primary"
+            className="min-w-[140px]"
+            disabled={isDisabled}
+            isLoading={
+              state.status === "signing" ||
+              state.status === "submitted" ||
+              state.status === "mining"
+            }
+            onClick={() => write()}
+          >
+            {copy.rewards.claimCta}
+          </Button>
         </div>
+      )}
+
+      {data && !isLoading && (
+        <p className="text-xs text-neutral-500 pt-2 border-t border-neutral-100">
+          {copy.rewards.epochLagNote}
+        </p>
       )}
     </Card>
   );
