@@ -1,3 +1,5 @@
+// app/styfi/components/StyfiPositionCard.tsx
+
 "use client";
 
 import {
@@ -6,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactElement,
   type RefObject,
 } from "react";
 import { useId } from "react";
@@ -39,7 +40,6 @@ export function StyfiPositionCard() {
 
   const currentApr = copy.page.stats.apr.value;
 
-  // Track cooldown completion to toggle "exiting" -> "exited"
   const cooldown =
     mode === "styfi" ? data?.styfiCooldown : data?.styfiX.cooldown;
   const { isComplete } = useEpochCountdown(cooldown?.endsAt);
@@ -62,10 +62,6 @@ export function StyfiPositionCard() {
     }
 
     const totalExiting = inCooldown + unlocked;
-
-    // Fully unlocked means we have exiting funds, AND:
-    // 1. Nothing is left in the streaming bucket (inCooldown == 0), OR
-    // 2. The streaming bucket is fully processed (timer complete).
     const isFullyUnlocked =
       totalExiting > 0n && (inCooldown === 0n || isComplete);
 
@@ -104,10 +100,11 @@ export function StyfiPositionCard() {
       (mode === "styfi" ? styfiCardRef.current : styfixCardRef.current) ??
       styfiCardRef.current ??
       styfixCardRef.current;
-    target?.focus();
+
+    // Slight delay to allow expansion to start
+    setTimeout(() => target?.focus(), 50);
   }, [isDrawerOpen, isOnboarded, mode]);
 
-  // Local state for "Optimistic" selection feedback
   const [optimisticMode, setOptimisticMode] = useState<StyfiMode | null>(null);
 
   const handleSelect = (nextMode: StyfiMode) => {
@@ -122,15 +119,10 @@ export function StyfiPositionCard() {
   const ActiveLogo = mode === "styfi" ? LogoStyfi : LogoStyfix;
 
   return (
-    <Card
-      className={cn(
-        "flex flex-col transition-all duration-500 ease-out",
-        isDrawerOpen && isOnboarded ? "gap-6" : "gap-0"
-      )}
-    >
+    <Card className="flex flex-col">
       {/*
-        HEADER ANIMATION:
-        Using CSS Grid transition for height from 0fr -> 1fr.
+         Header: Always visible (except initial onboarding fade-in).
+         This section must be rigid.
       */}
       <div
         className={cn(
@@ -138,22 +130,22 @@ export function StyfiPositionCard() {
           isOnboarded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         )}
       >
-        <div className="overflow-hidden">
-          {/* Inner padding container */}
+        {/*
+           POLISH FIX: p-1 -m-1 creates a buffer zone for the overflow clip.
+           This ensures the Logo transform (scale-105) doesn't get clipped at the left edge,
+           while maintaining perfect visual alignment with the rest of the UI.
+        */}
+        <div className="overflow-hidden p-1 -m-1">
           <div
             className={cn(
+              // Negative margins on the button allow it to "bleed" to the edge
+              // of the Card padding for hover states, while keeping text aligned.
               "pb-1",
               isOnboarded
                 ? "opacity-100 transition-opacity duration-700 delay-100"
                 : "opacity-0"
             )}
           >
-            {/*
-               THE TRIGGER:
-               Full width button.
-               -ml-2 -mr-2 pulls the hover state slightly outside the content column
-               to feel more spacious within the card padding.
-             */}
             <button
               type="button"
               onClick={toggleDrawer}
@@ -166,8 +158,11 @@ export function StyfiPositionCard() {
                   : copy.modeSelector.compareAria.expand
               }
             >
-              <div className="flex items-center gap-4">
-                <ActiveLogo className="h-12 w-12 shrink-0" />
+              <div
+                key={mode}
+                className="flex items-center gap-4 animate-in fade-in zoom-in-95 duration-200"
+              >
+                <ActiveLogo className="h-12 w-12 shrink-0 transition-transform duration-300 group-hover:scale-105" />
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -201,16 +196,21 @@ export function StyfiPositionCard() {
                 </div>
               </div>
 
-              {!isDrawerOpen && (
-                <div className="hidden md:block text-right animate-in fade-in duration-500">
-                  <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-                    Current APR
-                  </p>
-                  <p className="text-xl font-number font-bold text-neutral-900">
-                    {currentApr}
-                  </p>
-                </div>
-              )}
+              <div
+                className={cn(
+                  "hidden md:block text-right transition-all duration-300",
+                  isDrawerOpen
+                    ? "opacity-0 translate-y-2" // Push down when exiting/hidden
+                    : "opacity-100 translate-y-0" // Rise up when appearing
+                )}
+              >
+                <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+                  Current APR
+                </p>
+                <p className="text-xl font-number font-bold text-neutral-900">
+                  {currentApr}
+                </p>
+              </div>
             </button>
           </div>
         </div>
@@ -256,21 +256,19 @@ function ModeDrawer({
     <div
       id={drawerId}
       className={cn(
-        "grid overflow-hidden transition-[grid-template-rows] duration-500 ease-in-out",
-        isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        "grid overflow-hidden transition-[grid-template-rows]",
+        isOpen
+          ? "grid-rows-[1fr] duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]"
+          : "grid-rows-[0fr] duration-300 ease-in-out"
       )}
     >
-      <div
-        className={cn(
-          "overflow-hidden transition-all duration-300",
-          isOpen
-            ? isOnboarded
-              ? "border-t border-neutral-200 pt-6 mt-2 opacity-100"
-              : "border-t-0 pt-0 mt-0 opacity-100" // Initial onboarding state (no top border)
-            : "border-t-0 pt-0 mt-0 opacity-0"
-        )}
-      >
-        <div className="space-y-6">
+      <div className="min-h-0 overflow-hidden">
+        <div
+          className={cn(
+            "space-y-6",
+            isOnboarded ? "pt-6 mt-2 border-t border-neutral-200" : "pt-0 mt-0"
+          )}
+        >
           <div className="space-y-1">
             <h3 className="text-base font-bold text-neutral-900">
               {copy.modeSelector.drawer.title}
@@ -279,6 +277,7 @@ function ModeDrawer({
               {copy.modeSelector.drawer.body}
             </p>
           </div>
+
           <Banner variant="info" title={copy.modeSelector.voteBanner.title}>
             {copy.modeSelector.voteBanner.body}
           </Banner>
@@ -326,6 +325,7 @@ function ModeDrawer({
               />
             </div>
           </div>
+          <div className="h-1" />
         </div>
       </div>
     </div>
@@ -353,13 +353,19 @@ const ModeSelectionCard = forwardRef<
       : copy.modeSelector.cards.x;
   const Logo = mode === "styfi" ? LogoStyfi : LogoStyfix;
 
+  const baseClasses =
+    "h-full flex flex-col group w-full rounded-xl p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2";
+
   if (isActive) {
     return (
       <button
         ref={ref}
         type="button"
         onClick={onClick}
-        className="h-full flex flex-col group w-full rounded-xl p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 border-2 border-neutral-900 bg-neutral-900/5 shadow-inner"
+        className={cn(
+          baseClasses,
+          "border-2 border-neutral-900 bg-neutral-900/5 shadow-inner"
+        )}
         aria-pressed={true}
       >
         <CardContent
@@ -378,21 +384,25 @@ const ModeSelectionCard = forwardRef<
     );
   }
 
-  if (isRecommended) {
-    return (
-      <button
-        ref={ref}
-        type="button"
-        onClick={onClick}
-        className="h-full flex flex-col group w-full rounded-xl p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 border border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-md hover:-translate-y-0.5"
-        aria-pressed={false}
-      >
-        <CardContent
-          Logo={Logo}
-          cardCopy={cardCopy}
-          aprValue={aprValue}
-          aprType={aprType}
-          badge={
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onClick}
+      className={cn(
+        baseClasses,
+        "border border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-md hover:-translate-y-0.5",
+        isRecommended && !isActive && "border-neutral-200"
+      )}
+      aria-pressed={false}
+    >
+      <CardContent
+        Logo={Logo}
+        cardCopy={cardCopy}
+        aprValue={aprValue}
+        aprType={aprType}
+        badge={
+          isRecommended ? (
             <span
               className={cn(
                 "flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-yearn-blue border border-yearn-blue bg-transparent px-1.5 py-0.5 rounded-full",
@@ -402,26 +412,8 @@ const ModeSelectionCard = forwardRef<
               <IconStar className="w-3 h-3 fill-yearn-blue" />
               Recommended
             </span>
-          }
-        />
-      </button>
-    );
-  }
-
-  return (
-    <button
-      ref={ref}
-      type="button"
-      onClick={onClick}
-      className="h-full flex flex-col group w-full rounded-xl p-5 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 border border-neutral-200 bg-white hover:border-neutral-400 hover:shadow-md hover:-translate-y-0.5"
-      aria-pressed={false}
-    >
-      <CardContent
-        Logo={Logo}
-        cardCopy={cardCopy}
-        aprValue={aprValue}
-        aprType={aprType}
-        badge={null}
+          ) : null
+        }
       />
     </button>
   );
