@@ -9,6 +9,8 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useAccount } from "wagmi";
+import { useStyfiAccount } from "@/lib/hooks/useStyfi";
 import { StyfiMode } from "../components/types";
 
 const LAST_MODE_KEY = "styfi-last-mode";
@@ -58,17 +60,49 @@ export function StyfiModeProvider({
   const [isOnboarded, setIsOnboarded] = useState<boolean>(!!initialMode);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(!initialMode);
 
+  const { isConnected } = useAccount();
+  const { data: account, isLoading } = useStyfiAccount();
+
   // Hydrate from localStorage once on the client when no explicit mode was provided.
   useEffect(() => {
     if (initialMode) return;
     const { mode: storedMode, onboarded } = readPersistedSettings();
     if (storedMode) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMode(storedMode);
     }
     setIsOnboarded(onboarded);
     setIsDrawerOpen(!onboarded);
   }, [initialMode]);
+
+  // SMART ONBOARDING LOGIC
+  // If user is NOT onboarded (no local storage history), but HAS funds on-chain,
+  // we auto-detect the best mode and skip the onboarding drawer.
+  useEffect(() => {
+    if (isOnboarded) return; // Already onboarded, do not interfere
+    if (!isConnected || isLoading || !account) return;
+
+    // Calculate total positions
+    const styfiTotal = account.styfiActive + account.styfiInCooldown;
+    const styfiXTotal =
+      account.styfiX.assetsActive + account.styfiX.assetsInCooldown;
+
+    // If both are zero, user is genuinely new. Keep drawer open.
+    if (styfiTotal === 0n && styfiXTotal === 0n) return;
+
+    // Prefer the mode with the higher balance
+    if (styfiTotal > styfiXTotal) {
+      // User is a stYFI user
+      setMode("styfi");
+      setIsOnboarded(true);
+      setIsDrawerOpen(false);
+    } else if (styfiXTotal > styfiTotal) {
+      // User is a stYFIx user
+      setMode("x");
+      setIsOnboarded(true);
+      setIsDrawerOpen(false);
+    }
+    // If exact tie, do nothing (keep drawer open)
+  }, [account, isConnected, isLoading, isOnboarded]);
 
   // Persist selections.
   useEffect(() => {

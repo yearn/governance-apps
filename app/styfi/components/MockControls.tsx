@@ -2,17 +2,21 @@
 
 import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDisconnect } from "wagmi";
+import { useAccount, useDisconnect } from "wagmi";
 import { Button } from "@/components/ui/Button";
 import { debugAdvanceTime } from "@/lib/mocks/time";
 import { styfiKeys } from "@/lib/hooks/useStyfi";
 import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
 import { resetMockVeyfiStore } from "@/lib/clients/veyfi/mock";
+import { useProtocol } from "@/state/protocol";
+import { toast } from "@/components/ui/Toast";
 
 export function MockControls() {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { address } = useAccount();
   const { disconnectAsync } = useDisconnect();
+  const { styfi } = useProtocol();
 
   const handleTimeTravel = async (days: number) => {
     debugAdvanceTime(days * 24 * 60 * 60);
@@ -50,6 +54,35 @@ export function MockControls() {
       }
     }
   }, [disconnectAsync, queryClient]);
+
+  const handleForgetMe = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("styfi_onboarded");
+      window.localStorage.removeItem("styfi-last-mode");
+      window.location.reload();
+    }
+  }, []);
+
+  const handleInjectBalance = useCallback(
+    async (mode: "stYFI" | "stYFIx") => {
+      // Amount: 100
+      const amount = 100n * 10n ** 18n;
+
+      if (address && styfi.debugSetBalance) {
+        // Connected: Apply immediately
+        styfi.debugSetBalance(address, mode, amount);
+        await queryClient.invalidateQueries({
+          queryKey: styfiKeys.account(address),
+        });
+        toast.success(`Added 100 ${mode} to ${address.slice(0, 6)}...`);
+      } else if (styfi.debugSetPendingBalance) {
+        // Disconnected: Queue for next connection
+        styfi.debugSetPendingBalance(mode, amount);
+        toast.success(`Pending: 100 ${mode} will be added upon connection.`);
+      }
+    },
+    [address, styfi, queryClient]
+  );
 
   if (!isOpen) {
     return (
@@ -94,14 +127,46 @@ export function MockControls() {
         </Button>
       </div>
 
-      <Button
-        size="sm"
-        variant="ghost"
-        className="w-full text-red-500 hover:bg-red-50 hover:text-red-600"
-        onClick={handleReset}
-      >
-        Reset App
-      </Button>
+      <div className="border-t border-neutral-100 pt-2">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-neutral-500 mb-2">
+          Smart Onboarding
+        </h4>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => handleInjectBalance("stYFI")}
+          >
+            Add stYFI
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => handleInjectBalance("stYFIx")}
+          >
+            Add stYFIx
+          </Button>
+        </div>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="w-full text-neutral-600"
+          onClick={handleForgetMe}
+        >
+          Forget Me (LocalStorage Only)
+        </Button>
+      </div>
+
+      <div className="border-t border-neutral-100 pt-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="w-full text-red-500 hover:bg-red-50 hover:text-red-600"
+          onClick={handleReset}
+        >
+          Reset App (Full Wipe)
+        </Button>
+      </div>
     </div>
   );
 }

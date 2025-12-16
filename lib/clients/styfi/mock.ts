@@ -19,14 +19,87 @@ import {
   REWARD_TOKEN_CONFIG,
 } from "@/lib/constants";
 
+// --- Persistence Helpers ---
+const STORAGE_KEY = "mock_styfi_store_v1";
+
+// JSON doesn't handle BigInt, so we use a replacer/reviver
+function replacer(_key: string, value: unknown) {
+  if (typeof value === "bigint") {
+    return `BIGINT::${value.toString()}`;
+  }
+  return value;
+}
+
+function reviver(_key: string, value: unknown) {
+  if (typeof value === "string" && value.startsWith("BIGINT::")) {
+    return BigInt(value.split("::")[1]);
+  }
+  return value;
+}
+
+function saveToStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    const data = {
+      store: Array.from(GLOBAL_STYFI_STORE.entries()),
+      lastAccrual: Array.from(GLOBAL_LAST_ACCRUAL.entries()),
+      pendingInjections: GLOBAL_PENDING_INJECTIONS,
+    };
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data, replacer));
+  } catch (e) {
+    console.warn("Failed to save mock state", e);
+  }
+}
+
+function loadFromStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw, reviver);
+
+    if (data.store) {
+      GLOBAL_STYFI_STORE.clear();
+      data.store.forEach(([k, v]: [string, StyfiAccountState]) =>
+        GLOBAL_STYFI_STORE.set(k, v)
+      );
+    }
+    if (data.lastAccrual) {
+      GLOBAL_LAST_ACCRUAL.clear();
+      data.lastAccrual.forEach(([k, v]: [string, number]) =>
+        GLOBAL_LAST_ACCRUAL.set(k, v)
+      );
+    }
+    if (data.pendingInjections) {
+      GLOBAL_PENDING_INJECTIONS = data.pendingInjections;
+    }
+  } catch (e) {
+    console.warn("Failed to load mock state", e);
+  }
+}
+
 // --- Global Store (Module Scope) ---
 const GLOBAL_STYFI_STORE = new Map<string, StyfiAccountState>();
 const GLOBAL_LAST_ACCRUAL = new Map<string, number>();
 
+// New: Store a LIST of pending balance injections for the next connecting user
+// This allows us to click "Add stYFI" multiple times while disconnected
+let GLOBAL_PENDING_INJECTIONS: Array<{
+  mode: StyfiStakeMode;
+  amount: bigint;
+}> = [];
+
+// Attempt to hydrate immediately on module load
+loadFromStorage();
+
 export function resetMockStyfiStore() {
   GLOBAL_STYFI_STORE.clear();
   GLOBAL_LAST_ACCRUAL.clear();
+  GLOBAL_PENDING_INJECTIONS = [];
   mockTxCounter = 0;
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(STORAGE_KEY);
+  }
 }
 
 // --- Shared Mock Helpers ---
@@ -174,16 +247,29 @@ export class MockStyfiClient implements StyfiClient {
     });
     GLOBAL_STYFI_STORE.set(key, created);
     GLOBAL_LAST_ACCRUAL.set(key, nowSeconds());
+    saveToStorage(); // Persist on creation
     return created;
   }
 
   private setState(address: Address, next: StyfiAccountState) {
     const key = this.getKey(address);
     GLOBAL_STYFI_STORE.set(key, next);
+    saveToStorage(); // Persist on update
   }
 
   async getAccountState(address: Address): Promise<StyfiAccountState> {
     this.lastAddress = address;
+
+    // Apply any pending injections ADDITIVELY before returning state
+    if (GLOBAL_PENDING_INJECTIONS.length > 0) {
+      for (const injection of GLOBAL_PENDING_INJECTIONS) {
+        this.debugSetBalance(address, injection.mode, injection.amount);
+      }
+      // Clear the queue after applying
+      GLOBAL_PENDING_INJECTIONS = [];
+      saveToStorage(); // Persist after processing queue
+    }
+
     await delay(this.latencyMs);
     const state = this.getOrCreate(address);
     const key = this.getKey(address);
@@ -594,6 +680,25 @@ export class MockStyfiClient implements StyfiClient {
     }
 
     this.setState(user, next);
+  }
+
+  debugSetBalance(user: Address, mode: StyfiStakeMode, amount: bigint) {
+    const state = this.getOrCreate(user);
+    const next = { ...state, styfiX: { ...state.styfiX } };
+
+    if (mode === "stYFI") {
+      next.styfiActive += amount;
+    } else if (mode === "stYFIx") {
+      next.styfiX.sharesActive += amount;
+      next.styfiX.assetsActive += amount;
+    }
+
+    this.setState(user, next);
+  }
+
+  debugSetPendingBalance(mode: StyfiStakeMode, amount: bigint) {
+    GLOBAL_PENDING_INJECTIONS.push({ mode, amount });
+    saveToStorage(); // Persist pending injections too
   }
 }
 

@@ -40,4 +40,18 @@ export interface StyfiClient {
     spender: Address,
     amount: bigint
   ) => void;
+
+  /**
+   * Mock-only helper to inject balances for testing onboarding flows.
+   */
+  debugSetBalance?: (
+    user: Address,
+    mode: StyfiStakeMode,
+    amount: bigint
+  ) => void;
+
+  /**
+   * Mock-only helper to queue a balance injection for the next address that connects.
+   */
+  debugSetPendingBalance?: (mode: StyfiStakeMode, amount: bigint) => void;
 }
