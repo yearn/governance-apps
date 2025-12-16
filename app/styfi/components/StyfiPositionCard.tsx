@@ -29,14 +29,8 @@ const COLLAPSE_DELAY_MS = 650;
 
 export function StyfiPositionCard() {
   const drawerId = useId();
-  const {
-    mode,
-    isDrawerOpen,
-    isOnboarded,
-    selectMode,
-    toggleDrawer,
-    quickSwitch,
-  } = useStyfiMode();
+  const { mode, isDrawerOpen, isOnboarded, selectMode, toggleDrawer } =
+    useStyfiMode();
   const { data, isLoading } = useStyfiAccount();
 
   const styfiCardRef = useRef<HTMLButtonElement>(null);
@@ -57,6 +51,7 @@ export function StyfiPositionCard() {
           exiting: data.styfiX.assetsInCooldown,
         };
   }, [data, mode]);
+
   const primaryBalance = balances.active;
   const exitingBalance = balances.exiting;
   const hasExiting = exitingBalance > 0n;
@@ -91,6 +86,8 @@ export function StyfiPositionCard() {
     }, COLLAPSE_DELAY_MS);
   };
 
+  const ActiveLogo = mode === "styfi" ? LogoStyfi : LogoStyfix;
+
   return (
     <Card
       className={cn(
@@ -101,7 +98,6 @@ export function StyfiPositionCard() {
       {/*
         HEADER ANIMATION:
         Using CSS Grid transition for height from 0fr -> 1fr.
-        This ensures the header "grows" in place smoothly rather than popping in.
       */}
       <div
         className={cn(
@@ -110,7 +106,7 @@ export function StyfiPositionCard() {
         )}
       >
         <div className="overflow-hidden">
-          {/* Inner padding container to handle spacing inside the collapsible area */}
+          {/* Inner padding container */}
           <div
             className={cn(
               "pb-1",
@@ -119,26 +115,39 @@ export function StyfiPositionCard() {
                 : "opacity-0"
             )}
           >
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-5">
-                <LogoCluster mode={mode} onQuickSwitch={quickSwitch} />
+            {/*
+               THE TRIGGER:
+               Full width button.
+               -ml-2 -mr-2 pulls the hover state slightly outside the content column
+               to feel more spacious within the card padding.
+             */}
+            <button
+              type="button"
+              onClick={toggleDrawer}
+              className="group w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 rounded-lg -ml-2 -mr-2 pl-2 py-2 pr-2 hover:bg-neutral-100 transition-colors cursor-pointer"
+              aria-expanded={isDrawerOpen}
+              aria-controls={drawerId}
+              aria-label={
+                isDrawerOpen
+                  ? copy.modeSelector.compareAria.collapse
+                  : copy.modeSelector.compareAria.expand
+              }
+            >
+              <div className="flex items-center gap-4">
+                <ActiveLogo className="h-12 w-12 shrink-0" />
 
                 <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={toggleDrawer}
-                    className="group flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-neutral-500 hover:text-neutral-900 transition-colors focus:outline-none"
-                    aria-expanded={isDrawerOpen}
-                    aria-controls={drawerId}
-                  >
-                    {copy.modeSelector.kicker}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-neutral-500 group-hover:text-neutral-900 transition-colors">
+                      {copy.modeSelector.kicker}
+                    </span>
                     <IconChevron
                       className={cn(
                         "h-3 w-3 text-neutral-400 transition-transform duration-300 group-hover:text-neutral-900",
                         isDrawerOpen && "rotate-180"
                       )}
                     />
-                  </button>
+                  </div>
 
                   {isLoading ? (
                     <Skeleton className="h-8 w-40" />
@@ -169,7 +178,7 @@ export function StyfiPositionCard() {
                   </p>
                 </div>
               )}
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -186,72 +195,6 @@ export function StyfiPositionCard() {
         optimisticMode={optimisticMode}
       />
     </Card>
-  );
-}
-
-function LogoCluster({
-  mode,
-  onQuickSwitch,
-}: {
-  mode: StyfiMode;
-  onQuickSwitch: () => void;
-}) {
-  const logos: {
-    mode: StyfiMode;
-    Logo: (props: React.SVGProps<SVGSVGElement>) => ReactElement;
-  }[] = [
-    { mode: "styfi", Logo: LogoStyfi },
-    { mode: "x", Logo: LogoStyfix },
-  ];
-
-  return (
-    <div className="relative h-12 w-16">
-      {logos.map(({ mode: logoMode, Logo }) => {
-        const isActive = mode === logoMode;
-        return (
-          <LogoButton
-            key={logoMode}
-            onClick={onQuickSwitch}
-            Logo={Logo}
-            label={
-              isActive
-                ? `Current mode: ${modeLabel(logoMode)}`
-                : copy.modeSelector.switchAria(modeLabel(logoMode))
-            }
-            isActive={isActive}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function LogoButton({
-  onClick,
-  Logo,
-  label,
-  isActive,
-}: {
-  onClick?: () => void;
-  Logo: (props: React.SVGProps<SVGSVGElement>) => ReactElement;
-  label: string;
-  isActive: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "absolute top-0 left-0 rounded-full bg-white p-0 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2",
-        "origin-top-left",
-        isActive
-          ? "z-20 translate-x-4 translate-y-0 scale-100 shadow-sm opacity-100"
-          : "z-10 translate-x-0 translate-y-2 scale-75 opacity-60 grayscale hover:opacity-100 hover:scale-90 hover:grayscale-0 hover:translate-y-0.5 hover:-translate-x-4 cursor-pointer shadow-none"
-      )}
-      aria-label={label}
-    >
-      <Logo className="h-12 w-12" aria-hidden />
-    </button>
   );
 }
 
@@ -468,10 +411,7 @@ function CardContent({
     <>
       <div className="w-full flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Logo
-            className="h-10 w-10 shadow-sm rounded-full bg-white"
-            aria-hidden
-          />
+          <Logo className="h-10 w-10" aria-hidden />
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
               <p className="text-sm font-bold text-neutral-900">

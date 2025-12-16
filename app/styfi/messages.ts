@@ -48,7 +48,7 @@ export const styfiCopy = {
     disconnected: "Connect your wallet to view balances.",
     drawer: {
       title: "Choose how you want to stake",
-      body: "Pick between vote-enabled stYFI and APR maximized stYFIx. Switch any time.",
+      body: "Pick between vote-enabled stYFI and APR maximized stYFIx.",
     },
     activeBadge: "Selected",
     cards: {

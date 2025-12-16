@@ -58,19 +58,20 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
             {...props}
           />
 
-          <div className="flex items-center gap-2 pr-4">
+          <div className="flex items-center gap-2 pr-4 shrink-0">
             {onMaxClick && (
               <button
                 type="button"
                 onClick={onMaxClick}
                 disabled={disabled}
-                className="text-xs font-bold uppercase text-neutral-500 hover:text-neutral-900 disabled:hover:text-neutral-500"
+                className="rounded-md bg-white border border-neutral-200 px-2 py-1 text-xs font-bold uppercase text-neutral-900 shadow-sm hover:border-neutral-300 hover:bg-neutral-50 active:translate-y-px transition-all disabled:opacity-50 disabled:pointer-events-none"
               >
                 Max
               </button>
             )}
+
             {tokenSymbol && (
-              <span className="text-sm font-bold text-neutral-900 bg-white px-2 py-1 rounded border border-neutral-200">
+              <span className="text-sm font-bold text-neutral-900 select-none">
                 {tokenSymbol}
               </span>
             )}
@@ -83,8 +84,21 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
           ) : (
             <span className="text-neutral-500">&nbsp;</span>
           )}
+
           {maxLabel && (
-            <span className="text-neutral-500 text-right">{maxLabel}</span>
+            <button
+              type="button"
+              onClick={onMaxClick}
+              disabled={disabled || !onMaxClick}
+              className={cn(
+                "text-neutral-500 text-right transition-colors font-number",
+                onMaxClick && !disabled
+                  ? "hover:text-neutral-900 hover:underline cursor-pointer"
+                  : "cursor-default"
+              )}
+            >
+              {maxLabel}
+            </button>
           )}
         </div>
       </div>
