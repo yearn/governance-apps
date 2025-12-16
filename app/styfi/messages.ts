@@ -150,11 +150,11 @@ export const styfiCopy = {
     startCta: "Start Cooldown",
   },
   rewards: {
-    kicker: "Rewards",
+    kicker: "Claim Rewards",
     title: "Stablecoin yield",
     accruingLabel: "Accruing (next epoch)",
     claimableLabel: "Claimable",
-    claimableHelper: "Includes generic + boosted rewards.",
+    claimableHelper: "A total of all claimable rewards.",
     disconnected: "Connect your wallet to see rewards.",
     claimCta: "Claim rewards",
   },
