@@ -26,7 +26,7 @@ export const styfiCopy = {
         label: "State",
         value: "Staking live, voting coming soon",
       },
-      apr: { label: "APR paid as USDS", value: "84.58%" },
+      apr: { label: "APR" },
     },
     connectBanner: {
       title: "Wallet not connected",

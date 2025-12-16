@@ -13,6 +13,7 @@ export const styfiKeys = {
   account: (address?: string) =>
     [...styfiKeys.all, "account", address] as const,
   epoch: () => [...styfiKeys.all, "epoch"] as const,
+  apy: () => [...styfiKeys.all, "apy"] as const,
 };
 
 // --- Read Hooks ---
@@ -40,6 +41,16 @@ export function useStyfiEpoch() {
     queryKey: styfiKeys.epoch(),
     queryFn: () => styfi.getEpochInfo(),
     staleTime: 60_000, // Epochs don't change often
+  });
+}
+
+export function useStyfiApy() {
+  const { styfi } = useProtocol();
+
+  return useQuery({
+    queryKey: styfiKeys.apy(),
+    queryFn: () => styfi.getApy(),
+    staleTime: 60_000, // APY doesn't change often
   });
 }
 

@@ -9,6 +9,12 @@ export interface StyfiClient {
   getAccountState(address: Address): Promise<StyfiAccountState>;
   getEpochInfo(): Promise<EpochInfo>;
 
+  /**
+   * Returns the current protocol APY in basis points (e.g. 500 = 5%).
+   * Currently, both stYFI and stYFIx share the same APY.
+   */
+  getApy(): Promise<bigint>;
+
   // Writes are “prepared” – they don’t send until useTx executes them.
   prepareStake(
     mode: StyfiStakeMode,

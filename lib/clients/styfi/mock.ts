@@ -36,10 +36,8 @@ const EPOCH_DURATION = 14 * 24 * 60 * 60; // 14 days
 const MOCK_GENESIS = Math.floor(Date.now() / 1000);
 
 // --- MOCK ECONOMICS CONFIG ---
-// 1 YFI = $6,500 USDS (approx)
-// We need this scalar because we stake YFI but earn stablecoins (USDS).
 const MOCK_YFI_PRICE = 5000n;
-const MOCK_APY_BPS = 6800n; // 68.00% APY
+const MOCK_APY_BPS = 6843n;
 const SECONDS_PER_YEAR = 31536000n;
 const BASIS_POINTS = 10000n;
 const WEEK_SECONDS = 604800n;
@@ -200,6 +198,11 @@ export class MockStyfiClient implements StyfiClient {
   async getEpochInfo(): Promise<EpochInfo> {
     await delay(this.latencyMs / 2);
     return computeEpochInfo();
+  }
+
+  async getApy(): Promise<bigint> {
+    await delay(this.latencyMs / 4);
+    return MOCK_APY_BPS;
   }
 
   private applyAccrualAndMaturity(

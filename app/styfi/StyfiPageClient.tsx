@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { StatsBar } from "@/components/ui/StatsBar";
+import { formatPercent } from "@/lib/format";
+import { useStyfiApy } from "@/lib/hooks/useStyfi";
 import { StyfiCockpit } from "./components/StyfiCockpit";
 import { StyfiPositionCard } from "./components/StyfiPositionCard";
 import { StyfiMode } from "./components/types";
@@ -27,12 +29,17 @@ export function StyfiPageClient({ initialMode }: { initialMode?: StyfiMode }) {
 function StyfiPageShell() {
   const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
+  const { data: apy } = useStyfiApy();
+
   const totalSupplyAmount = copy.page.stats.totalSupply.amount;
   const stakedAmount = copy.page.stats.staked.amount;
   const stakedPercentage =
     totalSupplyAmount > 0
       ? ((stakedAmount / totalSupplyAmount) * 100).toFixed(1)
       : "0.0";
+
+  // Convert BPS (e.g. 6800) to fractional (0.68) for the formatter
+  const formattedApy = apy ? formatPercent(Number(apy) / 10000) : "--%";
 
   return (
     <div className="space-y-0">
@@ -45,6 +52,10 @@ function StyfiPageShell() {
           {
             label: copy.page.stats.staked.label,
             value: `${copy.page.stats.staked.value} (${stakedPercentage}%)`,
+          },
+          {
+            label: copy.page.stats.apr.label,
+            value: formattedApy,
           },
           {
             label: copy.page.stats.phase.label,

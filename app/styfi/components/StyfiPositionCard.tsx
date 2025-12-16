@@ -20,8 +20,8 @@ import { IconStar } from "@/components/icons/IconStar";
 import { LogoStyfi } from "@/components/icons/LogoStyfi";
 import { LogoStyfix } from "@/components/icons/LogoStyfix";
 import { cn } from "@/lib/cn";
-import { formatTokenAmount } from "@/lib/format";
-import { useStyfiAccount } from "@/lib/hooks/useStyfi";
+import { formatTokenAmount, formatPercent } from "@/lib/format";
+import { useStyfiAccount, useStyfiApy } from "@/lib/hooks/useStyfi";
 import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
 import { styfiCopy as copy } from "../messages";
 import { StyfiMode, modeLabel } from "./types";
@@ -34,11 +34,13 @@ export function StyfiPositionCard() {
   const { mode, isDrawerOpen, isOnboarded, selectMode, toggleDrawer } =
     useStyfiMode();
   const { data, isLoading } = useStyfiAccount();
+  const { data: apy } = useStyfiApy();
 
   const styfiCardRef = useRef<HTMLButtonElement>(null);
   const styfixCardRef = useRef<HTMLButtonElement>(null);
 
-  const currentApr = copy.page.stats.apr.value;
+  // Convert BPS (e.g. 6800) to fractional (0.68) for the formatter
+  const currentApr = apy ? formatPercent(Number(apy) / 10000) : "--%";
 
   const cooldown =
     mode === "styfi" ? data?.styfiCooldown : data?.styfiX.cooldown;
