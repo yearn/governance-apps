@@ -18,6 +18,7 @@ export type StyfiXPosition = {
   sharesInCooldown: bigint;
   assetsActive: bigint; // underlying YFI equivalent
   assetsInCooldown: bigint;
+  assetsUnlocked: bigint; // Assets finished streaming but not withdrawn
   cooldown: CooldownState;
 };
 
@@ -31,6 +32,7 @@ export type StyfiAccountState = {
   // stYFI
   styfiActive: bigint;
   styfiInCooldown: bigint;
+  styfiUnlocked: bigint; // Funds finished streaming but not withdrawn
   styfiCooldown: CooldownState;
 
   // stYFIx

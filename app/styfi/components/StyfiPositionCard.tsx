@@ -21,6 +21,7 @@ import { LogoStyfix } from "@/components/icons/LogoStyfix";
 import { cn } from "@/lib/cn";
 import { formatTokenAmount } from "@/lib/format";
 import { useStyfiAccount } from "@/lib/hooks/useStyfi";
+import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
 import { styfiCopy as copy } from "../messages";
 import { StyfiMode, modeLabel } from "./types";
 import { useStyfiMode } from "../state/StyfiModeProvider";
@@ -38,30 +39,62 @@ export function StyfiPositionCard() {
 
   const currentApr = copy.page.stats.apr.value;
 
+  // Track cooldown completion to toggle "exiting" -> "exited"
+  const cooldown =
+    mode === "styfi" ? data?.styfiCooldown : data?.styfiX.cooldown;
+  const { isComplete } = useEpochCountdown(cooldown?.endsAt);
+
   const balances = useMemo(() => {
-    if (!data) return { active: 0n, exiting: 0n };
+    if (!data) return { active: 0n, totalExiting: 0n, isFullyUnlocked: false };
 
-    return mode === "styfi"
-      ? {
-          active: data.styfiActive,
-          exiting: data.styfiInCooldown,
-        }
-      : {
-          active: data.styfiX.assetsActive,
-          exiting: data.styfiX.assetsInCooldown,
-        };
-  }, [data, mode]);
+    let active = 0n;
+    let inCooldown = 0n;
+    let unlocked = 0n;
 
-  const primaryBalance = balances.active;
-  const exitingBalance = balances.exiting;
+    if (mode === "styfi") {
+      active = data.styfiActive;
+      inCooldown = data.styfiInCooldown;
+      unlocked = data.styfiUnlocked;
+    } else {
+      active = data.styfiX.assetsActive;
+      inCooldown = data.styfiX.assetsInCooldown;
+      unlocked = data.styfiX.assetsUnlocked;
+    }
+
+    const totalExiting = inCooldown + unlocked;
+
+    // Fully unlocked means we have exiting funds, AND:
+    // 1. Nothing is left in the streaming bucket (inCooldown == 0), OR
+    // 2. The streaming bucket is fully processed (timer complete).
+    const isFullyUnlocked =
+      totalExiting > 0n && (inCooldown === 0n || isComplete);
+
+    return { active, totalExiting, isFullyUnlocked };
+  }, [data, mode, isComplete]);
+
+  const {
+    active: primaryBalance,
+    totalExiting: exitingBalance,
+    isFullyUnlocked,
+  } = balances;
+
   const hasExiting = exitingBalance > 0n;
   const hasActive = primaryBalance > 0n;
   const formattedExiting = formatTokenAmount(exitingBalance, 18, 4);
-  const balanceLabel = hasExiting
-    ? hasActive
-      ? copy.modeSelector.balanceWithExiting(formattedExiting)
-      : copy.modeSelector.balanceExitingOnly(formattedExiting)
-    : copy.modeSelector.balanceSuffix(modeLabel(mode));
+
+  let balanceLabel = copy.modeSelector.balanceSuffix(modeLabel(mode));
+
+  if (hasExiting) {
+    if (hasActive) {
+      balanceLabel = isFullyUnlocked
+        ? copy.modeSelector.balanceWithExited(formattedExiting)
+        : copy.modeSelector.balanceWithExiting(formattedExiting);
+    } else {
+      balanceLabel = isFullyUnlocked
+        ? copy.modeSelector.balanceExitedOnly(formattedExiting)
+        : copy.modeSelector.balanceExitingOnly(formattedExiting);
+    }
+  }
 
   // Handle focus management when drawer opens
   useEffect(() => {

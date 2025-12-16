@@ -44,7 +44,9 @@ export const styfiCopy = {
     switchAria: (modeLabel: string) => `Switch to ${modeLabel}`,
     balanceSuffix: (modeLabel: string) => `in ${modeLabel}`,
     balanceWithExiting: (exiting: string) => `Active (+ ${exiting} exiting)`,
+    balanceWithExited: (exited: string) => `Active (+ ${exited} exited)`,
     balanceExitingOnly: (exiting: string) => `(${exiting} exiting)`,
+    balanceExitedOnly: (exited: string) => `(${exited} exited)`,
     disconnected: "Connect your wallet to view balances.",
     drawer: {
       title: "Choose how you want to stake",
@@ -143,7 +145,7 @@ export const styfiCopy = {
     insufficientBalance: "Exceeds available",
     warningTitle: "Timer reset warning",
     warningBody:
-      "Adding to cooldown will automatically claim any available funds and reset the 14-day timer for the remaining stream.",
+      "Adding to cooldown will reset the 14-day timer for the remaining stream.",
     helper: "Starts a 14-day cooldown. You can withdraw after the timer ends.",
     startCta: "Start Cooldown",
   },

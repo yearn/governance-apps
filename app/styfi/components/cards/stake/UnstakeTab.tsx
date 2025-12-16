@@ -1,4 +1,4 @@
-// app/styfi/components/cards/stake/UnstakeTab.tsx
+//app/styfi/components/cards/stake/UnstakeTab.tsx
 
 "use client";
 
@@ -48,6 +48,10 @@ export function UnstakeTab({ mode }: Props) {
       ? data?.styfiInCooldown ?? 0n
       : data?.styfiX.assetsInCooldown ?? 0n;
 
+  // Unlocked funds (finished streaming but not withdrawn)
+  const unlockedFromPrevious =
+    mode === "styfi" ? data?.styfiUnlocked ?? 0n : data?.styfiX.assetsUnlocked;
+
   // Pass the implied start time to ensure accurate progress calculation
   const impliedStart =
     cooldown?.endsAt !== undefined
@@ -68,15 +72,22 @@ export function UnstakeTab({ mode }: Props) {
   // Use persistent totalAmount if available (from mock fix), else fallback to current balance
   const initialAmount = cooldown?.totalAmount ?? totalExiting;
 
-  const unlocked =
+  const unlockedFromStream =
     initialAmount > 0n ? (initialAmount * BigInt(scaledProgress)) / 10000n : 0n;
 
   const alreadyWithdrawn = initialAmount - totalExiting;
   // Ensure liquid doesn't go negative due to rounding differences
-  const liquid = unlocked > alreadyWithdrawn ? unlocked - alreadyWithdrawn : 0n;
+  const liquidFromStream =
+    unlockedFromStream > alreadyWithdrawn
+      ? unlockedFromStream - alreadyWithdrawn
+      : 0n;
 
-  // Remaining locked amount
-  const streaming = totalExiting > liquid ? totalExiting - liquid : 0n;
+  // Remaining locked amount in the active stream
+  const streaming =
+    totalExiting > liquidFromStream ? totalExiting - liquidFromStream : 0n;
+
+  // Total available to withdraw = previously unlocked + currently liquid
+  const totalLiquid = (unlockedFromPrevious || 0n) + liquidFromStream;
 
   const insufficient = isValid && amount > available;
   const isCooldownSubmitting =
@@ -102,7 +113,7 @@ export function UnstakeTab({ mode }: Props) {
     !isConnected ||
     !data ||
     data.isBlacklisted ||
-    liquid <= 0n ||
+    totalLiquid <= 0n ||
     isWithdrawSubmitting;
 
   const showWarning = amount > 0n && streaming > 0n;
@@ -134,7 +145,7 @@ export function UnstakeTab({ mode }: Props) {
     );
   }
 
-  const formattedLiquid = formatTokenAmount(liquid);
+  const formattedLiquid = formatTokenAmount(totalLiquid);
   const formattedStreaming = formatTokenAmount(streaming);
   const formattedTotal = formatTokenAmount(totalExiting);
 
@@ -174,7 +185,7 @@ export function UnstakeTab({ mode }: Props) {
       )}
 
       {/* SECTION 2: Withdraw Action */}
-      {liquid > 0n && (
+      {totalLiquid > 0n && (
         <section className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
           <p className="text-sm text-neutral-600">
             {copy.unstakeTab.withdrawHelper}

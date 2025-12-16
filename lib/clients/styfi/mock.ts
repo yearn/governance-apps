@@ -71,6 +71,7 @@ function defaultStyfiXPosition(): StyfiXPosition {
     sharesInCooldown: 0n,
     assetsActive: 0n,
     assetsInCooldown: 0n,
+    assetsUnlocked: 0n,
     cooldown: null,
   };
 }
@@ -101,6 +102,7 @@ function createDefaultAccountState(
     yfiBalance: initialYfi,
     styfiActive: 0n,
     styfiInCooldown: 0n,
+    styfiUnlocked: 0n,
     styfiCooldown: null,
     styfiX: defaultStyfiXPosition(),
     claimableGenericRewards: 0n,
@@ -356,11 +358,12 @@ export class MockStyfiClient implements StyfiClient {
           const previousProgress = next.styfiCooldown.claimedProgress ?? 0;
           const progressDelta = scaledProgress - previousProgress;
 
+          // If there is liquid amount from the previous stream, move it to "Unlocked"
           if (progressDelta > 0) {
             const liquid = (totalAmount * BigInt(progressDelta)) / 10000n;
             if (liquid > 0n) {
               next.styfiInCooldown -= liquid;
-              next.yfiBalance += liquid;
+              next.styfiUnlocked += liquid; // Move to contract bucket, not wallet
             }
           }
         }
@@ -389,6 +392,7 @@ export class MockStyfiClient implements StyfiClient {
           const previousProgress = next.styfiX.cooldown.claimedProgress ?? 0;
           const progressDelta = scaledProgress - previousProgress;
 
+          // If there is liquid amount from the previous stream, move it to "Unlocked"
           if (progressDelta > 0) {
             const liquidAssets = (totalAmount * BigInt(progressDelta)) / 10000n;
             const shareReduction =
@@ -397,7 +401,7 @@ export class MockStyfiClient implements StyfiClient {
             if (liquidAssets > 0n) {
               next.styfiX.assetsInCooldown -= liquidAssets;
               next.styfiX.sharesInCooldown -= shareReduction;
-              next.yfiBalance += liquidAssets;
+              next.styfiX.assetsUnlocked += liquidAssets; // Move to contract bucket
             }
           }
         }
@@ -449,86 +453,96 @@ export class MockStyfiClient implements StyfiClient {
       };
 
       if (mode === "stYFI") {
-        const cooldown = next.styfiCooldown;
-        if (!cooldown) {
-          throw new Error("No active cooldown");
+        let liquidFromStream = 0n;
+
+        // 1. Calculate what is liquid from the ACTIVE stream
+        if (next.styfiCooldown) {
+          const totalAmount =
+            next.styfiCooldown.totalAmount ?? next.styfiInCooldown;
+          const scaledProgress = computeScaledProgress(
+            next.styfiCooldown.endsAt
+          );
+          const previousProgress = next.styfiCooldown.claimedProgress ?? 0;
+          const progressDelta = scaledProgress - previousProgress;
+
+          if (progressDelta > 0) {
+            liquidFromStream = (totalAmount * BigInt(progressDelta)) / 10000n;
+            // Cap it
+            if (liquidFromStream > next.styfiInCooldown) {
+              liquidFromStream = next.styfiInCooldown;
+            }
+          }
+
+          // Update the stream state
+          next.styfiInCooldown -= liquidFromStream;
+          if (next.styfiInCooldown <= 0n) {
+            next.styfiInCooldown = 0n;
+            next.styfiCooldown = null;
+          } else {
+            next.styfiCooldown = {
+              ...next.styfiCooldown,
+              claimedProgress: scaledProgress,
+            };
+          }
         }
 
-        const totalAmount = cooldown.totalAmount ?? next.styfiInCooldown;
+        // 2. Add accumulated unlocked funds
+        const totalWithdrawable = next.styfiUnlocked + liquidFromStream;
 
-        const scaledProgress = computeScaledProgress(cooldown.endsAt);
-        const previousProgress = cooldown.claimedProgress ?? 0;
-        const progressDelta = scaledProgress - previousProgress;
-
-        if (progressDelta <= 0) {
+        if (totalWithdrawable <= 0n) {
           throw new Error("No funds available to withdraw yet");
         }
 
-        const liquid = (totalAmount * BigInt(progressDelta)) / 10000n;
-
-        if (liquid <= 0n) {
-          throw new Error("No funds available to withdraw yet");
-        }
-
-        if (liquid > next.styfiInCooldown) {
-          next.yfiBalance += next.styfiInCooldown;
-          next.styfiInCooldown = 0n;
-        } else {
-          next.styfiInCooldown -= liquid;
-          next.yfiBalance += liquid;
-        }
-
-        if (next.styfiInCooldown <= 0n) {
-          next.styfiInCooldown = 0n;
-          next.styfiCooldown = null;
-        } else {
-          next.styfiCooldown = {
-            amount: next.styfiInCooldown,
-            endsAt: cooldown.endsAt,
-            claimedProgress: scaledProgress,
-            totalAmount: totalAmount,
-          };
-        }
+        next.yfiBalance += totalWithdrawable;
+        next.styfiUnlocked = 0n;
       } else if (mode === "stYFIx") {
-        const cooldown = next.styfiX.cooldown;
-        if (!cooldown) {
-          throw new Error("No active cooldown");
+        let liquidAssetsFromStream = 0n;
+
+        // 1. Calculate liquid assets from ACTIVE stream
+        if (next.styfiX.cooldown) {
+          const totalAssets = next.styfiX.assetsInCooldown;
+          const totalAmount = next.styfiX.cooldown.totalAmount ?? totalAssets;
+          const totalShares = next.styfiX.sharesInCooldown;
+
+          const scaledProgress = computeScaledProgress(
+            next.styfiX.cooldown.endsAt
+          );
+          const previousProgress = next.styfiX.cooldown.claimedProgress ?? 0;
+          const progressDelta = scaledProgress - previousProgress;
+
+          if (progressDelta > 0) {
+            liquidAssetsFromStream =
+              (totalAmount * BigInt(progressDelta)) / 10000n;
+            const shareReduction =
+              (totalShares * BigInt(progressDelta)) / 10000n;
+
+            // Update stream state
+            next.styfiX.assetsInCooldown -= liquidAssetsFromStream;
+            next.styfiX.sharesInCooldown -= shareReduction;
+
+            if (next.styfiX.assetsInCooldown <= 0n) {
+              next.styfiX.assetsInCooldown = 0n;
+              next.styfiX.sharesInCooldown = 0n;
+              next.styfiX.cooldown = null;
+            } else {
+              next.styfiX.cooldown = {
+                ...next.styfiX.cooldown,
+                claimedProgress: scaledProgress,
+              };
+            }
+          }
         }
 
-        const totalAssets = next.styfiX.assetsInCooldown;
-        const totalAmount = cooldown.totalAmount ?? totalAssets;
-        const totalShares = next.styfiX.sharesInCooldown;
+        // 2. Add accumulated unlocked assets
+        const totalWithdrawable =
+          next.styfiX.assetsUnlocked + liquidAssetsFromStream;
 
-        const scaledProgress = computeScaledProgress(cooldown.endsAt);
-        const previousProgress = cooldown.claimedProgress ?? 0;
-        const progressDelta = scaledProgress - previousProgress;
-
-        if (progressDelta <= 0) {
+        if (totalWithdrawable <= 0n) {
           throw new Error("No funds available to withdraw yet");
         }
 
-        const liquidAssets = (totalAmount * BigInt(progressDelta)) / 10000n;
-        const shareReduction = (totalShares * BigInt(progressDelta)) / 10000n;
-
-        if (liquidAssets <= 0n) {
-          throw new Error("No funds available to withdraw yet");
-        }
-
-        next.styfiX = {
-          ...next.styfiX,
-          assetsInCooldown: totalAssets - liquidAssets,
-          sharesInCooldown: totalShares - shareReduction,
-          cooldown:
-            totalAssets - liquidAssets <= 0n
-              ? null
-              : {
-                  amount: totalAssets - liquidAssets,
-                  endsAt: cooldown.endsAt,
-                  claimedProgress: scaledProgress,
-                  totalAmount: totalAmount,
-                },
-        };
-        next.yfiBalance += liquidAssets;
+        next.yfiBalance += totalWithdrawable;
+        next.styfiX.assetsUnlocked = 0n;
       } else {
         throw new Error(`Unsupported withdraw mode: ${mode}`);
       }
