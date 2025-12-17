@@ -9,6 +9,7 @@ import type {
   StyfiAccountState,
   StyfiAllowances,
   StyfiXPosition,
+  StyfiGlobalStats,
 } from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
 import { nowSeconds } from "@/lib/mocks/time";
@@ -22,7 +23,6 @@ import {
 // --- Persistence Helpers ---
 const STORAGE_KEY = "mock_styfi_store_v1";
 
-// JSON doesn't handle BigInt, so we use a replacer/reviver
 function replacer(_key: string, value: unknown) {
   if (typeof value === "bigint") {
     return `BIGINT::${value.toString()}`;
@@ -82,14 +82,11 @@ function loadFromStorage() {
 const GLOBAL_STYFI_STORE = new Map<string, StyfiAccountState>();
 const GLOBAL_LAST_ACCRUAL = new Map<string, number>();
 
-// New: Store a LIST of pending balance injections for the next connecting user
-// This allows us to click "Add stYFI" multiple times while disconnected
 let GLOBAL_PENDING_INJECTIONS: Array<{
   mode: StyfiStakeMode;
   amount: bigint;
 }> = [];
 
-// Attempt to hydrate immediately on module load
 loadFromStorage();
 
 export function resetMockStyfiStore() {
@@ -114,6 +111,11 @@ const MOCK_APY_BPS = 6843n;
 const SECONDS_PER_YEAR = 31536000n;
 const BASIS_POINTS = 10000n;
 const WEEK_SECONDS = 604800n;
+
+// Constants for Stats
+const MOCK_TOTAL_SUPPLY = 36666n * 10n ** 18n;
+// Ghost stake simulates "other users" so a single user isn't 100% of the pool
+const MOCK_GHOST_STAKE = 2583n * 10n ** 18n;
 
 function nextMockHash(): TransactionHash {
   mockTxCounter += 1;
@@ -199,7 +201,6 @@ function createDefaultAccountState(
       claimedProgress: 0,
     };
     base.styfiInCooldown = 10n * 10n ** 18n;
-    // Pre-seed some rewards ($500 USDS approx)
     base.claimableGenericRewards = 500n * 10n ** 18n;
   }
 
@@ -247,27 +248,25 @@ export class MockStyfiClient implements StyfiClient {
     });
     GLOBAL_STYFI_STORE.set(key, created);
     GLOBAL_LAST_ACCRUAL.set(key, nowSeconds());
-    saveToStorage(); // Persist on creation
+    saveToStorage();
     return created;
   }
 
   private setState(address: Address, next: StyfiAccountState) {
     const key = this.getKey(address);
     GLOBAL_STYFI_STORE.set(key, next);
-    saveToStorage(); // Persist on update
+    saveToStorage();
   }
 
   async getAccountState(address: Address): Promise<StyfiAccountState> {
     this.lastAddress = address;
 
-    // Apply any pending injections ADDITIVELY before returning state
     if (GLOBAL_PENDING_INJECTIONS.length > 0) {
       for (const injection of GLOBAL_PENDING_INJECTIONS) {
         this.debugSetBalance(address, injection.mode, injection.amount);
       }
-      // Clear the queue after applying
       GLOBAL_PENDING_INJECTIONS = [];
-      saveToStorage(); // Persist after processing queue
+      saveToStorage();
     }
 
     await delay(this.latencyMs);
@@ -291,6 +290,21 @@ export class MockStyfiClient implements StyfiClient {
     return MOCK_APY_BPS;
   }
 
+  async getStats(): Promise<StyfiGlobalStats> {
+    await delay(this.latencyMs / 2);
+
+    let totalUserStake = 0n;
+    // Iterate over all active mock sessions to sum their stakes
+    for (const account of GLOBAL_STYFI_STORE.values()) {
+      totalUserStake += account.styfiActive + account.styfiX.assetsActive;
+    }
+
+    return {
+      totalSupply: MOCK_TOTAL_SUPPLY,
+      totalStaked: MOCK_GHOST_STAKE + totalUserStake,
+    };
+  }
+
   private applyAccrualAndMaturity(
     state: StyfiAccountState,
     key: string
@@ -301,12 +315,9 @@ export class MockStyfiClient implements StyfiClient {
 
     const next = { ...state };
 
-    // 1. Reward Generation (The Source)
-    // Formula: (Staked YFI * PRICE * APY * Elapsed) / (Year * 10000)
     const totalStaked = next.styfiActive + next.styfiX.assetsActive;
 
     if (elapsed > 0n && totalStaked > 0n) {
-      // Multiply by MOCK_YFI_PRICE to convert YFI wei -> USDS wei (assuming 18 decimals for both)
       const freshRewards =
         (totalStaked * MOCK_YFI_PRICE * MOCK_APY_BPS * elapsed) /
         (SECONDS_PER_YEAR * BASIS_POINTS);
@@ -314,14 +325,12 @@ export class MockStyfiClient implements StyfiClient {
       next.accruingGenericRewards += freshRewards;
     }
 
-    // 2. Reward Maturity (The Flow)
-    // Move ~1 week's worth of accruing rewards into claimable per week of elapsed time.
     if (elapsed > 0n && next.accruingGenericRewards > 0n) {
       const pending = next.accruingGenericRewards;
       let moveAmount = (pending * elapsed) / WEEK_SECONDS;
 
       if (moveAmount > pending) moveAmount = pending;
-      if (moveAmount === 0n && pending > 0n) moveAmount = 1n; // Ensure flow
+      if (moveAmount === 0n && pending > 0n) moveAmount = 1n;
 
       next.accruingGenericRewards -= moveAmount;
       next.claimableGenericRewards += moveAmount;
@@ -331,7 +340,6 @@ export class MockStyfiClient implements StyfiClient {
       GLOBAL_LAST_ACCRUAL.set(key, now);
     }
 
-    // Mark cooldowns as effectively ready if ended
     if (next.styfiCooldown && next.styfiCooldown.endsAt <= now) {
       next.styfiCooldown = {
         ...next.styfiCooldown,
@@ -358,7 +366,6 @@ export class MockStyfiClient implements StyfiClient {
     if (amount <= 0n) throw new Error("Amount must be > 0");
 
     const latency = this.latencyMs;
-
     const targetAddress = this.lastAddress;
 
     return async () => {
@@ -447,12 +454,11 @@ export class MockStyfiClient implements StyfiClient {
           const previousProgress = next.styfiCooldown.claimedProgress ?? 0;
           const progressDelta = scaledProgress - previousProgress;
 
-          // If there is liquid amount from the previous stream, move it to "Unlocked"
           if (progressDelta > 0) {
             const liquid = (totalAmount * BigInt(progressDelta)) / 10000n;
             if (liquid > 0n) {
               next.styfiInCooldown -= liquid;
-              next.styfiUnlocked += liquid; // Move to contract bucket, not wallet
+              next.styfiUnlocked += liquid;
             }
           }
         }
@@ -481,7 +487,6 @@ export class MockStyfiClient implements StyfiClient {
           const previousProgress = next.styfiX.cooldown.claimedProgress ?? 0;
           const progressDelta = scaledProgress - previousProgress;
 
-          // If there is liquid amount from the previous stream, move it to "Unlocked"
           if (progressDelta > 0) {
             const liquidAssets = (totalAmount * BigInt(progressDelta)) / 10000n;
             const shareReduction =
@@ -490,7 +495,7 @@ export class MockStyfiClient implements StyfiClient {
             if (liquidAssets > 0n) {
               next.styfiX.assetsInCooldown -= liquidAssets;
               next.styfiX.sharesInCooldown -= shareReduction;
-              next.styfiX.assetsUnlocked += liquidAssets; // Move to contract bucket
+              next.styfiX.assetsUnlocked += liquidAssets;
             }
           }
         }
@@ -531,7 +536,6 @@ export class MockStyfiClient implements StyfiClient {
 
       const state = this.getOrCreate(targetAddress);
       const next = { ...state };
-
       const now = nowSeconds();
 
       const computeScaledProgress = (endsAt: number) => {
@@ -544,7 +548,6 @@ export class MockStyfiClient implements StyfiClient {
       if (mode === "stYFI") {
         let liquidFromStream = 0n;
 
-        // 1. Calculate what is liquid from the ACTIVE stream
         if (next.styfiCooldown) {
           const totalAmount =
             next.styfiCooldown.totalAmount ?? next.styfiInCooldown;
@@ -556,13 +559,11 @@ export class MockStyfiClient implements StyfiClient {
 
           if (progressDelta > 0) {
             liquidFromStream = (totalAmount * BigInt(progressDelta)) / 10000n;
-            // Cap it
             if (liquidFromStream > next.styfiInCooldown) {
               liquidFromStream = next.styfiInCooldown;
             }
           }
 
-          // Update the stream state
           next.styfiInCooldown -= liquidFromStream;
           if (next.styfiInCooldown <= 0n) {
             next.styfiInCooldown = 0n;
@@ -575,9 +576,7 @@ export class MockStyfiClient implements StyfiClient {
           }
         }
 
-        // 2. Add accumulated unlocked funds
         const totalWithdrawable = next.styfiUnlocked + liquidFromStream;
-
         if (totalWithdrawable <= 0n) {
           throw new Error("No funds available to withdraw yet");
         }
@@ -587,7 +586,6 @@ export class MockStyfiClient implements StyfiClient {
       } else if (mode === "stYFIx") {
         let liquidAssetsFromStream = 0n;
 
-        // 1. Calculate liquid assets from ACTIVE stream
         if (next.styfiX.cooldown) {
           const totalAssets = next.styfiX.assetsInCooldown;
           const totalAmount = next.styfiX.cooldown.totalAmount ?? totalAssets;
@@ -605,7 +603,6 @@ export class MockStyfiClient implements StyfiClient {
             const shareReduction =
               (totalShares * BigInt(progressDelta)) / 10000n;
 
-            // Update stream state
             next.styfiX.assetsInCooldown -= liquidAssetsFromStream;
             next.styfiX.sharesInCooldown -= shareReduction;
 
@@ -622,10 +619,8 @@ export class MockStyfiClient implements StyfiClient {
           }
         }
 
-        // 2. Add accumulated unlocked assets
         const totalWithdrawable =
           next.styfiX.assetsUnlocked + liquidAssetsFromStream;
-
         if (totalWithdrawable <= 0n) {
           throw new Error("No funds available to withdraw yet");
         }
@@ -698,7 +693,7 @@ export class MockStyfiClient implements StyfiClient {
 
   debugSetPendingBalance(mode: StyfiStakeMode, amount: bigint) {
     GLOBAL_PENDING_INJECTIONS.push({ mode, amount });
-    saveToStorage(); // Persist pending injections too
+    saveToStorage();
   }
 }
 

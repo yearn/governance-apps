@@ -124,7 +124,6 @@ export function StyfiPositionCard() {
     <Card className="flex flex-col">
       {/*
          Header: Always visible (except initial onboarding fade-in).
-         This section must be rigid.
       */}
       <div
         className={cn(
@@ -132,17 +131,10 @@ export function StyfiPositionCard() {
           isOnboarded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         )}
       >
-        {/*
-           POLISH FIX: p-1 -m-1 creates a buffer zone for the overflow clip.
-           This ensures the Logo transform (scale-105) doesn't get clipped at the left edge,
-           while maintaining perfect visual alignment with the rest of the UI.
-        */}
-        <div className="overflow-hidden p-1 -m-1">
+        <div className="overflow-hidden">
           <div
             className={cn(
-              // Negative margins on the button allow it to "bleed" to the edge
-              // of the Card padding for hover states, while keeping text aligned.
-              "pb-1",
+              "pb-1", // Minimal bottom padding to prevent focus ring clipping
               isOnboarded
                 ? "opacity-100 transition-opacity duration-700 delay-100"
                 : "opacity-0"
@@ -151,7 +143,9 @@ export function StyfiPositionCard() {
             <button
               type="button"
               onClick={toggleDrawer}
-              className="group w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 rounded-lg -ml-2 -mr-2 pl-2 py-2 pr-2 hover:bg-neutral-100 transition-colors cursor-pointer"
+              // Fixed clipping: Removed negative margins (-ml-2 -mr-2).
+              // The hover state now sits cleanly inside the card padding.
+              className="group w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 rounded-lg p-2 hover:bg-neutral-100 transition-colors cursor-pointer"
               aria-expanded={isDrawerOpen}
               aria-controls={drawerId}
               aria-label={
@@ -198,6 +192,7 @@ export function StyfiPositionCard() {
                 </div>
               </div>
 
+              {/* Right Side Stats (APR Only) */}
               <div
                 className={cn(
                   "hidden md:block text-right transition-all duration-300",
@@ -209,7 +204,7 @@ export function StyfiPositionCard() {
                 <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
                   Current APR
                 </p>
-                <p className="text-xl font-number font-bold text-neutral-900">
+                <p className="text-2xl font-number font-bold text-neutral-900">
                   {currentApr}
                 </p>
               </div>

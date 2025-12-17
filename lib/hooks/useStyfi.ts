@@ -1,3 +1,4 @@
+// lib/hooks/useStyfi.ts
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +15,7 @@ export const styfiKeys = {
     [...styfiKeys.all, "account", address] as const,
   epoch: () => [...styfiKeys.all, "epoch"] as const,
   apy: () => [...styfiKeys.all, "apy"] as const,
+  stats: () => [...styfiKeys.all, "stats"] as const,
 };
 
 // --- Read Hooks ---
@@ -54,6 +56,16 @@ export function useStyfiApy() {
   });
 }
 
+export function useStyfiStats() {
+  const { styfi } = useProtocol();
+
+  return useQuery({
+    queryKey: styfiKeys.stats(),
+    queryFn: () => styfi.getStats(),
+    staleTime: 10_000,
+  });
+}
+
 // --- Write Hooks ---
 
 export function useStyfiStake() {
@@ -73,6 +85,9 @@ export function useStyfiStake() {
           }),
           queryClient.invalidateQueries({
             queryKey: walletKeys.yfi(address),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: styfiKeys.stats(),
           }),
         ]);
       },
@@ -100,6 +115,9 @@ export function useStyfiStartCooldown() {
           }),
           queryClient.invalidateQueries({
             queryKey: walletKeys.yfi(address),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: styfiKeys.stats(),
           }),
         ]);
       },

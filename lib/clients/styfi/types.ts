@@ -8,6 +8,11 @@ export type EpochInfo = {
   nextEpochStart: number; // unix seconds
 };
 
+export type StyfiGlobalStats = {
+  totalSupply: bigint; // Total YFI supply
+  totalStaked: bigint; // Total YFI staked (stYFI + stYFIx) across all users
+};
+
 export type StyfiAllowances = {
   yfiToStyfi: bigint;
   yfiToStyfiX: bigint;

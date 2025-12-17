@@ -1,3 +1,5 @@
+// app/debug/ui/page.tsx
+
 "use client";
 
 import React, { useState } from "react";
@@ -8,6 +10,7 @@ import { Banner } from "@/components/ui/Banner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Tabs } from "@/components/ui/Tabs";
+import { Badge } from "@/components/ui/Badge"; // Import Badge
 import {
   Table,
   TableHeader,
@@ -47,11 +50,35 @@ export default function KitchenSinkPage() {
       </section>
 
       <div className="max-w-4xl mx-auto px-4 space-y-12">
+        {/* Badges */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
+            Badges
+          </h2>
+          <div className="flex flex-wrap gap-4">
+            <Badge variant="neutral">Neutral 12%</Badge>
+            <Badge variant="success">Success +5%</Badge>
+            <Badge variant="warning">Warning</Badge>
+            <Badge variant="error">Error</Badge>
+            <Badge variant="brand">Brand</Badge>
+          </div>
+          <div className="mt-4 p-4 bg-white rounded-lg border border-neutral-200">
+            <p className="text-sm text-neutral-500 mb-2">Usage in Controls:</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                Earning Power
+              </span>
+              <Badge variant="neutral">12.70%</Badge>
+            </div>
+          </div>
+        </section>
+
         {/* Tooltips */}
         <section className="space-y-4">
           <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
             Tooltips
           </h2>
+          {/* ... existing tooltip content ... */}
           <div className="flex flex-wrap items-center gap-6">
             <Tooltip content="Primary action">
               <Button variant="primary">Hover me</Button>
@@ -67,6 +94,7 @@ export default function KitchenSinkPage() {
           </div>
         </section>
 
+        {/* ... Rest of the file remains unchanged ... */}
         {/* Buttons */}
         <section className="space-y-4">
           <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">

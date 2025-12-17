@@ -1,13 +1,14 @@
 // lib/clients/styfi/client.ts
 import type { Address } from "viem";
 import type { PreparedTransaction } from "@/lib/tx/types";
-import type { EpochInfo, StyfiAccountState } from "./types";
+import type { EpochInfo, StyfiAccountState, StyfiGlobalStats } from "./types";
 
 export type StyfiStakeMode = "stYFI" | "stYFIx";
 
 export interface StyfiClient {
   getAccountState(address: Address): Promise<StyfiAccountState>;
   getEpochInfo(): Promise<EpochInfo>;
+  getStats(): Promise<StyfiGlobalStats>;
 
   /**
    * Returns the current protocol APY in basis points (e.g. 500 = 5%).

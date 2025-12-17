@@ -1,9 +1,3 @@
-const formatYfi = (value: number) =>
-  `${value.toLocaleString("en-US", { maximumFractionDigits: 0 })} YFI`;
-
-const totalSupplyAmount = 36_666;
-const stakedAmount = 2_583;
-
 export const styfiCopy = {
   shared: {
     blacklistedTitle: "Blacklisted",
@@ -12,16 +6,8 @@ export const styfiCopy = {
   },
   page: {
     stats: {
-      totalSupply: {
-        label: "Total Supply",
-        value: formatYfi(totalSupplyAmount),
-        amount: totalSupplyAmount,
-      },
-      staked: {
-        label: "Staked",
-        value: formatYfi(stakedAmount),
-        amount: stakedAmount,
-      },
+      totalSupply: { label: "Total Supply" },
+      staked: { label: "Staked" },
       phase: {
         label: "State",
         value: "Staking live, voting coming soon",
@@ -37,6 +23,11 @@ export const styfiCopy = {
   modeSelector: {
     kicker: "Your position",
     compareLabel: "Compare modes",
+    earningPower: {
+      label: "Earning Power",
+      tooltip:
+        "Your share of the reward pool. Determined by your total amount of YFI in the system.",
+    },
     compareAria: {
       expand: "Expand mode drawer",
       collapse: "Collapse mode drawer",

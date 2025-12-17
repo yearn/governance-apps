@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { StatsBar } from "@/components/ui/StatsBar";
-import { formatPercent } from "@/lib/format";
-import { useStyfiApy } from "@/lib/hooks/useStyfi";
+import { formatPercent, formatTokenAmount } from "@/lib/format";
+import { useStyfiApy, useStyfiStats } from "@/lib/hooks/useStyfi";
 import { StyfiCockpit } from "./components/StyfiCockpit";
 import { StyfiPositionCard } from "./components/StyfiPositionCard";
 import { StyfiMode } from "./components/types";
@@ -30,13 +30,24 @@ function StyfiPageShell() {
   const { isConnected } = useAccount();
   const { openConnectModal } = useConnectModal();
   const { data: apy } = useStyfiApy();
+  const { data: stats } = useStyfiStats();
 
-  const totalSupplyAmount = copy.page.stats.totalSupply.amount;
-  const stakedAmount = copy.page.stats.staked.amount;
-  const stakedPercentage =
-    totalSupplyAmount > 0
-      ? ((stakedAmount / totalSupplyAmount) * 100).toFixed(1)
-      : "0.0";
+  // Dynamic stats or loading placeholder
+  const totalSupply = stats
+    ? formatTokenAmount(stats.totalSupply, 18, 0) + " YFI"
+    : "-- YFI";
+
+  const totalStaked = stats
+    ? formatTokenAmount(stats.totalStaked, 18, 0) + " YFI"
+    : "-- YFI";
+
+  // Calculate dynamic percentage
+  let stakedPercentage = "0.0";
+  if (stats && stats.totalSupply > 0n) {
+    const ratio =
+      Number((stats.totalStaked * 10000n) / stats.totalSupply) / 100;
+    stakedPercentage = ratio.toFixed(1);
+  }
 
   // Convert BPS (e.g. 6800) to fractional (0.68) for the formatter
   const formattedApy = apy ? formatPercent(Number(apy) / 10000) : "--%";
@@ -47,11 +58,13 @@ function StyfiPageShell() {
         items={[
           {
             label: copy.page.stats.totalSupply.label,
-            value: copy.page.stats.totalSupply.value,
+            value: totalSupply,
           },
           {
             label: copy.page.stats.staked.label,
-            value: `${copy.page.stats.staked.value} (${stakedPercentage}%)`,
+            value: stats
+              ? `${totalStaked} (${stakedPercentage}%)`
+              : totalStaked,
           },
           {
             label: copy.page.stats.apr.label,

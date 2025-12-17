@@ -18,13 +18,17 @@ export function Tooltip({
 }: TooltipProps) {
   const [open, setOpen] = React.useState(false);
 
+  // Position logic:
+  // - "bottom-full" anchors the bottom of the tooltip to the top of the trigger.
+  // - "mb-2" adds a gap so it doesn't touch.
+  // - "left-1/2 -translate-x-1/2" centers it horizontally.
   const sideClasses =
     side === "top"
-      ? "bottom-full left-1/2 -translate-x-1/2 -mb-2"
+      ? "bottom-full left-1/2 -translate-x-1/2 mb-2"
       : side === "bottom"
       ? "top-full left-1/2 -translate-x-1/2 mt-2"
       : side === "left"
-      ? "right-full top-1/2 -translate-y-1/2 -mr-2"
+      ? "right-full top-1/2 -translate-y-1/2 mr-2"
       : "left-full top-1/2 -translate-y-1/2 ml-2";
 
   return (
@@ -39,9 +43,21 @@ export function Tooltip({
       <span
         role="tooltip"
         className={cn(
-          "pointer-events-none absolute z-40 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity duration-150",
-          open && "opacity-100",
-          sideClasses
+          // Layout
+          "pointer-events-none absolute z-50 w-max max-w-[200px]",
+          sideClasses,
+
+          // Visuals (Pop-over Card style)
+          "rounded-md border border-neutral-200 bg-white p-2 shadow-lg",
+
+          // Typography
+          "text-center text-xs font-normal text-neutral-600 leading-relaxed",
+
+          // Animation
+          "transition-all duration-200 ease-out",
+          open
+            ? "opacity-100 scale-100 visible"
+            : "opacity-0 scale-95 invisible"
         )}
       >
         {content}
