@@ -1,20 +1,47 @@
-# Dev Mocks: Toggles & Scenarios
+# Dev Mocks: Toggles, Scenarios & Tools
 
-## Time Offset
+## Mock Backend Toggle
 
-- Env: `NEXT_PUBLIC_MOCK_TIME_OFFSET_SECONDS`
-- Usage: positive or negative seconds added to `now` inside mock clients.
-- Purpose: fast-forward/rewind cooldowns and reward accrual during UI testing.
+- Env: `NEXT_PUBLIC_USE_MOCKS=true`
+- **Default:** Enabled in Phases 1–7.
+- **Effect:** Uses `MockStyfiClient` and `MockVeyfiClient` instead of on-chain calls.
+
+## Persistence
+
+- **Session Storage:** The mock clients now persist their internal chain state (balances, allowances, cooldowns) to `window.sessionStorage`.
+- **Behavior:** This allows testing of "Returning User" flows. Refreshing the page **does not** reset your mock balances.
+- **Reset:** To wipe this state, use the "Reset App" button in the on-screen debug controls.
+
+## Mock Controls UI
+
+When running with mocks enabled, a **"🛠️ Debug"** button appears at the bottom center of the screen.
+
+### Features
+
+1.  **Time Travel:**
+
+    - `+1 Day` / `+7 Days`
+    - Advances the internal mock clock. Use this to fast-forward through 14-day cooldowns to test unlocking and streaming logic.
+    - Triggers an immediate refetch of epoch-dependent queries.
+
+2.  **Smart Onboarding Helpers:**
+
+    - `Add stYFI`: Injects 100 stYFI into the connected address.
+    - `Add stYFIx`: Injects 100 stYFIx into the connected address.
+    - _Note:_ If wallet is disconnected, these queue a balance injection for the next address that connects. Use this to test the "Auto-Mode Detection" logic.
+
+3.  **Local State Tools:**
+    - `Forget Me`: Clears `localStorage` (onboarding flags) but keeps chain state. Useful for re-testing the "New User" drawer animation without losing your balances.
+    - `Reset App`: Full wipe of `localStorage`, `sessionStorage` (chain state), and query cache. Simulates a completely fresh install.
 
 ## Scenario Presets
 
 - Env: `NEXT_PUBLIC_SCENARIO`
-- Allowed: `standard` (default), `active`, `ready`, `caps-exhausted`
-  - `active`: pre-staked + in-cooldown fixtures
-  - `ready`: cooldown ended, ready-to-withdraw fixtures
-  - `caps-exhausted`: global and per-token redemption caps fully used
-
-These presets seed mock state on first account load.
+- Usage: Seeds initial state _only if no session storage exists_.
+- Allowed: `standard` (default), `active`, `ready`, `caps-exhausted`.
+  - `active`: pre-staked + in-cooldown fixtures.
+  - `ready`: cooldown ended, ready-to-withdraw fixtures.
+  - `caps-exhausted`: global and per-token redemption caps fully used.
 
 ## Notes
 

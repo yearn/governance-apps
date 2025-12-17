@@ -1,7 +1,7 @@
 # `user-stories-veyfi.md`
 
 **User Stories — veYFI & LLYFI**
-**Version:** 1.0
+**Version:** 1.1
 **Scope:** Part II of the Governance Apps (veYFI migration + LLYFI staking/cooldown/redemption)
 
 ---
@@ -189,52 +189,37 @@ Target user:
 ## Story LC-01 — Start Cooldown for LLYFI
 
 **As a** LLYFI staker
-**I want** to initiate cooldown
+**I want** to initiate or add to a cooldown
 **So that** I can eventually withdraw or redeem
 
 ### Acceptance Criteria
 
-- Only visible if user has staked balance
-- Disabled if blacklisted
-- After success:
-
-  - cooldown start and end timestamps shown
-
-- Cooldown follows epoch-based rules defined in YIP-88
-
----
-
-## Story LC-02 — View Cooldown Progress
-
-**As a** LLYFI user
-**I want** to clearly see how much time is left in my cooldown
-**So that** I know when I can withdraw or redeem
-
-### Acceptance Criteria
-
-- Hours/minutes countdown based on contract epoch timestamps
-- MUST NOT compute epochs locally
-- Shows completed/active states separately
+- Only visible if user has staked balance.
+- **Progressive Disclosure:** Input is hidden behind a "+ Unstake more" button if a cooldown is already active.
+- **Partial Resets & Auto-Claim:** If I add to an existing cooldown:
+  - I am explicitly warned that the 14-day timer will **reset** for the remaining stream.
+  - Any funds currently **liquid** (available) from the stream are **automatically claimed** to my wallet (or `Exited` balance) to prevent re-locking them.
+- If blacklisted: disabled.
 
 ---
 
-## Story LC-03 — Withdraw LLYFI After Cooldown
+## Story LC-02 — Monitor & Withdraw LLYFI (Linear Streaming)
 
 **As a** LLYFI user
-**I want** to withdraw LLYFI back to my wallet
-**So that** I can freely manage my tokens again
+**I want** to see my funds unlocking over time and withdraw them as they become available
+**So that** I don't have to wait for the full 14 days to access some liquidity
 
 ### Acceptance Criteria
 
-- Withdraw button enabled only when cooldown is fully complete
-- On success:
-
-  - staked LLYFI reduces
-  - wallet balance increases
-
-- If blacklisted:
-
-  - disabled
+- **Unified Tab:** Withdraw logic lives in the same tab as Cooldown logic ("Unstake").
+- **Progress Bar:** Visualizes the ratio of Liquid vs. Streaming funds (Pink/Brand color).
+- **Linear Access:** Withdraw button enabled as soon as `Liquid > 0`.
+- **Clarity:** UI distinguishes between:
+  - "Available to Withdraw" (Liquid)
+  - "Streaming" (Still locked, with time remaining)
+- After withdrawal success:
+  - Liquid amount reduces/zeros
+  - Wallet balance increases
 
 ---
 

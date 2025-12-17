@@ -1,8 +1,8 @@
 # 9. Frontend Architecture
 
-**Version 0.3 — 2025-11-28**
+**Version 0.4 — 2025-12-17**
 Scope: stYFI • stYFIx • veYFI (UI implementation architecture)
-Status: Approved for Phase 5 (stYFI)
+Status: Updated for Phase 5 completion
 
 This document defines the **frontend implementation architecture** for the governance apps under YIP-88.
 
@@ -129,11 +129,11 @@ The provider hydrates once on the client. The card can render immediately; no he
 /styfi
   ├── Global Header             (from app/layout.tsx)
   └── StyfiPageClient
-       ├─ [Protocol Stats Bar]  (Universal component, ecosystem data)
+       ├─ [StatsBar]            (Generic component injected with stYFI data)
        └─ Main Container
             ├─ [Your Position Card]  (Collapsed/Expanded; owns mode, APR, onboarding)
             └─ [Cockpit]             (StakeManageCard + RewardsCard)
-            └─ [Mock Controls]       (Debug widget if NEXT_PUBLIC_USE_MOCKS=true)
+            └─ [Mock Controls]       (Debug widget if usesMockBackend=true)
 ```
 
 ### 5.2 Component Tree (Simplified)
@@ -141,13 +141,14 @@ The provider hydrates once on the client. The card can render immediately; no he
 ```text
 <StyfiPageClient initialMode="styfi" | "x" | undefined>
   <StyfiModeProvider initialMode>
-    <ProtocolStatsBar />         // Universal UI primitive
+    <StatsBar />                 // Composed directly in StyfiPageClient
     <main>
        <StyfiPositionCard />     // APR logic moved here
        <StyfiCockpit>
          <StakeManageCard />     // Contains StakeTab and UnstakeTab
-         <RewardsCard />
+         <RewardsCard />         // Contains Claim CTA and Earning Power
        </StyfiCockpit>
+       {usesMockBackend && <MockControls />}
     </main>
   </StyfiModeProvider>
 </StyfiPageClient>
@@ -170,10 +171,10 @@ app/
       StyfiModeProvider.tsx
 
     components/
-      ProtocolStatsBar.tsx       (Wrapper around generic StatsBar)
       StyfiPositionCard.tsx      (Mode selector + APR display)
       StyfiCockpit.tsx           (Layout for cards)
-      MockControls.tsx           (Debug tools)
+      MockControls.tsx           (Debug tools & persistence controls)
+      types.ts
 
       cards/
         RewardsCard.tsx
@@ -183,7 +184,7 @@ app/
           UnstakeTab.tsx         (Unified Cooldown + Withdraw logic)
 ```
 
-**Note:** `ProtocolStatsBar` in `app/styfi/components` is just a thin wrapper injecting Styfi-specific data into the shared `StatsBar` UI primitive.
+**Note:** `ProtocolStatsBar` was removed. We now compose the shared `StatsBar` directly inside `StyfiPageClient` using data hooks.
 
 ---
 
@@ -194,61 +195,42 @@ Implementation-wise, we follow **granular hooks** per feature:
 
 ### 7.1 Hooks for stYFI
 
-Under `/lib/hooks` or `/lib/styfi/hooks` (depending on naming scheme decided in Phase 3):
+Under `/lib/hooks/useStyfi.ts`:
 
-1. `useStyfiPosition(mode: "stYFI" | "stYFIx")`
+1. `useStyfiAccount()`
 
    - Source: `StyfiClient.getAccountState`
-   - Returns:
+   - Returns: Balances, Cooldowns, Rewards, Allowances.
 
-     - `stakedBalance`
-     - `cooldownAmount`
-     - `cooldownEndsAt`
-     - `earningWeight`
+2. `useStyfiStats()` (New)
 
-2. `useStyfiRewards()`
+   - Source: `StyfiClient.getStats`
+   - Returns: `totalSupply`, `totalStaked`.
 
-   - Source: `StyfiClient.getAccountState` or specialized rewards call.
-   - Returns:
+3. `useStyfiApy()` (New)
 
-     - `claimableGeneric`
-     - `claimableBoosted`
-     - `accruingGeneric`
-     - `accruingBoosted`
-     - `rewardToken { address, symbol, decimals }`
+   - Source: `StyfiClient.getApy`
+   - Returns: Protocol APY in basis points.
 
-3. `useEpoch()`
+4. `useEpoch()`
 
    - **Shared hook** (not `/styfi`-specific).
    - Source: shared epoch info client or config.
-   - Returns:
+   - Returns: `currentEpoch`, `epochStart`, `epochEnd`.
 
-     - `currentEpoch`
-     - `epochStart`
-     - `epochEnd`
-
-4. Transaction flows use:
-
-   - `prepareStake(mode, amount)`
-   - `prepareStartCooldown(mode, amount)`
-   - `prepareWithdraw(mode)`
-   - `prepareClaimRewards()`
+5. Transaction flows use:
+   - `prepareStake`, `prepareStartCooldown`, `prepareWithdraw`, `prepareClaimRewards`
    - `useTx()` from `/lib/tx/useTx.ts`
 
 ### 7.2 Granularity & Re-renders
 
 Each card/component uses **only the hooks it needs**:
 
-- `YourPositionCard` → `useStyfiPosition(mode)` + `useEpoch()`
-- `RewardsCard` → `useStyfiRewards()`
-- `StakeTab` → wallet YFI balance + `prepareStake`
-- `UnstakeTab` → `useStyfiPosition(mode)` + `useEpoch()` + `prepareWithdraw` + `prepareStartCooldown`
-
-This avoids:
-
-- Monolithic `useStyfiAccountData()` hooks
-- Unnecessary re-renders when unrelated data changes
-- Complex loading states blocking the whole page
+- `StyfiPageClient` → `useStyfiStats`, `useStyfiApy` (for StatsBar).
+- `YourPositionCard` → `useStyfiAccount`, `useStyfiApy`.
+- `RewardsCard` → `useStyfiAccount`, `useStyfiStats` (for Earning Power).
+- `StakeTab` → `useStyfiAccount` (wallet balance) + `prepareStake`.
+- `UnstakeTab` → `useStyfiAccount` + `useEpoch` + `prepareWithdraw` + `prepareStartCooldown`.
 
 ---
 
@@ -264,16 +246,14 @@ We rely primarily on React Query loading states and inline skeletons in cards:
 
 We do **not** block the entire `/styfi` route on a single slow query.
 
-### 8.2 `StyfiPageClient` LS Check
+### 8.2 `StyfiPageClient` Loading
 
-When checking LocalStorage to decide whether to redirect, `StyfiPageClient`:
+`StyfiModeProvider` handles the hydration and "Smart Onboarding" logic:
 
-- Either:
-
-  - Renders `null` until it decides, or
-  - Renders a thin skeleton (e.g. a single grey block where the Hero would be).
-
-It should **not** render the Hero and then immediately redirect.
+- On mount, it checks `localStorage` and connected wallet balances.
+- If a new user connects with an existing balance, it **immediately** sets the mode and collapses the drawer.
+- This bypasses the "New User" drawer animation to prevent layout thrashing for existing users.
+- The UI renders the header/stats bar immediately, while the inner content waits for hydration.
 
 ---
 

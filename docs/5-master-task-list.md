@@ -1,6 +1,6 @@
 # Master Task List — Governance Apps (stYFI, stYFIx, veYFI, LLYFI)
 
-Version 1.2 — 2025-11-28
+Version 1.3 — 2025-12-17
 Scope: BR#1 (UI-first, mock-backed), `/styfi` + `/veyfi`
 
 This is the **authoritative implementation roadmap** for the `governance-apps` repository.
@@ -64,13 +64,14 @@ Sub-tasks: 1 level deep, atomic, actionable.
 ## 16. Page Layout
 
 - [x] Implement `/styfi/page.tsx`
+- [x] Implement Global Stats Bar with dynamic APY & Supply
 
 ## 17. Account Summary Panel
 
 - [x] Wallet YFI balance
-- [x] stYFI active/cooldown split (Active vs Exiting)
+- [x] stYFI active/cooldown split (Active vs Exiting vs Exited)
 - [x] stYFIx shares + assets
-- [x] Epoch information
+- [x] Smart Onboarding (auto-mode detection)
 
 ## 18. Staking Panels
 
@@ -82,53 +83,49 @@ Sub-tasks: 1 level deep, atomic, actionable.
 - [x] **Refactor:** Merge Cooldown & Withdraw into `UnstakeTab`.
 - [x] **Feature:** Linear Progress Bar (Orange/Brand colored).
 - [x] **Feature:** Withdraw available liquid funds (Linear streaming).
-- [x] **Feature:** Progressive Disclosure for "Start Cooldown" input ("+ Unstake more").
-- [x] **Feature:** Dynamic status icons (Spinner for streaming, Dot for ready).
+- [x] **Feature:** Progressive Disclosure for "Start Cooldown" input.
+- [x] **Feature:** Dynamic status icons (Badge vs Spinner).
 
 ## 20. Rewards Panel
 
-- [x] Accruing vs Claimable display
+- [x] Claimable display (Accruing hidden for simplicity)
 - [x] Unified “Claim Rewards” button
+- [x] Earning Power calculation & tooltip
 
 ## 20.5. Debug Tools
 
-- [x] Implement on-screen "Time Travel" controls for mock mode.
+- [x] Implement on-screen "Time Travel" controls.
+- [x] Implement Persistence (SessionStorage).
+- [x] Implement Balance Injection tools.
 
 ---
 
-# Phase 6 — `/veyfi` (Migration + LLYFI + Redemption) UI
+# Phase 6 — `/veyfi` (Migration + LLYFI + Redemption) UI (Next)
 
 ## 21. Page Layout
 
-- [ ] `/veyfi/page.tsx` with sections:
-  - [ ] Migration
-  - [ ] LLYFI staking
-  - [ ] Redemption
+- [ ] `/veyfi/page.tsx` structure
+- [ ] Veyfi-specific Stats Bar (Redemption Caps, LLYFI TVL)
 
 ## 22. Migration Card
 
 - [ ] Show legacy veYFI balance
 - [ ] “Eligible for migration” indicator
 - [ ] Migrate CTA (if allowed)
-- [ ] Success feedback + reload
 
 ## 23. LLYFI Staking Table
 
 - [ ] List all tokens (sdYFI, upYFI, etc.)
 - [ ] Balances, allowances
 - [ ] Approve → Stake CTAs
-- [ ] Collapsible rows for details (optional)
 
 ## 24. LLYFI Cooldown & Withdraw
 
-- [ ] Cooldown start CTA
+- [ ] Reuse `UnstakeTab` logic/components where possible (Unified model)
 - [ ] Cooldown progress indicator
-- [ ] Withdraw CTA
-- [ ] Disable if blacklisted or incomplete
 
 ## 25. LLYFI Rewards Panel
 
-- [ ] Accruing vs claimable
 - [ ] Claim-all CTA
 
 ## 26. Redemption Panel
@@ -136,9 +133,7 @@ Sub-tasks: 1 level deep, atomic, actionable.
 - [ ] Token selector or table
 - [ ] Caps: global + per-token
 - [ ] Fee % + fee amount
-- [ ] Net YFI to be received
 - [ ] Approve → Redeem CTA
-- [ ] Disabled when cap insufficient or blacklisted
 
 ---
 

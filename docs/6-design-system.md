@@ -1,6 +1,6 @@
 # 6. Design System & UI Standards
 
-**Version:** 1.2
+**Version:** 1.3
 **Scope:** Visual language, typography, and component usage for `governance-apps`.
 
 ---
@@ -85,8 +85,8 @@ We do not use an external UI library (like ShadCN or MUI). We own a small set of
 
 The "Yearn-style" massive input field.
 
-- Features a built-in **MAX** button.
-- Features a built-in **Token Symbol** badge.
+- Features a built-in **MAX** button (pill style).
+- Features a built-in **Token Symbol** text.
 - Uses `font-mono` for the input value.
 - Handles its own error state styling (red border).
 
@@ -106,20 +106,43 @@ A clean, unopinionated table structure.
 
 ### 4.5. `Tooltip`
 
-A lightweight, styled tooltip wrapper for hover/focus hints.
+A light-themed, popover-style tooltip for context and definitions.
 
-- Usage: `<Tooltip content="Switch modes"><Button>...</Button></Tooltip>`
-- Positions: `top` (default), `bottom`, `left`, `right`.
-- Does not pull copy; consumers pass strings from feature `messages.ts`.
+- **Visuals:** White background, light gray border, subtle shadow.
+- **Typography:** `text-xs`, `text-neutral-600`, regular weight.
+- **Behavior:** Triggered on hover/focus.
+- **Usage:** `<Tooltip content="Explains Earning Power"><Badge>...</Badge></Tooltip>`
 
 ### 4.6. `StatsBar`
 
 A full-width, slim informational strip.
 
 - **Usage:** Placed immediately below the Global Header.
-- **Purpose:** Display high-level ecosystem stats (e.g., Total Supply, Staked, Network).
+- **Purpose:** Display high-level ecosystem stats (e.g., Total Supply, Staked, APY).
 - **Styling:** `bg-neutral-100`, `border-b`, `py-2`.
 - **Typography:** Labels are uppercase/bold; values are `Aeonik Mono`.
+
+### 4.7. `Badge`
+
+A small status indicator for metrics or labels.
+
+- **Variants:**
+  - `neutral`: Grey background (Default).
+  - `success`: Green background (Positive deltas).
+  - `warning`: Amber background.
+  - `error`: Red background.
+  - `brand`: Blue/Brand-tinted background.
+- **Usage:** Used in the Stats Bar or Footer of cards to highlight secondary metrics (e.g., "Earning Power").
+
+### 4.8. `ProgressBar`
+
+Visual indicator for cooldowns or limits.
+
+- **Variants:**
+  - `default`: Yearn Blue.
+  - `styfi`: **Orange** (Sunset-600).
+  - `veyfi`: **Pink** (Disco-700).
+  - `success`: Green.
 
 ---
 

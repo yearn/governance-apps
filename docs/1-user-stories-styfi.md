@@ -1,7 +1,7 @@
 # `user-stories-styfi.md`
 
 **User Stories — stYFI & stYFIx**
-**Version:** 1.1
+**Version:** 1.2
 **Scope:** Part I of the Governance Apps (stYFI + stYFIx)
 
 ---
@@ -30,27 +30,39 @@ We assume a technically literate DeFi user familiar with:
 
 ---
 
+## Story ST-00 — Smart Onboarding (Mode Selection)
+
+**As a** user connecting their wallet
+**I want** the app to automatically detect my existing position
+**So that** I don't have to manually select between "stYFI" and "stYFIx" every time
+
+### Acceptance Criteria
+
+- **New User (0 Balance):** Show the Mode Selection Drawer (Expanded) to educate them on the options.
+- **Returning User (Has Balance):** Automatically select the mode where I have the highest balance and collapse the drawer.
+- **Persistence:** Remember my last selection if I have no balance but have visited before.
+
+---
+
 ## Story ST-01 — View My stYFI Account State
 
 **As a** stYFI user
-**I want** to see my staked position, rewards, cooldown status, and wallet balances
-**So that** I understand my current state and available actions
+**I want** to see my staked position split by its status
+**So that** I know how much is earning rewards versus how much is unstaking
 
 ### Acceptance Criteria
 
 - Shows:
 
-  - my wallet YFI balance
-  - my staked stYFI amount
-  - whether I am in cooldown
-  - cooldown start and end timestamps
-  - claimable rewards (generic + veYFI-boosted)
-  - accruing (not yet claimable) rewards
+  - **Active:** Amount currently staked and earning rewards.
+  - **Exiting:** Amount currently in cooldown (linear streaming).
+  - **Exited:** Amount fully unlocked (finished streaming) but not yet withdrawn.
+  - **Earning Power:** My share of the total staking pool (tooltip explanation).
+  - Claimable rewards.
 
 - If blacklisted:
-
-  - Blocking banner is shown
-  - All actions disabled
+  - Blocking banner is shown.
+  - All actions disabled.
 
 ---
 
@@ -122,22 +134,20 @@ We assume a technically literate DeFi user familiar with:
 
 ---
 
-## Story ST-05 — Start Cooldown for stYFI
+## Story ST-05 — Start/Reset Cooldown for stYFI
 
 **As a** stYFI user
-**I want** to start the cooldown period
+**I want** to start or add to a cooldown
 **So that** I can eventually withdraw my YFI
 
 ### Acceptance Criteria
 
-- Only visible when user has stYFI staked
-- **Partial resets:** If I already have a cooldown active:
-  - I am warned that adding more will **reset the timer** for the streaming portion.
-  - Any funds currently **liquid** (available) are automatically claimed to my wallet to prevent re-locking.
-- Shows cooldown start immediately on success
-- Shows cooldown end using contract epoch data
-- If blacklisted:
-  - disabled
+- Only visible when user has stYFI staked.
+- **Progressive Disclosure:** Input is hidden behind a "+ Unstake more" button if a cooldown is already active.
+- **Partial Resets & Auto-Claim:** If I add to an existing cooldown:
+  - I am explicitly warned that the 14-day timer will **reset** for the remaining stream.
+  - Any funds currently **liquid** (available) from the stream are **automatically claimed** to my `Exited` (unlocked) balance to prevent re-locking them.
+- Shows cooldown end timestamp.
 
 ---
 
@@ -149,13 +159,14 @@ We assume a technically literate DeFi user familiar with:
 
 ### Acceptance Criteria
 
-- **Progress Bar:** Visualizes the ratio of Liquid vs. Streaming funds.
-- **Linear Access:** Withdraw button enabled as soon as `Liquid > 0`.
+- **Unified Tab:** Withdraw logic lives in the same tab as Cooldown logic ("Unstake").
+- **Progress Bar:** Visualizes the ratio of Liquid vs. Streaming funds (Orange/Brand color).
+- **Linear Access:** Withdraw button enabled as soon as `Liquid > 0` OR `Exited > 0`.
 - **Clarity:** UI distinguishes between:
-  - "Available to Withdraw" (Liquid)
+  - "Available to Withdraw" (Liquid + Exited)
   - "Streaming" (Still locked, with time remaining)
 - After withdrawal success:
-  - Liquid amount reduces/zeros
+  - Liquid/Exited amount reduces/zeros
   - Wallet balance increases
   - Streaming portion continues unaffected
 

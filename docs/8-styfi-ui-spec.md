@@ -1,8 +1,8 @@
-# stYFI UI Spec v0.8
+# stYFI UI Spec v0.9
 
 **Status:** Approved / In Development
 **Applies to:** `styfi.yearn.fi` (and `/styfi` route)
-**Last updated:** 2025-11-28
+**Last updated:** 2025-12-17
 
 ---
 
@@ -12,8 +12,7 @@ This document defines the **UI and interaction model** for `styfi.yearn.fi`.
 It specifically addresses:
 
 - **Unified Mode Selector:** Single “Your Position” card that owns onboarding (expanded) and dashboard (collapsed) states.
-- **Mode State:** Single source of truth via a shared provider + persistence (LS), with URL sync for shareability.
-- **Onboarding:** Drawer-based onboarding, no separate page.
+- **Smart Onboarding:** Logic to skip manual selection if the user already has a position.
 - **Functionality:** Full support for partial staking, **linear streaming** cooldowns, and dynamic rewards.
 - **Stats & Hierarchy:** Separation of ecosystem health (Total Supply) from decision drivers (APR).
 
@@ -22,12 +21,10 @@ It specifically addresses:
 ## 2. Design Principles
 
 1.  **Flat, Single-Surface:** One page, no tabs, no routing complexity.
-2.  **Card-Centric State:** The “Your Position” card controls mode + onboarding. No separate toolbar/hero gating.
-3.  **URL-Friendly:** URL may include `?mode=` for deep links but the provider is the source of truth; we sync URL for shareability.
-4.  **Soft Onboarding:** First-time users see the card expanded (drawer) until they pick a mode; returning users land collapsed.
-5.  **Explicit, Safe Interactions:** All write actions (Stake, Cooldown, Withdraw) require explicit inputs.
-6.  **Data-Driven:** Labels (token symbols) and weights are driven by the client, not hardcoded.
-7.  **Visual Hierarchy:** Global stats (Supply/Staked) are secondary information; APR is a primary decision driver co-located with action areas.
+2.  **Card-Centric State:** The “Your Position” card controls mode + onboarding.
+3.  **Smart Defaults:** If a user connects with existing stYFI or stYFIx, we auto-select that mode.
+4.  **Explicit, Safe Interactions:** All write actions (Stake, Cooldown, Withdraw) require explicit inputs.
+5.  **Visual Hierarchy:** Global stats are secondary; APR is a primary decision driver.
 
 ---
 
@@ -52,10 +49,10 @@ It specifically addresses:
 --------------------------------------------------------------------
 | AppLauncher |              [ Yearn Logo ]          | Wallet |    <-- Global Header
 --------------------------------------------------------------------
-| Total Supply: 36k YFI    Staked: 2.5k YFI   Network: Mainnet     | <-- Protocol Stats Bar
+| Supply: 36k YFI   Staked: 2.5k (7.1%)   APR: 68.4%   State: Live | <-- Protocol Stats Bar
 --------------------------------------------------------------------
 |                                                                  |
-|               [ Your Position (APR 84.5% displayed here) ]       |
+|               [ Your Position (Balance Summary) ]                |
 |                                                                  |
 |               [ Cockpit: Stake/Manage | Rewards ]                |
 |                                                                  |
@@ -96,29 +93,31 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
 ### 6.1 Global Header
 
 - **Standard Component:** Uses the shared `Header.tsx`.
-- **Behavior:** Dumb component. Does **not** know about stYFI modes. Does not contain the switch.
+- **Content:** App Launcher, Logo, Epoch Countdown, Wallet Button. (YFI Balance pill removed to reduce noise).
 
 ### 6.2 Protocol Stats Bar
 
-- **Purpose:** Display ecosystem health indicators that provide social proof but do not drive immediate user input.
+- **Purpose:** Display ecosystem health and yield metrics.
 - **Content:**
-  - Total YFI Supply
-  - Total YFI Staked
+  - **Total Supply:** Global YFI supply.
+  - **Staked:** Total YFI staked (stYFI + stYFIx) + percentage of supply.
+  - **APR:** Current dynamic protocol APY.
+  - **State:** Current system phase (e.g., "Staking live").
 - **Style:** Full-width `neutral-100` strip with `border-b`. Text is `Aeonik Mono` (data-first).
 
 ### 6.3 Your Position Card (Unified Selector)
 
-- **Location:** Rendered inside `/app/styfi/StyfiPageClient.tsx`.
 - **States:**
-  - **Collapsed:** Shows active mode logos, balance summary, and **Current APR** (right-aligned).
+  - **Collapsed:** Shows active mode logos and balance summary.
   - **Expanded (Drawer):** Shows selection cards with "Variable" vs "Max" APR columns.
-- **Interactions:**
-  - **Secondary logo:** Quick switch (focusable button, `aria-label`).
-  - **Compare modes:** Toggles drawer (`aria-expanded`, `aria-controls`).
-  - **Selection cards:** Sets mode, persists LS flags, collapses.
 - **Persistence:**
-  - `styfi_onboarded`: boolean; if missing → start expanded.
-  - `styfi-last-mode`: `"styfi" | "x"`; optional last-mode hint.
+  - `styfi_onboarded`: boolean.
+  - `styfi-last-mode`: `'styfi' | 'x'`.
+- **Smart Onboarding:**
+  - If `styfi_onboarded` is false, but connected wallet has `> 0` stYFI or stYFIx:
+    - Automatically set mode to the one with higher balance.
+    - Mark `onboarded = true`.
+    - Skip drawer animation.
 
 ---
 
@@ -141,80 +140,58 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
 
 ### 8.1 Your Position Card (Selector + Drawer)
 
-**Purpose:** Own mode selection, onboarding, and key decision metrics (APR).
+**Purpose:** Own mode selection, onboarding, and balance display.
 
-**States:**
+**Balance Logic:**
+The display splits "Active" (earning) vs "Exiting" (idle or unlocking) funds.
 
-1.  **Onboarding (First Visit):**
+- **Active:** Funds currently staked and earning rewards.
+- **Exiting:** Funds in cooldown (streaming).
+- **Exited:** Funds fully unlocked (liquid) but not yet withdrawn.
 
-    - **Header:** Hidden (reduces noise).
-    - **Cards:** Both render in "Neutral" state (White background, raised).
-    - **Animation:** Cards slide down (staggered). "Recommended" badge pulses.
-    - **Interaction:** Clicking a card triggers the "Selected" state -> Header animates in -> Drawer collapses.
+**Format:**
 
-2.  **Collapsed (Dashboard):**
-
-    - Standard view for returning users.
-    - Shows active mode logos, balance summary, and **Current APR**.
-
-3.  **Expanded (Switching):**
-    - Header remains visible.
-    - Active mode card appears "Pressed" (Gray background, inner shadow).
-
-**Refinement (v0.8):**
-The balance display splits "Active" (earning) vs "Exiting" (idle) funds.
-
-- **Format:** `12.00 YFI` `active (+ 1.50 exiting)`
+- `12.00 YFI` `Active (+ 1.50 exiting)` (Stream active)
+- `12.00 YFI` `Active (+ 1.50 exited)` (Stream complete/liquid)
 
 ### 8.2 Rewards Card
 
-**Purpose:** Unified claim panel with visibility into future rewards.
-**Data Source:** `useStyfiRewards()`
+**Purpose:** Unified claim panel.
 
 **Fields:**
 
 1.  **Claimable (CTA):**
     - **Amount:** `claimableGeneric + claimableBoosted`.
-    - **CTA:** `Claim [Symbol]`. Disabled if 0.
-2.  **Accruing (Info):**
-    - **Label:** "Accruing (Next Epoch)"
-    - **Amount:** `accruingGeneric + accruingBoosted`.
+    - **CTA:** `Claim Rewards`. Disabled if 0.
+2.  **Earning Power (Footer):**
+    - **Label:** "Earning Power"
+    - **Value:** User's share of the total staking pool (User Active / Global Total).
+    - **Tooltip:** Explains that yield share depends on this ratio.
+
+_Note: "Accruing Rewards" was removed to simplify the dashboard._
 
 ### 8.3 Stake / Manage Card
 
 **Single card, always visible.**
-**Data Source:** `useStyfiPosition(mode)` + `useTx()`.
 
 **Tabs:**
 
 1.  **Stake**
 
-    - **Input:** `AmountInput` (supports specific amounts).
-    - **CTA:** "Approve YFI" -> "Stake YFI" (Black button).
+    - **Input:** `AmountInput`.
+    - **CTA:** "Approve YFI" -> "Stake YFI".
 
 2.  **Unstake (Unified)**
-
-    - **Purpose:** Handle the entire exit flow (Monitoring, Withdrawing, and Starting/Resetting).
     - **Visuals:**
-
-      - **Tab Badge:** If streaming, show Spinner. If complete/ready, show Orange Dot.
-
+      - **Tab Badge:** Hollow dot (Streaming) vs Solid dot (Ready).
     - **Section A: Status (Progress Bar)**
-
-      - **Visual:** **Orange** linear progress bar showing Liquid vs. Streaming ratio.
-      - **Labels:** "Total Unstaking", "Available", "Streaming (Time Left)".
-
+      - **Visual:** Orange linear progress bar.
     - **Section B: Withdraw Action**
-
-      - **Condition:** Only visible if `Liquid > 0`.
-      - **Action:** "Withdraw YFI" (Black button).
-
-    - **Section C: Start/Reset Cooldown (Progressive Disclosure)**
-      - **Condition:**
-        - If NO active cooldown: Input is visible.
-        - If ACTIVE cooldown: Input is hidden behind a **"+ Unstake more"** ghost button.
-      - **Interaction:** Clicking "+ Unstake more" reveals the input.
-      - **Warning:** If user types an amount while streaming is active, warn: _"Adding to cooldown will automatically claim available funds and reset the 14-day timer for the remaining stream."_
+      - **Condition:** Visible if `Liquid > 0`.
+      - **Action:** "Withdraw YFI".
+    - **Section C: Start/Reset Cooldown**
+      - **Condition:** Hidden behind "+ Unstake more" ghost button if stream is active.
+      - **Warning:** explicitly warns about timer reset and auto-claim of liquid funds.
 
 ---
 
@@ -237,9 +214,9 @@ The balance display splits "Active" (earning) vs "Exiting" (idle) funds.
 
 ## 11. State Matrix
 
-| User State    | LocalStorage                              | URL Params   | View                                            |
-| :------------ | :---------------------------------------- | :----------- | :---------------------------------------------- | ----------------------------------------- |
-| **New User**  | `styfi_onboarded` missing                 | Empty        | **Your Position** expanded (drawer).            |
-| **Returning** | `styfi_onboarded` = true, last-mode maybe | Empty        | Collapsed card in last-mode; dashboard renders. |
-| **Deep Link** | Any                                       | `?mode=x`    | Provider sets mode to `x`; card collapsed.      |
-| **Switching** | `styfi_onboarded` = true                  | `?mode=styfi | x`                                              | Mode switches; LS updated with last-mode. |
+| User State    | On-Chain Balance | View                                            |
+| :------------ | :--------------- | :---------------------------------------------- |
+| **New User**  | 0                | **Your Position** expanded (drawer).            |
+| **Smart New** | > 0              | Auto-selects mode with balance; Card collapsed. |
+| **Returning** | Any              | Collapsed card in last-mode.                    |
+| **Deep Link** | Any              | Provider sets mode from URL; Card collapsed.    |

@@ -1,6 +1,6 @@
 # 7. Copywriting & Tone of Voice
 
-**Version:** 1.0
+**Version:** 1.1
 **Source:** Yearn Tone of Voice Guide
 **Scope:** All user-facing text, error messages, toasts, and tooltips.
 
@@ -71,10 +71,14 @@ Be direct.
 
 ## 4. Glossary
 
-| Term            | Usage                                       |
-| :-------------- | :------------------------------------------ |
-| **stYFI**       | Always lowercase 'st', uppercase 'YFI'.     |
-| **veYFI**       | Always lowercase 've', uppercase 'YFI'.     |
-| **LLYFI**       | Liquid Lockers (generic term).              |
-| **Gauge**       | The contract where you stake BPT/LP tokens. |
-| **Vote Weight** | The power used in governance.               |
+| Term              | Usage                                                                    |
+| :---------------- | :----------------------------------------------------------------------- |
+| **stYFI**         | Always lowercase 'st', uppercase 'YFI'.                                  |
+| **veYFI**         | Always lowercase 've', uppercase 'YFI'.                                  |
+| **LLYFI**         | Liquid Lockers (generic term).                                           |
+| **Active**        | Funds currently staked and earning rewards.                              |
+| **Exiting**       | Funds currently in the linear cooldown stream (locked).                  |
+| **Exited**        | Funds fully unlocked (finished streaming) but not yet withdrawn.         |
+| **Earning Power** | The user's share of the total staking pool (User Active / Total Active). |
+| **Gauge**         | The contract where you stake BPT/LP tokens.                              |
+| **Vote Weight**   | The power used in governance.                                            |

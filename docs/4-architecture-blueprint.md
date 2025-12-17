@@ -1,8 +1,8 @@
 # 4. Architecture Blueprint
 
-**Version 0.7 — 2025-11-20**
+**Version 0.8 — 2025-12-17**
 Scope: stYFI • stYFIx • veYFI • LLYFI (BR#1 UI-first architecture)
-Status: Updated after Phase-3 implementation
+Status: Updated after Phase-5 implementation
 
 This blueprint defines the front-end implementation architecture for the governance applications under YIP-88, aligned with:
 
@@ -100,12 +100,16 @@ This replaces any domain-specific cooldown types.
 - **EpochInfo**
 - **StyfiAllowances**
 - **StyfiXPosition**
-- **StyfiAccountState**
+- **StyfiAccountState** (includes `unlocked` balances for Exited state)
+- **StyfiGlobalStats** (Total Supply, Total Staked)
 
 All read through:
 
 ```
 StyfiClient.getAccountState(address)
+StyfiClient.getStats()
+StyfiClient.getApy()
+StyfiClient.getEpochInfo()
 ```
 
 ### Actions (writes)
@@ -116,14 +120,6 @@ StyfiClient.getAccountState(address)
 - `prepareClaimRewards()`
 
 Mode is `"stYFI" | "stYFIx"`.
-
-All return:
-
-```
-Promise<PreparedTransaction>
-```
-
-(where Phase-1 PreparedTransaction is a stub, expanded in Phase-2)
 
 ---
 
@@ -244,6 +240,8 @@ All business logic lives in domain hooks.
 Examples:
 
 - `useStyfiAccount()`
+- `useStyfiStats()` (Global stats)
+- `useStyfiApy()` (Dynamic APY)
 - `useVeyfiAccount()`
 - `useEpoch()`
 - `useLlyfiTokens()`
@@ -255,7 +253,6 @@ These:
 - Have stable query keys
 - Cache and revalidate predictably
 - Derive UI-ready computed values
-- Allowances for stYFI/LLYFI must come from domain account state; `useTokenAllowance` is reserved for on-chain reads and returns a stub in mock mode.
 
 ## 7.2 Write Hooks
 
@@ -380,11 +377,13 @@ Mocks simulate domain behaviour deterministically and are the primary target for
 
 ### Shared patterns (target behaviour):
 
-- In-memory store per user
-- Controlled “time” for cooldowns
-- Configurable latency
-- Mutation on stake/cooldown/withdraw/redeem
-- Deterministic “random” reward accrual
+- **Persistence:** In-memory store is persisted to `sessionStorage` to survive page reloads (simulating "Returning User" flows).
+- **Global Store:** Module-level global Map to track state across fast-refreshes.
+- **Configurable Latency:** Simulates network conditions.
+- **Debug Helpers:**
+  - `debugSetBalance`: Immediate injection (connected).
+  - `debugSetPendingBalance`: Queued injection (onboarding flows).
+  - `timeTravel`: Advances internal clock for epoch/cooldown testing.
 
 For **Phase 2**, mocks:
 
@@ -411,9 +410,9 @@ This produces a dev environment where:
 
 To ensure a smooth developer experience where UI updates immediately after transactions:
 
-1.  **Global State:** Mocks use a module-level global `Map` to persist state across React fast-refreshes and component remounts.
-2.  **Implicit Context:** Mocks track the `lastAddress` used in `getAccountState`. This allows `prepare*` methods (which do not accept an address argument) to know which account to mutate during the simulated transaction.
-    - _Note:_ This is a dev-only hack. Real clients rely on the wallet provider's active signer.
+1.  **Global State:** Mocks use a module-level global `Map` to persist state.
+2.  **Implicit Context:** Mocks track the `lastAddress` used in `getAccountState`.
+3.  **Serialization:** Custom JSON replacer/reviver handles `BigInt` persistence in session storage.
 
 ---
 

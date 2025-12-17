@@ -1,7 +1,7 @@
 # `03-frontend-frd.md`
 
 **Frontend Functional Requirements — stYFI, stYFIx, veYFI, LLYFI**
-**Version:** 0.3
+**Version:** 0.4
 **Applies to:** `governance-apps` repository
 **Scope:** Part I (stYFI/stYFIx) and Part II (veYFI/LLYFI)
 
@@ -192,6 +192,7 @@ type StyfiAccountState = {
   // stYFI
   styfiActive: bigint;
   styfiInCooldown: bigint;
+  styfiUnlocked: bigint; // Funds finished streaming but not withdrawn
   styfiCooldown: CooldownState;
 
   // stYFIx
@@ -212,36 +213,22 @@ UI requirements:
 
 - **Wallet section** must show:
 
-  - `yfiBalance`
+  - `yfiBalance` (displayed in Input fields or Position Card).
+  - _Note:_ Global Header balance display is removed.
 
 - **stYFI section** must show:
 
   - `styfiActive` (active staked amount)
   - `styfiInCooldown` (amount currently in cooldown)
-  - `styfiCooldown` (`CooldownState` — amount + `endsAt` if a cooldown is active, `null` otherwise)
+  - `styfiUnlocked` (amount fully liquid but not withdrawn)
+  - `styfiCooldown` (`CooldownState` — amount + `endsAt`)
 
 - **stYFIx section** must show:
 
   - `styfiX` (see below)
 
 - **Rewards section** must show:
-
-  - `claimableGenericRewards`
-  - `claimableBoostedRewards`
-  - `accruingGenericRewards`
-  - `accruingBoostedRewards`
-
-- **Allowances**:
-
-  - `allowances.yfiToStyfi`
-  - `allowances.yfiToStyfiX`
-  - These drive Approve vs Stake button states.
-
-- **Epoch info**:
-
-  - `epoch.currentEpoch`
-  - `epoch.epochEnd`
-  - `epoch.nextEpochStart`
+  - `claimableGenericRewards` + `claimableBoostedRewards`
 
 ### 3.1.2. `StyfiXPosition`
 
@@ -251,17 +238,18 @@ type StyfiXPosition = {
   sharesInCooldown: bigint;
   assetsActive: bigint; // underlying YFI equivalent
   assetsInCooldown: bigint;
+  assetsUnlocked: bigint; // underlying YFI finished streaming
   cooldown: CooldownState;
 };
 ```
 
 UI requirements:
 
-- Show both **share-level** exposure (`sharesActive`, `sharesInCooldown`) and **underlying YFI** (`assetsActive`, `assetsInCooldown`).
-- Explain via copy that:
-
-  - Shares ≠ YFI.
-  - Vault PPS increases over time (auto-compounding / rewards).
+- Show both **share-level** exposure and **underlying YFI**.
+- Differentiate between:
+  - **Active:** Earning rewards.
+  - **Exiting:** In cooldown stream.
+  - **Exited:** Fully unlocked (`assetsUnlocked`).
 
 ### 3.1.3. `EpochInfo`
 
@@ -301,15 +289,12 @@ UI requirements:
 
 ### 3.1.5. Reward Windows
 
-The UI must distinguish:
+The Client MUST provide:
 
 - **Accruing rewards** — `accruingGenericRewards` and `accruingBoostedRewards`
-
-  - These represent rewards inside the 7-epoch **collection** window and are **not yet claimable**.
-
 - **Claimable rewards** — `claimableGenericRewards` and `claimableBoostedRewards`
 
-  - These represent rewards inside the **payout** window and can be claimed.
+**UI Note:** The frontend MAY hide the "Accruing" values to simplify the dashboard and focus users on the actionable "Claimable" amount. However, the data must remain available in the domain state for potential future use or detailed tooltips.
 
 The UI **MUST NOT**:
 
