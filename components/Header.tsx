@@ -19,6 +19,40 @@ export function Header() {
   const epochNumber = epochData?.currentEpoch;
   const epochEnd = epochData?.epochEnd;
 
+  const navItems = useMemo(() => {
+    const normalizedPath = pathname ?? "/";
+    const host =
+      typeof window === "undefined" ? undefined : window.location.hostname;
+
+    const app = normalizedPath.startsWith("/veyfi")
+      ? "veyfi"
+      : normalizedPath.startsWith("/styfi")
+        ? "styfi"
+        : host?.includes("veyfi")
+          ? "veyfi"
+          : host?.includes("styfi")
+            ? "styfi"
+            : "styfi";
+
+    const primaryHref = normalizedPath.startsWith("/veyfi")
+      ? "/veyfi"
+      : normalizedPath.startsWith("/styfi")
+        ? "/styfi"
+        : "/";
+
+    const primaryItem = {
+      label: app === "veyfi" ? "veYFI" : "stYFI",
+      href: primaryHref,
+      variant: "primary" as const,
+    };
+
+    const secondaryItems = appCopy.nav.items.filter(
+      (item) => item.variant !== "primary"
+    );
+
+    return [primaryItem, ...secondaryItems];
+  }, [pathname]);
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-200 bg-neutral-100/80 backdrop-blur-md">
       <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
@@ -29,7 +63,7 @@ export function Header() {
 
           {/* Desktop Nav */}
           <nav className="hidden gap-6 md:flex">
-            {appCopy.nav.items.map((item) => {
+            {navItems.map((item) => {
               const isExternal = item.href.startsWith("http");
               const isActive = !isExternal && pathname.startsWith(item.href);
               const emphasis =
@@ -75,7 +109,7 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="border-t border-neutral-200 bg-white p-4 md:hidden shadow-xl">
           <nav className="flex flex-col gap-4">
-            {appCopy.nav.items.map((item) => {
+            {navItems.map((item) => {
               const isExternal = item.href.startsWith("http");
               const isActive = !isExternal && pathname.startsWith(item.href);
               const emphasis =
