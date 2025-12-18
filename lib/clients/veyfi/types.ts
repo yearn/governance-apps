@@ -14,6 +14,7 @@ export type LlyfiTokenState = {
   symbol: LlyfiTokenId;
   name: string;
   decimals: number;
+  address: Address;
 
   walletBalance: bigint;
   stakedBalance: bigint;
@@ -44,4 +45,11 @@ export type VeyfiAccountState = {
   veYfi: VeYfiMigrationState | null;
   llyfiTokens: LlyfiTokenState[];
   redemptionCaps: RedemptionCaps;
+};
+
+export type VeyfiGlobalStats = {
+  migratedYfi: bigint;
+  legacyYfiSupply: bigint;
+  maxBoostMultiplier: number; // e.g. 1.52 for 1.52x
+  totalLlyfiStakedPercent: number; // 0-1 (e.g. 0.85 for 85%)
 };

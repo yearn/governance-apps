@@ -11,6 +11,7 @@ export const veyfiKeys = {
   all: ["veyfi"] as const,
   account: (address?: string) =>
     [...veyfiKeys.all, "account", address] as const,
+  stats: () => [...veyfiKeys.all, "stats"] as const,
 };
 
 // --- Read Hooks ---
@@ -27,6 +28,16 @@ export function useVeyfiAccount() {
     },
     enabled: !!address,
     staleTime: 10_000,
+  });
+}
+
+export function useVeyfiStats() {
+  const { veyfi } = useProtocol();
+
+  return useQuery({
+    queryKey: veyfiKeys.stats(),
+    queryFn: () => veyfi.getGlobalStats(),
+    staleTime: 60_000,
   });
 }
 
@@ -57,17 +68,17 @@ export function useVeyfiMigration() {
   const write = async () => {
     const prepare = await veyfi.prepareMigrateVeYfi();
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: veyfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+    await execute(prepare, {
+      invalidate: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }
 
 export function useLlyfiStake() {
@@ -79,17 +90,17 @@ export function useLlyfiStake() {
   const write = async (symbol: LlyfiTokenId, amount: bigint) => {
     const prepare = await veyfi.prepareStakeLlyfi(symbol, amount);
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: veyfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+    await execute(prepare, {
+      invalidate: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }
 
 export function useLlyfiStartCooldown() {
@@ -101,17 +112,17 @@ export function useLlyfiStartCooldown() {
   const write = async (symbol: LlyfiTokenId, amount: bigint) => {
     const prepare = await veyfi.prepareStartCooldownLlyfi(symbol, amount);
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: veyfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+    await execute(prepare, {
+      invalidate: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }
 
 export function useLlyfiWithdraw() {
@@ -123,17 +134,17 @@ export function useLlyfiWithdraw() {
   const write = async (symbol: LlyfiTokenId) => {
     const prepare = await veyfi.prepareWithdrawLlyfi(symbol);
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: veyfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+    await execute(prepare, {
+      invalidate: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }
 
 export function useVeyfiClaimRewards() {
@@ -145,17 +156,17 @@ export function useVeyfiClaimRewards() {
   const write = async () => {
     const prepare = await veyfi.prepareClaimLlyfiRewards();
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: veyfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+    await execute(prepare, {
+      invalidate: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }
 
 export function useLlyfiRedeem() {
@@ -167,15 +178,15 @@ export function useLlyfiRedeem() {
   const write = async (symbol: LlyfiTokenId, amount: bigint) => {
     const prepare = await veyfi.prepareRedeemLlyfi(symbol, amount);
 
-      await execute(prepare, {
-        invalidate: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: veyfiKeys.account(address),
-          });
-        },
-        skipWaitForReceipt: usesMockBackend,
-      });
-    };
+    await execute(prepare, {
+      invalidate: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
 
-    return { write, state };
+  return { write, state };
 }

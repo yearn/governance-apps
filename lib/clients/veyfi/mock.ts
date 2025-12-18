@@ -10,9 +10,15 @@ import type {
   LlyfiTokenState,
   RedemptionCaps,
   VeyfiAccountState,
+  VeyfiGlobalStats,
 } from "./types";
 import type { VeyfiClient } from "./client";
-import { MOCK_LLYFI_MAP } from "@/lib/constants";
+import {
+  MOCK_LLYFI_MAP,
+  MOCK_SDYFI_ADDRESS,
+  MOCK_UPYFI_ADDRESS,
+  MOCK_COVEYFI_ADDRESS,
+} from "@/lib/constants";
 import { nowSeconds } from "@/lib/mocks/time";
 import { getMockScenario } from "@/lib/mocks/scenario";
 
@@ -71,15 +77,25 @@ function defaultVeYfiState(): VeYfiMigrationState {
 }
 
 function defaultLlyfiTokens(): LlyfiTokenState[] {
-  const base: Array<{ symbol: LlyfiTokenId; name: string }> = [
-    { symbol: "sdYFI", name: "StakeDAO YFI Locker" },
-    { symbol: "upYFI", name: "1UP YFI Locker" },
-    { symbol: "coveYFI", name: "Cove YFI Locker" },
-  ];
+  const base: Array<{ symbol: LlyfiTokenId; name: string; address: Address }> =
+    [
+      {
+        symbol: "sdYFI",
+        name: "StakeDAO YFI Locker",
+        address: MOCK_SDYFI_ADDRESS,
+      },
+      { symbol: "upYFI", name: "1UP YFI Locker", address: MOCK_UPYFI_ADDRESS },
+      {
+        symbol: "coveYFI",
+        name: "Cove YFI Locker",
+        address: MOCK_COVEYFI_ADDRESS,
+      },
+    ];
 
   return base.map((token, i) => ({
     symbol: token.symbol,
     name: token.name,
+    address: token.address,
     decimals: 18,
     walletBalance: (5n + BigInt(i)) * 10n ** 18n,
     stakedBalance: 0n,
@@ -212,6 +228,17 @@ export class MockVeyfiClient implements VeyfiClient {
         perToken: matured.redemptionCaps.perToken.map((p) => ({ ...p })),
       },
       veYfi: matured.veYfi ? { ...matured.veYfi } : null,
+    };
+  }
+
+  async getGlobalStats(): Promise<VeyfiGlobalStats> {
+    await delay(this.latencyMs / 2);
+    // Mock Fixtures
+    return {
+      migratedYfi: 4213n * 10n ** 18n,
+      legacyYfiSupply: 8100n * 10n ** 18n, // ~52% migrated
+      maxBoostMultiplier: 1.52,
+      totalLlyfiStakedPercent: 0.85,
     };
   }
 
@@ -553,56 +580,4 @@ export class MockVeyfiClient implements VeyfiClient {
       this.setState(user, next);
     }
   }
-}
-
-export function createMockVeyfiClient(options?: VeyfiMockOptions): VeyfiClient {
-  return new MockVeyfiClient(options);
-}
-
-export function setMockLlyfiAllowance(
-  user: Address,
-  tokenAddress: Address,
-  amount: bigint
-) {
-  const key = user.toLowerCase();
-  if (!GLOBAL_VEYFI_STORE.has(key)) return;
-
-  const state = GLOBAL_VEYFI_STORE.get(key)!;
-
-  const symbol = MOCK_LLYFI_MAP[tokenAddress.toLowerCase()];
-  if (!symbol) return;
-
-  const next = {
-    ...state,
-    llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
-  };
-
-  const token = next.llyfiTokens.find((t) => t.symbol === symbol);
-  if (token) {
-    token.allowance = amount;
-  }
-
-  GLOBAL_VEYFI_STORE.set(key, next);
-}
-
-export function setMockRedemptionUsage(
-  user: Address,
-  globalUsed: bigint,
-  perTokenUsed?: Partial<Record<LlyfiTokenId, bigint>>
-) {
-  const key = user.toLowerCase();
-  if (!GLOBAL_VEYFI_STORE.has(key)) return;
-  const state = GLOBAL_VEYFI_STORE.get(key)!;
-  const next = {
-    ...state,
-    redemptionCaps: {
-      ...state.redemptionCaps,
-      globalUsed,
-      perToken: state.redemptionCaps.perToken.map((p) => ({
-        ...p,
-        used: perTokenUsed?.[p.symbol] ?? p.used,
-      })),
-    },
-  };
-  GLOBAL_VEYFI_STORE.set(key, next);
 }

@@ -1,9 +1,14 @@
 // lib/clients/veyfi/client.ts
 import type { PreparedTransaction } from "@/lib/tx/types";
-import type { VeyfiAccountState, LlyfiTokenId } from "./types";
+import type {
+  VeyfiAccountState,
+  LlyfiTokenId,
+  VeyfiGlobalStats,
+} from "./types";
 
 export interface VeyfiClient {
   getAccountState(address: `0x${string}`): Promise<VeyfiAccountState>;
+  getGlobalStats(): Promise<VeyfiGlobalStats>;
 
   prepareMigrateVeYfi(): Promise<PreparedTransaction>;
 
