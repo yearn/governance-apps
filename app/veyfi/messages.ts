@@ -32,7 +32,7 @@ export const veyfiCopy = {
     },
   },
   redemptionCard: {
-    title: "Redemption Intelligence",
+    title: "Redemption Availability",
     globalCapLabel: "Global Cap Used",
     feeLabel: "Current Exit Fee",
     availabilityTitle: "Token Availability",
@@ -76,11 +76,13 @@ export const veyfiCopy = {
     },
   },
   rewards: {
-    title: "LLYFI Rewards",
+    title: "Rewards",
+    headline: "Claim your yvUSDC",
     amountLabel: "Total Claimable",
-    linkCta: "Go to Dashboard",
+    linkCta: "Go to stYFI Dashboard",
     claimCta: "Claim here",
-    helper: "View your full Earning Power on the stYFI Dashboard.",
+    helper:
+      "All governance rewards are aggregated and claimable on the stYFI dashboard.",
     empty: "No rewards pending.",
   },
 } as const;

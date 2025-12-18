@@ -11,14 +11,14 @@ export function VeyfiCockpit() {
       {/* Zone 1: Migration (Conditionally rendered inside) */}
       <MigrationCard />
 
-      {/* Zone 2: Redemption Intelligence */}
-      <RedemptionStatusCard />
-
-      {/* Zone 3: Main Ledger */}
+      {/* Zone 2: Main Ledger */}
       <LlyfiTokenTable />
 
-      {/* Zone 4: Rewards & Navigation */}
-      <VeyfiRewardsCard />
+      {/* Zone 3: Redemption Intelligence & Rewards */}
+      <div className="grid gap-6 lg:grid-cols-2 items-start">
+        <RedemptionStatusCard />
+        <VeyfiRewardsCard />
+      </div>
     </div>
   );
 }
