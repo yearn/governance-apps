@@ -15,6 +15,7 @@ They define **what the frontend must do** and **how it is built**, and serve as 
 - [**7-copy-and-tone.md**](7-copy-and-tone.md) — Copywriting guidelines and voice commandments
 - [**8-styfi-ui-spec.md**](8-styfi-ui-spec.md) — stYFI UI spec
 - [**9-frontend-architecture.md**](9-frontend-architecture.md) — Frontend architecture doc
+- [**10-veyfi-ui-spec.md**](10-veyfi-ui-spec.md) — veYFI UI spec
 - [**dev-mock-toggles.md**](dev-mock-toggles.md) — Mock scenarios and time offset for local UI testing
 
 ## Usage

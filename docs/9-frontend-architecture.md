@@ -1,6 +1,6 @@
 # 9. Frontend Architecture
 
-**Version 0.4 — 2025-12-17**
+**Version 0.5 — 2025-12-18**
 Scope: stYFI • stYFIx • veYFI (UI implementation architecture)
 Status: Updated for Phase 5 completion
 
@@ -257,25 +257,84 @@ We do **not** block the entire `/styfi` route on a single slow query.
 
 ---
 
-## 9. veYFI / LLYFI (Preview for Future Phases)
+## 9. `/veyfi` Implementation Architecture
 
-The same patterns apply to `/veyfi` when we implement it:
+### 9.1 Overview
 
-- `/veyfi` has its own **Domain Toolbar** (`VeyfiDomainToolbar`).
-- View state (e.g. which LLYFI token, which filter) can use:
+`/veyfi` follows a **Registry** pattern (vertical list of assets) rather than a Dashboard pattern.
 
-  - URL search params where it makes sense (shareable views).
-  - Local component state or context where state is purely local/temporary.
+```text
+/veyfi
+  ├── Global Header
+  └── VeyfiPageClient
+       ├─ [VeyfiStatsBar]       (Ecosystem health: Migration %, Boost, Staked %)
+       └─ Main Container
+            ├─ [MigrationCard]        (Conditionally visible: Action vs Info)
+            ├─ [RedemptionStatusCard] ("Flight Board": Global Caps & Fees)
+            ├─ [LlyfiTokenTable]      (The Ledger)
+            │    └─ [LlyfiTokenRow]   (Expandable)
+            │         └─ [Cockpit]    (Stake | Unstake | Trade)
+            └─ [RewardsNavCard]       (Link to stYFI dashboard)
+```
 
-- Component tree and hooks structure mirror the stYFI approach:
+### 9.2 Component Tree & Directory Structure
 
-  - Granular, feature-driven hooks.
-  - Cards for migration, staking, rewards, redemption.
+```text
+app/
+  veyfi/
+    page.tsx
+    VeyfiPageClient.tsx
+    messages.ts
 
-- The `StatsBar` pattern should be reused for `/veyfi` to show Global Redemption Caps or Total LLYFI Staked.
+    components/
+      VeyfiStatsBar.tsx
+      VeyfiCockpit.tsx           (Layout wrapper)
 
-`4-architecture-blueprint.md` continues to define the **domain model and clients.**
-`9-frontend-architecture.md` defines **how we wire routes, components, hooks and URL state**.
+      MigrationCard.tsx
+      RedemptionStatusCard.tsx   (New "Intelligence" component)
+
+      LlyfiTokenTable.tsx
+      LlyfiTokenRow.tsx
+      LlyfiRowCockpit.tsx        (Tabs wrapper)
+
+      VeyfiRewardsCard.tsx       (Nav to stYFI)
+
+      tabs/
+        LlyfiStakeTab.tsx
+        LlyfiUnstakeTab.tsx
+        LlyfiTradeTab.tsx        (Mint / Redeem logic)
+```
+
+### 9.3 Hooks & Data Dependencies
+
+We follow the same granular hook pattern as stYFI.
+
+Under `/lib/hooks/useVeyfi.ts`:
+
+1.  `useVeyfiAccount()`
+
+    - Returns: `veYfi` migration state, `redemptionCaps`, `llyfiTokens` (user balances).
+    - Used by: `MigrationCard`, `LlyfiTokenTable`, `LlyfiTokenRow`.
+
+2.  `useRedemptionCaps()`
+
+    - Selector on `useVeyfiAccount`.
+    - Used by: `RedemptionStatusCard`, `LlyfiTradeTab` (for validation), `VeyfiStatsBar` (for Fee display).
+
+3.  `useVeyfiStats()` (**New**)
+
+    - Source: `VeyfiClient.getGlobalStats`
+    - Returns: `migratedYfi`, `maxBoostMultiplier`, `totalStakedPercent`.
+    - Used by: `VeyfiStatsBar`.
+
+4.  `useLlyfiTokens()`
+    - Selector on `useVeyfiAccount`.
+    - Used by: `LlyfiTokenTable`.
+
+### 9.4 State Management
+
+- **Selection:** Unlike stYFI, there is no global "Mode". The user selects a token by expanding a row. This state is local to `LlyfiTokenTable` (or `LlyfiTokenRow`).
+- **Trade Mode:** "Mint" vs "Redeem" state is local to `LlyfiTradeTab`.
 
 ---
 
@@ -319,6 +378,5 @@ This frontend architecture:
 
 This doc should be updated when:
 
-- We introduce `/veyfi` UI.
 - We change route-level state patterns.
 - We introduce shared FE infra that affects multiple domains (e.g. centralized toast system, shared tx drawer, global error boundary).

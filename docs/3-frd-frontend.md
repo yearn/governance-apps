@@ -1,7 +1,7 @@
 # `03-frontend-frd.md`
 
 **Frontend Functional Requirements — stYFI, stYFIx, veYFI, LLYFI**
-**Version:** 0.4
+**Version:** 0.5
 **Applies to:** `governance-apps` repository
 **Scope:** Part I (stYFI/stYFIx) and Part II (veYFI/LLYFI)
 
@@ -459,9 +459,72 @@ UI:
 
 ---
 
-# 4. veYFI & LLYFI Frontend Requirements
+## 4. veYFI & LLYFI Frontend Requirements
 
-(Part II Domain - unchanged from v0.2)
+(Part II Domain)
+
+## 4.1. Required Reads (veYFI)
+
+### 4.1.1. `VeyfiAccountState` (User)
+
+From the client:
+
+```ts
+type VeyfiAccountState = {
+  address: Address;
+  isBlacklisted: boolean;
+  veYfi: VeYfiMigrationState | null;
+  llyfiTokens: LlyfiTokenState[];
+  redemptionCaps: RedemptionCaps;
+};
+```
+
+### 4.1.2. `VeyfiGlobalStats` (System)
+
+**New Requirement (Phase 6):** The client **MUST** expose global health metrics for the top bar.
+
+```ts
+type VeyfiGlobalStats = {
+  migratedYfi: bigint;
+  legacyYfiSupply: bigint;
+  maxBoostMultiplier: number; // e.g., 1.5 or 15000 bps
+  totalLlyfiStakedPercent: number; // 0-1 (or bps)
+};
+```
+
+UI requirements:
+
+- Stats bar MUST derive its values from this object.
+- `RedemptionCaps` (fee, utilization) are read from the Account State (as they might arguably be user-specific in some designs, though globally identical usually).
+
+## 4.2. Actions & Preconditions
+
+### 4.2.1. Migration
+
+- Call `prepareMigrateVeYfi()`.
+- Only visible if `veYfi.legacyBalance > 0` and `migrationEligible`.
+
+### 4.2.2. Redemption (Trade Tab)
+
+- **Minting (YFI -> LLYFI):**
+  - Ideally just a wrap/deposit function.
+  - No fee.
+- **Redeeming (LLYFI -> YFI):**
+  - **Constraints:**
+    - Check `RedemptionCaps.globalLimit - globalUsed`.
+    - Check `RedemptionCaps.perToken[symbol].limit - used`.
+  - **Fee:** Display exit fee (bps) deducted from output.
+  - **Precondition:** User must have _liquid_ LLYFI (wallet balance).
+
+### 4.2.3. LLYFI Staking / Unstaking
+
+- Follows the exact same **Linear Streaming** behavior as stYFI.
+- `LlyfiTokenState` contains the `CooldownState`.
+
+### 4.2.4. Rewards
+
+- UI directs users to `/styfi` dashboard.
+- Fallback `prepareClaimLlyfiRewards()` exists if needed.
 
 ---
 
