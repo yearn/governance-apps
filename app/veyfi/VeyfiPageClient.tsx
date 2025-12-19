@@ -8,7 +8,7 @@ import { VeyfiStatsBar } from "./components/VeyfiStatsBar";
 import { VeyfiCockpit } from "./components/VeyfiCockpit";
 import { veyfiCopy as copy } from "./messages";
 import { useProtocol } from "@/state/protocol";
-import { MockControls } from "@/app/styfi/components/MockControls";
+import { MockControls } from "./components/MockControls";
 
 export function VeyfiPageClient() {
   const { isConnected } = useAccount();

@@ -181,7 +181,7 @@ export function MigrationCard() {
               <div className="relative h-2 w-full">
                 {/* Track Background */}
                 <div className="absolute inset-0 bg-neutral-100 rounded-full overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-disco-500 to-neutral-200 opacity-20" />
+                  <div className="absolute inset-0 bg-linear-to-r from-disco-500 to-neutral-200 opacity-20" />
                 </div>
 
                 {/* Marker */}
