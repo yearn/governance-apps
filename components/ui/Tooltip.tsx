@@ -4,7 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/cn";
 
 type TooltipProps = {
-  content: string;
+  content: React.ReactNode;
   children: React.ReactNode;
   side?: "top" | "bottom" | "left" | "right";
   className?: string;
@@ -44,17 +44,17 @@ export function Tooltip({
         role="tooltip"
         className={cn(
           // Layout
-          "pointer-events-none absolute z-50 w-max max-w-[200px]",
+          "pointer-events-none absolute z-50 w-max max-w-[280px]", // Increased max-width for tables
           sideClasses,
 
           // Visuals (Pop-over Card style)
-          "rounded-md border border-neutral-200 bg-white p-2 shadow-lg",
+          "rounded-md border border-neutral-200 bg-white p-3 shadow-xl", // Increased padding/shadow
 
           // Typography
-          "text-center text-xs font-normal text-neutral-600 leading-relaxed",
+          "text-xs font-normal text-neutral-600 leading-relaxed",
 
           // Animation
-          "transition-all duration-200 ease-out",
+          "transition-all duration-200 ease-out origin-center",
           open
             ? "opacity-100 scale-100 visible"
             : "opacity-0 scale-95 invisible"

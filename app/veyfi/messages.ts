@@ -51,15 +51,30 @@ export const veyfiCopy = {
     capFull: "Cap Full",
   },
   manage: {
-    title: "LLYFI Tokens",
+    title: "Legacy Liquid Locker Tokens",
     columns: {
       asset: "Asset",
-      apy: "Net APY",
-      wallet: "Wallet",
-      staked: "Staked",
+      backing: "Locker Status",
+      ratio: "Staked Ratio",
+      apr: "Effective APR",
+      deposits: "Your Deposits",
     },
     row: {
-      apyValue: (base: string, boost: string) => `${base} + ${boost} boost`,
+      boostLabel: (val: string) => `${val} boost`,
+      availableLabel: (val: string) => `Available: ${val}`,
+      boostedBaseLabel: (val: string) => `${val} Boosted Base`,
+      tooltips: {
+        supply: (staked: string, total: string) => `Total Supply: ${total}`,
+        ratio:
+          "Ratio of total supply that is currently staked. Lower ratio results in higher effective yield.",
+        apr: {
+          base: "Base stYFI APR",
+          boost: "veYFI Boost",
+          boostedBase: "Boosted Base",
+          ratio: "Staked Ratio",
+          effective: "Effective APR",
+        },
+      },
     },
     cockpit: {
       tabs: {

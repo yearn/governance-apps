@@ -27,6 +27,12 @@ export type LlyfiTokenState = {
   accruingRewards: bigint;
 
   allowance: bigint;
+
+  // Metadata for "Legacy Liquid Locker" Table
+  lockedYfi: bigint; // Total YFI locked in the underlying protocol
+  veyfiBoost: number; // e.g. 1.95 for 1.95x
+  totalSupply: bigint; // Total supply of the LLYFI token
+  stakedSupply: bigint; // Amount of LLYFI staked in our contract
 };
 
 export type RedemptionCaps = {

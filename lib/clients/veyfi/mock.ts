@@ -145,35 +145,74 @@ function defaultVeYfiState(): VeYfiMigrationState {
   };
 }
 
-function defaultLlyfiTokens(): LlyfiTokenState[] {
-  const base: Array<{ symbol: LlyfiTokenId; name: string; address: Address }> =
-    [
-      {
-        symbol: "sdYFI",
-        name: "StakeDAO YFI Locker",
-        address: MOCK_SDYFI_ADDRESS,
-      },
-      { symbol: "upYFI", name: "1UP YFI Locker", address: MOCK_UPYFI_ADDRESS },
-      {
-        symbol: "coveYFI",
-        name: "Cove YFI Locker",
-        address: MOCK_COVEYFI_ADDRESS,
-      },
-    ];
+// Helper to get random number in range [min, max]
+function getRandomRange(min: number, max: number): number {
+  return Math.random() * (max - min) + min;
+}
 
-  return base.map((token, i) => ({
-    symbol: token.symbol,
-    name: token.name,
-    address: token.address,
-    decimals: 18,
-    walletBalance: (5n + BigInt(i)) * 10n ** 18n,
-    stakedBalance: 0n,
-    cooldownBalance: 0n,
-    cooldown: null,
-    claimableRewards: 0n,
-    accruingRewards: 0n,
-    allowance: 0n,
-  }));
+function defaultLlyfiTokens(): LlyfiTokenState[] {
+  // Hardcoded values from requirements
+  const tokenConfigs: Array<{
+    symbol: LlyfiTokenId;
+    name: string;
+    address: Address;
+    lockedYfi: bigint;
+    totalSupply: bigint;
+  }> = [
+    {
+      symbol: "sdYFI",
+      name: "StakeDAO",
+      address: MOCK_SDYFI_ADDRESS,
+      lockedYfi: 22973n * 10n ** 16n, // 229.73 YFI
+      totalSupply: 23680n * 10n ** 16n, // 236.80 sdYFI
+    },
+    {
+      symbol: "upYFI",
+      name: "1UP",
+      address: MOCK_UPYFI_ADDRESS,
+      lockedYfi: 19951n * 10n ** 16n, // 199.51 YFI
+      // Using BigInt literal for precise representation of 14,347,836.97
+      totalSupply: 1434783697n * 10n ** 16n,
+    },
+    {
+      symbol: "coveYFI",
+      name: "Cove",
+      address: MOCK_COVEYFI_ADDRESS,
+      lockedYfi: 7492n * 10n ** 16n, // 74.92 YFI
+      totalSupply: 7609n * 10n ** 16n, // 76.09 coveYFI
+    },
+  ];
+
+  return tokenConfigs.map((token, i) => {
+    // Randomized Boost (1.90 - 1.99)
+    const veyfiBoost = getRandomRange(1.9, 1.99);
+
+    // Randomized Staked Ratio (20% - 80%)
+    const stakedRatio = getRandomRange(0.2, 0.8);
+    // stakedSupply = totalSupply * ratio
+    // We do this via BigInt math to avoid precision loss
+    const ratioBps = BigInt(Math.floor(stakedRatio * 10000));
+    const stakedSupply = (token.totalSupply * ratioBps) / 10000n;
+
+    return {
+      symbol: token.symbol,
+      name: token.name,
+      address: token.address,
+      decimals: 18,
+      walletBalance: (5n + BigInt(i)) * 10n ** 18n,
+      stakedBalance: 0n,
+      cooldownBalance: 0n,
+      cooldown: null,
+      claimableRewards: 0n,
+      accruingRewards: 0n,
+      allowance: 0n,
+      // Metadata
+      lockedYfi: token.lockedYfi,
+      veyfiBoost,
+      totalSupply: token.totalSupply,
+      stakedSupply,
+    };
+  });
 }
 
 function defaultRedemptionCaps(): RedemptionCaps {
@@ -450,6 +489,8 @@ export class MockVeyfiClient implements VeyfiClient {
         }
         token.walletBalance -= amount;
         token.stakedBalance += amount;
+        // Mock Side Effect: Increase staked supply to reflect pool changes
+        token.stakedSupply += amount;
         this.setState(targetAddress, next);
       }
 
@@ -490,6 +531,8 @@ export class MockVeyfiClient implements VeyfiClient {
           throw new Error("Mock: Insufficient staked balance");
         }
         token.stakedBalance -= amount;
+        // Mock Side Effect: Decrease staked supply
+        token.stakedSupply -= amount;
         token.cooldownBalance += amount;
         token.cooldown = {
           amount: token.cooldownBalance,

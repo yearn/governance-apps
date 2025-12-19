@@ -3,7 +3,6 @@
 import { useLlyfiTokens } from "@/lib/hooks/useVeyfi";
 import { Card } from "@/components/ui/Card";
 import { LlyfiTokenRow } from "./LlyfiTokenRow";
-import { veyfiCopy as copy } from "../messages";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 export function LlyfiTokenTable() {
@@ -24,15 +23,16 @@ export function LlyfiTokenTable() {
   return (
     <div className="space-y-4">
       <h3 className="text-xl font-bold text-neutral-900 px-1">
-        {copy.manage.title}
+        Legacy Liquid Locker Tokens
       </h3>
 
-      <div className="rounded-box border border-neutral-300 bg-surface overflow-hidden">
-        <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_40px] items-center p-4 bg-neutral-100 border-b border-neutral-200 text-xs font-bold uppercase tracking-wide text-neutral-500">
-          <div>{copy.manage.columns.asset}</div>
-          <div className="text-right">{copy.manage.columns.apy}</div>
-          <div className="text-right">{copy.manage.columns.wallet}</div>
-          <div className="text-right">{copy.manage.columns.staked}</div>
+      <div className="rounded-box border border-neutral-300 bg-surface">
+        <div className="grid grid-cols-[1.5fr_1.2fr_1.2fr_1.2fr_1.5fr_40px] items-center p-4 bg-neutral-100 border-b border-neutral-200 text-xs font-bold uppercase tracking-wide text-neutral-500 first:rounded-t-box">
+          <div>Asset</div>
+          <div className="text-right">Locker Status</div>
+          <div className="text-right">Staked Ratio</div>
+          <div className="text-right">Effective APR</div>
+          <div className="text-right">Your Deposits</div>
           <div />
         </div>
 

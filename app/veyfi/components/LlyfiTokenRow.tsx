@@ -6,42 +6,162 @@ import { IconChevron } from "@/components/icons/IconChevron";
 import { formatTokenAmount, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { LlyfiRowCockpit } from "./LlyfiRowCockpit";
+import { useStyfiApy } from "@/lib/hooks/useStyfi";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { veyfiCopy as copy } from "../messages";
-
-const MOCK_BASE_APY = 0.05;
-const MOCK_BOOST_APY = 0.12;
 
 export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { data: baseApyBps } = useStyfiApy();
 
-  const formattedWallet = formatTokenAmount(token.walletBalance);
-  const formattedStaked = formatTokenAmount(token.stakedBalance);
-  const apyLabel = copy.manage.row.apyValue(
-    formatPercent(MOCK_BASE_APY),
-    formatPercent(MOCK_BOOST_APY)
+  // --- Derived Metrics ---
+  const staked = token.stakedBalance + token.cooldownBalance;
+  const wallet = token.walletBalance;
+
+  // Utilization Ratio: Staked Supply / Total Supply
+  // Avoid division by zero
+  const totalSupply = token.totalSupply > 0n ? token.totalSupply : 1n;
+  const utilizationRatio =
+    Number((token.stakedSupply * 10000n) / totalSupply) / 10000;
+  // Floor at minimal utilization to avoid infinite APRs in edge cases
+  const effectiveUtilization = Math.max(0.01, utilizationRatio);
+
+  // APR Math
+  const baseApy = baseApyBps ? Number(baseApyBps) / 10000 : 0;
+  const boostedStyfiApy = baseApy * token.veyfiBoost;
+  const effectiveApy = boostedStyfiApy / effectiveUtilization;
+
+  // Format Large Supplies (e.g. 14,347,836 -> 14.3M)
+  const formatCompact = (val: bigint) => {
+    return Intl.NumberFormat("en-US", {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(Number(val) / 1e18);
+  };
+
+  const aprTooltipContent = (
+    <div className="w-full min-w-[180px] text-[11px] leading-tight">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-neutral-500">
+          {copy.manage.row.tooltips.apr.base}
+        </span>
+        <span className="font-number font-medium">
+          {formatPercent(baseApy, 2)}
+        </span>
+      </div>
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-neutral-500">
+          {copy.manage.row.tooltips.apr.boost}
+        </span>
+        <span className="font-number font-medium">
+          × {token.veyfiBoost.toFixed(2)}
+        </span>
+      </div>
+
+      <div className="border-t border-neutral-200 my-1.5" />
+
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-neutral-900 font-bold">
+          {copy.manage.row.tooltips.apr.boostedBase}
+        </span>
+        <span className="font-number font-bold text-neutral-900">
+          {formatPercent(boostedStyfiApy, 2)}
+        </span>
+      </div>
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-neutral-500">
+          {copy.manage.row.tooltips.apr.ratio}
+        </span>
+        <span className="font-number font-medium">
+          ÷ {formatPercent(utilizationRatio, 1)}
+        </span>
+      </div>
+
+      <div className="border-t border-neutral-300 my-1.5" />
+
+      <div className="flex justify-between items-center">
+        <span className="text-disco-600 font-bold uppercase tracking-wide">
+          {copy.manage.row.tooltips.apr.effective}
+        </span>
+        <span className="font-number font-bold text-base text-disco-600">
+          {formatPercent(effectiveApy, 2)}
+        </span>
+      </div>
+    </div>
   );
 
   return (
-    <div className="group bg-white transition-colors hover:bg-neutral-50/50">
+    <div className="group bg-white transition-colors hover:bg-neutral-50/50 last:rounded-b-box">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full grid grid-cols-[1.5fr_1fr_1fr_1fr_40px] items-center p-4 text-left outline-none focus-visible:bg-neutral-100"
+        className="w-full grid grid-cols-[1.5fr_1.2fr_1.2fr_1.2fr_1.5fr_40px] items-center p-4 text-left outline-none focus-visible:bg-neutral-100"
       >
+        {/* Col 1: Asset */}
         <div className="font-bold text-neutral-900">
           {token.name}{" "}
           <span className="text-neutral-500 font-normal ml-1">
             ({token.symbol})
           </span>
         </div>
-        <div className="text-right font-number font-medium text-disco-700">
-          {apyLabel}
+
+        {/* Col 2: Locker Status */}
+        <div className="text-right">
+          <div className="font-number font-bold text-neutral-900">
+            {formatTokenAmount(token.lockedYfi, 18, 2)} YFI
+          </div>
+          <div className="text-xs font-medium text-neutral-500">
+            {copy.manage.row.boostLabel(token.veyfiBoost.toFixed(2) + "x")}
+          </div>
         </div>
-        <div className="text-right font-number text-neutral-900">
-          {formattedWallet}
+
+        {/* Col 3: Staked Ratio */}
+        <div className="text-right">
+          <Tooltip
+            content={copy.manage.row.tooltips.ratio}
+            side="top"
+            className="text-left max-w-[220px]"
+          >
+            <div className="inline-block border-b border-dotted border-neutral-300 cursor-help">
+              <div className="font-number font-bold text-neutral-900">
+                {formatPercent(utilizationRatio, 1)}
+              </div>
+            </div>
+          </Tooltip>
+          <div className="text-xs font-medium text-neutral-500 mt-0.5">
+            {formatCompact(token.stakedSupply)} /{" "}
+            {formatCompact(token.totalSupply)}
+          </div>
         </div>
-        <div className="text-right font-number font-bold text-neutral-900">
-          {formattedStaked}
+
+        {/* Col 4: Effective APR */}
+        <div className="text-right">
+          <Tooltip content={aprTooltipContent} side="left">
+            <div className="inline-block border-b border-dotted border-neutral-300 cursor-help">
+              <div className="font-number font-bold text-disco-600 text-lg leading-tight">
+                {formatPercent(effectiveApy, 0)}
+              </div>
+            </div>
+          </Tooltip>
+          <div className="text-[10px] font-medium text-neutral-400 uppercase tracking-wide mt-0.5">
+            {copy.manage.row.boostedBaseLabel(
+              formatPercent(boostedStyfiApy, 1)
+            )}
+          </div>
         </div>
+
+        {/* Col 5: Your Deposits */}
+        <div className="text-right">
+          <div className="font-number font-bold text-neutral-900">
+            {formatTokenAmount(staked)}
+          </div>
+          {wallet > 0n && (
+            <div className="text-xs font-medium text-neutral-500">
+              {copy.manage.row.availableLabel(formatTokenAmount(wallet))}
+            </div>
+          )}
+        </div>
+
+        {/* Col 6: Chevron */}
         <div className="flex justify-end">
           <IconChevron
             className={cn(
