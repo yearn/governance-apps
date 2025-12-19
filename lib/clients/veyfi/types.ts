@@ -4,8 +4,10 @@ import type { CooldownState } from "@/lib/clients/shared/types";
 
 export type VeYfiMigrationState = {
   legacyBalance: bigint;
+  lockedAmount: bigint;
   migrationEligible: boolean;
   migrated: boolean;
+  unlockTime: number; // unix timestamp (seconds)
 };
 
 export type LlyfiTokenId = "sdYFI" | "upYFI" | "coveYFI"; // extensible

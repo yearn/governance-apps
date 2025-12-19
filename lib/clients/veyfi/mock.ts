@@ -22,17 +22,84 @@ import {
 import { nowSeconds } from "@/lib/mocks/time";
 import { getMockScenario } from "@/lib/mocks/scenario";
 
+// --- Persistence Helpers ---
+const STORAGE_KEY = "mock_veyfi_store_v1";
+
+function replacer(_key: string, value: unknown) {
+  if (typeof value === "bigint") {
+    return `BIGINT::${value.toString()}`;
+  }
+  return value;
+}
+
+function reviver(_key: string, value: unknown) {
+  if (typeof value === "string" && value.startsWith("BIGINT::")) {
+    return BigInt(value.split("::")[1]);
+  }
+  return value;
+}
+
+function saveToStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    const data = {
+      store: Array.from(GLOBAL_VEYFI_STORE.entries()),
+      lastAccrual: Array.from(GLOBAL_LAST_ACCRUAL.entries()),
+      pendingVeYfi:
+        typeof GLOBAL_PENDING_VEYFI === "bigint"
+          ? `BIGINT::${GLOBAL_PENDING_VEYFI.toString()}`
+          : GLOBAL_PENDING_VEYFI,
+    };
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.warn("Failed to save mock veyfi state", e);
+  }
+}
+
+function loadFromStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw, reviver);
+
+    if (data.store) {
+      GLOBAL_VEYFI_STORE.clear();
+      data.store.forEach(([k, v]: [string, VeyfiAccountState]) =>
+        GLOBAL_VEYFI_STORE.set(k, v)
+      );
+    }
+    if (data.lastAccrual) {
+      GLOBAL_LAST_ACCRUAL.clear();
+      data.lastAccrual.forEach(([k, v]: [string, number]) =>
+        GLOBAL_LAST_ACCRUAL.set(k, v)
+      );
+    }
+    if (data.pendingVeYfi !== undefined) {
+      GLOBAL_PENDING_VEYFI = BigInt(
+        data.pendingVeYfi.toString().replace("BIGINT::", "")
+      );
+    }
+  } catch (e) {
+    console.warn("Failed to load mock veyfi state", e);
+  }
+}
+
 // --- Global Mock State (Module Scope) ---
 const GLOBAL_VEYFI_STORE = new Map<string, VeyfiAccountState>();
 const GLOBAL_LAST_ACCRUAL = new Map<string, number>();
+let GLOBAL_PENDING_VEYFI: bigint = 0n;
 
-/**
- * Helper to reset state during tests or development
- */
+loadFromStorage();
+
 export function resetMockVeyfiStore() {
   GLOBAL_VEYFI_STORE.clear();
   GLOBAL_LAST_ACCRUAL.clear();
+  GLOBAL_PENDING_VEYFI = 0n;
   veyfiMockTxCounter = 0;
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(STORAGE_KEY);
+  }
 }
 
 // --- Shared Mock Helpers ---
@@ -70,9 +137,11 @@ type VeyfiMockOptions = {
 
 function defaultVeYfiState(): VeYfiMigrationState {
   return {
-    legacyBalance: 10n * 10n ** 18n,
+    legacyBalance: 0n,
+    lockedAmount: 0n,
     migrationEligible: true,
     migrated: false,
+    unlockTime: 0,
   };
 }
 
@@ -202,16 +271,37 @@ export class MockVeyfiClient implements VeyfiClient {
     const created = createDefaultVeyfiAccount(address);
     GLOBAL_VEYFI_STORE.set(key, created);
     GLOBAL_LAST_ACCRUAL.set(key, nowSeconds());
+    saveToStorage();
     return created;
   }
 
   private setState(address: Address, next: VeyfiAccountState) {
     const key = this.getKey(address);
     GLOBAL_VEYFI_STORE.set(key, next);
+    saveToStorage();
   }
 
   async getAccountState(address: Address): Promise<VeyfiAccountState> {
     this.lastAddress = address;
+
+    // Apply pending veYFI injection if exists
+    if (GLOBAL_PENDING_VEYFI > 0n) {
+      const state = this.getOrCreate(address);
+      const next = { ...state, veYfi: { ...state.veYfi! } };
+
+      // Add balance
+      next.veYfi.legacyBalance = GLOBAL_PENDING_VEYFI;
+      // Add locked amount (assuming max lock means 1:1 for mock)
+      next.veYfi.lockedAmount = GLOBAL_PENDING_VEYFI;
+      // Set unlock time to 4 years from "now"
+      next.veYfi.unlockTime = nowSeconds() + 4 * 365 * 24 * 60 * 60;
+      next.veYfi.migrated = false; // Reset migrated status if we inject new balance
+
+      this.setState(address, next);
+      GLOBAL_PENDING_VEYFI = 0n;
+      saveToStorage();
+    }
+
     await delay(this.latencyMs);
     const state = this.getOrCreate(address);
     const key = this.getKey(address);
@@ -258,7 +348,9 @@ export class MockVeyfiClient implements VeyfiClient {
 
       if (state.veYfi && state.veYfi.legacyBalance > 0n) {
         const next = { ...state, veYfi: { ...state.veYfi } };
-        next.veYfi.legacyBalance = 0n;
+        // NOTE: We do NOT zero out legacyBalance anymore.
+        // Normative spec says migration = opt-in.
+        // We just mark it as migrated so we can show the post-state UI.
         next.veYfi.migrated = true;
         this.setState(targetAddress, next);
       }
@@ -580,56 +672,27 @@ export class MockVeyfiClient implements VeyfiClient {
       this.setState(user, next);
     }
   }
+
+  debugSetPendingVeYfi(amount: bigint) {
+    if (this.lastAddress) {
+      // If we have a connected address context, apply immediately
+      const state = this.getOrCreate(this.lastAddress);
+      const next = { ...state, veYfi: { ...state.veYfi! } };
+      next.veYfi.legacyBalance = amount;
+      // Add locked amount (Underlying YFI)
+      next.veYfi.lockedAmount = amount;
+      // Set unlock time to 4 years from "now"
+      next.veYfi.unlockTime = nowSeconds() + 4 * 365 * 24 * 60 * 60;
+      next.veYfi.migrated = false;
+      this.setState(this.lastAddress, next);
+    } else {
+      // Queue for next connection
+      GLOBAL_PENDING_VEYFI = amount;
+      saveToStorage();
+    }
+  }
 }
 
 export function createMockVeyfiClient(options?: VeyfiMockOptions): VeyfiClient {
   return new MockVeyfiClient(options);
-}
-
-export function setMockLlyfiAllowance(
-  user: Address,
-  tokenAddress: Address,
-  amount: bigint
-) {
-  const key = user.toLowerCase();
-  if (!GLOBAL_VEYFI_STORE.has(key)) return;
-
-  const state = GLOBAL_VEYFI_STORE.get(key)!;
-
-  const symbol = MOCK_LLYFI_MAP[tokenAddress.toLowerCase()];
-  if (!symbol) return;
-
-  const next = {
-    ...state,
-    llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
-  };
-
-  const token = next.llyfiTokens.find((t) => t.symbol === symbol);
-  if (token) {
-    token.allowance = amount;
-  }
-
-  GLOBAL_VEYFI_STORE.set(key, next);
-}
-
-export function setMockRedemptionUsage(
-  user: Address,
-  globalUsed: bigint,
-  perTokenUsed?: Partial<Record<LlyfiTokenId, bigint>>
-) {
-  const key = user.toLowerCase();
-  if (!GLOBAL_VEYFI_STORE.has(key)) return;
-  const state = GLOBAL_VEYFI_STORE.get(key)!;
-  const next = {
-    ...state,
-    redemptionCaps: {
-      ...state.redemptionCaps,
-      globalUsed,
-      perToken: state.redemptionCaps.perToken.map((p) => ({
-        ...p,
-        used: perTokenUsed?.[p.symbol] ?? p.used,
-      })),
-    },
-  };
-  GLOBAL_VEYFI_STORE.set(key, next);
 }

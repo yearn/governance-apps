@@ -19,16 +19,26 @@ export const veyfiCopy = {
   },
   migration: {
     legacy: {
+      statLabel: "Legacy Position",
       title: "Legacy veYFI detected",
-      body: (amount: string) =>
-        `You have ${amount} legacy veYFI. Migrate now to participate in the new system.`,
-      cta: "Migrate to veYFI",
+      description:
+        "Your legacy locks can be used to boost your yield in the stYFI ecosystem. Opt-in now to participate in the new system.",
+      cta: "Opt-in to stYFI",
     },
     boost: {
       title: "veYFI Boost Active",
-      body: "Your legacy lock is providing a yield boost. This boost decays linearly over your remaining lock duration.",
-      decayLabel: "Boost Decay",
+      description:
+        "Your legacy lock is active and boosting your yield. The multiplier decays linearly over time.",
       manageLink: "Manage Legacy Lock",
+      stats: {
+        unlockDate: "Unlock Date",
+        amount: "Lock Amount",
+        currentBoost: "Current Boost",
+      },
+      timeline: {
+        start: "Max (2.0x)",
+        end: "Min (1.0x)",
+      },
     },
   },
   redemptionCard: {

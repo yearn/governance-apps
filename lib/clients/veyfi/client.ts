@@ -41,4 +41,9 @@ export interface VeyfiClient {
     spender: `0x${string}`,
     amount: bigint
   ) => void;
+
+  /**
+   * Mock-only helper to inject legacy veYFI balance.
+   */
+  debugSetPendingVeYfi?: (amount: bigint) => void;
 }
