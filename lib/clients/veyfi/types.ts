@@ -33,6 +33,12 @@ export type LlyfiTokenState = {
   veyfiBoost: number; // e.g. 1.95 for 1.95x
   totalSupply: bigint; // Total supply of the LLYFI token
   stakedSupply: bigint; // Amount of LLYFI staked in our contract
+
+  // Exchange Rate: Amount of LLYFI per 1 YFI (scaled 1e18)
+  exchangeRate: bigint;
+
+  // Amount of this LLYFI token held by the protocol (Available for users to Buy)
+  protocolLiquidity: bigint;
 };
 
 export type RedemptionCaps = {

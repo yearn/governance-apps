@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { LlyfiTokenId } from "@/lib/clients/veyfi";
 import { useTx } from "@/lib/tx/useTx";
+import { walletKeys } from "@/lib/hooks/useWalletYfiBalance";
 
 // --- Query Keys ---
 export const veyfiKeys = {
@@ -180,9 +181,41 @@ export function useLlyfiRedeem() {
 
     await execute(prepare, {
       invalidate: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: veyfiKeys.account(address),
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: veyfiKeys.account(address),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: walletKeys.yfi(address),
+          }),
+        ]);
+      },
+      skipWaitForReceipt: usesMockBackend,
+    });
+  };
+
+  return { write, state };
+}
+
+export function useLlyfiMint() {
+  const { veyfi, usesMockBackend } = useProtocol();
+  const { execute, state } = useTx();
+  const queryClient = useQueryClient();
+  const { address } = useAccount();
+
+  const write = async (symbol: LlyfiTokenId, amount: bigint) => {
+    const prepare = await veyfi.prepareMintLlyfi(symbol, amount);
+
+    await execute(prepare, {
+      invalidate: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: veyfiKeys.account(address),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: walletKeys.yfi(address),
+          }),
+        ]);
       },
       skipWaitForReceipt: usesMockBackend,
     });

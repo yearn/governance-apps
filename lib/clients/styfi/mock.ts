@@ -225,6 +225,22 @@ type StyfiMockOptions = {
   initialYfiBalance?: bigint;
 };
 
+// --- Cross-module Helper ---
+// Allows VeyfiMock to update YFI balances since they share the same mock user
+export function internalUpdateYfiBalance(address: Address, delta: bigint) {
+  const key = address.toLowerCase();
+  // Ensure store is populated if called before getAccountState
+  if (!GLOBAL_STYFI_STORE.has(key)) {
+    const created = createDefaultAccountState(address, {});
+    GLOBAL_STYFI_STORE.set(key, created);
+  }
+
+  const state = GLOBAL_STYFI_STORE.get(key)!;
+  const next = { ...state, yfiBalance: state.yfiBalance + delta };
+  GLOBAL_STYFI_STORE.set(key, next);
+  saveToStorage();
+}
+
 export class MockStyfiClient implements StyfiClient {
   private readonly latencyMs: number;
   private lastAddress: Address | null = null;
@@ -694,6 +710,12 @@ export class MockStyfiClient implements StyfiClient {
   debugSetPendingBalance(mode: StyfiStakeMode, amount: bigint) {
     GLOBAL_PENDING_INJECTIONS.push({ mode, amount });
     saveToStorage();
+  }
+
+  debugMintYfi(user: Address, amount: bigint) {
+    const state = this.getOrCreate(user);
+    const next = { ...state, yfiBalance: state.yfiBalance + amount };
+    this.setState(user, next);
   }
 }
 

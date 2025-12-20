@@ -21,6 +21,7 @@ import {
 } from "@/lib/constants";
 import { nowSeconds } from "@/lib/mocks/time";
 import { getMockScenario } from "@/lib/mocks/scenario";
+import { internalUpdateYfiBalance } from "@/lib/clients/styfi/mock";
 
 // --- Persistence Helpers ---
 const STORAGE_KEY = "mock_veyfi_store_v1";
@@ -158,6 +159,8 @@ function defaultLlyfiTokens(): LlyfiTokenState[] {
     address: Address;
     lockedYfi: bigint;
     totalSupply: bigint;
+    exchangeRate: bigint; // Scaled 1e18
+    inventory: bigint; // Protocol inventory for Minting (Buying)
   }> = [
     {
       symbol: "sdYFI",
@@ -165,14 +168,17 @@ function defaultLlyfiTokens(): LlyfiTokenState[] {
       address: MOCK_SDYFI_ADDRESS,
       lockedYfi: 22973n * 10n ** 16n, // 229.73 YFI
       totalSupply: 23680n * 10n ** 16n, // 236.80 sdYFI
+      exchangeRate: 1n * 10n ** 18n, // 1:1
+      inventory: 350n * 10n ** 18n, // 350 sdYFI available
     },
     {
       symbol: "upYFI",
       name: "1UP",
       address: MOCK_UPYFI_ADDRESS,
       lockedYfi: 19951n * 10n ** 16n, // 199.51 YFI
-      // Using BigInt literal for precise representation of 14,347,836.97
-      totalSupply: 1434783697n * 10n ** 16n,
+      totalSupply: 1434783697n * 10n ** 16n, // Large supply
+      exchangeRate: 69420n * 10n ** 18n, // 1 YFI = 69,420 upYFI
+      inventory: 25_000_000n * 10n ** 18n, // 25M upYFI available
     },
     {
       symbol: "coveYFI",
@@ -180,6 +186,8 @@ function defaultLlyfiTokens(): LlyfiTokenState[] {
       address: MOCK_COVEYFI_ADDRESS,
       lockedYfi: 7492n * 10n ** 16n, // 74.92 YFI
       totalSupply: 7609n * 10n ** 16n, // 76.09 coveYFI
+      exchangeRate: 1n * 10n ** 18n, // 1:1
+      inventory: 50n * 10n ** 18n, // 50 coveYFI available
     },
   ];
 
@@ -194,12 +202,17 @@ function defaultLlyfiTokens(): LlyfiTokenState[] {
     const ratioBps = BigInt(Math.floor(stakedRatio * 10000));
     const stakedSupply = (token.totalSupply * ratioBps) / 10000n;
 
+    // Wallet balance logic: give some starting balance
+    const baseBalance = (5n + BigInt(i)) * 10n ** 18n;
+    const walletBalance =
+      token.symbol === "upYFI" ? baseBalance * 1000n : baseBalance;
+
     return {
       symbol: token.symbol,
       name: token.name,
       address: token.address,
       decimals: 18,
-      walletBalance: (5n + BigInt(i)) * 10n ** 18n,
+      walletBalance,
       stakedBalance: 0n,
       cooldownBalance: 0n,
       cooldown: null,
@@ -211,12 +224,15 @@ function defaultLlyfiTokens(): LlyfiTokenState[] {
       veyfiBoost,
       totalSupply: token.totalSupply,
       stakedSupply,
+      exchangeRate: token.exchangeRate,
+      // Protocol Liquidity (Inventory available to buy)
+      protocolLiquidity: token.inventory,
     };
   });
 }
 
 function defaultRedemptionCaps(): RedemptionCaps {
-  const globalLimit = 600n * 10n ** 18n;
+  const globalLimit = 600n * 10n ** 18n; // 600 YFI in the protocol
   const globalUsed = 0n;
 
   return {
@@ -225,17 +241,17 @@ function defaultRedemptionCaps(): RedemptionCaps {
     perToken: [
       {
         symbol: "sdYFI",
-        limit: 300n * 10n ** 18n,
+        limit: 300n * 10n ** 18n, // 300 YFI cap (legacy param, we might ignore in pure inventory mode but sticking to type)
         used: 0n,
       },
       {
         symbol: "upYFI",
-        limit: 200n * 10n ** 18n,
+        limit: 200n * 10n ** 18n, // 200 YFI cap
         used: 0n,
       },
       {
         symbol: "coveYFI",
-        limit: 100n * 10n ** 18n,
+        limit: 100n * 10n ** 18n, // 100 YFI cap
         used: 0n,
       },
     ],
@@ -278,10 +294,15 @@ function createDefaultVeyfiAccount(address: Address): VeyfiAccountState {
   }
 
   if (scenario === "caps-exhausted") {
-    base.redemptionCaps.globalUsed = base.redemptionCaps.globalLimit;
+    // For capped scenario, we set Used = Limit.
+    // In our dynamic model, this would imply Limit=0, but let's just zero it out for clarity.
+    base.redemptionCaps.globalLimit = 0n;
+    base.redemptionCaps.globalUsed = 0n;
+
     base.redemptionCaps.perToken = base.redemptionCaps.perToken.map((p) => ({
       ...p,
-      used: p.limit,
+      limit: 0n,
+      used: 0n,
     }));
   }
 
@@ -387,9 +408,6 @@ export class MockVeyfiClient implements VeyfiClient {
 
       if (state.veYfi && state.veYfi.legacyBalance > 0n) {
         const next = { ...state, veYfi: { ...state.veYfi } };
-        // NOTE: We do NOT zero out legacyBalance anymore.
-        // Normative spec says migration = opt-in.
-        // We just mark it as migrated so we can show the post-state UI.
         next.veYfi.migrated = true;
         this.setState(targetAddress, next);
       }
@@ -425,9 +443,14 @@ export class MockVeyfiClient implements VeyfiClient {
       for (const token of next.llyfiTokens) {
         // 1. Generation (Staked -> Accruing)
         // With Price Multiplier: Staked * PRICE * APY * Elapsed
+        // Since Staked is LLYFI, we need to value it in YFI
+        // YFI Value = (Staked * 1e18) / ExchangeRate
         if (token.stakedBalance > 0n) {
+          const yfiValue =
+            (token.stakedBalance * 10n ** 18n) / token.exchangeRate;
+
           const freshRewards =
-            (token.stakedBalance * MOCK_YFI_PRICE * MOCK_APY_BPS * elapsed) /
+            (yfiValue * MOCK_YFI_PRICE * MOCK_APY_BPS * elapsed) /
             (SECONDS_PER_YEAR * BASIS_POINTS);
 
           token.accruingRewards += freshRewards;
@@ -531,7 +554,6 @@ export class MockVeyfiClient implements VeyfiClient {
           throw new Error("Mock: Insufficient staked balance");
         }
         token.stakedBalance -= amount;
-        // Mock Side Effect: Decrease staked supply
         token.stakedSupply -= amount;
         token.cooldownBalance += amount;
         token.cooldown = {
@@ -628,6 +650,75 @@ export class MockVeyfiClient implements VeyfiClient {
     return tx;
   }
 
+  async prepareMintLlyfi(
+    symbol: LlyfiTokenId,
+    amount: bigint
+  ): Promise<PreparedTransaction> {
+    if (amount <= 0n) throw new Error("Amount must be > 0");
+    if (!symbol) throw new Error("LLYFI symbol is required for mint");
+
+    const latency = this.latencyMs;
+    const targetAddress = this.lastAddress;
+
+    const tx: PreparedTransaction = async () => {
+      await delay(latency);
+
+      if (!targetAddress) {
+        throw new Error(
+          "MockVeyfiClient: No address context. Call getAccountState first."
+        );
+      }
+      const state = this.getOrCreate(targetAddress);
+
+      const next = {
+        ...state,
+        llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+        redemptionCaps: {
+          ...state.redemptionCaps,
+          perToken: state.redemptionCaps.perToken.map((p) => ({ ...p })),
+        },
+      };
+
+      const token = next.llyfiTokens.find((t) => t.symbol === symbol);
+      if (token) {
+        // Minting: User gives YFI, gets LLYFI
+
+        // 1. Check Protocol LLYFI Capacity
+        const llyfiAmount = (amount * token.exchangeRate) / 10n ** 18n;
+        if (token.protocolLiquidity < llyfiAmount) {
+          throw new Error("Mock: Insufficient protocol LLYFI inventory");
+        }
+
+        // 2. Perform Swap
+        token.walletBalance += llyfiAmount;
+        token.protocolLiquidity -= llyfiAmount;
+        // Decrease user YFI
+        internalUpdateYfiBalance(targetAddress, -amount);
+
+        // 3. INCREASE YFI Inventory (Used stays 0, Limit grows)
+        // Because "Available YFI" = Limit - Used.
+        // Minting ADDS YFI to the protocol.
+        const yfiValue = amount;
+        next.redemptionCaps.globalLimit += yfiValue;
+
+        // Also increase token specific limit if desired, or keep fixed.
+        // Assuming per-token limits are also dynamic inventories in this simplified model.
+        const cap = next.redemptionCaps.perToken.find(
+          (c) => c.symbol === symbol
+        );
+        if (cap) {
+          cap.limit += yfiValue;
+        }
+
+        this.setState(targetAddress, next);
+      }
+
+      return nextMockHash();
+    };
+
+    return tx;
+  }
+
   async prepareRedeemLlyfi(
     symbol: LlyfiTokenId,
     amount: bigint
@@ -659,30 +750,47 @@ export class MockVeyfiClient implements VeyfiClient {
 
       const token = next.llyfiTokens.find((t) => t.symbol === symbol);
       if (token) {
-        if (
-          next.redemptionCaps.globalUsed + amount >
-          next.redemptionCaps.globalLimit
-        ) {
-          throw new Error("Global redemption cap exceeded");
+        // Redemption: User gives LLYFI, gets YFI
+        const yfiValue = (amount * 10n ** 18n) / token.exchangeRate;
+
+        // 1. Check YFI Redemption Capacity (Limit - Used)
+        // Here Used is always 0 in our new model, so we check against Limit directly.
+        if (yfiValue > next.redemptionCaps.globalLimit) {
+          throw new Error(
+            "Global redemption cap exceeded (Protocol out of YFI)"
+          );
         }
 
         const cap = next.redemptionCaps.perToken.find(
           (c) => c.symbol === symbol
         );
 
-        if (cap && cap.used + amount > cap.limit) {
-          throw new Error("Mock: Redemption cap exceeded");
+        if (cap && yfiValue > cap.limit) {
+          throw new Error(
+            "Redemption cap exceeded (Protocol out of YFI for this token)"
+          );
         }
 
         if (token.walletBalance < amount) {
           throw new Error("Mock: Insufficient LLYFI balance for redemption");
         }
 
+        // 2. Perform Swap
         token.walletBalance -= amount;
+        token.protocolLiquidity += amount; // Protocol gets LLYFI back
 
-        next.redemptionCaps.globalUsed += amount;
+        // Fee calc
+        const feeBps = BigInt(next.redemptionCaps.feeBps);
+        const fee = (yfiValue * feeBps) / 10000n;
+        const netYfi = yfiValue > fee ? yfiValue - fee : 0n;
+
+        // Increase user YFI
+        internalUpdateYfiBalance(targetAddress, netYfi);
+
+        // 3. DECREASE YFI Inventory (Limit shrinks)
+        next.redemptionCaps.globalLimit -= yfiValue;
         if (cap) {
-          cap.used += amount;
+          cap.limit -= yfiValue;
         }
 
         this.setState(targetAddress, next);
@@ -718,20 +826,30 @@ export class MockVeyfiClient implements VeyfiClient {
 
   debugSetPendingVeYfi(amount: bigint) {
     if (this.lastAddress) {
-      // If we have a connected address context, apply immediately
       const state = this.getOrCreate(this.lastAddress);
       const next = { ...state, veYfi: { ...state.veYfi! } };
       next.veYfi.legacyBalance = amount;
-      // Add locked amount (Underlying YFI)
       next.veYfi.lockedAmount = amount;
-      // Set unlock time to 4 years from "now"
       next.veYfi.unlockTime = nowSeconds() + 4 * 365 * 24 * 60 * 60;
       next.veYfi.migrated = false;
       this.setState(this.lastAddress, next);
     } else {
-      // Queue for next connection
       GLOBAL_PENDING_VEYFI = amount;
       saveToStorage();
+    }
+  }
+
+  debugSetLlyfiBalance(user: Address, symbol: LlyfiTokenId, amount: bigint) {
+    const state = this.getOrCreate(user);
+    const next = {
+      ...state,
+      llyfiTokens: state.llyfiTokens.map((t) => ({ ...t })),
+    };
+
+    const token = next.llyfiTokens.find((t) => t.symbol === symbol);
+    if (token) {
+      token.walletBalance += amount;
+      this.setState(user, next);
     }
   }
 }

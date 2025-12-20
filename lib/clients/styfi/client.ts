@@ -55,4 +55,9 @@ export interface StyfiClient {
    * Mock-only helper to queue a balance injection for the next address that connects.
    */
   debugSetPendingBalance?: (mode: StyfiStakeMode, amount: bigint) => void;
+
+  /**
+   * Mock-only helper to mint YFI to the user's wallet.
+   */
+  debugMintYfi?: (user: Address, amount: bigint) => void;
 }

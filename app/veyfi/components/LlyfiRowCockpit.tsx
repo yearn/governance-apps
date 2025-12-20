@@ -7,6 +7,8 @@ import { veyfiCopy as copy } from "../messages";
 import { LlyfiStakeTab } from "./tabs/LlyfiStakeTab";
 import { LlyfiUnstakeTab } from "./tabs/LlyfiUnstakeTab";
 import { LlyfiTradeTab } from "./tabs/LlyfiTradeTab";
+import { ReadyBadge, StreamingBadge } from "@/components/domain/Badges";
+import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
 
 type TabId = "stake" | "unstake" | "trade";
 
@@ -14,9 +16,16 @@ export function LlyfiRowCockpit({ token }: { token: LlyfiTokenState }) {
   const [activeTab, setActiveTab] = useState<TabId>("stake");
 
   const hasStreaming = token.cooldownBalance > 0n;
-  const unstakeBadge = hasStreaming ? (
-    <span className="block h-2 w-2 rounded-full bg-disco-600" />
-  ) : null;
+  const { isComplete } = useEpochCountdown(token.cooldown?.endsAt);
+
+  let unstakeBadge = null;
+  if (hasStreaming) {
+    unstakeBadge = isComplete ? (
+      <ReadyBadge className="text-disco-600" />
+    ) : (
+      <StreamingBadge className="text-disco-600" />
+    );
+  }
 
   return (
     <div className="space-y-6">

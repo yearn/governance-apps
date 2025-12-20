@@ -11,9 +11,10 @@ import { formatTokenAmount } from "@/lib/format";
 import { parseAmount } from "@/lib/parse";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { SPENDER_LLYFI_STAKER } from "@/lib/constants";
+import { toast } from "@/components/ui/Toast";
 
 export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const queryClient = useQueryClient();
   const [input, setInput] = useState("");
 
@@ -38,7 +39,9 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
   const handleApprove = async () => {
     await approve(token.address, SPENDER_LLYFI_STAKER, amount, {
       invalidate: async () => {
-        await queryClient.invalidateQueries({ queryKey: veyfiKeys.account() });
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
       },
     });
   };
@@ -46,21 +49,23 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
   const handleStake = async () => {
     await stake(token.symbol, amount);
     setInput("");
+    toast.success(
+      `Successfully staked ${formatTokenAmount(amount)} ${token.symbol}`
+    );
   };
 
   return (
     <div className="space-y-4 max-w-xl">
-      <div className="flex justify-between text-sm">
-        <span className="text-neutral-600">Stake {token.symbol}</span>
-        <span className="font-bold text-neutral-900">
-          {formatTokenAmount(token.walletBalance)} Available
-        </span>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-neutral-600">Amount to stake</p>
       </div>
 
       <AmountInput
         value={input}
         onChange={setInput}
-        maxLabel="Max"
+        maxLabel={`Balance: ${formatTokenAmount(token.walletBalance)} ${
+          token.symbol
+        }`}
         onMaxClick={() => setInput(formatTokenAmount(token.walletBalance))}
         tokenSymbol={token.symbol}
         error={insufficientBalance ? "Insufficient balance" : undefined}

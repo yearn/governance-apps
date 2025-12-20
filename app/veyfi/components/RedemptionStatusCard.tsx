@@ -1,20 +1,18 @@
 "use client";
 
 import { Card } from "@/components/ui/Card";
-import { useRedemptionCaps } from "@/lib/hooks/useVeyfi";
+import { useRedemptionCaps, useLlyfiTokens } from "@/lib/hooks/useVeyfi";
 import { formatTokenAmount, formatPercent } from "@/lib/format";
 import { veyfiCopy as copy } from "../messages";
-import { cn } from "@/lib/cn";
 
 export function RedemptionStatusCard() {
   const caps = useRedemptionCaps();
+  const tokens = useLlyfiTokens();
 
   if (!caps) return null;
 
-  const globalUsed = caps.globalUsed;
-  const globalLimit = caps.globalLimit;
-  const globalRemaining = globalLimit - globalUsed;
-
+  // Global YFI "Inventory" (Capacity)
+  const globalRemainingYfi = caps.globalLimit - caps.globalUsed;
   const feeLabel = formatPercent(caps.feeBps / 10000);
 
   return (
@@ -39,34 +37,27 @@ export function RedemptionStatusCard() {
             <tr className="bg-white">
               <td className="px-6 py-3 font-bold text-neutral-900">YFI</td>
               <td className="px-6 py-3 text-right font-number font-bold text-neutral-900">
-                {formatTokenAmount(globalRemaining, 18, 2)}
+                {formatTokenAmount(globalRemainingYfi, 18, 2)}
               </td>
               <td className="px-6 py-3 text-right font-number font-medium text-neutral-600">
                 {feeLabel}
               </td>
             </tr>
 
-            {/* Rows 2+: LLYFI Tokens */}
-            {caps.perToken.map((tokenCap) => {
-              const remaining = tokenCap.limit - tokenCap.used;
-              const isFull = remaining <= 0n;
+            {/* Rows 2+: LLYFI Tokens Inventory */}
+            {tokens.map((token) => {
+              const inventory = token.protocolLiquidity;
 
               return (
                 <tr
-                  key={tokenCap.symbol}
+                  key={token.symbol}
                   className="bg-white hover:bg-neutral-50/50 transition-colors"
                 >
                   <td className="px-6 py-3 font-medium text-neutral-700">
-                    {tokenCap.symbol}
+                    {token.symbol}
                   </td>
                   <td className="px-6 py-3 text-right font-number text-neutral-600">
-                    {isFull ? (
-                      <span className="text-amber-600 font-bold text-xs uppercase">
-                        Cap Full
-                      </span>
-                    ) : (
-                      formatTokenAmount(remaining, 18, 2)
-                    )}
+                    {formatTokenAmount(inventory, 18, 2)}
                   </td>
                   <td className="px-6 py-3 text-right font-number text-neutral-400">
                     --
