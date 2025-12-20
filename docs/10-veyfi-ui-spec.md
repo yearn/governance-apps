@@ -1,8 +1,8 @@
-# veYFI UI Spec v0.1
+# veYFI UI Spec v1.0
 
-**Status:** Draft / In Development
+**Status:** Implemented (Phase 6 Complete)
 **Applies to:** `veyfi.yearn.fi` (and `/veyfi` route)
-**Last updated:** 2025-12-18
+**Last updated:** 2025-12-20
 
 ---
 
@@ -21,7 +21,7 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 
 1.  **Registry Pattern:** We do not assume a single "primary" balance. Users scan a list of supported tokens to find their positions.
 2.  **Intelligence First:** Redemption is cap-constrained. We show "Global Availability" (Flight Board) _before_ the user tries to transact.
-3.  **Hub & Spoke Rewards:** All yield is realized in the stYFI Dashboard. This page only directs users there; it does not duplicate claiming logic (unless technically required as a fallback).
+3.  **Hub & Spoke Rewards:** All yield is realized in the stYFI Dashboard. This page only directs users there; it does not duplicate claiming logic.
 4.  **Explicit Exit logic:** "Buying" and "Selling" LLYFI is handled within the token's specific context, keeping cap/fee logic tightly coupled to the asset.
 
 ---
@@ -35,8 +35,8 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 1.  **Global Header** (Standard Yearn Header)
 2.  **Protocol Stats Bar** (Ecosystem Health)
 3.  **Migration Zone** (Top priority, conditionally visible)
-4.  **Redemption Intelligence** (Global liquidity context)
-5.  **LLYFI Ledger** (Main management table)
+4.  **LLYFI Ledger** (Main management table)
+5.  **Redemption Intelligence** (Global liquidity context)
 6.  **Rewards Navigation** (Footer/Link)
 
 ---
@@ -61,19 +61,7 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 - **Action (Legacy Balance > 0):** "You have X legacy veYFI. Migrate now." (Primary CTA).
 - **Info (Migrated):** "veYFI Boost Active". Visualizes the linear decay of the boost multiplier (2.0x -> 1.0x) over time.
 
-### 4.3 Zone 2: Redemption Intelligence
-
-**Component:** `RedemptionStatusCard` ("Flight Board")
-**Purpose:** Inform the user about exit liquidity _before_ they dig into specific tokens.
-**Content:**
-
-- **Global Cap:** Progress bar (Used / Limit).
-- **Current Fee:** The current exit fee (e.g., "5.0%").
-- **Availability List:** A read-only list showing YFI available per token.
-  - "sdYFI: 120 YFI available"
-  - "upYFI: 0 YFI available (Cap Full)"
-
-### 4.4 Zone 3: The LLYFI Ledger
+### 4.3 Zone 2: The LLYFI Ledger
 
 **Component:** `LlyfiTokenTable`
 **Structure:**
@@ -90,18 +78,26 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
     - **Linear Streaming UI:** Reuses the "Pink" progress bar logic from stYFI.
     - Withdraw available liquid funds.
 3.  **Trade:**
-    - **Mint:** YFI -> LLYFI (1:1, usually fee-free).
-    - **Redeem:** LLYFI -> YFI.
+    - **Mode Selection:** Radio Button (Sell vs Buy).
+    - **Mint (Buy):** YFI -> LLYFI (1:1, usually fee-free).
+    - **Redeem (Sell):** LLYFI -> YFI.
       - **Logic:** Checks against Global Cap and Token Cap.
       - **Feedback:** Shows Fee amount and Net Receive amount.
 
-### 4.5 Zone 4: Rewards
+### 4.4 Zone 3: Redemption Intelligence & Rewards
 
-**Component:** `RewardsNavCard`
+**Component:** `InventoryCard` ("Flight Board")
+**Purpose:** Inform the user about exit liquidity _before_ they dig into specific tokens.
+**Content:**
+
+- **Global Inventory:** Table of available YFI held by protocol.
+- **Current Fee:** The current exit fee (e.g., "5.0%").
+- **Asset breakdown:** Read-only list showing YFI available per token type.
+
+**Component:** `VeyfiRewardsCard`
 **Purpose:** Reinforce stYFI as the yield hub.
 **Content:** "Rewards are aggregated in the stYFI ecosystem."
 **Action:** "Go to stYFI Dashboard".
-**Fallback:** Small "Claim here" ghost button (if contract requires domain-specific claim).
 
 ---
 

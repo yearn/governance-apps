@@ -1,8 +1,8 @@
 # 9. Frontend Architecture
 
-**Version 0.5 — 2025-12-18**
+**Version 1.0 — 2025-12-20**
 Scope: stYFI • stYFIx • veYFI (UI implementation architecture)
-Status: Updated for Phase 5 completion
+Status: Implemented
 
 This document defines the **frontend implementation architecture** for the governance apps under YIP-88.
 
@@ -20,7 +20,7 @@ We use the Next.js App Router structure:
   styfi/
     page.tsx          // stYFI + stYFIx UI
   veyfi/
-    page.tsx          // veYFI + LLYFI UI (future)
+    page.tsx          // veYFI + LLYFI UI
 ```
 
 ---
@@ -39,6 +39,10 @@ For `/styfi`:
 
 - **Protocol Stats Bar:** A universal component for ecosystem health (Supply/Staked).
 - **StyfiPositionCard:** The primary controller for Mode selection (stYFI vs stYFIx) and Onboarding.
+
+For `/veyfi`:
+
+- **VeyfiStatsBar:** Displays migration and boost health.
 
 ---
 
@@ -202,12 +206,12 @@ Under `/lib/hooks/useStyfi.ts`:
    - Source: `StyfiClient.getAccountState`
    - Returns: Balances, Cooldowns, Rewards, Allowances.
 
-2. `useStyfiStats()` (New)
+2. `useStyfiStats()`
 
    - Source: `StyfiClient.getStats`
    - Returns: `totalSupply`, `totalStaked`.
 
-3. `useStyfiApy()` (New)
+3. `useStyfiApy()`
 
    - Source: `StyfiClient.getApy`
    - Returns: Protocol APY in basis points.
@@ -270,11 +274,11 @@ We do **not** block the entire `/styfi` route on a single slow query.
        ├─ [VeyfiStatsBar]       (Ecosystem health: Migration %, Boost, Staked %)
        └─ Main Container
             ├─ [MigrationCard]        (Conditionally visible: Action vs Info)
-            ├─ [RedemptionStatusCard] ("Flight Board": Global Caps & Fees)
             ├─ [LlyfiTokenTable]      (The Ledger)
             │    └─ [LlyfiTokenRow]   (Expandable)
             │         └─ [Cockpit]    (Stake | Unstake | Trade)
-            └─ [RewardsNavCard]       (Link to stYFI dashboard)
+            ├─ [InventoryCard]        (Global Redemption Intelligence)
+            └─ [VeyfiRewardsCard]     (Nav to stYFI)
 ```
 
 ### 9.2 Component Tree & Directory Structure
@@ -291,7 +295,7 @@ app/
       VeyfiCockpit.tsx           (Layout wrapper)
 
       MigrationCard.tsx
-      RedemptionStatusCard.tsx   (New "Intelligence" component)
+      InventoryCard.tsx          (Redemption/Inventory status)
 
       LlyfiTokenTable.tsx
       LlyfiTokenRow.tsx
@@ -319,9 +323,9 @@ Under `/lib/hooks/useVeyfi.ts`:
 2.  `useRedemptionCaps()`
 
     - Selector on `useVeyfiAccount`.
-    - Used by: `RedemptionStatusCard`, `LlyfiTradeTab` (for validation), `VeyfiStatsBar` (for Fee display).
+    - Used by: `InventoryCard`, `LlyfiTradeTab` (for validation), `VeyfiStatsBar` (for Fee display).
 
-3.  `useVeyfiStats()` (**New**)
+3.  `useVeyfiStats()`
 
     - Source: `VeyfiClient.getGlobalStats`
     - Returns: `migratedYfi`, `maxBoostMultiplier`, `totalStakedPercent`.
@@ -334,35 +338,15 @@ Under `/lib/hooks/useVeyfi.ts`:
 ### 9.4 State Management
 
 - **Selection:** Unlike stYFI, there is no global "Mode". The user selects a token by expanding a row. This state is local to `LlyfiTokenTable` (or `LlyfiTokenRow`).
-- **Trade Mode:** "Mint" vs "Redeem" state is local to `LlyfiTradeTab`.
+- **Trade Mode:** "Buy" vs "Sell" state is local to `LlyfiTradeTab`.
 
 ---
 
 ## 10. Copy Guidelines
 
-- Each route/feature owns a co-located `messages.ts` with an `as const` export named `<feature>Copy` (or `copy` when obvious). Semantic nesting only (`page`, `cta`, `forms`, `errors`, `emptyState`, `status`, `shared`), no flat mega namespaces.
-- Shared shell copy (nav, header/footer, generic errors/toasts) lives in `app/_shared/messages.ts`. Do not pull copy into design-system components; they stay label/placeholder agnostic.
-- Use functions for interpolation (`positionSummary(amount: string) => string`), not string concatenation inside components.
-- Heuristic: avoid inline strings longer than ~60 characters in components unless they are accessibility attributes (`aria-*`, `title`).
-- Example:
-
-```ts
-// app/styfi/messages.ts
-export const styfiCopy = {
-  page: {
-    title: "Stake YFI and earn protocol rewards",
-    subtitle: "Lock YFI to secure governance and share in upside.",
-  },
-  cta: { primary: "Stake YFI" },
-  status: { summary: (amount: string) => `You have ${amount} staked.` },
-} as const;
-```
-
-```tsx
-import { styfiCopy as copy } from "./messages";
-<h1>{copy.page.title}</h1>
-<p>{copy.status.summary("1,234")}</p>
-```
+- Each route/feature owns a co-located `messages.ts`.
+- Exports follow `<feature>Copy` (or `copy` when obvious).
+- Design system/shared components stay copy-agnostic.
 
 ---
 
@@ -374,9 +358,8 @@ This frontend architecture:
 - Uses **StatsBar** for high-level ecosystem context.
 - Centralizes decision drivers (APR) in the **Position Card**.
 - Uses **URL parameters** as canonical view state.
-- Separates product behavior (`8-styfi-ui-spec.md`) from implementation details (**this doc**).
+- Implements `/veyfi` as a **Registry** with nested **Cockpit** actions.
 
-This doc should be updated when:
+---
 
-- We change route-level state patterns.
-- We introduce shared FE infra that affects multiple domains (e.g. centralized toast system, shared tx drawer, global error boundary).
+**End of `frontend-architecture.md`**

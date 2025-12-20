@@ -1,8 +1,8 @@
 # 4. Architecture Blueprint
 
-**Version 0.8 — 2025-12-17**
+**Version 0.9 — 2025-12-20**
 Scope: stYFI • stYFIx • veYFI • LLYFI (BR#1 UI-first architecture)
-Status: Updated after Phase-5 implementation
+Status: Updated after Phase-6 implementation
 
 This blueprint defines the front-end implementation architecture for the governance applications under YIP-88, aligned with:
 
@@ -313,18 +313,24 @@ All data comes from:
 
 ```
 /veyfi
-  ├── Migration Panel (legacy → veYFI)
-  ├── LLYFI Staking Table
-  ├── Cooldown & Withdraw
-  ├── Rewards (claim-all)
-  └── Redemption Panel
+  ├── Migration Card (legacy → veYFI)
+  ├── LLYFI Ledger (Table)
+  │    └── Row (Expandable)
+  │         └── Cockpit Tabs: [Stake] [Unstake] [Trade]
+  ├── Inventory Card (Redemption Intelligence)
+  └── Rewards Card
 ```
 
 All data comes from:
 
 - `useVeyfiAccount()`
-- `useLlyfiTokens()`
-- `useRedemptionCaps()`
+- `useLlyfiTokens()` (includes Balances, APR, Cooldown)
+- `useVeyfiStats()` (Global health)
+
+**Notes:**
+
+- **Trade Tab:** Handles both "Mint" (YFI → LLYFI) and "Redeem" (LLYFI → YFI).
+- **Inventory Card:** Displays protocol liquidity available for redemption (Flight Board).
 
 ---
 
@@ -466,13 +472,12 @@ This architecture:
 - Ensures minimal code duplication
 - Produces a clean, scalable and maintainable FE system for Yearn’s governance apps
 
-**Version 0.7** reflects:
+**Version 0.9** reflects:
 
-- Phase-1 completion
+- Phase-6 completion (veYFI/LLYFI)
+- Architecture updates for Nested Cockpit and Inventory Card
 - Shared CooldownState model
-- Phase-1 minimal tx types
-- Correct sequencing of tx pipeline (Phase-2)
-- Tooling note (Webpack for production builds)
+- Correct sequencing of tx pipeline
 
 ---
 

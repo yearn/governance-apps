@@ -1,6 +1,6 @@
 # Master Task List — Governance Apps (stYFI, stYFIx, veYFI, LLYFI)
 
-Version 1.3 — 2025-12-17
+Version 1.4 — 2025-12-20
 Scope: BR#1 (UI-first, mock-backed), `/styfi` + `/veyfi`
 
 This is the **authoritative implementation roadmap** for the `governance-apps` repository.
@@ -10,7 +10,7 @@ Sub-tasks: 1 level deep, atomic, actionable.
 
 ---
 
-# Phase 0 — Bootstrap (Already Done)
+# Phase 0 — Bootstrap (Done)
 
 - [x] Next.js App Router + TypeScript
 - [x] Tailwind v4 (PostCSS)
@@ -100,48 +100,48 @@ Sub-tasks: 1 level deep, atomic, actionable.
 
 ---
 
-# Phase 6 — `/veyfi` (Migration + LLYFI + Redemption) UI (Next)
+# Phase 6 — `/veyfi` (Migration + LLYFI + Redemption) UI (Done)
 
 ## 21. Page Layout
 
-- [ ] `/veyfi/page.tsx` structure
-- [ ] Veyfi-specific Stats Bar (Redemption Caps, LLYFI TVL)
+- [x] `/veyfi/page.tsx` structure
+- [x] Veyfi-specific Stats Bar (Migration %, LLYFI Staked)
 
 ## 22. Migration Card
 
-- [ ] Show legacy veYFI balance
-- [ ] “Eligible for migration” indicator
-- [ ] Migrate CTA (if allowed)
+- [x] Show legacy veYFI balance
+- [x] “Eligible for migration” indicator
+- [x] Migrate CTA (with visual timeline for migrated state)
 
 ## 23. LLYFI Staking Table
 
-- [ ] List all tokens (sdYFI, upYFI, etc.)
-- [ ] Balances, allowances
-- [ ] Approve → Stake CTAs
+- [x] List all tokens (sdYFI, upYFI, etc.)
+- [x] Balances, allowances, APR breakdowns
+- [x] Expandable Rows (Cockpit)
 
 ## 24. LLYFI Cooldown & Withdraw
 
-- [ ] Reuse `UnstakeTab` logic/components where possible (Unified model)
-- [ ] Cooldown progress indicator
+- [x] Reuse `UnstakeTab` logic via `LlyfiUnstakeTab`
+- [x] Cooldown progress indicator & Linear Streaming
 
 ## 25. LLYFI Rewards Panel
 
-- [ ] Claim-all CTA
+- [x] `VeyfiRewardsCard` (Link to stYFI dashboard)
 
 ## 26. Redemption Panel
 
-- [ ] Token selector or table
-- [ ] Caps: global + per-token
-- [ ] Fee % + fee amount
-- [ ] Approve → Redeem CTA
+- [x] Implemented as `InventoryCard` (Global Intel) + `TradeTab` (Action)
+- [x] Caps: global + per-token visibility
+- [x] Fee % + fee amount calculation
+- [x] Approve → Redeem CTA (Sell LLYFI)
 
 ---
 
-# Phase 7 — Error & Edge Behaviour
+# Phase 7 — Error & Edge Behaviour (Next)
 
 ## 27. Wrong Network UX
 
-- [ ] Global banner
+- [ ] Global banner (verify implementation in Layout)
 - [ ] Disable all write CTAs
 
 ## 28. Blacklist Handling
