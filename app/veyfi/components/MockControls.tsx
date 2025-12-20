@@ -1,3 +1,4 @@
+// app/veyfi/components/MockControls.tsx
 "use client";
 
 import { useCallback } from "react";
@@ -6,7 +7,6 @@ import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/Button";
 import { veyfiKeys } from "@/lib/hooks/useVeyfi";
 import { styfiKeys } from "@/lib/hooks/useStyfi";
-import { walletKeys } from "@/lib/hooks/useWalletYfiBalance";
 import { useProtocol } from "@/state/protocol";
 import { toast } from "@/components/ui/Toast";
 import { DebugControls } from "@/components/DebugControls";
@@ -18,11 +18,9 @@ export function MockControls() {
   const { veyfi, styfi } = useProtocol();
 
   const handleInjectVeYfi = useCallback(async () => {
-    const amount = 10n * 10n ** 18n; // 10 veYFI
+    const amount = 10n * 10n ** 18n;
     if (veyfi.debugSetPendingVeYfi) {
       veyfi.debugSetPendingVeYfi(amount);
-
-      // If connected, invalidate immediately
       if (address) {
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
@@ -43,24 +41,25 @@ export function MockControls() {
         });
         toast.success(`Added ${amount / 10n ** 18n} ${symbol}`);
       } else {
-        toast.error("Connect wallet first or mock method missing");
+        toast.error("Connect wallet first");
       }
     },
     [veyfi, address, queryClient]
   );
 
   const handleInjectYfi = useCallback(async () => {
-    const amount = 10n * 10n ** 18n; // 10 YFI
+    const amount = 10n * 10n ** 18n;
     if (address && styfi.debugMintYfi) {
       styfi.debugMintYfi(address, amount);
-      // Invalidate both wallet balance (stYFI) and LLYFI account (trade tab)
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: walletKeys.yfi(address) }),
+        queryClient.invalidateQueries({
+          queryKey: ["protocol", "identity", address],
+        }),
         queryClient.invalidateQueries({ queryKey: styfiKeys.account(address) }),
       ]);
       toast.success("Added 10 YFI");
     } else {
-      toast.error("Connect wallet first or mock method missing");
+      toast.error("Connect wallet first");
     }
   }, [styfi, address, queryClient]);
 

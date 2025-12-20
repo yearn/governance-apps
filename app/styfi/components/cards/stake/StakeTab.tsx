@@ -1,8 +1,9 @@
+// app/styfi/components/cards/stake/StakeTab.tsx
 "use client";
 
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
+import { useIdentity } from "@/state/identity";
 import { Button } from "@/components/ui/Button";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { formatTokenAmount } from "@/lib/format";
@@ -26,33 +27,41 @@ type Props = {
 };
 
 export function StakeTab({ mode }: Props) {
-  const { address, isConnected } = useAccount();
   const queryClient = useQueryClient();
-  const { data, isLoading } = useStyfiAccount();
+  const {
+    isConnected,
+    yfiBalance,
+    isBlacklisted,
+    isLoading: isIdentityLoading,
+  } = useIdentity();
+  const { data: styfiData, isLoading: isStyfiLoading } = useStyfiAccount();
+
   const { write: stake, state: stakeState } = useStyfiStake();
   const { write: approve, isLoading: approveLoading } = useTokenApprove();
 
   const [input, setInput] = useState<string>("");
   const { amount, isValid } = useMemo(() => parseAmount(input || "0"), [input]);
 
-  const yfiBalance = data?.yfiBalance ?? 0n;
+  // Allowance is domain-specific, YFI balance is global
   const allowance =
     mode === "styfi"
-      ? data?.allowances.yfiToStyfi ?? 0n
-      : data?.allowances.yfiToStyfiX ?? 0n;
-  const outputAmount = isValid ? amount : 0n;
+      ? styfiData?.allowances.yfiToStyfi ?? 0n
+      : styfiData?.allowances.yfiToStyfiX ?? 0n;
 
+  const outputAmount = isValid ? amount : 0n;
   const needsApproval = isValid && amount > allowance;
   const insufficientBalance = isValid && amount > yfiBalance;
+
   const isSubmitting =
     stakeState.status === "signing" ||
     stakeState.status === "submitted" ||
     stakeState.status === "mining";
 
+  const isLoading = isIdentityLoading || isStyfiLoading;
+
   const isDisabled =
     !isConnected ||
-    !data ||
-    data.isBlacklisted ||
+    isBlacklisted ||
     !isValid ||
     amount <= 0n ||
     insufficientBalance ||
@@ -69,9 +78,13 @@ export function StakeTab({ mode }: Props) {
     const spender = mode === "styfi" ? SPENDER_STYFI : SPENDER_STYFIX;
     await approve(MOCK_YFI_ADDRESS, spender, amount, {
       invalidate: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: styfiKeys.account(address),
-        });
+        // Invalidate both Styfi allowances and the generic Identity state
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["protocol", "identity"] }),
+          queryClient.invalidateQueries({
+            queryKey: styfiKeys.account(styfiData?.address),
+          }),
+        ]);
       },
     });
   };
@@ -117,8 +130,7 @@ export function StakeTab({ mode }: Props) {
             onClick={handleApprove}
             disabled={
               !isConnected ||
-              !data ||
-              data.isBlacklisted ||
+              isBlacklisted ||
               !isValid ||
               amount <= 0n ||
               approveLoading
@@ -138,7 +150,7 @@ export function StakeTab({ mode }: Props) {
           </Button>
         )}
 
-        {data?.isBlacklisted && (
+        {isBlacklisted && (
           <p className="text-xs text-red-600">{copy.shared.blacklistedBody}</p>
         )}
       </div>

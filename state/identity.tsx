@@ -1,0 +1,66 @@
+// state/identity.tsx
+"use client";
+
+import { createContext, useContext, ReactNode, useMemo } from "react";
+import { useAccount } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
+import { useProtocol } from "./protocol";
+import type { Address } from "viem";
+import type { EpochInfo } from "@/lib/clients/styfi/types";
+
+type IdentityState = {
+  address: Address | undefined;
+  isConnected: boolean;
+  yfiBalance: bigint;
+  isBlacklisted: boolean;
+  epoch: EpochInfo | undefined;
+  isLoading: boolean;
+};
+
+const IdentityContext = createContext<IdentityState | null>(null);
+
+export function IdentityProvider({ children }: { children: ReactNode }) {
+  const { address, isConnected } = useAccount();
+  const { styfi } = useProtocol();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["protocol", "identity", address],
+    queryFn: async () => {
+      if (!address) return null;
+      // StYFI client acts as the hub for identity and epoch timing
+      const state = await styfi.getAccountState(address);
+      return {
+        yfiBalance: state.yfiBalance,
+        isBlacklisted: state.isBlacklisted,
+        epoch: state.epoch,
+      };
+    },
+    enabled: !!address,
+    staleTime: 5_000,
+  });
+
+  const value = useMemo(
+    () => ({
+      address,
+      isConnected,
+      yfiBalance: data?.yfiBalance ?? 0n,
+      isBlacklisted: data?.isBlacklisted ?? false,
+      epoch: data?.epoch,
+      isLoading,
+    }),
+    [address, isConnected, data, isLoading]
+  );
+
+  return (
+    <IdentityContext.Provider value={value}>
+      {children}
+    </IdentityContext.Provider>
+  );
+}
+
+export const useIdentity = () => {
+  const context = useContext(IdentityContext);
+  if (!context)
+    throw new Error("useIdentity must be used within IdentityProvider");
+  return context;
+};

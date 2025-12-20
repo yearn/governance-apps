@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Web3Providers } from "@/web3/rainbowkit";
 import { ProtocolProvider } from "@/state/protocol";
+import { IdentityProvider } from "@/state/identity";
 import { Toaster } from "@/components/ui/Toast";
 import { Header } from "@/components/Header";
 
@@ -21,11 +22,15 @@ export default function RootLayout({
       <body>
         <ProtocolProvider>
           <Web3Providers>
-            <div className="flex min-h-screen flex-col bg-background text-neutral-900 font-sans">
-              <Header />
-              <main className="flex-1">{children}</main>
-            </div>
-            <Toaster />
+            <IdentityProvider>
+              {" "}
+              {/* Added */}
+              <div className="flex min-h-screen flex-col bg-background text-neutral-900 font-sans">
+                <Header />
+                <main className="flex-1">{children}</main>
+              </div>
+              <Toaster />
+            </IdentityProvider>
           </Web3Providers>
         </ProtocolProvider>
       </body>

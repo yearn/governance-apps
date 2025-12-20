@@ -5,7 +5,6 @@ import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { LlyfiTokenId } from "@/lib/clients/veyfi";
 import { useTx } from "@/lib/tx/useTx";
-import { walletKeys } from "@/lib/hooks/useWalletYfiBalance";
 
 // --- Query Keys ---
 export const veyfiKeys = {
@@ -43,7 +42,7 @@ export function useVeyfiStats() {
 }
 
 /**
- * Selector hook for just LLYFI tokens
+ * Selector hook for LLYFI tokens (Balances & Metadata)
  */
 export function useLlyfiTokens() {
   const { data } = useVeyfiAccount();
@@ -51,11 +50,11 @@ export function useLlyfiTokens() {
 }
 
 /**
- * Selector hook for Redemption Caps
+ * Selector hook for Protocol Inventory availability
  */
-export function useRedemptionCaps() {
+export function useVeyfiInventory() {
   const { data } = useVeyfiAccount();
-  return data?.redemptionCaps ?? null;
+  return data?.inventory ?? null;
 }
 
 // --- Write Hooks ---
@@ -148,28 +147,6 @@ export function useLlyfiWithdraw() {
   return { write, state };
 }
 
-export function useVeyfiClaimRewards() {
-  const { veyfi, usesMockBackend } = useProtocol();
-  const { execute, state } = useTx();
-  const queryClient = useQueryClient();
-  const { address } = useAccount();
-
-  const write = async () => {
-    const prepare = await veyfi.prepareClaimLlyfiRewards();
-
-    await execute(prepare, {
-      invalidate: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: veyfiKeys.account(address),
-        });
-      },
-      skipWaitForReceipt: usesMockBackend,
-    });
-  };
-
-  return { write, state };
-}
-
 export function useLlyfiRedeem() {
   const { veyfi, usesMockBackend } = useProtocol();
   const { execute, state } = useTx();
@@ -181,14 +158,13 @@ export function useLlyfiRedeem() {
 
     await execute(prepare, {
       invalidate: async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: veyfiKeys.account(address),
-          }),
-          queryClient.invalidateQueries({
-            queryKey: walletKeys.yfi(address),
-          }),
-        ]);
+        // Important: Invalidate identity for YFI balance updates
+        await queryClient.invalidateQueries({
+          queryKey: ["protocol", "identity"],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
       },
       skipWaitForReceipt: usesMockBackend,
     });
@@ -208,14 +184,12 @@ export function useLlyfiMint() {
 
     await execute(prepare, {
       invalidate: async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: veyfiKeys.account(address),
-          }),
-          queryClient.invalidateQueries({
-            queryKey: walletKeys.yfi(address),
-          }),
-        ]);
+        await queryClient.invalidateQueries({
+          queryKey: ["protocol", "identity"],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
       },
       skipWaitForReceipt: usesMockBackend,
     });

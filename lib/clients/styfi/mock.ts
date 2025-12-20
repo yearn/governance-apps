@@ -1,431 +1,120 @@
-// lib/clients/styfi/mock.ts
-
 "use client";
 
 import type { Address } from "viem";
 import type { PreparedTransaction, TransactionHash } from "@/lib/tx/types";
-import type {
-  EpochInfo,
-  StyfiAccountState,
-  StyfiAllowances,
-  StyfiXPosition,
-  StyfiGlobalStats,
-} from "./types";
+import type { StyfiAccountState, StyfiGlobalStats, EpochInfo } from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
+import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
+import { REWARD_TOKEN_CONFIG } from "@/lib/constants";
 import { nowSeconds } from "@/lib/mocks/time";
-import { getMockScenario } from "@/lib/mocks/scenario";
-import {
-  SPENDER_STYFI,
-  SPENDER_STYFIX,
-  REWARD_TOKEN_CONFIG,
-} from "@/lib/constants";
 
-// --- Persistence Helpers ---
-const STORAGE_KEY = "mock_styfi_store_v1";
-
-function replacer(_key: string, value: unknown) {
-  if (typeof value === "bigint") {
-    return `BIGINT::${value.toString()}`;
-  }
-  return value;
-}
-
-function reviver(_key: string, value: unknown) {
-  if (typeof value === "string" && value.startsWith("BIGINT::")) {
-    return BigInt(value.split("::")[1]);
-  }
-  return value;
-}
-
-function saveToStorage() {
-  if (typeof window === "undefined") return;
-  try {
-    const data = {
-      store: Array.from(GLOBAL_STYFI_STORE.entries()),
-      lastAccrual: Array.from(GLOBAL_LAST_ACCRUAL.entries()),
-      pendingInjections: GLOBAL_PENDING_INJECTIONS,
-    };
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data, replacer));
-  } catch (e) {
-    console.warn("Failed to save mock state", e);
-  }
-}
-
-function loadFromStorage() {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const data = JSON.parse(raw, reviver);
-
-    if (data.store) {
-      GLOBAL_STYFI_STORE.clear();
-      data.store.forEach(([k, v]: [string, StyfiAccountState]) =>
-        GLOBAL_STYFI_STORE.set(k, v)
-      );
-    }
-    if (data.lastAccrual) {
-      GLOBAL_LAST_ACCRUAL.clear();
-      data.lastAccrual.forEach(([k, v]: [string, number]) =>
-        GLOBAL_LAST_ACCRUAL.set(k, v)
-      );
-    }
-    if (data.pendingInjections) {
-      GLOBAL_PENDING_INJECTIONS = data.pendingInjections;
-    }
-  } catch (e) {
-    console.warn("Failed to load mock state", e);
-  }
-}
-
-// --- Global Store (Module Scope) ---
 const GLOBAL_STYFI_STORE = new Map<string, StyfiAccountState>();
 const GLOBAL_LAST_ACCRUAL = new Map<string, number>();
 
-let GLOBAL_PENDING_INJECTIONS: Array<{
-  mode: StyfiStakeMode;
-  amount: bigint;
-}> = [];
-
-loadFromStorage();
-
-export function resetMockStyfiStore() {
-  GLOBAL_STYFI_STORE.clear();
-  GLOBAL_LAST_ACCRUAL.clear();
-  GLOBAL_PENDING_INJECTIONS = [];
-  mockTxCounter = 0;
-  if (typeof window !== "undefined") {
-    window.sessionStorage.removeItem(STORAGE_KEY);
-  }
-}
-
-// --- Shared Mock Helpers ---
-let mockTxCounter = 0;
-
-const EPOCH_DURATION = 14 * 24 * 60 * 60; // 14 days
-const MOCK_GENESIS = Math.floor(Date.now() / 1000);
-
-// --- MOCK ECONOMICS CONFIG ---
-const MOCK_YFI_PRICE = 5000n;
-const MOCK_APY_BPS = 6843n;
-const SECONDS_PER_YEAR = 31536000n;
-const BASIS_POINTS = 10000n;
-const WEEK_SECONDS = 604800n;
-
-// Constants for Stats
-const MOCK_TOTAL_SUPPLY = 36666n * 10n ** 18n;
-// Ghost stake simulates "other users" so a single user isn't 100% of the pool
-const MOCK_GHOST_STAKE = 2583n * 10n ** 18n;
-
+let txCounter = 0;
 function nextMockHash(): TransactionHash {
-  mockTxCounter += 1;
-  return `0x${mockTxCounter.toString(16).padStart(64, "0")}` as TransactionHash;
-}
-
-function addDays(days: number): number {
-  return nowSeconds() + days * 24 * 60 * 60;
-}
-
-const MOCK_COOLDOWN_DAYS = 14;
-const COOLDOWN_DURATION_SECONDS = MOCK_COOLDOWN_DAYS * 24 * 60 * 60;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// --- Default State Generators ---
-function defaultAllowances(): StyfiAllowances {
-  return { yfiToStyfi: 0n, yfiToStyfiX: 0n };
-}
-
-function defaultStyfiXPosition(): StyfiXPosition {
-  return {
-    sharesActive: 0n,
-    sharesInCooldown: 0n,
-    assetsActive: 0n,
-    assetsInCooldown: 0n,
-    assetsUnlocked: 0n,
-    cooldown: null,
-  };
-}
-
-function computeEpochInfo(): EpochInfo {
-  const now = nowSeconds();
-  const timeSinceGenesis = Math.max(0, now - MOCK_GENESIS);
-  const epochIndex = Math.floor(timeSinceGenesis / EPOCH_DURATION);
-  const currentEpoch = 1 + epochIndex;
-  const epochEnd = MOCK_GENESIS + (epochIndex + 1) * EPOCH_DURATION;
-
-  return {
-    currentEpoch,
-    epochEnd,
-    nextEpochStart: epochEnd,
-  };
-}
-
-function createDefaultAccountState(
-  address: Address,
-  options: StyfiMockOptions
-): StyfiAccountState {
-  const scenario = getMockScenario();
-  const initialYfi = options.initialYfiBalance ?? 100n * 10n ** 18n;
-  const base: StyfiAccountState = {
-    address,
-    isBlacklisted: false,
-    yfiBalance: initialYfi,
-    styfiActive: 0n,
-    styfiInCooldown: 0n,
-    styfiUnlocked: 0n,
-    styfiCooldown: null,
-    styfiX: defaultStyfiXPosition(),
-    claimableGenericRewards: 0n,
-    claimableBoostedRewards: 0n,
-    accruingGenericRewards: 0n,
-    accruingBoostedRewards: 0n,
-    allowances: defaultAllowances(),
-    epoch: computeEpochInfo(),
-    earningWeight: 10n ** 18n, // 1.0x default
-    rewardToken: {
-      ...REWARD_TOKEN_CONFIG,
-    },
-  };
-
-  if (scenario === "active") {
-    const stakeAmount = 40n * 10n ** 18n;
-    base.yfiBalance -= stakeAmount;
-    base.styfiActive = stakeAmount;
-    base.allowances.yfiToStyfi = 100n * 10n ** 18n;
-    base.styfiCooldown = {
-      amount: 10n * 10n ** 18n,
-      endsAt: addDays(3),
-      claimedProgress: 0,
-    };
-    base.styfiInCooldown = 10n * 10n ** 18n;
-    base.claimableGenericRewards = 500n * 10n ** 18n;
-  }
-
-  if (scenario === "ready") {
-    const stakeAmount = 30n * 10n ** 18n;
-    base.yfiBalance -= stakeAmount;
-    base.styfiActive = stakeAmount;
-    base.allowances.yfiToStyfi = 100n * 10n ** 18n;
-    base.styfiCooldown = {
-      amount: 15n * 10n ** 18n,
-      endsAt: nowSeconds() - 60,
-      claimedProgress: 10000,
-    };
-    base.styfiInCooldown = 15n * 10n ** 18n;
-  }
-
-  return base;
-}
-
-type StyfiMockOptions = {
-  latencyMs?: number;
-  initialYfiBalance?: bigint;
-};
-
-// --- Cross-module Helper ---
-// Allows VeyfiMock to update YFI balances since they share the same mock user
-export function internalUpdateYfiBalance(address: Address, delta: bigint) {
-  const key = address.toLowerCase();
-  // Ensure store is populated if called before getAccountState
-  if (!GLOBAL_STYFI_STORE.has(key)) {
-    const created = createDefaultAccountState(address, {});
-    GLOBAL_STYFI_STORE.set(key, created);
-  }
-
-  const state = GLOBAL_STYFI_STORE.get(key)!;
-  const next = { ...state, yfiBalance: state.yfiBalance + delta };
-  GLOBAL_STYFI_STORE.set(key, next);
-  saveToStorage();
+  txCounter++;
+  return `0x${txCounter.toString(16).padStart(64, "0")}` as TransactionHash;
 }
 
 export class MockStyfiClient implements StyfiClient {
-  private readonly latencyMs: number;
   private lastAddress: Address | null = null;
+  private readonly latencyMs: number;
 
-  constructor(options: StyfiMockOptions = {}) {
+  constructor(options: { latencyMs?: number } = {}) {
     this.latencyMs = options.latencyMs ?? 600;
   }
 
-  private getKey(address: Address): string {
-    return address.toLowerCase();
-  }
-
   private getOrCreate(address: Address): StyfiAccountState {
-    const key = this.getKey(address);
-    const existing = GLOBAL_STYFI_STORE.get(key);
-    if (existing) return existing;
+    const key = address.toLowerCase();
+    const identity = GLOBAL_WORLD_STATE.get(address);
+    let state = GLOBAL_STYFI_STORE.get(key);
 
-    const created = createDefaultAccountState(address, {
-      latencyMs: this.latencyMs,
-      initialYfiBalance: undefined,
-    });
-    GLOBAL_STYFI_STORE.set(key, created);
-    GLOBAL_LAST_ACCRUAL.set(key, nowSeconds());
-    saveToStorage();
-    return created;
-  }
-
-  private setState(address: Address, next: StyfiAccountState) {
-    const key = this.getKey(address);
-    GLOBAL_STYFI_STORE.set(key, next);
-    saveToStorage();
+    if (!state) {
+      state = {
+        address,
+        isBlacklisted: identity.isBlacklisted,
+        yfiBalance: identity.yfiBalance,
+        styfiActive: 0n,
+        styfiInCooldown: 0n,
+        styfiUnlocked: 0n,
+        styfiCooldown: null,
+        styfiX: {
+          sharesActive: 0n,
+          sharesInCooldown: 0n,
+          assetsActive: 0n,
+          assetsInCooldown: 0n,
+          assetsUnlocked: 0n,
+          cooldown: null,
+        },
+        claimableGenericRewards: 0n,
+        claimableBoostedRewards: 0n,
+        accruingGenericRewards: 0n,
+        accruingBoostedRewards: 0n,
+        allowances: { yfiToStyfi: 0n, yfiToStyfiX: 0n },
+        epoch: {
+          currentEpoch: 12,
+          epochEnd: nowSeconds() + 864000,
+          nextEpochStart: nowSeconds() + 864000,
+        },
+        earningWeight: 10n ** 18n,
+        rewardToken: REWARD_TOKEN_CONFIG,
+      };
+      GLOBAL_STYFI_STORE.set(key, state);
+      GLOBAL_LAST_ACCRUAL.set(key, nowSeconds());
+    }
+    state.yfiBalance = identity.yfiBalance;
+    state.isBlacklisted = identity.isBlacklisted;
+    return state;
   }
 
   async getAccountState(address: Address): Promise<StyfiAccountState> {
     this.lastAddress = address;
-
-    if (GLOBAL_PENDING_INJECTIONS.length > 0) {
-      for (const injection of GLOBAL_PENDING_INJECTIONS) {
-        this.debugSetBalance(address, injection.mode, injection.amount);
-      }
-      GLOBAL_PENDING_INJECTIONS = [];
-      saveToStorage();
-    }
-
-    await delay(this.latencyMs);
+    await new Promise((r) => setTimeout(r, this.latencyMs));
     const state = this.getOrCreate(address);
-    const key = this.getKey(address);
-    const matured = this.applyAccrualAndMaturity(state, key);
-    return {
-      ...matured,
-      styfiX: { ...matured.styfiX },
-      epoch: computeEpochInfo(),
-    };
+    const now = nowSeconds();
+    const last = GLOBAL_LAST_ACCRUAL.get(address.toLowerCase()) || now;
+    const elapsed = BigInt(now - last);
+    if (elapsed > 0n) {
+      const earningAssets =
+        state.styfiActive + state.styfiX.assetsActive + 50n * 10n ** 18n;
+      state.claimableGenericRewards += (earningAssets * elapsed) / 2000000n;
+      GLOBAL_LAST_ACCRUAL.set(address.toLowerCase(), now);
+    }
+    return state;
   }
 
   async getEpochInfo(): Promise<EpochInfo> {
-    await delay(this.latencyMs / 2);
-    return computeEpochInfo();
-  }
-
-  async getApy(): Promise<bigint> {
-    await delay(this.latencyMs / 4);
-    return MOCK_APY_BPS;
-  }
-
-  async getStats(): Promise<StyfiGlobalStats> {
-    await delay(this.latencyMs / 2);
-
-    let totalUserStake = 0n;
-    // Iterate over all active mock sessions to sum their stakes
-    for (const account of GLOBAL_STYFI_STORE.values()) {
-      totalUserStake += account.styfiActive + account.styfiX.assetsActive;
-    }
-
     return {
-      totalSupply: MOCK_TOTAL_SUPPLY,
-      totalStaked: MOCK_GHOST_STAKE + totalUserStake,
+      currentEpoch: 12,
+      epochEnd: nowSeconds() + 864000,
+      nextEpochStart: nowSeconds() + 864000,
     };
   }
 
-  private applyAccrualAndMaturity(
-    state: StyfiAccountState,
-    key: string
-  ): StyfiAccountState {
-    const now = nowSeconds();
-    const last = GLOBAL_LAST_ACCRUAL.get(key) ?? now;
-    const elapsed = BigInt(Math.max(0, now - last));
-
-    const next = { ...state };
-
-    const totalStaked = next.styfiActive + next.styfiX.assetsActive;
-
-    if (elapsed > 0n && totalStaked > 0n) {
-      const freshRewards =
-        (totalStaked * MOCK_YFI_PRICE * MOCK_APY_BPS * elapsed) /
-        (SECONDS_PER_YEAR * BASIS_POINTS);
-
-      next.accruingGenericRewards += freshRewards;
-    }
-
-    if (elapsed > 0n && next.accruingGenericRewards > 0n) {
-      const pending = next.accruingGenericRewards;
-      let moveAmount = (pending * elapsed) / WEEK_SECONDS;
-
-      if (moveAmount > pending) moveAmount = pending;
-      if (moveAmount === 0n && pending > 0n) moveAmount = 1n;
-
-      next.accruingGenericRewards -= moveAmount;
-      next.claimableGenericRewards += moveAmount;
-    }
-
-    if (elapsed > 0n) {
-      GLOBAL_LAST_ACCRUAL.set(key, now);
-    }
-
-    if (next.styfiCooldown && next.styfiCooldown.endsAt <= now) {
-      next.styfiCooldown = {
-        ...next.styfiCooldown,
-        endsAt: next.styfiCooldown.endsAt,
-      };
-    }
-    if (next.styfiX.cooldown && next.styfiX.cooldown.endsAt <= now) {
-      next.styfiX = {
-        ...next.styfiX,
-        cooldown: {
-          ...next.styfiX.cooldown,
-          endsAt: next.styfiX.cooldown.endsAt,
-        },
-      };
-    }
-
-    return next;
+  async getApy(): Promise<bigint> {
+    return 6840n;
+  }
+  async getStats(): Promise<StyfiGlobalStats> {
+    return {
+      totalSupply: 36666n * 10n ** 18n,
+      totalStaked: 2500n * 10n ** 18n,
+    };
   }
 
   async prepareStake(
     mode: StyfiStakeMode,
     amount: bigint
   ): Promise<PreparedTransaction> {
-    if (amount <= 0n) throw new Error("Amount must be > 0");
-
-    const latency = this.latencyMs;
-    const targetAddress = this.lastAddress;
-
+    const addr = this.lastAddress!;
     return async () => {
-      await delay(latency);
-
-      if (!targetAddress) {
-        throw new Error(
-          "MockStyfiClient: No address context. Call getAccountState first."
-        );
+      GLOBAL_WORLD_STATE.updateYfi(addr, -amount);
+      const s = this.getOrCreate(addr);
+      if (mode === "stYFI") s.styfiActive += amount;
+      else {
+        s.styfiX.assetsActive += amount;
+        s.styfiX.sharesActive += amount;
       }
-
-      const state = this.getOrCreate(targetAddress);
-
-      const currentAllowance =
-        mode === "stYFI"
-          ? state.allowances.yfiToStyfi
-          : state.allowances.yfiToStyfiX;
-
-      if (currentAllowance < amount) {
-        throw new Error("Mock: Insufficient allowance. Please approve first.");
-      }
-
-      if (state.yfiBalance < amount) {
-        throw new Error("Mock: Insufficient YFI balance");
-      }
-
-      const next = { ...state, allowances: { ...state.allowances } };
-      next.yfiBalance -= amount;
-
-      if (mode === "stYFI") {
-        next.styfiActive += amount;
-        next.allowances.yfiToStyfi -= amount;
-      } else if (mode === "stYFIx") {
-        next.styfiX = {
-          ...next.styfiX,
-          sharesActive: next.styfiX.sharesActive + amount,
-          assetsActive: next.styfiX.assetsActive + amount,
-        };
-        next.allowances.yfiToStyfiX -= amount;
-      } else {
-        throw new Error(`Unsupported stake mode: ${mode}`);
-      }
-
-      this.setState(targetAddress, next);
       return nextMockHash();
     };
   }
@@ -434,311 +123,66 @@ export class MockStyfiClient implements StyfiClient {
     mode: StyfiStakeMode,
     amount: bigint
   ): Promise<PreparedTransaction> {
-    if (amount < 0n) throw new Error("Amount must be >= 0");
-    const latency = this.latencyMs;
-    const targetAddress = this.lastAddress;
-
+    const addr = this.lastAddress!;
     return async () => {
-      await delay(latency);
-      if (!targetAddress) {
-        throw new Error(
-          "MockStyfiClient: No address context. Call getAccountState first."
-        );
-      }
-
-      const state = this.getOrCreate(targetAddress);
-      const next = { ...state };
-      const endsAt = addDays(MOCK_COOLDOWN_DAYS);
-      const now = nowSeconds();
-
-      const computeScaledProgress = (endsAt: number) => {
-        const start = endsAt - COOLDOWN_DURATION_SECONDS;
-        if (now >= endsAt) return 10000;
-        if (now <= start) return 0;
-        return Math.floor(((now - start) * 10000) / COOLDOWN_DURATION_SECONDS);
-      };
-
+      const s = this.getOrCreate(addr);
+      const endsAt = nowSeconds() + 1209600;
       if (mode === "stYFI") {
-        if (state.styfiActive < amount) throw new Error("Insufficient stYFI");
-
-        if (next.styfiCooldown) {
-          const totalAmount =
-            next.styfiCooldown.totalAmount ?? next.styfiInCooldown;
-          const scaledProgress = computeScaledProgress(
-            next.styfiCooldown.endsAt
-          );
-          const previousProgress = next.styfiCooldown.claimedProgress ?? 0;
-          const progressDelta = scaledProgress - previousProgress;
-
-          if (progressDelta > 0) {
-            const liquid = (totalAmount * BigInt(progressDelta)) / 10000n;
-            if (liquid > 0n) {
-              next.styfiInCooldown -= liquid;
-              next.styfiUnlocked += liquid;
-            }
-          }
-        }
-
-        next.styfiActive -= amount;
-        next.styfiInCooldown += amount;
-
-        next.styfiCooldown = {
-          amount: next.styfiInCooldown,
-          endsAt,
-          claimedProgress: 0,
-          totalAmount: next.styfiInCooldown,
-        };
-      } else if (mode === "stYFIx") {
-        if (state.styfiX.sharesActive < amount)
-          throw new Error("Insufficient stYFIx");
-
-        if (next.styfiX.cooldown) {
-          const totalAssets = next.styfiX.assetsInCooldown;
-          const totalShares = next.styfiX.sharesInCooldown;
-          const totalAmount = next.styfiX.cooldown.totalAmount ?? totalAssets;
-
-          const scaledProgress = computeScaledProgress(
-            next.styfiX.cooldown.endsAt
-          );
-          const previousProgress = next.styfiX.cooldown.claimedProgress ?? 0;
-          const progressDelta = scaledProgress - previousProgress;
-
-          if (progressDelta > 0) {
-            const liquidAssets = (totalAmount * BigInt(progressDelta)) / 10000n;
-            const shareReduction =
-              (totalShares * BigInt(progressDelta)) / 10000n;
-
-            if (liquidAssets > 0n) {
-              next.styfiX.assetsInCooldown -= liquidAssets;
-              next.styfiX.sharesInCooldown -= shareReduction;
-              next.styfiX.assetsUnlocked += liquidAssets;
-            }
-          }
-        }
-
-        next.styfiX = {
-          ...next.styfiX,
-          sharesActive: state.styfiX.sharesActive - amount,
-          assetsActive: state.styfiX.assetsActive - amount,
-          sharesInCooldown: next.styfiX.sharesInCooldown + amount,
-          assetsInCooldown: next.styfiX.assetsInCooldown + amount,
-          cooldown: {
-            amount: next.styfiX.sharesInCooldown + amount,
-            endsAt,
-            claimedProgress: 0,
-            totalAmount: next.styfiX.assetsInCooldown + amount,
-          },
-        };
+        s.styfiActive -= amount;
+        s.styfiInCooldown += amount;
+        s.styfiCooldown = { amount: s.styfiInCooldown, endsAt };
       } else {
-        throw new Error(`Unsupported cooldown mode: ${mode}`);
+        s.styfiX.assetsActive -= amount;
+        s.styfiX.assetsInCooldown += amount;
+        s.styfiX.cooldown = { amount: s.styfiX.assetsInCooldown, endsAt };
       }
-
-      this.setState(targetAddress, next);
       return nextMockHash();
     };
   }
 
   async prepareWithdraw(mode: StyfiStakeMode): Promise<PreparedTransaction> {
-    const latency = this.latencyMs;
-    const targetAddress = this.lastAddress;
-
+    const addr = this.lastAddress!;
     return async () => {
-      await delay(latency);
-      if (!targetAddress) {
-        throw new Error(
-          "MockStyfiClient: No address context. Call getAccountState first."
-        );
-      }
-
-      const state = this.getOrCreate(targetAddress);
-      const next = { ...state };
-      const now = nowSeconds();
-
-      const computeScaledProgress = (endsAt: number) => {
-        const start = endsAt - COOLDOWN_DURATION_SECONDS;
-        if (now >= endsAt) return 10000;
-        if (now <= start) return 0;
-        return Math.floor(((now - start) * 10000) / COOLDOWN_DURATION_SECONDS);
-      };
-
+      const s = this.getOrCreate(addr);
+      const amount =
+        mode === "stYFI" ? s.styfiInCooldown : s.styfiX.assetsInCooldown;
+      GLOBAL_WORLD_STATE.updateYfi(addr, amount);
       if (mode === "stYFI") {
-        let liquidFromStream = 0n;
-
-        if (next.styfiCooldown) {
-          const totalAmount =
-            next.styfiCooldown.totalAmount ?? next.styfiInCooldown;
-          const scaledProgress = computeScaledProgress(
-            next.styfiCooldown.endsAt
-          );
-          const previousProgress = next.styfiCooldown.claimedProgress ?? 0;
-          const progressDelta = scaledProgress - previousProgress;
-
-          if (progressDelta > 0) {
-            liquidFromStream = (totalAmount * BigInt(progressDelta)) / 10000n;
-            if (liquidFromStream > next.styfiInCooldown) {
-              liquidFromStream = next.styfiInCooldown;
-            }
-          }
-
-          next.styfiInCooldown -= liquidFromStream;
-          if (next.styfiInCooldown <= 0n) {
-            next.styfiInCooldown = 0n;
-            next.styfiCooldown = null;
-          } else {
-            next.styfiCooldown = {
-              ...next.styfiCooldown,
-              claimedProgress: scaledProgress,
-            };
-          }
-        }
-
-        const totalWithdrawable = next.styfiUnlocked + liquidFromStream;
-        if (totalWithdrawable <= 0n) {
-          throw new Error("No funds available to withdraw yet");
-        }
-
-        next.yfiBalance += totalWithdrawable;
-        next.styfiUnlocked = 0n;
-      } else if (mode === "stYFIx") {
-        let liquidAssetsFromStream = 0n;
-
-        if (next.styfiX.cooldown) {
-          const totalAssets = next.styfiX.assetsInCooldown;
-          const totalAmount = next.styfiX.cooldown.totalAmount ?? totalAssets;
-          const totalShares = next.styfiX.sharesInCooldown;
-
-          const scaledProgress = computeScaledProgress(
-            next.styfiX.cooldown.endsAt
-          );
-          const previousProgress = next.styfiX.cooldown.claimedProgress ?? 0;
-          const progressDelta = scaledProgress - previousProgress;
-
-          if (progressDelta > 0) {
-            liquidAssetsFromStream =
-              (totalAmount * BigInt(progressDelta)) / 10000n;
-            const shareReduction =
-              (totalShares * BigInt(progressDelta)) / 10000n;
-
-            next.styfiX.assetsInCooldown -= liquidAssetsFromStream;
-            next.styfiX.sharesInCooldown -= shareReduction;
-
-            if (next.styfiX.assetsInCooldown <= 0n) {
-              next.styfiX.assetsInCooldown = 0n;
-              next.styfiX.sharesInCooldown = 0n;
-              next.styfiX.cooldown = null;
-            } else {
-              next.styfiX.cooldown = {
-                ...next.styfiX.cooldown,
-                claimedProgress: scaledProgress,
-              };
-            }
-          }
-        }
-
-        const totalWithdrawable =
-          next.styfiX.assetsUnlocked + liquidAssetsFromStream;
-        if (totalWithdrawable <= 0n) {
-          throw new Error("No funds available to withdraw yet");
-        }
-
-        next.yfiBalance += totalWithdrawable;
-        next.styfiX.assetsUnlocked = 0n;
+        s.styfiInCooldown = 0n;
+        s.styfiCooldown = null;
       } else {
-        throw new Error(`Unsupported withdraw mode: ${mode}`);
+        s.styfiX.assetsInCooldown = 0n;
+        s.styfiX.cooldown = null;
       }
-
-      this.setState(targetAddress, next);
       return nextMockHash();
     };
   }
 
   async prepareClaimRewards(): Promise<PreparedTransaction> {
-    const latency = this.latencyMs;
-    const targetAddress = this.lastAddress;
-
+    const addr = this.lastAddress!;
     return async () => {
-      await delay(latency);
-      if (!targetAddress) {
-        throw new Error(
-          "MockStyfiClient: No address context. Call getAccountState first."
-        );
-      }
-
-      const state = this.getOrCreate(targetAddress);
-      const next = { ...state };
-
-      next.claimableGenericRewards = 0n;
-      next.claimableBoostedRewards = 0n;
-
-      this.setState(targetAddress, next);
+      const s = this.getOrCreate(addr);
+      s.claimableGenericRewards = 0n;
+      s.claimableBoostedRewards = 0n;
       return nextMockHash();
     };
   }
 
-  debugSetAllowance(
-    user: Address,
-    _token: Address,
-    spender: Address,
-    amount: bigint
-  ) {
-    const state = this.getOrCreate(user);
-    const next = { ...state, allowances: { ...state.allowances } };
-
-    if (spender === SPENDER_STYFI) {
-      next.allowances.yfiToStyfi = amount;
-    } else if (spender === SPENDER_STYFIX) {
-      next.allowances.yfiToStyfiX = amount;
-    }
-
-    this.setState(user, next);
+  debugSetAllowance(u: Address, _t: Address, s: Address, a: bigint) {
+    const state = this.getOrCreate(u);
+    if (s.toLowerCase().includes("01")) state.allowances.yfiToStyfi = a;
+    else state.allowances.yfiToStyfiX = a;
   }
-
-  debugSetBalance(user: Address, mode: StyfiStakeMode, amount: bigint) {
-    const state = this.getOrCreate(user);
-    const next = { ...state, styfiX: { ...state.styfiX } };
-
-    if (mode === "stYFI") {
-      next.styfiActive += amount;
-    } else if (mode === "stYFIx") {
-      next.styfiX.sharesActive += amount;
-      next.styfiX.assetsActive += amount;
-    }
-
-    this.setState(user, next);
-  }
-
-  debugSetPendingBalance(mode: StyfiStakeMode, amount: bigint) {
-    GLOBAL_PENDING_INJECTIONS.push({ mode, amount });
-    saveToStorage();
-  }
-
-  debugMintYfi(user: Address, amount: bigint) {
-    const state = this.getOrCreate(user);
-    const next = { ...state, yfiBalance: state.yfiBalance + amount };
-    this.setState(user, next);
+  debugMintYfi(u: Address, a: bigint) {
+    GLOBAL_WORLD_STATE.updateYfi(u, a);
   }
 }
 
-export function createMockStyfiClient(options?: StyfiMockOptions): StyfiClient {
+export function createMockStyfiClient(options?: { latencyMs?: number }) {
   return new MockStyfiClient(options);
 }
 
-export function setMockStyfiAllowance(
-  user: Address,
-  spender: Address,
-  amount: bigint
-) {
-  const key = user.toLowerCase();
-  if (!GLOBAL_STYFI_STORE.has(key)) return;
-
-  const state = GLOBAL_STYFI_STORE.get(key)!;
-  const next = { ...state, allowances: { ...state.allowances } };
-
-  if (spender === "0x1000000000000000000000000000000000000001") {
-    next.allowances.yfiToStyfi = amount;
-  } else if (spender === "0x1000000000000000000000000000000000000002") {
-    next.allowances.yfiToStyfiX = amount;
-  }
-
-  GLOBAL_STYFI_STORE.set(key, next);
+export function resetMockStyfiStore() {
+  GLOBAL_STYFI_STORE.clear();
+  GLOBAL_LAST_ACCRUAL.clear();
 }

@@ -6,7 +6,6 @@ import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { StyfiStakeMode } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
-import { walletKeys } from "@/lib/hooks/useWalletYfiBalance";
 
 // --- Query Keys ---
 export const styfiKeys = {
@@ -31,7 +30,6 @@ export function useStyfiAccount() {
       return styfi.getAccountState(address);
     },
     enabled: !!address,
-    // Keep data fresh but don't spam
     staleTime: 10_000,
   });
 }
@@ -42,7 +40,7 @@ export function useStyfiEpoch() {
   return useQuery({
     queryKey: styfiKeys.epoch(),
     queryFn: () => styfi.getEpochInfo(),
-    staleTime: 60_000, // Epochs don't change often
+    staleTime: 60_000,
   });
 }
 
@@ -52,7 +50,7 @@ export function useStyfiApy() {
   return useQuery({
     queryKey: styfiKeys.apy(),
     queryFn: () => styfi.getApy(),
-    staleTime: 60_000, // APY doesn't change often
+    staleTime: 60_000,
   });
 }
 
@@ -84,11 +82,9 @@ export function useStyfiStake() {
             queryKey: styfiKeys.account(address),
           }),
           queryClient.invalidateQueries({
-            queryKey: walletKeys.yfi(address),
+            queryKey: ["protocol", "identity", address],
           }),
-          queryClient.invalidateQueries({
-            queryKey: styfiKeys.stats(),
-          }),
+          queryClient.invalidateQueries({ queryKey: styfiKeys.stats() }),
         ]);
       },
       skipWaitForReceipt: usesMockBackend,
@@ -114,11 +110,9 @@ export function useStyfiStartCooldown() {
             queryKey: styfiKeys.account(address),
           }),
           queryClient.invalidateQueries({
-            queryKey: walletKeys.yfi(address),
+            queryKey: ["protocol", "identity", address],
           }),
-          queryClient.invalidateQueries({
-            queryKey: styfiKeys.stats(),
-          }),
+          queryClient.invalidateQueries({ queryKey: styfiKeys.stats() }),
         ]);
       },
       skipWaitForReceipt: usesMockBackend,
@@ -144,7 +138,7 @@ export function useStyfiWithdraw() {
             queryKey: styfiKeys.account(address),
           }),
           queryClient.invalidateQueries({
-            queryKey: walletKeys.yfi(address),
+            queryKey: ["protocol", "identity", address],
           }),
         ]);
       },

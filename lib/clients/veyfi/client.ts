@@ -1,4 +1,3 @@
-// lib/clients/veyfi/client.ts
 import type { PreparedTransaction } from "@/lib/tx/types";
 import type {
   VeyfiAccountState,
@@ -9,55 +8,33 @@ import type {
 export interface VeyfiClient {
   getAccountState(address: `0x${string}`): Promise<VeyfiAccountState>;
   getGlobalStats(): Promise<VeyfiGlobalStats>;
-
   prepareMigrateVeYfi(): Promise<PreparedTransaction>;
-
   prepareStakeLlyfi(
     symbol: LlyfiTokenId,
     amount: bigint
   ): Promise<PreparedTransaction>;
-
   prepareStartCooldownLlyfi(
     symbol: LlyfiTokenId,
     amount: bigint
   ): Promise<PreparedTransaction>;
-
   prepareWithdrawLlyfi(symbol: LlyfiTokenId): Promise<PreparedTransaction>;
-
-  prepareClaimLlyfiRewards(): Promise<PreparedTransaction>; // claim-all
-
   prepareRedeemLlyfi(
     symbol: LlyfiTokenId,
     amount: bigint
   ): Promise<PreparedTransaction>;
-
-  /**
-   * New: Mint LLYFI (YFI -> LLYFI) 1:1
-   */
   prepareMintLlyfi(
     symbol: LlyfiTokenId,
     amount: bigint
   ): Promise<PreparedTransaction>;
 
-  /**
-   * Mock-only helper to sync allowances without importing mock modules.
-   * No-op in on-chain clients.
-   */
+  // Debug Helpers (Optional)
   debugSetAllowance?: (
     user: `0x${string}`,
     token: `0x${string}`,
     spender: `0x${string}`,
     amount: bigint
   ) => void;
-
-  /**
-   * Mock-only helper to inject legacy veYFI balance.
-   */
   debugSetPendingVeYfi?: (amount: bigint) => void;
-
-  /**
-   * Mock-only helper to set LLYFI wallet balance directly.
-   */
   debugSetLlyfiBalance?: (
     user: `0x${string}`,
     symbol: LlyfiTokenId,

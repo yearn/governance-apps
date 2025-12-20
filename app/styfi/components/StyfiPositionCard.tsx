@@ -1,5 +1,4 @@
 // app/styfi/components/StyfiPositionCard.tsx
-
 "use client";
 
 import {
@@ -11,6 +10,7 @@ import {
   type RefObject,
 } from "react";
 import { useId } from "react";
+import { useIdentity } from "@/state/identity";
 import { Banner } from "@/components/ui/Banner";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -33,34 +33,36 @@ export function StyfiPositionCard() {
   const drawerId = useId();
   const { mode, isDrawerOpen, isOnboarded, selectMode, toggleDrawer } =
     useStyfiMode();
-  const { data, isLoading } = useStyfiAccount();
+  const { isConnected, isLoading: isIdentityLoading } = useIdentity();
+  const { data: styfiData, isLoading: isStyfiLoading } = useStyfiAccount();
   const { data: apy } = useStyfiApy();
 
   const styfiCardRef = useRef<HTMLButtonElement>(null);
   const styfixCardRef = useRef<HTMLButtonElement>(null);
 
-  // Convert BPS (e.g. 6800) to fractional (0.68) for the formatter
   const currentApr = apy ? formatPercent(Number(apy) / 10000) : "--%";
 
+  // Use optional chaining for cooldown
   const cooldown =
-    mode === "styfi" ? data?.styfiCooldown : data?.styfiX.cooldown;
+    mode === "styfi" ? styfiData?.styfiCooldown : styfiData?.styfiX.cooldown;
   const { isComplete } = useEpochCountdown(cooldown?.endsAt);
 
   const balances = useMemo(() => {
-    if (!data) return { active: 0n, totalExiting: 0n, isFullyUnlocked: false };
+    if (!styfiData)
+      return { active: 0n, totalExiting: 0n, isFullyUnlocked: false };
 
     let active = 0n;
     let inCooldown = 0n;
     let unlocked = 0n;
 
     if (mode === "styfi") {
-      active = data.styfiActive;
-      inCooldown = data.styfiInCooldown;
-      unlocked = data.styfiUnlocked;
+      active = styfiData.styfiActive;
+      inCooldown = styfiData.styfiInCooldown;
+      unlocked = styfiData.styfiUnlocked;
     } else {
-      active = data.styfiX.assetsActive;
-      inCooldown = data.styfiX.assetsInCooldown;
-      unlocked = data.styfiX.assetsUnlocked;
+      active = styfiData.styfiX.assetsActive;
+      inCooldown = styfiData.styfiX.assetsInCooldown;
+      unlocked = styfiData.styfiX.assetsUnlocked;
     }
 
     const totalExiting = inCooldown + unlocked;
@@ -68,7 +70,7 @@ export function StyfiPositionCard() {
       totalExiting > 0n && (inCooldown === 0n || isComplete);
 
     return { active, totalExiting, isFullyUnlocked };
-  }, [data, mode, isComplete]);
+  }, [styfiData, mode, isComplete]);
 
   const {
     active: primaryBalance,
@@ -94,16 +96,11 @@ export function StyfiPositionCard() {
     }
   }
 
-  // Handle focus management when drawer opens
   useEffect(() => {
-    if (!isOnboarded) return;
-    if (!isDrawerOpen) return;
+    if (!isOnboarded || !isDrawerOpen) return;
     const target =
       (mode === "styfi" ? styfiCardRef.current : styfixCardRef.current) ??
-      styfiCardRef.current ??
-      styfixCardRef.current;
-
-    // Slight delay to allow expansion to start
+      styfiCardRef.current;
     setTimeout(() => target?.focus(), 50);
   }, [isDrawerOpen, isOnboarded, mode]);
 
@@ -111,7 +108,6 @@ export function StyfiPositionCard() {
 
   const handleSelect = (nextMode: StyfiMode) => {
     setOptimisticMode(nextMode);
-
     setTimeout(() => {
       selectMode(nextMode, { collapseDrawer: true, markOnboarded: true });
       setTimeout(() => setOptimisticMode(null), 500);
@@ -119,22 +115,20 @@ export function StyfiPositionCard() {
   };
 
   const ActiveLogo = mode === "styfi" ? LogoStyfi : LogoStyfix;
+  const isLoading = isIdentityLoading || isStyfiLoading;
 
   return (
     <Card className="flex flex-col">
-      {/*
-         Header: Always visible (except initial onboarding fade-in).
-      */}
       <div
         className={cn(
-          "grid transition-[grid-template-rows] duration-500 ease-in-out",
+          "grid transition-[grid-template-rows] duration-500",
           isOnboarded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         )}
       >
         <div className="overflow-hidden">
           <div
             className={cn(
-              "pb-1", // Minimal bottom padding to prevent focus ring clipping
+              "pb-1",
               isOnboarded
                 ? "opacity-100 transition-opacity duration-700 delay-100"
                 : "opacity-0"
@@ -143,31 +137,23 @@ export function StyfiPositionCard() {
             <button
               type="button"
               onClick={toggleDrawer}
-              // Fixed clipping: Removed negative margins (-ml-2 -mr-2).
-              // The hover state now sits cleanly inside the card padding.
-              className="group w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 rounded-lg p-2 hover:bg-neutral-100 transition-colors cursor-pointer"
+              className="group w-full flex items-center justify-between text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 rounded-lg p-2 hover:bg-neutral-100 transition-colors"
               aria-expanded={isDrawerOpen}
               aria-controls={drawerId}
-              aria-label={
-                isDrawerOpen
-                  ? copy.modeSelector.compareAria.collapse
-                  : copy.modeSelector.compareAria.expand
-              }
             >
               <div
                 key={mode}
                 className="flex items-center gap-4 animate-in fade-in zoom-in-95 duration-200"
               >
-                <ActiveLogo className="h-12 w-12 shrink-0 transition-transform duration-300 group-hover:scale-105" />
-
+                <ActiveLogo className="h-12 w-12 shrink-0 transition-transform group-hover:scale-105" />
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wide text-neutral-500 group-hover:text-neutral-900 transition-colors">
+                    <span className="text-xs font-bold uppercase tracking-wide text-neutral-500 group-hover:text-neutral-900">
                       {copy.modeSelector.kicker}
                     </span>
                     <IconChevron
                       className={cn(
-                        "h-3 w-3 text-neutral-400 transition-transform duration-300 group-hover:text-neutral-900",
+                        "h-3 w-3 text-neutral-400 transition-transform",
                         isDrawerOpen && "rotate-180"
                       )}
                     />
@@ -175,7 +161,7 @@ export function StyfiPositionCard() {
 
                   {isLoading ? (
                     <Skeleton className="h-8 w-40" />
-                  ) : data ? (
+                  ) : isConnected && styfiData ? (
                     <div className="flex flex-wrap items-baseline gap-2 text-neutral-900">
                       <span className="text-2xl font-number font-bold">
                         {formatTokenAmount(primaryBalance, 18, 4)} YFI
@@ -192,13 +178,12 @@ export function StyfiPositionCard() {
                 </div>
               </div>
 
-              {/* Right Side Stats (APR Only) */}
               <div
                 className={cn(
-                  "hidden md:block text-right transition-all duration-300",
+                  "hidden md:block text-right transition-all",
                   isDrawerOpen
-                    ? "opacity-0 translate-y-2" // Push down when exiting/hidden
-                    : "opacity-100 translate-y-0" // Rise up when appearing
+                    ? "opacity-0 translate-y-2"
+                    : "opacity-100 translate-y-0"
                 )}
               >
                 <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">

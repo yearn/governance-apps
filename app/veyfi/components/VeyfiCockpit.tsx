@@ -1,7 +1,7 @@
 "use client";
 
 import { MigrationCard } from "./MigrationCard";
-import { RedemptionStatusCard } from "./RedemptionStatusCard";
+import { InventoryCard } from "./InventoryCard";
 import { LlyfiTokenTable } from "./LlyfiTokenTable";
 import { VeyfiRewardsCard } from "./VeyfiRewardsCard";
 
@@ -16,7 +16,7 @@ export function VeyfiCockpit() {
 
       {/* Zone 3: Redemption Intelligence & Rewards */}
       <div className="grid gap-6 lg:grid-cols-2 items-start">
-        <RedemptionStatusCard />
+        <InventoryCard />
         <VeyfiRewardsCard />
       </div>
     </div>

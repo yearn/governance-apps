@@ -41,14 +41,10 @@ export const veyfiCopy = {
       },
     },
   },
-  redemptionCard: {
-    title: "Redemption Availability",
-    globalCapLabel: "Global Cap Used",
-    feeLabel: "Current Exit Fee",
-    availabilityTitle: "Token Availability",
-    availabilityItem: (symbol: string, amount: string) =>
-      `${symbol}: ${amount} YFI available`,
-    capFull: "Cap Full",
+  inventory: {
+    title: "Available Inventory to trade",
+    subtitle:
+      "Liquidity held by the protocol for instant swaps between YFI and LLYFI tokens.",
   },
   manage: {
     title: "Legacy Liquid Locker Tokens",

@@ -9,22 +9,14 @@ export function VeyfiRewardsCard() {
   return (
     <Card className="h-full flex flex-col justify-between space-y-6">
       <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-            {copy.rewards.title}
-          </h3>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-3xl font-bold text-neutral-900 leading-tight max-w-xs">
-            {copy.rewards.headline}
-          </p>
-          <p className="text-sm text-neutral-600 leading-relaxed">
-            {copy.rewards.helper}
-          </p>
-        </div>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+          {copy.rewards.title}
+        </h3>
+        <p className="text-3xl font-bold text-neutral-900 leading-tight">
+          {copy.rewards.headline}
+        </p>
+        <p className="text-sm text-neutral-600">{copy.rewards.helper}</p>
       </div>
-
       <div className="pt-4 border-t border-neutral-100">
         <Link href="/styfi" className="block w-full">
           <Button variant="veyfi" className="w-full">
