@@ -8,9 +8,8 @@ import {
   useStyfiStartCooldown,
   useStyfiWithdraw,
 } from "@/lib/hooks/useStyfi";
-import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
 import { UnstakePanel } from "@/components/domain/UnstakePanel";
-import { StyfiMode, modeLabel } from "../../types";
+import { StyfiMode } from "../../types";
 import { styfiCopy as copy } from "../../../messages";
 
 type Props = {
@@ -30,7 +29,7 @@ export function UnstakeTab({ mode }: Props) {
   const available =
     (mode === "styfi" ? data?.styfiActive : data?.styfiX.sharesActive) ?? 0n;
 
-  // Use null fallback to satisfy CooldownState type (which allows null but not undefined)
+  // Use null fallback to satisfy CooldownState type
   const cooldown =
     (mode === "styfi" ? data?.styfiCooldown : data?.styfiX.cooldown) ?? null;
 
@@ -39,32 +38,17 @@ export function UnstakeTab({ mode }: Props) {
       ? data?.styfiInCooldown
       : data?.styfiX.assetsInCooldown) ?? 0n;
 
-  const unlockedFromPrevious =
-    (mode === "styfi" ? data?.styfiUnlocked : data?.styfiX.assetsUnlocked) ??
-    0n;
+  // Contract truth for withdrawable amount
+  const contractWithdrawable =
+    (mode === "styfi"
+      ? data?.styfiWithdrawable
+      : data?.styfiX.assetsWithdrawable) ?? 0n;
 
-  const { progress } = useEpochCountdown(
-    cooldown?.endsAt,
-    cooldown?.endsAt ? cooldown.endsAt - 14 * 24 * 60 * 60 : undefined
-  );
-
-  const scaledProgress = Math.max(
-    0,
-    Math.min(10000, Math.floor(progress * 100))
-  );
-
-  const initialAmount = cooldown?.totalAmount ?? totalExiting;
-  const unlockedFromStream =
-    initialAmount > 0n ? (initialAmount * BigInt(scaledProgress)) / 10000n : 0n;
-  const alreadyWithdrawn = initialAmount - totalExiting;
-  const liquidFromStream =
-    unlockedFromStream > alreadyWithdrawn
-      ? unlockedFromStream - alreadyWithdrawn
+  // Derive streaming amount simply by subtraction, relying on contract truth for the liquid portion
+  const streamingEstimate =
+    totalExiting > contractWithdrawable
+      ? totalExiting - contractWithdrawable
       : 0n;
-
-  const streaming =
-    totalExiting > liquidFromStream ? totalExiting - liquidFromStream : 0n;
-  const totalLiquid = unlockedFromPrevious + liquidFromStream;
 
   const insufficient = isValid && amount > available;
   const isSubmitting =
@@ -87,7 +71,7 @@ export function UnstakeTab({ mode }: Props) {
     !isConnected ||
     !data ||
     data.isBlacklisted ||
-    totalLiquid <= 0n ||
+    contractWithdrawable <= 0n ||
     isSubmitting;
 
   const handleStart = async (amt: bigint) => {
@@ -118,8 +102,9 @@ export function UnstakeTab({ mode }: Props) {
       tokenSymbol={mode === "styfi" ? "stYFI" : "stYFIx"}
       availableBalance={available}
       totalExiting={totalExiting}
-      liquidEstimate={totalLiquid}
-      streamingEstimate={streaming}
+      // Use exact contract value for the liquid number shown to user
+      liquidEstimate={contractWithdrawable}
+      streamingEstimate={streamingEstimate}
       cooldown={cooldown}
       onStartCooldown={handleStart}
       onWithdraw={handleWithdraw}

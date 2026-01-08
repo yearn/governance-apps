@@ -17,6 +17,31 @@ function nextMockHash(): TransactionHash {
   return `0x${txCounter.toString(16).padStart(64, "0")}` as TransactionHash;
 }
 
+// Vyper-aligned maxWithdraw calculation
+function calculateMaxWithdraw(
+  total: bigint,
+  startTime: number,
+  unlockedStored: bigint
+): bigint {
+  const STREAM_DURATION = 14 * 24 * 60 * 60;
+  if (startTime === 0 || total === 0n) return unlockedStored;
+
+  const now = nowSeconds();
+  const timeElapsed = Math.min(Math.max(0, now - startTime), STREAM_DURATION);
+
+  // Logic mirrors: max(total * time / duration, claimed) - claimed + stored
+  // But our mock store separates "InCooldown" (total) from "Unlocked" (already finished stream)
+  // In the contract, 'claimed' tracks what has been withdrawn.
+  // In our mock store, we just decrement 'InCooldown' when withdraw happens if stream is done?
+  // Actually, let's simplify to match the contract behavior more closely:
+  // "Unlocked" in our store represents fully liquid funds from PREVIOUS streams.
+  // "InCooldown" represents the current stream total.
+
+  const streamClaimable =
+    (total * BigInt(timeElapsed)) / BigInt(STREAM_DURATION);
+  return streamClaimable + unlockedStored;
+}
+
 export class MockStyfiClient implements StyfiClient {
   private lastAddress: Address | null = null;
   private readonly latencyMs: number;
@@ -38,6 +63,7 @@ export class MockStyfiClient implements StyfiClient {
         styfiActive: 0n,
         styfiInCooldown: 0n,
         styfiUnlocked: 0n,
+        styfiWithdrawable: 0n,
         styfiCooldown: null,
         styfiX: {
           sharesActive: 0n,
@@ -45,6 +71,7 @@ export class MockStyfiClient implements StyfiClient {
           assetsActive: 0n,
           assetsInCooldown: 0n,
           assetsUnlocked: 0n,
+          assetsWithdrawable: 0n,
           cooldown: null,
         },
         claimableGenericRewards: 0n,
@@ -72,6 +99,7 @@ export class MockStyfiClient implements StyfiClient {
     this.lastAddress = address;
     await new Promise((r) => setTimeout(r, this.latencyMs));
     const state = this.getOrCreate(address);
+
     const now = nowSeconds();
     const last = GLOBAL_LAST_ACCRUAL.get(address.toLowerCase()) || now;
     const elapsed = BigInt(now - last);
@@ -81,6 +109,32 @@ export class MockStyfiClient implements StyfiClient {
       state.claimableGenericRewards += (earningAssets * elapsed) / 2000000n;
       GLOBAL_LAST_ACCRUAL.set(address.toLowerCase(), now);
     }
+
+    // Calculate withdrawable amounts dynamically
+    const STREAM_DURATION = 14 * 24 * 60 * 60;
+
+    // stYFI
+    let styfiStart = 0;
+    if (state.styfiCooldown) {
+      styfiStart = state.styfiCooldown.endsAt - STREAM_DURATION;
+    }
+    state.styfiWithdrawable = calculateMaxWithdraw(
+      state.styfiInCooldown,
+      styfiStart,
+      state.styfiUnlocked
+    );
+
+    // stYFIx
+    let styfixStart = 0;
+    if (state.styfiX.cooldown) {
+      styfixStart = state.styfiX.cooldown.endsAt - STREAM_DURATION;
+    }
+    state.styfiX.assetsWithdrawable = calculateMaxWithdraw(
+      state.styfiX.assetsInCooldown,
+      styfixStart,
+      state.styfiX.assetsUnlocked
+    );
+
     return state;
   }
 
@@ -124,16 +178,48 @@ export class MockStyfiClient implements StyfiClient {
     amount: bigint
   ): Promise<PreparedTransaction> {
     const addr = this.lastAddress!;
+    const STREAM_DURATION = 14 * 24 * 60 * 60;
+
     return async () => {
       const s = this.getOrCreate(addr);
-      const endsAt = nowSeconds() + 1209600;
+      const now = nowSeconds();
+      const endsAt = now + STREAM_DURATION;
+
       if (mode === "stYFI") {
+        // Auto-claim logic: Move currently liquid funds to Unlocked
+        const liquid = calculateMaxWithdraw(
+          s.styfiInCooldown,
+          s.styfiCooldown ? s.styfiCooldown.endsAt - STREAM_DURATION : 0,
+          0n
+        );
+        s.styfiUnlocked += liquid;
+
+        // Reset stream with remaining + new amount
+        // Note: In real contract, 'unlocked' is CLAIMED to wallet if you restake?
+        // Actually, `unstake` in contract resets the stream time but keeps the total.
+        // It does NOT auto-withdraw to wallet. It just resets the clock on everything.
+        // HOWEVER, our User Stories say "Auto-claim liquid funds".
+        // Let's implement User Story behavior:
         s.styfiActive -= amount;
-        s.styfiInCooldown += amount;
+
+        // Remaining in cooldown becomes new total
+        const remainingInStream = s.styfiInCooldown - liquid;
+        s.styfiInCooldown = remainingInStream + amount;
+
         s.styfiCooldown = { amount: s.styfiInCooldown, endsAt };
       } else {
+        const liquid = calculateMaxWithdraw(
+          s.styfiX.assetsInCooldown,
+          s.styfiX.cooldown ? s.styfiX.cooldown.endsAt - STREAM_DURATION : 0,
+          0n
+        );
+        s.styfiX.assetsUnlocked += liquid;
+
         s.styfiX.assetsActive -= amount;
-        s.styfiX.assetsInCooldown += amount;
+        const remainingInStream = s.styfiX.assetsInCooldown - liquid;
+        s.styfiX.assetsInCooldown = remainingInStream + amount;
+        s.styfiX.sharesInCooldown = s.styfiX.assetsInCooldown; // 1:1 in mock
+
         s.styfiX.cooldown = { amount: s.styfiX.assetsInCooldown, endsAt };
       }
       return nextMockHash();
@@ -144,15 +230,36 @@ export class MockStyfiClient implements StyfiClient {
     const addr = this.lastAddress!;
     return async () => {
       const s = this.getOrCreate(addr);
-      const amount =
-        mode === "stYFI" ? s.styfiInCooldown : s.styfiX.assetsInCooldown;
-      GLOBAL_WORLD_STATE.updateYfi(addr, amount);
+
+      // Withdraw everything that is withdrawable
       if (mode === "stYFI") {
-        s.styfiInCooldown = 0n;
-        s.styfiCooldown = null;
+        const withdrawable = s.styfiWithdrawable; // Calculated in getAccountState
+        GLOBAL_WORLD_STATE.updateYfi(addr, withdrawable);
+
+        // Reduce from unlocked first, then stream
+        if (withdrawable > s.styfiUnlocked) {
+          const fromStream = withdrawable - s.styfiUnlocked;
+          s.styfiUnlocked = 0n;
+          s.styfiInCooldown -= fromStream;
+        } else {
+          s.styfiUnlocked -= withdrawable;
+        }
+
+        if (s.styfiInCooldown <= 0n) s.styfiCooldown = null;
       } else {
-        s.styfiX.assetsInCooldown = 0n;
-        s.styfiX.cooldown = null;
+        const withdrawable = s.styfiX.assetsWithdrawable;
+        GLOBAL_WORLD_STATE.updateYfi(addr, withdrawable);
+
+        if (withdrawable > s.styfiX.assetsUnlocked) {
+          const fromStream = withdrawable - s.styfiX.assetsUnlocked;
+          s.styfiX.assetsUnlocked = 0n;
+          s.styfiX.assetsInCooldown -= fromStream;
+        } else {
+          s.styfiX.assetsUnlocked -= withdrawable;
+        }
+        s.styfiX.sharesInCooldown = s.styfiX.assetsInCooldown; // 1:1
+
+        if (s.styfiX.assetsInCooldown <= 0n) s.styfiX.cooldown = null;
       }
       return nextMockHash();
     };

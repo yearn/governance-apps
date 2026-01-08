@@ -66,7 +66,7 @@ export const styfiCopy = {
   hero: {
     kicker: "Choose your path",
     title: "Stake with stYFI or stYFIx",
-    body: "stYFI earns standard rewards with a fixed cooldown. stYFIx gives you boosted exposure with shares-based accounting. Pick a mode to enter the cockpit.",
+    body: "stYFI earns standard rewards with a fixed cooldown. stYFIx delegates voting power for a simpler experience. Pick a mode to enter the cockpit.",
     footer: {
       text: "Need veYFI?",
       linkLabel: "Go to veYFI",
@@ -78,7 +78,7 @@ export const styfiCopy = {
       },
       x: {
         description:
-          "Shares-based vault with boosted rewards and flexible deposits.",
+          "Delegated vault with boosted rewards and flexible deposits.",
         cta: (modeLabel: string) => `Enter ${modeLabel}`,
       },
     },
@@ -88,9 +88,8 @@ export const styfiCopy = {
     summarySuffix: (modeLabel: string) => `as ${modeLabel}`,
     earningWeight: "Earning weight: 1.00x",
     descriptions: {
-      styfi:
-        "stYFI keeps your vote and earns standard rewards with a fixed cooldown.",
-      x: "stYFIx delegates voting to YBC and auto-compounds rewards in a shares vault.",
+      styfi: "stYFI keeps your vote and earns standard rewards.",
+      x: "stYFIx delegates voting to YBC and maximizes rewards.",
     },
     mode: {
       styfiLabel: "stYFI",
