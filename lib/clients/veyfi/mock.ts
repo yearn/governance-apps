@@ -17,10 +17,9 @@ import {
   MOCK_COVEYFI_ADDRESS,
   MOCK_LLYFI_MAP,
   MOCK_VEYFI_STAKER_ADDRESS, // We'll assume this is the Depositor
+  SPENDER_LLYFI_STAKER,
+  SPENDER_REDEMPTION,
 } from "@/lib/constants";
-
-// Temporary redemption address for mock logic
-const MOCK_REDEMPTION_ADDRESS = "0x9999000000000000000000000000000000000001";
 
 let txCounter = 0;
 function nextMockHash(): TransactionHash {
@@ -334,9 +333,10 @@ export class MockVeyfiClient implements VeyfiClient {
     );
 
     if (tok) {
-      if (s.toLowerCase() === MOCK_REDEMPTION_ADDRESS.toLowerCase()) {
+      // Fix: strict check against defined spenders
+      if (s.toLowerCase() === SPENDER_REDEMPTION.toLowerCase()) {
         tok.redemptionAllowance = a;
-      } else {
+      } else if (s.toLowerCase() === SPENDER_LLYFI_STAKER.toLowerCase()) {
         tok.allowance = a;
       }
     }
