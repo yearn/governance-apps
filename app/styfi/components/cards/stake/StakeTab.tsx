@@ -1,4 +1,3 @@
-// app/styfi/components/cards/stake/StakeTab.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -14,11 +13,7 @@ import {
   useStyfiStake,
 } from "@/lib/hooks/useStyfi";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
-import {
-  MOCK_YFI_ADDRESS,
-  SPENDER_STYFI,
-  SPENDER_STYFIX,
-} from "@/lib/constants";
+import { YFI_ADDRESS, SPENDER_STYFI, SPENDER_STYFIX } from "@/lib/constants";
 import { StyfiMode, modeLabel } from "../../types";
 import { styfiCopy as copy } from "../../../messages";
 
@@ -76,9 +71,10 @@ export function StakeTab({ mode }: Props) {
   const handleApprove = async () => {
     if (!isValid || amount <= 0n) return;
     const spender = mode === "styfi" ? SPENDER_STYFI : SPENDER_STYFIX;
-    await approve(MOCK_YFI_ADDRESS, spender, amount, {
+
+    // Fix: Use Real YFI Address so this works on Forks/Mainnet
+    await approve(YFI_ADDRESS, spender, amount, {
       invalidate: async () => {
-        // Invalidate both Styfi allowances and the generic Identity state
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["protocol", "identity"] }),
           queryClient.invalidateQueries({

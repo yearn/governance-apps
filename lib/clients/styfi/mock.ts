@@ -5,7 +5,11 @@ import type { PreparedTransaction, TransactionHash } from "@/lib/tx/types";
 import type { StyfiAccountState, StyfiGlobalStats, EpochInfo } from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
-import { REWARD_TOKEN_CONFIG } from "@/lib/constants";
+import {
+  REWARD_TOKEN_CONFIG,
+  SPENDER_STYFI,
+  SPENDER_STYFIX,
+} from "@/lib/constants";
 import { nowSeconds } from "@/lib/mocks/time";
 
 const GLOBAL_STYFI_STORE = new Map<string, StyfiAccountState>();
@@ -28,14 +32,6 @@ function calculateMaxWithdraw(
 
   const now = nowSeconds();
   const timeElapsed = Math.min(Math.max(0, now - startTime), STREAM_DURATION);
-
-  // Logic mirrors: max(total * time / duration, claimed) - claimed + stored
-  // But our mock store separates "InCooldown" (total) from "Unlocked" (already finished stream)
-  // In the contract, 'claimed' tracks what has been withdrawn.
-  // In our mock store, we just decrement 'InCooldown' when withdraw happens if stream is done?
-  // Actually, let's simplify to match the contract behavior more closely:
-  // "Unlocked" in our store represents fully liquid funds from PREVIOUS streams.
-  // "InCooldown" represents the current stream total.
 
   const streamClaimable =
     (total * BigInt(timeElapsed)) / BigInt(STREAM_DURATION);
@@ -186,23 +182,14 @@ export class MockStyfiClient implements StyfiClient {
       const endsAt = now + STREAM_DURATION;
 
       if (mode === "stYFI") {
-        // Auto-claim logic: Move currently liquid funds to Unlocked
         const liquid = calculateMaxWithdraw(
           s.styfiInCooldown,
           s.styfiCooldown ? s.styfiCooldown.endsAt - STREAM_DURATION : 0,
           0n
         );
         s.styfiUnlocked += liquid;
-
-        // Reset stream with remaining + new amount
-        // Note: In real contract, 'unlocked' is CLAIMED to wallet if you restake?
-        // Actually, `unstake` in contract resets the stream time but keeps the total.
-        // It does NOT auto-withdraw to wallet. It just resets the clock on everything.
-        // HOWEVER, our User Stories say "Auto-claim liquid funds".
-        // Let's implement User Story behavior:
         s.styfiActive -= amount;
 
-        // Remaining in cooldown becomes new total
         const remainingInStream = s.styfiInCooldown - liquid;
         s.styfiInCooldown = remainingInStream + amount;
 
@@ -231,12 +218,10 @@ export class MockStyfiClient implements StyfiClient {
     return async () => {
       const s = this.getOrCreate(addr);
 
-      // Withdraw everything that is withdrawable
       if (mode === "stYFI") {
-        const withdrawable = s.styfiWithdrawable; // Calculated in getAccountState
+        const withdrawable = s.styfiWithdrawable;
         GLOBAL_WORLD_STATE.updateYfi(addr, withdrawable);
 
-        // Reduce from unlocked first, then stream
         if (withdrawable > s.styfiUnlocked) {
           const fromStream = withdrawable - s.styfiUnlocked;
           s.styfiUnlocked = 0n;
@@ -257,7 +242,7 @@ export class MockStyfiClient implements StyfiClient {
         } else {
           s.styfiX.assetsUnlocked -= withdrawable;
         }
-        s.styfiX.sharesInCooldown = s.styfiX.assetsInCooldown; // 1:1
+        s.styfiX.sharesInCooldown = s.styfiX.assetsInCooldown;
 
         if (s.styfiX.assetsInCooldown <= 0n) s.styfiX.cooldown = null;
       }
@@ -277,9 +262,14 @@ export class MockStyfiClient implements StyfiClient {
 
   debugSetAllowance(u: Address, _t: Address, s: Address, a: bigint) {
     const state = this.getOrCreate(u);
-    if (s.toLowerCase().includes("01")) state.allowances.yfiToStyfi = a;
-    else state.allowances.yfiToStyfiX = a;
+    // Strict comparison against defined spenders (Mock OR Real)
+    if (s.toLowerCase() === SPENDER_STYFI.toLowerCase()) {
+      state.allowances.yfiToStyfi = a;
+    } else if (s.toLowerCase() === SPENDER_STYFIX.toLowerCase()) {
+      state.allowances.yfiToStyfiX = a;
+    }
   }
+
   debugMintYfi(u: Address, a: bigint) {
     GLOBAL_WORLD_STATE.updateYfi(u, a);
   }
