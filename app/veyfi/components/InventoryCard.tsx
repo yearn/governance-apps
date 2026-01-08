@@ -52,7 +52,7 @@ export function InventoryCard() {
                   {token.symbol}
                 </td>
                 <td className="px-6 py-4 text-right font-number text-neutral-600">
-                  {formatTokenAmount(token.protocolLiquidity, 18, 2)}
+                  {formatTokenAmount(token.redemption.inventory, 18, 2)}
                 </td>
                 <td className="px-6 py-4 text-right text-neutral-300">--</td>
               </tr>

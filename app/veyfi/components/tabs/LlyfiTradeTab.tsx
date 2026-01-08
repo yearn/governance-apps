@@ -30,37 +30,70 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   const sourceSymbol = isSell ? token.symbol : "YFI";
   const targetSymbol = isSell ? "YFI" : token.symbol;
 
-  const protocolInventoryYfi = data?.inventory.availableYfi ?? 0n;
-  const protocolInventoryLlyfi = token.protocolLiquidity;
-  const effectiveInventory = isSell
-    ? protocolInventoryYfi
-    : protocolInventoryLlyfi;
+  // Inventory Constraints
+  // Buying LLYFI: Limited by LLYFI inventory in Redemption contract
+  // Selling LLYFI: Limited by YFI inventory in Redemption contract
+  const inventoryLimit = isSell
+    ? data?.inventory.availableYfi ?? 0n
+    : token.redemption.inventory;
+
+  // Capacity Constraints (Redemption only)
+  // Capacity limits the amount of YFI that can be redeemed.
+  const remainingCapacityYfi =
+    token.redemption.capacity - token.redemption.used;
 
   const exchangeRate = token.exchangeRate;
   const ONE_E18 = 10n ** 18n;
 
   // Values in target assets
+  // If Selling: Input LLYFI -> Output YFI
+  // If Buying: Input YFI -> Output LLYFI
+
+  // Equivalent YFI value of the input
   const yfiValue = isSell ? (amount * ONE_E18) / exchangeRate : amount;
+
+  // Equivalent LLYFI value of the input
   const llyfiValue = isSell ? amount : (amount * exchangeRate) / ONE_E18;
 
-  const feeBps = data?.inventory.feeBps ?? 0;
-  const feeAmountYfi = (yfiValue * BigInt(feeBps)) / 10000n;
+  // Fee Calculation
+  // Fee is only on Redemption (Sell)
+  // Fee is scaled 1e18 in our new types (e.g. 0.1 * 1e18 = 10%)
+  const feePercent = token.redemption.fee;
+  const feeAmountYfi = (yfiValue * feePercent) / ONE_E18;
+
   const netOutput = isSell
     ? yfiValue > feeAmountYfi
       ? yfiValue - feeAmountYfi
       : 0n
     : llyfiValue;
 
-  const capExceeded = isSell
-    ? yfiValue > protocolInventoryYfi
-    : llyfiValue > protocolInventoryLlyfi;
+  // Check Exceeded Constraints
+  let capExceeded = false;
+  let inventoryExceeded = false;
+
+  if (isSell) {
+    // Limited by Capacity (in YFI terms) AND Inventory (in YFI terms)
+    if (yfiValue > remainingCapacityYfi) capExceeded = true;
+    if (yfiValue > (data?.inventory.availableYfi ?? 0n))
+      inventoryExceeded = true;
+  } else {
+    // Buying limited by LLYFI inventory
+    if (llyfiValue > token.redemption.inventory) inventoryExceeded = true;
+  }
 
   const handleMaxProtocol = () => {
-    // If selling: Max amount of LLYFI that results in the protocol's available YFI
-    // If buying: Max amount of YFI that drains protocol's LLYFI inventory
-    const maxInput = isSell
-      ? (protocolInventoryYfi * exchangeRate) / ONE_E18
-      : (protocolInventoryLlyfi * ONE_E18) / exchangeRate;
+    let maxInput = 0n;
+    if (isSell) {
+      // Max LLYFI to sell = min(Inventory YFI, Capacity YFI) * Rate
+      const maxYfi =
+        remainingCapacityYfi < (data?.inventory.availableYfi ?? 0n)
+          ? remainingCapacityYfi
+          : data?.inventory.availableYfi ?? 0n;
+      maxInput = (maxYfi * exchangeRate) / ONE_E18;
+    } else {
+      // Max YFI to spend = Inventory LLYFI / Rate
+      maxInput = (token.redemption.inventory * ONE_E18) / exchangeRate;
+    }
     setInput(formatTokenAmount(maxInput));
   };
 
@@ -98,9 +131,15 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
           onClick={handleMaxProtocol}
           className="text-xs font-medium text-neutral-500 hover:text-disco-600 transition-colors"
         >
-          Available in Protocol:{" "}
+          {isSell ? "Protocol Limit: " : "Available to Buy: "}
           <span className="underline decoration-dotted">
-            {formatTokenAmount(effectiveInventory)} {targetSymbol}
+            {isSell
+              ? `${formatTokenAmount(
+                  (remainingCapacityYfi * exchangeRate) / ONE_E18
+                )} ${token.symbol}`
+              : `${formatTokenAmount(token.redemption.inventory)} ${
+                  token.symbol
+                }`}
           </span>
         </button>
       </div>
@@ -111,12 +150,18 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
         tokenSymbol={sourceSymbol}
         maxLabel={`Wallet: ${formatTokenAmount(userBalance)}`}
         onMaxClick={() => setInput(formatTokenAmount(userBalance))}
-        error={capExceeded ? "Exceeds protocol inventory" : undefined}
+        error={
+          capExceeded
+            ? "Exceeds redemption capacity"
+            : inventoryExceeded
+            ? "Exceeds protocol inventory"
+            : undefined
+        }
       />
 
       {isSell && isValid && amount > 0n && !capExceeded && (
         <div className="flex items-center justify-between px-3 py-2 bg-neutral-50 rounded-md border border-neutral-100 text-xs text-neutral-600">
-          <span>Exit Fee ({formatPercent(feeBps / 10000)})</span>
+          <span>Exit Fee ({formatPercent(Number(feePercent) / 1e18)})</span>
           <span className="font-number">
             -{formatTokenAmount(feeAmountYfi)} YFI
           </span>
@@ -130,6 +175,7 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
           !isValid ||
           amount <= 0n ||
           capExceeded ||
+          inventoryExceeded ||
           !isConnected ||
           isBlacklisted ||
           isSubmitting

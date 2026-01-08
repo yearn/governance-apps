@@ -6,6 +6,7 @@ import type {
   VeyfiAccountState,
   LlyfiTokenId,
   VeyfiGlobalStats,
+  LlyfiTokenState,
 } from "./types";
 import type { VeyfiClient } from "./client";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
@@ -15,7 +16,11 @@ import {
   MOCK_UPYFI_ADDRESS,
   MOCK_COVEYFI_ADDRESS,
   MOCK_LLYFI_MAP,
+  MOCK_VEYFI_STAKER_ADDRESS, // We'll assume this is the Depositor
 } from "@/lib/constants";
+
+// Temporary redemption address for mock logic
+const MOCK_REDEMPTION_ADDRESS = "0x9999000000000000000000000000000000000001";
 
 let txCounter = 0;
 function nextMockHash(): TransactionHash {
@@ -25,6 +30,21 @@ function nextMockHash(): TransactionHash {
 
 const GLOBAL_VEYFI_STORE = new Map<string, VeyfiAccountState>();
 let GLOBAL_PENDING_VEYFI: bigint = 0n;
+
+// Helper to calculate withdrawable amount (matching Vyper logic)
+function calculateMaxWithdraw(
+  total: bigint,
+  startTime: number,
+  unlockedStored: bigint // In our mock, we just use total stream vs elapsed.
+): bigint {
+  const STREAM_DURATION = 14 * 24 * 60 * 60;
+  if (startTime === 0 || total === 0n) return 0n;
+
+  const now = nowSeconds();
+  const timeElapsed = Math.min(Math.max(0, now - startTime), STREAM_DURATION);
+  const claimable = (total * BigInt(timeElapsed)) / BigInt(STREAM_DURATION);
+  return claimable; // In mock we don't track "claimed" separately, we just burn stream on withdraw.
+}
 
 export class MockVeyfiClient implements VeyfiClient {
   private lastAddress: Address | null = null;
@@ -52,49 +72,73 @@ export class MockVeyfiClient implements VeyfiClient {
             symbol: "sdYFI",
             name: "StakeDAO",
             address: MOCK_SDYFI_ADDRESS,
+            depositorAddress: MOCK_VEYFI_STAKER_ADDRESS,
             walletBalance: 10n * 10n ** 18n,
             stakedBalance: 0n,
             cooldownBalance: 0n,
+            withdrawable: 0n,
             cooldown: null,
             allowance: 0n,
+            redemptionAllowance: 0n,
             lockedYfi: 229n * 10n ** 18n,
             veyfiBoost: 1.95,
             totalSupply: 1000n * 10n ** 18n,
             stakedSupply: 236n * 10n ** 18n,
             exchangeRate: 1n * 10n ** 18n,
-            protocolLiquidity: 350n * 10n ** 18n,
+            redemption: {
+              capacity: 1000n * 10n ** 18n,
+              used: 200n * 10n ** 18n,
+              inventory: 50n * 10n ** 18n, // LLYFI available to buy
+              fee: 50000000000000000n, // 5% (0.05 * 1e18)
+            },
           },
           {
             symbol: "upYFI",
             name: "1UP",
             address: MOCK_UPYFI_ADDRESS,
+            depositorAddress: MOCK_VEYFI_STAKER_ADDRESS,
             walletBalance: 500000n * 10n ** 18n,
             stakedBalance: 0n,
             cooldownBalance: 0n,
+            withdrawable: 0n,
             cooldown: null,
             allowance: 0n,
+            redemptionAllowance: 0n,
             lockedYfi: 199n * 10n ** 18n,
             veyfiBoost: 1.98,
             totalSupply: 10000000n * 10n ** 18n,
             stakedSupply: 1434783n * 10n ** 18n,
             exchangeRate: 69420n * 10n ** 18n,
-            protocolLiquidity: 25000000n * 10n ** 18n,
+            redemption: {
+              capacity: 2000000n * 10n ** 18n,
+              used: 100000n * 10n ** 18n,
+              inventory: 5000n * 10n ** 18n,
+              fee: 25000000000000000n, // 2.5%
+            },
           },
           {
             symbol: "coveYFI",
             name: "Cove",
             address: MOCK_COVEYFI_ADDRESS,
+            depositorAddress: MOCK_VEYFI_STAKER_ADDRESS,
             walletBalance: 5n * 10n ** 18n,
             stakedBalance: 0n,
             cooldownBalance: 0n,
+            withdrawable: 0n,
             cooldown: null,
             allowance: 0n,
+            redemptionAllowance: 0n,
             lockedYfi: 74n * 10n ** 18n,
             veyfiBoost: 1.92,
             totalSupply: 500n * 10n ** 18n,
             stakedSupply: 76n * 10n ** 18n,
             exchangeRate: 1n * 10n ** 18n,
-            protocolLiquidity: 50n * 10n ** 18n,
+            redemption: {
+              capacity: 500n * 10n ** 18n,
+              used: 10n * 10n ** 18n,
+              inventory: 20n * 10n ** 18n,
+              fee: 100000000000000000n, // 10%
+            },
           },
         ],
         inventory: { availableYfi: 600n * 10n ** 18n, feeBps: 500 },
@@ -114,6 +158,21 @@ export class MockVeyfiClient implements VeyfiClient {
       state.veYfi.unlockTime = nowSeconds() + 126144000;
       GLOBAL_PENDING_VEYFI = 0n;
     }
+
+    // Update withdrawables based on mock time
+    const STREAM_DURATION = 14 * 24 * 60 * 60;
+    for (const token of state.llyfiTokens) {
+      if (token.cooldownBalance > 0n && token.cooldown) {
+        token.withdrawable = calculateMaxWithdraw(
+          token.cooldownBalance,
+          token.cooldown.endsAt - STREAM_DURATION,
+          0n
+        );
+      } else {
+        token.withdrawable = 0n;
+      }
+    }
+
     return state;
   }
 
@@ -157,6 +216,18 @@ export class MockVeyfiClient implements VeyfiClient {
       const s = this.getOrCreate(this.lastAddress!);
       const t = s.llyfiTokens.find((x) => x.symbol === symbol);
       if (t && t.stakedBalance >= amount) {
+        // Auto-claim any existing withdrawable
+        const STREAM_DURATION = 14 * 24 * 60 * 60;
+        if (t.cooldownBalance > 0n && t.cooldown) {
+          const liquid = calculateMaxWithdraw(
+            t.cooldownBalance,
+            t.cooldown.endsAt - STREAM_DURATION,
+            0n
+          );
+          t.walletBalance += liquid;
+          t.cooldownBalance -= liquid;
+        }
+
         t.stakedBalance -= amount;
         t.cooldownBalance += amount;
         t.cooldown = {
@@ -174,10 +245,16 @@ export class MockVeyfiClient implements VeyfiClient {
     return async () => {
       const s = this.getOrCreate(this.lastAddress!);
       const t = s.llyfiTokens.find((x) => x.symbol === symbol);
-      if (t && t.cooldown && t.cooldown.endsAt <= nowSeconds()) {
-        t.walletBalance += t.cooldownBalance;
-        t.cooldownBalance = 0n;
-        t.cooldown = null;
+      if (t && t.cooldown) {
+        const withdrawable = t.withdrawable; // calculated in getAccountState
+        if (withdrawable > 0n) {
+          t.walletBalance += withdrawable;
+          t.cooldownBalance -= withdrawable;
+          if (t.cooldownBalance <= 0n) {
+            t.cooldown = null;
+            t.cooldownBalance = 0n;
+          }
+        }
       }
       return nextMockHash();
     };
@@ -191,12 +268,29 @@ export class MockVeyfiClient implements VeyfiClient {
     return async () => {
       const s = this.getOrCreate(addr);
       const t = s.llyfiTokens.find((x) => x.symbol === symbol)!;
+
       const yfiValue = (amount * 10n ** 18n) / t.exchangeRate;
-      if (s.inventory.availableYfi < yfiValue)
-        throw new Error("Insufficient inventory");
+
+      // Check Capacity
+      if (t.redemption.used + yfiValue > t.redemption.capacity) {
+        throw new Error("Cap Exceeded");
+      }
+
+      // Check Inventory
+      if (s.inventory.availableYfi < yfiValue) {
+        throw new Error("Insufficient protocol inventory");
+      }
+
       t.walletBalance -= amount;
       s.inventory.availableYfi -= yfiValue;
-      const netYfi = (yfiValue * BigInt(10000 - s.inventory.feeBps)) / 10000n;
+      t.redemption.used += yfiValue;
+      t.redemption.inventory += amount; // We get LLYFI back
+
+      // Fee is from redemption struct (1e18 scale)
+      const feePercent = t.redemption.fee;
+      const feeAmount = (yfiValue * feePercent) / 10n ** 18n;
+      const netYfi = yfiValue - feeAmount;
+
       GLOBAL_WORLD_STATE.updateYfi(addr, netYfi);
       return nextMockHash();
     };
@@ -210,18 +304,42 @@ export class MockVeyfiClient implements VeyfiClient {
     return async () => {
       const s = this.getOrCreate(addr);
       const t = s.llyfiTokens.find((x) => x.symbol === symbol)!;
-      GLOBAL_WORLD_STATE.updateYfi(addr, -amount);
-      t.walletBalance += (amount * t.exchangeRate) / 10n ** 18n;
-      s.inventory.availableYfi += amount;
+
+      // "Minting" is buying back LLYFI from the redemption contract
+      if (t.redemption.inventory < amount) {
+        throw new Error("Insufficient LLYFI inventory");
+      }
+
+      // Cost in YFI (1:S inverse)
+      // If 1 YFI = S LLYFI (rate), then 1 LLYFI = 1/S YFI
+      // Cost = amount / rate
+      const yfiCost = (amount * 10n ** 18n) / t.exchangeRate;
+
+      GLOBAL_WORLD_STATE.updateYfi(addr, -yfiCost);
+      t.walletBalance += amount;
+
+      t.redemption.inventory -= amount;
+      s.inventory.availableYfi += yfiCost;
+      t.redemption.used -= yfiCost; // Frees up capacity
+
       return nextMockHash();
     };
   }
 
-  debugSetAllowance(u: Address, t: Address, _s: Address, a: bigint) {
-    const s = this.getOrCreate(u);
-    const sym = MOCK_LLYFI_MAP[t.toLowerCase()];
-    const tok = s.llyfiTokens.find((x) => x.symbol === sym);
-    if (tok) tok.allowance = a;
+  debugSetAllowance(u: Address, t: Address, s: Address, a: bigint) {
+    const st = this.getOrCreate(u);
+    // Find token by address
+    const tok = st.llyfiTokens.find(
+      (tk) => tk.address.toLowerCase() === t.toLowerCase()
+    );
+
+    if (tok) {
+      if (s.toLowerCase() === MOCK_REDEMPTION_ADDRESS.toLowerCase()) {
+        tok.redemptionAllowance = a;
+      } else {
+        tok.allowance = a;
+      }
+    }
   }
   debugSetPendingVeYfi(a: bigint) {
     GLOBAL_PENDING_VEYFI = a;

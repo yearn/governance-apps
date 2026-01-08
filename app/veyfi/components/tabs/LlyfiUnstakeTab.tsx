@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { useLlyfiStartCooldown, useLlyfiWithdraw } from "@/lib/hooks/useVeyfi";
-import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
 import { parseAmount } from "@/lib/parse";
 import { UnstakePanel } from "@/components/domain/UnstakePanel";
 
@@ -17,22 +16,11 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
     useLlyfiStartCooldown();
   const { write: withdraw, state: withdrawState } = useLlyfiWithdraw();
 
-  // Cooldown Logic
-  const COOLDOWN_SECONDS = 14 * 24 * 60 * 60;
-  const cooldown = token.cooldown;
+  // Contract truth
   const totalExiting = token.cooldownBalance;
+  const liquidEstimate = token.withdrawable;
 
-  const { progress } = useEpochCountdown(
-    cooldown?.endsAt,
-    cooldown?.endsAt ? cooldown.endsAt - COOLDOWN_SECONDS : undefined
-  );
-
-  const scaledProgress = Math.max(
-    0,
-    Math.min(10000, Math.floor(progress * 100))
-  );
-
-  const liquidEstimate = (totalExiting * BigInt(scaledProgress)) / 10000n;
+  // Calculate streaming portion simply by subtraction
   const streamingEstimate =
     totalExiting > liquidEstimate ? totalExiting - liquidEstimate : 0n;
 
@@ -62,7 +50,7 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
         totalExiting={totalExiting}
         liquidEstimate={liquidEstimate}
         streamingEstimate={streamingEstimate}
-        cooldown={cooldown}
+        cooldown={token.cooldown}
         onStartCooldown={handleStart}
         onWithdraw={handleWithdraw}
         isSubmitting={isSubmitting}
