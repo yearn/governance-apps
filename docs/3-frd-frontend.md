@@ -1,7 +1,7 @@
 # `03-frontend-frd.md`
 
 **Frontend Functional Requirements — stYFI, stYFIx, veYFI, LLYFI**
-**Version:** 0.5
+**Version:** 0.6
 **Applies to:** `governance-apps` repository
 **Scope:** Part I (stYFI/stYFIx) and Part II (veYFI/LLYFI)
 
@@ -239,19 +239,24 @@ type StyfiXPosition = {
   assetsActive: bigint; // underlying YFI equivalent
   assetsInCooldown: bigint;
   assetsUnlocked: bigint; // underlying YFI finished streaming
+  assetsWithdrawable: bigint; // Contract maxWithdraw (Source of Truth)
   cooldown: CooldownState;
 };
 ```
 
+`stYFIx` is 1:1 with YFI. It is **NOT** auto-compounding. Rewards accrue separately and must be claimed manually via the RewardClaimer.
+
 UI requirements:
 
-- Show both **share-level** exposure and **underlying YFI**.
-- Differentiate between:
-  - **Active:** Earning rewards.
-  - **Exiting:** In cooldown stream.
-  - **Exited:** Fully unlocked (`assetsUnlocked`).
+- Show both **share-level** exposure and **underlying YFI** (likely identical).
+- `assetsWithdrawable` determines if the Withdraw button is enabled.
 
-### 3.1.3. `EpochInfo`
+### 3.1.3. Reward Reading Strategy (Simulation)
+
+The contract `pending_rewards` storage is often stale.
+The Onchain Client **MUST** use `eth_call` (simulation) to call `RewardClaimer.claim(user)` to fetch the accurate pending reward amount without executing a transaction.
+
+### 3.1.4. `EpochInfo`
 
 ```ts
 type EpochInfo = {
@@ -266,7 +271,7 @@ UI requirements:
 - Countdown timers and “current epoch” displays **MUST** rely on these fields.
 - The frontend **MUST NOT** derive epochs from local wall-clock time.
 
-### 3.1.4. `StyfiAllowances`
+### 3.1.5. `StyfiAllowances`
 
 ```ts
 type StyfiAllowances = {
@@ -287,7 +292,7 @@ UI requirements:
 
 ---
 
-### 3.1.5. Reward Windows
+### 3.1.6. Reward Windows
 
 The Client MUST provide:
 
@@ -467,17 +472,23 @@ UI:
 
 ### 4.1.1. `VeyfiAccountState` (User)
 
-From the client:
-
 ```ts
-type VeyfiAccountState = {
-  address: Address;
-  isBlacklisted: boolean;
-  veYfi: VeYfiMigrationState | null;
-  llyfiTokens: LlyfiTokenState[];
-  redemptionCaps: RedemptionCaps;
+type LlyfiTokenState = {
+  // ...
+  redemption: {
+    capacity: bigint;
+    used: bigint;
+    inventory: bigint;
+    fee: bigint;
+  };
 };
 ```
+
+UI requirements:
+
+- **Redemption Tab:**
+  - Sell (Redeem): Max = `min(WalletBalance, CapacityRemaining * Rate)`.
+  - Buy (Mint): Max = `Inventory / Rate`.
 
 ### 4.1.2. `VeyfiGlobalStats` (System)
 

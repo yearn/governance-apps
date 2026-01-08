@@ -1,8 +1,8 @@
-# veYFI UI Spec v1.0
+# veYFI UI Spec v1.1
 
 **Status:** Implemented (Phase 6 Complete)
 **Applies to:** `veyfi.yearn.fi` (and `/veyfi` route)
-**Last updated:** 2025-12-20
+**Last updated:** 2026-01-08
 
 ---
 
@@ -76,13 +76,16 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
     - Approve -> Stake flow.
 2.  **Unstake:**
     - **Linear Streaming UI:** Reuses the "Pink" progress bar logic from stYFI.
-    - Withdraw available liquid funds.
+    - Withdraw available liquid funds (read from `maxWithdraw` on contract).
 3.  **Trade:**
     - **Mode Selection:** Radio Button (Sell vs Buy).
-    - **Mint (Buy):** YFI -> LLYFI (1:1, usually fee-free).
-    - **Redeem (Sell):** LLYFI -> YFI.
-      - **Logic:** Checks against Global Cap and Token Cap.
-      - **Feedback:** Shows Fee amount and Net Receive amount.
+    - **Buy (YFI -> LLYFI):**
+      - **Constraint:** Limited by `Redemption.inventory` (Amount of LLYFI held by protocol).
+      - **Contract:** `exchange()`.
+    - **Sell (LLYFI -> YFI):**
+      - **Constraint:** Limited by `Redemption.capacity - Redemption.used` AND `Redemption.YFI_Balance`.
+      - **Fee:** Shows exit fee (bps) and Net Receive amount.
+      - **Contract:** `redeem()`.
 
 ### 4.4 Zone 3: Redemption Intelligence & Rewards
 

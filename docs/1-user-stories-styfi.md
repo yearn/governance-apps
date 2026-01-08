@@ -1,7 +1,7 @@
 # `user-stories-styfi.md`
 
 **User Stories — stYFI & stYFIx**
-**Version:** 1.2
+**Version:** 1.3
 **Scope:** Part I of the Governance Apps (stYFI + stYFIx)
 
 ---
@@ -56,7 +56,7 @@ We assume a technically literate DeFi user familiar with:
 
   - **Active:** Amount currently staked and earning rewards.
   - **Exiting:** Amount currently in cooldown (linear streaming).
-  - **Exited:** Amount fully unlocked (finished streaming) but not yet withdrawn.
+  - **Withdrawable:** Amount fully unlocked (finished streaming or liquid) ready to withdraw.
   - **Earning Power:** My share of the total staking pool (tooltip explanation).
   - Claimable rewards.
 
@@ -216,19 +216,17 @@ We assume a technically literate DeFi user familiar with:
 
 ---
 
-## Story MX-03 — Understand stYFIx Reward Handling
+## Story MX-03 — Claim stYFIx Rewards
 
 **As a** stYFIx user
-**I want** to understand how I receive my rewards
-**So that** I’m not confused by the shares mechanic
+**I want** to claim my rewards manually
+**So that** I receive the yield my stake generated
 
 ### Acceptance Criteria
 
-- UI clarifies:
-
-  - Rewards are _not_ immediate transfers; they are incorporated into share value or claimable via unified rewards panel depending on contract mechanism
-
-- If reward mechanism is “claimable”, unified panel shows relevant amounts
+- **NOTE:** stYFIx does **not** auto-compound. Rewards are distributed to the RewardClaimer.
+- UI clarifies that rewards must be claimed.
+- Claiming works via the unified Rewards Panel (same as stYFI).
 
 ---
 

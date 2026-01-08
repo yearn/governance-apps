@@ -100,7 +100,7 @@ This replaces any domain-specific cooldown types.
 - **EpochInfo**
 - **StyfiAllowances**
 - **StyfiXPosition**
-- **StyfiAccountState** (includes `unlocked` balances for Exited state)
+- **StyfiAccountState** (includes `withdrawable` balances as source of truth)
 - **StyfiGlobalStats** (Total Supply, Total Staked)
 
 All read through:
@@ -196,10 +196,11 @@ Each folder contains:
 
 **Allowed:**
 
-- Fetch state via multicalls (later)
-- Prepare transaction objects
-- Interpret contract return values
-- Model domain behaviours (cooldown, caps, migrations)
+- Fetch state via multicalls.
+- **Simulate** `eth_call` for complex getters (e.g. `RewardClaimer.claim` to preview rewards).
+- Prepare transaction objects.
+- Interpret contract return values.
+- Model domain behaviours (cooldown, caps, migrations).
 
 **Not allowed:**
 
@@ -383,9 +384,10 @@ Mocks simulate domain behaviour deterministically and are the primary target for
 
 ### Shared patterns (target behaviour):
 
-- **Persistence:** In-memory store is persisted to `sessionStorage` to survive page reloads (simulating "Returning User" flows).
-- **Global Store:** Module-level global Map to track state across fast-refreshes.
+- **Persistence:** In-memory store is persisted to `sessionStorage`.
+- **Global Store:** Module-level global Map.
 - **Configurable Latency:** Simulates network conditions.
+- **Contract Parity:** Mocks now calculate "Withdrawable" and "Redeemable" using logic identical to the Vyper contracts (e.g., `maxWithdraw` emulation) to ensure UI testing is valid.
 - **Debug Helpers:**
   - `debugSetBalance`: Immediate injection (connected).
   - `debugSetPendingBalance`: Queued injection (onboarding flows).

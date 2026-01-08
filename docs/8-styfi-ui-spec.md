@@ -1,4 +1,4 @@
-# stYFI UI Spec v0.9
+# stYFI UI Spec v0.10
 
 **Status:** Approved / In Development
 **Applies to:** `styfi.yearn.fi` (and `/styfi` route)
@@ -125,8 +125,8 @@ The stYFI system runs on 14-day epochs. Users need visibility into timing for co
 
 ### 7.1 Mode Definitions
 
-- **stYFI:** Voting power retained.
-- **stYFIx:** Voting power delegated to YBC.
+- **stYFI:** Voting power retained. Rewards must be claimed.
+- **stYFIx:** Voting power delegated to YBC. Rewards must be claimed.
 
 ### 7.2 Mode State & Persistence
 
@@ -147,12 +147,12 @@ The display splits "Active" (earning) vs "Exiting" (idle or unlocking) funds.
 
 - **Active:** Funds currently staked and earning rewards.
 - **Exiting:** Funds in cooldown (streaming).
-- **Exited:** Funds fully unlocked (liquid) but not yet withdrawn.
+- **Withdrawable:** Funds fully unlocked (liquid) but not yet withdrawn.
 
 **Format:**
 
 - `12.00 YFI` `Active (+ 1.50 exiting)` (Stream active)
-- `12.00 YFI` `Active (+ 1.50 exited)` (Stream complete/liquid)
+- `12.00 YFI` `Active (+ 1.50 withdrawable)` (Stream complete/liquid)
 
 ### 8.2 Rewards Card
 
@@ -204,8 +204,8 @@ _Note: "Accruing Rewards" was removed to simplify the dashboard._
 ## 10. Copy & Tone
 
 - **APR Labels:**
-  - stYFI: "APR Variable" (indicates work/voting required).
-  - stYFIx: "APR Max" (indicates auto-compounding).
+  - stYFI: "Variable APR"
+  - stYFIx: "Maximized APR" (Delegated)
 - **Stats Bar:** Keep labels short and uppercase (e.g., "TOTAL SUPPLY").
 - **Buttons:** "Stake YFI", "Withdraw YFI" (Explicit asset naming).
 - **Progress Bar:** Use Yearn Orange (`bg-sunset-600`) to tie to stYFI brand.
