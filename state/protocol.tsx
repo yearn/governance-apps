@@ -6,48 +6,57 @@ import { StyfiClient } from "@/lib/clients/styfi";
 import { VeyfiClient } from "@/lib/clients/veyfi";
 import { createMockStyfiClient } from "@/lib/clients/styfi/mock";
 import { createMockVeyfiClient } from "@/lib/clients/veyfi/mock";
+import { OnchainStyfiClient } from "@/lib/clients/styfi/onchain";
+import { usePublicClient } from "wagmi";
 
 type ProtocolContextValue = {
   styfi: StyfiClient;
   veyfi: VeyfiClient;
-  isMock: boolean; // user-selected mock mode flag
-  usesMockBackend: boolean; // actual backend implementation
+  isMock: boolean;
+  usesMockBackend: boolean;
 };
 
 const ProtocolContext = createContext<ProtocolContextValue | null>(null);
 
-function createClients(preferMocks: boolean) {
-  // Until on-chain clients land (Phase 8), we always return mocks.
-  const usesMockBackend = true;
-
-  if (!preferMocks && usesMockBackend) {
-    console.warn(
-      "[Protocol] On-chain clients are not yet implemented; using mocks. Set NEXT_PUBLIC_USE_MOCKS=true to suppress this warning once mocks are intentionally chosen."
-    );
-  }
-  return {
-    styfi: createMockStyfiClient({ latencyMs: 600 }),
-    veyfi: createMockVeyfiClient({ latencyMs: 600 }),
-    // Reflect user intent while exposing actual backend type separately.
-    isMock: preferMocks,
-    usesMockBackend,
-  };
-}
-
 export function ProtocolProvider({ children }: { children: ReactNode }) {
-  // Default to on-chain (per docs); explicit opt-in for mocks.
   const preferMocks = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 
+  // This hook is reactive. It updates when the connected chain changes.
+  const publicClient = usePublicClient();
+
   const value = useMemo(() => {
-    const { styfi, veyfi, isMock, usesMockBackend } =
-      createClients(preferMocks);
+    // If user wants mocks, ignore the public client
+    if (preferMocks) {
+      return {
+        styfi: createMockStyfiClient({ latencyMs: 600 }),
+        veyfi: createMockVeyfiClient({ latencyMs: 600 }),
+        isMock: true,
+        usesMockBackend: true,
+      };
+    }
+
+    // If we have a valid public client, use it for on-chain interactions
+    if (publicClient) {
+      console.log(
+        "Initializing OnchainStyfiClient with Chain ID:",
+        publicClient.chain.id
+      );
+      return {
+        styfi: new OnchainStyfiClient(publicClient),
+        veyfi: createMockVeyfiClient({ latencyMs: 600 }), // veYFI stays mock for now
+        isMock: false,
+        usesMockBackend: false,
+      };
+    }
+
+    // Fallback if no client available yet (should be rare with default chains)
     return {
-      styfi,
-      veyfi,
-      isMock,
-      usesMockBackend,
+      styfi: createMockStyfiClient({ latencyMs: 600 }),
+      veyfi: createMockVeyfiClient({ latencyMs: 600 }),
+      isMock: true, // Fallback to mock behavior but flag as 'mock due to error' if needed
+      usesMockBackend: true,
     };
-  }, [preferMocks]);
+  }, [preferMocks, publicClient]); // Re-run when publicClient changes
 
   return (
     <ProtocolContext.Provider value={value}>

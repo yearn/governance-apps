@@ -1,7 +1,9 @@
 "use client";
 
-import { Address } from "viem";
+import { Address, erc20Abi } from "viem";
 import { useAccount } from "wagmi";
+import { writeContract } from "wagmi/actions";
+import { wagmiConfig } from "@/web3/wagmi";
 import { useProtocol } from "@/state/protocol";
 import { useTx } from "@/lib/tx/useTx";
 import { TransactionHash } from "@/lib/tx/types";
@@ -13,14 +15,15 @@ export function useTokenApprove() {
 
   /**
    * Approve a spender for a given token.
-   * Note: For stYFI/LLYFI flows, prefer allowances exposed via domain account state;
-   * this hook is mainly for on-chain mode or auxiliary use.
    */
   const write = async (
     token: Address,
     spender: Address,
     amount: bigint,
-    options?: { onSuccess?: () => void; invalidate?: () => void | Promise<void> }
+    options?: {
+      onSuccess?: () => void;
+      invalidate?: () => void | Promise<void>;
+    }
   ) => {
     const prepare = async (): Promise<TransactionHash> => {
       if (usesMockBackend) {
@@ -34,8 +37,12 @@ export function useTokenApprove() {
 
         return "0xMOCK_APPROVAL_HASH" as TransactionHash;
       } else {
-        // Phase 8: Implement On-Chain Wagmi writeContract
-        throw new Error("On-chain approval not implemented yet");
+        return writeContract(wagmiConfig, {
+          address: token,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [spender, amount],
+        });
       }
     };
 

@@ -20,8 +20,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ProtocolProvider>
-          <Web3Providers>
+        <Web3Providers>
+          <ProtocolProvider>
             <IdentityProvider>
               {" "}
               {/* Added */}
@@ -31,8 +31,8 @@ export default function RootLayout({
               </div>
               <Toaster />
             </IdentityProvider>
-          </Web3Providers>
-        </ProtocolProvider>
+          </ProtocolProvider>
+        </Web3Providers>
       </body>
     </html>
   );
