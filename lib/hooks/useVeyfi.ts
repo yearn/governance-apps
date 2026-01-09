@@ -70,8 +70,13 @@ export function useVeyfiMigration() {
 
     await execute(prepare, {
       invalidate: async () => {
+        // Invalidate Account State (to update card to "Migrated" state)
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
+        });
+        // Invalidate Global Stats (to update "Migrated veYFI" top bar)
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.stats(),
         });
       },
       skipWaitForReceipt: usesMockBackend,

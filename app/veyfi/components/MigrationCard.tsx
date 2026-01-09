@@ -13,7 +13,7 @@ export function MigrationCard() {
   const { write, state } = useVeyfiMigration();
   const [now, setNow] = useState(0);
 
-  // Sync time for mock time travel updates
+  // Sync time for boost calculation
   useEffect(() => {
     const tick = () => setNow(nowSeconds());
     tick();
@@ -44,14 +44,6 @@ export function MigrationCard() {
     Math.max(0, remainingSeconds / MAX_LOCK_SECONDS)
   );
   const currentBoost = 1.0 + boostRatio;
-
-  // For the Timeline Visualization
-  // Position 0% = Start (2.0x boost / 4y remaining)
-  // Position 100% = End (1.0x boost / 0y remaining)
-  // We want "Time Passed" from left to right.
-  // So if 4y remaining -> 0% progress (Left)
-  // If 0y remaining -> 100% progress (Right)
-  const timelineProgress = (1 - boostRatio) * 100;
 
   const unlockDateLabel = new Date(unlockTime * 1000).toLocaleDateString(
     undefined,
@@ -113,7 +105,7 @@ export function MigrationCard() {
   }
 
   if (migrated) {
-    // POST-MIGRATION STATE (Uses Locked YFI Amount)
+    // POST-MIGRATION STATE (Refined Design)
     return (
       <Card className="border-disco-200 bg-disco-50/50">
         <div className="flex flex-col md:flex-row items-stretch gap-8">
@@ -157,43 +149,17 @@ export function MigrationCard() {
             </a>
           </div>
 
-          {/* Right: Visualization */}
-          <div className="w-full md:w-80 bg-white rounded-xl border border-disco-100 p-6 flex flex-col justify-center space-y-6 shadow-sm">
-            {/* Hero Number */}
-            <div className="text-center">
-              <p className="text-xs font-bold uppercase tracking-wide text-neutral-500 mb-1">
-                {copy.migration.boost.stats.currentBoost}
-              </p>
-              <p className="text-5xl font-number font-bold text-disco-600 tracking-tight">
-                {currentBoost.toFixed(2)}x
-              </p>
-            </div>
-
-            {/* Timeline */}
-            <div>
-              {/* Labels */}
-              <div className="flex justify-between text-[10px] font-bold uppercase text-neutral-400 mb-2">
-                <span>{copy.migration.boost.timeline.start}</span>
-                <span>{copy.migration.boost.timeline.end}</span>
-              </div>
-
-              {/* Track Container (Relative parent for marker) */}
-              <div className="relative h-2 w-full">
-                {/* Track Background */}
-                <div className="absolute inset-0 bg-neutral-100 rounded-full overflow-hidden">
-                  <div className="absolute inset-0 bg-linear-to-r from-disco-500 to-neutral-200 opacity-20" />
-                </div>
-
-                {/* Marker */}
-                <div
-                  className="absolute -top-1 w-4 h-4 bg-white border-4 border-disco-600 rounded-full shadow-md transition-all duration-500 ease-out"
-                  style={{
-                    left: `${timelineProgress}%`,
-                    transform: "translateX(-50%)",
-                  }}
-                />
-              </div>
-            </div>
+          {/* Right: Visualization (Simplified) */}
+          <div className="w-full md:w-auto min-w-60 bg-white rounded-xl border border-disco-100 p-6 flex flex-col justify-center items-center shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-neutral-500 mb-1">
+              {copy.migration.boost.stats.currentBoost}
+            </p>
+            <p className="text-5xl font-number font-bold text-disco-600 tracking-tight">
+              {currentBoost.toFixed(2)}x
+            </p>
+            <p className="text-xs font-medium text-neutral-400 mt-2">
+              Max 2.00x
+            </p>
           </div>
         </div>
       </Card>

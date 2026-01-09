@@ -8,12 +8,18 @@ import { veyfiCopy as copy } from "../messages";
 export function VeyfiStatsBar() {
   const { data: stats } = useVeyfiStats();
 
-  const migratedLabel = stats
-    ? `${formatTokenAmount(stats.migratedYfi, 18, 0)} (${formatPercent(
-        Number(stats.migratedYfi) / Number(stats.legacyYfiSupply || 1n),
-        0
-      )})`
-    : "--";
+  let migratedLabel = "--";
+  if (stats) {
+    const amount = formatTokenAmount(stats.migratedYfi, 18, 2);
+    // If supply is 0 or missing, hide the percentage to avoid Infinity/NaN/Garbage
+    if (stats.legacyYfiSupply > 0n) {
+      const ratio =
+        Number((stats.migratedYfi * 10000n) / stats.legacyYfiSupply) / 10000;
+      migratedLabel = `${amount} (${formatPercent(ratio, 1)})`;
+    } else {
+      migratedLabel = `${amount}`;
+    }
+  }
 
   const boostLabel = stats ? `${stats.maxBoostMultiplier}x` : "--x";
 

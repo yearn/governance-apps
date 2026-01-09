@@ -7,6 +7,7 @@ import { VeyfiClient } from "@/lib/clients/veyfi";
 import { createMockStyfiClient } from "@/lib/clients/styfi/mock";
 import { createMockVeyfiClient } from "@/lib/clients/veyfi/mock";
 import { OnchainStyfiClient } from "@/lib/clients/styfi/onchain";
+import { OnchainVeyfiClient } from "@/lib/clients/veyfi/onchain"; // [New]
 import { usePublicClient } from "wagmi";
 
 type ProtocolContextValue = {
@@ -38,12 +39,12 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
     // If we have a valid public client, use it for on-chain interactions
     if (publicClient) {
       console.log(
-        "Initializing OnchainStyfiClient with Chain ID:",
+        "Initializing Onchain Clients with Chain ID:",
         publicClient.chain.id
       );
       return {
         styfi: new OnchainStyfiClient(publicClient),
-        veyfi: createMockVeyfiClient({ latencyMs: 600 }), // veYFI stays mock for now
+        veyfi: new OnchainVeyfiClient(publicClient), // [Updated] Use real client
         isMock: false,
         usesMockBackend: false,
       };
@@ -53,10 +54,10 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
     return {
       styfi: createMockStyfiClient({ latencyMs: 600 }),
       veyfi: createMockVeyfiClient({ latencyMs: 600 }),
-      isMock: true, // Fallback to mock behavior but flag as 'mock due to error' if needed
+      isMock: true,
       usesMockBackend: true,
     };
-  }, [preferMocks, publicClient]); // Re-run when publicClient changes
+  }, [preferMocks, publicClient]);
 
   return (
     <ProtocolContext.Provider value={value}>
