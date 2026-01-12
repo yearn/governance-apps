@@ -121,7 +121,6 @@ export const styfiCopy = {
     loading: "Loading exit data…",
     disconnected: "Connect your wallet to manage cooldowns.",
     empty: "Nothing in cooldown right now. Start a cooldown first.",
-    progressTitle: "Unstaking Progress",
     availableLabel: (amount: string) => `${amount} YFI Available`,
     streamingLabel: (amount: string, time?: string) =>
       time

@@ -157,28 +157,29 @@ Sub-tasks: 1 level deep, atomic, actionable.
 
 ---
 
-# Phase 8 — On-Chain Integration
-
-_(Blocked until contract ABIs finalized)_
+# Phase 8 — On-Chain Integration (Done)
 
 ## 30. OnchainStyfiClient
 
-- [ ] Implement multicall read logic
-- [ ] Implement tx prep (contract.write)
+- [x] Implement multicall read logic
+- [x] Implement tx prep (contract.write)
+- [x] **New:** Derive Epoch info from Genesis timestamp
 
 ## 31. OnchainVeyfiClient
 
-- [ ] Implement multicall read logic
-- [ ] Implement tx prep
+- [x] Implement multicall read logic (Registry pattern)
+- [x] Implement tx prep
+- [x] **New:** Normalize Asset/Share accounting for upYFI
 
 ## 32. Approval Helpers
 
-- [ ] Wrapper around `approve(spender, amount)`
-- [ ] Used by both stYFI and LLYFI staking/redeeming
+- [x] Wrapper around `approve(spender, amount)`
+- [x] Used by both stYFI and LLYFI staking/redeeming
+- [x] **New:** Integrated `useTokenAllowance` for atomic UI updates
 
 ## 33. Env Toggle
 
-- [ ] `NEXT_PUBLIC_USE_MOCKS=false` loads on-chain clients
+- [x] `NEXT_PUBLIC_USE_MOCKS=false` loads on-chain clients
 
 ---
 

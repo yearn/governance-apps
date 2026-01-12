@@ -10,18 +10,19 @@ import {
   YFI_ADDRESS,
   REWARD_CLAIMER_ADDRESS,
   REWARD_TOKEN_CONFIG,
+  GENESIS,
 } from "@/lib/constants";
 import { StakedYfiAbi } from "@/lib/abis/StakedYfi";
 import { DelegatedStakedYfiAbi } from "@/lib/abis/DelegatedStakedYfi";
 import { RewardClaimerAbi } from "@/lib/abis/RewardClaimer";
 
-const STREAM_DURATION = 14 * 24 * 60 * 60;
+const STREAM_DURATION = 14 * 24 * 60 * 60; // 14 days
+const EPOCH_LENGTH = 14 * 24 * 60 * 60; // 14 days
 
 export class OnchainStyfiClient implements StyfiClient {
   constructor(private publicClient: PublicClient) {}
 
   async getAccountState(address: Address): Promise<StyfiAccountState> {
-    // Debug: Check which chain we are querying
     console.log(
       "Fetching Account State from Chain ID:",
       this.publicClient.chain?.id
@@ -46,60 +47,35 @@ export class OnchainStyfiClient implements StyfiClient {
         styfiXMaxWithdraw,
         allowanceStyfi,
         allowanceStyfix,
-      ] = await Promise.all([
-        // Wallet
-        this.publicClient.readContract({
-          ...commonYfi,
-          functionName: "balanceOf",
-          args: [address],
-        }),
+      ] = await this.publicClient.multicall({
+        contracts: [
+          // Wallet
+          { ...commonYfi, functionName: "balanceOf", args: [address] },
 
-        // stYFI
-        this.publicClient.readContract({
-          ...commonStyfi,
-          functionName: "balanceOf",
-          args: [address],
-        }),
-        this.publicClient.readContract({
-          ...commonStyfi,
-          functionName: "streams",
-          args: [address],
-        }),
-        this.publicClient.readContract({
-          ...commonStyfi,
-          functionName: "maxWithdraw",
-          args: [address],
-        }),
+          // stYFI
+          { ...commonStyfi, functionName: "balanceOf", args: [address] },
+          { ...commonStyfi, functionName: "streams", args: [address] },
+          { ...commonStyfi, functionName: "maxWithdraw", args: [address] },
 
-        // stYFIx
-        this.publicClient.readContract({
-          ...commonStyfix,
-          functionName: "balanceOf",
-          args: [address],
-        }),
-        this.publicClient.readContract({
-          ...commonStyfix,
-          functionName: "streams",
-          args: [address],
-        }),
-        this.publicClient.readContract({
-          ...commonStyfix,
-          functionName: "maxWithdraw",
-          args: [address],
-        }),
+          // stYFIx
+          { ...commonStyfix, functionName: "balanceOf", args: [address] },
+          { ...commonStyfix, functionName: "streams", args: [address] },
+          { ...commonStyfix, functionName: "maxWithdraw", args: [address] },
 
-        // Allowances
-        this.publicClient.readContract({
-          ...commonYfi,
-          functionName: "allowance",
-          args: [address, STYFI_ADDRESS],
-        }),
-        this.publicClient.readContract({
-          ...commonYfi,
-          functionName: "allowance",
-          args: [address, STYFIX_ADDRESS],
-        }),
-      ]);
+          // Allowances
+          {
+            ...commonYfi,
+            functionName: "allowance",
+            args: [address, STYFI_ADDRESS],
+          },
+          {
+            ...commonYfi,
+            functionName: "allowance",
+            args: [address, STYFIX_ADDRESS],
+          },
+        ],
+        allowFailure: false,
+      });
 
       // 2. Reward Simulation
       let claimableRewards = 0n;
@@ -113,6 +89,7 @@ export class OnchainStyfiClient implements StyfiClient {
         });
         claimableRewards = result;
       } catch (e) {
+        // Fallback for simulation failure (e.g. 0 rewards)
         claimableRewards = 0n;
       }
 
@@ -125,12 +102,16 @@ export class OnchainStyfiClient implements StyfiClient {
         return {
           amount: remaining,
           endsAt: Number(start) + STREAM_DURATION,
+          totalAmount: total,
         };
       };
 
       const styfiCooldown = formatCooldown(styfiStream);
       const styfiXCooldown = formatCooldown(styfiXStream);
 
+      // In the contracts, "streams" returns [start, total, claimed].
+      // The "Active" amount in `balanceOf` is what is earning.
+      // The "In Cooldown" is `total - claimed`.
       const styfiInCooldown = styfiStream[1] - styfiStream[2];
       const styfiXInCooldown = styfiXStream[1] - styfiXStream[2];
 
@@ -141,14 +122,14 @@ export class OnchainStyfiClient implements StyfiClient {
 
         styfiActive,
         styfiInCooldown,
-        styfiUnlocked: 0n,
+        styfiUnlocked: 0n, // Covered by maxWithdraw usually
         styfiWithdrawable: styfiMaxWithdraw,
         styfiCooldown,
 
         styfiX: {
           sharesActive: styfiXActive,
           sharesInCooldown: styfiXInCooldown,
-          assetsActive: styfiXActive,
+          assetsActive: styfiXActive, // 1:1 for stYFIx
           assetsInCooldown: styfiXInCooldown,
           assetsUnlocked: 0n,
           assetsWithdrawable: styfiXMaxWithdraw,
@@ -177,36 +158,45 @@ export class OnchainStyfiClient implements StyfiClient {
 
   async getEpochInfo(): Promise<EpochInfo> {
     const now = Math.floor(Date.now() / 1000);
+    const genesisTime = Number(GENESIS);
+
+    // Calculate current epoch based on Genesis
+    const timeSinceGenesis = Math.max(0, now - genesisTime);
+    const currentEpoch = Math.floor(timeSinceGenesis / EPOCH_LENGTH);
+
+    const epochStart = genesisTime + currentEpoch * EPOCH_LENGTH;
+    const epochEnd = epochStart + EPOCH_LENGTH;
+
     return {
-      currentEpoch: 0,
-      epochEnd: now + 86400,
-      nextEpochStart: now + 86400,
+      currentEpoch,
+      epochEnd,
+      nextEpochStart: epochEnd,
     };
   }
 
   async getStats(): Promise<StyfiGlobalStats> {
     try {
-      const [yfiSupply, styfiSupply, styfiXSupply] = await Promise.all([
-        this.publicClient.readContract({
-          abi: erc20Abi,
-          address: YFI_ADDRESS,
-          functionName: "totalSupply",
-        }),
-        this.publicClient.readContract({
-          abi: StakedYfiAbi,
-          address: STYFI_ADDRESS,
-          functionName: "totalSupply",
-        }),
-        this.publicClient.readContract({
-          abi: DelegatedStakedYfiAbi,
-          address: STYFIX_ADDRESS,
-          functionName: "totalSupply",
-        }),
-      ]);
+      // FIX: Only fetch YFI Supply and stYFI Supply.
+      // stYFI.totalSupply() includes the YFI staked via stYFIx (delegated).
+      const [yfiSupply, styfiSupply] = await this.publicClient.multicall({
+        contracts: [
+          {
+            abi: erc20Abi,
+            address: YFI_ADDRESS,
+            functionName: "totalSupply",
+          },
+          {
+            abi: StakedYfiAbi,
+            address: STYFI_ADDRESS,
+            functionName: "totalSupply",
+          },
+        ],
+        allowFailure: false,
+      });
 
       return {
         totalSupply: yfiSupply,
-        totalStaked: styfiSupply + styfiXSupply,
+        totalStaked: styfiSupply, // Fixed: removed double counting of stYFIx
       };
     } catch (e) {
       console.warn("Failed to fetch global stats", e);
@@ -215,6 +205,9 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getApy(): Promise<bigint> {
+    // Dynamic APY calculation requires backend indexing of rewards/revenue.
+    // For BR#1, we can return 0 or a placeholder, or fetch a "last week's APR" if stored on chain.
+    // Currently no direct contract view for "Current APY".
     return 0n;
   }
 

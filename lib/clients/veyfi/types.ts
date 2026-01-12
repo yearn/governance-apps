@@ -4,35 +4,42 @@ import type { CooldownState } from "@/lib/clients/shared/types";
 export type LlyfiTokenId = "sdYFI" | "upYFI" | "coveYFI";
 
 export type RedemptionState = {
-  capacity: bigint; // Max YFI redemption capacity
+  capacity: bigint; // Max YFI redemption capacity (Redemption Contract)
   used: bigint; // Current YFI capacity used
-  inventory: bigint; // LLYFI tokens held by redemption contract (available to buy)
-  fee: bigint; // Fee in BPS or scaled 1e18? Contract says 10**17 (10%). Let's assume 1e18 scale for fee.
+  inventory: bigint; // LLYFI tokens held by redemption contract
+  fee: bigint;
 };
 
 export type LlyfiTokenState = {
   symbol: LlyfiTokenId;
   name: string;
-  address: Address; // Token Address (e.g. sdYFI)
-  depositorAddress: Address; // The Staking Contract
+  address: Address;
+  depositorAddress: Address;
 
   // Balances
   walletBalance: bigint;
-  stakedBalance: bigint; // Active stake
+  stakedBalance: bigint; // Active stake (Assets)
 
   // Cooldown / Exit
-  cooldownBalance: bigint; // Total currently in stream
-  withdrawable: bigint; // Liquid/Claimable from stream (contract truth)
+  cooldownBalance: bigint; // Assets
+  withdrawable: bigint; // Assets
   cooldown: CooldownState;
 
-  allowance: bigint; // Allowance for the Depositor (Staking)
-  redemptionAllowance: bigint; // Allowance for the Redemption contract (Trading)
+  allowance: bigint;
+  redemptionAllowance: bigint;
 
-  // Metadata for the Ledger
-  lockedYfi: bigint;
+  // Metadata
+  lockedYfi: bigint; // Approx backing
   veyfiBoost: number;
+
+  // Token Supply (The LL Token itself)
   totalSupply: bigint;
-  stakedSupply: bigint;
+
+  // Depositor Stats (For Ratio)
+  stakedAssets: bigint; // Total Assets in Depositor (1UP)
+  depositorTotalSupply: bigint; // Total Shares in Depositor (YFI eq)
+  depositorCapacity: bigint; // Max Shares in Depositor (YFI eq)
+
   exchangeRate: bigint;
 
   // Redemption / Trade Data
@@ -40,8 +47,8 @@ export type LlyfiTokenState = {
 };
 
 export type VeyfiInventory = {
-  availableYfi: bigint; // YFI held by redemption contract (available to redeem)
-  feeBps: number; // Current global fee (derived from 1e18 scale)
+  availableYfi: bigint;
+  feeBps: number;
 };
 
 export type VeyfiAccountState = {
@@ -54,7 +61,7 @@ export type VeyfiAccountState = {
     unlockTime: number;
   } | null;
   llyfiTokens: LlyfiTokenState[];
-  inventory: VeyfiInventory; // Global view of YFI inventory
+  inventory: VeyfiInventory;
 };
 
 export type VeyfiGlobalStats = {

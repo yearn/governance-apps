@@ -89,7 +89,7 @@ export function UnstakePanel({
         <section className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-neutral-900">
-              Unstaking Progress
+              Cooldown Status
             </p>
             <p className="text-sm font-number font-semibold text-neutral-900">
               {formattedTotal} {tokenSymbol}

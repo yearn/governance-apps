@@ -152,9 +152,9 @@ All interactive flows use a **global transaction state machine**.
    - **Approve**
    - **Action (Stake / Migrate / Redeem / etc.)**
 
-2. The UI **MUST** determine allowance sufficiency via account state.
+2. The UI **MUST** determine allowance sufficiency via the **`useTokenAllowance` hook** for the specific token/spender pair.
 
-   - `useTokenAllowance` (wagmi `useReadContract`) is for on-chain mode only; in mock mode it returns a stub and callers **must** rely on allowances exposed by domain account state.
+   - While `AccountState` provides a snapshot of allowances, interaction buttons **MUST** use the dedicated hook to allow for immediate `refetch()` and UI updates after an approval transaction confirms, without waiting for a full account re-indexing.
 
 3. The domain clients **MUST NOT** auto-approve or abstract approvals inside write calls.
 
@@ -393,7 +393,7 @@ Flow:
 
 UI:
 
-- Show **Linear Progress Bar** reflecting liquid vs streaming ratio.
+- Show **Linear Progress Bar** (Labeled "Cooldown Status") reflecting liquid vs streaming ratio.
 - **Progressive Disclosure:** If cooldown is active, hide the "Start Cooldown" input behind a "+ Unstake more" button.
 - **Warning:** If adding to an existing cooldown, warn that the 14-day timer will reset for the streaming portion and liquid funds will be claimed.
 
@@ -483,6 +483,12 @@ type LlyfiTokenState = {
   };
 };
 ```
+
+**Normalization Requirement:**
+
+- LLYFI tokens may have different internal representations (e.g., upYFI is 69,420:1).
+- The `LlyfiTokenState` exposed to the UI **MUST** be normalized to **Assets** (token amounts) rather than **Shares** (vault accounting).
+- `stakedBalance`, `cooldownBalance`, and `withdrawable` must all be expressed in the token's native units (e.g., upYFI amount) so the UI displays consistent values.
 
 UI requirements:
 

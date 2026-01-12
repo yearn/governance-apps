@@ -160,7 +160,7 @@ We assume a technically literate DeFi user familiar with:
 ### Acceptance Criteria
 
 - **Unified Tab:** Withdraw logic lives in the same tab as Cooldown logic ("Unstake").
-- **Progress Bar:** Visualizes the ratio of Liquid vs. Streaming funds (Orange/Brand color).
+- **Cooldown Status:** A "Cooldown Status" bar visualizes the ratio of Liquid vs. Streaming funds (Orange/Brand color).
 - **Linear Access:** Withdraw button enabled as soon as `Liquid > 0` OR `Exited > 0`.
 - **Clarity:** UI distinguishes between:
   - "Available to Withdraw" (Liquid + Exited)

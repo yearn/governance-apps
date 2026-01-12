@@ -1,7 +1,8 @@
-// app/veyfi/components/tabs/LlyfiTradeTab.tsx
 "use client";
 
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAccount } from "wagmi";
 import { useIdentity } from "@/state/identity";
 import { Button } from "@/components/ui/Button";
 import { AmountInput } from "@/components/ui/AmountInput";
@@ -9,55 +10,47 @@ import {
   useVeyfiAccount,
   useLlyfiRedeem,
   useLlyfiMint,
+  veyfiKeys,
 } from "@/lib/hooks/useVeyfi";
+import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
+import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
 import { formatTokenAmount, formatPercent } from "@/lib/format";
 import { parseAmount } from "@/lib/parse";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { RadioGroup } from "@/components/ui/RadioGroup";
+import { YFI_ADDRESS, SPENDER_REDEMPTION } from "@/lib/constants";
 
 export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   const { isConnected, yfiBalance, isBlacklisted } = useIdentity();
+  const { address } = useAccount();
+  const queryClient = useQueryClient();
   const { data } = useVeyfiAccount();
   const [mode, setMode] = useState<"sell" | "buy">("sell");
   const [input, setInput] = useState("");
 
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);
+
   const { write: redeem, state: redeemState } = useLlyfiRedeem();
   const { write: mint, state: mintState } = useLlyfiMint();
+  const { write: approve, isLoading: approveLoading } = useTokenApprove();
+
+  const { data: yfiAllowance = 0n, refetch: refetchYfiAllowance } =
+    useTokenAllowance(YFI_ADDRESS, SPENDER_REDEMPTION);
+
+  const { data: llyfiAllowance = 0n, refetch: refetchLlyfiAllowance } =
+    useTokenAllowance(token.address, SPENDER_REDEMPTION);
 
   const isSell = mode === "sell";
   const userBalance = isSell ? token.walletBalance : yfiBalance;
   const sourceSymbol = isSell ? token.symbol : "YFI";
   const targetSymbol = isSell ? "YFI" : token.symbol;
 
-  // Inventory Constraints
-  // Buying LLYFI: Limited by LLYFI inventory in Redemption contract
-  // Selling LLYFI: Limited by YFI inventory in Redemption contract
-  const inventoryLimit = isSell
-    ? data?.inventory.availableYfi ?? 0n
-    : token.redemption.inventory;
-
-  // Capacity Constraints (Redemption only)
-  // Capacity limits the amount of YFI that can be redeemed.
-  const remainingCapacityYfi =
-    token.redemption.capacity - token.redemption.used;
-
   const exchangeRate = token.exchangeRate;
   const ONE_E18 = 10n ** 18n;
 
-  // Values in target assets
-  // If Selling: Input LLYFI -> Output YFI
-  // If Buying: Input YFI -> Output LLYFI
-
-  // Equivalent YFI value of the input
-  const yfiValue = isSell ? (amount * ONE_E18) / exchangeRate : amount;
-
-  // Equivalent LLYFI value of the input
-  const llyfiValue = isSell ? amount : (amount * exchangeRate) / ONE_E18;
-
-  // Fee Calculation
-  // Fee is only on Redemption (Sell)
-  // Fee is scaled 1e18 in our new types (e.g. 0.1 * 1e18 = 10%)
+  // Math & Constraints
+  const yfiValue = isSell ? amount / exchangeRate : amount;
+  const llyfiValue = isSell ? amount : amount * exchangeRate;
   const feePercent = token.redemption.fee;
   const feeAmountYfi = (yfiValue * feePercent) / ONE_E18;
 
@@ -67,38 +60,57 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
       : 0n
     : llyfiValue;
 
-  // Check Exceeded Constraints
+  const remainingCapacityYfi =
+    token.redemption.capacity - token.redemption.used;
+
   let capExceeded = false;
   let inventoryExceeded = false;
 
   if (isSell) {
-    // Limited by Capacity (in YFI terms) AND Inventory (in YFI terms)
     if (yfiValue > remainingCapacityYfi) capExceeded = true;
     if (yfiValue > (data?.inventory.availableYfi ?? 0n))
       inventoryExceeded = true;
   } else {
-    // Buying limited by LLYFI inventory
     if (llyfiValue > token.redemption.inventory) inventoryExceeded = true;
   }
+
+  const currentAllowance = isSell ? llyfiAllowance : yfiAllowance;
+  const needsApproval = isValid && amount > 0n && amount > currentAllowance;
 
   const handleMaxProtocol = () => {
     let maxInput = 0n;
     if (isSell) {
-      // Max LLYFI to sell = min(Inventory YFI, Capacity YFI) * Rate
-      const maxYfi =
-        remainingCapacityYfi < (data?.inventory.availableYfi ?? 0n)
+      const availableYfi = data?.inventory.availableYfi ?? 0n;
+      const limitYfi =
+        remainingCapacityYfi < availableYfi
           ? remainingCapacityYfi
-          : data?.inventory.availableYfi ?? 0n;
-      maxInput = (maxYfi * exchangeRate) / ONE_E18;
+          : availableYfi;
+      maxInput = limitYfi * exchangeRate;
     } else {
-      // Max YFI to spend = Inventory LLYFI / Rate
-      maxInput = (token.redemption.inventory * ONE_E18) / exchangeRate;
+      maxInput = token.redemption.inventory / exchangeRate;
     }
     setInput(formatTokenAmount(maxInput));
   };
 
+  const handleApprove = async () => {
+    const tokenAddress = isSell ? token.address : YFI_ADDRESS;
+    await approve(tokenAddress, SPENDER_REDEMPTION, amount, {
+      invalidate: async () => {
+        if (isSell) {
+          await refetchLlyfiAllowance();
+        } else {
+          await refetchYfiAllowance();
+        }
+        await queryClient.invalidateQueries({
+          queryKey: veyfiKeys.account(address),
+        });
+      },
+    });
+  };
+
   const isSubmitting =
     redeemState.status === "mining" || mintState.status === "mining";
+  const limitDecimals = token.symbol === "upYFI" ? 0 : 4;
 
   return (
     <div className="space-y-4 max-w-xl">
@@ -119,7 +131,7 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
           <span className="font-number">
             {formatTokenAmount(isValid ? amount : 0n)} {sourceSymbol}
           </span>
-          <span className="text-lg text-neutral-400">→</span>
+          <span className="text-lg text-neutral-400">&rarr;</span>
           <span className="font-number">
             {formatTokenAmount(netOutput)} {targetSymbol}
           </span>
@@ -135,11 +147,15 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
           <span className="underline decoration-dotted">
             {isSell
               ? `${formatTokenAmount(
-                  (remainingCapacityYfi * exchangeRate) / ONE_E18
+                  remainingCapacityYfi * exchangeRate,
+                  18,
+                  limitDecimals
                 )} ${token.symbol}`
-              : `${formatTokenAmount(token.redemption.inventory)} ${
-                  token.symbol
-                }`}
+              : `${formatTokenAmount(
+                  token.redemption.inventory,
+                  18,
+                  limitDecimals
+                )} ${token.symbol}`}
           </span>
         </button>
       </div>
@@ -168,25 +184,37 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
         </div>
       )}
 
-      <Button
-        variant="veyfi"
-        className="w-full"
-        disabled={
-          !isValid ||
-          amount <= 0n ||
-          capExceeded ||
-          inventoryExceeded ||
-          !isConnected ||
-          isBlacklisted ||
-          isSubmitting
-        }
-        isLoading={isSubmitting}
-        onClick={() =>
-          isSell ? redeem(token.symbol, amount) : mint(token.symbol, amount)
-        }
-      >
-        {isSell ? `Redeem ${token.symbol}` : `Buy ${token.symbol}`}
-      </Button>
+      <div className="flex justify-end">
+        {needsApproval ? (
+          <Button
+            variant="secondary"
+            disabled={!isConnected || approveLoading}
+            isLoading={approveLoading}
+            onClick={handleApprove}
+          >
+            Approve {sourceSymbol}
+          </Button>
+        ) : (
+          <Button
+            variant="veyfi"
+            disabled={
+              !isValid ||
+              amount <= 0n ||
+              capExceeded ||
+              inventoryExceeded ||
+              !isConnected ||
+              isBlacklisted ||
+              isSubmitting
+            }
+            isLoading={isSubmitting}
+            onClick={() =>
+              isSell ? redeem(token.symbol, amount) : mint(token.symbol, amount)
+            }
+          >
+            {isSell ? `Sell ${token.symbol}` : `Buy ${token.symbol}`}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

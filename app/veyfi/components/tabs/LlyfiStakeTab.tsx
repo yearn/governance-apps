@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { useLlyfiStake, veyfiKeys } from "@/lib/hooks/useVeyfi";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
+import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance"; // Import Hook
 import { formatTokenAmount } from "@/lib/format";
 import { parseAmount } from "@/lib/parse";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
-import { SPENDER_LLYFI_STAKER } from "@/lib/constants";
 import { toast } from "@/components/ui/Toast";
 
 export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
@@ -22,7 +22,10 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
   const { write: stake, state: stakeState } = useLlyfiStake();
   const { write: approve, isLoading: approveLoading } = useTokenApprove();
 
-  const needsApproval = isValid && amount > token.allowance;
+  const { data: currentAllowance = 0n, refetch: refetchAllowance } =
+    useTokenAllowance(token.address, token.depositorAddress);
+
+  const needsApproval = isValid && amount > 0n && amount > currentAllowance;
   const insufficientBalance = isValid && amount > token.walletBalance;
 
   const isSubmitting =
@@ -37,8 +40,9 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
     approveLoading;
 
   const handleApprove = async () => {
-    await approve(token.address, SPENDER_LLYFI_STAKER, amount, {
+    await approve(token.address, token.depositorAddress, amount, {
       invalidate: async () => {
+        await refetchAllowance();
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
         });
@@ -76,7 +80,13 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
           <Button
             variant="secondary"
             onClick={handleApprove}
-            disabled={isDisabled}
+            disabled={
+              !isConnected ||
+              !isValid ||
+              amount <= 0n ||
+              insufficientBalance ||
+              approveLoading
+            }
             isLoading={approveLoading}
           >
             Approve {token.symbol}

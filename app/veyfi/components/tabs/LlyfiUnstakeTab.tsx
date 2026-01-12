@@ -17,12 +17,16 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
   const { write: withdraw, state: withdrawState } = useLlyfiWithdraw();
 
   // Contract truth
+  // token.cooldownBalance is now normalized to ASSETS by OnchainVeyfiClient
   const totalExiting = token.cooldownBalance;
-  const liquidEstimate = token.withdrawable;
 
-  // Calculate streaming portion simply by subtraction
+  // token.withdrawable is in ASSETS (YFI) because it comes from maxWithdraw()
+  // No conversion needed, units match now.
+  const liquidAssets = token.withdrawable;
+
+  // Calculate streaming portion by subtraction (Assets - Assets)
   const streamingEstimate =
-    totalExiting > liquidEstimate ? totalExiting - liquidEstimate : 0n;
+    totalExiting > liquidAssets ? totalExiting - liquidAssets : 0n;
 
   const isSubmitting =
     cooldownState.status === "mining" ||
@@ -46,15 +50,15 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
       <UnstakePanel
         variant="veyfi"
         tokenSymbol={token.symbol}
-        availableBalance={token.stakedBalance}
-        totalExiting={totalExiting}
-        liquidEstimate={liquidEstimate}
-        streamingEstimate={streamingEstimate}
+        availableBalance={token.stakedBalance} // Now Assets
+        totalExiting={totalExiting} // Assets
+        liquidEstimate={liquidAssets} // Assets
+        streamingEstimate={streamingEstimate} // Assets
         cooldown={token.cooldown}
         onStartCooldown={handleStart}
         onWithdraw={handleWithdraw}
         isSubmitting={isSubmitting}
-        canWithdraw={isConnected && liquidEstimate > 0n && !isSubmitting}
+        canWithdraw={isConnected && liquidAssets > 0n && !isSubmitting}
         canStart={
           isConnected &&
           isValid &&

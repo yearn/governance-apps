@@ -424,23 +424,24 @@ To ensure a smooth developer experience where UI updates immediately after trans
 
 ---
 
-# 11. On-Chain Integration (Phase-8+)
+# 11. On-Chain Integration (Phase-8)
 
-Activated when:
+**Status:** Implemented
 
-- ABIs are stable
-- Multicall layout is known
-- Domain invariants are locked
+The application now supports full on-chain integration via `OnchainStyfiClient` and `OnchainVeyfiClient`.
 
-### Requirements:
+### Configuration:
 
-- Minimal RPC calls
-- All reads via multicall
-- All writes via prepare\* → useTx
-- No direct component-level contract interactions
-- Strong type safety via viem contract bindings
+- Controlled via `NEXT_PUBLIC_USE_MOCKS=false`.
+- Uses `viem` multicall to aggregate state for:
+  - **stYFI:** Wallet, Staking, Epochs, Rewards.
+  - **veYFI:** Legacy Locks, Migration, LLYFI Registry (3x tokens), Redemption Caps.
 
-This phase does **not** change UI or domain architecture.
+### Implementation Details:
+
+- **Normalization:** The clients handle the complexity of "Share" vs "Asset" accounting for tokens like upYFI, exposing only "Assets" to the UI layer.
+- **Approvals:** Uses a hybrid approach where global state is fetched via multicall, but atomic actions use `useTokenAllowance` for instant feedback.
+- **Epochs:** Derived from the immutable `GENESIS` timestamp to ensure client-side timers match contract logic without constant RPC polling.
 
 ---
 

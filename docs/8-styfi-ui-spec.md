@@ -184,7 +184,8 @@ _Note: "Accruing Rewards" was removed to simplify the dashboard._
 2.  **Unstake (Unified)**
     - **Visuals:**
       - **Tab Badge:** Hollow dot (Streaming) vs Solid dot (Ready).
-    - **Section A: Status (Progress Bar)**
+    - **Section A: Status (Cooldown Status)**
+      - **Header:** "Cooldown Status" (previously Unstaking Progress).
       - **Visual:** Orange linear progress bar.
     - **Section B: Withdraw Action**
       - **Condition:** Visible if `Liquid > 0`.

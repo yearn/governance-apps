@@ -18,12 +18,13 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const staked = token.stakedBalance + token.cooldownBalance;
   const wallet = token.walletBalance;
 
-  // Utilization Ratio: Staked Supply / Total Supply
-  // Avoid division by zero
-  const totalSupply = token.totalSupply > 0n ? token.totalSupply : 1n;
+  // Staked Ratio Calculation (Shares vs Capacity)
+  // depositorTotalSupply = Total Shares Minted (YFI Equivalent)
+  // depositorCapacity = Max Shares Allowed (YFI Equivalent)
+  const capacity = token.depositorCapacity > 0n ? token.depositorCapacity : 1n;
   const utilizationRatio =
-    Number((token.stakedSupply * 10000n) / totalSupply) / 10000;
-  // Floor at minimal utilization to avoid infinite APRs in edge cases
+    Number((token.depositorTotalSupply * 10000n) / capacity) / 10000;
+
   const effectiveUtilization = Math.max(0.01, utilizationRatio);
 
   // APR Math
@@ -31,7 +32,15 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const boostedStyfiApy = baseApy * token.veyfiBoost;
   const effectiveApy = boostedStyfiApy / effectiveUtilization;
 
-  // Format Large Supplies (e.g. 14,347,836 -> 14.3M)
+  // Format Large Supplies:
+  // For standard tokens, Shares = Assets.
+  // For upYFI, Shares = Assets / 69420.
+  // We want to show "Filled Amount" vs "Capacity".
+  // Display in "Assets" (e.g. 50K upYFI) vs "Capacity in Assets".
+  // Capacity Assets = Capacity Shares * Scale.
+  const capacityAssets = token.depositorCapacity * token.exchangeRate;
+  const stakedAssets = token.depositorTotalSupply * token.exchangeRate;
+
   const formatCompact = (val: bigint) => {
     return Intl.NumberFormat("en-US", {
       notation: "compact",
@@ -128,8 +137,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
             </div>
           </Tooltip>
           <div className="text-xs font-medium text-neutral-500 mt-0.5">
-            {formatCompact(token.stakedSupply)} /{" "}
-            {formatCompact(token.totalSupply)}
+            {formatCompact(stakedAssets)} / {formatCompact(capacityAssets)}
           </div>
         </div>
 

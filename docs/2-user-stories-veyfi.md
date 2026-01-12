@@ -212,7 +212,7 @@ Target user:
 ### Acceptance Criteria
 
 - **Unified Tab:** Withdraw logic lives in the same tab as Cooldown logic ("Unstake").
-- **Progress Bar:** Visualizes the ratio of Liquid vs. Streaming funds (Pink/Brand color).
+- **Cooldown Status:** A "Cooldown Status" bar visualizes the ratio of Liquid vs. Streaming funds (Pink/Brand color).
 - **Linear Access:** Withdraw button enabled as soon as `Liquid > 0`.
 - **Clarity:** UI distinguishes between:
   - "Available to Withdraw" (Liquid)

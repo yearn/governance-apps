@@ -13,6 +13,7 @@ import {
   useStyfiStake,
 } from "@/lib/hooks/useStyfi";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
+import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance"; // Import
 import { YFI_ADDRESS, SPENDER_STYFI, SPENDER_STYFIX } from "@/lib/constants";
 import { StyfiMode, modeLabel } from "../../types";
 import { styfiCopy as copy } from "../../../messages";
@@ -37,11 +38,13 @@ export function StakeTab({ mode }: Props) {
   const [input, setInput] = useState<string>("");
   const { amount, isValid } = useMemo(() => parseAmount(input || "0"), [input]);
 
-  // Allowance is domain-specific, YFI balance is global
-  const allowance =
-    mode === "styfi"
-      ? styfiData?.allowances.yfiToStyfi ?? 0n
-      : styfiData?.allowances.yfiToStyfiX ?? 0n;
+  const spender = mode === "styfi" ? SPENDER_STYFI : SPENDER_STYFIX;
+
+  // FIX: Use dedicated hook for YFI -> Spender allowance
+  const { data: allowance = 0n, refetch: refetchAllowance } = useTokenAllowance(
+    YFI_ADDRESS,
+    spender
+  );
 
   const outputAmount = isValid ? amount : 0n;
   const needsApproval = isValid && amount > allowance;
@@ -70,11 +73,10 @@ export function StakeTab({ mode }: Props) {
 
   const handleApprove = async () => {
     if (!isValid || amount <= 0n) return;
-    const spender = mode === "styfi" ? SPENDER_STYFI : SPENDER_STYFIX;
 
-    // Fix: Use Real YFI Address so this works on Forks/Mainnet
     await approve(YFI_ADDRESS, spender, amount, {
       invalidate: async () => {
+        await refetchAllowance();
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["protocol", "identity"] }),
           queryClient.invalidateQueries({
@@ -99,7 +101,7 @@ export function StakeTab({ mode }: Props) {
           <span className="font-number">
             {formatTokenAmount(outputAmount)} YFI
           </span>
-          <span className="text-lg">→</span>
+          <span className="text-lg">&rarr;</span>
           <span className="font-number">
             {formatTokenAmount(outputAmount)} {modeLabel(mode)}
           </span>

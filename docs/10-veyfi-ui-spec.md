@@ -76,13 +76,15 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
     - Approve -> Stake flow.
 2.  **Unstake:**
     - **Linear Streaming UI:** Reuses the "Pink" progress bar logic from stYFI.
-    - Withdraw available liquid funds (read from `maxWithdraw` on contract).
+    - **Header:** Labeled "Cooldown Status" to reflect state-based accounting (avoids confusion when bar resets after withdrawal).
+    - Withdraw available liquid funds (read from `maxWithdraw` and normalized to Assets).
 3.  **Trade:**
     - **Mode Selection:** Radio Button (Sell vs Buy).
     - **Buy (YFI -> LLYFI):**
       - **Constraint:** Limited by `Redemption.inventory` (Amount of LLYFI held by protocol).
       - **Contract:** `exchange()`.
     - **Sell (LLYFI -> YFI):**
+      - **Action:** Labeled "Sell [Token]" (e.g. Sell sdYFI).
       - **Constraint:** Limited by `Redemption.capacity - Redemption.used` AND `Redemption.YFI_Balance`.
       - **Fee:** Shows exit fee (bps) and Net Receive amount.
       - **Contract:** `redeem()`.
