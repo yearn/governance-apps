@@ -1,3 +1,4 @@
+// lib/clients/styfi/mock.ts
 "use client";
 
 import type { Address } from "viem";
@@ -9,6 +10,9 @@ import {
   REWARD_TOKEN_CONFIG,
   SPENDER_STYFI,
   SPENDER_STYFIX,
+  STREAM_DURATION,
+  EPOCH_LENGTH,
+  MOCK_YFI_ADDRESS,
 } from "@/lib/constants";
 import { nowSeconds } from "@/lib/mocks/time";
 
@@ -27,7 +31,6 @@ function calculateMaxWithdraw(
   startTime: number,
   unlockedStored: bigint
 ): bigint {
-  const STREAM_DURATION = 14 * 24 * 60 * 60;
   if (startTime === 0 || total === 0n) return unlockedStored;
 
   const now = nowSeconds();
@@ -106,9 +109,6 @@ export class MockStyfiClient implements StyfiClient {
       GLOBAL_LAST_ACCRUAL.set(address.toLowerCase(), now);
     }
 
-    // Calculate withdrawable amounts dynamically
-    const STREAM_DURATION = 14 * 24 * 60 * 60;
-
     // stYFI
     let styfiStart = 0;
     if (state.styfiCooldown) {
@@ -137,8 +137,8 @@ export class MockStyfiClient implements StyfiClient {
   async getEpochInfo(): Promise<EpochInfo> {
     return {
       currentEpoch: 12,
-      epochEnd: nowSeconds() + 864000,
-      nextEpochStart: nowSeconds() + 864000,
+      epochEnd: nowSeconds() + EPOCH_LENGTH,
+      nextEpochStart: nowSeconds() + EPOCH_LENGTH,
     };
   }
 
@@ -174,7 +174,6 @@ export class MockStyfiClient implements StyfiClient {
     amount: bigint
   ): Promise<PreparedTransaction> {
     const addr = this.lastAddress!;
-    const STREAM_DURATION = 14 * 24 * 60 * 60;
 
     return async () => {
       const s = this.getOrCreate(addr);
@@ -282,4 +281,33 @@ export function createMockStyfiClient(options?: { latencyMs?: number }) {
 export function resetMockStyfiStore() {
   GLOBAL_STYFI_STORE.clear();
   GLOBAL_LAST_ACCRUAL.clear();
+}
+
+/**
+ * Sync helper for useTokenAllowance in Mock mode.
+ * Returns the allowance if found, 0n otherwise.
+ */
+export function readMockStyfiAllowance(
+  user: Address,
+  token: Address,
+  spender: Address
+): bigint {
+  const store = GLOBAL_STYFI_STORE.get(user.toLowerCase());
+  if (!store) return 0n;
+
+  // Mock Styfi Client only cares about YFI approvals
+  const isYfi =
+    token.toLowerCase() === MOCK_YFI_ADDRESS.toLowerCase() ||
+    token.toLowerCase() === "0xd4c188f035793eecaa53808cc067099100b653ba"; // Real YFI
+
+  if (!isYfi) return 0n;
+
+  if (spender.toLowerCase() === SPENDER_STYFI.toLowerCase()) {
+    return store.allowances.yfiToStyfi;
+  }
+  if (spender.toLowerCase() === SPENDER_STYFIX.toLowerCase()) {
+    return store.allowances.yfiToStyfiX;
+  }
+
+  return 0n;
 }

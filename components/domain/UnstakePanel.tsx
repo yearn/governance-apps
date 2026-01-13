@@ -1,3 +1,4 @@
+// components/domain/UnstakePanel.tsx
 "use client";
 
 import { useState } from "react";
@@ -9,6 +10,7 @@ import { formatTokenAmount } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { CooldownState } from "@/lib/clients/shared/types";
 import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
+import { STREAM_DURATION } from "@/lib/constants";
 
 interface UnstakePanelProps {
   // Balances
@@ -61,9 +63,8 @@ export function UnstakePanel({
   const [isAddingMore, setIsAddingMore] = useState(false);
 
   // Cooldown Timer Logic
-  const COOLDOWN_SECONDS = 14 * 24 * 60 * 60;
   const impliedStart = cooldown?.endsAt
-    ? cooldown.endsAt - COOLDOWN_SECONDS
+    ? cooldown.endsAt - STREAM_DURATION
     : undefined;
   const { timeRemaining, progress } = useEpochCountdown(
     cooldown?.endsAt,

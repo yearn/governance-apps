@@ -1,3 +1,4 @@
+// lib/clients/veyfi/mock.ts
 "use client";
 
 import type { Address } from "viem";
@@ -6,7 +7,6 @@ import type {
   VeyfiAccountState,
   LlyfiTokenId,
   VeyfiGlobalStats,
-  LlyfiTokenState,
 } from "./types";
 import type { VeyfiClient } from "./client";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
@@ -15,10 +15,11 @@ import {
   MOCK_SDYFI_ADDRESS,
   MOCK_UPYFI_ADDRESS,
   MOCK_COVEYFI_ADDRESS,
-  MOCK_LLYFI_MAP,
-  MOCK_VEYFI_STAKER_ADDRESS, // We'll assume this is the Depositor
+  MOCK_VEYFI_STAKER_ADDRESS,
   SPENDER_LLYFI_STAKER,
   SPENDER_REDEMPTION,
+  STREAM_DURATION,
+  MOCK_YFI_ADDRESS,
 } from "@/lib/constants";
 
 let txCounter = 0;
@@ -28,21 +29,17 @@ function nextMockHash(): TransactionHash {
 }
 
 const GLOBAL_VEYFI_STORE = new Map<string, VeyfiAccountState>();
+const GLOBAL_YFI_ALLOWANCE_STORE = new Map<string, bigint>(); // user -> YFI allowance for Redemption
 let GLOBAL_PENDING_VEYFI: bigint = 0n;
 
 // Helper to calculate withdrawable amount (matching Vyper logic)
-function calculateMaxWithdraw(
-  total: bigint,
-  startTime: number,
-  unlockedStored: bigint // In our mock, we just use total stream vs elapsed.
-): bigint {
-  const STREAM_DURATION = 14 * 24 * 60 * 60;
+function calculateMaxWithdraw(total: bigint, startTime: number): bigint {
   if (startTime === 0 || total === 0n) return 0n;
 
   const now = nowSeconds();
   const timeElapsed = Math.min(Math.max(0, now - startTime), STREAM_DURATION);
   const claimable = (total * BigInt(timeElapsed)) / BigInt(STREAM_DURATION);
-  return claimable; // In mock we don't track "claimed" separately, we just burn stream on withdraw.
+  return claimable;
 }
 
 export class MockVeyfiClient implements VeyfiClient {
@@ -55,95 +52,110 @@ export class MockVeyfiClient implements VeyfiClient {
 
   private getOrCreate(address: Address): VeyfiAccountState {
     const key = address.toLowerCase();
-    let state = GLOBAL_VEYFI_STORE.get(key);
-    if (!state) {
-      state = {
-        address,
-        veYfi: {
-          legacyBalance: 0n,
-          lockedAmount: 0n,
-          migrationEligible: true,
-          migrated: false,
-          unlockTime: 0,
+    const existing = GLOBAL_VEYFI_STORE.get(key);
+    if (existing) return existing;
+
+    const state: VeyfiAccountState = {
+      address,
+      veYfi: {
+        legacyBalance: 0n,
+        lockedAmount: 0n,
+        migrationEligible: true,
+        migrated: false,
+        unlockTime: 0,
+      },
+      llyfiTokens: [
+        {
+          symbol: "sdYFI",
+          name: "StakeDAO",
+          address: MOCK_SDYFI_ADDRESS,
+          depositorAddress: MOCK_VEYFI_STAKER_ADDRESS,
+          walletBalance: 10n * 10n ** 18n,
+          stakedBalance: 0n,
+          cooldownBalance: 0n,
+          withdrawable: 0n,
+          cooldown: null,
+          allowance: 0n,
+          redemptionAllowance: 0n,
+          lockedYfi: 229n * 10n ** 18n,
+          veyfiBoost: 1.95,
+          totalSupply: 1000n * 10n ** 18n,
+
+          // Ratios (Scale 1)
+          stakedAssets: 236n * 10n ** 18n,
+          depositorTotalSupply: 236n * 10n ** 18n,
+          depositorCapacity: 1000n * 10n ** 18n,
+
+          exchangeRate: 1n * 10n ** 18n,
+          redemption: {
+            capacity: 1000n * 10n ** 18n,
+            used: 200n * 10n ** 18n,
+            inventory: 50n * 10n ** 18n, // LLYFI available to buy
+            fee: 50000000000000000n, // 5% (0.05 * 1e18)
+          },
         },
-        llyfiTokens: [
-          {
-            symbol: "sdYFI",
-            name: "StakeDAO",
-            address: MOCK_SDYFI_ADDRESS,
-            depositorAddress: MOCK_VEYFI_STAKER_ADDRESS,
-            walletBalance: 10n * 10n ** 18n,
-            stakedBalance: 0n,
-            cooldownBalance: 0n,
-            withdrawable: 0n,
-            cooldown: null,
-            allowance: 0n,
-            redemptionAllowance: 0n,
-            lockedYfi: 229n * 10n ** 18n,
-            veyfiBoost: 1.95,
-            totalSupply: 1000n * 10n ** 18n,
-            stakedSupply: 236n * 10n ** 18n,
-            exchangeRate: 1n * 10n ** 18n,
-            redemption: {
-              capacity: 1000n * 10n ** 18n,
-              used: 200n * 10n ** 18n,
-              inventory: 50n * 10n ** 18n, // LLYFI available to buy
-              fee: 50000000000000000n, // 5% (0.05 * 1e18)
-            },
+        {
+          symbol: "upYFI",
+          name: "1UP",
+          address: MOCK_UPYFI_ADDRESS,
+          depositorAddress: MOCK_VEYFI_STAKER_ADDRESS,
+          walletBalance: 500000n * 10n ** 18n,
+          stakedBalance: 0n,
+          cooldownBalance: 0n,
+          withdrawable: 0n,
+          cooldown: null,
+          allowance: 0n,
+          redemptionAllowance: 0n,
+          lockedYfi: 199n * 10n ** 18n,
+          veyfiBoost: 1.98,
+          totalSupply: 10000000n * 10n ** 18n,
+
+          // Ratios (Scale 69420)
+          stakedAssets: 1434783n * 10n ** 18n,
+          depositorTotalSupply: (1434783n * 10n ** 18n) / 69420n,
+          depositorCapacity: (2000000n * 10n ** 18n) / 69420n,
+
+          exchangeRate: 69420n * 10n ** 18n,
+          redemption: {
+            capacity: 2000000n * 10n ** 18n,
+            used: 100000n * 10n ** 18n,
+            inventory: 5000n * 10n ** 18n,
+            fee: 25000000000000000n, // 2.5%
           },
-          {
-            symbol: "upYFI",
-            name: "1UP",
-            address: MOCK_UPYFI_ADDRESS,
-            depositorAddress: MOCK_VEYFI_STAKER_ADDRESS,
-            walletBalance: 500000n * 10n ** 18n,
-            stakedBalance: 0n,
-            cooldownBalance: 0n,
-            withdrawable: 0n,
-            cooldown: null,
-            allowance: 0n,
-            redemptionAllowance: 0n,
-            lockedYfi: 199n * 10n ** 18n,
-            veyfiBoost: 1.98,
-            totalSupply: 10000000n * 10n ** 18n,
-            stakedSupply: 1434783n * 10n ** 18n,
-            exchangeRate: 69420n * 10n ** 18n,
-            redemption: {
-              capacity: 2000000n * 10n ** 18n,
-              used: 100000n * 10n ** 18n,
-              inventory: 5000n * 10n ** 18n,
-              fee: 25000000000000000n, // 2.5%
-            },
+        },
+        {
+          symbol: "coveYFI",
+          name: "Cove",
+          address: MOCK_COVEYFI_ADDRESS,
+          depositorAddress: MOCK_VEYFI_STAKER_ADDRESS,
+          walletBalance: 5n * 10n ** 18n,
+          stakedBalance: 0n,
+          cooldownBalance: 0n,
+          withdrawable: 0n,
+          cooldown: null,
+          allowance: 0n,
+          redemptionAllowance: 0n,
+          lockedYfi: 74n * 10n ** 18n,
+          veyfiBoost: 1.92,
+          totalSupply: 500n * 10n ** 18n,
+
+          // Ratios (Scale 1)
+          stakedAssets: 76n * 10n ** 18n,
+          depositorTotalSupply: 76n * 10n ** 18n,
+          depositorCapacity: 500n * 10n ** 18n,
+
+          exchangeRate: 1n * 10n ** 18n,
+          redemption: {
+            capacity: 500n * 10n ** 18n,
+            used: 10n * 10n ** 18n,
+            inventory: 20n * 10n ** 18n,
+            fee: 100000000000000000n, // 10%
           },
-          {
-            symbol: "coveYFI",
-            name: "Cove",
-            address: MOCK_COVEYFI_ADDRESS,
-            depositorAddress: MOCK_VEYFI_STAKER_ADDRESS,
-            walletBalance: 5n * 10n ** 18n,
-            stakedBalance: 0n,
-            cooldownBalance: 0n,
-            withdrawable: 0n,
-            cooldown: null,
-            allowance: 0n,
-            redemptionAllowance: 0n,
-            lockedYfi: 74n * 10n ** 18n,
-            veyfiBoost: 1.92,
-            totalSupply: 500n * 10n ** 18n,
-            stakedSupply: 76n * 10n ** 18n,
-            exchangeRate: 1n * 10n ** 18n,
-            redemption: {
-              capacity: 500n * 10n ** 18n,
-              used: 10n * 10n ** 18n,
-              inventory: 20n * 10n ** 18n,
-              fee: 100000000000000000n, // 10%
-            },
-          },
-        ],
-        inventory: { availableYfi: 600n * 10n ** 18n, feeBps: 500 },
-      };
-      GLOBAL_VEYFI_STORE.set(key, state);
-    }
+        },
+      ],
+      inventory: { availableYfi: 600n * 10n ** 18n, feeBps: 500 },
+    };
+    GLOBAL_VEYFI_STORE.set(key, state);
     return state;
   }
 
@@ -159,13 +171,11 @@ export class MockVeyfiClient implements VeyfiClient {
     }
 
     // Update withdrawables based on mock time
-    const STREAM_DURATION = 14 * 24 * 60 * 60;
     for (const token of state.llyfiTokens) {
       if (token.cooldownBalance > 0n && token.cooldown) {
         token.withdrawable = calculateMaxWithdraw(
           token.cooldownBalance,
-          token.cooldown.endsAt - STREAM_DURATION,
-          0n
+          token.cooldown.endsAt - STREAM_DURATION
         );
       } else {
         token.withdrawable = 0n;
@@ -216,12 +226,10 @@ export class MockVeyfiClient implements VeyfiClient {
       const t = s.llyfiTokens.find((x) => x.symbol === symbol);
       if (t && t.stakedBalance >= amount) {
         // Auto-claim any existing withdrawable
-        const STREAM_DURATION = 14 * 24 * 60 * 60;
         if (t.cooldownBalance > 0n && t.cooldown) {
           const liquid = calculateMaxWithdraw(
             t.cooldownBalance,
-            t.cooldown.endsAt - STREAM_DURATION,
-            0n
+            t.cooldown.endsAt - STREAM_DURATION
           );
           t.walletBalance += liquid;
           t.cooldownBalance -= liquid;
@@ -326,6 +334,15 @@ export class MockVeyfiClient implements VeyfiClient {
   }
 
   debugSetAllowance(u: Address, t: Address, s: Address, a: bigint) {
+    // If it's the YFI token approval for Redemption
+    if (
+      t.toLowerCase() === MOCK_YFI_ADDRESS.toLowerCase() &&
+      s.toLowerCase() === SPENDER_REDEMPTION.toLowerCase()
+    ) {
+      GLOBAL_YFI_ALLOWANCE_STORE.set(u.toLowerCase(), a);
+      return;
+    }
+
     const st = this.getOrCreate(u);
     // Find token by address
     const tok = st.llyfiTokens.find(
@@ -357,5 +374,42 @@ export function createMockVeyfiClient(options?: { latencyMs?: number }) {
 
 export function resetMockVeyfiStore() {
   GLOBAL_VEYFI_STORE.clear();
+  GLOBAL_YFI_ALLOWANCE_STORE.clear();
   GLOBAL_PENDING_VEYFI = 0n;
+}
+
+/**
+ * Sync helper for useTokenAllowance in Mock mode.
+ */
+export function readMockVeyfiAllowance(
+  user: Address,
+  token: Address,
+  spender: Address
+): bigint {
+  const u = user.toLowerCase();
+  const t = token.toLowerCase();
+  const s = spender.toLowerCase();
+
+  // 1. Check YFI -> Redemption allowance
+  if (
+    t === MOCK_YFI_ADDRESS.toLowerCase() &&
+    s === SPENDER_REDEMPTION.toLowerCase()
+  ) {
+    return GLOBAL_YFI_ALLOWANCE_STORE.get(u) ?? 0n;
+  }
+
+  // 2. Check LLYFI allowances in store
+  const store = GLOBAL_VEYFI_STORE.get(u);
+  if (!store) return 0n;
+
+  const tok = store.llyfiTokens.find((tk) => tk.address.toLowerCase() === t);
+  if (!tok) return 0n;
+
+  if (s === SPENDER_REDEMPTION.toLowerCase()) {
+    return tok.redemptionAllowance;
+  } else if (s === SPENDER_LLYFI_STAKER.toLowerCase()) {
+    return tok.allowance;
+  }
+
+  return 0n;
 }

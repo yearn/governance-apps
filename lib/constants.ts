@@ -1,7 +1,12 @@
+// lib/constants.ts
 import { Address, parseUnits } from "viem";
 
 // Protocol Genesis Timestamp (Thu Jan 01 2026 00:00:00 GMT+0000)
 export const GENESIS = 1767225600n;
+
+// Time Constants
+export const STREAM_DURATION = 14 * 24 * 60 * 60; // 14 days
+export const EPOCH_LENGTH = 14 * 24 * 60 * 60; // 14 days
 
 // --- StYFI Domain ---
 export const STYFI_ADDRESS: Address =

@@ -1,3 +1,4 @@
+// lib/clients/veyfi/onchain.ts
 import { type Address, type PublicClient, parseAbi, erc20Abi } from "viem";
 import { getAccount, writeContract, readContract } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
@@ -16,6 +17,8 @@ import {
   LIQUID_LOCKERS,
   LIQUID_LOCKER_REDEMPTION_ADDRESS,
   GENESIS,
+  STREAM_DURATION,
+  EPOCH_LENGTH,
 } from "@/lib/constants";
 import { VotingEscrowRewardDistributorAbi } from "@/lib/abis/VotingEscrowRewardDistributor";
 import { LiquidLockerDepositorAbi } from "@/lib/abis/LiquidLockerDepositor";
@@ -36,9 +39,6 @@ interface WeightInfo {
   weight: bigint;
   slope: bigint;
 }
-
-const STREAM_DURATION = 14 * 24 * 60 * 60;
-const EPOCH_LENGTH = 14 * 24 * 60 * 60;
 
 export class OnchainVeyfiClient implements VeyfiClient {
   constructor(private publicClient: PublicClient) {}

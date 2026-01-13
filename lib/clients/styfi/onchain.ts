@@ -1,3 +1,4 @@
+// lib/clients/styfi/onchain.ts
 import { type Address, type PublicClient, erc20Abi } from "viem";
 import { getAccount, writeContract, readContract } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
@@ -11,13 +12,12 @@ import {
   REWARD_CLAIMER_ADDRESS,
   REWARD_TOKEN_CONFIG,
   GENESIS,
+  STREAM_DURATION,
+  EPOCH_LENGTH,
 } from "@/lib/constants";
 import { StakedYfiAbi } from "@/lib/abis/StakedYfi";
 import { DelegatedStakedYfiAbi } from "@/lib/abis/DelegatedStakedYfi";
 import { RewardClaimerAbi } from "@/lib/abis/RewardClaimer";
-
-const STREAM_DURATION = 14 * 24 * 60 * 60; // 14 days
-const EPOCH_LENGTH = 14 * 24 * 60 * 60; // 14 days
 
 export class OnchainStyfiClient implements StyfiClient {
   constructor(private publicClient: PublicClient) {}
@@ -176,7 +176,7 @@ export class OnchainStyfiClient implements StyfiClient {
 
   async getStats(): Promise<StyfiGlobalStats> {
     try {
-      // FIX: Only fetch YFI Supply and stYFI Supply.
+      // Only fetch YFI Supply and stYFI Supply.
       // stYFI.totalSupply() includes the YFI staked via stYFIx (delegated).
       const [yfiSupply, styfiSupply] = await this.publicClient.multicall({
         contracts: [
