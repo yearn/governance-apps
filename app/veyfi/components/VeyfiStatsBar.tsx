@@ -21,7 +21,7 @@ export function VeyfiStatsBar() {
     }
   }
 
-  const boostLabel = stats ? `${stats.maxBoostMultiplier}x` : "--x";
+  const boostLabel = stats ? `${stats.maxBoostMultiplier.toFixed(2)}x` : "--x";
 
   const stakedLabel = stats
     ? formatPercent(stats.totalLlyfiStakedPercent, 1)

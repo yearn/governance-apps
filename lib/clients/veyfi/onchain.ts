@@ -45,46 +45,53 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
   async getAccountState(address: Address): Promise<VeyfiAccountState> {
     try {
-      // 1. Calculate Current Boost (Algorithmic)
-      const now = Math.floor(Date.now() / 1000);
-      const genesisTime = Number(GENESIS);
-      const timeSinceGenesis = Math.max(0, now - genesisTime);
-      const currentEpoch = Math.floor(timeSinceGenesis / EPOCH_LENGTH);
+      // 1. Fetch Legacy veYFI & Migration State & Current Epoch
+      const [
+        legacyLockResult,
+        snapshotCheckResult,
+        lockInfo,
+        lastClaimed,
+        currentEpochResult,
+      ] = await this.publicClient.multicall({
+        contracts: [
+          {
+            address: VEYFI_ADDRESS,
+            abi: LegacyVeYfiAbi,
+            functionName: "locked",
+            args: [address],
+          },
+          {
+            address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+            abi: VotingEscrowRewardDistributorAbi,
+            functionName: "check_lock",
+            args: [address],
+          },
+          {
+            address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+            abi: VotingEscrowRewardDistributorAbi,
+            functionName: "locks",
+            args: [address],
+          },
+          {
+            address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+            abi: VotingEscrowRewardDistributorAbi,
+            functionName: "last_claimed",
+            args: [address],
+          },
+          {
+            address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+            abi: VotingEscrowRewardDistributorAbi,
+            functionName: "epoch",
+          },
+        ],
+        allowFailure: false,
+      });
+
+      // 2. Calculate Current Boost (Algorithmic based on On-Chain Epoch)
+      const currentEpoch = Number(currentEpochResult);
       // Boost formula: 1 + (104 - epoch) / 104
       // Clamped to 1.0x minimum
       const boostRaw = 1 + Math.max(0, 104 - currentEpoch) / 104;
-
-      // 2. Fetch Legacy veYFI & Migration State
-      const [legacyLockResult, snapshotCheckResult, lockInfo, lastClaimed] =
-        await this.publicClient.multicall({
-          contracts: [
-            {
-              address: VEYFI_ADDRESS,
-              abi: LegacyVeYfiAbi,
-              functionName: "locked",
-              args: [address],
-            },
-            {
-              address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
-              abi: VotingEscrowRewardDistributorAbi,
-              functionName: "check_lock",
-              args: [address],
-            },
-            {
-              address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
-              abi: VotingEscrowRewardDistributorAbi,
-              functionName: "locks",
-              args: [address],
-            },
-            {
-              address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
-              abi: VotingEscrowRewardDistributorAbi,
-              functionName: "last_claimed",
-              args: [address],
-            },
-          ],
-          allowFailure: false,
-        });
 
       // 3. Fetch LLYFI Token Data
       // IMPORTANT: Keep PER_LOCKER_READS in sync with the number of calls here (10)
