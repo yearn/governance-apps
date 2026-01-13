@@ -30,7 +30,12 @@ export function useStyfiAccount() {
       return styfi.getAccountState(address);
     },
     enabled: !!address,
-    staleTime: 10_000,
+    // Poll every 30s to update rewards/balances
+    refetchInterval: 30_000,
+    // Always refetch when user returns to tab
+    refetchOnWindowFocus: true,
+    // Data is considered fresh for 20s, allowing immediate re-use but ensuring background updates
+    staleTime: 20_000,
   });
 }
 
@@ -40,6 +45,8 @@ export function useStyfiEpoch() {
   return useQuery({
     queryKey: styfiKeys.epoch(),
     queryFn: () => styfi.getEpochInfo(),
+    // Epochs are very stable (14 days), but we poll gently to catch transitions
+    refetchInterval: 60_000,
     staleTime: 60_000,
   });
 }
@@ -50,6 +57,8 @@ export function useStyfiApy() {
   return useQuery({
     queryKey: styfiKeys.apy(),
     queryFn: () => styfi.getApy(),
+    // APY changes slowly
+    refetchInterval: 60_000,
     staleTime: 60_000,
   });
 }
@@ -60,7 +69,9 @@ export function useStyfiStats() {
   return useQuery({
     queryKey: styfiKeys.stats(),
     queryFn: () => styfi.getStats(),
-    staleTime: 10_000,
+    // Global stats (TVL/Supply)
+    refetchInterval: 60_000,
+    staleTime: 60_000,
   });
 }
 

@@ -27,7 +27,10 @@ export function useVeyfiAccount() {
       return veyfi.getAccountState(address);
     },
     enabled: !!address,
-    staleTime: 10_000,
+    // Poll every 30s to update caps, inventory, and token status
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    staleTime: 20_000,
   });
 }
 
@@ -37,6 +40,8 @@ export function useVeyfiStats() {
   return useQuery({
     queryKey: veyfiKeys.stats(),
     queryFn: () => veyfi.getGlobalStats(),
+    // Global stats (Migration %, Boost)
+    refetchInterval: 60_000,
     staleTime: 60_000,
   });
 }
