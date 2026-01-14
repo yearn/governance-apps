@@ -1,4 +1,3 @@
-// lib/clients/veyfi/onchain.ts
 import { type Address, type PublicClient, parseAbi, erc20Abi } from "viem";
 import { getAccount, writeContract, readContract } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
@@ -8,6 +7,7 @@ import type {
   VeyfiGlobalStats,
   LlyfiTokenId,
   LlyfiTokenState,
+  LlyfiGlobalInfo,
 } from "./types";
 import type { VeyfiClient } from "./client";
 import {
@@ -16,9 +16,7 @@ import {
   TOTAL_SNAPSHOT_YFI,
   LIQUID_LOCKERS,
   LIQUID_LOCKER_REDEMPTION_ADDRESS,
-  GENESIS,
   STREAM_DURATION,
-  EPOCH_LENGTH,
 } from "@/lib/constants";
 import { VotingEscrowRewardDistributorAbi } from "@/lib/abis/VotingEscrowRewardDistributor";
 import { LiquidLockerDepositorAbi } from "@/lib/abis/LiquidLockerDepositor";
@@ -45,7 +43,6 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
   async getAccountState(address: Address): Promise<VeyfiAccountState> {
     try {
-      // 1. Fetch Legacy veYFI & Migration State & Current Epoch
       const [
         legacyLockResult,
         snapshotCheckResult,
@@ -87,76 +84,61 @@ export class OnchainVeyfiClient implements VeyfiClient {
         allowFailure: false,
       });
 
-      // 2. Calculate Current Boost (Algorithmic based on On-Chain Epoch)
       const currentEpoch = Number(currentEpochResult);
-      // Boost formula: 1 + (104 - epoch) / 104
-      // Clamped to 1.0x minimum
       const boostRaw = 1 + Math.max(0, 104 - currentEpoch) / 104;
 
-      // 3. Fetch LLYFI Token Data
-      // IMPORTANT: Keep PER_LOCKER_READS in sync with the number of calls here (10)
       const lockerCalls = LIQUID_LOCKERS.flatMap((locker) => [
-        // 0: Wallet Balance
         {
           address: locker.token,
           abi: erc20Abi,
           functionName: "balanceOf",
           args: [address],
         },
-        // 1: Staked Balance (Shares)
         {
           address: locker.depositor,
           abi: LiquidLockerDepositorAbi,
           functionName: "balanceOf",
           args: [address],
         },
-        // 2: Cooldown Stream
         {
           address: locker.depositor,
           abi: LiquidLockerDepositorAbi,
           functionName: "streams",
           args: [address],
         },
-        // 3: Max Withdraw (Assets)
         {
           address: locker.depositor,
           abi: LiquidLockerDepositorAbi,
           functionName: "maxWithdraw",
           args: [address],
         },
-        // 4: Allowance Depositor
         {
           address: locker.token,
           abi: erc20Abi,
           functionName: "allowance",
           args: [address, locker.depositor],
         },
-        // 5: Allowance Redemption
         {
           address: locker.token,
           abi: erc20Abi,
           functionName: "allowance",
           args: [address, LIQUID_LOCKER_REDEMPTION_ADDRESS],
         },
-        // 6: Token Total Supply
         {
           address: locker.token,
           abi: erc20Abi,
           functionName: "totalSupply",
         },
-        // 7: Depositor Total Assets (LL Tokens held)
         {
           address: locker.depositor,
           abi: LiquidLockerDepositorAbi,
           functionName: "totalAssets",
         },
-        // 8: Depositor Capacity (Shares)
         {
           address: locker.depositor,
           abi: LiquidLockerDepositorAbi,
           functionName: "capacity",
         },
-        // 9: Depositor Total Supply (Shares)
         {
           address: locker.depositor,
           abi: LiquidLockerDepositorAbi,
@@ -208,7 +190,6 @@ export class OnchainVeyfiClient implements VeyfiClient {
         allowFailure: false,
       });
 
-      // --- Parsing ---
       const legacyAmount = BigInt(legacyLockResult[0] as bigint);
       const snapshotAmount = (lockInfo as LockInfo).amount;
       const snapshotUnlockTime = (lockInfo as LockInfo).unlock_time;
@@ -218,7 +199,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
         !isMigrated && snapshotAmount > 0n && snapshotValidAmount > 0n;
 
       const llyfiTokens: LlyfiTokenState[] = [];
-      const PER_LOCKER_READS = 10; // Must match lockerCalls length
+      const PER_LOCKER_READS = 10;
 
       const redemptionStart = LIQUID_LOCKERS.length * PER_LOCKER_READS;
       const redemptionGlobalFee = results[redemptionStart] as bigint;
@@ -233,21 +214,18 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
         const walletBalance = results[base] as bigint;
         const stakedBalanceShares = results[base + 1] as bigint;
-
-        // Fix: Double cast to satisfy TypeScript tuple requirements
         const streamData = results[base + 2] as unknown as [
           bigint,
           bigint,
           bigint
         ];
-
         const maxWithdrawAssets = results[base + 3] as bigint;
         const allowanceDepositor = results[base + 4] as bigint;
         const allowanceRedemption = results[base + 5] as bigint;
         const totalSupplyToken = results[base + 6] as bigint;
-        const stakedAssets = results[base + 7] as bigint; // Total Assets in Depositor
-        const depositorCapacity = results[base + 8] as bigint; // Max Shares
-        const depositorTotalSupply = results[base + 9] as bigint; // Current Shares
+        const stakedAssets = results[base + 7] as bigint;
+        const depositorCapacity = results[base + 8] as bigint;
+        const depositorTotalSupply = results[base + 9] as bigint;
 
         const capacityRedemption = results[redBase] as bigint;
         const usedRedemption = results[redBase + 1] as bigint;
@@ -256,7 +234,6 @@ export class OnchainVeyfiClient implements VeyfiClient {
         const [start, totalShares, claimedShares] = streamData;
         const remainingShares = totalShares - claimedShares;
 
-        // Normalize Shares -> Assets
         const stakedBalanceAssets = stakedBalanceShares * config.scale;
         const remainingAssets = remainingShares * config.scale;
         const totalStreamAssets = totalShares * config.scale;
@@ -270,9 +247,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
               }
             : null;
 
-        // Locked YFI approx = Token Total Supply / Scale
-        const scale = config.scale || 1n;
-        const lockedYfi = totalSupplyToken / scale;
+        const lockedYfi = totalSupplyToken / config.scale;
 
         llyfiTokens.push({
           symbol: config.symbol as LlyfiTokenId,
@@ -330,24 +305,30 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
   async getGlobalStats(): Promise<VeyfiGlobalStats> {
     try {
-      // 1. Get Epoch
       const currentEpoch = await this.publicClient.readContract({
         address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
         abi: VotingEscrowRewardDistributorAbi,
         functionName: "epoch",
       });
 
-      // 2. Prepare calls for Total Weights (Migrated) and Locker Stats (Staked %)
-      // We read TotalSupply (Shares) and Capacity (Shares) for each locker
       const calls = [
-        // Total Weights
         {
           address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
           abi: VotingEscrowRewardDistributorAbi,
           functionName: "total_weights",
           args: [currentEpoch],
         },
-        // Locker Stats (totalSupply, capacity) x 3
+        {
+          address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
+          abi: LiquidLockerRedemptionAbi,
+          functionName: "fee",
+        },
+        {
+          address: "0xD4c188F035793EEcaa53808Cc067099100b653Ba" as Address,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [LIQUID_LOCKER_REDEMPTION_ADDRESS],
+        },
         ...LIQUID_LOCKERS.flatMap((locker) => [
           {
             address: locker.depositor,
@@ -360,6 +341,26 @@ export class OnchainVeyfiClient implements VeyfiClient {
             functionName: "capacity",
           },
         ]),
+        ...LIQUID_LOCKERS.flatMap((locker) => [
+          {
+            address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
+            abi: LiquidLockerRedemptionAbi,
+            functionName: "capacities",
+            args: [BigInt(locker.index)],
+          },
+          {
+            address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
+            abi: LiquidLockerRedemptionAbi,
+            functionName: "used",
+            args: [BigInt(locker.index)],
+          },
+          {
+            address: locker.token,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [LIQUID_LOCKER_REDEMPTION_ADDRESS],
+          },
+        ]),
       ];
 
       const results = await this.publicClient.multicall({
@@ -367,26 +368,23 @@ export class OnchainVeyfiClient implements VeyfiClient {
         allowFailure: false,
       });
 
-      // 3. Process Migrated YFI
-      // Fix: Double cast to handle multicall return type
       const totalWeightResult = results[0] as unknown as WeightInfo;
       const migratedUnderlyingApprox = totalWeightResult.slope * 104n;
 
-      // 4. Process Locker Staked % (Global Ratio)
-      // Weighted average of filled capacity across all lockers (normalized to YFI)
+      const fee = results[1] as bigint;
+      const globalYfi = results[2] as bigint;
+
       let totalStakedYfiEq = 0n;
       let totalCapacityYfiEq = 0n;
 
-      // Results start at index 1. Each locker has 2 calls.
+      const lockerStatsStart = 3;
+      const redemptionStatsStart = lockerStatsStart + LIQUID_LOCKERS.length * 2;
+
       for (let i = 0; i < LIQUID_LOCKERS.length; i++) {
-        const base = 1 + i * 2;
-        // totalSupply is SHARES (YFI Equivalent)
+        const base = lockerStatsStart + i * 2;
         const supplyShares = results[base] as bigint;
-        // capacity is SHARES (YFI Equivalent)
         const capacityShares = results[base + 1] as bigint;
 
-        // FIX: Sum Shares directly (YFI equivalents), do NOT multiply by scale.
-        // This ensures 1 YFI worth of upYFI is weighted the same as 1 YFI worth of sdYFI.
         totalStakedYfiEq += supplyShares;
         totalCapacityYfiEq += capacityShares;
       }
@@ -396,7 +394,28 @@ export class OnchainVeyfiClient implements VeyfiClient {
           ? Number((totalStakedYfiEq * 10000n) / totalCapacityYfiEq) / 10000
           : 0;
 
-      // 5. Calculate Boost
+      const tokens: LlyfiGlobalInfo[] = [];
+      for (let i = 0; i < LIQUID_LOCKERS.length; i++) {
+        const config = LIQUID_LOCKERS[i];
+        const redBase = redemptionStatsStart + i * 3;
+
+        const capacity = results[redBase] as bigint;
+        const used = results[redBase + 1] as bigint;
+        const inventory = results[redBase + 2] as bigint;
+
+        tokens.push({
+          symbol: config.symbol as LlyfiTokenId,
+          name: config.name,
+          address: config.token,
+          redemption: {
+            capacity,
+            used,
+            inventory,
+            fee,
+          },
+        });
+      }
+
       const maxBoostMultiplier =
         1 + Math.max(0, 104 - Number(currentEpoch)) / 104;
 
@@ -405,6 +424,11 @@ export class OnchainVeyfiClient implements VeyfiClient {
         legacyYfiSupply: TOTAL_SNAPSHOT_YFI,
         maxBoostMultiplier,
         totalLlyfiStakedPercent,
+        inventory: {
+          availableYfi: globalYfi,
+          feeBps: Number(fee) / 10 ** 14,
+        },
+        tokens,
       };
     } catch (e) {
       console.error("Failed to fetch veYFI global stats:", e);
@@ -413,6 +437,8 @@ export class OnchainVeyfiClient implements VeyfiClient {
         legacyYfiSupply: 0n,
         maxBoostMultiplier: 0,
         totalLlyfiStakedPercent: 0,
+        inventory: { availableYfi: 0n, feeBps: 0 },
+        tokens: [],
       };
     }
   }
@@ -445,7 +471,6 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const { address } = getAccount(wagmiConfig);
       if (!address) throw new Error("No account connected");
 
-      // Deposit into the Depositor contract
       return writeContract(wagmiConfig, {
         address: config.depositor,
         abi: LiquidLockerDepositorAbi,

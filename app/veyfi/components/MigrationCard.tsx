@@ -140,7 +140,7 @@ export function MigrationCard() {
             </div>
 
             <a
-              href="https://yearn.fi/veyfi"
+              href="https://yearn.fi/manage-legacy-lock"
               target="_blank"
               rel="noreferrer"
               className="inline-block text-xs font-bold uppercase tracking-wide text-disco-700 hover:text-disco-900 underline decoration-disco-300 underline-offset-4"

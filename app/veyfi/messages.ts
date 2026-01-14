@@ -53,7 +53,7 @@ export const veyfiCopy = {
       backing: "Locker Status",
       ratio: "Staked Ratio",
       apr: "Effective APR",
-      deposits: "Your Deposits",
+      deposits: "Staked Balance",
     },
     row: {
       boostLabel: (val: string) => `${val} boost`,

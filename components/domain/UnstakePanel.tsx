@@ -13,27 +13,22 @@ import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
 import { STREAM_DURATION } from "@/lib/constants";
 
 interface UnstakePanelProps {
-  // Balances
-  availableBalance: bigint; // For starting new cooldown
-  totalExiting: bigint; // Total currently in cooldown stream
-  liquidEstimate: bigint; // unlocked/claimable
-  streamingEstimate: bigint; // still locked
+  availableBalance: bigint;
+  totalExiting: bigint;
+  liquidEstimate: bigint;
+  streamingEstimate: bigint;
 
-  // Configuration
   tokenSymbol: string;
   cooldown: CooldownState;
   variant?: "styfi" | "veyfi";
 
-  // Actions
   onStartCooldown: (amount: bigint) => Promise<void>;
   onWithdraw: () => Promise<void>;
 
-  // State
   isSubmitting: boolean;
   canWithdraw: boolean;
   canStart: boolean;
 
-  // Validation
   amount: bigint;
   isValid: boolean;
   insufficientBalance: boolean;
@@ -55,7 +50,6 @@ export function UnstakePanel({
   canWithdraw,
   canStart,
   amount,
-  isValid,
   insufficientBalance,
   onAmountChange,
   inputValue,
@@ -133,9 +127,10 @@ export function UnstakePanel({
 
       {/* SECTION 3: Start/Reset Cooldown (Progressive Disclosure) */}
       {showInput ? (
+        // REMOVED: "animate-in fade-in slide-in-from-top-2"
         <section
           className={cn(
-            "space-y-3 animate-in fade-in slide-in-from-top-2",
+            "space-y-3",
             hasActiveState && "pt-4 border-t border-neutral-100"
           )}
         >
@@ -160,7 +155,9 @@ export function UnstakePanel({
             }
             tokenSymbol={tokenSymbol}
             error={
-              insufficientBalance ? "Exceeds available balance" : undefined
+              !isSubmitting && insufficientBalance
+                ? "Exceeds available balance"
+                : undefined
             }
           />
 

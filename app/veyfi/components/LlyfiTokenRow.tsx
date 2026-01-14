@@ -18,26 +18,16 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const staked = token.stakedBalance + token.cooldownBalance;
   const wallet = token.walletBalance;
 
-  // Staked Ratio Calculation (Shares vs Capacity)
-  // depositorTotalSupply = Total Shares Minted (YFI Equivalent)
-  // depositorCapacity = Max Shares Allowed (YFI Equivalent)
   const capacity = token.depositorCapacity > 0n ? token.depositorCapacity : 1n;
   const utilizationRatio =
     Number((token.depositorTotalSupply * 10000n) / capacity) / 10000;
 
   const effectiveUtilization = Math.max(0.01, utilizationRatio);
 
-  // APR Math
   const baseApy = baseApyBps ? Number(baseApyBps) / 10000 : 0;
   const boostedStyfiApy = baseApy * token.veyfiBoost;
   const effectiveApy = boostedStyfiApy / effectiveUtilization;
 
-  // Format Large Supplies:
-  // For standard tokens, Shares = Assets.
-  // For upYFI, Shares = Assets / 69420.
-  // We want to show "Filled Amount" vs "Capacity".
-  // Display in "Assets" (e.g. 50K upYFI) vs "Capacity in Assets".
-  // Capacity Assets = Capacity Shares * Scale.
   const capacityAssets = token.depositorCapacity * token.exchangeRate;
   const stakedAssets = token.depositorTotalSupply * token.exchangeRate;
 
@@ -49,7 +39,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   };
 
   const aprTooltipContent = (
-    <div className="w-full min-w-[180px] text-[11px] leading-tight">
+    <div className="w-full min-w-[200px] text-xs leading-tight">
       <div className="flex justify-between items-center mb-1">
         <span className="text-neutral-500">
           {copy.manage.row.tooltips.apr.base}
@@ -100,10 +90,10 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   );
 
   return (
-    <div className="group bg-white transition-colors hover:bg-neutral-50/50 last:rounded-b-box">
+    <div className="group bg-white transition-colors hover:bg-neutral-50 last:rounded-b-box border-b last:border-b-0 border-neutral-100">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full grid grid-cols-[1.5fr_1.2fr_1.2fr_1.2fr_1.5fr_40px] items-center p-4 text-left outline-none focus-visible:bg-neutral-100"
+        className="w-full grid grid-cols-[1.5fr_1.2fr_1.2fr_1.2fr_1.5fr_60px] items-center p-4 text-left outline-none"
       >
         {/* Col 1: Asset */}
         <div className="font-bold text-neutral-900">
@@ -124,37 +114,41 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
         </div>
 
         {/* Col 3: Staked Ratio */}
-        <div className="text-right">
+        <div className="text-right flex justify-end">
           <Tooltip
             content={copy.manage.row.tooltips.ratio}
             side="top"
-            className="text-left max-w-[220px]"
+            className="text-right [&_span[role=tooltip]]:text-sm"
           >
-            <div className="inline-block border-b border-dotted border-neutral-300 cursor-help">
+            <div className="inline-block p-1 -m-1 rounded hover:bg-neutral-100 cursor-help transition-colors">
               <div className="font-number font-bold text-neutral-900">
                 {formatPercent(utilizationRatio, 1)}
               </div>
-            </div>
-          </Tooltip>
-          <div className="text-xs font-medium text-neutral-500 mt-0.5">
-            {formatCompact(stakedAssets)} / {formatCompact(capacityAssets)}
-          </div>
-        </div>
-
-        {/* Col 4: Effective APR */}
-        <div className="text-right">
-          <Tooltip content={aprTooltipContent} side="left">
-            <div className="inline-block border-b border-dotted border-neutral-300 cursor-help">
-              <div className="font-number font-bold text-disco-600 text-lg leading-tight">
-                {formatPercent(effectiveApy, 0)}
+              <div className="text-xs font-medium text-neutral-500 mt-0.5">
+                {formatCompact(stakedAssets)} / {formatCompact(capacityAssets)}
               </div>
             </div>
           </Tooltip>
-          <div className="text-[10px] font-medium text-neutral-400 uppercase tracking-wide mt-0.5">
-            {copy.manage.row.boostedBaseLabel(
-              formatPercent(boostedStyfiApy, 1)
-            )}
-          </div>
+        </div>
+
+        {/* Col 4: Effective APR */}
+        <div className="text-right flex justify-end">
+          <Tooltip
+            content={aprTooltipContent}
+            side="left"
+            className="[&_span[role=tooltip]]:text-sm"
+          >
+            <div className="inline-block p-1 -m-1 rounded hover:bg-neutral-100 cursor-help transition-colors text-right">
+              <div className="font-number font-bold text-disco-600 text-lg leading-tight">
+                {formatPercent(effectiveApy, 0)}
+              </div>
+              <div className="text-[10px] font-medium text-neutral-400 uppercase tracking-wide mt-0.5">
+                {copy.manage.row.boostedBaseLabel(
+                  formatPercent(boostedStyfiApy, 1)
+                )}
+              </div>
+            </div>
+          </Tooltip>
         </div>
 
         {/* Col 5: Your Deposits */}
@@ -164,19 +158,25 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
           </div>
           {wallet > 0n && (
             <div className="text-xs font-medium text-neutral-500">
-              {copy.manage.row.availableLabel(formatTokenAmount(wallet))}
+              {copy.manage.row.availableLabel(formatTokenAmount(wallet, 18, 2))}
             </div>
           )}
         </div>
 
-        {/* Col 6: Chevron */}
-        <div className="flex justify-end">
-          <IconChevron
+        {/* Col 6: Chevron Action */}
+        <div className="flex justify-end items-center">
+          <div
             className={cn(
-              "w-5 h-5 text-neutral-400 transition-transform duration-300",
-              isExpanded && "rotate-180"
+              "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
+              // Collapsed State Hover: Darken bg, scale up, black icon
+              !isExpanded &&
+                "text-neutral-400 group-hover:bg-neutral-200 group-hover:text-neutral-900 group-hover:scale-110",
+              // Expanded State: Solid bg, rotated
+              isExpanded && "bg-neutral-100 text-neutral-900 rotate-180"
             )}
-          />
+          >
+            <IconChevron className="w-5 h-5" />
+          </div>
         </div>
       </button>
 

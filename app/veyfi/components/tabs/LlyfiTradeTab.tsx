@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useIdentity } from "@/state/identity";
@@ -28,6 +28,11 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   const [mode, setMode] = useState<"sell" | "buy">("sell");
   const [input, setInput] = useState("");
 
+  // Clear input when switching modes
+  useEffect(() => {
+    setInput("");
+  }, [mode]);
+
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);
 
   const { write: redeem, state: redeemState } = useLlyfiRedeem();
@@ -50,7 +55,8 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
 
   // Math & Constraints
   const yfiValue = isSell ? amount / exchangeRate : amount;
-  const llyfiValue = isSell ? amount : amount * exchangeRate;
+  const llyfiValue = isSell ? amount : amount * exchangeRate; // Restored definition
+
   const feePercent = token.redemption.fee;
   const feeAmountYfi = (yfiValue * feePercent) / ONE_E18;
 
@@ -63,34 +69,40 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   const remainingCapacityYfi =
     token.redemption.capacity - token.redemption.used;
 
+  // --- Logic for Constraints & Instructive Errors ---
   let capExceeded = false;
   let inventoryExceeded = false;
+  let maxProtocolInput = 0n;
 
   if (isSell) {
+    // Selling LLYFI. Constraints are on the YFI Output side.
+    const availableGlobalYfi = data?.inventory.availableYfi ?? 0n;
+
+    // The bottleneck is the tighter of (Capacity Remaining) or (Inventory Remaining)
+    const limitYfi =
+      remainingCapacityYfi < availableGlobalYfi
+        ? remainingCapacityYfi
+        : availableGlobalYfi;
+
+    // Convert that YFI limit back to LLYFI input
+    maxProtocolInput = limitYfi * exchangeRate;
+
     if (yfiValue > remainingCapacityYfi) capExceeded = true;
-    if (yfiValue > (data?.inventory.availableYfi ?? 0n))
-      inventoryExceeded = true;
+    if (yfiValue > availableGlobalYfi) inventoryExceeded = true;
   } else {
+    // Buying LLYFI (Minting). Constraint is on the LLYFI Inventory.
+    // Input is YFI.
+    // Max LLYFI we can buy is token.redemption.inventory.
+    // Max YFI we can input is inventory / exchangeRate.
+
+    maxProtocolInput = token.redemption.inventory / exchangeRate;
+
+    // Use llyfiValue calculated above
     if (llyfiValue > token.redemption.inventory) inventoryExceeded = true;
   }
 
   const currentAllowance = isSell ? llyfiAllowance : yfiAllowance;
   const needsApproval = isValid && amount > 0n && amount > currentAllowance;
-
-  const handleMaxProtocol = () => {
-    let maxInput = 0n;
-    if (isSell) {
-      const availableYfi = data?.inventory.availableYfi ?? 0n;
-      const limitYfi =
-        remainingCapacityYfi < availableYfi
-          ? remainingCapacityYfi
-          : availableYfi;
-      maxInput = limitYfi * exchangeRate;
-    } else {
-      maxInput = token.redemption.inventory / exchangeRate;
-    }
-    setInput(formatTokenAmount(maxInput));
-  };
 
   const handleApprove = async () => {
     const tokenAddress = isSell ? token.address : YFI_ADDRESS;
@@ -109,21 +121,44 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   };
 
   const isSubmitting =
-    redeemState.status === "mining" || mintState.status === "mining";
-  const limitDecimals = token.symbol === "upYFI" ? 0 : 4;
+    redeemState.status === "mining" ||
+    mintState.status === "mining" ||
+    redeemState.status === "success" ||
+    mintState.status === "success";
+
+  // Error logic with Instructive Messages
+  let errorMsg = undefined;
+  if (!isSubmitting) {
+    if (capExceeded) {
+      errorMsg = `Exceeds capacity (Max: ${formatTokenAmount(
+        maxProtocolInput,
+        18,
+        2
+      )} ${sourceSymbol})`;
+    } else if (inventoryExceeded) {
+      errorMsg = `Exceeds inventory (Max: ${formatTokenAmount(
+        maxProtocolInput,
+        18,
+        2
+      )} ${sourceSymbol})`;
+    } else if (isValid && amount > userBalance) {
+      errorMsg = "Insufficient balance";
+    }
+  }
 
   return (
-    <div className="space-y-4 max-w-xl">
-      <RadioGroup
-        name={`trade-${token.symbol}`}
-        value={mode}
-        onChange={setMode}
-        options={[
-          { value: "sell", label: `Sell ${token.symbol}` },
-          { value: "buy", label: `Buy ${token.symbol}` },
-        ]}
-        className="pb-2 border-b border-neutral-100"
-      />
+    <div className="space-y-4">
+      <div className="pb-2 border-b border-neutral-100">
+        <RadioGroup
+          name={`trade-${token.symbol}`}
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "sell", label: `Sell ${token.symbol}` },
+            { value: "buy", label: `Buy ${token.symbol}` },
+          ]}
+        />
+      </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
         <p className="text-neutral-600">{isSell ? "You sell" : "You buy"}</p>
@@ -138,53 +173,25 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <button
-          onClick={handleMaxProtocol}
-          className="text-xs font-medium text-neutral-500 hover:text-disco-600 transition-colors"
-        >
-          {isSell ? "Protocol Limit: " : "Available to Buy: "}
-          <span className="underline decoration-dotted">
-            {isSell
-              ? `${formatTokenAmount(
-                  remainingCapacityYfi * exchangeRate,
-                  18,
-                  limitDecimals
-                )} ${token.symbol}`
-              : `${formatTokenAmount(
-                  token.redemption.inventory,
-                  18,
-                  limitDecimals
-                )} ${token.symbol}`}
-          </span>
-        </button>
-      </div>
-
       <AmountInput
         value={input}
         onChange={setInput}
         tokenSymbol={sourceSymbol}
-        maxLabel={`Wallet: ${formatTokenAmount(userBalance)}`}
+        maxLabel={`Balance: ${formatTokenAmount(userBalance)}`}
         onMaxClick={() => setInput(formatTokenAmount(userBalance))}
-        error={
-          capExceeded
-            ? "Exceeds redemption capacity"
-            : inventoryExceeded
-            ? "Exceeds protocol inventory"
-            : undefined
-        }
+        error={errorMsg}
       />
 
       {isSell && isValid && amount > 0n && !capExceeded && (
-        <div className="flex items-center justify-between px-3 py-2 bg-neutral-50 rounded-md border border-neutral-100 text-xs text-neutral-600">
+        <div className="flex items-center justify-between px-3 py-2 bg-neutral-50 rounded-md border border-neutral-200 text-xs text-neutral-600">
           <span>Exit Fee ({formatPercent(Number(feePercent) / 1e18)})</span>
-          <span className="font-number">
+          <span className="font-number font-medium">
             -{formatTokenAmount(feeAmountYfi)} YFI
           </span>
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end pt-2">
         {needsApproval ? (
           <Button
             variant="secondary"
@@ -200,16 +207,17 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
             disabled={
               !isValid ||
               amount <= 0n ||
-              capExceeded ||
-              inventoryExceeded ||
+              !!errorMsg ||
               !isConnected ||
               isBlacklisted ||
               isSubmitting
             }
             isLoading={isSubmitting}
-            onClick={() =>
-              isSell ? redeem(token.symbol, amount) : mint(token.symbol, amount)
-            }
+            onClick={() => {
+              isSell
+                ? redeem(token.symbol, amount)
+                : mint(token.symbol, amount);
+            }}
           >
             {isSell ? `Sell ${token.symbol}` : `Buy ${token.symbol}`}
           </Button>

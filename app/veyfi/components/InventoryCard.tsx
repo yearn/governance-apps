@@ -1,65 +1,81 @@
 // app/veyfi/components/InventoryCard.tsx
 "use client";
 
-import { Card } from "@/components/ui/Card";
-import { useVeyfiAccount } from "@/lib/hooks/useVeyfi";
+import { useVeyfiStats } from "@/lib/hooks/useVeyfi";
 import { formatTokenAmount, formatPercent } from "@/lib/format";
 import { veyfiCopy as copy } from "../messages";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export function InventoryCard() {
-  const { data } = useVeyfiAccount();
-  if (!data) return null;
+  const { data: stats, isLoading } = useVeyfiStats();
+
+  if (isLoading) {
+    return (
+      <div className="h-full rounded-box border border-neutral-200 bg-neutral-50 p-6 space-y-4">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-32" />
+        <div className="pt-4 space-y-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) return null;
 
   return (
-    <Card className="h-full flex flex-col p-0 overflow-hidden bg-white">
-      <div className="p-6 border-b border-neutral-100">
-        <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+    <div className="h-full flex flex-col rounded-box border border-neutral-200 bg-neutral-50 overflow-hidden">
+      <div className="p-6 border-b border-neutral-200">
+        <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-900">
           {copy.inventory.title}
         </h3>
-        <p className="text-xs text-neutral-400 mt-1">
+        <p className="text-xs text-neutral-600 mt-1">
           {copy.inventory.subtitle}
         </p>
       </div>
 
       <div className="flex-1 overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="bg-neutral-50 text-xs uppercase text-neutral-500 font-bold tracking-wide">
+          <thead className="text-xs uppercase text-neutral-500 font-bold tracking-wide border-b border-neutral-200">
             <tr>
-              <th className="px-6 py-3">Asset</th>
-              <th className="px-6 py-3 text-right">Available to Trade</th>
-              <th className="px-6 py-3 text-right">Swap Fee</th>
+              <th className="px-6 py-3 font-bold">Asset</th>
+              <th className="px-6 py-3 text-right font-bold">
+                Available to Trade
+              </th>
+              <th className="px-6 py-3 text-right font-bold">Swap Fee</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100">
+          <tbody className="divide-y divide-neutral-200">
             {/* YFI Inventory: Used for Sell LLYFI */}
-            <tr className="bg-white">
-              <td className="px-6 py-4 font-bold text-neutral-900">YFI</td>
-              <td className="px-6 py-4 text-right font-number font-bold text-neutral-900">
-                {formatTokenAmount(data.inventory.availableYfi, 18, 2)}
+            <tr>
+              <td className="px-6 py-4 text-neutral-700">YFI</td>
+              <td className="px-6 py-4 text-right font-number text-neutral-900">
+                {/* Standardize to 2 decimals for all limits/inventory */}
+                {formatTokenAmount(stats.inventory.availableYfi, 18, 2)}
               </td>
-              <td className="px-6 py-4 text-right font-number font-medium text-neutral-600">
-                {formatPercent(data.inventory.feeBps / 10000)}
+              <td className="px-6 py-4 text-right font-number text-neutral-600">
+                {formatPercent(stats.inventory.feeBps / 10000)}
               </td>
             </tr>
 
             {/* LLYFI Inventories: Used for Buy LLYFI */}
-            {data.llyfiTokens.map((token) => (
-              <tr
-                key={token.symbol}
-                className="bg-white hover:bg-neutral-50/50 transition-colors"
-              >
+            {stats.tokens.map((token) => (
+              <tr key={token.symbol}>
                 <td className="px-6 py-4 font-medium text-neutral-700">
                   {token.symbol}
                 </td>
-                <td className="px-6 py-4 text-right font-number text-neutral-600">
+                <td className="px-6 py-4 text-right font-number text-neutral-900">
+                  {/* Standardize to 2 decimals */}
                   {formatTokenAmount(token.redemption.inventory, 18, 2)}
                 </td>
-                <td className="px-6 py-4 text-right text-neutral-300">--</td>
+                <td className="px-6 py-4 text-right text-neutral-400">--</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </Card>
+    </div>
   );
 }

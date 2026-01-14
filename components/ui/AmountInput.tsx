@@ -46,7 +46,7 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
             disabled={disabled}
             value={value}
             onChange={(e) => {
-              // Simple regex to allow only numbers and one decimal point
+              // Only allow digits and one decimal point
               if (/^\d*\.?\d*$/.test(e.target.value)) {
                 onChange(e.target.value);
               }
@@ -78,12 +78,16 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
           </div>
         </div>
 
-        <div className="mt-2 flex justify-between text-xs">
-          {error ? (
-            <span className="text-red-500 font-medium">{error}</span>
-          ) : (
-            <span className="text-neutral-500">&nbsp;</span>
-          )}
+        <div className="mt-2 flex justify-between text-xs min-h-[1.25em]">
+          <div className="flex-1">
+            {error ? (
+              <span className="text-red-500 font-medium animate-in fade-in slide-in-from-top-1">
+                {error}
+              </span>
+            ) : (
+              <span>&nbsp;</span>
+            )}
+          </div>
 
           {maxLabel && (
             <button
@@ -91,7 +95,7 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
               onClick={onMaxClick}
               disabled={disabled || !onMaxClick}
               className={cn(
-                "text-neutral-500 text-right transition-colors font-number",
+                "text-neutral-500 text-right transition-colors font-number shrink-0 ml-4",
                 onMaxClick && !disabled
                   ? "hover:text-neutral-900 hover:underline cursor-pointer"
                   : "cursor-default"

@@ -13,7 +13,7 @@ import {
   useStyfiStake,
 } from "@/lib/hooks/useStyfi";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
-import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance"; // Import
+import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
 import { YFI_ADDRESS, SPENDER_STYFI, SPENDER_STYFIX } from "@/lib/constants";
 import { StyfiMode, modeLabel } from "../../types";
 import { styfiCopy as copy } from "../../../messages";
@@ -40,7 +40,6 @@ export function StakeTab({ mode }: Props) {
 
   const spender = mode === "styfi" ? SPENDER_STYFI : SPENDER_STYFIX;
 
-  // FIX: Use dedicated hook for YFI -> Spender allowance
   const { data: allowance = 0n, refetch: refetchAllowance } = useTokenAllowance(
     YFI_ADDRESS,
     spender
@@ -94,8 +93,14 @@ export function StakeTab({ mode }: Props) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    // Changed space-y-4 to space-y-3 to match UnstakePanel
+    <div className="space-y-3">
+      {/*
+        Simplified header to match UnstakePanel structure.
+        Removed flex-col gap-2 logic which caused height jumps.
+        This forces single-line on small screens unless content overflows naturally.
+      */}
+      <div className="flex items-center justify-between">
         <p className="text-sm text-neutral-600">{copy.stakeTab.amountLabel}</p>
         <div className="flex items-center gap-2 text-sm font-medium text-neutral-900">
           <span className="font-number">

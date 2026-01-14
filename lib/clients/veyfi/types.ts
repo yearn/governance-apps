@@ -10,6 +10,13 @@ export type RedemptionState = {
   fee: bigint;
 };
 
+export type LlyfiGlobalInfo = {
+  symbol: LlyfiTokenId;
+  name: string;
+  address: Address;
+  redemption: RedemptionState;
+};
+
 export type LlyfiTokenState = {
   symbol: LlyfiTokenId;
   name: string;
@@ -69,4 +76,6 @@ export type VeyfiGlobalStats = {
   legacyYfiSupply: bigint;
   maxBoostMultiplier: number;
   totalLlyfiStakedPercent: number;
+  inventory: VeyfiInventory;
+  tokens: LlyfiGlobalInfo[];
 };

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { useLlyfiStake, veyfiKeys } from "@/lib/hooks/useVeyfi";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
-import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance"; // Import Hook
+import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
 import { formatTokenAmount } from "@/lib/format";
 import { parseAmount } from "@/lib/parse";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
@@ -59,8 +59,8 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
   };
 
   return (
-    <div className="space-y-4 max-w-xl">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-3 max-w-xl">
+      <div className="flex items-center justify-between">
         <p className="text-sm text-neutral-600">Amount to stake</p>
       </div>
 
@@ -72,7 +72,11 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
         }`}
         onMaxClick={() => setInput(formatTokenAmount(token.walletBalance))}
         tokenSymbol={token.symbol}
-        error={insufficientBalance ? "Insufficient balance" : undefined}
+        error={
+          !isSubmitting && insufficientBalance
+            ? "Insufficient balance"
+            : undefined
+        }
       />
 
       <div className="flex justify-end gap-3">

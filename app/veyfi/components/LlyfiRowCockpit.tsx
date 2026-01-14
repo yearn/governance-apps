@@ -28,7 +28,7 @@ export function LlyfiRowCockpit({ token }: { token: LlyfiTokenState }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-md">
       <Tabs
         activeTab={activeTab}
         onChange={(id) => setActiveTab(id as TabId)}
@@ -41,10 +41,9 @@ export function LlyfiRowCockpit({ token }: { token: LlyfiTokenState }) {
           },
           { id: "trade", label: copy.manage.cockpit.tabs.trade },
         ]}
-        className="bg-white border border-neutral-200"
       />
 
-      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="min-h-70">
         {activeTab === "stake" && <LlyfiStakeTab token={token} />}
         {activeTab === "unstake" && <LlyfiUnstakeTab token={token} />}
         {activeTab === "trade" && <LlyfiTradeTab token={token} />}
