@@ -102,7 +102,6 @@ export function UnstakeTab({ mode }: Props) {
       tokenSymbol={mode === "styfi" ? "stYFI" : "stYFIx"}
       availableBalance={available}
       totalExiting={totalExiting}
-      // Use exact contract value for the liquid number shown to user
       liquidEstimate={contractWithdrawable}
       streamingEstimate={streamingEstimate}
       cooldown={cooldown}

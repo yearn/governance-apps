@@ -13,10 +13,10 @@ import type { VeyfiClient } from "./client";
 import {
   VEYFI_ADDRESS,
   VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
-  TOTAL_SNAPSHOT_YFI,
   LIQUID_LOCKERS,
   LIQUID_LOCKER_REDEMPTION_ADDRESS,
   STREAM_DURATION,
+  YFI_ADDRESS, // Added import
 } from "@/lib/constants";
 import { VotingEscrowRewardDistributorAbi } from "@/lib/abis/VotingEscrowRewardDistributor";
 import { LiquidLockerDepositorAbi } from "@/lib/abis/LiquidLockerDepositor";
@@ -153,7 +153,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
           functionName: "fee",
         },
         {
-          address: "0xD4c188F035793EEcaa53808Cc067099100b653Ba" as Address,
+          address: YFI_ADDRESS, // Updated to use constant
           abi: erc20Abi,
           functionName: "balanceOf",
           args: [LIQUID_LOCKER_REDEMPTION_ADDRESS],
@@ -319,12 +319,17 @@ export class OnchainVeyfiClient implements VeyfiClient {
           args: [currentEpoch],
         },
         {
+          address: VEYFI_ADDRESS,
+          abi: LegacyVeYfiAbi,
+          functionName: "totalSupply",
+        },
+        {
           address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
           abi: LiquidLockerRedemptionAbi,
           functionName: "fee",
         },
         {
-          address: "0xD4c188F035793EEcaa53808Cc067099100b653Ba" as Address,
+          address: YFI_ADDRESS, // Updated to use constant
           abi: erc20Abi,
           functionName: "balanceOf",
           args: [LIQUID_LOCKER_REDEMPTION_ADDRESS],
@@ -371,13 +376,14 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const totalWeightResult = results[0] as unknown as WeightInfo;
       const migratedUnderlyingApprox = totalWeightResult.slope * 104n;
 
-      const fee = results[1] as bigint;
-      const globalYfi = results[2] as bigint;
+      const legacyYfiSupply = results[1] as bigint;
+      const fee = results[2] as bigint;
+      const globalYfi = results[3] as bigint;
 
       let totalStakedYfiEq = 0n;
       let totalCapacityYfiEq = 0n;
 
-      const lockerStatsStart = 3;
+      const lockerStatsStart = 4;
       const redemptionStatsStart = lockerStatsStart + LIQUID_LOCKERS.length * 2;
 
       for (let i = 0; i < LIQUID_LOCKERS.length; i++) {
@@ -421,7 +427,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
       return {
         migratedYfi: migratedUnderlyingApprox,
-        legacyYfiSupply: TOTAL_SNAPSHOT_YFI,
+        legacyYfiSupply,
         maxBoostMultiplier,
         totalLlyfiStakedPercent,
         inventory: {

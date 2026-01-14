@@ -93,21 +93,13 @@ export function StakeTab({ mode }: Props) {
   };
 
   return (
-    // Changed space-y-4 to space-y-3 to match UnstakePanel
     <div className="space-y-3">
-      {/*
-        Simplified header to match UnstakePanel structure.
-        Removed flex-col gap-2 logic which caused height jumps.
-        This forces single-line on small screens unless content overflows naturally.
-      */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-neutral-600">{copy.stakeTab.amountLabel}</p>
-        <div className="flex items-center gap-2 text-sm font-medium text-neutral-900">
-          <span className="font-number">
-            {formatTokenAmount(outputAmount)} YFI
-          </span>
-          <span className="text-lg">&rarr;</span>
-          <span className="font-number">
+        <div className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+          <span className="">{formatTokenAmount(outputAmount)} YFI</span>
+          <span className="text-lg text-neutral-400">&rarr;</span>
+          <span className="">
             {formatTokenAmount(outputAmount)} {modeLabel(mode)}
           </span>
         </div>

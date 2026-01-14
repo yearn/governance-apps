@@ -1,8 +1,8 @@
 // lib/constants.ts
 import { Address, parseUnits } from "viem";
 
-// Protocol Genesis Timestamp (Thu Jan 01 2026 00:00:00 GMT+0000)
-export const GENESIS = 1767225600n;
+// Protocol Genesis Timestamp (Updated from deployment.json)
+export const GENESIS = 1769040000n;
 
 // Time Constants
 export const STREAM_DURATION = 14 * 24 * 60 * 60; // 14 days
@@ -10,21 +10,22 @@ export const EPOCH_LENGTH = 14 * 24 * 60 * 60; // 14 days
 
 // --- StYFI Domain ---
 export const STYFI_ADDRESS: Address =
-  "0x83e7E1DB75aB8906d9C65494eD8C8FdE26bc2cD6";
+  "0x103248602C1380A26005CC3700f6a9f1cE760cda";
 export const STYFIX_ADDRESS: Address =
-  "0x2C67B814Ab161fdcf5740b569e51488A141cE216";
+  "0x48ceeF6d610486a8E00e3Fcb5e57a25D5c5D0ACC";
 export const YFI_ADDRESS: Address =
-  "0xD4c188F035793EEcaa53808Cc067099100b653Ba";
+  "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e"; // From deployment.json YFI
 export const REWARD_CLAIMER_ADDRESS: Address =
-  "0x3F5b310B78Bb18961A5D8a7Eef2E065560a61108";
+  "0x4FeC571e38EB31ae8c8C51B8b6Bcb404514dC822"; // From deployment.json REWARD_CLAIMER
 
 // --- VeYFI Domain ---
 export const VEYFI_ADDRESS: Address =
-  "0x0687C5969De745c05Ce339ceeE1614e39502819D";
+  "0x90c1f9220d90d3966FbeE24045EDd73E1d588aD5";
 export const VEYFI_REWARD_DISTRIBUTOR_ADDRESS: Address =
-  "0x9972f931d914eaEFA95aff0bF132bB3D428508E9";
+  "0xa5C35df4d2F971fa57C682D2573e2caC3c9b6996";
 
 // Snapshot Total (Denominator)
+// Kept constant as per spec.
 export const TOTAL_SNAPSHOT_YFI = parseUnits("500", 18);
 
 // Mocks for local dev (kept for fallback)
@@ -42,39 +43,39 @@ export const SPENDER_STYFIX = STYFIX_ADDRESS;
 // --- Reward Configuration ---
 export const REWARD_TOKEN_CONFIG = {
   // REWARD token from deployment.json
-  address: "0x4FeC571e38EB31ae8c8C51B8b6Bcb404514dC822" as Address,
-  symbol: "yvUSDC", // Assuming REWARD maps to yvUSDC per standard
+  address: "0xBe53A109B494E5c9f97b9Cd39Fe969BE68BF6204" as Address,
+  symbol: "yvUSDC",
   name: "Yearn yvUSDC-1 Vault",
   decimals: 18,
 } as const;
 
 // --- VeYFI / LLYFI Domain ---
 
-// Liquid Lockers Configuration
+// Liquid Lockers Configuration mapped from deployment.json arrays
 export const LIQUID_LOCKERS = [
   {
     symbol: "sdYFI",
-    name: "StakeDAO",
-    token: "0xfD7A9D25013f5F692D2f302EFe9aFfb68177331f" as Address,
-    depositor: "0x39E7768d2907D8351d4ec13eE663C3847421A6A6" as Address,
+    name: "StakeDAO", // Index 0
+    token: "0x97983236bE88107Cc8998733Ef73D8d969c52E37" as Address,
+    depositor: "0x517Da5a6b71422CA8cA717c28aB6E61237116512" as Address,
     scale: 1n,
     capacity: 236764578940037056317n,
     index: 0,
   },
   {
     symbol: "upYFI",
-    name: "1UP",
-    token: "0x349cAeD9fB87824edecE5085384C6BC3b1ede0ae" as Address,
-    depositor: "0x17e1A1823A0B636aed997C9A1C6711C71752577c" as Address,
+    name: "1UP", // Index 1
+    token: "0xCb7DCe63aBE175cA354Dcca9cc10554D255777Ee" as Address,
+    depositor: "0x2da16981490b26aCE74bd517054889EFaF9053b8" as Address,
     scale: 69420n,
     capacity: 206323123369248430382n,
     index: 1,
   },
   {
     symbol: "coveYFI",
-    name: "Cove",
-    token: "0xc13613E24dFD63BE001545A8D874f84932EDc560" as Address,
-    depositor: "0xFdf71Ab59341d37e2978590cbe3D28482a1f68DC" as Address,
+    name: "Cove", // Index 2
+    token: "0xFf71841EeFca78a64421db28060855036765c248" as Address,
+    depositor: "0x349cAeD9fB87824edecE5085384C6BC3b1ede0ae" as Address,
     scale: 1n,
     capacity: 75870020320465005479n,
     index: 2,
@@ -82,7 +83,7 @@ export const LIQUID_LOCKERS = [
 ] as const;
 
 export const LIQUID_LOCKER_REDEMPTION_ADDRESS: Address =
-  "0xe1cbB5567e96333258518c825aB15011B216F4f1";
+  "0x08E3E4a84d82fF00FEc9e8103583Ed56AE5151A9";
 
 // Constants for Spenders in VeYFI domain (dynamic based on locker)
 export const SPENDER_REDEMPTION = LIQUID_LOCKER_REDEMPTION_ADDRESS;

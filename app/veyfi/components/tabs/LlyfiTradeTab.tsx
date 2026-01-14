@@ -55,7 +55,7 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
 
   // Math & Constraints
   const yfiValue = isSell ? amount / exchangeRate : amount;
-  const llyfiValue = isSell ? amount : amount * exchangeRate; // Restored definition
+  const llyfiValue = isSell ? amount : amount * exchangeRate;
 
   const feePercent = token.redemption.fee;
   const feeAmountYfi = (yfiValue * feePercent) / ONE_E18;
@@ -162,12 +162,12 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm">
         <p className="text-neutral-600">{isSell ? "You sell" : "You buy"}</p>
-        <div className="flex items-center gap-2 font-medium text-neutral-900">
-          <span className="font-number">
+        <div className="flex items-center gap-2 font-medium text-neutral-600">
+          <span className="">
             {formatTokenAmount(isValid ? amount : 0n)} {sourceSymbol}
           </span>
           <span className="text-lg text-neutral-400">&rarr;</span>
-          <span className="font-number">
+          <span className="">
             {formatTokenAmount(netOutput)} {targetSymbol}
           </span>
         </div>
