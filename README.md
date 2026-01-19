@@ -20,6 +20,12 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Environment Variables
+
+- `NEXT_PUBLIC_WC_PROJECT_ID`: WalletConnect project ID.
+- `NEXT_PUBLIC_RPC_URLS`: Comma-separated public RPC URLs used for all read-only calls (use `https://` when the app is served over HTTPS).
+- `NEXT_PUBLIC_USE_MOCKS`: Set to `true` to use mock clients instead of on-chain reads/writes.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

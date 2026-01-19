@@ -47,6 +47,11 @@ These apply across `/styfi` and `/veyfi`.
 
    - All reads **MUST** fetch data via the domain clients immediately.
 
+5. Public read RPC policy:
+
+   - All **read-only** calls **MUST** use the configured public RPC (`NEXT_PUBLIC_RPC_URLS`) and **MUST NOT** depend on the user's wallet RPC.
+   - Global (non-account) stats **MAY** load before connect; account-specific reads **MUST** remain gated on a connected address.
+
 ---
 
 ## 2.2. Network Handling

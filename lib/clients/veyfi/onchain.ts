@@ -1,5 +1,5 @@
 import { type Address, type PublicClient, parseAbi, erc20Abi } from "viem";
-import { getAccount, writeContract, readContract } from "wagmi/actions";
+import { getAccount, writeContract } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import type { PreparedTransaction } from "@/lib/tx/types";
 import type {
@@ -511,7 +511,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const { address } = getAccount(wagmiConfig);
       if (!address) throw new Error("No account connected");
 
-      const maxAssets = await readContract(wagmiConfig, {
+      const maxAssets = await this.publicClient.readContract({
         address: config.depositor,
         abi: LiquidLockerDepositorAbi,
         functionName: "maxWithdraw",

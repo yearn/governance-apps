@@ -1,7 +1,7 @@
 # Master Task List — Governance Apps (stYFI, stYFIx, veYFI, LLYFI)
 
 Version 1.4 — 2025-12-20
-Scope: BR#1 (UI-first, mock-backed), `/styfi` + `/veyfi`
+Scope: BR#1 (UI-first, mock-capable), `/styfi` + `/veyfi`
 
 This is the **authoritative implementation roadmap** for the `governance-apps` repository.
 Tasks are grouped in phases.
@@ -180,6 +180,7 @@ Sub-tasks: 1 level deep, atomic, actionable.
 ## 33. Env Toggle
 
 - [x] `NEXT_PUBLIC_USE_MOCKS=false` loads on-chain clients
+- [x] `NEXT_PUBLIC_RPC_URLS` pins public read RPCs (use HTTPS when serving over HTTPS)
 
 ---
 

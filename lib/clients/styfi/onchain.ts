@@ -1,6 +1,6 @@
 // lib/clients/styfi/onchain.ts
 import { type Address, type PublicClient, erc20Abi } from "viem";
-import { getAccount, writeContract, readContract } from "wagmi/actions";
+import { getAccount, writeContract } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import type { PreparedTransaction } from "@/lib/tx/types";
 import type { StyfiAccountState, StyfiGlobalStats, EpochInfo } from "./types";
@@ -256,7 +256,7 @@ export class OnchainStyfiClient implements StyfiClient {
       const contractAddress = mode === "stYFI" ? STYFI_ADDRESS : STYFIX_ADDRESS;
       const abi = mode === "stYFI" ? StakedYfiAbi : DelegatedStakedYfiAbi;
 
-      const max = await readContract(wagmiConfig, {
+      const max = await this.publicClient.readContract({
         address: contractAddress,
         abi,
         functionName: "maxWithdraw",

@@ -1,9 +1,24 @@
 "use client";
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { mainnet } from "wagmi/chains";
-import { defineChain } from "viem";
+import { defineChain, http, fallback } from "viem";
 
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
+const rawRpcUrls = (process.env.NEXT_PUBLIC_RPC_URLS ?? "")
+  .split(",")
+  .map((url) => url.trim())
+  .filter(Boolean);
+const rpcUrls =
+  rawRpcUrls.length > 0 ? rawRpcUrls : mainnet.rpcUrls.default.http;
+
+if (rawRpcUrls.length === 0) {
+  console.warn(
+    "NEXT_PUBLIC_RPC_URLS is not set. Falling back to default mainnet RPCs."
+  );
+}
+if (rpcUrls.length === 0) {
+  throw new Error("No RPC URLs configured. Set NEXT_PUBLIC_RPC_URLS.");
+}
 
 // Define the fork chain overriding Mainnet (Chain ID 1)
 const mainnetFork = defineChain({
@@ -16,8 +31,8 @@ const mainnetFork = defineChain({
     symbol: "ETH",
   },
   rpcUrls: {
-    default: { http: ["http://178.63.2.245/mainnet/f/o/r/k"] },
-    public: { http: ["http://178.63.2.245/mainnet/f/o/r/k"] },
+    default: { http: rpcUrls },
+    public: { http: rpcUrls },
   },
   contracts: {
     multicall3: {
@@ -39,5 +54,11 @@ export const wagmiConfig = getDefaultConfig({
   projectId: projectId || "demo-project-id",
   // Using the fork definition for Chain ID 1
   chains: [mainnetFork],
+  transports: {
+    [mainnetFork.id]:
+      rpcUrls.length > 1
+        ? fallback(rpcUrls.map((url) => http(url)))
+        : http(rpcUrls[0]),
+  },
   ssr: true,
 });

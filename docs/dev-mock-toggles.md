@@ -3,8 +3,13 @@
 ## Mock Backend Toggle
 
 - Env: `NEXT_PUBLIC_USE_MOCKS=true`
-- **Default:** Enabled in Phases 1–7.
+- **Default:** Disabled in repo; enable for local UI-only testing.
 - **Effect:** Uses `MockStyfiClient` and `MockVeyfiClient` instead of on-chain calls.
+
+## Public RPC (Non-Mock Mode)
+
+- Env: `NEXT_PUBLIC_RPC_URLS` (comma-separated, HTTPS when served over HTTPS).
+- Required when `NEXT_PUBLIC_USE_MOCKS=false`. Missing or invalid RPC config surfaces a runtime error instead of falling back to mocks.
 
 ## Persistence
 

@@ -28,8 +28,8 @@ It is the top-level design document guiding implementers of the `/styfi` and `/v
 /lib
 ├── clients/
 │     ├── shared/      shared domain types (CooldownState)
-│     ├── styfi/       domain types + interfaces + mock
-│     └── veyfi/       domain types + interfaces + mock
+│     ├── styfi/       domain types + interfaces + mock + onchain
+│     └── veyfi/       domain types + interfaces + mock + onchain
 ├── tx/                tx lifecycle (Phase-2)
 ├── hooks/             domain hooks (Phase-3)
 └── format/            formatting + helpers
@@ -44,7 +44,7 @@ Core principles:
 
 - **Domain-first**: Two domain clients: `StyfiClient` and `VeyfiClient`.
 - **Separation of concerns**: UI never touches viem/wagmi directly except read helpers; all writes go via `useTx`.
-- **Mock-first**: Entire UI is built against deterministic mocks.
+- **Mock-capable**: Deterministic mocks are available for local dev (`NEXT_PUBLIC_USE_MOCKS=true`).
 - **Simplicity**: No auto-approvals, no magic.
 - **Predictable state flow**: domain reads → domain UI → `prepare*` → `useTx`.
 
@@ -216,11 +216,11 @@ Each folder contains:
 A single top-level provider binds domain clients to the UI.
 
 ```
-<ProtocolProvider>
-  <Web3Providers> (Wagmi -> QueryClient -> RainbowKit)
+<Web3Providers> (Wagmi -> QueryClient -> RainbowKit)
+  <ProtocolProvider>
     {children}
-  </Web3Providers>
-</ProtocolProvider>
+  </ProtocolProvider>
+</Web3Providers>
 ```
 
 `ProtocolProvider` decides whether to use:
@@ -228,7 +228,12 @@ A single top-level provider binds domain clients to the UI.
 - **On-chain clients** (default target)
 - **Mock clients** (`NEXT_PUBLIC_USE_MOCKS=true`)
 
-Until Phase 8 lands, on-chain clients are not implemented; the provider falls back to mocks with a warning when on-chain is requested. This enables rapid local iteration and safe UI-first development while keeping the intended default clear.
+On-chain clients are implemented. When mocks are disabled, a public RPC client **must** be available via Wagmi (configured by `NEXT_PUBLIC_RPC_URLS`). If it is missing, the provider surfaces a configuration error rather than silently falling back to mocks.
+
+**Read/Write policy:**
+
+- **Reads** always use the public client (configured by `NEXT_PUBLIC_RPC_URLS`).
+- **Writes** always go through wallet signing via `useTx`.
 
 ---
 
@@ -433,6 +438,8 @@ The application now supports full on-chain integration via `OnchainStyfiClient` 
 ### Configuration:
 
 - Controlled via `NEXT_PUBLIC_USE_MOCKS=false`.
+- Public RPC is configured via `NEXT_PUBLIC_RPC_URLS` (comma-separated). Use `https://` when the app is served over HTTPS.
+- Fork testing is handled by pointing `NEXT_PUBLIC_RPC_URLS` at the fork endpoint while keeping Chain ID 1.
 - Uses `viem` multicall to aggregate state for:
   - **stYFI:** Wallet, Staking, Epochs, Rewards.
   - **veYFI:** Legacy Locks, Migration, LLYFI Registry (3x tokens), Redemption Caps.
@@ -442,6 +449,7 @@ The application now supports full on-chain integration via `OnchainStyfiClient` 
 - **Normalization:** The clients handle the complexity of "Share" vs "Asset" accounting for tokens like upYFI, exposing only "Assets" to the UI layer.
 - **Approvals:** Uses a hybrid approach where global state is fetched via multicall, but atomic actions use `useTokenAllowance` for instant feedback.
 - **Epochs:** Derived from the immutable `GENESIS` timestamp to ensure client-side timers match contract logic without constant RPC polling.
+- **Transport pinning:** Wagmi `transports` are pinned to the configured public RPC(s), ensuring reads never drift to wallet RPCs.
 
 ---
 
@@ -471,7 +479,7 @@ This architecture:
 
 - Separates domain logic from UI
 - Ensures transaction flows are unified and predictable
-- Supports mock-first development
+- Supports mock-capable development
 - Ensures minimal code duplication
 - Produces a clean, scalable and maintainable FE system for Yearn’s governance apps
 

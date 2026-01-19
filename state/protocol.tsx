@@ -50,13 +50,9 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    // Fallback if no client available yet (should be rare with default chains)
-    return {
-      styfi: createMockStyfiClient({ latencyMs: 600 }),
-      veyfi: createMockVeyfiClient({ latencyMs: 600 }),
-      isMock: true,
-      usesMockBackend: true,
-    };
+    throw new Error(
+      "Public RPC client not available. Check NEXT_PUBLIC_RPC_URLS."
+    );
   }, [preferMocks, publicClient]);
 
   return (
