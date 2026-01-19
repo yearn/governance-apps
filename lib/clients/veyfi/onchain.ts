@@ -15,6 +15,8 @@ import {
   VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
   LIQUID_LOCKERS,
   LIQUID_LOCKER_REDEMPTION_ADDRESS,
+  GENESIS,
+  EPOCH_LENGTH,
   STREAM_DURATION,
   YFI_ADDRESS, // Added import
 } from "@/lib/constants";
@@ -48,7 +50,6 @@ export class OnchainVeyfiClient implements VeyfiClient {
         snapshotCheckResult,
         lockInfo,
         lastClaimed,
-        currentEpochResult,
       ] = await this.publicClient.multicall({
         contracts: [
           {
@@ -75,16 +76,16 @@ export class OnchainVeyfiClient implements VeyfiClient {
             functionName: "last_claimed",
             args: [address],
           },
-          {
-            address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
-            abi: VotingEscrowRewardDistributorAbi,
-            functionName: "epoch",
-          },
         ],
         allowFailure: false,
       });
 
-      const currentEpoch = Number(currentEpochResult);
+      const now = Math.floor(Date.now() / 1000);
+      const genesisTime = Number(GENESIS);
+      const currentEpoch = Math.max(
+        0,
+        Math.floor((now - genesisTime) / EPOCH_LENGTH)
+      );
       const boostRaw = 1 + Math.max(0, 104 - currentEpoch) / 104;
 
       const lockerCalls = LIQUID_LOCKERS.flatMap((locker) => [
@@ -305,18 +306,20 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
   async getGlobalStats(): Promise<VeyfiGlobalStats> {
     try {
-      const currentEpoch = await this.publicClient.readContract({
-        address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
-        abi: VotingEscrowRewardDistributorAbi,
-        functionName: "epoch",
-      });
+      const now = Math.floor(Date.now() / 1000);
+      const genesisTime = Number(GENESIS);
+      const currentEpoch = Math.max(
+        0,
+        Math.floor((now - genesisTime) / EPOCH_LENGTH)
+      );
+      const currentEpochArg = BigInt(currentEpoch);
 
       const calls = [
         {
           address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
           abi: VotingEscrowRewardDistributorAbi,
           functionName: "total_weights",
-          args: [currentEpoch],
+          args: [currentEpochArg],
         },
         {
           address: VEYFI_ADDRESS,
@@ -423,7 +426,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
       }
 
       const maxBoostMultiplier =
-        1 + Math.max(0, 104 - Number(currentEpoch)) / 104;
+        1 + Math.max(0, 104 - currentEpoch) / 104;
 
       return {
         migratedYfi: migratedUnderlyingApprox,

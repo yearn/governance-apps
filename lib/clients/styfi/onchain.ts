@@ -157,20 +157,19 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getEpochInfo(): Promise<EpochInfo> {
-    const now = Math.floor(Date.now() / 1000);
-    const genesisTime = Number(GENESIS);
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    const epochLength = BigInt(EPOCH_LENGTH);
 
-    // Calculate current epoch based on Genesis
-    const timeSinceGenesis = Math.max(0, now - genesisTime);
-    const currentEpoch = Math.floor(timeSinceGenesis / EPOCH_LENGTH);
+    const timeSinceGenesis = now > GENESIS ? now - GENESIS : 0n;
+    const currentEpoch = Number(timeSinceGenesis / epochLength);
 
-    const epochStart = genesisTime + currentEpoch * EPOCH_LENGTH;
-    const epochEnd = epochStart + EPOCH_LENGTH;
+    const epochStart = GENESIS + BigInt(currentEpoch) * epochLength;
+    const epochEnd = epochStart + epochLength;
 
     return {
       currentEpoch,
-      epochEnd,
-      nextEpochStart: epochEnd,
+      epochEnd: Number(epochEnd),
+      nextEpochStart: Number(epochEnd),
     };
   }
 
