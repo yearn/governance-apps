@@ -49,3 +49,36 @@ export function formatPercent(
       })
     : "0%";
 }
+
+export function getCurrentEpoch(
+  genesis: bigint,
+  epochLengthSeconds: number,
+  nowSeconds = Math.floor(Date.now() / 1000)
+): number {
+  const epochLength = BigInt(epochLengthSeconds);
+  const now = BigInt(nowSeconds);
+  const timeSinceGenesis = now > genesis ? now - genesis : 0n;
+
+  return Number(timeSinceGenesis / epochLength);
+}
+
+export function getEpochInfo(
+  genesis: bigint,
+  epochLengthSeconds: number,
+  nowSeconds = Math.floor(Date.now() / 1000)
+): { currentEpoch: number; epochStart: number; epochEnd: number } {
+  const epochLength = BigInt(epochLengthSeconds);
+  const currentEpoch = getCurrentEpoch(
+    genesis,
+    epochLengthSeconds,
+    nowSeconds
+  );
+  const epochStart = genesis + BigInt(currentEpoch) * epochLength;
+  const epochEnd = epochStart + epochLength;
+
+  return {
+    currentEpoch,
+    epochStart: Number(epochStart),
+    epochEnd: Number(epochEnd),
+  };
+}

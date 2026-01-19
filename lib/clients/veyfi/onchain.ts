@@ -20,6 +20,7 @@ import {
   STREAM_DURATION,
   YFI_ADDRESS, // Added import
 } from "@/lib/constants";
+import { getCurrentEpoch } from "@/lib/format";
 import { VotingEscrowRewardDistributorAbi } from "@/lib/abis/VotingEscrowRewardDistributor";
 import { LiquidLockerDepositorAbi } from "@/lib/abis/LiquidLockerDepositor";
 import { LiquidLockerRedemptionAbi } from "@/lib/abis/LiquidLockerRedemption";
@@ -80,12 +81,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
         allowFailure: false,
       });
 
-      const now = Math.floor(Date.now() / 1000);
-      const genesisTime = Number(GENESIS);
-      const currentEpoch = Math.max(
-        0,
-        Math.floor((now - genesisTime) / EPOCH_LENGTH)
-      );
+      const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH);
       const boostRaw = 1 + Math.max(0, 104 - currentEpoch) / 104;
 
       const lockerCalls = LIQUID_LOCKERS.flatMap((locker) => [
@@ -306,12 +302,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
   async getGlobalStats(): Promise<VeyfiGlobalStats> {
     try {
-      const now = Math.floor(Date.now() / 1000);
-      const genesisTime = Number(GENESIS);
-      const currentEpoch = Math.max(
-        0,
-        Math.floor((now - genesisTime) / EPOCH_LENGTH)
-      );
+      const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH);
       const currentEpochArg = BigInt(currentEpoch);
 
       const calls = [

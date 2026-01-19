@@ -131,9 +131,9 @@ All interactive flows use a **global transaction state machine**.
 
 ## 2.6. Epochs
 
-1. Epoch data **MUST** be read from contracts.
-2. The frontend **MUST NOT** compute epoch start/end from local timestamps.
-3. Countdown displays use contract-provided epoch end timestamps.
+1. Epoch data **MUST** be derived client-side from immutable `GENESIS` and `EPOCH_LENGTH` (from `deployment.json` → `lib/constants.ts`).
+2. The frontend **MUST NOT** call on-chain `epoch()` for UI timing; compute epoch start/end from local wall-clock time vs `GENESIS` using canonical helper logic.
+3. Countdown displays use locally derived epoch end timestamps from `EpochInfo` helpers.
 
 ---
 
@@ -274,7 +274,7 @@ type EpochInfo = {
 UI requirements:
 
 - Countdown timers and “current epoch” displays **MUST** rely on these fields.
-- The frontend **MUST NOT** derive epochs from local wall-clock time.
+- Epoch fields **MUST** be derived locally from `GENESIS` + `EPOCH_LENGTH` (see `getEpochInfo` in `lib/format.ts`).
 
 ### 3.1.5. `StyfiAllowances`
 

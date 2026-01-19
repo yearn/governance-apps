@@ -5,6 +5,7 @@ import { wagmiConfig } from "@/web3/wagmi";
 import type { PreparedTransaction } from "@/lib/tx/types";
 import type { StyfiAccountState, StyfiGlobalStats, EpochInfo } from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
+import { getEpochInfo as getEpochInfoFromGenesis } from "@/lib/format";
 import {
   STYFI_ADDRESS,
   STYFIX_ADDRESS,
@@ -157,19 +158,15 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getEpochInfo(): Promise<EpochInfo> {
-    const now = BigInt(Math.floor(Date.now() / 1000));
-    const epochLength = BigInt(EPOCH_LENGTH);
-
-    const timeSinceGenesis = now > GENESIS ? now - GENESIS : 0n;
-    const currentEpoch = Number(timeSinceGenesis / epochLength);
-
-    const epochStart = GENESIS + BigInt(currentEpoch) * epochLength;
-    const epochEnd = epochStart + epochLength;
+    const { currentEpoch, epochEnd } = getEpochInfoFromGenesis(
+      GENESIS,
+      EPOCH_LENGTH
+    );
 
     return {
       currentEpoch,
-      epochEnd: Number(epochEnd),
-      nextEpochStart: Number(epochEnd),
+      epochEnd,
+      nextEpochStart: epochEnd,
     };
   }
 
