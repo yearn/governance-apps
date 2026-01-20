@@ -218,7 +218,7 @@ UI requirements:
 
 - **Wallet section** must show:
 
-  - `yfiBalance` (displayed in Input fields or Position Card).
+  - `yfiBalance` (displayed in input fields or Account Summary).
   - _Note:_ Global Header balance display is removed.
 
 - **stYFI section** must show:

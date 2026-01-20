@@ -8,23 +8,37 @@ import { useDisconnect } from "wagmi";
 import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
 import { resetMockVeyfiStore } from "@/lib/clients/veyfi/mock";
 import { useProtocol } from "@/state/protocol";
-import { useStyfiMode } from "../state/StyfiModeProvider";
 import { RewardsCard } from "./cards/RewardsCard";
 import { StakeManageCard } from "./cards/StakeManageCard";
 import { styfiCopy as copy } from "../messages";
+import type { StyfiAsset } from "./types";
 
-export function StyfiCockpit() {
-  const { mode, isOnboarded } = useStyfiMode();
+type Props = {
+  selectedAsset: StyfiAsset;
+  onSelectAsset: (asset: StyfiAsset) => void;
+  isNewUser: boolean;
+};
+
+export function StyfiCockpit({
+  selectedAsset,
+  onSelectAsset,
+  isNewUser,
+}: Props) {
   const { usesMockBackend } = useProtocol();
 
   return (
     <div className="space-y-6">
-      {isOnboarded && (
-        <div className="grid gap-6 lg:grid-cols-2 animate-in fade-in duration-1000 delay-200 fill-mode-backwards">
-          <StakeManageCard mode={mode} />
-          <RewardsCard />
-        </div>
-      )}
+      <div
+        className={`grid gap-6 lg:grid-cols-2 animate-in fade-in duration-1000 fill-mode-backwards ${
+          isNewUser ? "" : "delay-200"
+        }`}
+      >
+        <StakeManageCard
+          selectedAsset={selectedAsset}
+          onSelectAsset={onSelectAsset}
+        />
+        <RewardsCard />
+      </div>
 
       {usesMockBackend && <MockModeBanner />}
     </div>

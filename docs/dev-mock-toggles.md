@@ -29,14 +29,13 @@ When running with mocks enabled, a **"🛠️ Debug"** button appears at the bot
     - Advances the internal mock clock. Use this to fast-forward through 14-day cooldowns to test unlocking and streaming logic.
     - Triggers an immediate refetch of epoch-dependent queries.
 
-2.  **Smart Onboarding Helpers:**
+2.  **Balance Injection:**
 
     - `Add stYFI`: Injects 100 stYFI into the connected address.
     - `Add stYFIx`: Injects 100 stYFIx into the connected address.
-    - _Note:_ If wallet is disconnected, these queue a balance injection for the next address that connects. Use this to test the "Auto-Mode Detection" logic.
+    - _Note:_ If wallet is disconnected, these queue a balance injection for the next address that connects. Use this to test the default asset selection logic.
 
 3.  **Local State Tools:**
-    - `Forget Me`: Clears `localStorage` (onboarding flags) but keeps chain state. Useful for re-testing the "New User" drawer animation without losing your balances.
     - `Reset App`: Full wipe of `localStorage`, `sessionStorage` (chain state), and query cache. Simulates a completely fresh install.
 
 ## Scenario Presets

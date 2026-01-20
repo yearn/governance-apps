@@ -65,8 +65,11 @@ export function UnstakePanel({
     impliedStart
   );
 
-  const hasActiveState = totalExiting > 0n;
-  const showInput = !hasActiveState || isAddingMore;
+  const hasUnstaking = totalExiting > 0n;
+  const showWithdrawSection = liquidEstimate > 0n;
+  const showInput = !hasUnstaking || isAddingMore;
+  const showResetWarning =
+    !!cooldown?.amount && cooldown.amount > 0n && inputValue.trim().length > 0;
 
   const formattedLiquid = formatTokenAmount(liquidEstimate);
   const formattedStreaming = formatTokenAmount(streamingEstimate);
@@ -79,8 +82,8 @@ export function UnstakePanel({
 
   return (
     <div className="space-y-4">
-      {/* SECTION 1: Progress (Only visible if funds are exiting) */}
-      {hasActiveState && (
+      {/* SECTION 1: Progress (Only visible if funds are unstaking) */}
+      {hasUnstaking && (
         <section className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-neutral-900">
@@ -100,8 +103,8 @@ export function UnstakePanel({
         </section>
       )}
 
-      {/* SECTION 2: Withdraw Action (Visible if in active state) */}
-      {hasActiveState && (
+      {/* SECTION 2: Withdraw Action (Visible if withdrawable > 0) */}
+      {showWithdrawSection && (
         <section className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50 p-4 transition-colors">
           <p className="text-sm text-neutral-600">Available to withdraw</p>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -131,12 +134,12 @@ export function UnstakePanel({
         <section
           className={cn(
             "space-y-3",
-            hasActiveState && "pt-4 border-t border-neutral-100"
+            hasUnstaking && "pt-4 border-t border-neutral-100"
           )}
         >
           <div className="flex items-center justify-between">
             <p className="text-sm text-neutral-600">Start new cooldown</p>
-            {hasActiveState && (
+            {hasUnstaking && (
               <button
                 onClick={() => setIsAddingMore(false)}
                 className="text-xs font-medium text-neutral-500 hover:text-neutral-900 underline decoration-neutral-300 underline-offset-4"
@@ -161,10 +164,10 @@ export function UnstakePanel({
             }
           />
 
-          {hasActiveState && (
-            <Banner variant="warning" title="Timer Reset">
-              Adding to the cooldown will reset the 14-day timer for the
-              remaining stream.
+          {showResetWarning && (
+            <Banner variant="warning">
+              Action Rule: Adding to your cooldown will immediately claim any
+              liquid assets and reset the 14-day timer for the stream.
             </Banner>
           )}
 
@@ -175,7 +178,7 @@ export function UnstakePanel({
               disabled={!canStart || isSubmitting}
               isLoading={isSubmitting}
             >
-              Start Cooldown
+              Start new cooldown
             </Button>
           </div>
         </section>
@@ -187,7 +190,7 @@ export function UnstakePanel({
             className="w-full border-dashed border-2 border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-900 hover:bg-neutral-50"
             onClick={() => setIsAddingMore(true)}
           >
-            + Unstake more
+            Start new cooldown
           </Button>
         </div>
       )}

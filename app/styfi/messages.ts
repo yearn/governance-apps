@@ -34,10 +34,12 @@ export const styfiCopy = {
     },
     switchAria: (modeLabel: string) => `Switch to ${modeLabel}`,
     balanceSuffix: (modeLabel: string) => `in ${modeLabel}`,
-    balanceWithExiting: (exiting: string) => `Active (+ ${exiting} exiting)`,
-    balanceWithExited: (exited: string) => `Active (+ ${exited} exited)`,
-    balanceExitingOnly: (exiting: string) => `(${exiting} exiting)`,
-    balanceExitedOnly: (exited: string) => `(${exited} exited)`,
+    balanceWithExiting: (unstaking: string) =>
+      `Active (+ ${unstaking} unstaking)`,
+    balanceWithExited: (withdrawable: string) =>
+      `Active (+ ${withdrawable} withdrawable)`,
+    balanceExitingOnly: (unstaking: string) => `(${unstaking} unstaking)`,
+    balanceExitedOnly: (withdrawable: string) => `(${withdrawable} withdrawable)`,
     disconnected: "Connect your wallet to view balances.",
     drawer: {
       title: "Choose how you want to stake",
@@ -118,8 +120,8 @@ export const styfiCopy = {
     stake: "Stake YFI",
   },
   unstakeTab: {
-    loading: "Loading exit data…",
-    disconnected: "Connect your wallet to manage cooldowns.",
+    loading: "Loading unstake data…",
+    disconnected: "Connect your wallet to manage unstaking.",
     empty: "Nothing in cooldown right now. Start a cooldown first.",
     availableLabel: (amount: string) => `${amount} YFI Available`,
     streamingLabel: (amount: string, time?: string) =>
@@ -132,11 +134,11 @@ export const styfiCopy = {
     availableBalance: (amount: string, modeLabel: string) =>
       `Available: ${amount} ${modeLabel}`,
     insufficientBalance: "Exceeds available",
-    warningTitle: "Timer reset warning",
+    warningTitle: "Action Rule",
     warningBody:
-      "Adding to cooldown will reset the 14-day timer for the remaining stream.",
+      "Adding to your cooldown will immediately claim any liquid assets and reset the 14-day timer for the stream.",
     helper: "Starts a 14-day cooldown. You can withdraw after the timer ends.",
-    startCta: "Start Cooldown",
+    startCta: "Start new cooldown",
   },
   rewards: {
     title: "Claimable Rewards",

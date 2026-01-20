@@ -1,5 +1,9 @@
-export type StyfiMode = "styfi" | "x";
+export type StyfiAsset = "stYFI" | "stYFIx";
 
-export function modeLabel(mode: StyfiMode) {
-  return mode === "styfi" ? "stYFI" : "stYFIx";
+export function modeLabel(asset: StyfiAsset) {
+  return asset;
+}
+
+export function isStyfiAsset(asset: StyfiAsset) {
+  return asset === "stYFI";
 }

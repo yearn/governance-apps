@@ -38,7 +38,8 @@ Domain-specific controls live inside the route itself.
 For `/styfi`:
 
 - **Protocol Stats Bar:** A universal component for ecosystem health (Supply/Staked).
-- **StyfiPositionCard:** The primary controller for Mode selection (stYFI vs stYFIx) and Onboarding.
+- **AccountSummary:** Context area that renders ModeComparison (new users) or a positions list (returning users).
+- **StyfiCockpit:** StakeManageCard + RewardsCard; always visible.
 
 For `/veyfi`:
 
@@ -46,22 +47,16 @@ For `/veyfi`:
 
 ---
 
-## 3. URL-Driven View State
+## 3. View State (State-Driven)
 
-### 3.1 Mode via Provider (URL Synced)
+For stYFI, the **view state** is derived inside `StyfiPageClient` and does not rely on URL params or localStorage.
 
-For stYFI, the **view state** (`styfi` vs `x`) is driven by `StyfiModeProvider`.
-
-### 3.2 LocalStorage (Hints)
-
-- `styfi_onboarded` (boolean) → if missing, open onboarding drawer.
-- `styfi-last-mode` (`'styfi' | 'x'`) → hint for last used mode.
-
-Flow:
-
-- First visit (no flag): open drawer.
-- Returning: collapse in last-mode hint (or URL).
-- Deep link (`?mode=x`): provider sets mode to `x`, marks onboarded, collapses.
+- `selectedAsset`: `"stYFI" | "stYFIx"`.
+- Default selection uses on-chain balances:
+  - If `stYFIx` balance > `stYFI` balance → select `stYFIx`.
+  - Else if `stYFI` balance > `stYFIx` balance → select `stYFI`.
+  - Else → select `stYFIx`.
+- `isNewUser = totalBalance === 0`.
 
 ---
 
@@ -73,15 +68,10 @@ Each domain route follows this pattern:
 
 ```tsx
 // app/styfi/page.tsx (Server Component)
-export default async function StyfiPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ mode?: string }>;
-}) {
-  const params = await searchParams;
-  const mode = normalizeMode(params.mode); // 'styfi' | 'x' | undefined
+import { StyfiPageClient } from "./StyfiPageClient";
 
-  return <StyfiPageClient initialMode={mode} />;
+export default function StyfiPage() {
+  return <StyfiPageClient />;
 }
 ```
 
@@ -89,16 +79,13 @@ export default async function StyfiPage({
 // app/styfi/StyfiPageClient.tsx (Client Component)
 "use client";
 
-export function StyfiPageClient({
-  initialMode,
-}: {
-  initialMode?: "styfi" | "x";
-}) {
+export function StyfiPageClient() {
   return (
-    <StyfiModeProvider initialMode={initialMode}>
-      <StyfiPositionCard />
+    <>
+      <StatsBar />
+      <AccountSummary />
       <StyfiCockpit />
-    </StyfiModeProvider>
+    </>
   );
 }
 ```
@@ -106,20 +93,16 @@ export function StyfiPageClient({
 **Responsibilities:**
 
 - **Server (page.tsx):**
+  - Render the route shell.
+  - Defer all stYFI state to the client.
 
-  - Read `searchParams.mode`.
-  - Normalize/validate mode string.
-  - Pass mode as `initialMode` prop to client.
-
-- **Client (StyfiPageClient + Provider):**
-
-  - Hydrate from LS (`styfi_onboarded`, `styfi-last-mode`).
-  - Sync URL to mode for shareability.
-  - Render unified position card (collapsed/expanded) + cockpit.
+- **Client (StyfiPageClient):**
+  - Derive `selectedAsset` and `isNewUser` from account state.
+  - Render AccountSummary + Cockpit without layout thrash.
 
 ### 4.2 Avoiding Flicker
 
-The provider hydrates once on the client. The card can render immediately; no hero gating is used. Drawer opens on first visit until mode is chosen.
+State is resolved inside `StyfiPageClient` after account data loads. The summary/cockpit render without a drawer, so the layout stays stable for both new and returning users.
 
 ---
 
@@ -135,7 +118,7 @@ The provider hydrates once on the client. The card can render immediately; no he
   └── StyfiPageClient
        ├─ [StatsBar]            (Generic component injected with stYFI data)
        └─ Main Container
-            ├─ [Your Position Card]  (Collapsed/Expanded; owns mode, APR, onboarding)
+            ├─ [AccountSummary]      (ModeComparison or Positions list)
             └─ [Cockpit]             (StakeManageCard + RewardsCard)
             └─ [Mock Controls]       (Debug widget if usesMockBackend=true)
 ```
@@ -143,18 +126,16 @@ The provider hydrates once on the client. The card can render immediately; no he
 ### 5.2 Component Tree (Simplified)
 
 ```text
-<StyfiPageClient initialMode="styfi" | "x" | undefined>
-  <StyfiModeProvider initialMode>
-    <StatsBar />                 // Composed directly in StyfiPageClient
-    <main>
-       <StyfiPositionCard />     // APR logic moved here
-       <StyfiCockpit>
-         <StakeManageCard />     // Contains StakeTab and UnstakeTab
-         <RewardsCard />         // Contains Claim CTA and Earning Power
-       </StyfiCockpit>
-       {usesMockBackend && <MockControls />}
-    </main>
-  </StyfiModeProvider>
+<StyfiPageClient>
+  <StatsBar />                   // Composed directly in StyfiPageClient
+  <main>
+     <AccountSummary />          // ModeComparison or positions list
+     <StyfiCockpit>
+       <StakeManageCard />       // Contains StakeTab and UnstakeTab
+       <RewardsCard />           // Contains Claim CTA and Earning Power
+     </StyfiCockpit>
+     {usesMockBackend && <MockControls />}
+  </main>
 </StyfiPageClient>
 ```
 
@@ -171,13 +152,12 @@ app/
   styfi/
     page.tsx
     StyfiPageClient.tsx
-    state/
-      StyfiModeProvider.tsx
 
     components/
-      StyfiPositionCard.tsx      (Mode selector + APR display)
+      AccountSummary.tsx         (Hero or positions list)
+      ModeComparison.tsx         (Shared comparison cards)
       StyfiCockpit.tsx           (Layout for cards)
-      MockControls.tsx           (Debug tools & persistence controls)
+      MockControls.tsx           (Debug tools)
       types.ts
 
       cards/
@@ -231,7 +211,7 @@ Under `/lib/hooks/useStyfi.ts`:
 Each card/component uses **only the hooks it needs**:
 
 - `StyfiPageClient` → `useStyfiStats`, `useStyfiApy` (for StatsBar).
-- `YourPositionCard` → `useStyfiAccount`, `useStyfiApy`.
+- `AccountSummary` → `useStyfiAccount`.
 - `RewardsCard` → `useStyfiAccount`, `useStyfiStats` (for Earning Power).
 - `StakeTab` → `useStyfiAccount` (wallet balance) + `prepareStake`.
 - `UnstakeTab` → `useStyfiAccount` + `useEpoch` + `prepareWithdraw` + `prepareStartCooldown`.
@@ -244,7 +224,7 @@ Each card/component uses **only the hooks it needs**:
 
 We rely primarily on React Query loading states and inline skeletons in cards:
 
-- `YourPositionCard`: skeleton for balance/weight rows.
+- `AccountSummary`: placeholder rows for balances when needed.
 - `RewardsCard`: skeleton for rows.
 - `StakeManageCard`: disabled buttons + skeleton inputs if dependent data missing.
 
@@ -252,12 +232,11 @@ We do **not** block the entire `/styfi` route on a single slow query.
 
 ### 8.2 `StyfiPageClient` Loading
 
-`StyfiModeProvider` handles the hydration and "Smart Onboarding" logic:
+`StyfiPageClient` derives view state from account data:
 
-- On mount, it checks `localStorage` and connected wallet balances.
-- If a new user connects with an existing balance, it **immediately** sets the mode and collapses the drawer.
-- This bypasses the "New User" drawer animation to prevent layout thrashing for existing users.
-- The UI renders the header/stats bar immediately, while the inner content waits for hydration.
+- On mount, it compares `stYFI` vs `stYFIx` balances to pick a default asset.
+- `isNewUser` is derived from total balance and controls the AccountSummary view.
+- The UI renders the header/stats bar immediately and keeps layout stable for all users.
 
 ---
 
@@ -356,8 +335,8 @@ This frontend architecture:
 
 - Keeps the **Global Header** simple.
 - Uses **StatsBar** for high-level ecosystem context.
-- Centralizes decision drivers (APR) in the **Position Card**.
-- Uses **URL parameters** as canonical view state.
+- Centralizes mode education in **AccountSummary + ModeComparison**.
+- Uses **client state** as the canonical view state.
 - Implements `/veyfi` as a **Registry** with nested **Cockpit** actions.
 
 ---

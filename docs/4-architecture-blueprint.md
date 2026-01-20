@@ -395,7 +395,7 @@ Mocks simulate domain behaviour deterministically and are the primary target for
 - **Contract Parity:** Mocks now calculate "Withdrawable" and "Redeemable" using logic identical to the Vyper contracts (e.g., `maxWithdraw` emulation) to ensure UI testing is valid.
 - **Debug Helpers:**
   - `debugSetBalance`: Immediate injection (connected).
-  - `debugSetPendingBalance`: Queued injection (onboarding flows).
+  - `debugSetPendingBalance`: Queued injection (selection/defaulting flows).
   - `timeTravel`: Advances internal clock for epoch/cooldown testing.
 
 For **Phase 2**, mocks:

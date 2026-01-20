@@ -77,8 +77,8 @@ Be direct.
 | **veYFI**         | Always lowercase 've', uppercase 'YFI'.                                  |
 | **LLYFI**         | Liquid Lockers (generic term).                                           |
 | **Active**        | Funds currently staked and earning rewards.                              |
-| **Exiting**       | Funds currently in the linear cooldown stream (locked).                  |
-| **Exited**        | Funds fully unlocked (finished streaming) but not yet withdrawn.         |
+| **Unstaking**     | Funds currently in the linear cooldown stream (locked).                  |
+| **Withdrawable**  | Funds fully unlocked (finished streaming) but not yet withdrawn.         |
 | **Earning Power** | The user's share of the total staking pool (User Active / Total Active). |
 | **Gauge**         | The contract where you stake BPT/LP tokens.                              |
 | **Vote Weight**   | The power used in governance.                                            |

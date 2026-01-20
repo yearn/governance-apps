@@ -9,14 +9,14 @@ import {
   useStyfiWithdraw,
 } from "@/lib/hooks/useStyfi";
 import { UnstakePanel } from "@/components/domain/UnstakePanel";
-import { StyfiMode } from "../../types";
+import { StyfiAsset } from "../../types";
 import { styfiCopy as copy } from "../../../messages";
 
 type Props = {
-  mode: StyfiMode;
+  asset: StyfiAsset;
 };
 
-export function UnstakeTab({ mode }: Props) {
+export function UnstakeTab({ asset }: Props) {
   const { isConnected } = useAccount();
   const { data, isLoading } = useStyfiAccount();
   const { write: startCooldown, state: cooldownState } =
@@ -27,20 +27,20 @@ export function UnstakeTab({ mode }: Props) {
   const { amount, isValid } = useMemo(() => parseAmount(input || "0"), [input]);
 
   const available =
-    (mode === "styfi" ? data?.styfiActive : data?.styfiX.sharesActive) ?? 0n;
+    (asset === "stYFI" ? data?.styfiActive : data?.styfiX.sharesActive) ?? 0n;
 
   // Use null fallback to satisfy CooldownState type
   const cooldown =
-    (mode === "styfi" ? data?.styfiCooldown : data?.styfiX.cooldown) ?? null;
+    (asset === "stYFI" ? data?.styfiCooldown : data?.styfiX.cooldown) ?? null;
 
   const totalExiting =
-    (mode === "styfi"
+    (asset === "stYFI"
       ? data?.styfiInCooldown
       : data?.styfiX.assetsInCooldown) ?? 0n;
 
   // Contract truth for withdrawable amount
   const contractWithdrawable =
-    (mode === "styfi"
+    (asset === "stYFI"
       ? data?.styfiWithdrawable
       : data?.styfiX.assetsWithdrawable) ?? 0n;
 
@@ -76,12 +76,12 @@ export function UnstakeTab({ mode }: Props) {
 
   const handleStart = async (amt: bigint) => {
     if (!isValid || amt <= 0n) return;
-    await startCooldown(mode === "styfi" ? "stYFI" : "stYFIx", amt);
+    await startCooldown(asset, amt);
     setInput("");
   };
 
   const handleWithdraw = async () => {
-    await withdraw(mode === "styfi" ? "stYFI" : "stYFIx");
+    await withdraw(asset);
   };
 
   if (isLoading) {
@@ -99,7 +99,7 @@ export function UnstakeTab({ mode }: Props) {
   return (
     <UnstakePanel
       variant="styfi"
-      tokenSymbol={mode === "styfi" ? "stYFI" : "stYFIx"}
+      tokenSymbol={asset}
       availableBalance={available}
       totalExiting={totalExiting}
       liquidEstimate={contractWithdrawable}

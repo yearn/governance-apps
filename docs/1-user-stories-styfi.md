@@ -30,7 +30,7 @@ We assume a technically literate DeFi user familiar with:
 
 ---
 
-## Story ST-00 — Smart Onboarding (Mode Selection)
+## Story ST-00 — Default Selection (Mode Comparison)
 
 **As a** user connecting their wallet
 **I want** the app to automatically detect my existing position
@@ -38,9 +38,8 @@ We assume a technically literate DeFi user familiar with:
 
 ### Acceptance Criteria
 
-- **New User (0 Balance):** Show the Mode Selection Drawer (Expanded) to educate them on the options.
-- **Returning User (Has Balance):** Automatically select the mode where I have the highest balance and collapse the drawer.
-- **Persistence:** Remember my last selection if I have no balance but have visited before.
+- **New User (0 Balance):** Show inline Mode Comparison cards; default to `stYFIx`.
+- **Returning User (Has Balance):** Automatically select the mode where I have the highest balance and show the Account Summary list.
 
 ---
 
@@ -55,8 +54,8 @@ We assume a technically literate DeFi user familiar with:
 - Shows:
 
   - **Active:** Amount currently staked and earning rewards.
-  - **Exiting:** Amount currently in cooldown (linear streaming).
-  - **Withdrawable:** Amount fully unlocked (finished streaming or liquid) ready to withdraw.
+- **Unstaking:** Amount currently in cooldown (linear streaming).
+- **Withdrawable:** Amount fully unlocked (finished streaming or liquid) ready to withdraw.
   - **Earning Power:** My share of the total staking pool (tooltip explanation).
   - Claimable rewards.
 
@@ -143,7 +142,7 @@ We assume a technically literate DeFi user familiar with:
 ### Acceptance Criteria
 
 - Only visible when user has stYFI staked.
-- **Progressive Disclosure:** Input is hidden behind a "+ Unstake more" button if a cooldown is already active.
+- **Progressive Disclosure:** Input is hidden behind a \"Start new cooldown\" button if a cooldown is already active.
 - **Partial Resets & Auto-Claim:** If I add to an existing cooldown:
   - I am explicitly warned that the 14-day timer will **reset** for the remaining stream.
   - Any funds currently **liquid** (available) from the stream are **automatically claimed** to my `Exited` (unlocked) balance to prevent re-locking them.

@@ -14,16 +14,6 @@ export function MockControls() {
   const { address } = useAccount();
   const { styfi } = useProtocol();
 
-  // Specific to stYFI: Clear onboarding flags to re-test the "New User" drawer flow
-  // without wiping the underlying chain state/balances.
-  const handleForgetMe = useCallback(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("styfi_onboarded");
-      window.localStorage.removeItem("styfi-last-mode");
-      window.location.reload();
-    }
-  }, []);
-
   const handleInjectBalance = useCallback(
     async (mode: "stYFI" | "stYFIx") => {
       // Amount: 100
@@ -63,14 +53,6 @@ export function MockControls() {
           Add stYFIx
         </Button>
       </div>
-      <Button
-        size="sm"
-        variant="secondary"
-        className="w-full text-neutral-600"
-        onClick={handleForgetMe}
-      >
-        Reset Onboarding
-      </Button>
     </DebugControls>
   );
 }

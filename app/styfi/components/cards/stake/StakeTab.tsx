@@ -15,14 +15,14 @@ import {
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
 import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
 import { YFI_ADDRESS, SPENDER_STYFI, SPENDER_STYFIX } from "@/lib/constants";
-import { StyfiMode, modeLabel } from "../../types";
+import { StyfiAsset, modeLabel } from "../../types";
 import { styfiCopy as copy } from "../../../messages";
 
 type Props = {
-  mode: StyfiMode;
+  asset: StyfiAsset;
 };
 
-export function StakeTab({ mode }: Props) {
+export function StakeTab({ asset }: Props) {
   const queryClient = useQueryClient();
   const {
     isConnected,
@@ -38,7 +38,7 @@ export function StakeTab({ mode }: Props) {
   const [input, setInput] = useState<string>("");
   const { amount, isValid } = useMemo(() => parseAmount(input || "0"), [input]);
 
-  const spender = mode === "styfi" ? SPENDER_STYFI : SPENDER_STYFIX;
+  const spender = asset === "stYFI" ? SPENDER_STYFI : SPENDER_STYFIX;
 
   const { data: allowance = 0n, refetch: refetchAllowance } = useTokenAllowance(
     YFI_ADDRESS,
@@ -88,7 +88,7 @@ export function StakeTab({ mode }: Props) {
 
   const handleStake = async () => {
     if (!isValid || amount <= 0n) return;
-    await stake(mode === "styfi" ? "stYFI" : "stYFIx", amount);
+    await stake(asset, amount);
     setInput("");
   };
 
@@ -100,7 +100,7 @@ export function StakeTab({ mode }: Props) {
           <span className="">{formatTokenAmount(outputAmount)} YFI</span>
           <span className="text-lg text-neutral-400">&rarr;</span>
           <span className="">
-            {formatTokenAmount(outputAmount)} {modeLabel(mode)}
+            {formatTokenAmount(outputAmount)} {modeLabel(asset)}
           </span>
         </div>
       </div>

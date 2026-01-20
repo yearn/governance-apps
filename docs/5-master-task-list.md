@@ -69,7 +69,7 @@ Sub-tasks: 1 level deep, atomic, actionable.
 ## 17. Account Summary Panel
 
 - [x] Wallet YFI balance
-- [x] stYFI active/cooldown split (Active vs Exiting vs Exited)
+- [x] stYFI active/cooldown split (Active vs Unstaking vs Withdrawable)
 - [x] stYFIx shares + assets
 - [x] Smart Onboarding (auto-mode detection)
 

@@ -6,23 +6,23 @@ import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { formatPercent, formatTokenAmount } from "@/lib/format";
-import { useStyfiApy, useStyfiStats } from "@/lib/hooks/useStyfi";
+import { useStyfiAccount, useStyfiApy, useStyfiStats } from "@/lib/hooks/useStyfi";
 import { StyfiCockpit } from "./components/StyfiCockpit";
-import { StyfiPositionCard } from "./components/StyfiPositionCard";
-import { StyfiMode } from "./components/types";
+import { AccountSummary } from "./components/AccountSummary";
+import type { StyfiAsset } from "./components/types";
 import { styfiCopy as copy } from "./messages";
-import { StyfiModeProvider } from "./state/StyfiModeProvider";
 import { MockControls } from "./components/MockControls";
 import { useProtocol } from "@/state/protocol";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-export function StyfiPageClient({ initialMode }: { initialMode?: StyfiMode }) {
+export function StyfiPageClient() {
   const { usesMockBackend } = useProtocol();
 
   return (
-    <StyfiModeProvider initialMode={initialMode}>
+    <>
       <StyfiPageShell />
       {usesMockBackend && <MockControls />}
-    </StyfiModeProvider>
+    </>
   );
 }
 
@@ -31,6 +31,40 @@ function StyfiPageShell() {
   const { openConnectModal } = useConnectModal();
   const { data: apy } = useStyfiApy();
   const { data: stats } = useStyfiStats();
+  const { data: account } = useStyfiAccount();
+  const [selectedAsset, setSelectedAsset] = useState<StyfiAsset>();
+  const hasUserSelected = useRef(false);
+  const hasResolvedDefault = useRef(false);
+
+  const handleSelectAsset = useCallback((asset: StyfiAsset) => {
+    hasUserSelected.current = true;
+    setSelectedAsset(asset);
+  }, []);
+
+  useEffect(() => {
+    if (hasUserSelected.current || hasResolvedDefault.current) return;
+
+    if (!account) {
+      setSelectedAsset("stYFIx");
+      return;
+    }
+
+    const styfiBalance =
+      account.styfiActive + account.styfiInCooldown + account.styfiUnlocked;
+    const styfixBalance =
+      account.styfiX.assetsActive +
+      account.styfiX.assetsInCooldown +
+      account.styfiX.assetsUnlocked;
+
+    if (styfixBalance > styfiBalance) {
+      setSelectedAsset("stYFIx");
+    } else if (styfiBalance > styfixBalance) {
+      setSelectedAsset("stYFI");
+    } else {
+      setSelectedAsset("stYFIx");
+    }
+    hasResolvedDefault.current = true;
+  }, [account]);
 
   // Dynamic stats or loading placeholder
   const totalSupply = stats
@@ -51,6 +85,33 @@ function StyfiPageShell() {
 
   // Convert BPS (e.g. 6800) to fractional (0.68) for the formatter
   const formattedApy = apy ? formatPercent(Number(apy) / 10000) : "--%";
+  const activeAsset = selectedAsset ?? "stYFIx";
+  const balances = account
+    ? {
+        styfi: {
+          active: account.styfiActive,
+          unstaking: account.styfiInCooldown,
+          withdrawable: account.styfiWithdrawable,
+          total:
+            account.styfiActive +
+            account.styfiInCooldown +
+            account.styfiUnlocked,
+        },
+        styfix: {
+          active: account.styfiX.assetsActive,
+          unstaking: account.styfiX.assetsInCooldown,
+          withdrawable: account.styfiX.assetsWithdrawable,
+          total:
+            account.styfiX.assetsActive +
+            account.styfiX.assetsInCooldown +
+            account.styfiX.assetsUnlocked,
+        },
+      }
+    : null;
+  const totalBalance = balances
+    ? balances.styfi.total + balances.styfix.total
+    : 0n;
+  const isNewUser = totalBalance === 0n;
 
   return (
     <div className="space-y-0">
@@ -93,9 +154,18 @@ function StyfiPageShell() {
           </Banner>
         )}
 
-        <StyfiPositionCard />
+        <AccountSummary
+          isNewUser={isNewUser}
+          selectedAsset={activeAsset}
+          onSelectAsset={handleSelectAsset}
+          balances={balances}
+        />
 
-        <StyfiCockpit />
+        <StyfiCockpit
+          selectedAsset={activeAsset}
+          onSelectAsset={handleSelectAsset}
+          isNewUser={isNewUser}
+        />
       </main>
     </div>
   );
