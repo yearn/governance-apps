@@ -1,4 +1,4 @@
-# stYFI UI Spec v3.0
+# stYFI UI Spec v3.1
 
 **Status:** Final
 **Applies to:** `styfi.yearn.fi` (and `/styfi` route)
@@ -52,18 +52,24 @@ It specifically addresses:
 - Inline `<ModeComparison />` grid.
 - Cards act as a selector for the cockpit.
 - Selected card shows an active border in brand color.
+- Selecting a card **smooth-scrolls** the user to the cockpit.
 
-### 4.2 Returning User (Positions)
+### 4.2 Loading State
+- If connected and account data is loading, show a compact skeleton row.
+- Hero is only shown once balances are loaded and total is zero.
+
+### 4.3 Returning User (Positions)
 - Read-only list of active positions.
 - Render `stYFI` row if balance > 0.
 - Render `stYFIx` row if balance > 0.
+- Dense horizontal layout to avoid dead space.
 
 **Row Layout:**
 - **Icon:** Asset logo
 - **Name:** `stYFI` or `stYFIx`
 - **Balance:** `{amount} Active`
-- **Status:** `{amount} Unstaking` (grey)
-- **Actionable:** `{amount} Withdrawable` (brand color / high contrast)
+- **Status:** `{amount} Unstaking` (grey, hide when 0)
+- **Actionable:** `{amount} Withdrawable` (brand color / high contrast, hide when 0)
 - **Note:** Do **not** use green for withdrawable.
 
 ---
@@ -94,6 +100,7 @@ Always visible and owns all write interactions.
 - **stYFIx:** "You are managing stYFIx. Voting is delegated for passive yield."
 
 ### 6.3 Tabs
+- **Variant:** Line tabs (text + underline) to differentiate action from scope.
 - **Stake:** Approve → Stake flow. Input unit: YFI.
 - **Unstake:** Refactored flow (below).
 
@@ -125,4 +132,3 @@ Always visible and owns all write interactions.
 | :----------- | :--------------- | :-------------------------------- |
 | New User     | 0                | AccountSummary → ModeComparison   |
 | Returning    | > 0              | AccountSummary → Positions List   |
-

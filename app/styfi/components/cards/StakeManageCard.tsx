@@ -41,13 +41,8 @@ export function StakeManageCard({ selectedAsset, onSelectAsset }: Props) {
     );
   }
 
-  const tabLabel =
-    activeTab === "stake"
-      ? copy.stakeManage.tabs.stake
-      : copy.stakeManage.tabs.unstake;
-
   return (
-    <Card className="space-y-4">
+    <Card className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-neutral-200 bg-neutral-100 p-1">
           {(["stYFI", "stYFIx"] as const).map((asset) => {
@@ -85,11 +80,11 @@ export function StakeManageCard({ selectedAsset, onSelectAsset }: Props) {
           : "You are managing stYFIx. Voting is delegated for passive yield."}
       </div>
 
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-neutral-900">{tabLabel}</h3>
+      <div>
         <Tabs
           activeTab={activeTab}
           onChange={(tab) => setActiveTab(tab as "stake" | "unstake")}
+          variant="line"
           tabs={[
             { id: "stake", label: copy.stakeManage.tabs.stake },
             {
@@ -101,8 +96,10 @@ export function StakeManageCard({ selectedAsset, onSelectAsset }: Props) {
         />
       </div>
 
-      {activeTab === "stake" && <StakeTab asset={selectedAsset} />}
-      {activeTab === "unstake" && <UnstakeTab asset={selectedAsset} />}
+      <div className="pt-2">
+        {activeTab === "stake" && <StakeTab asset={selectedAsset} />}
+        {activeTab === "unstake" && <UnstakeTab asset={selectedAsset} />}
+      </div>
 
       <Modal
         isOpen={isCompareOpen}

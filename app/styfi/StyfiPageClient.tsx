@@ -6,7 +6,11 @@ import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { formatPercent, formatTokenAmount } from "@/lib/format";
-import { useStyfiAccount, useStyfiApy, useStyfiStats } from "@/lib/hooks/useStyfi";
+import {
+  useStyfiAccount,
+  useStyfiApy,
+  useStyfiStats,
+} from "@/lib/hooks/useStyfi";
 import { StyfiCockpit } from "./components/StyfiCockpit";
 import { AccountSummary } from "./components/AccountSummary";
 import type { StyfiAsset } from "./components/types";
@@ -31,14 +35,26 @@ function StyfiPageShell() {
   const { openConnectModal } = useConnectModal();
   const { data: apy } = useStyfiApy();
   const { data: stats } = useStyfiStats();
-  const { data: account } = useStyfiAccount();
+  const { data: account, isLoading: isAccountLoading } = useStyfiAccount();
   const [selectedAsset, setSelectedAsset] = useState<StyfiAsset>();
   const hasUserSelected = useRef(false);
   const hasResolvedDefault = useRef(false);
+  const cockpitRef = useRef<HTMLDivElement>(null);
 
   const handleSelectAsset = useCallback((asset: StyfiAsset) => {
     hasUserSelected.current = true;
     setSelectedAsset(asset);
+  }, []);
+
+  const handleHeroSelect = useCallback((asset: StyfiAsset) => {
+    hasUserSelected.current = true;
+    setSelectedAsset(asset);
+    setTimeout(() => {
+      cockpitRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 100);
   }, []);
 
   useEffect(() => {
@@ -138,7 +154,7 @@ function StyfiPageShell() {
         ]}
       />
 
-      <main className="container mx-auto px-4 md:px-6 pt-8 space-y-6">
+      <main className="container mx-auto px-4 md:px-6 pt-8 space-y-6 pb-24">
         {!isConnected && (
           <Banner variant="warning" title={copy.page.connectBanner.title}>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -157,15 +173,19 @@ function StyfiPageShell() {
         <AccountSummary
           isNewUser={isNewUser}
           selectedAsset={activeAsset}
-          onSelectAsset={handleSelectAsset}
+          onSelectAsset={handleHeroSelect}
           balances={balances}
+          isLoading={isAccountLoading}
+          isConnected={isConnected}
         />
 
-        <StyfiCockpit
-          selectedAsset={activeAsset}
-          onSelectAsset={handleSelectAsset}
-          isNewUser={isNewUser}
-        />
+        <div ref={cockpitRef} className="scroll-mt-8">
+          <StyfiCockpit
+            selectedAsset={activeAsset}
+            onSelectAsset={handleSelectAsset}
+            isNewUser={isNewUser}
+          />
+        </div>
       </main>
     </div>
   );

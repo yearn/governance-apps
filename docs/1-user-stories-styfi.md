@@ -40,6 +40,7 @@ We assume a technically literate DeFi user familiar with:
 
 - **New User (0 Balance):** Show inline Mode Comparison cards; default to `stYFIx`.
 - **Returning User (Has Balance):** Automatically select the mode where I have the highest balance and show the Account Summary list.
+- **Hero Selection:** Choosing a mode scrolls the user to the cockpit actions.
 
 ---
 

@@ -123,6 +123,8 @@ State is resolved inside `StyfiPageClient` after account data loads. The summary
             └─ [Mock Controls]       (Debug widget if usesMockBackend=true)
 ```
 
+Selecting a mode in the AccountSummary hero smooth-scrolls the user to the cockpit for action.
+
 ### 5.2 Component Tree (Simplified)
 
 ```text

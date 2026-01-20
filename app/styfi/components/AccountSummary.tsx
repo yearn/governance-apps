@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { LogoStyfi } from "@/components/icons/LogoStyfi";
 import { LogoStyfix } from "@/components/icons/LogoStyfix";
 import { cn } from "@/lib/cn";
@@ -28,6 +29,8 @@ type AccountSummaryProps = {
   selectedAsset?: StyfiAsset;
   onSelectAsset: (asset: StyfiAsset) => void;
   balances?: AccountBalances | null;
+  isLoading: boolean;
+  isConnected: boolean;
 };
 
 export function AccountSummary({
@@ -35,8 +38,10 @@ export function AccountSummary({
   selectedAsset,
   onSelectAsset,
   balances,
+  isLoading,
+  isConnected,
 }: AccountSummaryProps) {
-  if (isNewUser) {
+  if (isNewUser && !isLoading && isConnected) {
     return (
       <Card>
         <div className="space-y-4">
@@ -52,6 +57,27 @@ export function AccountSummary({
             selectedAsset={selectedAsset}
             onSelectAsset={onSelectAsset}
           />
+        </div>
+      </Card>
+    );
+  }
+
+  if (isLoading && isConnected) {
+    return (
+      <Card>
+        <div className="space-y-4">
+          <p className="text-sm font-bold uppercase tracking-wide text-neutral-500">
+            Account Summary
+          </p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white/50 p-4">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
     );
@@ -88,7 +114,11 @@ export function AccountSummary({
         </p>
 
         <div className="space-y-3">
-          {rows.length > 0 ? (
+          {!isConnected ? (
+            <p className="text-sm text-neutral-600">
+              Connect your wallet to view positions.
+            </p>
+          ) : rows.length > 0 ? (
             rows.map((row) => (
               <PositionRow
                 key={row.asset}
@@ -100,7 +130,7 @@ export function AccountSummary({
             ))
           ) : (
             <p className="text-sm text-neutral-600">
-              Connect your wallet to view positions.
+              No active positions found.
             </p>
           )}
         </div>
@@ -125,24 +155,45 @@ function PositionRow({
     asset === "stYFI" ? "text-sunset-600" : "text-yearn-blue";
 
   return (
-    <div className="flex items-start gap-4 rounded-lg border border-neutral-200 bg-white/50 p-4">
-      <Logo className="h-10 w-10 shrink-0" aria-hidden />
-      <div className="space-y-1">
-        <p className="text-sm font-bold text-neutral-900">{asset}</p>
-        <p className="text-sm font-semibold text-neutral-900">
-          {formatTokenAmount(active)} Active
-        </p>
-        <p className="text-sm text-neutral-500">
-          {formatTokenAmount(unstaking)} Unstaking
-        </p>
-        <p
-          className={cn(
-            "text-sm font-semibold",
-            withdrawable > 0n ? accentClass : "text-neutral-400"
-          )}
-        >
-          {formatTokenAmount(withdrawable)} Withdrawable
-        </p>
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-lg border border-neutral-200 bg-white/50 p-4 transition-colors hover:bg-white">
+      <div className="flex items-center gap-3 min-w-[140px]">
+        <Logo className="h-8 w-8 shrink-0" aria-hidden />
+        <p className="text-base font-bold text-neutral-900">{asset}</p>
+      </div>
+
+      <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4 items-center">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+            Active
+          </span>
+          <span className="text-sm font-number font-bold text-neutral-900">
+            {formatTokenAmount(active)}
+          </span>
+        </div>
+
+        {unstaking > 0n ? (
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+              Unstaking
+            </span>
+            <span className="text-sm font-number font-medium text-neutral-600">
+              {formatTokenAmount(unstaking)}
+            </span>
+          </div>
+        ) : (
+          <div className="hidden sm:block" />
+        )}
+
+        {withdrawable > 0n ? (
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+              Withdrawable
+            </span>
+            <span className={cn("text-sm font-number font-bold", accentClass)}>
+              {formatTokenAmount(withdrawable)}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );

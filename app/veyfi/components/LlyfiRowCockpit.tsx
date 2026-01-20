@@ -32,6 +32,7 @@ export function LlyfiRowCockpit({ token }: { token: LlyfiTokenState }) {
       <Tabs
         activeTab={activeTab}
         onChange={(id) => setActiveTab(id as TabId)}
+        variant="line"
         tabs={[
           { id: "stake", label: copy.manage.cockpit.tabs.stake },
           {
