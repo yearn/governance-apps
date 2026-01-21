@@ -4,7 +4,9 @@ import {
   resetBridge,
   setScenario,
   setBalance,
+  setAllowance,
 } from "../utils";
+import { SPENDER_REDEMPTION } from "../../../lib/constants";
 
 test("disables redeem when caps are exhausted", async ({ page }) => {
   await page.goto("/veyfi");
@@ -12,11 +14,13 @@ test("disables redeem when caps are exhausted", async ({ page }) => {
   await resetBridge(page);
   await setScenario(page, "caps_exhausted");
   await setBalance(page, "sdYFI", "1");
+  await setAllowance(page, "sdYFI", SPENDER_REDEMPTION, "1000");
 
   const rowToggle = page.getByRole("button", { name: /sdYFI/i }).first();
   await rowToggle.click();
 
-  await page.getByRole("button", { name: /^Trade$/i }).click();
+  const rowContainer = rowToggle.locator("..");
+  await rowContainer.getByRole("button", { name: /^Trade$/i }).click();
 
   const tradeInput = page.getByPlaceholder("0.00").first();
   await tradeInput.fill("1");
