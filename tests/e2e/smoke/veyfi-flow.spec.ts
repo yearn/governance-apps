@@ -38,7 +38,15 @@ test("migrate legacy veYFI and redeem sdYFI", async ({ page }) => {
   await page.getByRole("button", { name: /Sell sdYFI/i }).click();
 
   await page.waitForFunction(
-    async (addr, prevYfi, prevSd) => {
+    async ({
+      addr,
+      prevYfi,
+      prevSd,
+    }: {
+      addr: typeof E2E_ADDRESS;
+      prevYfi: number;
+      prevSd: number;
+    }) => {
       const state = await window.__TEST__?.getState(addr);
       if (!state) return false;
       return (
@@ -46,8 +54,6 @@ test("migrate legacy veYFI and redeem sdYFI", async ({ page }) => {
         Number(state.balances.sdYFI) < Number(prevSd)
       );
     },
-    E2E_ADDRESS,
-    yfiBefore,
-    sdBefore
+    { addr: E2E_ADDRESS, prevYfi: yfiBefore, prevSd: sdBefore }
   );
 });

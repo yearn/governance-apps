@@ -81,7 +81,8 @@ export function renderWithProviders(
   ui: ReactElement,
   options: ExtendedRenderOptions = {}
 ) {
-  const { wrapper: _wrapper, ...rest } = options;
+  const { wrapper, ...rest } = options;
+  void wrapper;
   const { address, autoConnect, withIdentity, queryClient, ...rtlOptions } =
     rest;
   const { Wrapper, queryClient: client } = buildWrapper({
@@ -100,7 +101,8 @@ export function renderHookWithProviders<TProps, TResult>(
   callback: (props: TProps) => TResult,
   options: ProviderOptions & RenderHookOptions<TProps> = {}
 ) {
-  const { wrapper: _wrapper, ...rest } = options;
+  const { wrapper, ...rest } = options;
+  void wrapper;
   const { address, autoConnect, withIdentity, queryClient, ...hookOptions } =
     rest;
   const { Wrapper, queryClient: client } = buildWrapper({

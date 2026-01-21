@@ -163,3 +163,4 @@ Playwright can also be run directly:
 ## Notes
 
 - `E2E_WEB_SERVER_COMMAND` can override the Playwright web server command if you want to test `next start` instead of `next dev`.
+- Typecheck uses `types/next-shim.d.ts` to satisfy Next’s internal type imports under `.next/types`.

@@ -7,7 +7,6 @@ import type {
   VeyfiAccountState,
   LlyfiTokenId,
   VeyfiGlobalStats,
-  LlyfiGlobalInfo,
 } from "./types";
 import type { VeyfiClient } from "./client";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";

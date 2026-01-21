@@ -1,5 +1,3 @@
-import { formatPercent } from "@/lib/format";
-
 export const veyfiCopy = {
   page: {
     title: "veYFI / LLYFI",

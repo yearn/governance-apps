@@ -57,7 +57,15 @@ export const REWARD_TOKEN_CONFIG = {
 const LIQUID_LOCKER_COLUMNS = deployment.LIQUID_LOCKERS;
 
 // Liquid Lockers Configuration mapped from deployment.json arrays
-export const LIQUID_LOCKERS = LIQUID_LOCKER_COLUMNS.NAME.map((name, i) => {
+export const LIQUID_LOCKERS: ReadonlyArray<{
+  symbol: LlyfiTokenId;
+  name: string;
+  token: Address;
+  depositor: Address;
+  scale: bigint;
+  capacity: bigint;
+  index: number;
+}> = LIQUID_LOCKER_COLUMNS.NAME.map((name, i) => {
   const symbolPrefix = LIQUID_LOCKER_COLUMNS.SYMBOL?.[i];
   if (!symbolPrefix) {
     throw new Error(`Missing liquid locker symbol prefix for: ${name}`);
@@ -72,7 +80,7 @@ export const LIQUID_LOCKERS = LIQUID_LOCKER_COLUMNS.NAME.map((name, i) => {
     capacity: BigInt(LIQUID_LOCKER_COLUMNS.CAPACITY[i]),
     index: i,
   };
-}) as const;
+});
 
 export const LIQUID_LOCKER_REDEMPTION_ADDRESS: Address =
   deployment.LIQUID_LOCKER_REDEMPTION as Address;

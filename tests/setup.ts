@@ -13,7 +13,11 @@ process.env.NEXT_PUBLIC_E2E = "true";
 process.env.NEXT_PUBLIC_RPC_URLS = "http://127.0.0.1:8545";
 process.env.NEXT_PUBLIC_WC_PROJECT_ID = "test-project";
 
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & {
+    IS_REACT_ACT_ENVIRONMENT?: boolean;
+  }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 vi.mock("wagmi", async () => {
   const actual = await vi.importActual<typeof import("wagmi")>("wagmi");

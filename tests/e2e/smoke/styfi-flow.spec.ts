@@ -41,12 +41,11 @@ test("stake, cooldown, and withdraw via bridge controls", async ({ page }) => {
   const activeBefore = Number(beforeCooldown?.styfi.active ?? "0");
 
   await page.waitForFunction(
-    async (addr, prev) => {
+    async ({ addr, prev }: { addr: typeof E2E_ADDRESS; prev: number }) => {
       const state = await window.__TEST__?.getState(addr);
       return state ? Number(state.styfi.active) > Number(prev) : false;
     },
-    E2E_ADDRESS,
-    activeBefore
+    { addr: E2E_ADDRESS, prev: activeBefore }
   );
 
   await page.getByRole("button", { name: /Unstake/i }).click();
@@ -54,20 +53,23 @@ test("stake, cooldown, and withdraw via bridge controls", async ({ page }) => {
   await cooldownInput.fill("10");
   await page.getByRole("button", { name: /Start new cooldown/i }).click();
 
-  await page.waitForFunction(async (addr) => {
-    const state = await window.__TEST__?.getState(addr);
-    return state ? Number(state.styfi.cooldown) > 0 : false;
-  }, E2E_ADDRESS);
+  await page.waitForFunction(
+    async ({ addr }: { addr: typeof E2E_ADDRESS }) => {
+      const state = await window.__TEST__?.getState(addr);
+      return state ? Number(state.styfi.cooldown) > 0 : false;
+    },
+    { addr: E2E_ADDRESS }
+  );
 
   const forward = 15 * 24 * 60 * 60;
   await setNow(page, Math.floor(Date.now() / 1000) + forward);
 
   await page.waitForFunction(
-    async (addr) => {
+    async ({ addr }: { addr: typeof E2E_ADDRESS }) => {
       const state = await window.__TEST__?.getState(addr);
       return state ? Number(state.styfi.withdrawable) > 0 : false;
     },
-    E2E_ADDRESS
+    { addr: E2E_ADDRESS }
   );
 
   const withdrawButton = page.getByRole("button", { name: /^Withdraw$/i });
@@ -79,11 +81,10 @@ test("stake, cooldown, and withdraw via bridge controls", async ({ page }) => {
   await withdrawButton.click();
 
   await page.waitForFunction(
-    async (addr, prev) => {
+    async ({ addr, prev }: { addr: typeof E2E_ADDRESS; prev: number }) => {
       const state = await window.__TEST__?.getState(addr);
       return state ? Number(state.balances.YFI) > Number(prev) : false;
     },
-    E2E_ADDRESS,
-    yfiBefore
+    { addr: E2E_ADDRESS, prev: yfiBefore }
   );
 });

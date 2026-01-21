@@ -89,7 +89,7 @@ export class OnchainStyfiClient implements StyfiClient {
           account: address,
         });
         claimableRewards = result;
-      } catch (e) {
+      } catch {
         // Fallback for simulation failure (e.g. 0 rewards)
         claimableRewards = 0n;
       }

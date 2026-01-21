@@ -1,6 +1,11 @@
 import type { Page } from "@playwright/test";
+import type { Address } from "viem";
+import type { TestBridge, TokenSymbol } from "@/lib/test-bridge";
 
-export const E2E_ADDRESS = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
+type ScenarioName = Parameters<TestBridge["setScenario"]>[0];
+
+export const E2E_ADDRESS =
+  "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266" as Address;
 
 export async function waitForTestBridge(page: Page) {
   await page.waitForFunction(() => !!window.__TEST__);
@@ -14,9 +19,9 @@ export async function resetBridge(page: Page) {
 
 export async function setBalance(
   page: Page,
-  symbol: string,
+  symbol: TokenSymbol,
   amount: string,
-  address = E2E_ADDRESS
+  address: Address = E2E_ADDRESS
 ) {
   await page.evaluate(
     async ({ addr, sym, amt }) => {
@@ -28,10 +33,10 @@ export async function setBalance(
 
 export async function setAllowance(
   page: Page,
-  symbol: string,
-  spender: string,
+  symbol: TokenSymbol,
+  spender: Address,
   amount: string,
-  address = E2E_ADDRESS
+  address: Address = E2E_ADDRESS
 ) {
   await page.evaluate(
     async ({ addr, sym, sp, amt }) => {
@@ -41,7 +46,7 @@ export async function setAllowance(
   );
 }
 
-export async function setScenario(page: Page, name: string) {
+export async function setScenario(page: Page, name: ScenarioName) {
   await page.evaluate(async (scenario) => {
     await window.__TEST__?.setScenario(scenario);
   }, name);
@@ -53,7 +58,7 @@ export async function setNow(page: Page, timestamp: number) {
   }, timestamp);
 }
 
-export async function getState(page: Page, address = E2E_ADDRESS) {
+export async function getState(page: Page, address: Address = E2E_ADDRESS) {
   return page.evaluate(async (addr) => {
     return window.__TEST__?.getState(addr);
   }, address);

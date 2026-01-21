@@ -1,0 +1,50 @@
+type UnknownRecord = Record<string, unknown>;
+
+declare module "next" {
+  export type Metadata = UnknownRecord;
+  export type Viewport = UnknownRecord;
+  export type NextConfig = UnknownRecord;
+  const Next: unknown;
+  export default Next;
+}
+
+declare module "next/link" {
+  import type { ComponentType, ReactNode } from "react";
+  export type LinkProps = {
+    href: string;
+    className?: string;
+    children?: ReactNode;
+    prefetch?: boolean;
+    replace?: boolean;
+    scroll?: boolean;
+    target?: string;
+    rel?: string;
+  };
+  const Link: ComponentType<LinkProps>;
+  export default Link;
+}
+
+declare module "next/navigation" {
+  export function usePathname(): string | null;
+  export function useRouter(): unknown;
+  export function useSearchParams(): URLSearchParams;
+}
+
+declare module "next/types.js" {
+  export type Metadata = UnknownRecord;
+  export type Viewport = UnknownRecord;
+  export type ResolvingMetadata = UnknownRecord;
+  export type ResolvingViewport = UnknownRecord;
+}
+
+declare module "next/dist/lib/metadata/types/metadata-interface.js" {
+  export type Metadata = UnknownRecord;
+  export type Viewport = UnknownRecord;
+  export type ResolvingMetadata = UnknownRecord;
+  export type ResolvingViewport = UnknownRecord;
+}
+
+declare module "next/dist/build/segment-config/app/app-segment-config.js" {
+  export type AppSegmentConfig = UnknownRecord;
+  export type PrefetchForTypeCheckInternal = UnknownRecord;
+}

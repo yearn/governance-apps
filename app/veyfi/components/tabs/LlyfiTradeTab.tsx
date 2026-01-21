@@ -214,9 +214,11 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
             }
             isLoading={isSubmitting}
             onClick={() => {
-              isSell
-                ? redeem(token.symbol, amount)
-                : mint(token.symbol, amount);
+              if (isSell) {
+                redeem(token.symbol, amount);
+              } else {
+                mint(token.symbol, amount);
+              }
             }}
           >
             {isSell ? `Sell ${token.symbol}` : `Buy ${token.symbol}`}
