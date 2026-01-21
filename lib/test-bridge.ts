@@ -118,23 +118,23 @@ export function createTestBridge({
   queryClient,
 }: TestBridgeDeps): TestBridge {
   const debugSetStyfiBalance = requireDebugMethod(
-    styfi.debugSetBalance,
+    styfi.debugSetBalance?.bind(styfi),
     "styfi.debugSetBalance"
   );
   const debugSetStyfiAllowance = requireDebugMethod(
-    styfi.debugSetAllowance,
+    styfi.debugSetAllowance?.bind(styfi),
     "styfi.debugSetAllowance"
   );
   const debugSetVeyfiAllowance = requireDebugMethod(
-    veyfi.debugSetAllowance,
+    veyfi.debugSetAllowance?.bind(veyfi),
     "veyfi.debugSetAllowance"
   );
   const debugSetPendingVeYfi = requireDebugMethod(
-    veyfi.debugSetPendingVeYfi,
+    veyfi.debugSetPendingVeYfi?.bind(veyfi),
     "veyfi.debugSetPendingVeYfi"
   );
   const debugSetLlyfiBalance = requireDebugMethod(
-    veyfi.debugSetLlyfiBalance,
+    veyfi.debugSetLlyfiBalance?.bind(veyfi),
     "veyfi.debugSetLlyfiBalance"
   );
 
@@ -148,7 +148,7 @@ export function createTestBridge({
 
   const setNow = async (timestamp: number) => {
     setFixedNow(timestamp);
-    await queryClient.invalidateQueries();
+    await queryClient.invalidateQueries({ refetchType: "all" });
   };
 
   const getState = async (address: Address) => {
@@ -239,7 +239,7 @@ export function createTestBridge({
       debugSetStyfiBalance(address, mode, delta);
     }
 
-    await queryClient.invalidateQueries();
+    await queryClient.invalidateQueries({ refetchType: "all" });
   };
 
   const setAllowance = async (
@@ -259,7 +259,7 @@ export function createTestBridge({
     debugSetStyfiAllowance(address, tokenAddress, spender, parsed);
     debugSetVeyfiAllowance(address, tokenAddress, spender, parsed);
 
-    await queryClient.invalidateQueries();
+    await queryClient.invalidateQueries({ refetchType: "all" });
   };
 
   const setScenario = async (
@@ -276,7 +276,7 @@ export function createTestBridge({
       setMockRedemptionCapsExhausted();
     }
 
-    await queryClient.invalidateQueries();
+    await queryClient.invalidateQueries({ refetchType: "all" });
   };
 
   return {

@@ -4,9 +4,11 @@ import {
   resetBridge,
   setScenario,
   setBalance,
+  setAllowance,
   getState,
   E2E_ADDRESS,
 } from "../utils";
+import { SPENDER_REDEMPTION } from "../../../lib/constants";
 
 test("migrate legacy veYFI and redeem sdYFI", async ({ page }) => {
   await page.goto("/veyfi");
@@ -19,11 +21,13 @@ test("migrate legacy veYFI and redeem sdYFI", async ({ page }) => {
   await expect(page.getByText(/veYFI Boost Active/i)).toBeVisible();
 
   await setBalance(page, "sdYFI", "100");
+  await setAllowance(page, "sdYFI", SPENDER_REDEMPTION, "1000");
 
   const rowToggle = page.getByRole("button", { name: /sdYFI/i }).first();
   await rowToggle.click();
 
-  await page.getByRole("button", { name: /^Trade$/i }).click();
+  const rowContainer = rowToggle.locator("..");
+  await rowContainer.getByRole("button", { name: /^Trade$/i }).click();
 
   const before = await getState(page);
   const yfiBefore = Number(before?.balances.YFI ?? "0");

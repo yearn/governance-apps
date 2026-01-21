@@ -3,10 +3,12 @@ import {
   waitForTestBridge,
   resetBridge,
   setBalance,
+  setAllowance,
   setNow,
   getState,
   E2E_ADDRESS,
 } from "../utils";
+import { SPENDER_STYFI, SPENDER_STYFIX } from "../../../lib/constants";
 
 test("stake, cooldown, and withdraw via bridge controls", async ({ page }) => {
   await page.goto("/styfi");
@@ -14,10 +16,26 @@ test("stake, cooldown, and withdraw via bridge controls", async ({ page }) => {
   await resetBridge(page);
 
   await setBalance(page, "YFI", "100");
+  await setAllowance(page, "YFI", SPENDER_STYFI, "1000");
+  await setAllowance(page, "YFI", SPENDER_STYFIX, "1000");
+  await page.getByRole("button", { name: /^stYFI$/i }).click();
 
   const stakeInput = page.getByPlaceholder("0.00").first();
+  await expect(stakeInput).toBeEnabled();
   await stakeInput.fill("10");
-  await page.getByRole("button", { name: /Stake YFI/i }).click();
+
+  const approveButton = page.getByRole("button", { name: /Approve YFI/i });
+  if (await approveButton.isVisible()) {
+    await approveButton.click();
+    await expect(
+      page.getByRole("button", { name: /Stake YFI/i })
+    ).toBeVisible();
+  }
+
+  await stakeInput.fill("10");
+  const stakeButton = page.getByRole("button", { name: /Stake YFI/i });
+  await expect(stakeButton).toBeEnabled();
+  await stakeButton.click();
 
   const beforeCooldown = await getState(page);
   const activeBefore = Number(beforeCooldown?.styfi.active ?? "0");
@@ -43,6 +61,14 @@ test("stake, cooldown, and withdraw via bridge controls", async ({ page }) => {
 
   const forward = 15 * 24 * 60 * 60;
   await setNow(page, Math.floor(Date.now() / 1000) + forward);
+
+  await page.waitForFunction(
+    async (addr) => {
+      const state = await window.__TEST__?.getState(addr);
+      return state ? Number(state.styfi.withdrawable) > 0 : false;
+    },
+    E2E_ADDRESS
+  );
 
   const withdrawButton = page.getByRole("button", { name: /^Withdraw$/i });
   await expect(withdrawButton).toBeEnabled();

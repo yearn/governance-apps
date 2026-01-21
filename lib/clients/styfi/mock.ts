@@ -13,6 +13,7 @@ import {
   STREAM_DURATION,
   EPOCH_LENGTH,
   MOCK_YFI_ADDRESS,
+  YFI_ADDRESS,
 } from "@/lib/constants";
 import { nowSeconds } from "@/lib/mocks/time";
 
@@ -25,6 +26,21 @@ let pendingStyfixBalance: bigint = 0n;
 function nextMockHash(): TransactionHash {
   txCounter++;
   return `0x${txCounter.toString(16).padStart(64, "0")}` as TransactionHash;
+}
+
+function cloneState<T>(value: T): T {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
+  return JSON.parse(
+    JSON.stringify(value, (_k, v) =>
+      typeof v === "bigint" ? `BIGINT::${v.toString()}` : v
+    ),
+    (_k, v) =>
+      typeof v === "string" && v.startsWith("BIGINT::")
+        ? BigInt(v.slice("BIGINT::".length))
+        : v
+  );
 }
 
 // Vyper-aligned maxWithdraw calculation
@@ -143,7 +159,7 @@ export class MockStyfiClient implements StyfiClient {
       state.styfiX.assetsUnlocked
     );
 
-    return state;
+    return cloneState(state);
   }
 
   async getEpochInfo(): Promise<EpochInfo> {
@@ -332,7 +348,8 @@ export function readMockStyfiAllowance(
   // Mock Styfi Client only cares about YFI approvals
   const isYfi =
     token.toLowerCase() === MOCK_YFI_ADDRESS.toLowerCase() ||
-    token.toLowerCase() === "0xd4c188f035793eecaa53808cc067099100b653ba"; // Real YFI
+    token.toLowerCase() === YFI_ADDRESS.toLowerCase() ||
+    token.toLowerCase() === "0xd4c188f035793eecaa53808cc067099100b653ba"; // Legacy real YFI
 
   if (!isYfi) return 0n;
 

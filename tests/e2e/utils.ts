@@ -26,6 +26,21 @@ export async function setBalance(
   );
 }
 
+export async function setAllowance(
+  page: Page,
+  symbol: string,
+  spender: string,
+  amount: string,
+  address = E2E_ADDRESS
+) {
+  await page.evaluate(
+    async ({ addr, sym, sp, amt }) => {
+      await window.__TEST__?.setAllowance(addr, sym, sp, amt);
+    },
+    { addr: address, sym: symbol, sp: spender, amt: amount }
+  );
+}
+
 export async function setScenario(page: Page, name: string) {
   await page.evaluate(async (scenario) => {
     await window.__TEST__?.setScenario(scenario);
