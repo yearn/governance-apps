@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { waitFor } from "@testing-library/react";
+import { act, waitFor } from "@testing-library/react";
 import { renderHookWithProviders } from "@/tests/test-utils";
 import { useTx } from "@/lib/tx/useTx";
 import { styfiKeys } from "@/lib/hooks/useStyfi";
@@ -39,22 +39,29 @@ describe("useTx", () => {
 
     expect(result.current.state.status).toBe("idle");
 
-    const execPromise = result.current.execute(prepared, {
-      invalidate: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: styfiKeys.account(E2E_MOCK_ADDRESS),
-        });
-      },
+    let execPromise: Promise<void>;
+    await act(async () => {
+      execPromise = result.current.execute(prepared, {
+        invalidate: async () => {
+          await queryClient.invalidateQueries({
+            queryKey: styfiKeys.account(E2E_MOCK_ADDRESS),
+          });
+        },
+      });
     });
 
     await waitFor(() => {
       expect(result.current.state.status).toBe("mining");
     });
 
-    resolveReceipt!();
-    await execPromise;
+    await act(async () => {
+      resolveReceipt!();
+      await execPromise!;
+    });
 
-    expect(result.current.state.status).toBe("success");
+    await waitFor(() => {
+      expect(result.current.state.status).toBe("success");
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: styfiKeys.account(E2E_MOCK_ADDRESS),
     });

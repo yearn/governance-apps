@@ -14,10 +14,8 @@ describe("useStyfiAccount", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.account.data).not.toBeNull();
+      expect(result.current.account.data?.styfiActive).toBe(0n);
     });
-
-    expect(result.current.account.data?.styfiActive).toBe(0n);
 
     result.current.styfi.debugSetBalance?.(
       E2E_MOCK_ADDRESS,

@@ -39,7 +39,10 @@ describe("UnstakePanel", () => {
   it("shows start cooldown input when no liquid is available", () => {
     render(<UnstakePanel {...baseProps} />);
 
-    expect(screen.getByText(/Start new cooldown/i)).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: /Start new cooldown/i })
+    ).toBeVisible();
+    expect(screen.getByPlaceholderText("0.00")).toBeVisible();
   });
 
   it("calls onWithdraw when withdraw is clicked", async () => {

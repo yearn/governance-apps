@@ -10,6 +10,7 @@ export default defineConfig({
     ],
     include: ["tests/**/*.{test,spec}.{ts,tsx}"],
     setupFiles: ["tests/setup.ts"],
+    exclude: ["tests/e2e/**"],
   },
   resolve: {
     alias: {

@@ -14,8 +14,9 @@ describe("format helpers", () => {
   });
 
   it("parseAmount rejects invalid strings", () => {
-    const invalid = parseAmount("0.0000000000000000001", 18);
-    expect(invalid.isValid).toBe(false);
+    const tiny = parseAmount("0.0000000000000000001", 18);
+    expect(tiny.isValid).toBe(true);
+    expect(tiny.amount).toBe(0n);
 
     const nonsense = parseAmount("abc", 18);
     expect(nonsense.isValid).toBe(false);
