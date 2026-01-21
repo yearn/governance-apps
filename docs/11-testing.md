@@ -139,8 +139,10 @@ Current commands:
 - `npm run test` (Vitest)
 - `npm run lint`
 - `npm run typecheck`
+- `npm run test:e2e` (Playwright smoke)
+- `npm run test:e2e:full` (Playwright full)
 
-When Playwright is installed:
+Playwright can also be run directly:
 
 - `npx playwright test --project=smoke`
 - `npx playwright test --project=full`
@@ -158,8 +160,6 @@ When Playwright is installed:
 - UI not updating: ensure bridge mutations are awaited (React Query invalidates).
 - Cap tests failing: use `setScenario("caps_exhausted")` to force caps.
 
-## Future Work (Planned)
+## Notes
 
-- Add Vitest + RTL integration harness in `tests/test-utils.tsx`.
-- Add Playwright config with `smoke` and `full` projects.
-- Migrate existing tests into layer-specific folders.
+- `E2E_WEB_SERVER_COMMAND` can override the Playwright web server command if you want to test `next start` instead of `next dev`.
