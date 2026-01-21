@@ -35,7 +35,10 @@ export function normalizeTxError(raw: unknown): NormalizedError {
     };
   }
 
-  if (text.includes("cap") && text.includes("exceed")) {
+  if (
+    (text.includes("cap") || text.includes("limit")) &&
+    text.includes("exceed")
+  ) {
     return {
       code: "cap_exceeded",
       message: "Redemption cap reached. Try a smaller amount or later.",

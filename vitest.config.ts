@@ -3,9 +3,13 @@ import path from "node:path";
 
 export default defineConfig({
   test: {
-    environment: "node",
     globals: true,
-    include: ["tests/**/*.{test,spec}.ts"],
+    environment: "node",
+    environmentMatchGlobs: [
+      ["**/*.{test,spec}.tsx", "jsdom"],
+    ],
+    include: ["tests/**/*.{test,spec}.{ts,tsx}"],
+    setupFiles: ["tests/setup.ts"],
   },
   resolve: {
     alias: {
