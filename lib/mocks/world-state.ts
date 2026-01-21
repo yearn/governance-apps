@@ -28,6 +28,18 @@ export const GLOBAL_WORLD_STATE = {
     this.save();
   },
 
+  setYfi(address: Address, amount: bigint) {
+    const state = this.get(address);
+    state.yfiBalance = amount;
+    this.save();
+  },
+
+  setBlacklisted(address: Address, value: boolean) {
+    const state = this.get(address);
+    state.isBlacklisted = value;
+    this.save();
+  },
+
   save() {
     if (typeof window === "undefined") return;
     const data = Array.from(this.users.entries());
@@ -50,6 +62,16 @@ export const GLOBAL_WORLD_STATE = {
           : v
       );
       this.users = new Map(data);
+    } catch {
+      /* Best effort */
+    }
+  },
+
+  reset() {
+    this.users = new Map();
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.removeItem("mock_world_identity");
     } catch {
       /* Best effort */
     }

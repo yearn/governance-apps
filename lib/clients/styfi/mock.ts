@@ -20,6 +20,8 @@ const GLOBAL_STYFI_STORE = new Map<string, StyfiAccountState>();
 const GLOBAL_LAST_ACCRUAL = new Map<string, number>();
 
 let txCounter = 0;
+let pendingStyfiBalance: bigint = 0n;
+let pendingStyfixBalance: bigint = 0n;
 function nextMockHash(): TransactionHash {
   txCounter++;
   return `0x${txCounter.toString(16).padStart(64, "0")}` as TransactionHash;
@@ -98,6 +100,16 @@ export class MockStyfiClient implements StyfiClient {
     this.lastAddress = address;
     await new Promise((r) => setTimeout(r, this.latencyMs));
     const state = this.getOrCreate(address);
+
+    if (pendingStyfiBalance > 0n) {
+      state.styfiActive += pendingStyfiBalance;
+      pendingStyfiBalance = 0n;
+    }
+    if (pendingStyfixBalance > 0n) {
+      state.styfiX.assetsActive += pendingStyfixBalance;
+      state.styfiX.sharesActive += pendingStyfixBalance;
+      pendingStyfixBalance = 0n;
+    }
 
     const now = nowSeconds();
     const last = GLOBAL_LAST_ACCRUAL.get(address.toLowerCase()) || now;
@@ -269,6 +281,25 @@ export class MockStyfiClient implements StyfiClient {
     }
   }
 
+  debugSetBalance(u: Address, mode: StyfiStakeMode, amount: bigint) {
+    const state = this.getOrCreate(u);
+    if (mode === "stYFI") {
+      const nextActive = state.styfiActive + amount;
+      state.styfiActive = nextActive > 0n ? nextActive : 0n;
+    } else {
+      const nextActive = state.styfiX.assetsActive + amount;
+      const clamped = nextActive > 0n ? nextActive : 0n;
+      state.styfiX.assetsActive = clamped;
+      state.styfiX.sharesActive = clamped;
+    }
+    GLOBAL_LAST_ACCRUAL.set(u.toLowerCase(), nowSeconds());
+  }
+
+  debugSetPendingBalance(mode: StyfiStakeMode, amount: bigint) {
+    if (mode === "stYFI") pendingStyfiBalance = amount;
+    else pendingStyfixBalance = amount;
+  }
+
   debugMintYfi(u: Address, a: bigint) {
     GLOBAL_WORLD_STATE.updateYfi(u, a);
   }
@@ -281,6 +312,9 @@ export function createMockStyfiClient(options?: { latencyMs?: number }) {
 export function resetMockStyfiStore() {
   GLOBAL_STYFI_STORE.clear();
   GLOBAL_LAST_ACCRUAL.clear();
+  txCounter = 0;
+  pendingStyfiBalance = 0n;
+  pendingStyfixBalance = 0n;
 }
 
 /**

@@ -432,6 +432,7 @@ export function resetMockVeyfiStore() {
   GLOBAL_VEYFI_STORE.clear();
   GLOBAL_YFI_ALLOWANCE_STORE.clear();
   GLOBAL_PENDING_VEYFI = 0n;
+  txCounter = 0;
   // Reset Global Redemption
   GLOBAL_REDEMPTION.inventory = 600n * 10n ** 18n;
   GLOBAL_REDEMPTION.tokens.sdYFI.used = 200n * 10n ** 18n;
@@ -440,6 +441,17 @@ export function resetMockVeyfiStore() {
   GLOBAL_REDEMPTION.tokens.upYFI.inventory = 5000n * 10n ** 18n;
   GLOBAL_REDEMPTION.tokens.coveYFI.used = 10n * 10n ** 18n;
   GLOBAL_REDEMPTION.tokens.coveYFI.inventory = 20n * 10n ** 18n;
+}
+
+export function setMockRedemptionCapsExhausted() {
+  GLOBAL_REDEMPTION.inventory = 0n;
+  GLOBAL_REDEMPTION.tokens.sdYFI.used = GLOBAL_REDEMPTION.tokens.sdYFI.capacity;
+  GLOBAL_REDEMPTION.tokens.sdYFI.inventory = 0n;
+  GLOBAL_REDEMPTION.tokens.upYFI.used = GLOBAL_REDEMPTION.tokens.upYFI.capacity;
+  GLOBAL_REDEMPTION.tokens.upYFI.inventory = 0n;
+  GLOBAL_REDEMPTION.tokens.coveYFI.used =
+    GLOBAL_REDEMPTION.tokens.coveYFI.capacity;
+  GLOBAL_REDEMPTION.tokens.coveYFI.inventory = 0n;
 }
 
 export function readMockVeyfiAllowance(

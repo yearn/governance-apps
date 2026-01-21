@@ -1,7 +1,9 @@
 "use client";
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { createConfig, mock } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { defineChain, http, fallback } from "viem";
+import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
 
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
 const rawRpcUrls = (process.env.NEXT_PUBLIC_RPC_URLS ?? "")
@@ -49,16 +51,34 @@ if (!projectId) {
   console.warn("NEXT_PUBLIC_WC_PROJECT_ID is not set.");
 }
 
-export const wagmiConfig = getDefaultConfig({
-  appName: "Yearn Governance Apps",
-  projectId: projectId || "demo-project-id",
-  // Using the fork definition for Chain ID 1
-  chains: [mainnetFork],
-  transports: {
-    [mainnetFork.id]:
-      rpcUrls.length > 1
-        ? fallback(rpcUrls.map((url) => http(url)))
-        : http(rpcUrls[0]),
-  },
-  ssr: true,
-});
+const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+const transports = {
+  [mainnetFork.id]:
+    rpcUrls.length > 1
+      ? fallback(rpcUrls.map((url) => http(url)))
+      : http(rpcUrls[0]),
+};
+
+export const wagmiConfig = isE2E
+  ? createConfig({
+      chains: [mainnetFork],
+      transports,
+      ssr: true,
+      connectors: [
+        mock({
+          accounts: [E2E_MOCK_ADDRESS],
+          features: {
+            defaultConnected: true,
+            reconnect: true,
+          },
+        }),
+      ],
+    })
+  : getDefaultConfig({
+      appName: "Yearn Governance Apps",
+      projectId: projectId || "demo-project-id",
+      // Using the fork definition for Chain ID 1
+      chains: [mainnetFork],
+      transports,
+      ssr: true,
+    });

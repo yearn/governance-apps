@@ -1,4 +1,5 @@
 import { formatUnits } from "viem";
+import { nowSeconds as getNowSeconds } from "@/lib/mocks/time";
 
 /**
  * Human-friendly token amount formatter.
@@ -53,10 +54,10 @@ export function formatPercent(
 export function getCurrentEpoch(
   genesis: bigint,
   epochLengthSeconds: number,
-  nowSeconds = Math.floor(Date.now() / 1000)
+  nowSecondsInput?: number
 ): number {
   const epochLength = BigInt(epochLengthSeconds);
-  const now = BigInt(nowSeconds);
+  const now = BigInt(nowSecondsInput ?? getNowSeconds());
   const timeSinceGenesis = now > genesis ? now - genesis : 0n;
 
   return Number(timeSinceGenesis / epochLength);
@@ -65,13 +66,13 @@ export function getCurrentEpoch(
 export function getEpochInfo(
   genesis: bigint,
   epochLengthSeconds: number,
-  nowSeconds = Math.floor(Date.now() / 1000)
+  nowSecondsInput?: number
 ): { currentEpoch: number; epochStart: number; epochEnd: number } {
   const epochLength = BigInt(epochLengthSeconds);
   const currentEpoch = getCurrentEpoch(
     genesis,
     epochLengthSeconds,
-    nowSeconds
+    nowSecondsInput
   );
   const epochStart = genesis + BigInt(currentEpoch) * epochLength;
   const epochEnd = epochStart + epochLength;

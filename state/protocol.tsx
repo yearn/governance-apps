@@ -9,6 +9,7 @@ import { createMockVeyfiClient } from "@/lib/clients/veyfi/mock";
 import { OnchainStyfiClient } from "@/lib/clients/styfi/onchain";
 import { OnchainVeyfiClient } from "@/lib/clients/veyfi/onchain"; // [New]
 import { usePublicClient } from "wagmi";
+import { TestBridgeListener } from "@/components/TestBridgeListener";
 
 type ProtocolContextValue = {
   styfi: StyfiClient;
@@ -20,7 +21,9 @@ type ProtocolContextValue = {
 const ProtocolContext = createContext<ProtocolContextValue | null>(null);
 
 export function ProtocolProvider({ children }: { children: ReactNode }) {
-  const preferMocks = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
+  const preferMocks =
+    process.env.NEXT_PUBLIC_USE_MOCKS === "true" ||
+    process.env.NEXT_PUBLIC_E2E === "true";
 
   // This hook is reactive. It updates when the connected chain changes.
   const publicClient = usePublicClient();
@@ -58,6 +61,11 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
   return (
     <ProtocolContext.Provider value={value}>
       {children}
+      <TestBridgeListener
+        styfi={value.styfi}
+        veyfi={value.veyfi}
+        enabled={process.env.NEXT_PUBLIC_E2E === "true"}
+      />
     </ProtocolContext.Provider>
   );
 }
