@@ -1,5 +1,6 @@
 // lib/constants.ts
 import { Address, parseUnits } from "viem";
+import type { LlyfiTokenId } from "./clients/veyfi/types";
 import deployment from "./deployment.json";
 
 // Protocol Genesis Timestamp (from deployment.json)
@@ -53,23 +54,17 @@ export const REWARD_TOKEN_CONFIG = {
 
 // --- VeYFI / LLYFI Domain ---
 
-const SYMBOL_MAP = {
-  StakeDAO: "sdYFI",
-  "1UP": "upYFI",
-  Cove: "coveYFI",
-} as const;
-
 const LIQUID_LOCKER_COLUMNS = deployment.LIQUID_LOCKERS;
 
 // Liquid Lockers Configuration mapped from deployment.json arrays
 export const LIQUID_LOCKERS = LIQUID_LOCKER_COLUMNS.NAME.map((name, i) => {
-  const symbol = SYMBOL_MAP[name as keyof typeof SYMBOL_MAP];
-  if (!symbol) {
-    throw new Error(`Unknown liquid locker name: ${name}`);
+  const symbolPrefix = LIQUID_LOCKER_COLUMNS.SYMBOL?.[i];
+  if (!symbolPrefix) {
+    throw new Error(`Missing liquid locker symbol prefix for: ${name}`);
   }
 
   return {
-    symbol,
+    symbol: `${symbolPrefix}YFI` as LlyfiTokenId,
     name,
     token: LIQUID_LOCKER_COLUMNS.TOKEN[i] as Address,
     depositor: LIQUID_LOCKER_COLUMNS.DEPOSITOR[i] as Address,

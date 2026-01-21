@@ -17,6 +17,11 @@
       "1UP",
       "Cove"
     ],
+    "SYMBOL": [
+      "sd",
+      "up",
+      "cove"
+    ],
     "TOKEN": [
       "0x97983236bE88107Cc8998733Ef73D8d969c52E37",
       "0xCb7DCe63aBE175cA354Dcca9cc10554D255777Ee",
