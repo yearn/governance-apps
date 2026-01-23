@@ -90,7 +90,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   );
 
   return (
-    <div className="group bg-white transition-colors hover:bg-neutral-50 last:rounded-b-box border-b last:border-b-0 border-neutral-100">
+    <div className="group bg-surface transition-colors hover:bg-surface-secondary last:rounded-b-box border-b last:border-b-0 border-border">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full grid grid-cols-[1.5fr_1.2fr_1.2fr_1.2fr_1.5fr_60px] items-center p-4 text-left outline-none"

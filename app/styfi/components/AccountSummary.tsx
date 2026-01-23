@@ -70,7 +70,7 @@ export function AccountSummary({
             Account Summary
           </p>
           <div className="space-y-3">
-            <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white/50 p-4">
+            <div className="flex items-center gap-4 rounded-lg border border-border bg-surface/50 p-4">
               <Skeleton className="h-10 w-10 rounded-full" />
               <div className="space-y-2">
                 <Skeleton className="h-4 w-24" />
@@ -155,7 +155,7 @@ function PositionRow({
     asset === "stYFI" ? "text-sunset-600" : "text-yearn-blue";
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-lg border border-neutral-200 bg-white/50 p-4 transition-colors hover:bg-white">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-lg border border-border bg-surface/50 p-4 transition-colors hover:bg-surface">
       <div className="flex items-center gap-3 min-w-[140px]">
         <Logo className="h-8 w-8 shrink-0" aria-hidden />
         <p className="text-base font-bold text-neutral-900">{asset}</p>

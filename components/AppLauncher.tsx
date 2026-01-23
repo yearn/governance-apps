@@ -1,49 +1,55 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { LogoYearn } from "@/components/icons/LogoYearn";
-import { useClickOutside } from "@/lib/hooks/useClickOutside";
+import { useRef, useState } from "react";
+import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
+import { IconChevron } from "@/components/icons/IconChevron";
+import { LauncherDropdown } from "@/components/launcher/LauncherDropdown";
 import { cn } from "@/lib/cn";
-import { appCopy } from "@/app/_shared/messages";
 
 export function AppLauncher() {
   const [isOpen, setIsOpen] = useState(false);
-  const ref = useClickOutside<HTMLDivElement>(() => setIsOpen(false));
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 150);
+  };
 
   return (
-    <div className="relative" ref={ref}>
+    <div
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-neutral-200 transition-colors"
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        onMouseDown={(event) => event.stopPropagation()}
+        className="flex items-center gap-2 transition-colors hover:opacity-80"
+        aria-label="Open Yearn apps"
       >
-        <LogoYearn className="w-8 h-8 text-yearn-blue" />
+        <TypeMarkYearn
+          className="h-8 w-auto text-yearn-blue dark:text-text-primary"
+          color="currentColor"
+        />
+        <IconChevron
+          className={cn(
+            "h-4 w-4 text-text-tertiary transition-transform",
+            isOpen ? "rotate-180" : ""
+          )}
+        />
       </button>
 
-      {/* Dropdown */}
-      <div
-        className={cn(
-          "absolute top-12 left-0 w-[280px] p-4 bg-white border border-neutral-300 rounded-box shadow-lg transition-all duration-200 origin-top-left z-50",
-          isOpen
-            ? "opacity-100 scale-100 pointer-events-auto"
-            : "opacity-0 scale-95 pointer-events-none"
-        )}
-      >
-        <div className="grid grid-cols-2 gap-2">
-          {appCopy.launcher.apps.map((app) => (
-            <Link
-              key={app.name}
-              href={app.href}
-              target="_blank"
-              className="flex flex-col items-center justify-center p-4 rounded-md hover:bg-neutral-100 transition-colors text-center"
-            >
-              <span className="text-sm font-bold text-neutral-900">
-                {app.name}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </div>
+      <LauncherDropdown isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
 }

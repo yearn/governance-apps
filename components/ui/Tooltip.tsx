@@ -48,10 +48,10 @@ export function Tooltip({
           sideClasses,
 
           // Visuals (Pop-over Card style)
-          "rounded-md border border-neutral-200 bg-white p-3 shadow-xl", // Increased padding/shadow
+          "rounded-md border border-border bg-surface p-3 shadow-xl", // Increased padding/shadow
 
           // Typography
-          "text-xs font-normal text-neutral-600 leading-relaxed",
+          "text-xs font-normal text-text-secondary leading-relaxed",
 
           // Animation
           "transition-all duration-200 ease-out origin-center",

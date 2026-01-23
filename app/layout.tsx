@@ -6,6 +6,7 @@ import { ProtocolProvider } from "@/state/protocol";
 import { IdentityProvider } from "@/state/identity";
 import { Toaster } from "@/components/ui/Toast";
 import { Header } from "@/components/Header";
+import { ThemeScript } from "@/components/ThemeScript";
 
 export const metadata: Metadata = {
   title: "Yearn Governance Apps",
@@ -20,12 +21,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        <ThemeScript />
         <Web3Providers>
           <ProtocolProvider>
             <IdentityProvider>
               {" "}
               {/* Added */}
-              <div className="flex min-h-screen flex-col bg-background text-neutral-900 font-sans">
+              <div className="flex min-h-screen flex-col bg-app text-text-primary font-sans">
                 <Header />
                 <main className="flex-1">{children}</main>
               </div>

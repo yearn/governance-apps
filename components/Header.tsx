@@ -9,6 +9,7 @@ import { appCopy } from "@/app/_shared/messages";
 import { useIdentity } from "@/state/identity";
 import { useEffect, useMemo, useState } from "react";
 import { nowSeconds } from "@/lib/mocks/time";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export function Header() {
   const pathname = usePathname();
@@ -27,21 +28,21 @@ export function Header() {
   }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-neutral-200 bg-neutral-100/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-app/80 backdrop-blur-md">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-4">
           <AppLauncher />
-          <div className="hidden h-6 w-px bg-neutral-300 md:block" />
+          <div className="hidden h-6 w-px bg-border md:block" />
           <nav className="hidden gap-6 md:flex">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "text-sm font-bold transition-colors",
+                  "text-sm font-semibold transition-colors",
                   item.variant === "primary"
-                    ? "text-neutral-900"
-                    : "text-neutral-500 hover:text-neutral-900"
+                    ? "text-text-primary"
+                    : "text-text-secondary hover:text-text-primary"
                 )}
               >
                 {item.label}
@@ -52,6 +53,7 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           {epoch && <EpochCountdownBadge epoch={epoch} />}
+          <ThemeToggle />
           <WalletButton />
         </div>
       </div>
@@ -76,9 +78,9 @@ function EpochCountdownBadge({
   const h = Math.floor((rem % 86400) / 3600);
 
   return (
-    <div className="flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs font-bold">
-      <span className="text-neutral-500">Epoch {epoch.currentEpoch}</span>
-      <span className="text-neutral-300">&#183;</span>
+    <div className="flex items-center gap-1 rounded-full border border-border bg-surface px-3 py-1 text-xs font-bold">
+      <span className="text-text-secondary">Epoch {epoch.currentEpoch}</span>
+      <span className="text-text-tertiary">&#183;</span>
       <span>
         {d}d {h}h left
       </span>

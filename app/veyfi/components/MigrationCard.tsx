@@ -60,7 +60,7 @@ export function MigrationCard() {
   if (showAction) {
     // PRE-MIGRATION STATE (Uses veYFI Balance)
     return (
-      <Card className="bg-neutral-900 text-white border-neutral-700 overflow-hidden relative">
+      <Card className="bg-neutral-900 text-neutral-0 border-neutral-700 overflow-hidden relative dark:bg-surface dark:text-text-primary dark:border-border">
         {/* Ambient glow effect */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-disco-900/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
@@ -70,17 +70,19 @@ export function MigrationCard() {
               <h3 className="text-sm font-bold uppercase tracking-wide text-disco-300 mb-1">
                 {copy.migration.legacy.statLabel}
               </h3>
-              <p className="text-4xl font-number font-bold text-white">
+              <p className="text-4xl font-number font-bold text-neutral-0 dark:text-text-primary">
                 {formattedLegacy}{" "}
-                <span className="text-lg text-neutral-400">veYFI</span>
+                <span className="text-lg text-neutral-400 dark:text-text-tertiary">
+                  veYFI
+                </span>
               </p>
             </div>
 
             <div className="space-y-1">
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-neutral-0 dark:text-text-primary">
                 {copy.migration.legacy.title}
               </h3>
-              <p className="text-neutral-400 text-sm max-w-lg leading-relaxed">
+              <p className="text-neutral-400 dark:text-text-tertiary text-sm max-w-lg leading-relaxed">
                 {copy.migration.legacy.description}
               </p>
             </div>
@@ -150,7 +152,7 @@ export function MigrationCard() {
           </div>
 
           {/* Right: Visualization (Simplified) */}
-          <div className="w-full md:w-auto min-w-60 bg-white rounded-xl border border-disco-100 p-6 flex flex-col justify-center items-center shadow-sm">
+          <div className="w-full md:w-auto min-w-60 bg-surface rounded-xl border border-disco-100 p-6 flex flex-col justify-center items-center shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wide text-neutral-500 mb-1">
               {copy.migration.boost.stats.currentBoost}
             </p>

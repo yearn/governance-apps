@@ -1,0 +1,47 @@
+import { useEffect, useLayoutEffect, useState } from "react";
+
+export type Theme = "light" | "soft-dark";
+
+const STORAGE_KEY = "yearn-theme-pref";
+
+const getSystemTheme = (): Theme => {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "soft-dark"
+    : "light";
+};
+
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+export function useTheme() {
+  const [theme, setTheme] = useState<Theme>("light");
+
+  useIsomorphicLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "light" || stored === "soft-dark") {
+      setTheme(stored);
+      return;
+    }
+    setTheme(getSystemTheme());
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    root.setAttribute("data-theme", theme);
+    if (theme === "soft-dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    localStorage.setItem(STORAGE_KEY, theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "light" ? "soft-dark" : "light"));
+  };
+
+  return { theme, setTheme, toggleTheme };
+}

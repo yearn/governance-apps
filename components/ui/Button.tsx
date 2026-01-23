@@ -48,9 +48,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       primary:
         "bg-neutral-900 text-neutral-0 hover:bg-neutral-800 disabled:bg-neutral-300 disabled:text-neutral-500",
       secondary:
-        "bg-white border border-neutral-300 text-neutral-900 hover:bg-neutral-100 disabled:opacity-50",
+        "bg-surface border border-border text-text-primary hover:bg-surface-secondary disabled:opacity-50",
       ghost:
-        "bg-transparent text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50",
+        "bg-transparent text-text-secondary hover:text-text-primary hover:bg-surface-secondary/60",
 
       // Brand Variants
       styfi:
@@ -70,7 +70,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          "inline-flex items-center justify-center rounded-box transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-center rounded-box transition-colors focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app disabled:cursor-not-allowed",
           variants[variant],
           sizes[size],
           className

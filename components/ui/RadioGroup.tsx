@@ -39,7 +39,7 @@ export function RadioGroup<T extends string>({
                 value={option.value}
                 checked={isSelected}
                 onChange={() => onChange(option.value)}
-                className="peer appearance-none w-4 h-4 rounded-full border border-neutral-300 checked:border-disco-600 transition-colors cursor-pointer"
+                className="peer appearance-none w-4 h-4 rounded-full border border-border checked:border-disco-600 transition-colors cursor-pointer"
               />
               <div
                 className={cn(
@@ -51,8 +51,8 @@ export function RadioGroup<T extends string>({
               className={cn(
                 "text-sm font-bold transition-colors",
                 isSelected
-                  ? "text-neutral-900"
-                  : "text-neutral-500 group-hover:text-neutral-700"
+                  ? "text-text-primary"
+                  : "text-text-secondary group-hover:text-text-primary"
               )}
             >
               {option.label}

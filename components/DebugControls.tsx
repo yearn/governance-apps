@@ -53,7 +53,7 @@ export function DebugControls({ children }: { children?: ReactNode }) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md bg-neutral-900 px-3 py-1 text-xs font-bold text-white shadow-lg transition-all hover:bg-neutral-800"
+        className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md bg-neutral-900 px-3 py-1 text-xs font-bold text-neutral-0 shadow-lg transition-all hover:bg-neutral-800"
       >
         🛠️ Debug
       </button>
@@ -61,14 +61,14 @@ export function DebugControls({ children }: { children?: ReactNode }) {
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 w-64 -translate-x-1/2 space-y-3 rounded-lg border border-neutral-300 bg-white p-4 shadow-xl animate-in slide-in-from-bottom-5">
-      <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
-        <h4 className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+    <div className="fixed bottom-4 left-1/2 z-50 w-64 -translate-x-1/2 space-y-3 rounded-lg border border-border bg-surface p-4 shadow-xl animate-in slide-in-from-bottom-5">
+      <div className="flex items-center justify-between border-b border-border pb-2">
+        <h4 className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
           Time Travel
         </h4>
         <button
           onClick={() => setIsOpen(false)}
-          className="text-neutral-400 transition-colors hover:text-neutral-900"
+          className="text-text-tertiary transition-colors hover:text-text-primary"
           aria-label="Close debug controls"
         >
           ✕
@@ -93,15 +93,15 @@ export function DebugControls({ children }: { children?: ReactNode }) {
       </div>
 
       {children && (
-        <div className="border-t border-neutral-100 pt-2">
-          <h4 className="text-xs font-bold uppercase tracking-wide text-neutral-500 mb-2">
+        <div className="border-t border-border pt-2">
+          <h4 className="text-xs font-bold uppercase tracking-wide text-text-tertiary mb-2">
             App Specific
           </h4>
           {children}
         </div>
       )}
 
-      <div className="border-t border-neutral-100 pt-2">
+      <div className="border-t border-border pt-2">
         <Button
           size="sm"
           variant="ghost"

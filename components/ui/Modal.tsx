@@ -49,11 +49,11 @@ export function Modal({
   if (!mounted || !isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/50 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200">
       <div
         ref={modalRef}
         className={cn(
-          "relative w-full max-w-lg rounded-box bg-white p-6 shadow-xl animate-in zoom-in-95 duration-200",
+          "relative w-full max-w-lg rounded-box border border-border bg-surface p-6 shadow-xl animate-in zoom-in-95 duration-200",
           className
         )}
       >
@@ -61,7 +61,7 @@ export function Modal({
           {title && <h2 className="text-xl font-bold">{title}</h2>}
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 p-1 rounded-md text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors"
+            className="absolute right-4 top-4 p-1 rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-secondary transition-colors"
           >
             <IconClose className="w-5 h-5" />
           </button>

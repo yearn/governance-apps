@@ -55,7 +55,7 @@ export function StakeManageCard({ selectedAsset, onSelectAsset }: Props) {
                 aria-pressed={isActive}
                 className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${
                   isActive
-                    ? "bg-white text-neutral-900 shadow-sm"
+                    ? "bg-surface text-text-primary shadow-sm"
                     : "text-neutral-500 hover:text-neutral-900"
                 }`}
               >

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   /* --- Typography --- */
@@ -11,15 +12,16 @@
 
   /* --- Colors: Neutrals (Good ol' Grey) --- */
   --color-neutral-0: #ffffff;
-  --color-neutral-100: #f4f4f4; /* Page Background */
-  --color-neutral-200: #ebebeb; /* Hover states */
-  --color-neutral-300: #e1e1e1; /* Borders */
-  --color-neutral-400: #9d9d9d;
-  --color-neutral-500: #7e7e7e;
-  --color-neutral-600: #5b5b5b; /* Subtext */
-  --color-neutral-700: #424242;
-  --color-neutral-800: #282828;
-  --color-neutral-900: #0c0c0c; /* Main Text */
+  --color-neutral-50: #f5f5f5; /* Surface Secondary */
+  --color-neutral-100: #fafafa; /* App Background */
+  --color-neutral-200: #f0f0f0; /* Hover states */
+  --color-neutral-300: #e5e5e5; /* Borders */
+  --color-neutral-400: #a3a3a3; /* Tertiary Text */
+  --color-neutral-500: #737373;
+  --color-neutral-600: #525252; /* Secondary Text */
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+  --color-neutral-900: #171717; /* Primary Text */
 
   /* --- Colors: Metaverse Sunset (stYFI Brand) --- */
   --color-sunset-100: #ffdc53;
@@ -33,14 +35,43 @@
   --color-disco-700: #b71962; /* Primary */
   --color-disco-900: #6a0031;
 
-  /* --- Semantic Mappings --- */
-  --color-background: var(--color-neutral-100);
+  /* --- Semantic Theme Tokens --- */
+  --color-app: var(--color-neutral-100);
   --color-surface: var(--color-neutral-0);
-  --color-text-main: var(--color-neutral-900);
+  --color-surface-secondary: var(--color-neutral-50);
+  --color-surface-tertiary: var(--color-neutral-200);
+
+  --color-text-primary: var(--color-neutral-900);
   --color-text-secondary: var(--color-neutral-600);
+  --color-text-tertiary: var(--color-neutral-400);
+
   --color-border: var(--color-neutral-300);
+  --color-border-hover: #d4d4d4;
+
+  /* --- Legacy Semantic Mappings --- */
+  --color-background: var(--color-app);
+  --color-text-main: var(--color-text-primary);
 
   --radius-box: 0.5rem; /* 8px */
+}
+
+@layer base {
+  :root[data-theme="soft-dark"] {
+    /* --- Dark Theme Neutrals --- */
+    --color-neutral-0: #1a1a1a;
+    --color-neutral-50: #262626;
+    --color-neutral-100: #0f0f0f;
+    --color-neutral-200: #262626;
+    --color-neutral-300: #333333;
+    --color-neutral-400: #666666;
+    --color-neutral-500: #8f8f8f;
+    --color-neutral-600: #a3a3a3;
+    --color-neutral-700: #d4d4d4;
+    --color-neutral-800: #e5e5e5;
+    --color-neutral-900: #f5f5f5;
+
+    --color-border-hover: #474747;
+  }
 }
 
 /* --- Font Declarations --- */
@@ -81,10 +112,11 @@
 
 /* --- Base --- */
 body {
-  background-color: var(--color-background);
-  color: var(--color-text-main);
+  background-color: var(--color-app);
+  color: var(--color-text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 .font-number {

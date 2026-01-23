@@ -30,10 +30,10 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
       <div className="w-full">
         <div
           className={cn(
-            "relative flex items-center rounded-box border bg-neutral-100 transition-colors",
+            "relative flex items-center rounded-box border bg-surface-secondary transition-colors",
             error
               ? "border-red-500"
-              : "border-transparent focus-within:border-neutral-900",
+              : "border-transparent focus-within:border-text-primary",
             disabled && "opacity-60 cursor-not-allowed",
             className
           )}
@@ -52,7 +52,7 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
               }
             }}
             className={cn(
-              "w-full bg-transparent p-4 text-2xl font-bold outline-none font-number placeholder:text-neutral-400",
+              "w-full bg-transparent p-4 text-2xl font-bold outline-none font-number placeholder:text-text-tertiary",
               disabled && "cursor-not-allowed"
             )}
             {...props}
@@ -64,14 +64,14 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
                 type="button"
                 onClick={onMaxClick}
                 disabled={disabled}
-                className="rounded-md bg-white border border-neutral-200 px-2 py-1 text-xs font-bold uppercase text-neutral-900 shadow-sm hover:border-neutral-300 hover:bg-neutral-50 active:translate-y-px transition-all disabled:opacity-50 disabled:pointer-events-none"
+                className="rounded-md bg-surface border border-border px-2 py-1 text-xs font-bold uppercase text-text-primary shadow-sm hover:border-border-hover hover:bg-surface-secondary active:translate-y-px transition-all disabled:opacity-50 disabled:pointer-events-none"
               >
                 Max
               </button>
             )}
 
             {tokenSymbol && (
-              <span className="text-sm font-bold text-neutral-900 select-none">
+              <span className="text-sm font-bold text-text-primary select-none">
                 {tokenSymbol}
               </span>
             )}
@@ -95,9 +95,9 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
               onClick={onMaxClick}
               disabled={disabled || !onMaxClick}
               className={cn(
-                "text-neutral-500 text-right transition-colors font-number shrink-0 ml-4",
+                "text-text-tertiary text-right transition-colors font-number shrink-0 ml-4",
                 onMaxClick && !disabled
-                  ? "hover:text-neutral-900 hover:underline cursor-pointer"
+                  ? "hover:text-text-primary hover:underline cursor-pointer"
                   : "cursor-default"
               )}
             >

@@ -31,9 +31,9 @@ export default function KitchenSinkPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
-    <main className="min-h-screen bg-neutral-100 space-y-12 font-sans text-neutral-900 pb-24">
+    <main className="min-h-screen bg-app space-y-12 font-sans text-text-primary pb-24">
       {/* New Stats Bar Section */}
-      <section className="bg-white pb-8 border-b border-neutral-200">
+      <section className="bg-surface pb-8 border-b border-border">
         <StatsBar
           items={[
             { label: "Total Supply", value: "36,666 YFI" },
@@ -52,7 +52,7 @@ export default function KitchenSinkPage() {
       <div className="max-w-4xl mx-auto px-4 space-y-12">
         {/* Badges */}
         <section className="space-y-4">
-          <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
+          <h2 className="text-xl font-bold border-b border-border pb-2">
             Badges
           </h2>
           <div className="flex flex-wrap gap-4">
@@ -62,7 +62,7 @@ export default function KitchenSinkPage() {
             <Badge variant="error">Error</Badge>
             <Badge variant="brand">Brand</Badge>
           </div>
-          <div className="mt-4 p-4 bg-white rounded-lg border border-neutral-200">
+          <div className="mt-4 p-4 bg-surface rounded-lg border border-border">
             <p className="text-sm text-neutral-500 mb-2">Usage in Controls:</p>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
@@ -75,7 +75,7 @@ export default function KitchenSinkPage() {
 
         {/* Tooltips */}
         <section className="space-y-4">
-          <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
+          <h2 className="text-xl font-bold border-b border-border pb-2">
             Tooltips
           </h2>
           {/* ... existing tooltip content ... */}
@@ -97,7 +97,7 @@ export default function KitchenSinkPage() {
         {/* ... Rest of the file remains unchanged ... */}
         {/* Buttons */}
         <section className="space-y-4">
-          <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
+          <h2 className="text-xl font-bold border-b border-border pb-2">
             Buttons
           </h2>
           <div className="flex flex-wrap gap-4 items-center">
@@ -172,7 +172,7 @@ export default function KitchenSinkPage() {
           <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
             Progress & Loading
           </h2>
-          <div className="space-y-6 p-6 bg-white rounded-lg border border-neutral-300">
+          <div className="space-y-6 p-6 bg-surface rounded-lg border border-border">
             <div className="space-y-2">
               <p className="text-sm font-medium">Cooldown Progress</p>
               <ProgressBar value={33} />
@@ -208,7 +208,7 @@ export default function KitchenSinkPage() {
               { id: "tab3", label: "Claim Rewards" },
             ]}
           />
-          <div className="p-4 bg-white rounded-lg border border-neutral-200 text-sm">
+          <div className="p-4 bg-surface rounded-lg border border-border text-sm">
             Active content: <span className="font-bold">{activeTab}</span>
           </div>
         </section>
