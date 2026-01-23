@@ -6,7 +6,6 @@ import { ProtocolProvider } from "@/state/protocol";
 import { IdentityProvider } from "@/state/identity";
 import { Toaster } from "@/components/ui/Toast";
 import { Header } from "@/components/Header";
-import { ThemeScript } from "@/components/ThemeScript";
 
 export const metadata: Metadata = {
   title: "Yearn Governance Apps",
@@ -21,7 +20,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeScript />
         <Web3Providers>
           <ProtocolProvider>
             <IdentityProvider>

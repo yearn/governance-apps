@@ -15,9 +15,9 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   webServer: {
-    command: process.env.E2E_WEB_SERVER_COMMAND ?? "npm run dev",
+    command: process.env.E2E_WEB_SERVER_COMMAND ?? "npm run dev -- --webpack",
     url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: process.env.E2E_REUSE_SERVER === "true",
     timeout: 120_000,
     env: {
       NEXT_PUBLIC_E2E: "true",

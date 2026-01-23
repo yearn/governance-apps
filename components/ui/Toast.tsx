@@ -52,10 +52,15 @@ const baseToastStyle: ToastOptions["style"] = {
   width: "fit-content",
 };
 
+const baseToast = toastMaster;
+const baseSuccess = toastMaster.success;
+const baseError = toastMaster.error;
+const baseLoading = toastMaster.loading;
+
 const toast = Object.assign(toastMaster, {
   success: (content: ReactNode, options?: ToastOptionsWithCTA) => {
     const { cta, ...rest } = options ?? {};
-    return toastMaster.success(buildMessage(content, cta), {
+    return baseSuccess(buildMessage(content, cta), {
       ...rest,
       icon: <IconCheckmark className="h-5 w-5 text-white" />,
       style: applyStyle(
@@ -66,7 +71,7 @@ const toast = Object.assign(toastMaster, {
   },
   error: (content: ReactNode, options?: ToastOptionsWithCTA) => {
     const { cta, ...rest } = options ?? {};
-    return toastMaster.error(buildMessage(content, cta), {
+    return baseError(buildMessage(content, cta), {
       ...rest,
       icon: <IconAlertCritical className="h-5 w-5 text-white" />,
       style: applyStyle(
@@ -77,7 +82,7 @@ const toast = Object.assign(toastMaster, {
   },
   info: (content: ReactNode, options?: ToastOptionsWithCTA) => {
     const { cta, ...rest } = options ?? {};
-    return toastMaster(buildMessage(content, cta), {
+    return baseToast(buildMessage(content, cta), {
       ...rest,
       icon: <IconAlertError className="h-5 w-5 text-white" />,
       style: applyStyle(
@@ -88,7 +93,7 @@ const toast = Object.assign(toastMaster, {
   },
   warning: (content: ReactNode, options?: ToastOptionsWithCTA) => {
     const { cta, ...rest } = options ?? {};
-    return toastMaster(buildMessage(content, cta), {
+    return baseToast(buildMessage(content, cta), {
       ...rest,
       icon: <IconAlertWarning className="h-5 w-5 text-black" />,
       style: applyStyle(
@@ -99,7 +104,7 @@ const toast = Object.assign(toastMaster, {
   },
   loading: (content: ReactNode, options?: ToastOptionsWithCTA) => {
     const { cta, ...rest } = options ?? {};
-    return toastMaster.loading(buildMessage(content, cta), {
+    return baseLoading(buildMessage(content, cta), {
       ...rest,
       style: applyStyle(
         { ...baseToastStyle, backgroundColor: "#0657F9", color: "#FFFFFF" },
