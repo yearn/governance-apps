@@ -1,87 +1,57 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Button } from "@/components/ui/Button";
-import { IconWallet } from "@/components/icons/IconWallet";
-import { IconChevron } from "@/components/icons/IconChevron";
+import { cn } from "@/lib/cn";
 
 export function WalletButton() {
   return (
     <ConnectButton.Custom>
-      {({
-        account,
-        chain,
-        openAccountModal,
-        openChainModal,
-        openConnectModal,
-        mounted,
-      }) => {
+      {({ account, chain, openAccountModal, openConnectModal, mounted }) => {
         const ready = mounted;
         const connected = ready && account && chain;
 
+        // 1. Loading State
         if (!ready) {
           return (
-            <Button variant="primary" size="sm" isLoading>
-              Connect
-            </Button>
+            <div className="h-9 w-24 animate-pulse rounded-full bg-surface-secondary" />
           );
         }
 
+        // 2. Disconnected State (Simple text, no icon)
         if (!connected) {
           return (
-            <Button onClick={openConnectModal} variant="primary" size="sm">
-              <IconWallet className="mr-2 h-4 w-4" />
-              Connect Wallet
-            </Button>
+            <button
+              onClick={openConnectModal}
+              className="relative hidden h-8 cursor-pointer items-center justify-center rounded-xl border border-transparent bg-text-primary px-3 text-xs font-normal text-surface transition-all hover:opacity-90 md:flex"
+            >
+              Connect wallet
+            </button>
           );
         }
 
+        // 3. Wrong Network State
         if (chain.unsupported) {
           return (
-            <Button
-              onClick={openChainModal}
-              variant="secondary"
-              size="sm"
-              className="text-red-500 border-red-500"
+            <button
+              onClick={openConnectModal}
+              className="flex h-9 items-center rounded-full bg-red-100 px-4 text-xs font-bold text-red-600 transition-colors hover:bg-red-200"
             >
               Wrong Network
-            </Button>
+            </button>
           );
         }
 
+        // 4. Connected State (Grey pill style like yearn.fi)
         return (
           <div className="flex items-center gap-2">
-            <Button
-              onClick={openChainModal}
-              variant="ghost"
-              size="sm"
-              className="hidden sm:flex items-center justify-center px-2"
+            <button
+              onClick={openAccountModal}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg bg-surface-secondary font-medium text-text-secondary text-sm px-3 py-1.5",
+              )}
             >
-              {chain.hasIcon && (
-                <div
-                  style={{ background: chain.iconBackground }}
-                  className="w-5 h-5 rounded-full overflow-hidden"
-                >
-                  {chain.iconUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      alt={chain.name ?? "Chain icon"}
-                      src={chain.iconUrl}
-                      className="w-5 h-5"
-                    />
-                  )}
-                </div>
-              )}
-              {!chain.hasIcon && (
-                <span className="text-xs font-medium">{chain.name}</span>
-              )}
-              <span className="sr-only">{chain.name}</span>
-            </Button>
-
-            <Button onClick={openAccountModal} variant="secondary" size="sm">
-              {account.displayName}
-              <IconChevron className="ml-2 h-4 w-4 text-neutral-400" />
-            </Button>
+              <span className="">{account.displayName}</span>
+            </button>
           </div>
         );
       }}

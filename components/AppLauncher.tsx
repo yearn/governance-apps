@@ -44,7 +44,7 @@ export function AppLauncher() {
         <IconChevron
           className={cn(
             "h-4 w-4 text-text-tertiary transition-transform",
-            isOpen ? "rotate-180" : ""
+            isOpen ? "rotate-180" : "",
           )}
         />
       </button>

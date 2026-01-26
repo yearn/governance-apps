@@ -32,23 +32,23 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-4">
           <AppLauncher />
-          <div className="hidden h-6 w-px bg-border md:block" />
           <nav className="hidden gap-6 md:flex">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "text-sm font-semibold transition-colors",
+                  "transition-colors",
                   item.variant === "primary"
                     ? "text-text-primary"
-                    : "text-text-secondary hover:text-text-primary"
+                    : "text-text-secondary hover:text-text-primary",
                 )}
               >
                 {item.label}
               </Link>
             ))}
           </nav>
+          <div className="hidden h-6 w-px bg-border md:block" />
         </div>
 
         <div className="flex items-center gap-2">
@@ -78,7 +78,7 @@ function EpochCountdownBadge({
   const h = Math.floor((rem % 86400) / 3600);
 
   return (
-    <div className="flex items-center gap-1 rounded-full border border-border bg-surface px-3 py-1 text-xs font-bold">
+    <div className="flex items-center gap-1 rounded-lg border border-border bg-surface-secondary px-3 py-1.5 text-xs font-medium">
       <span className="text-text-secondary">Epoch {epoch.currentEpoch}</span>
       <span className="text-text-tertiary">&#183;</span>
       <span>

@@ -3,6 +3,7 @@ import { IconDiscord } from "@/components/icons/IconDiscord";
 import { LogoGithub } from "@/components/icons/LogoGithub";
 import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
 import { IconTwitter } from "@/components/icons/IconTwitter";
+import { LogoStyfi } from "../icons/LogoStyfi";
 
 type GlyphColors = { frontClassName?: string; backClassName?: string };
 
@@ -57,9 +58,15 @@ const CORE_APPS: AppTile[] = [
     ),
   },
   {
+    name: "stYFI",
+    href: "https://stYFI.yearn.fi",
+    description: "Stake YFI, earn yield",
+    icon: <LogoStyfi />,
+  },
+  {
     name: "veYFI",
     href: "https://veyfi.yearn.fi",
-    description: "Lock YFI & vote",
+    description: "Migrate to stYFI",
     icon: (
       <AssetIcon
         alt="veYFI"
@@ -71,7 +78,10 @@ const CORE_APPS: AppTile[] = [
     name: "YearnX",
     href: "https://yearn.space",
     description: "Yearn Partner Pages",
-    icon: yearnGlyph({ backClassName: "text-[#0c0c0c]", frontClassName: "text-white" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#0c0c0c]",
+      frontClassName: "text-white",
+    }),
   },
 ];
 
@@ -80,43 +90,64 @@ const TOOLS: AppTile[] = [
     name: "yFactory",
     href: "https://factory.yearn.fi",
     description: "Deploy vaults",
-    icon: yearnGlyph({ backClassName: "text-white", frontClassName: "text-[#0c0c0c]" }),
+    icon: yearnGlyph({
+      backClassName: "text-white",
+      frontClassName: "text-[#0c0c0c]",
+    }),
   },
   {
     name: "PowerGlove",
     href: "https://powerglove.yearn.fi",
     description: "Analytics",
-    icon: yearnGlyph({ backClassName: "text-[#f5f5f5]", frontClassName: "text-yearn-blue" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#f5f5f5]",
+      frontClassName: "text-yearn-blue",
+    }),
   },
   {
     name: "APR Oracle",
     href: "https://oracle.yearn.fi",
     description: "Query APY oracles",
-    icon: yearnGlyph({ backClassName: "text-[#6366F1]", frontClassName: "text-white" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#6366F1]",
+      frontClassName: "text-white",
+    }),
   },
   {
     name: "Kong",
     href: "https://kong.yearn.fi",
     description: "Yearn Indexer",
-    icon: yearnGlyph({ backClassName: "text-[#312e81]", frontClassName: "text-[#fbbf24]" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#312e81]",
+      frontClassName: "text-[#fbbf24]",
+    }),
   },
   {
     name: "Kalani",
     href: "https://kalani.yearn.fi",
     description: "Vault Manager",
-    icon: yearnGlyph({ backClassName: "text-[#0c0c0c]", frontClassName: "text-white" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#0c0c0c]",
+      frontClassName: "text-white",
+    }),
   },
   {
     name: "yCMS",
     href: "https://cms.yearn.fi",
     description: "Vault metadata",
-    icon: yearnGlyph({ backClassName: "text-[#0c0c0c]", frontClassName: "text-white" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#0c0c0c]",
+      frontClassName: "text-white",
+    }),
   },
   {
     name: "Token Assets",
     href: "https://token-assets.yearn.fi",
     description: "Token asset tools",
-    icon: yearnGlyph({ backClassName: "text-[#0F172A]", frontClassName: "text-[#38BDF8]" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#0F172A]",
+      frontClassName: "text-[#38BDF8]",
+    }),
   },
 ];
 
@@ -125,7 +156,10 @@ const RESOURCES: AppTile[] = [
     name: "Docs",
     href: "https://docs.yearn.fi/",
     description: "Guides & references",
-    icon: yearnGlyph({ backClassName: "text-[#0ea5e9]", frontClassName: "text-white" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#0ea5e9]",
+      frontClassName: "text-white",
+    }),
   },
   {
     name: "Support",
@@ -137,19 +171,28 @@ const RESOURCES: AppTile[] = [
     name: "Blog",
     href: "https://blog.yearn.fi/",
     description: "Product updates",
-    icon: yearnGlyph({ backClassName: "text-[#1f2937]", frontClassName: "text-[#fde68a]" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#1f2937]",
+      frontClassName: "text-[#fde68a]",
+    }),
   },
   {
     name: "Discourse",
     href: "https://gov.yearn.fi/",
     description: "Governance forum",
-    icon: yearnGlyph({ backClassName: "text-[#1e3a8a]", frontClassName: "text-[#facc15]" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#1e3a8a]",
+      frontClassName: "text-[#facc15]",
+    }),
   },
   {
     name: "Brand Assets",
     href: "https://brand.yearn.fi",
     description: "Yearn Brand Resources",
-    icon: yearnGlyph({ backClassName: "text-[#0F172A]", frontClassName: "text-[#38BDF8]" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#0F172A]",
+      frontClassName: "text-[#38BDF8]",
+    }),
   },
 ];
 
@@ -192,7 +235,10 @@ const DEPRECATED: AppTile[] = [
     name: "Seafood",
     href: "https://seafood.yearn.watch",
     description: "Legacy dashboards",
-    icon: yearnGlyph({ backClassName: "text-[#14b8a6]", frontClassName: "text-[#0f172a]" }),
+    icon: yearnGlyph({
+      backClassName: "text-[#14b8a6]",
+      frontClassName: "text-[#0f172a]",
+    }),
   },
 ];
 
@@ -204,7 +250,13 @@ export const APP_GROUPS: AppGroup[] = [
 ];
 
 export const SOCIAL_LINKS = [
-  { href: "https://github.com/yearn", icon: <LogoGithub className="h-5 w-5" /> },
+  {
+    href: "https://github.com/yearn",
+    icon: <LogoGithub className="h-5 w-5" />,
+  },
   { href: "https://x.com/yearnfi", icon: <IconTwitter className="h-5 w-5" /> },
-  { href: "https://discord.gg/yearn", icon: <IconDiscord className="h-5 w-5" /> },
+  {
+    href: "https://discord.gg/yearn",
+    icon: <IconDiscord className="h-5 w-5" />,
+  },
 ];
