@@ -2,6 +2,7 @@
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { cn } from "@/lib/cn";
+import { formatAddress } from "@/lib/format";
 
 export function WalletButton() {
   return (
@@ -17,7 +18,7 @@ export function WalletButton() {
           );
         }
 
-        // 2. Disconnected State (Simple text, no icon)
+        // 2. Disconnected State
         if (!connected) {
           return (
             <button
@@ -41,16 +42,17 @@ export function WalletButton() {
           );
         }
 
-        // 4. Connected State (Grey pill style like yearn.fi)
+        // 4. Connected State
         return (
           <div className="flex items-center gap-2">
             <button
               onClick={openAccountModal}
               className={cn(
-                "inline-flex items-center gap-2 rounded-lg bg-surface-secondary font-medium text-text-secondary text-sm px-3 py-1.5",
+                "inline-flex items-center gap-2 rounded-lg bg-surface-secondary font-medium text-text-secondary text-sm px-3 py-1.5 hover:text-text-primary transition-colors",
               )}
             >
-              <span className="">{account.displayName}</span>
+              {/* Prioritize ENS, fallback to 0x1234...5678 */}
+              <span>{account.ensName ?? formatAddress(account.address)}</span>
             </button>
           </div>
         );

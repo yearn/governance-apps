@@ -8,7 +8,7 @@ import { nowSeconds as getNowSeconds } from "@/lib/mocks/time";
 export function formatTokenAmount(
   amount: bigint,
   decimals = 18,
-  maximumFractionDigits = 4
+  maximumFractionDigits = 4,
 ): string {
   const asNumber = Number.parseFloat(formatUnits(amount, decimals));
   return Number.isFinite(asNumber)
@@ -24,7 +24,7 @@ export function formatTokenAmount(
 export function formatUsd(
   amount: bigint,
   decimals = 18,
-  maximumFractionDigits = 2
+  maximumFractionDigits = 2,
 ): string {
   const asNumber = Number.parseFloat(formatUnits(amount, decimals));
   return Number.isFinite(asNumber)
@@ -41,7 +41,7 @@ export function formatUsd(
  */
 export function formatPercent(
   value: number,
-  maximumFractionDigits = 2
+  maximumFractionDigits = 2,
 ): string {
   return Number.isFinite(value)
     ? value.toLocaleString("en-US", {
@@ -51,10 +51,21 @@ export function formatPercent(
     : "0%";
 }
 
+/**
+ * Formats an address to look like "0x1234...5678"
+ * Matches yearn.fi's truncateHex(address, 4)
+ */
+export function formatAddress(address: string): string {
+  if (!address || address.length < 10) return address;
+  // Slice 0-6 gets "0x" + 4 characters
+  // Slice -4 gets the last 4 characters
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
 export function getCurrentEpoch(
   genesis: bigint,
   epochLengthSeconds: number,
-  nowSecondsInput?: number
+  nowSecondsInput?: number,
 ): number {
   const epochLength = BigInt(epochLengthSeconds);
   const now = BigInt(nowSecondsInput ?? getNowSeconds());
@@ -66,13 +77,13 @@ export function getCurrentEpoch(
 export function getEpochInfo(
   genesis: bigint,
   epochLengthSeconds: number,
-  nowSecondsInput?: number
+  nowSecondsInput?: number,
 ): { currentEpoch: number; epochStart: number; epochEnd: number } {
   const epochLength = BigInt(epochLengthSeconds);
   const currentEpoch = getCurrentEpoch(
     genesis,
     epochLengthSeconds,
-    nowSecondsInput
+    nowSecondsInput,
   );
   const epochStart = genesis + BigInt(currentEpoch) * epochLength;
   const epochEnd = epochStart + epochLength;
