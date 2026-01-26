@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "governance-apps-pickles",
+  "name": "governance-apps",
   "main": ".open-next/worker.js",
 
   "compatibility_date": "2026-01-22",
@@ -14,7 +14,7 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "governance-apps-pickles",
+      "service": "governance-apps",
     },
   ],
 }
