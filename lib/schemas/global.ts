@@ -2,23 +2,27 @@ import { z } from "zod";
 
 const zBaseUnit = z.string().regex(/^\d+$/);
 const zBps = z.union([z.number().int().nonnegative(), zBaseUnit]);
-const zDecimal = z.string().regex(/^\d+(\.\d+)?$/);
 
-const zRewardBlock = z.object({
-  totalRewards: zBaseUnit,
+const zWeightBlock = z.object({
+  current: zBaseUnit,
+  projected: zBaseUnit,
+});
+
+const zRewardsBlock = z.object({
+  current: zBaseUnit,
+  projected: zBaseUnit,
   pps: zBaseUnit,
 });
 
-const zProjectedBlock = z.object({
+const zAprBlock = z.object({
   weight: zBaseUnit,
   rewards: zBaseUnit,
-  aprBps: zBps,
+  apr_bps: zBps,
 });
 
-const zCurrentBlock = z.object({
-  weight: zBaseUnit,
+const zAprOnlyBlock = z.object({
   rewards: zBaseUnit,
-  aprBps: zBps,
+  apr_bps: zBps,
 });
 
 export const GlobalDataSchema = z.object({
@@ -29,16 +33,14 @@ export const GlobalDataSchema = z.object({
     blockNumber: z.number().int(),
   }),
   global: z.object({
-    yfiPriceUsd: zDecimal,
     maxBoostBps: zBps,
-    styfi: z.object({
+    yfi: z.object({
       totalSupply: zBaseUnit,
-      totalStaked: zBaseUnit,
-      aprBps: zBps,
+      priceCts: zBaseUnit,
     }),
     veyfi: z.object({
+      lockedYfi: zBaseUnit,
       migratedYfi: zBaseUnit,
-      legacyYfiSupply: zBaseUnit,
       totalLlyfiStakedBps: zBps,
       inventory: z.object({
         availableYfi: zBaseUnit,
@@ -55,35 +57,22 @@ export const GlobalDataSchema = z.object({
         })
       ),
     }),
-  }),
-  rewards: z.object({
-    current: zRewardBlock,
-    projected: zRewardBlock,
-  }),
-  weight: z.object({
-    current: zBaseUnit,
-    projected: zBaseUnit,
+    weight: zWeightBlock,
+    rewards: zRewardsBlock,
   }),
   styfi: z.object({
     staked: zBaseUnit,
     unstaking: zBaseUnit,
-    current: zCurrentBlock,
-    projected: zProjectedBlock,
+    current: zAprBlock,
+    projected: zAprBlock,
   }),
   styfix: z.object({
     staked: zBaseUnit,
     unstaking: zBaseUnit,
-    current: z.object({
-      rewards: zBaseUnit,
-      aprBps: zBps,
-    }),
-    projected: z.object({
-      rewards: zBaseUnit,
-      aprBps: zBps,
-    }),
+    current: zAprOnlyBlock,
+    projected: zAprOnlyBlock,
   }),
   veyfi: z.object({
-    staked: zBaseUnit,
     current: z.object({
       weight: zBaseUnit,
       rewards: zBaseUnit,
@@ -98,8 +87,8 @@ export const GlobalDataSchema = z.object({
       symbol: z.string().min(1),
       staked: zBaseUnit,
       unstaking: zBaseUnit,
-      current: zCurrentBlock,
-      projected: zProjectedBlock,
+      current: zAprBlock,
+      projected: zAprBlock,
     })
   ),
 });

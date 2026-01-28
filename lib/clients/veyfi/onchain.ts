@@ -315,7 +315,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
     if (!this.globalData?.global?.veyfi) {
       return {
         migratedYfi: 0n,
-        legacyYfiSupply: 0n,
+        lockedYfi: 0n,
         maxBoostMultiplier: 0,
         totalLlyfiStakedPercent: 0,
         inventory: { availableYfi: 0n, feeBps: 0 },
@@ -347,7 +347,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
     return {
       migratedYfi: BigInt(data.migratedYfi),
-      legacyYfiSupply: BigInt(data.legacyYfiSupply),
+      lockedYfi: BigInt(data.lockedYfi),
       maxBoostMultiplier: toNumber(maxBoostBps) / 10000,
       totalLlyfiStakedPercent: toNumber(data.totalLlyfiStakedBps) / 10000,
       inventory: {
@@ -455,7 +455,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
     if (!this.publicClient) {
       return {
         migratedYfi: 0n,
-        legacyYfiSupply: 0n,
+        lockedYfi: 0n,
         maxBoostMultiplier: 0,
         totalLlyfiStakedPercent: 0,
         inventory: { availableYfi: 0n, feeBps: 0 },
@@ -532,7 +532,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const totalWeightResult = results[0] as unknown as WeightInfo;
       const migratedUnderlyingApprox = totalWeightResult.slope * 104n;
 
-      const legacyYfiSupply = results[1] as bigint;
+      const lockedYfi = results[1] as bigint;
       const fee = results[2] as bigint;
       const globalYfi = results[3] as bigint;
 
@@ -583,7 +583,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
       return {
         migratedYfi: migratedUnderlyingApprox,
-        legacyYfiSupply,
+        lockedYfi,
         maxBoostMultiplier,
         totalLlyfiStakedPercent,
         inventory: {
@@ -596,7 +596,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
       console.error("Failed to fetch veYFI global stats:", e);
       return {
         migratedYfi: 0n,
-        legacyYfiSupply: 0n,
+        lockedYfi: 0n,
         maxBoostMultiplier: 0,
         totalLlyfiStakedPercent: 0,
         inventory: { availableYfi: 0n, feeBps: 0 },

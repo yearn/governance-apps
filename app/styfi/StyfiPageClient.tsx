@@ -36,6 +36,7 @@ function StyfiPageShell() {
   const { data: apy } = useStyfiApy();
   const { data: stats } = useStyfiStats();
   const { data: account, isLoading: isAccountLoading } = useStyfiAccount();
+  const { globalData } = useProtocol();
   const [selectedAsset, setSelectedAsset] = useState<StyfiAsset>();
   const hasUserSelected = useRef(false);
   const hasResolvedDefault = useRef(false);
@@ -99,8 +100,19 @@ function StyfiPageShell() {
     stakedPercentage = ratio.toFixed(1);
   }
 
-  // Convert BPS (e.g. 6800) to fractional (0.68) for the formatter
-  const formattedApy = apy ? formatPercent(Number(apy) / 10000) : "--%";
+  const projectedApyBps = globalData?.styfi?.projected?.apr_bps;
+  const showProjectedApy =
+    globalData?.meta?.epoch === 0 && projectedApyBps !== undefined;
+  const statsApyBps = showProjectedApy
+    ? Number(projectedApyBps)
+    : apy !== undefined
+      ? Number(apy)
+      : undefined;
+  const formattedApy =
+    statsApyBps !== undefined ? formatPercent(statsApyBps / 10000) : "--%";
+  const aprLabel = showProjectedApy
+    ? copy.page.stats.aprEpoch1.label
+    : copy.page.stats.apr.label;
   const activeAsset = selectedAsset ?? "stYFIx";
   const balances = account
     ? {
@@ -144,7 +156,7 @@ function StyfiPageShell() {
               : totalStaked,
           },
           {
-            label: copy.page.stats.apr.label,
+            label: aprLabel,
             value: formattedApy,
           },
           {

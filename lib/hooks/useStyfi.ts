@@ -56,10 +56,11 @@ export function useStyfiEpoch() {
 }
 
 export function useStyfiApy() {
-  const { styfi } = useProtocol();
+  const { styfi, globalData } = useProtocol();
+  const globalVersion = globalData?.meta?.timestamp ?? null;
 
   return useQuery({
-    queryKey: styfiKeys.apy(),
+    queryKey: [...styfiKeys.apy(), globalVersion] as const,
     queryFn: () => styfi.getApy(),
     // APY changes slowly
     refetchInterval: 60_000,
@@ -68,10 +69,12 @@ export function useStyfiApy() {
 }
 
 export function useStyfiStats() {
-  const { styfi } = useProtocol();
+  const { styfi, globalData, publicClient } = useProtocol();
+  const globalVersion = globalData?.meta?.timestamp ?? null;
+  const connected = !!publicClient;
 
   return useQuery({
-    queryKey: styfiKeys.stats(),
+    queryKey: [...styfiKeys.stats(), globalVersion, connected] as const,
     queryFn: () => styfi.getStats(),
     // Global stats (TVL/Supply)
     refetchInterval: 60_000,

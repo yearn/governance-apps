@@ -73,7 +73,7 @@ export type VeyfiAccountState = {
 
 export type VeyfiGlobalStats = {
   migratedYfi: bigint;
-  legacyYfiSupply: bigint;
+  lockedYfi: bigint;
   maxBoostMultiplier: number;
   totalLlyfiStakedPercent: number;
   inventory: VeyfiInventory;

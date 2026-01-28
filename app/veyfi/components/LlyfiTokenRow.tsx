@@ -9,10 +9,12 @@ import { LlyfiRowCockpit } from "./LlyfiRowCockpit";
 import { useStyfiApy } from "@/lib/hooks/useStyfi";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { veyfiCopy as copy } from "../messages";
+import { useProtocol } from "@/state/protocol";
 
 export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: baseApyBps } = useStyfiApy();
+  const { globalData } = useProtocol();
 
   // --- Derived Metrics ---
   const staked = token.stakedBalance + token.cooldownBalance;
@@ -24,9 +26,23 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
 
   const effectiveUtilization = Math.max(0.01, utilizationRatio);
 
-  const baseApy = baseApyBps ? Number(baseApyBps) / 10000 : 0;
+  const isEpochZero = globalData?.meta?.epoch === 0;
+  const projectedApyBps = globalData?.styfi?.projected?.apr_bps;
+  const baseApyBpsValue =
+    isEpochZero && projectedApyBps !== undefined
+      ? Number(projectedApyBps)
+      : baseApyBps
+        ? Number(baseApyBps)
+        : 0;
+  const baseApy = baseApyBpsValue / 10000;
   const boostedStyfiApy = baseApy * token.veyfiBoost;
   const effectiveApy = boostedStyfiApy / effectiveUtilization;
+  const baseApyLabel = isEpochZero
+    ? copy.manage.row.tooltips.apr.baseEpoch1
+    : copy.manage.row.tooltips.apr.base;
+  const effectiveApyLabel = isEpochZero
+    ? copy.manage.row.tooltips.apr.effectiveEpoch1
+    : copy.manage.row.tooltips.apr.effective;
 
   const capacityAssets = token.depositorCapacity * token.exchangeRate;
   const stakedAssets = token.depositorTotalSupply * token.exchangeRate;
@@ -41,9 +57,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const aprTooltipContent = (
     <div className="w-full min-w-[200px] text-xs leading-tight">
       <div className="flex justify-between items-center mb-1">
-        <span className="text-neutral-500">
-          {copy.manage.row.tooltips.apr.base}
-        </span>
+        <span className="text-neutral-500">{baseApyLabel}</span>
         <span className="font-number font-medium">
           {formatPercent(baseApy, 2)}
         </span>
@@ -80,7 +94,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
 
       <div className="flex justify-between items-center">
         <span className="text-disco-600 font-bold uppercase tracking-wide">
-          {copy.manage.row.tooltips.apr.effective}
+          {effectiveApyLabel}
         </span>
         <span className="font-number font-bold text-base text-disco-600">
           {formatPercent(effectiveApy, 2)}

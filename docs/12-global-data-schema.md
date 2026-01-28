@@ -8,16 +8,16 @@ This document defines the **required** JSON schema served from S3 (or similar) a
 - Validation: `lib/schemas/global.ts`
 - Fetcher: `lib/clients/global.ts`
 
-If the file is missing or invalid, the UI renders skeletons and waits for wallet‑based reads.
+If the file is missing or invalid, the UI renders skeletons and waits for wallet-based reads.
 
 ---
 
 ## Rules
 
 - **Base units only:** Token amounts are **strings** in base units (wei).
-- **APR in BPS:** All APR values are **integer** basis points (e.g., 6800 = 68.00%).
+- **APR in BPS:** APR values are integer basis points under `apr_bps` (e.g., 6800 = 68.00%).
+- **Price in cents:** `global.yfi.priceCts` is an integer string in USD cents (e.g., `"350000"` = $3,500.00).
 - **No floats for amounts:** No decimals for token amounts.
-- **Price is decimal string:** `yfiPriceUsd` is a decimal string (e.g., `"3500.00"`).
 - **All fields required:** The schema is strict; missing fields will be rejected.
 - **Symbols required:** LLYFI entries must include `symbol` for deterministic mapping.
 
@@ -34,16 +34,14 @@ type GlobalData = {
     blockNumber: number;   // chain block number used for snapshot
   };
   global: {
-    yfiPriceUsd: string;   // decimal string
     maxBoostBps: number | string;
-    styfi: {
+    yfi: {
       totalSupply: string;
-      totalStaked: string;
-      aprBps: number | string;
+      priceCts: string;
     };
     veyfi: {
+      lockedYfi: string;
       migratedYfi: string;
-      legacyYfiSupply: string;
       totalLlyfiStakedBps: number | string;
       inventory: {
         availableYfi: string;
@@ -58,29 +56,29 @@ type GlobalData = {
         };
       }>;
     };
-  };
-  rewards: {
-    current: { totalRewards: string; pps: string };
-    projected: { totalRewards: string; pps: string };
-  };
-  weight: {
-    current: string;
-    projected: string;
+    weight: {
+      current: string;
+      projected: string;
+    };
+    rewards: {
+      current: string;
+      projected: string;
+      pps: string;
+    };
   };
   styfi: {
     staked: string;
     unstaking: string;
-    current: { weight: string; rewards: string; aprBps: number | string };
-    projected: { weight: string; rewards: string; aprBps: number | string };
+    current: { weight: string; rewards: string; apr_bps: number | string };
+    projected: { weight: string; rewards: string; apr_bps: number | string };
   };
   styfix: {
     staked: string;
     unstaking: string;
-    current: { rewards: string; aprBps: number | string };
-    projected: { rewards: string; aprBps: number | string };
+    current: { rewards: string; apr_bps: number | string };
+    projected: { rewards: string; apr_bps: number | string };
   };
   veyfi: {
-    staked: string;
     current: { weight: string; rewards: string };
     projected: { weight: string; rewards: string };
   };
@@ -88,8 +86,8 @@ type GlobalData = {
     symbol: string;
     staked: string;
     unstaking: string;
-    current: { weight: string; rewards: string; aprBps: number | string };
-    projected: { weight: string; rewards: string; aprBps: number | string };
+    current: { weight: string; rewards: string; apr_bps: number | string };
+    projected: { weight: string; rewards: string; apr_bps: number | string };
   }>;
 };
 ```
@@ -102,67 +100,96 @@ type GlobalData = {
 {
   "meta": {
     "version": 1,
-    "timestamp": 1770257535,
-    "epoch": 12,
-    "blockNumber": 19999999
+    "timestamp": 1770360042,
+    "epoch": 0,
+    "blockNumber": 24362448
   },
   "global": {
-    "yfiPriceUsd": "3500.00",
     "maxBoostBps": "20000",
-    "styfi": {
-      "totalSupply": "36666000000000000000000",
-      "totalStaked": "2500000000000000000000",
-      "aprBps": "6840"
+    "yfi": {
+      "totalSupply": "39806000000000000000000",
+      "priceCts": "350000"
     },
     "veyfi": {
-      "migratedYfi": "4200000000000000000000",
-      "legacyYfiSupply": "8000000000000000000000",
-      "totalLlyfiStakedBps": "8500",
+      "lockedYfi": "20000000000000000000",
+      "migratedYfi": "10000000000000000000",
+      "totalLlyfiStakedBps": "19",
       "inventory": {
-        "availableYfi": "600000000000000000000",
-        "feeBps": "500"
+        "availableYfi": "99100000000000000000",
+        "feeBps": "1000"
       },
       "tokens": [
         {
           "symbol": "sdYFI",
           "redemption": {
-            "capacity": "100000000000000000000",
-            "used": "20000000000000000000",
-            "inventory": "15000000000000000000"
+            "capacity": "236764578940037056317",
+            "used": "0",
+            "inventory": "0"
           }
         }
       ]
+    },
+    "weight": {
+      "current": "0",
+      "projected": "4232200250576465475564"
+    },
+    "rewards": {
+      "current": "0",
+      "projected": "100000000000000000000000",
+      "pps": "1095999000000000000"
     }
   },
-  "rewards": {
-    "current": { "totalRewards": "0", "pps": "0" },
-    "projected": { "totalRewards": "0", "pps": "0" }
-  },
-  "weight": { "current": "0", "projected": "0" },
   "styfi": {
-    "staked": "0",
+    "staked": "1000000000000000000",
     "unstaking": "0",
-    "current": { "weight": "0", "rewards": "0", "aprBps": "0" },
-    "projected": { "weight": "0", "rewards": "0", "aprBps": "0" }
+    "current": {
+      "weight": "0",
+      "rewards": "0",
+      "apr_bps": "0"
+    },
+    "projected": {
+      "weight": "4000004000000000000",
+      "rewards": "94513580718567412717",
+      "apr_bps": "7716"
+    }
   },
   "styfix": {
-    "staked": "0",
+    "staked": "1000000000000000000",
     "unstaking": "0",
-    "current": { "rewards": "0", "aprBps": "0" },
-    "projected": { "rewards": "0", "aprBps": "0" }
+    "current": {
+      "rewards": "0",
+      "apr_bps": "0"
+    },
+    "projected": {
+      "rewards": "94513486205081207635",
+      "apr_bps": "7716"
+    }
   },
   "veyfi": {
-    "staked": "0",
-    "current": { "weight": "0", "rewards": "0" },
-    "projected": { "weight": "0", "rewards": "0" }
+    "current": {
+      "weight": "0",
+      "rewards": "0"
+    },
+    "projected": {
+      "weight": "76538465538461538140",
+      "rewards": "1808479301706866997442"
+    }
   },
   "llyfi": [
     {
       "symbol": "sdYFI",
-      "staked": "0",
+      "staked": "1000000000000000000",
       "unstaking": "0",
-      "current": { "weight": "0", "rewards": "0", "aprBps": "0" },
-      "projected": { "weight": "0", "rewards": "0", "aprBps": "0" }
+      "current": {
+        "weight": "0",
+        "rewards": "0",
+        "apr_bps": "0"
+      },
+      "projected": {
+        "weight": "1894116631520296447091",
+        "rewards": "44754891531002105790921",
+        "apr_bps": "3653818"
+      }
     }
   ]
 }
@@ -172,5 +199,6 @@ type GlobalData = {
 
 ## Notes
 
-- This schema intentionally includes both **global aggregates** (`global.*`) and the **legacy preview blocks** (`rewards`, `weight`, `styfi`, `styfix`, `veyfi`, `llyfi`) so the UI can render pre‑wallet “preview” cards without RPC.
-- Account‑specific data must still come from the connected wallet’s RPC.
+- `global.*` provides protocol-wide aggregates (supply, inventory, weights, rewards) for pre-connect rendering.
+- `styfi`, `styfix`, `veyfi`, and `llyfi` provide preview blocks for each dashboard area without RPC.
+- During **epoch 0**, the UI may show `styfi.projected.apr_bps` as **“Epoch 1 APR”** in the stats bar while keeping current APR elsewhere.

@@ -12,9 +12,9 @@ export function VeyfiStatsBar() {
   if (stats) {
     const amount = formatTokenAmount(stats.migratedYfi, 18, 2);
     // If supply is 0 or missing, hide the percentage to avoid Infinity/NaN/Garbage
-    if (stats.legacyYfiSupply > 0n) {
+    if (stats.lockedYfi > 0n) {
       const ratio =
-        Number((stats.migratedYfi * 10000n) / stats.legacyYfiSupply) / 10000;
+        Number((stats.migratedYfi * 10000n) / stats.lockedYfi) / 10000;
       migratedLabel = `${amount} (${formatPercent(ratio, 1)})`;
     } else {
       migratedLabel = `${amount}`;

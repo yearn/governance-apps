@@ -12,12 +12,14 @@
 
 - Env: `NEXT_PUBLIC_GLOBAL_DATA_URL` (S3 or similar).
 - Used to hydrate global, non-account stats before a wallet connects.
+- The client reads via `/api/global-data` proxy to avoid CORS issues.
 - If missing, the UI renders skeletons for global stats until a wallet connects.
 
 ## Public RPC (Optional)
 
 - Env: `NEXT_PUBLIC_RPC_URLS` (comma-separated, HTTPS when served over HTTPS).
 - Optional. Used to seed wagmi transports for local/dev or fork testing.
+- If unset, wagmi falls back to default mainnet RPC URLs.
 
 ## Persistence
 

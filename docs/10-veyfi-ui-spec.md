@@ -66,7 +66,8 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 **Component:** `LlyfiTokenTable`
 **Structure:**
 
-- **Header:** Asset | Net APY | Wallet Balance | Staked Balance.
+- **Header:** Asset | Locker Status | Staked Ratio | Effective APR | Staked Balance.
+- During **epoch 0**, the APR column label switches to **Next Epoch APR** and uses projected APR inputs.
 - **Rows:** Expandable (Accordion).
 - **Expanded State (Cockpit):** Reveals the "Manage" interface for that specific token.
 
@@ -113,7 +114,7 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 The frontend requires a new `getGlobalStats()` method from the VeyfiClient to populate the top bar:
 
 - `migratedYfi` (bigint)
-- `legacyYfiSupply` (bigint)
+- `lockedYfi` (bigint)
 - `maxBoostMultiplier` (number/bigint, e.g. 15200 bps)
 - `totalLlyfiStakedPercent` (number/bigint bps)
 

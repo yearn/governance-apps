@@ -192,6 +192,7 @@ Under `/lib/hooks/useStyfi.ts`:
 
    - Source: `StyfiClient.getStats`
    - Returns: `totalSupply`, `totalStaked`.
+   - Global data is fetched via `/api/global-data` proxy in the browser to avoid CORS.
 
 3. `useStyfiApy()`
 

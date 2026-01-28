@@ -5,9 +5,13 @@ import { Card } from "@/components/ui/Card";
 import { LlyfiTokenRow } from "./LlyfiTokenRow";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { veyfiCopy as copy } from "../messages";
+import { useProtocol } from "@/state/protocol";
 
 export function LlyfiTokenTable() {
   const tokens = useLlyfiTokens();
+  const { globalData } = useProtocol();
+  const isEpochZero = globalData?.meta?.epoch === 0;
+  const aprLabel = isEpochZero ? copy.manage.columns.aprEpoch1 : copy.manage.columns.apr;
 
   if (tokens.length === 0) {
     return (
@@ -32,7 +36,7 @@ export function LlyfiTokenTable() {
           <div>{copy.manage.columns.asset}</div>
           <div className="text-right">{copy.manage.columns.backing}</div>
           <div className="text-right">{copy.manage.columns.ratio}</div>
-          <div className="text-right">{copy.manage.columns.apr}</div>
+          <div className="text-right">{aprLabel}</div>
           <div className="text-right">{copy.manage.columns.deposits}</div>
           <div />
         </div>

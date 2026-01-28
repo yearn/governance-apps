@@ -245,7 +245,7 @@ Global, non-account data is fetched from a static JSON blob (S3 or similar):
 
 - Source: `NEXT_PUBLIC_GLOBAL_DATA_URL`
 - Validation: Zod schema in `lib/schemas/global.ts`
-- Fetcher: `lib/clients/global.ts` (returns `null` on failure)
+- Fetcher: `lib/clients/global.ts` (returns `null` on failure). Uses a same-origin proxy route (`/api/global-data`) in the browser to avoid CORS issues.
 - Hook: `lib/hooks/useGlobalData.ts` (React Query cache, 60s staleness)
 
 This enables **first paint** of stats and inventory without a wallet connection and avoids hard dependency on public RPCs.

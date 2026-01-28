@@ -39,11 +39,12 @@ export function useVeyfiAccount() {
 }
 
 export function useVeyfiStats() {
-  const { veyfi, publicClient, usesMockBackend } = useProtocol();
+  const { veyfi, publicClient, usesMockBackend, globalData } = useProtocol();
   const connected = usesMockBackend || !!publicClient;
+  const globalVersion = globalData?.meta?.timestamp ?? null;
 
   return useQuery({
-    queryKey: [...veyfiKeys.stats(), connected] as const,
+    queryKey: [...veyfiKeys.stats(), connected, globalVersion] as const,
     queryFn: () => veyfi.getGlobalStats(),
     // Global stats (Migration %, Boost)
     refetchInterval: 60_000,

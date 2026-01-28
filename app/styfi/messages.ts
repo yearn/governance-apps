@@ -13,6 +13,7 @@ export const styfiCopy = {
         value: "Staking live, voting coming soon",
       },
       apr: { label: "APR" },
+      aprEpoch1: { label: "Epoch 1 APR" },
     },
     connectBanner: {
       title: "Wallet not connected",

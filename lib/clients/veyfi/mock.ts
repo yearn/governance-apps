@@ -223,7 +223,7 @@ export class MockVeyfiClient implements VeyfiClient {
   async getGlobalStats(): Promise<VeyfiGlobalStats> {
     return {
       migratedYfi: 4200n * 10n ** 18n,
-      legacyYfiSupply: 8000n * 10n ** 18n,
+      lockedYfi: 8000n * 10n ** 18n,
       maxBoostMultiplier: 1.52,
       totalLlyfiStakedPercent: 0.85,
       inventory: {

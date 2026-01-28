@@ -509,7 +509,7 @@ UI requirements:
 ```ts
 type VeyfiGlobalStats = {
   migratedYfi: bigint;
-  legacyYfiSupply: bigint;
+  lockedYfi: bigint;
   maxBoostMultiplier: number; // e.g., 1.5 or 15000 bps
   totalLlyfiStakedPercent: number; // 0-1 (or bps)
 };

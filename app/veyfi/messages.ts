@@ -51,6 +51,7 @@ export const veyfiCopy = {
       backing: "Locker Status",
       ratio: "Staked Ratio",
       apr: "Effective APR",
+      aprEpoch1: "Next Epoch APR",
       deposits: "Staked Balance",
     },
     row: {
@@ -63,10 +64,12 @@ export const veyfiCopy = {
           "Ratio of total supply that is currently staked. Lower ratio results in higher effective yield.",
         apr: {
           base: "Base stYFI APR",
+          baseEpoch1: "Epoch 1 APR",
           boost: "veYFI Boost",
           boostedBase: "Boosted Base",
           ratio: "Staked Ratio",
           effective: "Effective APR",
+          effectiveEpoch1: "Next Epoch APR",
         },
       },
     },

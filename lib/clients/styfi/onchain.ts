@@ -182,11 +182,14 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getStats(): Promise<StyfiGlobalStats> {
-    if (this.globalData?.global?.styfi) {
-      const { totalSupply, totalStaked } = this.globalData.global.styfi;
+    if (this.globalData?.global?.yfi && this.globalData?.styfi) {
+      const totalSupply = this.globalData.global.yfi.totalSupply;
+      const totalStaked =
+        BigInt(this.globalData.styfi.staked) +
+        BigInt(this.globalData.styfi.unstaking);
       return {
         totalSupply: BigInt(totalSupply),
-        totalStaked: BigInt(totalStaked),
+        totalStaked,
       };
     }
 
@@ -224,7 +227,7 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getApy(): Promise<bigint> {
-    const aprBps = this.globalData?.global?.styfi?.aprBps;
+    const aprBps = this.globalData?.styfi?.current?.apr_bps;
     if (aprBps !== undefined) {
       return toBigInt(aprBps);
     }
