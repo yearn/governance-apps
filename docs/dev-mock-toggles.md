@@ -8,8 +8,16 @@
 
 ## Public RPC (Non-Mock Mode)
 
+## Global Data (Non-Mock Mode)
+
+- Env: `NEXT_PUBLIC_GLOBAL_DATA_URL` (S3 or similar).
+- Used to hydrate global, non-account stats before a wallet connects.
+- If missing, the UI renders skeletons for global stats until a wallet connects.
+
+## Public RPC (Optional)
+
 - Env: `NEXT_PUBLIC_RPC_URLS` (comma-separated, HTTPS when served over HTTPS).
-- Required when `NEXT_PUBLIC_USE_MOCKS=false`. Missing or invalid RPC config surfaces a runtime error instead of falling back to mocks.
+- Optional. Used to seed wagmi transports for local/dev or fork testing.
 
 ## Persistence
 

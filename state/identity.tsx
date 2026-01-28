@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useProtocol } from "./protocol";
 import type { Address } from "viem";
 import type { EpochInfo } from "@/lib/clients/styfi/types";
+import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
 
 type IdentityState = {
   address: Address | undefined;
@@ -20,8 +21,13 @@ type IdentityState = {
 const IdentityContext = createContext<IdentityState | null>(null);
 
 export function IdentityProvider({ children }: { children: ReactNode }) {
-  const { address, isConnected } = useAccount();
-  const { styfi } = useProtocol();
+  const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
+  const { styfi, publicClient, usesMockBackend } = useProtocol();
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+  const fallbackAddress =
+    isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined;
+  const address = wagmiAddress ?? fallbackAddress;
+  const isConnected = wagmiConnected || !!fallbackAddress;
 
   const { data, isLoading } = useQuery({
     queryKey: ["protocol", "identity", address],
@@ -35,7 +41,7 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
         epoch: state.epoch,
       };
     },
-    enabled: !!address,
+    enabled: !!address && (usesMockBackend || !!publicClient),
     staleTime: 5_000,
   });
 

@@ -45,6 +45,7 @@ Core principles:
 - **Domain-first**: Two domain clients: `StyfiClient` and `VeyfiClient`.
 - **Separation of concerns**: UI never touches viem/wagmi directly except read helpers; all writes go via `useTx`.
 - **Mock-capable**: Deterministic mocks are available for local dev (`NEXT_PUBLIC_USE_MOCKS=true`).
+- **Hybrid data**: Global, non-account stats load from S3 JSON; account-specific data upgrades to wallet RPC after connect.
 - **Simplicity**: No auto-approvals, no magic.
 - **Predictable state flow**: domain reads → domain UI → `prepare*` → `useTx`.
 
@@ -228,12 +229,26 @@ A single top-level provider binds domain clients to the UI.
 - **On-chain clients** (default target)
 - **Mock clients** (`NEXT_PUBLIC_USE_MOCKS=true`)
 
-On-chain clients are implemented. When mocks are disabled, a public RPC client **must** be available via Wagmi (configured by `NEXT_PUBLIC_RPC_URLS`). If it is missing, the provider surfaces a configuration error rather than silently falling back to mocks.
+On-chain clients are implemented. When mocks are disabled, global data loads from S3 (`NEXT_PUBLIC_GLOBAL_DATA_URL`) and the public client is derived from the **connected wallet** (EIP‑1193). This means the app can render global stats before connection and upgrade to live reads after a wallet connects.
 
 **Read/Write policy:**
 
-- **Reads** always use the public client (configured by `NEXT_PUBLIC_RPC_URLS`).
+- **Global reads** come from S3 JSON (no wallet required).
+- **Account reads** use the wallet-backed public client after connect.
 - **Writes** always go through wallet signing via `useTx`.
+
+---
+
+## 6.1 Global Data (S3)
+
+Global, non-account data is fetched from a static JSON blob (S3 or similar):
+
+- Source: `NEXT_PUBLIC_GLOBAL_DATA_URL`
+- Validation: Zod schema in `lib/schemas/global.ts`
+- Fetcher: `lib/clients/global.ts` (returns `null` on failure)
+- Hook: `lib/hooks/useGlobalData.ts` (React Query cache, 60s staleness)
+
+This enables **first paint** of stats and inventory without a wallet connection and avoids hard dependency on public RPCs.
 
 ---
 
@@ -438,7 +453,8 @@ The application now supports full on-chain integration via `OnchainStyfiClient` 
 ### Configuration:
 
 - Controlled via `NEXT_PUBLIC_USE_MOCKS=false`.
-- Public RPC is configured via `NEXT_PUBLIC_RPC_URLS` (comma-separated). Use `https://` when the app is served over HTTPS.
+- Global data is configured via `NEXT_PUBLIC_GLOBAL_DATA_URL` (S3 or similar).
+- `NEXT_PUBLIC_RPC_URLS` is optional; if provided it seeds wagmi transports for local fork/dev convenience.
 - Fork testing is handled by pointing `NEXT_PUBLIC_RPC_URLS` at the fork endpoint while keeping Chain ID 1.
 - Uses `viem` multicall to aggregate state for:
   - **stYFI:** Wallet, Staking, Epochs, Rewards.
@@ -449,7 +465,7 @@ The application now supports full on-chain integration via `OnchainStyfiClient` 
 - **Normalization:** The clients handle the complexity of "Share" vs "Asset" accounting for tokens like upYFI, exposing only "Assets" to the UI layer.
 - **Approvals:** Uses a hybrid approach where global state is fetched via multicall, but atomic actions use `useTokenAllowance` for instant feedback.
 - **Epochs:** Derived from the immutable `GENESIS` timestamp to ensure client-side timers match contract logic without constant RPC polling.
-- **Transport pinning:** Wagmi `transports` are pinned to the configured public RPC(s), ensuring reads never drift to wallet RPCs.
+- **Wallet transport:** Account reads use a wallet-backed viem public client (EIP‑1193 transport) once connected.
 
 ---
 

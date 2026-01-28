@@ -47,10 +47,11 @@ These apply across `/styfi` and `/veyfi`.
 
    - All reads **MUST** fetch data via the domain clients immediately.
 
-5. Public read RPC policy:
+5. Read policy (hybrid):
 
-   - All **read-only** calls **MUST** use the configured public RPC (`NEXT_PUBLIC_RPC_URLS`) and **MUST NOT** depend on the user's wallet RPC.
-   - Global (non-account) stats **MAY** load before connect; account-specific reads **MUST** remain gated on a connected address.
+   - Global (non-account) stats **MUST** load from the S3 JSON (`NEXT_PUBLIC_GLOBAL_DATA_URL`) and **MAY** load before connect.
+   - Account-specific reads **MUST** remain gated on a connected address and **MUST** use the wallet-backed RPC (EIP‑1193).
+   - `NEXT_PUBLIC_RPC_URLS` is optional and only used to seed wagmi transports for local/dev or fork testing.
 
 ---
 

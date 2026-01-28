@@ -10,6 +10,7 @@ import type {
   LlyfiGlobalInfo,
 } from "./types";
 import type { VeyfiClient } from "./client";
+import type { GlobalData } from "@/lib/schemas/global";
 import {
   VEYFI_ADDRESS,
   VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
@@ -41,10 +42,20 @@ interface WeightInfo {
   slope: bigint;
 }
 
+function toNumber(value: string | number) {
+  return typeof value === "string" ? Number(value) : value;
+}
+
 export class OnchainVeyfiClient implements VeyfiClient {
-  constructor(private publicClient: PublicClient) {}
+  constructor(
+    private publicClient: PublicClient | null,
+    private globalData: GlobalData | null
+  ) {}
 
   async getAccountState(address: Address): Promise<VeyfiAccountState> {
+    if (!this.publicClient) {
+      throw new Error("Wallet public client not available");
+    }
     try {
       const [
         legacyLockResult,
@@ -300,7 +311,158 @@ export class OnchainVeyfiClient implements VeyfiClient {
     }
   }
 
+  private buildGlobalStatsFromData(): VeyfiGlobalStats {
+    if (!this.globalData?.global?.veyfi) {
+      return {
+        migratedYfi: 0n,
+        legacyYfiSupply: 0n,
+        maxBoostMultiplier: 0,
+        totalLlyfiStakedPercent: 0,
+        inventory: { availableYfi: 0n, feeBps: 0 },
+        tokens: [],
+      };
+    }
+
+    const data = this.globalData.global.veyfi;
+    const maxBoostBps = this.globalData.global.maxBoostBps;
+    const feeBps = toNumber(data.inventory.feeBps);
+    const fee = BigInt(Math.trunc(feeBps)) * 10n ** 14n;
+    const tokenMap = new Map(data.tokens.map((t) => [t.symbol, t]));
+
+    const tokens: LlyfiGlobalInfo[] = LIQUID_LOCKERS.map((locker) => {
+      const match = tokenMap.get(locker.symbol as string);
+      const redemption = match?.redemption;
+      return {
+        symbol: locker.symbol as LlyfiTokenId,
+        name: locker.name,
+        address: locker.token,
+        redemption: {
+          capacity: redemption ? BigInt(redemption.capacity) : 0n,
+          used: redemption ? BigInt(redemption.used) : 0n,
+          inventory: redemption ? BigInt(redemption.inventory) : 0n,
+          fee,
+        },
+      };
+    });
+
+    return {
+      migratedYfi: BigInt(data.migratedYfi),
+      legacyYfiSupply: BigInt(data.legacyYfiSupply),
+      maxBoostMultiplier: toNumber(maxBoostBps) / 10000,
+      totalLlyfiStakedPercent: toNumber(data.totalLlyfiStakedBps) / 10000,
+      inventory: {
+        availableYfi: BigInt(data.inventory.availableYfi),
+        feeBps,
+      },
+      tokens,
+    };
+  }
+
+  private async overlayInventoryFromChain(
+    base: VeyfiGlobalStats
+  ): Promise<VeyfiGlobalStats> {
+    if (!this.publicClient) return base;
+
+    const calls = [
+      {
+        address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
+        abi: LiquidLockerRedemptionAbi,
+        functionName: "fee",
+      },
+      {
+        address: YFI_ADDRESS,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [LIQUID_LOCKER_REDEMPTION_ADDRESS],
+      },
+      ...LIQUID_LOCKERS.flatMap((locker) => [
+        {
+          address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
+          abi: LiquidLockerRedemptionAbi,
+          functionName: "capacities",
+          args: [BigInt(locker.index)],
+        },
+        {
+          address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
+          abi: LiquidLockerRedemptionAbi,
+          functionName: "used",
+          args: [BigInt(locker.index)],
+        },
+        {
+          address: locker.token,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [LIQUID_LOCKER_REDEMPTION_ADDRESS],
+        },
+      ]),
+    ];
+
+    const results = await this.publicClient.multicall({
+      contracts: calls,
+      allowFailure: false,
+    });
+
+    const fee = results[0] as bigint;
+    const availableYfi = results[1] as bigint;
+    const feeBps = Number(fee) / 10 ** 14;
+
+    const tokens: LlyfiGlobalInfo[] = [];
+    const redemptionStart = 2;
+    const PER_LOCKER_READS = 3;
+
+    for (let i = 0; i < LIQUID_LOCKERS.length; i++) {
+      const config = LIQUID_LOCKERS[i];
+      const baseIndex = redemptionStart + i * PER_LOCKER_READS;
+      const capacity = results[baseIndex] as bigint;
+      const used = results[baseIndex + 1] as bigint;
+      const inventory = results[baseIndex + 2] as bigint;
+
+      tokens.push({
+        symbol: config.symbol as LlyfiTokenId,
+        name: config.name,
+        address: config.token,
+        redemption: {
+          capacity,
+          used,
+          inventory,
+          fee,
+        },
+      });
+    }
+
+    return {
+      ...base,
+      inventory: {
+        availableYfi,
+        feeBps,
+      },
+      tokens,
+    };
+  }
+
   async getGlobalStats(): Promise<VeyfiGlobalStats> {
+    if (this.globalData?.global?.veyfi) {
+      const base = this.buildGlobalStatsFromData();
+      if (!this.publicClient) return base;
+      try {
+        return await this.overlayInventoryFromChain(base);
+      } catch (e) {
+        console.warn("Failed to overlay live inventory, using S3 data", e);
+        return base;
+      }
+    }
+
+    if (!this.publicClient) {
+      return {
+        migratedYfi: 0n,
+        legacyYfiSupply: 0n,
+        maxBoostMultiplier: 0,
+        totalLlyfiStakedPercent: 0,
+        inventory: { availableYfi: 0n, feeBps: 0 },
+        tokens: [],
+      };
+    }
+
     try {
       const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH);
       const currentEpochArg = BigInt(currentEpoch);
@@ -504,6 +666,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const config = this.getLockerConfig(symbol);
       const { address } = getAccount(wagmiConfig);
       if (!address) throw new Error("No account connected");
+      if (!this.publicClient) throw new Error("Wallet public client not available");
 
       const maxAssets = await this.publicClient.readContract({
         address: config.depositor,

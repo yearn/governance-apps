@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { StyfiStakeMode } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
+import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
 
 // --- Query Keys ---
 export const styfiKeys = {
@@ -20,8 +21,11 @@ export const styfiKeys = {
 // --- Read Hooks ---
 
 export function useStyfiAccount() {
-  const { styfi } = useProtocol();
-  const { address } = useAccount();
+  const { styfi, publicClient, usesMockBackend } = useProtocol();
+  const { address: wagmiAddress } = useAccount();
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+  const address =
+    wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
 
   return useQuery({
     queryKey: styfiKeys.account(address),
@@ -29,7 +33,7 @@ export function useStyfiAccount() {
       if (!address) return null;
       return styfi.getAccountState(address);
     },
-    enabled: !!address,
+    enabled: !!address && (usesMockBackend || !!publicClient),
     // Poll every 30s to update rewards/balances
     refetchInterval: 30_000,
     // Always refetch when user returns to tab
@@ -81,7 +85,10 @@ export function useStyfiStake() {
   const { styfi, usesMockBackend } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { address: wagmiAddress } = useAccount();
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+  const address =
+    wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
 
   const write = async (mode: StyfiStakeMode, amount: bigint) => {
     const prepare = await styfi.prepareStake(mode, amount);
@@ -109,7 +116,10 @@ export function useStyfiStartCooldown() {
   const { styfi, usesMockBackend } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { address: wagmiAddress } = useAccount();
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+  const address =
+    wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
 
   const write = async (mode: StyfiStakeMode, amount: bigint) => {
     const prepare = await styfi.prepareStartCooldown(mode, amount);
@@ -137,7 +147,10 @@ export function useStyfiWithdraw() {
   const { styfi, usesMockBackend } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { address: wagmiAddress } = useAccount();
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+  const address =
+    wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
 
   const write = async (mode: StyfiStakeMode) => {
     const prepare = await styfi.prepareWithdraw(mode);
@@ -164,7 +177,10 @@ export function useStyfiClaimRewards() {
   const { styfi, usesMockBackend } = useProtocol();
   const { execute, state } = useTx();
   const queryClient = useQueryClient();
-  const { address } = useAccount();
+  const { address: wagmiAddress } = useAccount();
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+  const address =
+    wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
 
   const write = async () => {
     const prepare = await styfi.prepareClaimRewards();

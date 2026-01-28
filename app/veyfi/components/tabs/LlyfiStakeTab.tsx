@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { useIdentity } from "@/state/identity";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { AmountInput } from "@/components/ui/AmountInput";
@@ -14,7 +14,7 @@ import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { toast } from "@/components/ui/Toast";
 
 export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
-  const { isConnected, address } = useAccount();
+  const { isConnected, address } = useIdentity();
   const queryClient = useQueryClient();
   const [input, setInput] = useState("");
 

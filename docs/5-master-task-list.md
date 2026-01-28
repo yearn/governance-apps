@@ -180,7 +180,8 @@ Sub-tasks: 1 level deep, atomic, actionable.
 ## 33. Env Toggle
 
 - [x] `NEXT_PUBLIC_USE_MOCKS=false` loads on-chain clients
-- [x] `NEXT_PUBLIC_RPC_URLS` pins public read RPCs (use HTTPS when serving over HTTPS)
+- [x] `NEXT_PUBLIC_GLOBAL_DATA_URL` hydrates global stats pre-connect
+- [x] `NEXT_PUBLIC_RPC_URLS` optional (used for dev/fork transports)
 
 ---
 

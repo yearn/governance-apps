@@ -7,10 +7,14 @@ import { wagmiConfig } from "@/web3/wagmi";
 import { useProtocol } from "@/state/protocol";
 import { useTx } from "@/lib/tx/useTx";
 import { TransactionHash } from "@/lib/tx/types";
+import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
 
 export function useTokenApprove() {
   const { styfi, veyfi, usesMockBackend } = useProtocol();
-  const { address: userAddress } = useAccount();
+  const { address: wagmiAddress } = useAccount();
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+  const userAddress =
+    wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
   const { execute, state } = useTx();
 
   /**

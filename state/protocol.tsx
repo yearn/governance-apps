@@ -8,14 +8,20 @@ import { createMockStyfiClient } from "@/lib/clients/styfi/mock";
 import { createMockVeyfiClient } from "@/lib/clients/veyfi/mock";
 import { OnchainStyfiClient } from "@/lib/clients/styfi/onchain";
 import { OnchainVeyfiClient } from "@/lib/clients/veyfi/onchain"; // [New]
-import { usePublicClient } from "wagmi";
+import { useWalletClient } from "wagmi";
+import { createPublicClient, custom, type PublicClient } from "viem";
+import { mainnet } from "wagmi/chains";
 import { TestBridgeListener } from "@/components/TestBridgeListener";
+import { useGlobalData } from "@/lib/hooks/useGlobalData";
+import type { GlobalData } from "@/lib/schemas/global";
 
 type ProtocolContextValue = {
   styfi: StyfiClient;
   veyfi: VeyfiClient;
   isMock: boolean;
   usesMockBackend: boolean;
+  publicClient: PublicClient | null;
+  globalData: GlobalData | null;
 };
 
 const ProtocolContext = createContext<ProtocolContextValue | null>(null);
@@ -25,38 +31,50 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
     process.env.NEXT_PUBLIC_USE_MOCKS === "true" ||
     process.env.NEXT_PUBLIC_E2E === "true";
 
-  // This hook is reactive. It updates when the connected chain changes.
-  const publicClient = usePublicClient();
+  const mockClients = useMemo(
+    () => ({
+      styfi: createMockStyfiClient({ latencyMs: 600 }),
+      veyfi: createMockVeyfiClient({ latencyMs: 600 }),
+    }),
+    []
+  );
+
+  const { data: globalData } = useGlobalData();
+  const { data: walletClient } = useWalletClient();
+
+  const publicClient = useMemo<PublicClient | null>(() => {
+    if (!walletClient) return null;
+    return createPublicClient({
+      chain: walletClient.chain ?? mainnet,
+      transport: custom({
+        request: walletClient.request.bind(walletClient),
+      }),
+      batch: { multicall: true },
+    });
+  }, [walletClient]);
 
   const value = useMemo(() => {
     // If user wants mocks, ignore the public client
     if (preferMocks) {
       return {
-        styfi: createMockStyfiClient({ latencyMs: 600 }),
-        veyfi: createMockVeyfiClient({ latencyMs: 600 }),
+        styfi: mockClients.styfi,
+        veyfi: mockClients.veyfi,
         isMock: true,
         usesMockBackend: true,
+        publicClient: null,
+        globalData: null,
       };
     }
 
-    // If we have a valid public client, use it for on-chain interactions
-    if (publicClient) {
-      console.log(
-        "Initializing Onchain Clients with Chain ID:",
-        publicClient.chain.id
-      );
-      return {
-        styfi: new OnchainStyfiClient(publicClient),
-        veyfi: new OnchainVeyfiClient(publicClient), // [Updated] Use real client
-        isMock: false,
-        usesMockBackend: false,
-      };
-    }
-
-    throw new Error(
-      "Public RPC client not available. Check NEXT_PUBLIC_RPC_URLS."
-    );
-  }, [preferMocks, publicClient]);
+    return {
+      styfi: new OnchainStyfiClient(publicClient, globalData ?? null),
+      veyfi: new OnchainVeyfiClient(publicClient, globalData ?? null),
+      isMock: false,
+      usesMockBackend: false,
+      publicClient,
+      globalData: globalData ?? null,
+    };
+  }, [preferMocks, publicClient, globalData, mockClients]);
 
   return (
     <ProtocolContext.Provider value={value}>

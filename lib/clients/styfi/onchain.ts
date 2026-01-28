@@ -6,6 +6,7 @@ import type { PreparedTransaction } from "@/lib/tx/types";
 import type { StyfiAccountState, StyfiGlobalStats, EpochInfo } from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
 import { getEpochInfo as getEpochInfoFromGenesis } from "@/lib/format";
+import type { GlobalData } from "@/lib/schemas/global";
 import {
   STYFI_ADDRESS,
   STYFIX_ADDRESS,
@@ -20,10 +21,20 @@ import { StakedYfiAbi } from "@/lib/abis/StakedYfi";
 import { DelegatedStakedYfiAbi } from "@/lib/abis/DelegatedStakedYfi";
 import { RewardClaimerAbi } from "@/lib/abis/RewardClaimer";
 
+function toBigInt(value: string | number) {
+  return typeof value === "number" ? BigInt(Math.trunc(value)) : BigInt(value);
+}
+
 export class OnchainStyfiClient implements StyfiClient {
-  constructor(private publicClient: PublicClient) {}
+  constructor(
+    private publicClient: PublicClient | null,
+    private globalData: GlobalData | null
+  ) {}
 
   async getAccountState(address: Address): Promise<StyfiAccountState> {
+    if (!this.publicClient) {
+      throw new Error("Wallet public client not available");
+    }
     console.log(
       "Fetching Account State from Chain ID:",
       this.publicClient.chain?.id
@@ -171,6 +182,18 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getStats(): Promise<StyfiGlobalStats> {
+    if (this.globalData?.global?.styfi) {
+      const { totalSupply, totalStaked } = this.globalData.global.styfi;
+      return {
+        totalSupply: BigInt(totalSupply),
+        totalStaked: BigInt(totalStaked),
+      };
+    }
+
+    if (!this.publicClient) {
+      return { totalSupply: 0n, totalStaked: 0n };
+    }
+
     try {
       // Only fetch YFI Supply and stYFI Supply.
       // stYFI.totalSupply() includes the YFI staked via stYFIx (delegated).
@@ -201,9 +224,13 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getApy(): Promise<bigint> {
-    // Dynamic APY calculation requires backend indexing of rewards/revenue.
-    // For BR#1, we can return 0 or a placeholder, or fetch a "last week's APR" if stored on chain.
-    // Currently no direct contract view for "Current APY".
+    const aprBps = this.globalData?.global?.styfi?.aprBps;
+    if (aprBps !== undefined) {
+      return toBigInt(aprBps);
+    }
+
+    // Dynamic APR calculation requires backend indexing of rewards/revenue.
+    // Currently no direct contract view for "Current APR".
     return 0n;
   }
 
@@ -248,6 +275,7 @@ export class OnchainStyfiClient implements StyfiClient {
     return async () => {
       const { address } = getAccount(wagmiConfig);
       if (!address) throw new Error("No account connected");
+      if (!this.publicClient) throw new Error("Wallet public client not available");
 
       const contractAddress = mode === "stYFI" ? STYFI_ADDRESS : STYFIX_ADDRESS;
       const abi = mode === "stYFI" ? StakedYfiAbi : DelegatedStakedYfiAbi;

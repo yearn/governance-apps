@@ -3,7 +3,7 @@
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
+import { useIdentity } from "@/state/identity";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { formatPercent, formatTokenAmount } from "@/lib/format";
 import {
@@ -31,7 +31,7 @@ export function StyfiPageClient() {
 }
 
 function StyfiPageShell() {
-  const { isConnected } = useAccount();
+  const { isConnected } = useIdentity();
   const { openConnectModal } = useConnectModal();
   const { data: apy } = useStyfiApy();
   const { data: stats } = useStyfiStats();

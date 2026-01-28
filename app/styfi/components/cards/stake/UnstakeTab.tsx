@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { useIdentity } from "@/state/identity";
 import { parseAmount } from "@/lib/parse";
 import {
   useStyfiAccount,
@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function UnstakeTab({ asset }: Props) {
-  const { isConnected } = useAccount();
+  const { isConnected } = useIdentity();
   const { data, isLoading } = useStyfiAccount();
   const { write: startCooldown, state: cooldownState } =
     useStyfiStartCooldown();

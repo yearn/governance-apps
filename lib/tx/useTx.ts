@@ -12,6 +12,7 @@ import { waitForTransactionReceipt } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import { toast } from "@/components/ui/Toast";
 import { normalizeTxError } from "./errors";
+import { useProtocol } from "@/state/protocol";
 
 type TxExecuteOptions = {
   onSuccess?: (hash: TransactionHash) => void | Promise<void>;
@@ -47,6 +48,7 @@ function mapNormalizedCode(code: string): TxErrorType {
 
 export function useTx() {
   const [state, setState] = useState<TxState>(initialState);
+  const { publicClient } = useProtocol();
 
   const reset = useCallback(() => {
     setState(initialState);
@@ -84,7 +86,11 @@ export function useTx() {
               hash,
             });
 
-            await waitForTransactionReceipt(wagmiConfig, { hash });
+            if (publicClient) {
+              await publicClient.waitForTransactionReceipt({ hash });
+            } else {
+              await waitForTransactionReceipt(wagmiConfig, { hash });
+            }
             toast.success("Transaction confirmed!", { id: toastId });
           }
 
@@ -134,7 +140,7 @@ export function useTx() {
 
       await attemptExecute();
     },
-    []
+    [publicClient]
   );
 
   return {

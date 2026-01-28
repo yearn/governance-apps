@@ -28,6 +28,7 @@ vi.mock("wagmi", async () => {
       address: E2E_MOCK_ADDRESS,
       isConnected: true,
     }),
+    useWalletClient: () => ({ data: null }),
     usePublicClient: () => undefined,
     useDisconnect: () => ({ disconnectAsync: vi.fn() }),
     useReadContract: () => ({

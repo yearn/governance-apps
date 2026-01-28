@@ -19,7 +19,7 @@ if (rawRpcUrls.length === 0) {
   );
 }
 if (rpcUrls.length === 0) {
-  throw new Error("No RPC URLs configured. Set NEXT_PUBLIC_RPC_URLS.");
+  console.warn("No RPC URLs configured. Wallet RPC will be required for reads.");
 }
 
 // Define the fork chain overriding Mainnet (Chain ID 1)

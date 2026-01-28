@@ -17,6 +17,7 @@ They define **what the frontend must do** and **how it is built**, and serve as 
 - [**9-frontend-architecture.md**](9-frontend-architecture.md) — Frontend architecture doc
 - [**10-veyfi-ui-spec.md**](10-veyfi-ui-spec.md) — veYFI UI spec
 - [**11-testing.md**](11-testing.md) — Testing strategy, infrastructure, and workflow
+- [**12-global-data-schema.md**](12-global-data-schema.md) — S3 JSON schema for global (pre‑wallet) data
 - [**dev-mock-toggles.md**](dev-mock-toggles.md) — Mock scenarios and time offset for local UI testing
 
 ## Usage
@@ -31,3 +32,16 @@ They define **what the frontend must do** and **how it is built**, and serve as 
 - All changes must reflect YIP-88 and currently targeted contract versions.
 - Keep formatting clean, concise, and consistent.
 - Shared frontend primitives (e.g., CooldownState) MUST be defined once in /lib/clients/shared and referenced consistently across domains.
+
+## Environment Setup (Frontend)
+
+Minimum env vars for non‑mock runs:
+
+- `NEXT_PUBLIC_GLOBAL_DATA_URL` — S3 (or similar) JSON for global stats and inventory.
+- `NEXT_PUBLIC_WC_PROJECT_ID` — WalletConnect project id for RainbowKit.
+
+Optional:
+
+- `NEXT_PUBLIC_RPC_URLS` — Comma‑separated RPC URLs (used for dev/fork transports).
+- `NEXT_PUBLIC_USE_MOCKS=true` — Forces mock clients.
+- `NEXT_PUBLIC_E2E=true` — Enables Test Bridge + mock wallet for Playwright.

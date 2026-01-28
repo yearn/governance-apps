@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAccount } from "wagmi";
+import { useIdentity } from "@/state/identity";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { useLlyfiStartCooldown, useLlyfiWithdraw } from "@/lib/hooks/useVeyfi";
 import { parseAmount } from "@/lib/parse";
 import { UnstakePanel } from "@/components/domain/UnstakePanel";
 
 export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
-  const { isConnected } = useAccount();
+  const { isConnected } = useIdentity();
   const [input, setInput] = useState("");
 
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);

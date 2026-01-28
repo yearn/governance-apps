@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
 import { useIdentity } from "@/state/identity";
 import { Button } from "@/components/ui/Button";
 import { AmountInput } from "@/components/ui/AmountInput";
@@ -21,8 +20,7 @@ import { RadioGroup } from "@/components/ui/RadioGroup";
 import { YFI_ADDRESS, SPENDER_REDEMPTION } from "@/lib/constants";
 
 export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
-  const { isConnected, yfiBalance, isBlacklisted } = useIdentity();
-  const { address } = useAccount();
+  const { isConnected, yfiBalance, isBlacklisted, address } = useIdentity();
   const queryClient = useQueryClient();
   const { data } = useVeyfiAccount();
   const [mode, setMode] = useState<"sell" | "buy">("sell");

@@ -3,7 +3,7 @@
 import { Banner } from "@/components/ui/Banner";
 import { Button } from "@/components/ui/Button";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { useAccount } from "wagmi";
+import { useIdentity } from "@/state/identity";
 import { VeyfiStatsBar } from "./components/VeyfiStatsBar";
 import { VeyfiCockpit } from "./components/VeyfiCockpit";
 import { veyfiCopy as copy } from "./messages";
@@ -11,7 +11,7 @@ import { useProtocol } from "@/state/protocol";
 import { MockControls } from "./components/MockControls";
 
 export function VeyfiPageClient() {
-  const { isConnected } = useAccount();
+  const { isConnected } = useIdentity();
   const { openConnectModal } = useConnectModal();
   const { usesMockBackend } = useProtocol();
 

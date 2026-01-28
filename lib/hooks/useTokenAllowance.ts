@@ -1,29 +1,40 @@
 // lib/hooks/useTokenAllowance.ts
 "use client";
 
-import { Address } from "viem";
-import { useReadContract, useAccount } from "wagmi";
-import { erc20Abi } from "viem";
+import { Address, erc20Abi } from "viem";
+import { useAccount } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
 import { useProtocol } from "@/state/protocol";
 import { readMockStyfiAllowance } from "@/lib/clients/styfi/mock";
 import { readMockVeyfiAllowance } from "@/lib/clients/veyfi/mock";
+import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
 
 /**
  * On-chain allowance reader.
  * In mock mode, reads synchronously from the mock stores to provide instant feedback.
  */
 export function useTokenAllowance(token: Address, spender: Address) {
-  const { usesMockBackend } = useProtocol();
-  const { address } = useAccount();
+  const { usesMockBackend, publicClient } = useProtocol();
+  const { address: wagmiAddress } = useAccount();
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+  const address =
+    wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
 
-  const result = useReadContract({
-    abi: erc20Abi,
-    address: token,
-    functionName: "allowance",
-    args: address && spender ? [address, spender] : undefined,
-    query: {
-      enabled: !usesMockBackend && !!address && !!token && !!spender,
+  const result = useQuery({
+    queryKey: ["allowance", address, token, spender],
+    queryFn: async () => {
+      if (!address || !publicClient) return 0n;
+      return publicClient.readContract({
+        abi: erc20Abi,
+        address: token,
+        functionName: "allowance",
+        args: [address, spender],
+      });
     },
+    enabled:
+      !usesMockBackend && !!address && !!token && !!spender && !!publicClient,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   if (usesMockBackend) {
