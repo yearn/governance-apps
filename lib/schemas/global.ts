@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const zBaseUnit = z.string().regex(/^\d+$/);
+const zBaseUnit = z.string().regex(/^(0|[1-9]\d*)$/);
 const zBps = z.union([z.number().int().nonnegative(), zBaseUnit]);
 
 const zWeightBlock = z.object({

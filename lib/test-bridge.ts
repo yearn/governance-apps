@@ -16,7 +16,7 @@ import {
   MOCK_UPYFI_ADDRESS,
   MOCK_YFI_ADDRESS,
 } from "@/lib/constants";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 
 // Known tokens for tests. Extend only when added to app logic.
 export type TokenSymbol =

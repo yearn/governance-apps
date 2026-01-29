@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+// Edge runtime is required for Cloudflare deployments; remove if targeting Node-only hosts.
 export const runtime = "edge";
 
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch(url);
     if (!response.ok) {
       return NextResponse.json(
         { error: "Failed to fetch global data" },
@@ -21,8 +22,9 @@ export async function GET() {
     }
 
     const json = await response.json();
+    const cacheControl = response.headers.get("cache-control");
     return NextResponse.json(json, {
-      headers: { "Cache-Control": "no-store" },
+      headers: cacheControl ? { "Cache-Control": cacheControl } : undefined,
     });
   } catch (error) {
     console.warn("Global data proxy failed", error);

@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useProtocol } from "./protocol";
 import type { Address } from "viem";
 import type { EpochInfo } from "@/lib/clients/styfi/types";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 
 type IdentityState = {
   address: Address | undefined;

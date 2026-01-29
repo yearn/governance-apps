@@ -6,7 +6,7 @@ import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { StyfiStakeMode } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 
 // --- Query Keys ---
 export const styfiKeys = {
@@ -56,27 +56,32 @@ export function useStyfiEpoch() {
 }
 
 export function useStyfiApy() {
-  const { styfi, globalData } = useProtocol();
+  const { styfi, globalData, usesMockBackend } = useProtocol();
   const globalVersion = globalData?.meta?.timestamp ?? null;
+  const hasApySource = usesMockBackend || !!globalData;
 
   return useQuery({
     queryKey: [...styfiKeys.apy(), globalVersion] as const,
     queryFn: () => styfi.getApy(),
     // APY changes slowly
+    enabled: hasApySource,
     refetchInterval: 60_000,
     staleTime: 60_000,
   });
 }
 
 export function useStyfiStats() {
-  const { styfi, globalData, publicClient } = useProtocol();
+  const { styfi, globalData, publicClient, usesMockBackend } = useProtocol();
   const globalVersion = globalData?.meta?.timestamp ?? null;
-  const connected = !!publicClient;
+  const connected = usesMockBackend || !!publicClient;
+  const chainId = publicClient?.chain?.id ?? null;
+  const hasStatsSource = usesMockBackend || !!globalData || !!publicClient;
 
   return useQuery({
-    queryKey: [...styfiKeys.stats(), globalVersion, connected] as const,
+    queryKey: [...styfiKeys.stats(), globalVersion, connected, chainId] as const,
     queryFn: () => styfi.getStats(),
     // Global stats (TVL/Supply)
+    enabled: hasStatsSource,
     refetchInterval: 60_000,
     staleTime: 60_000,
   });

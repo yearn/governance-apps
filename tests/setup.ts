@@ -6,7 +6,7 @@ import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
 import { resetMockVeyfiStore } from "@/lib/clients/veyfi/mock";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
 import type { ReactNode } from "react";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 
 process.env.NEXT_PUBLIC_USE_MOCKS = "true";
 process.env.NEXT_PUBLIC_E2E = "true";

@@ -3,7 +3,7 @@ import { act, waitFor } from "@testing-library/react";
 import { renderHookWithProviders } from "@/tests/test-utils";
 import { useTx } from "@/lib/tx/useTx";
 import { styfiKeys } from "@/lib/hooks/useStyfi";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import type { TransactionHash } from "@/lib/tx/types";
 

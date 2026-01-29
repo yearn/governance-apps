@@ -91,7 +91,7 @@ Any logic that previously called `Date.now()` must use `nowSeconds()` instead.
 When `NEXT_PUBLIC_E2E=true`, wagmi uses a `mock` connector with a fixed address:
 
 - Default E2E address: `0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266`
-- Location: `lib/test/constants.ts`
+- Location: `lib/constants.ts`
 
 This means E2E tests are instantly “connected” and do not rely on wallet UI flows.
 The mock connector is for testing only and should never be enabled in real user environments.

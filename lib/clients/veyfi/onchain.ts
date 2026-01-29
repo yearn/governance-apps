@@ -37,13 +37,16 @@ interface LockInfo {
   unlock_time: bigint;
 }
 
-interface WeightInfo {
-  weight: bigint;
-  slope: bigint;
-}
-
-function toNumber(value: string | number) {
-  return typeof value === "string" ? Number(value) : value;
+function toBps(value: string | number, label: string) {
+  const numeric = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 100_000) {
+    console.warn(`Invalid BPS value for ${label}:`, value);
+    return 0;
+  }
+  if (!Number.isInteger(numeric)) {
+    console.warn(`Non-integer BPS value for ${label}:`, value);
+  }
+  return numeric;
 }
 
 export class OnchainVeyfiClient implements VeyfiClient {
@@ -325,7 +328,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
     const data = this.globalData.global.veyfi;
     const maxBoostBps = this.globalData.global.maxBoostBps;
-    const feeBps = toNumber(data.inventory.feeBps);
+    const feeBps = toBps(data.inventory.feeBps, "inventory.feeBps");
     const fee = BigInt(Math.trunc(feeBps)) * 10n ** 14n;
     const tokenMap = new Map(data.tokens.map((t) => [t.symbol, t]));
 
@@ -348,8 +351,9 @@ export class OnchainVeyfiClient implements VeyfiClient {
     return {
       migratedYfi: BigInt(data.migratedYfi),
       lockedYfi: BigInt(data.lockedYfi),
-      maxBoostMultiplier: toNumber(maxBoostBps) / 10000,
-      totalLlyfiStakedPercent: toNumber(data.totalLlyfiStakedBps) / 10000,
+      maxBoostMultiplier: toBps(maxBoostBps, "maxBoostBps") / 10000,
+      totalLlyfiStakedPercent:
+        toBps(data.totalLlyfiStakedBps, "totalLlyfiStakedBps") / 10000,
       inventory: {
         availableYfi: BigInt(data.inventory.availableYfi),
         feeBps,
@@ -404,7 +408,10 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
     const fee = results[0] as bigint;
     const availableYfi = results[1] as bigint;
-    const feeBps = Number(fee) / 10 ** 14;
+    const feeBps = toBps(
+      Number(fee / 10n ** 14n),
+      "redemption.feeBps"
+    );
 
     const tokens: LlyfiGlobalInfo[] = [];
     const redemptionStart = 2;
@@ -467,13 +474,14 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH);
       const currentEpochArg = BigInt(currentEpoch);
 
+      const totalWeightResult = await this.publicClient.readContract({
+        address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+        abi: VotingEscrowRewardDistributorAbi,
+        functionName: "total_weights",
+        args: [currentEpochArg],
+      });
+
       const calls = [
-        {
-          address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
-          abi: VotingEscrowRewardDistributorAbi,
-          functionName: "total_weights",
-          args: [currentEpochArg],
-        },
         {
           address: VEYFI_ADDRESS,
           abi: LegacyVeYfiAbi,
@@ -529,17 +537,16 @@ export class OnchainVeyfiClient implements VeyfiClient {
         allowFailure: false,
       });
 
-      const totalWeightResult = results[0] as unknown as WeightInfo;
       const migratedUnderlyingApprox = totalWeightResult.slope * 104n;
 
-      const lockedYfi = results[1] as bigint;
-      const fee = results[2] as bigint;
-      const globalYfi = results[3] as bigint;
+      const lockedYfi = results[0] as bigint;
+      const fee = results[1] as bigint;
+      const globalYfi = results[2] as bigint;
 
       let totalStakedYfiEq = 0n;
       let totalCapacityYfiEq = 0n;
 
-      const lockerStatsStart = 4;
+      const lockerStatsStart = 3;
       const redemptionStatsStart = lockerStatsStart + LIQUID_LOCKERS.length * 2;
 
       for (let i = 0; i < LIQUID_LOCKERS.length; i++) {
@@ -580,6 +587,10 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
       const maxBoostMultiplier =
         1 + Math.max(0, 104 - currentEpoch) / 104;
+      const feeBps = toBps(
+        Number(fee / 10n ** 14n),
+        "redemption.feeBps"
+      );
 
       return {
         migratedYfi: migratedUnderlyingApprox,
@@ -588,7 +599,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
         totalLlyfiStakedPercent,
         inventory: {
           availableYfi: globalYfi,
-          feeBps: Number(fee) / 10 ** 14,
+          feeBps,
         },
         tokens,
       };

@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useProtocol } from "@/state/protocol";
 import { readMockStyfiAllowance } from "@/lib/clients/styfi/mock";
 import { readMockVeyfiAllowance } from "@/lib/clients/veyfi/mock";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 
 /**
  * On-chain allowance reader.
@@ -19,9 +19,10 @@ export function useTokenAllowance(token: Address, spender: Address) {
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
   const address =
     wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
+  const chainId = publicClient?.chain?.id ?? null;
 
   const result = useQuery({
-    queryKey: ["allowance", address, token, spender],
+    queryKey: ["allowance", address, token, spender, chainId],
     queryFn: async () => {
       if (!address || !publicClient) return 0n;
       return publicClient.readContract({

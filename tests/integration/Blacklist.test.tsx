@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "@/tests/test-utils";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { RewardsCard } from "@/app/styfi/components/cards/RewardsCard";
 import { StakeTab } from "@/app/styfi/components/cards/stake/StakeTab";
 

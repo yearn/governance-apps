@@ -35,11 +35,6 @@ export class OnchainStyfiClient implements StyfiClient {
     if (!this.publicClient) {
       throw new Error("Wallet public client not available");
     }
-    console.log(
-      "Fetching Account State from Chain ID:",
-      this.publicClient.chain?.id
-    );
-
     const commonStyfi = { abi: StakedYfiAbi, address: STYFI_ADDRESS } as const;
     const commonStyfix = {
       abi: DelegatedStakedYfiAbi,
@@ -186,7 +181,7 @@ export class OnchainStyfiClient implements StyfiClient {
       const totalSupply = this.globalData.global.yfi.totalSupply;
       const totalStaked =
         BigInt(this.globalData.styfi.staked) +
-        BigInt(this.globalData.styfi.unstaking);
+        BigInt(this.globalData.styfi.unstaking); // includes cooldown balances
       return {
         totalSupply: BigInt(totalSupply),
         totalStaked,

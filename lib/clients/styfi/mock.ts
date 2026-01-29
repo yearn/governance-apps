@@ -163,6 +163,7 @@ export class MockStyfiClient implements StyfiClient {
   }
 
   async getEpochInfo(): Promise<EpochInfo> {
+    // Fixed epoch for deterministic mock behavior (tests should not drift over time).
     return {
       currentEpoch: 12,
       epochEnd: nowSeconds() + EPOCH_LENGTH,

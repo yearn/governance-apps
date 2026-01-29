@@ -11,7 +11,7 @@ import { mainnet } from "wagmi/chains";
 import type { Address } from "viem";
 import { ProtocolProvider } from "@/state/protocol";
 import { IdentityProvider } from "@/state/identity";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 
 type ProviderOptions = {
   address?: Address;

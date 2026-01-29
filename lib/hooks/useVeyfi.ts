@@ -5,7 +5,7 @@ import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { LlyfiTokenId } from "@/lib/clients/veyfi";
 import { useTx } from "@/lib/tx/useTx";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 
 // --- Query Keys ---
 export const veyfiKeys = {
@@ -42,9 +42,10 @@ export function useVeyfiStats() {
   const { veyfi, publicClient, usesMockBackend, globalData } = useProtocol();
   const connected = usesMockBackend || !!publicClient;
   const globalVersion = globalData?.meta?.timestamp ?? null;
+  const chainId = publicClient?.chain?.id ?? null;
 
   return useQuery({
-    queryKey: [...veyfiKeys.stats(), connected, globalVersion] as const,
+    queryKey: [...veyfiKeys.stats(), connected, globalVersion, chainId] as const,
     queryFn: () => veyfi.getGlobalStats(),
     // Global stats (Migration %, Boost)
     refetchInterval: 60_000,

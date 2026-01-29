@@ -7,7 +7,7 @@ import { wagmiConfig } from "@/web3/wagmi";
 import { useProtocol } from "@/state/protocol";
 import { useTx } from "@/lib/tx/useTx";
 import { TransactionHash } from "@/lib/tx/types";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 
 export function useTokenApprove() {
   const { styfi, veyfi, usesMockBackend } = useProtocol();

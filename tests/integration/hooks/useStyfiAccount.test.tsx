@@ -3,7 +3,7 @@ import { waitFor } from "@testing-library/react";
 import { renderHookWithProviders } from "@/tests/test-utils";
 import { useStyfiAccount, styfiKeys } from "@/lib/hooks/useStyfi";
 import { useProtocol } from "@/state/protocol";
-import { E2E_MOCK_ADDRESS } from "@/lib/test/constants";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 
 describe("useStyfiAccount", () => {
   it("returns default mock state and updates after store mutation", async () => {

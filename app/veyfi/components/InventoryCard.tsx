@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 export function InventoryCard() {
   const { data: stats, isLoading } = useVeyfiStats();
 
-  if (isLoading) {
+  if (isLoading || !stats) {
     return (
       <div className="h-full rounded-box border border-neutral-200 bg-neutral-50 p-6 space-y-4">
         <Skeleton className="h-6 w-48" />
@@ -22,8 +22,6 @@ export function InventoryCard() {
       </div>
     );
   }
-
-  if (!stats) return null;
 
   return (
     <div className="h-full flex flex-col rounded-box border border-neutral-200 bg-neutral-50 overflow-hidden">

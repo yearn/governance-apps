@@ -43,9 +43,10 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
   const { data: walletClient } = useWalletClient();
 
   const publicClient = useMemo<PublicClient | null>(() => {
-    if (!walletClient) return null;
+    if (!walletClient?.chain) return null;
+    if (walletClient.chain.id !== mainnet.id) return null;
     return createPublicClient({
-      chain: walletClient.chain ?? mainnet,
+      chain: walletClient.chain,
       transport: custom({
         request: walletClient.request.bind(walletClient),
       }),
