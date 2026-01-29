@@ -12,7 +12,7 @@ const HOST_TO_PREFIX: Record<string, string> = {
 const PUBLIC_FILE =
   /\.(?:png|jpg|jpeg|gif|svg|ico|webp|css|js|map|txt|xml|woff|woff2|ttf|eot)$/i;
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = url.hostname.toLowerCase();
 
