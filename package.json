@@ -15,7 +15,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test --project=smoke",
-    "test:e2e:full": "playwright test --project=full"
+    "test:e2e:full": "playwright test --project=full",
+    "agent:sync": "./scripts/sync-agent-env.sh",
+    "agent:bootstrap": "./scripts/agent-worktree.sh"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.15.1",
