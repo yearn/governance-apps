@@ -19,20 +19,29 @@ export function middleware(request: NextRequest) {
   // 1. Determine the intended application based on the Host header
   const prefix = HOST_TO_PREFIX[hostname];
 
+  const isHeadRequest = request.method === "HEAD";
+
   // If the hostname isn't in our map (e.g. app.dao-ops.com or localhost),
   // pass through to the default root page (the Launcher).
-  if (!prefix) {
-    return NextResponse.next();
-  }
-
   // 2. Safety Checks: Skip rewriting for internals and static assets
-  if (
+  const isSkippablePath =
     url.pathname.startsWith("/_next") ||
     url.pathname.startsWith("/api") ||
     url.pathname.startsWith("/fonts") ||
     url.pathname.startsWith("/.well-known") ||
-    PUBLIC_FILE.test(url.pathname)
-  ) {
+    PUBLIC_FILE.test(url.pathname);
+
+  if (isHeadRequest && !isSkippablePath) {
+    const headUrl = url.clone();
+    headUrl.pathname = prefix ?? "/";
+    return NextResponse.rewrite(headUrl);
+  }
+
+  if (!prefix) {
+    return NextResponse.next();
+  }
+
+  if (isSkippablePath) {
     return NextResponse.next();
   }
 
