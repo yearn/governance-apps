@@ -12,22 +12,23 @@ const zRewardsBlock = z.object({
   current: zBaseUnit,
   projected: zBaseUnit,
   pps: zBaseUnit,
+  apyBps: zBps,
 });
 
 const zAprBlock = z.object({
   weight: zBaseUnit,
   rewards: zBaseUnit,
-  apr_bps: zBps,
+  aprBps: zBps,
 });
 
 const zAprOnlyBlock = z.object({
   rewards: zBaseUnit,
-  apr_bps: zBps,
+  aprBps: zBps,
 });
 
 export const GlobalDataSchema = z.object({
   meta: z.object({
-    version: z.number().int().min(1),
+    version: z.number().int().min(2),
     timestamp: z.number().int(),
     epoch: z.number().int(),
     blockNumber: z.number().int(),

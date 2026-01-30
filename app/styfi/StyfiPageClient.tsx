@@ -100,7 +100,7 @@ function StyfiPageShell() {
     stakedPercentage = ratio.toFixed(1);
   }
 
-  const projectedApyBps = globalData?.styfi?.projected?.apr_bps;
+  const projectedApyBps = globalData?.styfi?.projected?.aprBps;
   const showProjectedApy =
     globalData?.meta?.epoch === 0 && projectedApyBps !== undefined;
   const statsApyBps = showProjectedApy

@@ -222,7 +222,7 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getApy(): Promise<bigint> {
-    const aprBps = this.globalData?.styfi?.current?.apr_bps;
+    const aprBps = this.globalData?.styfi?.current?.aprBps;
     if (aprBps !== undefined) {
       return toBigInt(aprBps);
     }

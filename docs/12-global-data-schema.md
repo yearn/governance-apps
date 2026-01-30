@@ -15,7 +15,9 @@ If the file is missing or invalid, the UI renders skeletons and waits for wallet
 ## Rules
 
 - **Base units only:** Token amounts are **strings** in base units (wei).
-- **APR in BPS:** APR values are integer basis points under `apr_bps` (e.g., 6800 = 68.00%).
+- **APR in BPS:** APR values are integer basis points under `aprBps` (e.g., 6800 = 68.00%).
+- **Reward APY in BPS:** `global.rewards.apyBps` is an integer basis points value for yvUSDC APY.
+- **Schema version:** `meta.version` must be `>= 2`.
 - **Price in cents:** `global.yfi.priceCts` is an integer string in USD cents (e.g., `"350000"` = $3,500.00).
 - **No floats for amounts:** No decimals for token amounts.
 - **All fields required:** The schema is strict; missing fields will be rejected.
@@ -64,19 +66,20 @@ type GlobalData = {
       current: string;
       projected: string;
       pps: string;
+      apyBps: number | string;
     };
   };
   styfi: {
     staked: string;
     unstaking: string;
-    current: { weight: string; rewards: string; apr_bps: number | string };
-    projected: { weight: string; rewards: string; apr_bps: number | string };
+    current: { weight: string; rewards: string; aprBps: number | string };
+    projected: { weight: string; rewards: string; aprBps: number | string };
   };
   styfix: {
     staked: string;
     unstaking: string;
-    current: { rewards: string; apr_bps: number | string };
-    projected: { rewards: string; apr_bps: number | string };
+    current: { rewards: string; aprBps: number | string };
+    projected: { rewards: string; aprBps: number | string };
   };
   veyfi: {
     current: { weight: string; rewards: string };
@@ -86,8 +89,8 @@ type GlobalData = {
     symbol: string;
     staked: string;
     unstaking: string;
-    current: { weight: string; rewards: string; apr_bps: number | string };
-    projected: { weight: string; rewards: string; apr_bps: number | string };
+    current: { weight: string; rewards: string; aprBps: number | string };
+    projected: { weight: string; rewards: string; aprBps: number | string };
   }>;
 };
 ```
@@ -99,7 +102,7 @@ type GlobalData = {
 ```json
 {
   "meta": {
-    "version": 1,
+    "version": 2,
     "timestamp": 1770360042,
     "epoch": 0,
     "blockNumber": 24362448
@@ -136,7 +139,8 @@ type GlobalData = {
     "rewards": {
       "current": "0",
       "projected": "100000000000000000000000",
-      "pps": "1095999000000000000"
+      "pps": "1095999000000000000",
+      "apyBps": "624"
     }
   },
   "styfi": {
@@ -145,12 +149,12 @@ type GlobalData = {
     "current": {
       "weight": "0",
       "rewards": "0",
-      "apr_bps": "0"
+      "aprBps": "0"
     },
     "projected": {
       "weight": "4000004000000000000",
       "rewards": "94513580718567412717",
-      "apr_bps": "7716"
+      "aprBps": "7716"
     }
   },
   "styfix": {
@@ -158,11 +162,11 @@ type GlobalData = {
     "unstaking": "0",
     "current": {
       "rewards": "0",
-      "apr_bps": "0"
+      "aprBps": "0"
     },
     "projected": {
       "rewards": "94513486205081207635",
-      "apr_bps": "7716"
+      "aprBps": "7716"
     }
   },
   "veyfi": {
@@ -183,12 +187,12 @@ type GlobalData = {
       "current": {
         "weight": "0",
         "rewards": "0",
-        "apr_bps": "0"
+        "aprBps": "0"
       },
       "projected": {
         "weight": "1894116631520296447091",
         "rewards": "44754891531002105790921",
-        "apr_bps": "3653818"
+        "aprBps": "3653818"
       }
     }
   ]
@@ -202,4 +206,4 @@ type GlobalData = {
 - `global.*` provides protocol-wide aggregates (supply, inventory, weights, rewards) for pre-connect rendering.
 - `styfi`, `styfix`, `veyfi`, and `llyfi` provide preview blocks for each dashboard area without RPC.
 - The stYFI **Total Staked** UI value should sum `styfi.staked + styfi.unstaking` (cooldown included).
-- During **epoch 0**, the UI may show `styfi.projected.apr_bps` as **“Epoch 1 APR”** in the stats bar while keeping current APR elsewhere.
+- During **epoch 0**, the UI may show `styfi.projected.aprBps` as **“Epoch 1 APR”** in the stats bar while keeping current APR elsewhere.
