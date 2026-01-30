@@ -32,6 +32,8 @@ export const veyfiCopy = {
         unlockDate: "Unlock Date",
         amount: "Lock Amount",
         currentBoost: "Current Boost",
+        effectiveApr: "Your Effective APR",
+        baseApr: "Base stYFI APR",
       },
       timeline: {
         start: "Max (2.0x)",
