@@ -8,6 +8,10 @@ import type {
 export interface VeyfiClient {
   getAccountState(address: `0x${string}`): Promise<VeyfiAccountState>;
   getGlobalStats(): Promise<VeyfiGlobalStats>;
+  /**
+   * Optional: force an on-chain stats fetch, bypassing S3.
+   */
+  getGlobalStatsFromChain?: () => Promise<VeyfiGlobalStats>;
   prepareMigrateVeYfi(): Promise<PreparedTransaction>;
   prepareStakeLlyfi(
     symbol: LlyfiTokenId,

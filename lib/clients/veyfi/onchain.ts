@@ -469,6 +469,10 @@ export class OnchainVeyfiClient implements VeyfiClient {
       }
     }
 
+    return this.getGlobalStatsFromChain();
+  }
+
+  async getGlobalStatsFromChain(): Promise<VeyfiGlobalStats> {
     if (!this.publicClient) {
       return {
         migratedYfi: 0n,

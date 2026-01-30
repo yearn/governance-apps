@@ -181,6 +181,10 @@ export class MockStyfiClient implements StyfiClient {
     };
   }
 
+  async getStatsFromChain(): Promise<StyfiGlobalStats> {
+    return this.getStats();
+  }
+
   async prepareStake(
     mode: StyfiStakeMode,
     amount: bigint

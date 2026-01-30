@@ -262,6 +262,10 @@ export class MockVeyfiClient implements VeyfiClient {
     };
   }
 
+  async getGlobalStatsFromChain(): Promise<VeyfiGlobalStats> {
+    return this.getGlobalStats();
+  }
+
   async prepareMigrateVeYfi(): Promise<PreparedTransaction> {
     return async () => {
       const s = this.getOrCreate(this.lastAddress!);

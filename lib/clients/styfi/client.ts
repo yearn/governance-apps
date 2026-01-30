@@ -9,6 +9,10 @@ export interface StyfiClient {
   getAccountState(address: Address): Promise<StyfiAccountState>;
   getEpochInfo(): Promise<EpochInfo>;
   getStats(): Promise<StyfiGlobalStats>;
+  /**
+   * Optional: force an on-chain stats fetch, bypassing S3.
+   */
+  getStatsFromChain?: () => Promise<StyfiGlobalStats>;
 
   /**
    * Returns the current protocol APY in basis points (e.g. 500 = 5%).

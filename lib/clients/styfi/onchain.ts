@@ -200,6 +200,10 @@ export class OnchainStyfiClient implements StyfiClient {
       };
     }
 
+    return this.getStatsFromChain();
+  }
+
+  async getStatsFromChain(): Promise<StyfiGlobalStats> {
     if (!this.publicClient) {
       return { totalSupply: 0n, totalStaked: 0n };
     }

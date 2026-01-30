@@ -55,23 +55,30 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const fallbackRatio =
     Number((token.depositorTotalSupply * 10000n) / capacity) / 10000;
 
+  const preferLiveTotals = isConnected;
   const s3Llyfi = globalData?.llyfi?.find(
     (entry) => entry.symbol === token.symbol
   );
   const s3Redemption = globalData?.global?.veyfi?.tokens?.find(
     (entry) => entry.symbol === token.symbol
   )?.redemption;
-  const lockerCapacityYfi = s3Redemption
-    ? toBigInt(s3Redemption.capacity, token.lockedYfi)
-    : token.lockedYfi;
-  const stakedYfi = s3Llyfi
+  const s3Capacity = s3Redemption
+    ? toBigInt(s3Redemption.capacity, token.depositorCapacity)
+    : null;
+  const s3Staked = s3Llyfi
     ? toBigInt(s3Llyfi.staked) + toBigInt(s3Llyfi.unstaking)
     : null;
-  const ratioFromS3 =
-    stakedYfi !== null && lockerCapacityYfi > 0n
-      ? Number((stakedYfi * 10000n) / lockerCapacityYfi) / 10000
-      : null;
-  const utilizationRatioRaw = ratioFromS3 ?? fallbackRatio;
+  const useS3Totals = !preferLiveTotals;
+  const capacityForRatio = useS3Totals
+    ? s3Capacity ?? token.depositorCapacity
+    : token.depositorCapacity;
+  const stakedForRatio = useS3Totals
+    ? s3Staked ?? token.depositorTotalSupply
+    : token.depositorTotalSupply;
+  const utilizationRatioRaw =
+    capacityForRatio > 0n
+      ? Number((stakedForRatio * 10000n) / capacityForRatio) / 10000
+      : fallbackRatio;
   const MIN_UTILIZATION = 0.01;
   const utilizationRatioForApr = Math.max(
     MIN_UTILIZATION,
@@ -122,12 +129,10 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
     ? copy.manage.row.tooltips.apr.effectiveEpoch1
     : copy.manage.row.tooltips.apr.effective;
 
-  const capacityAssets = token.depositorCapacity * token.exchangeRate;
-  const stakedAssets = token.depositorTotalSupply * token.exchangeRate;
-  const displayStaked =
-    stakedYfi !== null ? stakedYfi * token.exchangeRate : stakedAssets;
-  const displayCapacity =
-    stakedYfi !== null ? lockerCapacityYfi * token.exchangeRate : capacityAssets;
+  const capacityAssets = capacityForRatio * token.exchangeRate;
+  const stakedAssets = stakedForRatio * token.exchangeRate;
+  const displayStaked = stakedAssets;
+  const displayCapacity = capacityAssets;
 
   const formatCompact = (val: bigint) => {
     return Intl.NumberFormat("en-US", {
@@ -202,7 +207,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
         {/* Col 2: Locker Status */}
         <div className="text-right">
           <div className="font-number font-bold text-neutral-900">
-            {formatTokenAmount(lockerCapacityYfi, 18, 2)} YFI
+            {formatTokenAmount(displayCapacity, 18, 2)} YFI
           </div>
           <div className="text-xs font-medium text-neutral-500">
             {copy.manage.row.boostLabel(boostMultiplier.toFixed(2) + "x")}

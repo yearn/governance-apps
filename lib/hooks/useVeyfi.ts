@@ -1,9 +1,18 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
-import { LlyfiTokenId, type LlyfiTokenState } from "@/lib/clients/veyfi";
+import {
+  LlyfiTokenId,
+  type LlyfiTokenState,
+  type VeyfiClient,
+} from "@/lib/clients/veyfi";
 import { useTx } from "@/lib/tx/useTx";
 import { E2E_MOCK_ADDRESS, LIQUID_LOCKERS } from "@/lib/constants";
 
@@ -28,7 +37,39 @@ export const veyfiKeys = {
   account: (address?: string) =>
     [...veyfiKeys.all, "account", address] as const,
   stats: () => [...veyfiKeys.all, "stats"] as const,
+  statsOverride: () => [...veyfiKeys.all, "statsOverride"] as const,
 };
+
+const VEYFI_STATS_OVERRIDE_MAX_MS = 10 * 60_000;
+
+function setVeyfiStatsOverride(queryClient: QueryClient) {
+  queryClient.setQueryData(veyfiKeys.statsOverride(), Date.now());
+}
+
+async function refreshVeyfiStatsFromChain(
+  veyfi: VeyfiClient,
+  queryClient: QueryClient
+) {
+  if (veyfi.getGlobalStatsFromChain) {
+    try {
+      const stats = await veyfi.getGlobalStatsFromChain();
+      queryClient.setQueriesData({ queryKey: veyfiKeys.stats() }, stats);
+      setVeyfiStatsOverride(queryClient);
+      return;
+    } catch (error) {
+      console.warn("Failed to refresh veYFI stats from chain", error);
+    }
+  }
+
+  await queryClient.invalidateQueries({ queryKey: veyfiKeys.stats() });
+}
+
+function toMsTimestamp(value: number | null | undefined) {
+  if (value === null || value === undefined) return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+}
 
 // --- Read Hooks ---
 
@@ -55,13 +96,44 @@ export function useVeyfiAccount() {
 
 export function useVeyfiStats() {
   const { veyfi, publicClient, usesMockBackend, globalData } = useProtocol();
+  const queryClient = useQueryClient();
   const connected = usesMockBackend || !!publicClient;
   const globalVersion = globalData?.meta?.timestamp ?? null;
   const chainId = publicClient?.chain?.id ?? null;
+  const { data: overrideSince = 0 } = useQuery({
+    queryKey: veyfiKeys.statsOverride(),
+    queryFn: async () => 0,
+    initialData: 0,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+  const globalTimestampMs = toMsTimestamp(globalVersion);
+  const hasFreshGlobal =
+    globalTimestampMs !== null && globalTimestampMs >= overrideSince;
+
+  useEffect(() => {
+    if (!overrideSince) return;
+    const id = setTimeout(() => {
+      queryClient.setQueryData(veyfiKeys.statsOverride(), 0);
+      queryClient.invalidateQueries({ queryKey: veyfiKeys.stats() });
+    }, VEYFI_STATS_OVERRIDE_MAX_MS);
+    return () => clearTimeout(id);
+  }, [overrideSince, queryClient]);
+
+  useEffect(() => {
+    if (overrideSince > 0 && hasFreshGlobal) {
+      queryClient.setQueryData(veyfiKeys.statsOverride(), 0);
+    }
+  }, [overrideSince, hasFreshGlobal, queryClient]);
+
+  const preferOnchain = overrideSince > 0 && !hasFreshGlobal;
 
   return useQuery({
     queryKey: [...veyfiKeys.stats(), connected, globalVersion, chainId] as const,
-    queryFn: () => veyfi.getGlobalStats(),
+    queryFn: () =>
+      preferOnchain && veyfi.getGlobalStatsFromChain
+        ? veyfi.getGlobalStatsFromChain()
+        : veyfi.getGlobalStats(),
     // Global stats (Migration %, Boost)
     refetchInterval: 60_000,
     staleTime: 60_000,
@@ -161,10 +233,8 @@ export function useVeyfiMigration() {
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
         });
-        // Invalidate Global Stats (to update "Migrated veYFI" top bar)
-        await queryClient.invalidateQueries({
-          queryKey: veyfiKeys.stats(),
-        });
+        // Refresh Global Stats (to update "Migrated veYFI" top bar)
+        await refreshVeyfiStatsFromChain(veyfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
     });
@@ -190,6 +260,7 @@ export function useLlyfiStake() {
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
         });
+        await refreshVeyfiStatsFromChain(veyfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
     });
@@ -215,6 +286,7 @@ export function useLlyfiStartCooldown() {
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
         });
+        await refreshVeyfiStatsFromChain(veyfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
     });
@@ -240,6 +312,7 @@ export function useLlyfiWithdraw() {
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
         });
+        await refreshVeyfiStatsFromChain(veyfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
     });
@@ -269,6 +342,7 @@ export function useLlyfiRedeem() {
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
         });
+        await refreshVeyfiStatsFromChain(veyfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
     });
@@ -297,6 +371,7 @@ export function useLlyfiMint() {
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
         });
+        await refreshVeyfiStatsFromChain(veyfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
     });

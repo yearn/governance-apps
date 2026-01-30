@@ -1,11 +1,15 @@
 // lib/hooks/useStyfi.ts
 "use client";
 
-import { useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect } from "react";
+import {
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
-import { StyfiStakeMode } from "@/lib/clients/styfi";
+import { StyfiStakeMode, type StyfiClient } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { formatPercent } from "@/lib/format";
@@ -26,6 +30,7 @@ function toBigInt(value?: string | number | null) {
 }
 
 const REWARD_PPS_SCALE = 10n ** 18n;
+const STYFI_STATS_OVERRIDE_MAX_MS = 10 * 60_000;
 
 // --- Query Keys ---
 export const styfiKeys = {
@@ -35,7 +40,37 @@ export const styfiKeys = {
   epoch: () => [...styfiKeys.all, "epoch"] as const,
   apy: () => [...styfiKeys.all, "apy"] as const,
   stats: () => [...styfiKeys.all, "stats"] as const,
+  statsOverride: () => [...styfiKeys.all, "statsOverride"] as const,
 };
+
+function setStyfiStatsOverride(queryClient: QueryClient) {
+  queryClient.setQueryData(styfiKeys.statsOverride(), Date.now());
+}
+
+async function refreshStyfiStatsFromChain(
+  styfi: StyfiClient,
+  queryClient: QueryClient
+) {
+  if (styfi.getStatsFromChain) {
+    try {
+      const stats = await styfi.getStatsFromChain();
+      queryClient.setQueriesData({ queryKey: styfiKeys.stats() }, stats);
+      setStyfiStatsOverride(queryClient);
+      return;
+    } catch (error) {
+      console.warn("Failed to refresh stYFI stats from chain", error);
+    }
+  }
+
+  await queryClient.invalidateQueries({ queryKey: styfiKeys.stats() });
+}
+
+function toMsTimestamp(value: number | null | undefined) {
+  if (value === null || value === undefined) return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+}
 
 // --- Read Hooks ---
 
@@ -91,14 +126,45 @@ export function useStyfiApy() {
 
 export function useStyfiStats() {
   const { styfi, globalData, publicClient, usesMockBackend } = useProtocol();
+  const queryClient = useQueryClient();
   const globalVersion = globalData?.meta?.timestamp ?? null;
   const connected = usesMockBackend || !!publicClient;
   const chainId = publicClient?.chain?.id ?? null;
   const hasStatsSource = usesMockBackend || !!globalData || !!publicClient;
+  const { data: overrideSince = 0 } = useQuery({
+    queryKey: styfiKeys.statsOverride(),
+    queryFn: async () => 0,
+    initialData: 0,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+  const globalTimestampMs = toMsTimestamp(globalVersion);
+  const hasFreshGlobal =
+    globalTimestampMs !== null && globalTimestampMs >= overrideSince;
+
+  useEffect(() => {
+    if (!overrideSince) return;
+    const id = setTimeout(() => {
+      queryClient.setQueryData(styfiKeys.statsOverride(), 0);
+      queryClient.invalidateQueries({ queryKey: styfiKeys.stats() });
+    }, STYFI_STATS_OVERRIDE_MAX_MS);
+    return () => clearTimeout(id);
+  }, [overrideSince, queryClient]);
+
+  useEffect(() => {
+    if (overrideSince > 0 && hasFreshGlobal) {
+      queryClient.setQueryData(styfiKeys.statsOverride(), 0);
+    }
+  }, [overrideSince, hasFreshGlobal, queryClient]);
+
+  const preferOnchain = overrideSince > 0 && !hasFreshGlobal;
 
   return useQuery({
     queryKey: [...styfiKeys.stats(), globalVersion, connected, chainId] as const,
-    queryFn: () => styfi.getStats(),
+    queryFn: () =>
+      preferOnchain && styfi.getStatsFromChain
+        ? styfi.getStatsFromChain()
+        : styfi.getStats(),
     // Global stats (TVL/Supply)
     enabled: hasStatsSource,
     refetchInterval: 60_000,
@@ -147,8 +213,8 @@ export function useStyfiStake() {
           queryClient.invalidateQueries({
             queryKey: ["protocol", "identity", address],
           }),
-          queryClient.invalidateQueries({ queryKey: styfiKeys.stats() }),
         ]);
+        await refreshStyfiStatsFromChain(styfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
     });
@@ -178,8 +244,8 @@ export function useStyfiStartCooldown() {
           queryClient.invalidateQueries({
             queryKey: ["protocol", "identity", address],
           }),
-          queryClient.invalidateQueries({ queryKey: styfiKeys.stats() }),
         ]);
+        await refreshStyfiStatsFromChain(styfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
     });
@@ -210,6 +276,7 @@ export function useStyfiWithdraw() {
             queryKey: ["protocol", "identity", address],
           }),
         ]);
+        await refreshStyfiStatsFromChain(styfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
     });
