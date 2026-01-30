@@ -17,6 +17,8 @@ import {
   STREAM_DURATION,
   EPOCH_LENGTH,
 } from "@/lib/constants";
+import { deriveCooldownEndsAt } from "@/lib/clients/shared/cooldown";
+import { nowSeconds } from "@/lib/mocks/time";
 import { StakedYfiAbi } from "@/lib/abis/StakedYfi";
 import { DelegatedStakedYfiAbi } from "@/lib/abis/DelegatedStakedYfi";
 import { RewardClaimerAbi } from "@/lib/abis/RewardClaimer";
@@ -101,20 +103,30 @@ export class OnchainStyfiClient implements StyfiClient {
       }
 
       // 3. Map Data
-      const formatCooldown = (stream: readonly [bigint, bigint, bigint]) => {
-        const [start, total, claimed] = stream;
+      const now = nowSeconds();
+      const formatCooldown = (
+        stream: readonly [bigint, bigint, bigint],
+        withdrawable: bigint
+      ) => {
+        const [, total, claimed] = stream;
         const remaining = total - claimed;
         if (remaining <= 0n) return null;
 
         return {
           amount: remaining,
-          endsAt: Number(start) + STREAM_DURATION,
+          endsAt: deriveCooldownEndsAt({
+            total,
+            claimed,
+            withdrawable,
+            durationSeconds: STREAM_DURATION,
+            nowSecondsOverride: now,
+          }),
           totalAmount: total,
         };
       };
 
-      const styfiCooldown = formatCooldown(styfiStream);
-      const styfiXCooldown = formatCooldown(styfiXStream);
+      const styfiCooldown = formatCooldown(styfiStream, styfiMaxWithdraw);
+      const styfiXCooldown = formatCooldown(styfiXStream, styfiXMaxWithdraw);
 
       // In the contracts, "streams" returns [start, total, claimed].
       // The "Active" amount in `balanceOf` is what is earning.

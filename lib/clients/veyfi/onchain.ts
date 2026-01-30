@@ -25,6 +25,8 @@ import { getCurrentEpoch } from "@/lib/format";
 import { VotingEscrowRewardDistributorAbi } from "@/lib/abis/VotingEscrowRewardDistributor";
 import { LiquidLockerDepositorAbi } from "@/lib/abis/LiquidLockerDepositor";
 import { LiquidLockerRedemptionAbi } from "@/lib/abis/LiquidLockerRedemption";
+import { deriveCooldownEndsAt } from "@/lib/clients/shared/cooldown";
+import { nowSeconds } from "@/lib/mocks/time";
 
 const LegacyVeYfiAbi = parseAbi([
   "function locked(address) view returns (int128 amount, uint256 end)",
@@ -60,6 +62,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
       throw new Error("Wallet public client not available");
     }
     try {
+      const now = nowSeconds();
       const [
         legacyLockResult,
         snapshotCheckResult,
@@ -242,18 +245,25 @@ export class OnchainVeyfiClient implements VeyfiClient {
         const usedRedemption = results[redBase + 1] as bigint;
         const inventoryRedemption = results[redBase + 2] as bigint;
 
-        const [start, totalShares, claimedShares] = streamData;
+        const [, totalShares, claimedShares] = streamData;
         const remainingShares = totalShares - claimedShares;
 
         const stakedBalanceAssets = stakedBalanceShares * config.scale;
         const remainingAssets = remainingShares * config.scale;
         const totalStreamAssets = totalShares * config.scale;
+        const claimedAssets = claimedShares * config.scale;
 
         const cooldown =
           remainingShares > 0n
             ? {
                 amount: remainingAssets,
-                endsAt: Number(start) + STREAM_DURATION,
+                endsAt: deriveCooldownEndsAt({
+                  total: totalStreamAssets,
+                  claimed: claimedAssets,
+                  withdrawable: maxWithdrawAssets,
+                  durationSeconds: STREAM_DURATION,
+                  nowSecondsOverride: now,
+                }),
                 totalAmount: totalStreamAssets,
               }
             : null;
