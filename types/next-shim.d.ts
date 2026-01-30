@@ -4,6 +4,11 @@ declare module "next" {
   export type Metadata = UnknownRecord;
   export type Viewport = UnknownRecord;
   export type NextConfig = UnknownRecord;
+  export namespace MetadataRoute {
+    export type Manifest = UnknownRecord;
+    export type Robots = UnknownRecord;
+    export type Sitemap = UnknownRecord[];
+  }
   const Next: unknown;
   export default Next;
 }
