@@ -10,7 +10,7 @@ const HOST_TO_PREFIX: Record<string, string> = {
 // Regex to detect public files that should skip rewriting.
 // This is safer than checking for dots, which might exist in valid URL slugs.
 const PUBLIC_FILE =
-  /\.(?:png|jpg|jpeg|gif|svg|ico|webp|css|js|map|txt|xml|woff|woff2|ttf|eot)$/i;
+  /\.(?:png|jpg|jpeg|gif|svg|ico|webp|css|js|map|txt|xml|webmanifest|woff|woff2|ttf|eot)$/i;
 
 export function proxy(request: NextRequest) {
   const url = request.nextUrl;

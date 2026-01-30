@@ -1,16 +1,10 @@
 // app/layout.tsx
-import type { Metadata } from "next";
 import "./globals.css";
 import { Web3Providers } from "@/web3/rainbowkit";
 import { ProtocolProvider } from "@/state/protocol";
 import { IdentityProvider } from "@/state/identity";
 import { Toaster } from "@/components/ui/Toast";
 import { Header } from "@/components/Header";
-
-export const metadata: Metadata = {
-  title: "Yearn Governance Apps",
-  description: "stYFI & veYFI frontend",
-};
 
 export default function RootLayout({
   children,
