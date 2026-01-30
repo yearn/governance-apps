@@ -1,12 +1,31 @@
 // lib/hooks/useStyfi.ts
 "use client";
 
+import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { StyfiStakeMode } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
+import { formatPercent } from "@/lib/format";
+
+function toNumber(value?: string | number | null) {
+  if (value === null || value === undefined) return null;
+  const numeric = typeof value === "string" ? Number(value) : value;
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function toBigInt(value?: string | number | null) {
+  if (value === null || value === undefined) return null;
+  try {
+    return BigInt(value);
+  } catch {
+    return null;
+  }
+}
+
+const REWARD_PPS_SCALE = 10n ** 18n;
 
 // --- Query Keys ---
 export const styfiKeys = {
@@ -85,6 +104,24 @@ export function useStyfiStats() {
     refetchInterval: 60_000,
     staleTime: 60_000,
   });
+}
+
+export function useRewardTokenInfo() {
+  const { globalData } = useProtocol();
+  const rewards = globalData?.global?.rewards;
+  const pps = toBigInt(rewards?.pps);
+  const apyBps = toNumber(rewards?.apyBps);
+  const apy = apyBps === null ? null : formatPercent(apyBps / 10000);
+
+  const convertBalanceToUsd = useCallback(
+    (balance: bigint) => {
+      if (pps === null) return null;
+      return (balance * pps) / REWARD_PPS_SCALE;
+    },
+    [pps]
+  );
+
+  return { apy, apyBps, pps, convertBalanceToUsd };
 }
 
 // --- Write Hooks ---

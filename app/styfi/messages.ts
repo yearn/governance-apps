@@ -147,5 +147,8 @@ export const styfiCopy = {
       "Rewards represent yield from the previous epoch, streaming linearly over 14 days.",
     disconnected: "Connect your wallet to see rewards.",
     claimCta: "Claim Rewards",
+    apyBadge: (apy: string) => `${apy} APY`,
+    apyTooltip: (symbol: string) =>
+      `Rewards are paid in ${symbol}, which earns yield automatically.`,
   },
 } as const;
