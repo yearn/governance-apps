@@ -70,6 +70,10 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 - During **epoch 0**, the APR column label switches to **Next Epoch APR** and uses projected APR inputs.
 - **Rows:** Expandable (Accordion).
 - **Expanded State (Cockpit):** Reveals the "Manage" interface for that specific token.
+- **Data sources (pre-connect):**
+  - Locker Status uses `global.veyfi.tokens[].redemption.capacity` (YFI locked).
+  - Effective APR uses `llyfi[].current.aprBps` (or `projected.aprBps` when `epoch == 0`).
+  - The APR tooltip back-calculates base APR using `global.maxBoostBps` and the LLYFI staked ratio derived from `llyfi[].staked + llyfi[].unstaking` over capacity.
 
 **The Cockpit (Tabs):**
 

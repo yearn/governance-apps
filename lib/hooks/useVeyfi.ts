@@ -3,9 +3,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
-import { LlyfiTokenId } from "@/lib/clients/veyfi";
+import { LlyfiTokenId, type LlyfiTokenState } from "@/lib/clients/veyfi";
 import { useTx } from "@/lib/tx/useTx";
-import { E2E_MOCK_ADDRESS } from "@/lib/constants";
+import { E2E_MOCK_ADDRESS, LIQUID_LOCKERS } from "@/lib/constants";
+
+function toNumber(value?: string | number | null) {
+  if (value === null || value === undefined) return null;
+  const numeric = typeof value === "string" ? Number(value) : value;
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function toBigInt(value?: string | number | null, fallback = 0n) {
+  if (value === null || value === undefined) return fallback;
+  try {
+    return BigInt(value);
+  } catch {
+    return fallback;
+  }
+}
 
 // --- Query Keys ---
 export const veyfiKeys = {
@@ -58,7 +73,64 @@ export function useVeyfiStats() {
  */
 export function useLlyfiTokens() {
   const { data } = useVeyfiAccount();
-  return data?.llyfiTokens ?? [];
+  const { globalData } = useProtocol();
+  if (data?.llyfiTokens?.length) return data.llyfiTokens;
+  if (!globalData?.global?.veyfi || !globalData?.llyfi) return [];
+
+  const feeBps = toNumber(globalData.global.veyfi.inventory.feeBps) ?? 0;
+  const fee = BigInt(Math.trunc(feeBps)) * 10n ** 14n;
+  const maxBoostBps = toNumber(globalData.global.maxBoostBps) ?? 0;
+  const maxBoost = maxBoostBps > 0 ? maxBoostBps / 10000 : 1;
+
+  const redemptionMap = new Map(
+    globalData.global.veyfi.tokens.map((token) => [
+      token.symbol,
+      token.redemption,
+    ])
+  );
+  const llyfiMap = new Map(
+    globalData.llyfi.map((token) => [token.symbol, token])
+  );
+
+  return LIQUID_LOCKERS.map((locker) => {
+    const redemption = redemptionMap.get(locker.symbol);
+    const llyfi = llyfiMap.get(locker.symbol);
+    const capacity = redemption
+      ? toBigInt(redemption.capacity, locker.capacity)
+      : locker.capacity;
+    const used = redemption ? toBigInt(redemption.used) : 0n;
+    const inventory = redemption ? toBigInt(redemption.inventory) : 0n;
+    const stakedYfi = llyfi
+      ? toBigInt(llyfi.staked) + toBigInt(llyfi.unstaking)
+      : 0n;
+
+    return {
+      symbol: locker.symbol,
+      name: locker.name,
+      address: locker.token,
+      depositorAddress: locker.depositor,
+      walletBalance: 0n,
+      stakedBalance: 0n,
+      cooldownBalance: 0n,
+      withdrawable: 0n,
+      cooldown: null,
+      allowance: 0n,
+      redemptionAllowance: 0n,
+      lockedYfi: capacity,
+      veyfiBoost: maxBoost,
+      totalSupply: 0n,
+      stakedAssets: stakedYfi * locker.scale,
+      depositorTotalSupply: stakedYfi,
+      depositorCapacity: capacity,
+      exchangeRate: locker.scale,
+      redemption: {
+        capacity,
+        used,
+        inventory,
+        fee,
+      },
+    } satisfies LlyfiTokenState;
+  });
 }
 
 /**

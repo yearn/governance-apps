@@ -57,6 +57,7 @@ export const veyfiCopy = {
     row: {
       boostLabel: (val: string) => `${val} boost`,
       availableLabel: (val: string) => `Available: ${val}`,
+      connectWalletLabel: "Connect wallet",
       boostedBaseLabel: (val: string) => `${val} Boosted Base`,
       tooltips: {
         supply: (staked: string, total: string) => `Total Supply: ${total}`,

@@ -10,33 +10,111 @@ import { useStyfiApy } from "@/lib/hooks/useStyfi";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { veyfiCopy as copy } from "../messages";
 import { useProtocol } from "@/state/protocol";
+import { useIdentity } from "@/state/identity";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: baseApyBps } = useStyfiApy();
   const { globalData } = useProtocol();
+  const { isConnected } = useIdentity();
+
+  const toNumber = (value?: string | number | null) => {
+    if (value === null || value === undefined) return null;
+    const numeric = typeof value === "string" ? Number(value) : value;
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
+  const toBigInt = (value?: string | number | null, fallback = 0n) => {
+    if (value === null || value === undefined) return fallback;
+    try {
+      return BigInt(value);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const formatPercentSmart = (value: number, maximumFractionDigits = 1) => {
+    if (!Number.isFinite(value)) return "0%";
+    const percentValue = value * 100;
+    if (Math.abs(percentValue) >= 1000) {
+      const compact = Intl.NumberFormat("en-US", {
+        notation: "compact",
+        maximumFractionDigits,
+      }).format(percentValue);
+      return `${compact}%`;
+    }
+    return formatPercent(value, maximumFractionDigits);
+  };
 
   // --- Derived Metrics ---
   const staked = token.stakedBalance + token.cooldownBalance;
   const wallet = token.walletBalance;
 
   const capacity = token.depositorCapacity > 0n ? token.depositorCapacity : 1n;
-  const utilizationRatio =
+  const fallbackRatio =
     Number((token.depositorTotalSupply * 10000n) / capacity) / 10000;
 
-  const effectiveUtilization = Math.max(0.01, utilizationRatio);
+  const s3Llyfi = globalData?.llyfi?.find(
+    (entry) => entry.symbol === token.symbol
+  );
+  const s3Redemption = globalData?.global?.veyfi?.tokens?.find(
+    (entry) => entry.symbol === token.symbol
+  )?.redemption;
+  const lockerCapacityYfi = s3Redemption
+    ? toBigInt(s3Redemption.capacity, token.lockedYfi)
+    : token.lockedYfi;
+  const stakedYfi = s3Llyfi
+    ? toBigInt(s3Llyfi.staked) + toBigInt(s3Llyfi.unstaking)
+    : null;
+  const ratioFromS3 =
+    stakedYfi !== null && lockerCapacityYfi > 0n
+      ? Number((stakedYfi * 10000n) / lockerCapacityYfi) / 10000
+      : null;
+  const utilizationRatioRaw = ratioFromS3 ?? fallbackRatio;
+  const MIN_UTILIZATION = 0.01;
+  const utilizationRatioForApr = Math.max(
+    MIN_UTILIZATION,
+    utilizationRatioRaw
+  );
+  const utilizationRatioLabel =
+    utilizationRatioRaw < MIN_UTILIZATION
+      ? "<1%"
+      : formatPercent(utilizationRatioRaw, 1);
+
+  const maxBoostBps = toNumber(globalData?.global?.maxBoostBps);
+  const boostMultiplier =
+    maxBoostBps !== null ? maxBoostBps / 10000 : token.veyfiBoost || 1;
+
+  const s3AprBps = s3Llyfi
+    ? toNumber(
+        globalData?.meta?.epoch === 0
+          ? s3Llyfi.projected.aprBps
+          : s3Llyfi.current.aprBps
+      )
+    : null;
 
   const isEpochZero = globalData?.meta?.epoch === 0;
-  const projectedApyBps = globalData?.styfi?.projected?.apr_bps;
+  const projectedApyBps = globalData?.styfi?.projected?.aprBps;
   const baseApyBpsValue =
     isEpochZero && projectedApyBps !== undefined
       ? Number(projectedApyBps)
-      : baseApyBps
+      : baseApyBps !== undefined
         ? Number(baseApyBps)
         : 0;
   const baseApy = baseApyBpsValue / 10000;
-  const boostedStyfiApy = baseApy * token.veyfiBoost;
-  const effectiveApy = boostedStyfiApy / effectiveUtilization;
+  const boostedBaseApyFallback = baseApy * boostMultiplier;
+  const effectiveApyFallback =
+    boostedBaseApyFallback / utilizationRatioForApr;
+  const effectiveApy =
+    s3AprBps !== null ? s3AprBps / 10000 : effectiveApyFallback;
+  const baseApyForTooltip =
+    s3AprBps !== null
+      ? utilizationRatioForApr > 0 && boostMultiplier > 0
+        ? (effectiveApy * utilizationRatioForApr) / boostMultiplier
+        : 0
+      : baseApy;
+  const boostedBaseApy = baseApyForTooltip * boostMultiplier;
   const baseApyLabel = isEpochZero
     ? copy.manage.row.tooltips.apr.baseEpoch1
     : copy.manage.row.tooltips.apr.base;
@@ -46,6 +124,10 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
 
   const capacityAssets = token.depositorCapacity * token.exchangeRate;
   const stakedAssets = token.depositorTotalSupply * token.exchangeRate;
+  const displayStaked =
+    stakedYfi !== null ? stakedYfi * token.exchangeRate : stakedAssets;
+  const displayCapacity =
+    stakedYfi !== null ? lockerCapacityYfi * token.exchangeRate : capacityAssets;
 
   const formatCompact = (val: bigint) => {
     return Intl.NumberFormat("en-US", {
@@ -59,7 +141,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
       <div className="flex justify-between items-center mb-1">
         <span className="text-neutral-500">{baseApyLabel}</span>
         <span className="font-number font-medium">
-          {formatPercent(baseApy, 2)}
+          {formatPercent(baseApyForTooltip, 2)}
         </span>
       </div>
       <div className="flex justify-between items-center mb-2">
@@ -67,7 +149,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
           {copy.manage.row.tooltips.apr.boost}
         </span>
         <span className="font-number font-medium">
-          × {token.veyfiBoost.toFixed(2)}
+          × {boostMultiplier.toFixed(2)}
         </span>
       </div>
 
@@ -78,7 +160,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
           {copy.manage.row.tooltips.apr.boostedBase}
         </span>
         <span className="font-number font-bold text-neutral-900">
-          {formatPercent(boostedStyfiApy, 2)}
+          {formatPercent(boostedBaseApy, 2)}
         </span>
       </div>
       <div className="flex justify-between items-center mb-2">
@@ -86,7 +168,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
           {copy.manage.row.tooltips.apr.ratio}
         </span>
         <span className="font-number font-medium">
-          ÷ {formatPercent(utilizationRatio, 1)}
+          ÷ {utilizationRatioLabel}
         </span>
       </div>
 
@@ -97,7 +179,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
           {effectiveApyLabel}
         </span>
         <span className="font-number font-bold text-base text-disco-600">
-          {formatPercent(effectiveApy, 2)}
+          {formatPercentSmart(effectiveApy, 2)}
         </span>
       </div>
     </div>
@@ -120,10 +202,10 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
         {/* Col 2: Locker Status */}
         <div className="text-right">
           <div className="font-number font-bold text-neutral-900">
-            {formatTokenAmount(token.lockedYfi, 18, 2)} YFI
+            {formatTokenAmount(lockerCapacityYfi, 18, 2)} YFI
           </div>
           <div className="text-xs font-medium text-neutral-500">
-            {copy.manage.row.boostLabel(token.veyfiBoost.toFixed(2) + "x")}
+            {copy.manage.row.boostLabel(boostMultiplier.toFixed(2) + "x")}
           </div>
         </div>
 
@@ -136,10 +218,10 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
           >
             <div className="inline-block p-1 -m-1 rounded hover:bg-neutral-100 cursor-help transition-colors">
               <div className="font-number font-bold text-neutral-900">
-                {formatPercent(utilizationRatio, 1)}
+                {utilizationRatioLabel}
               </div>
               <div className="text-xs font-medium text-neutral-500 mt-0.5">
-                {formatCompact(stakedAssets)} / {formatCompact(capacityAssets)}
+                {formatCompact(displayStaked)} / {formatCompact(displayCapacity)}
               </div>
             </div>
           </Tooltip>
@@ -154,11 +236,11 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
           >
             <div className="inline-block p-1 -m-1 rounded hover:bg-neutral-100 cursor-help transition-colors text-right">
               <div className="font-number font-bold text-disco-600 text-lg leading-tight">
-                {formatPercent(effectiveApy, 0)}
+                {formatPercentSmart(effectiveApy, 0)}
               </div>
               <div className="text-[10px] font-medium text-neutral-400 uppercase tracking-wide mt-0.5">
                 {copy.manage.row.boostedBaseLabel(
-                  formatPercent(boostedStyfiApy, 1)
+                  formatPercent(boostedBaseApy, 1)
                 )}
               </div>
             </div>
@@ -167,13 +249,28 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
 
         {/* Col 5: Your Deposits */}
         <div className="text-right">
-          <div className="font-number font-bold text-neutral-900">
-            {formatTokenAmount(staked)}
-          </div>
-          {wallet > 0n && (
-            <div className="text-xs font-medium text-neutral-500">
-              {copy.manage.row.availableLabel(formatTokenAmount(wallet, 18, 2))}
-            </div>
+          {isConnected ? (
+            <>
+              <div className="font-number font-bold text-neutral-900">
+                {formatTokenAmount(staked)}
+              </div>
+              {wallet > 0n && (
+                <div className="text-xs font-medium text-neutral-500">
+                  {copy.manage.row.availableLabel(
+                    formatTokenAmount(wallet, 18, 2)
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex justify-end">
+                <Skeleton className="h-5 w-16" />
+              </div>
+              <div className="text-xs font-medium text-neutral-500">
+                {copy.manage.row.connectWalletLabel}
+              </div>
+            </>
           )}
         </div>
 

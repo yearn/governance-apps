@@ -501,6 +501,11 @@ UI requirements:
 - **Redemption Tab:**
   - Sell (Redeem): Max = `min(WalletBalance, CapacityRemaining * Rate)`.
   - Buy (Mint): Max = `Inventory / Rate`.
+- **LLYFI Ledger (Table):**
+  - MUST render before wallet connect using S3 global data.
+  - **Locker Status** MUST display `global.veyfi.tokens[].redemption.capacity` (YFI locked).
+  - **Effective APR** MUST use `llyfi[].current.aprBps` (or `projected.aprBps` when `epoch == 0`), which already includes boost + ratio.
+  - **APR tooltip breakdown** MUST back-calculate base APR using `global.maxBoostBps` and the LLYFI staked ratio derived from `llyfi[].staked + llyfi[].unstaking` over capacity.
 
 ### 4.1.2. `VeyfiGlobalStats` (System)
 
