@@ -5,6 +5,7 @@ import { useIdentity } from "@/state/identity";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { useLlyfiStartCooldown, useLlyfiWithdraw } from "@/lib/hooks/useVeyfi";
 import { parseAmount } from "@/lib/parse";
+import { formatInputAmount } from "@/lib/format";
 import { UnstakePanel } from "@/components/domain/UnstakePanel";
 
 export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
@@ -12,6 +13,10 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
   const [input, setInput] = useState("");
 
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);
+  const scale = token.exchangeRate > 0n ? token.exchangeRate : 1n;
+  const roundedAmount = isValid ? amount - (amount % scale) : 0n;
+  const hasRemainder = isValid && amount > 0n && amount !== roundedAmount;
+  const effectiveAmount = isValid ? roundedAmount : 0n;
   const { write: startCooldown, state: cooldownState } =
     useLlyfiStartCooldown();
   const { write: withdraw, state: withdrawState } = useLlyfiWithdraw();
@@ -29,9 +34,22 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
     withdrawState.status === "mining" ||
     withdrawState.status === "signing";
 
-  const insufficient = isValid && amount > token.stakedBalance;
+  const insufficient = isValid && effectiveAmount > token.stakedBalance;
+
+  const normalizeInput = () => {
+    if (hasRemainder) {
+      setInput(formatInputAmount(roundedAmount));
+    }
+  };
+
+  const handleMaxClick = () => {
+    const roundedMax = token.stakedBalance - (token.stakedBalance % scale);
+    setInput(formatInputAmount(roundedMax));
+  };
 
   const handleStart = async (amt: bigint) => {
+    if (amt <= 0n) return;
+    normalizeInput();
     await startCooldown(token.symbol, amt);
     setInput("");
   };
@@ -57,14 +75,16 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
         canStart={
           isConnected &&
           isValid &&
-          amount > 0n &&
+          effectiveAmount > 0n &&
           !insufficient &&
           !isSubmitting
         }
-        amount={amount}
+        amount={effectiveAmount}
         isValid={isValid}
         insufficientBalance={!isSubmitting && insufficient}
         onAmountChange={setInput}
+        onAmountBlur={normalizeInput}
+        onMaxClick={handleMaxClick}
         inputValue={input}
       />
     </div>

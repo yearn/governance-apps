@@ -19,6 +19,17 @@ export function formatTokenAmount(
 }
 
 /**
+ * Exact formatter for input values without floating point rounding.
+ * Trims trailing zeros for display.
+ */
+export function formatInputAmount(amount: bigint, decimals = 18): string {
+  const raw = formatUnits(amount, decimals);
+  if (!raw.includes(".")) return raw;
+  const trimmed = raw.replace(/\.?0+$/, "");
+  return trimmed.length ? trimmed : "0";
+}
+
+/**
  * USD formatting helper. Assumes 18 decimals unless provided otherwise.
  */
 export function formatUsd(

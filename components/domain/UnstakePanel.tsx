@@ -33,6 +33,8 @@ interface UnstakePanelProps {
   isValid: boolean;
   insufficientBalance: boolean;
   onAmountChange: (val: string) => void;
+  onAmountBlur?: () => void;
+  onMaxClick?: () => void;
   inputValue: string;
 }
 
@@ -52,6 +54,8 @@ export function UnstakePanel({
   amount,
   insufficientBalance,
   onAmountChange,
+  onAmountBlur,
+  onMaxClick,
   inputValue,
 }: UnstakePanelProps) {
   const [isAddingMore, setIsAddingMore] = useState(false);
@@ -153,9 +157,11 @@ export function UnstakePanel({
             value={inputValue}
             onChange={onAmountChange}
             maxLabel={`Available: ${formatTokenAmount(availableBalance)}`}
-            onMaxClick={() =>
-              onAmountChange(formatTokenAmount(availableBalance))
+            onMaxClick={
+              onMaxClick ??
+              (() => onAmountChange(formatTokenAmount(availableBalance)))
             }
+            onBlur={onAmountBlur}
             tokenSymbol={tokenSymbol}
             error={
               !isSubmitting && insufficientBalance
