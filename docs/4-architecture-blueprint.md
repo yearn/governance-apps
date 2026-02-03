@@ -233,7 +233,7 @@ On-chain clients are implemented. When mocks are disabled, global data loads fro
 
 **Read/Write policy:**
 
-- **Global reads** come from S3 JSON (no wallet required).
+- **Global reads** come from S3 JSON before connect and can switch to on-chain stats after connect for fresher totals.
 - **Account reads** use the wallet-backed public client after connect.
 - **Writes** always go through wallet signing via `useTx`.
 
@@ -248,7 +248,7 @@ Global, non-account data is fetched from a static JSON blob (S3 or similar):
 - Fetcher: `lib/clients/global.ts` (returns `null` on failure). Uses a same-origin proxy route (`/api/global-data`) in the browser to avoid CORS issues.
 - Hook: `lib/hooks/useGlobalData.ts` (React Query cache, 60s staleness)
 
-This enables **first paint** of stats and inventory without a wallet connection and avoids hard dependency on public RPCs.
+This enables **first paint** of stats and inventory without a wallet connection and avoids hard dependency on public RPCs. Once a wallet is connected, stats hooks may prefer on-chain reads to reflect recent transactions immediately.
 
 ---
 

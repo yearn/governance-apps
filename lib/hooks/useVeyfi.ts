@@ -100,6 +100,7 @@ export function useVeyfiStats() {
   const connected = usesMockBackend || !!publicClient;
   const globalVersion = globalData?.meta?.timestamp ?? null;
   const chainId = publicClient?.chain?.id ?? null;
+  const hasOnchainStats = !!veyfi.getGlobalStatsFromChain;
   const { data: overrideSince = 0 } = useQuery({
     queryKey: veyfiKeys.statsOverride(),
     queryFn: async () => 0,
@@ -126,7 +127,7 @@ export function useVeyfiStats() {
     }
   }, [overrideSince, hasFreshGlobal, queryClient]);
 
-  const preferOnchain = overrideSince > 0 && !hasFreshGlobal;
+  const preferOnchain = connected && hasOnchainStats;
 
   return useQuery({
     queryKey: [...veyfiKeys.stats(), connected, globalVersion, chainId] as const,

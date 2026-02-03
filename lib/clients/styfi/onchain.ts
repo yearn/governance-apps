@@ -191,9 +191,8 @@ export class OnchainStyfiClient implements StyfiClient {
   async getStats(): Promise<StyfiGlobalStats> {
     if (this.globalData?.global?.yfi && this.globalData?.styfi) {
       const totalSupply = this.globalData.global.yfi.totalSupply;
-      const totalStaked =
-        BigInt(this.globalData.styfi.staked) +
-        BigInt(this.globalData.styfi.unstaking); // includes cooldown balances
+      // S3 staked excludes cooldown balances; do not add unstaking here.
+      const totalStaked = BigInt(this.globalData.styfi.staked);
       return {
         totalSupply: BigInt(totalSupply),
         totalStaked,

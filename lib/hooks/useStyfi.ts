@@ -131,6 +131,7 @@ export function useStyfiStats() {
   const connected = usesMockBackend || !!publicClient;
   const chainId = publicClient?.chain?.id ?? null;
   const hasStatsSource = usesMockBackend || !!globalData || !!publicClient;
+  const hasOnchainStats = !!styfi.getStatsFromChain;
   const { data: overrideSince = 0 } = useQuery({
     queryKey: styfiKeys.statsOverride(),
     queryFn: async () => 0,
@@ -157,7 +158,7 @@ export function useStyfiStats() {
     }
   }, [overrideSince, hasFreshGlobal, queryClient]);
 
-  const preferOnchain = overrideSince > 0 && !hasFreshGlobal;
+  const preferOnchain = connected && hasOnchainStats;
 
   return useQuery({
     queryKey: [...styfiKeys.stats(), globalVersion, connected, chainId] as const,

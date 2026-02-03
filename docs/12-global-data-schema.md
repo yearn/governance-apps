@@ -205,5 +205,5 @@ type GlobalData = {
 
 - `global.*` provides protocol-wide aggregates (supply, inventory, weights, rewards) for pre-connect rendering.
 - `styfi`, `styfix`, `veyfi`, and `llyfi` provide preview blocks for each dashboard area without RPC.
-- The stYFI **Total Staked** UI value should sum `styfi.staked + styfi.unstaking` (cooldown included).
+- The stYFI **Total Staked** UI value should use `styfi.staked` (excludes cooldown balances). `styfi.unstaking` is provided as the cooldown amount.
 - During **epoch 0**, the UI may show `styfi.projected.aprBps` as **“Epoch 1 APR”** in the stats bar while keeping current APR elsewhere.

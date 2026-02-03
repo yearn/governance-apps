@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { LogoStyfi } from "@/components/icons/LogoStyfi";
 import { LogoStyfix } from "@/components/icons/LogoStyfix";
@@ -31,6 +32,9 @@ type AccountSummaryProps = {
   balances?: AccountBalances | null;
   isLoading: boolean;
   isConnected: boolean;
+  onConnect?: () => void;
+  connectLabel?: string;
+  connectBody?: string;
 };
 
 export function AccountSummary({
@@ -40,6 +44,9 @@ export function AccountSummary({
   balances,
   isLoading,
   isConnected,
+  onConnect,
+  connectLabel,
+  connectBody,
 }: AccountSummaryProps) {
   if (isNewUser && !isLoading && isConnected) {
     return (
@@ -84,13 +91,15 @@ export function AccountSummary({
   }
 
   const rows = [
-    balances?.styfi && balances.styfi.total > 0n
+    balances?.styfi &&
+    (balances.styfi.total > 0n || balances.styfi.withdrawable > 0n)
       ? {
           asset: "stYFI" as const,
           ...balances.styfi,
         }
       : null,
-    balances?.styfix && balances.styfix.total > 0n
+    balances?.styfix &&
+    (balances.styfix.total > 0n || balances.styfix.withdrawable > 0n)
       ? {
           asset: "stYFIx" as const,
           ...balances.styfix,
@@ -115,9 +124,16 @@ export function AccountSummary({
 
         <div className="space-y-3">
           {!isConnected ? (
-            <p className="text-sm text-neutral-600">
-              Connect your wallet to view positions.
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface/50 p-4">
+              <p className="text-sm text-neutral-600">
+                {connectBody ?? "Connect your wallet to view positions."}
+              </p>
+              {onConnect && (
+                <Button size="sm" variant="primary" onClick={onConnect}>
+                  {connectLabel ?? "Connect wallet"}
+                </Button>
+              )}
+            </div>
           ) : rows.length > 0 ? (
             rows.map((row) => (
               <PositionRow

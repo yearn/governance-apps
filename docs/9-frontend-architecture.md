@@ -240,6 +240,7 @@ We do **not** block the entire `/styfi` route on a single slow query.
 - On mount, it compares `stYFI` vs `stYFIx` balances to pick a default asset.
 - `isNewUser` is derived from total balance and controls the AccountSummary view.
 - The UI renders the header/stats bar immediately and keeps layout stable for all users.
+- When a wallet is connected, the stats bar may prefer on-chain reads for fresher totals after transactions.
 
 ---
 

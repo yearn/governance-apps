@@ -1,7 +1,5 @@
 "use client";
 
-import { Banner } from "@/components/ui/Banner";
-import { Button } from "@/components/ui/Button";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useIdentity } from "@/state/identity";
 import { StatsBar } from "@/components/ui/StatsBar";
@@ -18,6 +16,43 @@ import { styfiCopy as copy } from "./messages";
 import { MockControls } from "./components/MockControls";
 import { useProtocol } from "@/state/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { StyfiAccountState } from "@/lib/clients/styfi/types";
+
+function deriveBalances(account: StyfiAccountState) {
+  const styfiActive = account.styfiActive;
+  const styfiUnstaking = account.styfiInCooldown;
+  const styfiWithdrawable = account.styfiWithdrawable;
+  const styfiTotalRaw = styfiActive + styfiUnstaking + account.styfiUnlocked;
+  const styfiTotal = styfiTotalRaw > 0n ? styfiTotalRaw : styfiWithdrawable;
+
+  const styfixActive =
+    account.styfiX.assetsActive > 0n
+      ? account.styfiX.assetsActive
+      : account.styfiX.sharesActive;
+  const styfixUnstaking =
+    account.styfiX.assetsInCooldown > 0n
+      ? account.styfiX.assetsInCooldown
+      : account.styfiX.sharesInCooldown;
+  const styfixWithdrawable = account.styfiX.assetsWithdrawable;
+  const styfixTotalRaw =
+    styfixActive + styfixUnstaking + account.styfiX.assetsUnlocked;
+  const styfixTotal = styfixTotalRaw > 0n ? styfixTotalRaw : styfixWithdrawable;
+
+  return {
+    styfi: {
+      active: styfiActive,
+      unstaking: styfiUnstaking,
+      withdrawable: styfiWithdrawable,
+      total: styfiTotal,
+    },
+    styfix: {
+      active: styfixActive,
+      unstaking: styfixUnstaking,
+      withdrawable: styfixWithdrawable,
+      total: styfixTotal,
+    },
+  };
+}
 
 export function StyfiPageClient() {
   const { usesMockBackend } = useProtocol();
@@ -66,12 +101,9 @@ function StyfiPageShell() {
       return;
     }
 
-    const styfiBalance =
-      account.styfiActive + account.styfiInCooldown + account.styfiUnlocked;
-    const styfixBalance =
-      account.styfiX.assetsActive +
-      account.styfiX.assetsInCooldown +
-      account.styfiX.assetsUnlocked;
+    const derived = deriveBalances(account);
+    const styfiBalance = derived.styfi.total;
+    const styfixBalance = derived.styfix.total;
 
     if (styfixBalance > styfiBalance) {
       setSelectedAsset("stYFIx");
@@ -114,28 +146,7 @@ function StyfiPageShell() {
     ? copy.page.stats.aprEpoch1.label
     : copy.page.stats.apr.label;
   const activeAsset = selectedAsset ?? "stYFIx";
-  const balances = account
-    ? {
-        styfi: {
-          active: account.styfiActive,
-          unstaking: account.styfiInCooldown,
-          withdrawable: account.styfiWithdrawable,
-          total:
-            account.styfiActive +
-            account.styfiInCooldown +
-            account.styfiUnlocked,
-        },
-        styfix: {
-          active: account.styfiX.assetsActive,
-          unstaking: account.styfiX.assetsInCooldown,
-          withdrawable: account.styfiX.assetsWithdrawable,
-          total:
-            account.styfiX.assetsActive +
-            account.styfiX.assetsInCooldown +
-            account.styfiX.assetsUnlocked,
-        },
-      }
-    : null;
+  const balances = account ? deriveBalances(account) : null;
   const totalBalance = balances
     ? balances.styfi.total + balances.styfix.total
     : 0n;
@@ -167,21 +178,6 @@ function StyfiPageShell() {
       />
 
       <main className="container mx-auto px-4 md:px-6 pt-8 space-y-6 pb-24">
-        {!isConnected && (
-          <Banner variant="warning" title={copy.page.connectBanner.title}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>{copy.page.connectBanner.body}</span>
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={() => openConnectModal?.()}
-              >
-                {copy.page.connectBanner.cta}
-              </Button>
-            </div>
-          </Banner>
-        )}
-
         <AccountSummary
           isNewUser={isNewUser}
           selectedAsset={activeAsset}
@@ -189,6 +185,9 @@ function StyfiPageShell() {
           balances={balances}
           isLoading={isAccountLoading}
           isConnected={isConnected}
+          onConnect={openConnectModal}
+          connectLabel={copy.page.connectBanner.cta}
+          connectBody={copy.page.connectBanner.body}
         />
 
         <div ref={cockpitRef} className="scroll-mt-8">

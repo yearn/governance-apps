@@ -26,8 +26,13 @@ export function UnstakeTab({ asset }: Props) {
   const [input, setInput] = useState<string>("");
   const { amount, isValid } = useMemo(() => parseAmount(input || "0"), [input]);
 
+  const styfixActive =
+    data?.styfiX.sharesActive !== undefined &&
+    data.styfiX.sharesActive > 0n
+      ? data.styfiX.sharesActive
+      : data?.styfiX.assetsActive ?? 0n;
   const available =
-    (asset === "stYFI" ? data?.styfiActive : data?.styfiX.sharesActive) ?? 0n;
+    (asset === "stYFI" ? data?.styfiActive : styfixActive) ?? 0n;
 
   // Use null fallback to satisfy CooldownState type
   const cooldown =
@@ -36,7 +41,10 @@ export function UnstakeTab({ asset }: Props) {
   const totalExiting =
     (asset === "stYFI"
       ? data?.styfiInCooldown
-      : data?.styfiX.assetsInCooldown) ?? 0n;
+      : data?.styfiX.assetsInCooldown !== undefined &&
+          data.styfiX.assetsInCooldown > 0n
+        ? data.styfiX.assetsInCooldown
+        : data?.styfiX.sharesInCooldown) ?? 0n;
 
   // Contract truth for withdrawable amount
   const contractWithdrawable =

@@ -27,10 +27,15 @@ export function StakeManageCard({ selectedAsset, onSelectAsset }: Props) {
     selectedAsset === "stYFI" ? data?.styfiCooldown : data?.styfiX.cooldown;
   const { isComplete } = useEpochCountdown(cooldown?.endsAt);
 
+  const styfixUnstaking =
+    data?.styfiX.assetsInCooldown !== undefined &&
+    data.styfiX.assetsInCooldown > 0n
+      ? data.styfiX.assetsInCooldown
+      : data?.styfiX.sharesInCooldown ?? 0n;
   const unstakingBalance =
     selectedAsset === "stYFI"
       ? data?.styfiInCooldown ?? 0n
-      : data?.styfiX.assetsInCooldown ?? 0n;
+      : styfixUnstaking;
 
   let unstakeBadge;
   if (unstakingBalance > 0n) {

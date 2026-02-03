@@ -38,7 +38,11 @@ export function RewardsCard() {
 
   const earningPowerLabel = useMemo(() => {
     if (!data || !stats || stats.totalStaked === 0n) return "--%";
-    const userTotalActive = data.styfiActive + data.styfiX.assetsActive;
+    const styfixActive =
+      data.styfiX.assetsActive > 0n
+        ? data.styfiX.assetsActive
+        : data.styfiX.sharesActive;
+    const userTotalActive = data.styfiActive + styfixActive;
     if (userTotalActive === 0n) return "0%";
 
     const ratio = Number((userTotalActive * 10000n) / stats.totalStaked) / 100;
