@@ -5,10 +5,12 @@ import { LlyfiTokenRow } from "./LlyfiTokenRow";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { veyfiCopy as copy } from "../messages";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
+import { useProtocol } from "@/state/protocol";
 
 export function LlyfiTokenTable() {
   const tokens = useLlyfiTokens();
-  const { epochInfo, usesMockBackend } = useEpochClock({ tickMs: 60_000 });
+  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
+  const { globalData, usesMockBackend } = useProtocol();
   const isEpochZero = epochInfo?.currentEpoch === 0;
   const aprLabel = isEpochZero
     ? copy.manage.columns.aprEpoch1
