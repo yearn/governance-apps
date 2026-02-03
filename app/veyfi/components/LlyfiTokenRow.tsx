@@ -126,10 +126,9 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
     ? copy.manage.row.tooltips.apr.effectiveEpoch1
     : copy.manage.row.tooltips.apr.effective;
 
-  const capacityAssets = capacityForRatio * token.exchangeRate;
-  const stakedAssets = stakedForRatio * token.exchangeRate;
-  const displayStaked = stakedAssets;
-  const displayCapacity = capacityAssets;
+  // Locker Status uses YFI-locked capacity; keep ratio values in YFI (no scale).
+  const displayStaked = stakedForRatio;
+  const displayCapacity = capacityForRatio;
 
   const formatCompact = (val: bigint) => {
     return Intl.NumberFormat("en-US", {
