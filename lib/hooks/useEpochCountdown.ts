@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
 
 /**
@@ -28,13 +28,12 @@ export function useEpochCountdown(
   epochEndTimestamp: number | undefined,
   epochStartTimestamp?: number
 ) {
-  const [timeRemaining, setTimeRemaining] = useState<string>("--");
-  const [isComplete, setIsComplete] = useState(false);
-  const [progress, setProgress] = useState(0); // 0 to 100
   const { now } = useEpochClock({ tickMs: 1000 });
 
-  useEffect(() => {
-    if (!epochEndTimestamp) return;
+  return useMemo(() => {
+    if (!epochEndTimestamp) {
+      return { timeRemaining: "--", isComplete: false, progress: 0 };
+    }
 
     const totalDuration = epochStartTimestamp
       ? Math.max(1, epochEndTimestamp - epochStartTimestamp)
@@ -42,10 +41,7 @@ export function useEpochCountdown(
     const remaining = epochEndTimestamp - now;
 
     if (remaining <= 0) {
-      setTimeRemaining("Ready");
-      setIsComplete(true);
-      setProgress(100);
-      return;
+      return { timeRemaining: "Ready", isComplete: true, progress: 100 };
     }
 
     // Calculate progress based on a 14-day window assumption
@@ -57,10 +53,10 @@ export function useEpochCountdown(
       : totalDuration - remaining;
     const pct = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
 
-    setProgress(pct);
-    setIsComplete(false);
-    setTimeRemaining(formatDuration(remaining));
+    return {
+      timeRemaining: formatDuration(remaining),
+      isComplete: false,
+      progress: pct,
+    };
   }, [epochEndTimestamp, epochStartTimestamp, now]);
-
-  return { timeRemaining, isComplete, progress };
 }

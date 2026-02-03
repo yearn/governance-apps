@@ -13,13 +13,16 @@ import { useProtocol } from "@/state/protocol";
 import { useIdentity } from "@/state/identity";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
+import { useVeyfiAccount } from "@/lib/hooks/useVeyfi";
+import { getVeyfiBoostMultiplier } from "@/lib/clients/veyfi/boost";
 
 export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: baseApyBps } = useStyfiApy();
   const { globalData } = useProtocol();
   const { isConnected } = useIdentity();
-  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
+  const { epochInfo, now } = useEpochClock({ tickMs: 60_000 });
+  const { data: veyfiAccount } = useVeyfiAccount();
 
   const toNumber = (value?: string | number | null) => {
     if (value === null || value === undefined) return null;
@@ -92,33 +95,31 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
       : formatPercent(utilizationRatioRaw, 1);
 
   const maxBoostBps = toNumber(globalData?.global?.maxBoostBps);
+  const accountBoost = veyfiAccount?.veYfi
+    ? getVeyfiBoostMultiplier(veyfiAccount.veYfi.unlockTime, now)
+    : null;
   const boostMultiplier =
-    maxBoostBps !== null ? maxBoostBps / 10000 : token.veyfiBoost || 1;
+    accountBoost ??
+    (maxBoostBps !== null ? maxBoostBps / 10000 : token.veyfiBoost || 1);
 
   const isEpochZero = epochInfo?.currentEpoch === 0;
-  const s3AprBps = s3Llyfi
+  const s3EffectiveAprBps = s3Llyfi
     ? toNumber(isEpochZero ? s3Llyfi.projected.aprBps : s3Llyfi.current.aprBps)
     : null;
-  const projectedApyBps = globalData?.styfi?.projected?.aprBps;
+  const s3BaseAprBps = globalData?.styfi
+    ? isEpochZero
+      ? globalData.styfi.projected.aprBps
+      : globalData.styfi.current.aprBps
+    : null;
   const baseApyBpsValue =
-    isEpochZero && projectedApyBps !== undefined
-      ? Number(projectedApyBps)
-      : baseApyBps !== undefined
-        ? Number(baseApyBps)
-        : 0;
+    toNumber(s3BaseAprBps) ??
+    (baseApyBps !== undefined ? Number(baseApyBps) : 0);
   const baseApy = baseApyBpsValue / 10000;
-  const boostedBaseApyFallback = baseApy * boostMultiplier;
+  const boostedBaseApy = baseApy * boostMultiplier;
   const effectiveApyFallback =
-    boostedBaseApyFallback / utilizationRatioForApr;
+    utilizationRatioForApr > 0 ? boostedBaseApy / utilizationRatioForApr : 0;
   const effectiveApy =
-    s3AprBps !== null ? s3AprBps / 10000 : effectiveApyFallback;
-  const baseApyForTooltip =
-    s3AprBps !== null
-      ? utilizationRatioForApr > 0 && boostMultiplier > 0
-        ? (effectiveApy * utilizationRatioForApr) / boostMultiplier
-        : 0
-      : baseApy;
-  const boostedBaseApy = baseApyForTooltip * boostMultiplier;
+    s3EffectiveAprBps !== null ? s3EffectiveAprBps / 10000 : effectiveApyFallback;
   const baseApyLabel = isEpochZero
     ? copy.manage.row.tooltips.apr.baseEpoch1
     : copy.manage.row.tooltips.apr.base;
@@ -142,7 +143,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
       <div className="flex justify-between items-center mb-1">
         <span className="text-neutral-500">{baseApyLabel}</span>
         <span className="font-number font-medium">
-          {formatPercent(baseApyForTooltip, 2)}
+          {formatPercent(baseApy, 2)}
         </span>
       </div>
       <div className="flex justify-between items-center mb-2">

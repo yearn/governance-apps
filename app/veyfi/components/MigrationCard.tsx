@@ -10,6 +10,7 @@ import { veyfiCopy as copy } from "../messages";
 import { useProtocol } from "@/state/protocol";
 import { cn } from "@/lib/cn";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
+import { getVeyfiBoostMultiplier } from "@/lib/clients/veyfi/boost";
 
 function toNumber(value?: string | number | null) {
   if (value === null || value === undefined) return null;
@@ -36,17 +37,8 @@ export function MigrationCard() {
   const showAction = legacyBalance > 0n && migrationEligible && !migrated;
 
   // --- Boost Calculations ---
-  // Max lock duration = 4 years
-  const MAX_LOCK_SECONDS = 4 * 365 * 24 * 60 * 60;
-
-  // Boost = 1 + (remaining / max)
-  // Range: 1.0x to 2.0x
-  const remainingSeconds = Math.max(0, unlockTime - now);
-  const boostRatio = Math.min(
-    1,
-    Math.max(0, remainingSeconds / MAX_LOCK_SECONDS),
-  );
-  const currentBoost = 1.0 + boostRatio;
+  // Boost = 1 + (remaining / max), range: 1.0x to 2.0x
+  const currentBoost = getVeyfiBoostMultiplier(unlockTime, now);
 
   const isEpochZero = epochInfo?.currentEpoch === 0;
   const s3AprBps = globalData?.styfi
@@ -57,22 +49,28 @@ export function MigrationCard() {
   const s3AprBpsValue = toNumber(s3AprBps);
   const baseAprBps =
     s3AprBpsValue ?? (styfiApyBps !== undefined ? Number(styfiApyBps) : null);
-  const baseAprLabel =
+  const baseAprValueLabel =
     baseAprBps !== null ? formatPercent(baseAprBps / 10000, 2) : "--%";
   const effectiveAprBps =
     baseAprBps !== null ? baseAprBps * currentBoost : null;
-  const effectiveAprLabel =
+  const effectiveAprValueLabel =
     effectiveAprBps !== null
       ? formatPercent(effectiveAprBps / 10000, 2)
       : "--%";
+  const baseAprLabelText = isEpochZero
+    ? copy.migration.boost.stats.baseAprEpoch1
+    : copy.migration.boost.stats.baseApr;
+  const effectiveAprLabelText = isEpochZero
+    ? copy.migration.boost.stats.effectiveAprEpoch1
+    : copy.migration.boost.stats.effectiveApr;
 
   const breakdownTooltip = (
     <div className="w-full min-w-[200px] text-xs leading-tight">
       <div className="flex justify-between items-center mb-1">
         <span className="text-neutral-500">
-          {copy.migration.boost.stats.baseApr}
+          {baseAprLabelText}
         </span>
-        <span className="font-number font-medium">{baseAprLabel}</span>
+        <span className="font-number font-medium">{baseAprValueLabel}</span>
       </div>
       <div className="flex justify-between items-center mb-2">
         <span className="text-neutral-500">veYFI Boost</span>
@@ -85,10 +83,10 @@ export function MigrationCard() {
 
       <div className="flex justify-between items-center">
         <span className="text-disco-600 font-bold uppercase tracking-wide">
-          Effective APR
+          {effectiveAprLabelText}
         </span>
         <span className="font-number font-bold text-base text-disco-600">
-          {effectiveAprLabel}
+          {effectiveAprValueLabel}
         </span>
       </div>
     </div>
@@ -213,7 +211,7 @@ export function MigrationCard() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 dark:text-text-tertiary">
-                    {copy.migration.boost.stats.effectiveApr}
+                    {effectiveAprLabelText}
                   </p>
                   <div className="text-neutral-300 group-hover:text-disco-400 transition-colors dark:text-text-tertiary">
                     <svg
@@ -228,7 +226,7 @@ export function MigrationCard() {
                   </div>
                 </div>
                 <p className="font-number font-bold text-4xl text-disco-600 tracking-tight">
-                  {effectiveAprLabel}
+                  {effectiveAprValueLabel}
                 </p>
               </div>
 

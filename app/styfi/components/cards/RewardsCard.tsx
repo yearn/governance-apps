@@ -17,18 +17,41 @@ import {
 import { styfiCopy as copy } from "../../messages";
 import { IconCheck } from "@/components/icons/IconCheck";
 import { IconWallet } from "@/components/icons/IconWallet";
+import { useProtocol } from "@/state/protocol";
+import { useEpochClock } from "@/lib/hooks/useEpochClock";
+
+function toNumber(value?: string | number | null) {
+  if (value === null || value === undefined) return null;
+  const numeric = typeof value === "string" ? Number(value) : value;
+  return Number.isFinite(numeric) ? numeric : null;
+}
 
 export function RewardsCard() {
   const { data, isLoading } = useStyfiAccount();
   const { write, state } = useStyfiClaimRewards();
   const { data: styfiAprBps } = useStyfiApy();
   const { apy: rewardApy, convertBalanceToUsd } = useRewardTokenInfo();
+  const { globalData } = useProtocol();
+  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
 
   // --- Derived State ---
+  const isEpochZero = epochInfo?.currentEpoch === 0;
+  const s3AprBps = globalData?.styfi
+    ? isEpochZero
+      ? globalData.styfi.projected.aprBps
+      : globalData.styfi.current.aprBps
+    : null;
+  const aprBpsValue =
+    toNumber(s3AprBps) ??
+    (styfiAprBps !== undefined ? Number(styfiAprBps) : null);
   const styfiAprLabel =
-    styfiAprBps === undefined
-      ? "--%"
-      : formatPercent(Number(styfiAprBps) / 10000);
+    aprBpsValue === null ? "--%" : formatPercent(aprBpsValue / 10000);
+  const aprLabel = isEpochZero
+    ? copy.rewards.apr.labelEpoch1
+    : copy.rewards.apr.label;
+  const aprTooltip = isEpochZero
+    ? copy.rewards.apr.tooltipEpoch1
+    : copy.rewards.apr.tooltip;
 
   const claimable = useMemo(() => {
     if (!data) return 0n;
@@ -116,9 +139,9 @@ export function RewardsCard() {
         <div className="grid grid-cols-2 gap-8">
           {/* APR Stat */}
           <div className="space-y-1">
-            <Tooltip content={copy.rewards.apr.tooltip} side="top">
+            <Tooltip content={aprTooltip} side="top">
               <span className="text-xs font-bold text-neutral-500 cursor-help border-b border-dotted border-neutral-400 hover:text-neutral-700 transition-colors">
-                {copy.rewards.apr.label}
+                {aprLabel}
               </span>
             </Tooltip>
             <p className="text-3xl md:text-4xl font-number font-bold text-neutral-900 tracking-tight">

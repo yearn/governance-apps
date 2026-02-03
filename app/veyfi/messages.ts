@@ -33,7 +33,9 @@ export const veyfiCopy = {
         amount: "Lock Amount",
         currentBoost: "Current Boost",
         effectiveApr: "Your Effective APR",
+        effectiveAprEpoch1: "Next Epoch APR",
         baseApr: "Base stYFI APR",
+        baseAprEpoch1: "Epoch 1 APR",
       },
       timeline: {
         start: "Max (2.0x)",

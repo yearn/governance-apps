@@ -64,30 +64,23 @@ export function useEpochClock({ tickMs = 1000 }: { tickMs?: number } = {}) {
     initialData: initialBase,
   });
 
-  const [localNow, setLocalNow] = useState(() => nowSeconds());
-
-  useEffect(() => {
-    setLocalNow(nowSeconds());
-  }, [base]);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     if (tickMs <= 0) return;
-    const id = setInterval(() => setLocalNow(nowSeconds()), tickMs);
+    const id = setInterval(() => {
+      setTick((value) => value + 1);
+    }, tickMs);
     return () => clearInterval(id);
   }, [tickMs]);
 
-  const epoch = useMemo(
-    () => getEpochWindowFromBase(base, localNow),
-    [base, localNow]
-  );
-  const epochInfo = useMemo<EpochInfo>(
-    () => ({
-      currentEpoch: epoch.currentEpoch,
-      epochEnd: epoch.epochEnd,
-      nextEpochStart: epoch.epochEnd,
-    }),
-    [epoch]
-  );
+  const localNow = nowSeconds();
+  const epoch = getEpochWindowFromBase(base, localNow);
+  const epochInfo: EpochInfo = {
+    currentEpoch: epoch.currentEpoch,
+    epochEnd: epoch.epochEnd,
+    nextEpochStart: epoch.epochEnd,
+  };
 
   return {
     now: localNow + base.offsetSeconds,

@@ -56,7 +56,7 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
       epoch: epochInfo ?? data?.epoch,
       isLoading,
     }),
-    [address, isConnected, data, isLoading]
+    [address, isConnected, data, epochInfo, isLoading]
   );
 
   return (

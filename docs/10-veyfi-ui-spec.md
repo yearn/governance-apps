@@ -72,8 +72,10 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 - **Expanded State (Cockpit):** Reveals the "Manage" interface for that specific token.
 - **Data sources (pre-connect):**
   - Locker Status uses `global.veyfi.tokens[].redemption.capacity` (YFI locked).
-  - Effective APR uses `llyfi[].current.aprBps` (or `projected.aprBps` when `epoch == 0`).
-  - The APR tooltip back-calculates base APR using `global.maxBoostBps` and the LLYFI staked ratio derived from `llyfi[].staked + llyfi[].unstaking` over capacity.
+- Effective APR uses `llyfi[].current.aprBps` (or `projected.aprBps` when `epoch == 0`).
+- Base stYFI APR uses `styfi.current.aprBps` (or `styfi.projected.aprBps` when `epoch == 0`), matching the migration card.
+- veYFI boost uses the same legacy-lock boost logic as the migration card when connected; when disconnected, fall back to `global.maxBoostBps`.
+- The APR tooltip shows base stYFI APR, boost multiplier, and the LLYFI staked ratio derived from `llyfi[].staked + llyfi[].unstaking` over capacity.
 
 **The Cockpit (Tabs):**
 

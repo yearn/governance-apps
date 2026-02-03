@@ -139,7 +139,9 @@ export const styfiCopy = {
     title: "Yield & Rewards",
     apr: {
       label: "Current APR",
+      labelEpoch1: "Next Epoch APR",
       tooltip: "Annualized rate based on the previous epoch's performance.",
+      tooltipEpoch1: "Projected APR for the upcoming epoch.",
     },
     token: {
       label: "Reward Token",
