@@ -134,7 +134,7 @@ Selecting a mode in the AccountSummary hero smooth-scrolls the user to the cockp
      <AccountSummary />          // ModeComparison or positions list
      <StyfiCockpit>
        <StakeManageCard />       // Contains StakeTab and UnstakeTab
-       <RewardsCard />           // Contains Claim CTA and Earning Power
+       <RewardsCard />           // Yield & Rewards (APR + reward token APY + claimable payout)
      </StyfiCockpit>
      {usesMockBackend && <MockControls />}
   </main>
@@ -215,7 +215,7 @@ Each card/component uses **only the hooks it needs**:
 
 - `StyfiPageClient` → `useStyfiStats`, `useStyfiApy` (for StatsBar).
 - `AccountSummary` → `useStyfiAccount`.
-- `RewardsCard` → `useStyfiAccount`, `useStyfiStats` (for Earning Power).
+- `RewardsCard` → `useStyfiAccount`, `useStyfiApy`, `useRewardTokenInfo`.
 - `StakeTab` → `useStyfiAccount` (wallet balance) + `prepareStake`.
 - `UnstakeTab` → `useStyfiAccount` + `useEpoch` + `prepareWithdraw` + `prepareStartCooldown`.
 
@@ -228,7 +228,7 @@ Each card/component uses **only the hooks it needs**:
 We rely primarily on React Query loading states and inline skeletons in cards:
 
 - `AccountSummary`: placeholder rows for balances when needed.
-- `RewardsCard`: skeleton for rows.
+- `RewardsCard`: two-tier skeleton (context section + payout section).
 - `StakeManageCard`: disabled buttons + skeleton inputs if dependent data missing.
 
 We do **not** block the entire `/styfi` route on a single slow query.

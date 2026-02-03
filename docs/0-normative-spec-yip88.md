@@ -226,7 +226,7 @@ bonus_yfi = team_bonus_amount / bonus_yfi_price
 3. Reward and bonus calculations **MUST** rely solely on verifiable data.
 4. Guardian veto and pause durations **MUST NOT** exceed defined limits.
 5. Total stYFI supply **MUST EQUAL** YFI staked − YFI in cooldown.
-6. All voting and earning power **MUST** derive exclusively from balances held within the same address.
+6. All voting power **MUST** derive exclusively from balances held within the same address.
 
 ---
 

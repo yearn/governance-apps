@@ -57,7 +57,6 @@ We assume a technically literate DeFi user familiar with:
   - **Active:** Amount currently staked and earning rewards.
 - **Unstaking:** Amount currently in cooldown (linear streaming).
 - **Withdrawable:** Amount fully unlocked (finished streaming or liquid) ready to withdraw.
-  - **Earning Power:** My share of the total staking pool (tooltip explanation).
   - Claimable rewards.
 
 - If blacklisted:

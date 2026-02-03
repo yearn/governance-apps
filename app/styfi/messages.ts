@@ -24,11 +24,6 @@ export const styfiCopy = {
   modeSelector: {
     kicker: "Your position",
     compareLabel: "Compare modes",
-    earningPower: {
-      label: "Earning Power",
-      tooltip:
-        "Your share of the reward pool. Determined by your total amount of YFI in the system.",
-    },
     compareAria: {
       expand: "Expand mode drawer",
       collapse: "Collapse mode drawer",
@@ -89,7 +84,6 @@ export const styfiCopy = {
   toolbar: {
     title: "Your position",
     summarySuffix: (modeLabel: string) => `as ${modeLabel}`,
-    earningWeight: "Earning weight: 1.00x",
     descriptions: {
       styfi: "stYFI keeps your vote and earns standard rewards.",
       x: "stYFIx delegates voting to YBC and maximizes rewards.",
@@ -142,13 +136,22 @@ export const styfiCopy = {
     startCta: "Start new cooldown",
   },
   rewards: {
-    title: "Claimable Rewards",
-    epochLagNote:
-      "Rewards represent yield from the previous epoch, streaming linearly over 14 days.",
-    disconnected: "Connect your wallet to see rewards.",
-    claimCta: "Claim Rewards",
-    apyBadge: (apy: string) => `${apy} APY`,
-    apyTooltip: (symbol: string) =>
-      `Rewards are paid in ${symbol}, which earns yield automatically.`,
+    title: "Yield & Rewards",
+    apr: {
+      label: "Current APR",
+      tooltip: "Annualized rate based on the previous epoch's performance.",
+    },
+    token: {
+      label: "Reward Token",
+      desc: "Auto-compounding vault",
+      tooltip: (symbol: string) =>
+        `Rewards are paid in ${symbol}, which earns its own yield automatically.`,
+    },
+    claim: {
+      label: "Available to claim",
+      button: "Claim Rewards",
+      empty: "No rewards yet",
+    },
+    disconnected: "Connect wallet to view rewards.",
   },
 } as const;

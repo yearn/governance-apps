@@ -1,13 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { StyfiPageClient } from "./StyfiPageClient";
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+};
 
 const baseMetadata: Metadata = {
   title: "stYFI | Yearn Finance",
   description:
     "Stake YFI to earn yield and participate in Yearn Governance. Manage stYFI and stYFIx positions.",
   applicationName: "stYFI",
-  themeColor: "#000000",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

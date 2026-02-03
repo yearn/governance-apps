@@ -90,7 +90,6 @@ Sub-tasks: 1 level deep, atomic, actionable.
 
 - [x] Claimable display (Accruing hidden for simplicity)
 - [x] Unified “Claim Rewards” button
-- [x] Earning Power calculation & tooltip
 
 ## 20.5. Debug Tools
 

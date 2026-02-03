@@ -104,6 +104,23 @@ Always visible and owns all write interactions.
 - **Stake:** Approve → Stake flow. Input unit: YFI.
 - **Unstake:** Refactored flow (below).
 
+### 6.4 Rewards Card (Yield & Rewards)
+- **Title:** "Yield & Rewards".
+- **Layout:** Two stacked sections for clarity on small screens.
+  - **Top (Context):**
+    - **Current APR** with tooltip: "Annualized rate based on the previous epoch's performance."
+    - **Reward Token** label with tooltip: "Rewards are paid in {symbol}, which earns its own yield automatically."
+    - Show reward token symbol and an APY badge (success variant) when available.
+    - Optional sublabel: "Auto-compounding vault".
+  - **Bottom (Payout Zone):**
+    - **Available to claim** label.
+    - Large claimable amount (token units) with a smaller USD value beneath.
+    - Primary CTA: **Claim Rewards**.
+- **States:**
+  - **Disconnected:** Centered empty state with icon + "Connect wallet to view rewards."
+  - **Loading:** Two-tier skeleton (context section + payout section).
+  - **Blacklisted:** Error banner above stats; CTA disabled.
+
 ---
 
 ## 7. Unstake Tab (Refactored)

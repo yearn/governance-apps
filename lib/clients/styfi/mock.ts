@@ -101,7 +101,6 @@ export class MockStyfiClient implements StyfiClient {
           epochEnd: nowSeconds() + 864000,
           nextEpochStart: nowSeconds() + 864000,
         },
-        earningWeight: 10n ** 18n,
         rewardToken: REWARD_TOKEN_CONFIG,
       };
       GLOBAL_STYFI_STORE.set(key, state);

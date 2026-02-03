@@ -166,7 +166,6 @@ export class OnchainStyfiClient implements StyfiClient {
         },
 
         epoch: await this.getEpochInfo(),
-        earningWeight: styfiActive + styfiXActive,
         rewardToken: REWARD_TOKEN_CONFIG,
       };
     } catch (error) {

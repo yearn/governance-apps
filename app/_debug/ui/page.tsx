@@ -66,7 +66,7 @@ export default function KitchenSinkPage() {
             <p className="text-sm text-neutral-500 mb-2">Usage in Controls:</p>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
-                Earning Power
+                Reward token APY
               </span>
               <Badge variant="neutral">12.70%</Badge>
             </div>

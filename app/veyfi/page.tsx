@@ -1,13 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { VeyfiPageClient } from "./VeyfiPageClient";
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+};
 
 const baseMetadata: Metadata = {
   title: "veYFI | Yearn Finance",
   description:
     "Manage legacy veYFI locks, migrate to the new system, and manage Liquid Lockers (LLYFI).",
   applicationName: "veYFI",
-  themeColor: "#000000",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

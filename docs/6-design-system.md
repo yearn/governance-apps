@@ -111,7 +111,7 @@ A light-themed, popover-style tooltip for context and definitions.
 - **Visuals:** White background, light gray border, subtle shadow.
 - **Typography:** `text-xs`, `text-neutral-600`, regular weight.
 - **Behavior:** Triggered on hover/focus.
-- **Usage:** `<Tooltip content="Explains Earning Power"><Badge>...</Badge></Tooltip>`
+- **Usage:** `<Tooltip content="Explains reward token APY"><Badge>...</Badge></Tooltip>`
 
 ### 4.6. `StatsBar`
 
@@ -132,7 +132,7 @@ A small status indicator for metrics or labels.
   - `warning`: Amber background.
   - `error`: Red background.
   - `brand`: Blue/Brand-tinted background.
-- **Usage:** Used in the Stats Bar or Footer of cards to highlight secondary metrics (e.g., "Earning Power").
+- **Usage:** Used in the Stats Bar or Footer of cards to highlight secondary metrics (e.g., "Reward token APY").
 
 ### 4.8. `ProgressBar`
 

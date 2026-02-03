@@ -79,6 +79,5 @@ Be direct.
 | **Active**        | Funds currently staked and earning rewards.                              |
 | **Unstaking**     | Funds currently in the linear cooldown stream (locked).                  |
 | **Withdrawable**  | Funds fully unlocked (finished streaming) but not yet withdrawn.         |
-| **Earning Power** | The user's share of the total staking pool (User Active / Total Active). |
 | **Gauge**         | The contract where you stake BPT/LP tokens.                              |
 | **Vote Weight**   | The power used in governance.                                            |
