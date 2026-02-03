@@ -13,7 +13,7 @@ import {
 } from "@/lib/hooks/useVeyfi";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
 import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
-import { formatTokenAmount, formatPercent } from "@/lib/format";
+import { formatInputAmount, formatTokenAmount, formatPercent } from "@/lib/format";
 import { parseAmount } from "@/lib/parse";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { RadioGroup } from "@/components/ui/RadioGroup";
@@ -119,10 +119,18 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   };
 
   const isSubmitting =
+    redeemState.status === "signing" ||
+    redeemState.status === "submitted" ||
     redeemState.status === "mining" ||
-    mintState.status === "mining" ||
-    redeemState.status === "success" ||
-    mintState.status === "success";
+    mintState.status === "signing" ||
+    mintState.status === "submitted" ||
+    mintState.status === "mining";
+
+  useEffect(() => {
+    if (redeemState.status === "success" || mintState.status === "success") {
+      setInput("");
+    }
+  }, [redeemState.status, mintState.status]);
 
   // Error logic with Instructive Messages
   let errorMsg = undefined;
@@ -176,7 +184,7 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
         onChange={setInput}
         tokenSymbol={sourceSymbol}
         maxLabel={`Balance: ${formatTokenAmount(userBalance)}`}
-        onMaxClick={() => setInput(formatTokenAmount(userBalance))}
+        onMaxClick={() => setInput(formatInputAmount(userBalance))}
         error={errorMsg}
       />
 
