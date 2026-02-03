@@ -17,6 +17,7 @@ import { MockControls } from "./components/MockControls";
 import { useProtocol } from "@/state/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StyfiAccountState } from "@/lib/clients/styfi/types";
+import { useEpochClock } from "@/lib/hooks/useEpochClock";
 
 function deriveBalances(account: StyfiAccountState) {
   const styfiActive = account.styfiActive;
@@ -72,6 +73,7 @@ function StyfiPageShell() {
   const { data: stats } = useStyfiStats();
   const { data: account, isLoading: isAccountLoading } = useStyfiAccount();
   const { globalData } = useProtocol();
+  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
   const [selectedAsset, setSelectedAsset] = useState<StyfiAsset>();
   const hasUserSelected = useRef(false);
   const hasResolvedDefault = useRef(false);
@@ -133,8 +135,8 @@ function StyfiPageShell() {
   }
 
   const projectedApyBps = globalData?.styfi?.projected?.aprBps;
-  const showProjectedApy =
-    globalData?.meta?.epoch === 0 && projectedApyBps !== undefined;
+  const isEpochZero = epochInfo?.currentEpoch === 0;
+  const showProjectedApy = isEpochZero && projectedApyBps !== undefined;
   const statsApyBps = showProjectedApy
     ? Number(projectedApyBps)
     : apy !== undefined

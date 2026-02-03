@@ -4,16 +4,17 @@ import { useLlyfiTokens } from "@/lib/hooks/useVeyfi";
 import { LlyfiTokenRow } from "./LlyfiTokenRow";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { veyfiCopy as copy } from "../messages";
-import { useProtocol } from "@/state/protocol";
+import { useEpochClock } from "@/lib/hooks/useEpochClock";
 
 export function LlyfiTokenTable() {
   const tokens = useLlyfiTokens();
-  const { globalData, usesMockBackend } = useProtocol();
-  const isEpochZero = globalData?.meta?.epoch === 0;
-  const aprLabel = isEpochZero ? copy.manage.columns.aprEpoch1 : copy.manage.columns.apr;
+  const { epochInfo, usesMockBackend } = useEpochClock({ tickMs: 60_000 });
+  const isEpochZero = epochInfo?.currentEpoch === 0;
+  const aprLabel = isEpochZero
+    ? copy.manage.columns.aprEpoch1
+    : copy.manage.columns.apr;
   const isS3Ready =
-    usesMockBackend ||
-    (!!globalData?.global?.veyfi && !!globalData?.llyfi);
+    usesMockBackend || (!!globalData?.global?.veyfi && !!globalData?.llyfi);
 
   if (!isS3Ready || tokens.length === 0) {
     return (

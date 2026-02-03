@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -8,9 +7,9 @@ import { useVeyfiAccount, useVeyfiMigration } from "@/lib/hooks/useVeyfi";
 import { useStyfiApy } from "@/lib/hooks/useStyfi";
 import { formatPercent, formatTokenAmount } from "@/lib/format";
 import { veyfiCopy as copy } from "../messages";
-import { nowSeconds } from "@/lib/mocks/time";
 import { useProtocol } from "@/state/protocol";
 import { cn } from "@/lib/cn";
+import { useEpochClock } from "@/lib/hooks/useEpochClock";
 
 function toNumber(value?: string | number | null) {
   if (value === null || value === undefined) return null;
@@ -23,15 +22,7 @@ export function MigrationCard() {
   const { write, state } = useVeyfiMigration();
   const { data: styfiApyBps } = useStyfiApy();
   const { globalData } = useProtocol();
-  const [now, setNow] = useState(0);
-
-  // Sync time for boost calculation
-  useEffect(() => {
-    const tick = () => setNow(nowSeconds());
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const { now, epochInfo } = useEpochClock({ tickMs: 1000 });
 
   if (!data?.veYfi) return null;
 
@@ -57,7 +48,7 @@ export function MigrationCard() {
   );
   const currentBoost = 1.0 + boostRatio;
 
-  const isEpochZero = globalData?.meta?.epoch === 0;
+  const isEpochZero = epochInfo?.currentEpoch === 0;
   const s3AprBps = globalData?.styfi
     ? isEpochZero
       ? globalData.styfi.projected.aprBps

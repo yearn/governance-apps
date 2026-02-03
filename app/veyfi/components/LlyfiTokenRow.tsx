@@ -12,12 +12,14 @@ import { veyfiCopy as copy } from "../messages";
 import { useProtocol } from "@/state/protocol";
 import { useIdentity } from "@/state/identity";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useEpochClock } from "@/lib/hooks/useEpochClock";
 
 export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: baseApyBps } = useStyfiApy();
   const { globalData } = useProtocol();
   const { isConnected } = useIdentity();
+  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
 
   const toNumber = (value?: string | number | null) => {
     if (value === null || value === undefined) return null;
@@ -93,15 +95,10 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const boostMultiplier =
     maxBoostBps !== null ? maxBoostBps / 10000 : token.veyfiBoost || 1;
 
+  const isEpochZero = epochInfo?.currentEpoch === 0;
   const s3AprBps = s3Llyfi
-    ? toNumber(
-        globalData?.meta?.epoch === 0
-          ? s3Llyfi.projected.aprBps
-          : s3Llyfi.current.aprBps
-      )
+    ? toNumber(isEpochZero ? s3Llyfi.projected.aprBps : s3Llyfi.current.aprBps)
     : null;
-
-  const isEpochZero = globalData?.meta?.epoch === 0;
   const projectedApyBps = globalData?.styfi?.projected?.aprBps;
   const baseApyBpsValue =
     isEpochZero && projectedApyBps !== undefined

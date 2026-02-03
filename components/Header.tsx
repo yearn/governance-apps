@@ -6,14 +6,19 @@ import { AppLauncher } from "@/components/AppLauncher";
 import { WalletButton } from "@/components/WalletButton";
 import { cn } from "@/lib/cn";
 import { appCopy } from "@/app/_shared/messages";
-import { useIdentity } from "@/state/identity";
 import { useEffect, useMemo, useState } from "react";
-import { nowSeconds } from "@/lib/mocks/time";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useEpochClock } from "@/lib/hooks/useEpochClock";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useGlobalData } from "@/lib/hooks/useGlobalData";
+import { useProtocol } from "@/state/protocol";
 
 export function Header() {
   const pathname = usePathname();
-  const { epoch } = useIdentity();
+  const clock = useEpochClock({ tickMs: 1000 });
+  const { isLoading: isGlobalLoading } = useGlobalData();
+  const { publicClient } = useProtocol();
+  const showEpochPill = !!publicClient || !isGlobalLoading;
 
   const navItems = useMemo(() => {
     const isVeyfi = pathname?.startsWith("/veyfi");
@@ -52,7 +57,11 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          {epoch && <EpochCountdownBadge epoch={epoch} />}
+          {showEpochPill ? (
+            <EpochCountdownBadge epoch={clock.epochInfo} now={clock.now} />
+          ) : (
+            <Skeleton className="h-7 w-36" />
+          )}
           <ThemeToggle />
           <WalletButton />
         </div>
@@ -63,16 +72,15 @@ export function Header() {
 
 function EpochCountdownBadge({
   epoch,
+  now,
 }: {
   epoch: { currentEpoch: number; epochEnd: number };
+  now: number;
 }) {
   const [rem, setRem] = useState(0);
   useEffect(() => {
-    const tick = () => setRem(Math.max(0, epoch.epochEnd - nowSeconds()));
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [epoch]);
+    setRem(Math.max(0, epoch.epochEnd - now));
+  }, [epoch, now]);
 
   const d = Math.floor(rem / 86400);
   const h = Math.floor((rem % 86400) / 3600);
