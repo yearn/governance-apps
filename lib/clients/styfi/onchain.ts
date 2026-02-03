@@ -29,6 +29,8 @@ function toBigInt(value: string | number) {
 
 export class OnchainStyfiClient implements StyfiClient {
   private rewardTokenDecimals: number | null = null;
+  private chainTimeOffsetSeconds: number | null = null;
+  private chainTimeLastFetch: number | null = null;
 
   constructor(
     private publicClient: PublicClient | null,
@@ -56,6 +58,35 @@ export class OnchainStyfiClient implements StyfiClient {
     }
 
     return REWARD_TOKEN_CONFIG.decimals;
+  }
+
+  private async getCanonicalNowSeconds(): Promise<number> {
+    const localNow = nowSeconds();
+    const maxAgeSeconds = 60;
+
+    if (
+      this.chainTimeOffsetSeconds !== null &&
+      this.chainTimeLastFetch !== null &&
+      localNow - this.chainTimeLastFetch < maxAgeSeconds
+    ) {
+      return localNow + this.chainTimeOffsetSeconds;
+    }
+
+    if (this.publicClient) {
+      try {
+        const block = await this.publicClient.getBlock({ blockTag: "latest" });
+        const timestamp = Number(block.timestamp);
+        if (Number.isFinite(timestamp)) {
+          this.chainTimeOffsetSeconds = timestamp - localNow;
+          this.chainTimeLastFetch = localNow;
+          return localNow + this.chainTimeOffsetSeconds;
+        }
+      } catch (error) {
+        console.warn("Failed to fetch chain time", error);
+      }
+    }
+
+    return localNow;
   }
 
   async getAccountState(address: Address): Promise<StyfiAccountState> {
@@ -128,7 +159,7 @@ export class OnchainStyfiClient implements StyfiClient {
       }
 
       // 3. Map Data
-      const now = nowSeconds();
+      const now = await this.getCanonicalNowSeconds();
       const formatCooldown = (
         stream: readonly [bigint, bigint, bigint],
         withdrawable: bigint
@@ -159,6 +190,12 @@ export class OnchainStyfiClient implements StyfiClient {
       // The "In Cooldown" is `total - claimed`.
       const styfiInCooldown = styfiStream[1] - styfiStream[2];
       const styfiXInCooldown = styfiXStream[1] - styfiXStream[2];
+
+      const { currentEpoch, epochEnd } = getEpochInfoFromGenesis(
+        GENESIS,
+        EPOCH_LENGTH,
+        now
+      );
 
       return {
         address,
@@ -191,7 +228,11 @@ export class OnchainStyfiClient implements StyfiClient {
           yfiToStyfiX: allowanceStyfix,
         },
 
-        epoch: await this.getEpochInfo(),
+        epoch: {
+          currentEpoch,
+          epochEnd,
+          nextEpochStart: epochEnd,
+        },
         rewardToken: {
           ...REWARD_TOKEN_CONFIG,
           decimals: rewardTokenDecimals,
@@ -204,9 +245,11 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getEpochInfo(): Promise<EpochInfo> {
+    const now = await this.getCanonicalNowSeconds();
     const { currentEpoch, epochEnd } = getEpochInfoFromGenesis(
       GENESIS,
-      EPOCH_LENGTH
+      EPOCH_LENGTH,
+      now
     );
 
     return {

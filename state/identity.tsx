@@ -8,6 +8,7 @@ import { useProtocol } from "./protocol";
 import type { Address } from "viem";
 import type { EpochInfo } from "@/lib/clients/styfi/types";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
+import { useEpochClock } from "@/lib/hooks/useEpochClock";
 
 type IdentityState = {
   address: Address | undefined;
@@ -23,6 +24,7 @@ const IdentityContext = createContext<IdentityState | null>(null);
 export function IdentityProvider({ children }: { children: ReactNode }) {
   const { address: wagmiAddress, isConnected: wagmiConnected } = useAccount();
   const { styfi, publicClient, usesMockBackend } = useProtocol();
+  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
   const fallbackAddress =
     isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined;
@@ -51,7 +53,7 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
       isConnected,
       yfiBalance: data?.yfiBalance ?? 0n,
       isBlacklisted: data?.isBlacklisted ?? false,
-      epoch: data?.epoch,
+      epoch: epochInfo ?? data?.epoch,
       isLoading,
     }),
     [address, isConnected, data, isLoading]

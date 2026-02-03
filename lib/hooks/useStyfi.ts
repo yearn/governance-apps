@@ -13,6 +13,10 @@ import { StyfiStakeMode, type StyfiClient } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { formatPercent } from "@/lib/format";
+import {
+  getEpochWindowFromBase,
+  resolveEpochClockBase,
+} from "@/lib/epochClock";
 
 function toNumber(value?: string | number | null) {
   if (value === null || value === undefined) return null;
@@ -98,11 +102,19 @@ export function useStyfiAccount() {
 }
 
 export function useStyfiEpoch() {
-  const { styfi } = useProtocol();
+  const { publicClient, globalData } = useProtocol();
 
   return useQuery({
     queryKey: styfiKeys.epoch(),
-    queryFn: () => styfi.getEpochInfo(),
+    queryFn: async () => {
+      const base = await resolveEpochClockBase({ publicClient, globalData });
+      const { currentEpoch, epochEnd } = getEpochWindowFromBase(base);
+      return {
+        currentEpoch,
+        epochEnd,
+        nextEpochStart: epochEnd,
+      };
+    },
     // Epochs are very stable (14 days), but we poll gently to catch transitions
     refetchInterval: 60_000,
     staleTime: 60_000,

@@ -52,17 +52,49 @@ function toBps(value: string | number, label: string) {
 }
 
 export class OnchainVeyfiClient implements VeyfiClient {
+  private chainTimeOffsetSeconds: number | null = null;
+  private chainTimeLastFetch: number | null = null;
+
   constructor(
     private publicClient: PublicClient | null,
     private globalData: GlobalData | null
   ) {}
+
+  private async getCanonicalNowSeconds(): Promise<number> {
+    const localNow = nowSeconds();
+    const maxAgeSeconds = 60;
+
+    if (
+      this.chainTimeOffsetSeconds !== null &&
+      this.chainTimeLastFetch !== null &&
+      localNow - this.chainTimeLastFetch < maxAgeSeconds
+    ) {
+      return localNow + this.chainTimeOffsetSeconds;
+    }
+
+    if (this.publicClient) {
+      try {
+        const block = await this.publicClient.getBlock({ blockTag: "latest" });
+        const timestamp = Number(block.timestamp);
+        if (Number.isFinite(timestamp)) {
+          this.chainTimeOffsetSeconds = timestamp - localNow;
+          this.chainTimeLastFetch = localNow;
+          return localNow + this.chainTimeOffsetSeconds;
+        }
+      } catch (error) {
+        console.warn("Failed to fetch chain time", error);
+      }
+    }
+
+    return localNow;
+  }
 
   async getAccountState(address: Address): Promise<VeyfiAccountState> {
     if (!this.publicClient) {
       throw new Error("Wallet public client not available");
     }
     try {
-      const now = nowSeconds();
+      const now = await this.getCanonicalNowSeconds();
       const [
         legacyLockResult,
         snapshotCheckResult,
@@ -98,7 +130,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
         allowFailure: false,
       });
 
-      const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH);
+      const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH, now);
       const boostRaw = 1 + Math.max(0, 104 - currentEpoch) / 104;
 
       const lockerCalls = LIQUID_LOCKERS.flatMap((locker) => [
@@ -485,7 +517,8 @@ export class OnchainVeyfiClient implements VeyfiClient {
     }
 
     try {
-      const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH);
+      const now = await this.getCanonicalNowSeconds();
+      const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH, now);
       const currentEpochArg = BigInt(currentEpoch);
 
       const totalWeightResult = await this.publicClient.readContract({
