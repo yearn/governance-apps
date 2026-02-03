@@ -67,7 +67,7 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 **Structure:**
 
 - **Header:** Asset | Locker Status | Staked Ratio | Effective APR | Staked Balance.
-- During **epoch 0**, the APR column label switches to **Next Epoch APR** and uses projected APR inputs.
+- During **epoch 0** (canonical clock), the APR column label switches to **Next Epoch APR** and uses projected APR inputs.
 - **Rows:** Expandable (Accordion).
 - **Expanded State (Cockpit):** Reveals the "Manage" interface for that specific token.
 - **Data sources (pre-connect):**

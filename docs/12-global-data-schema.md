@@ -18,6 +18,7 @@ If the file is missing or invalid, the UI renders skeletons and waits for wallet
 - **APR in BPS:** APR values are integer basis points under `aprBps` (e.g., 6800 = 68.00%).
 - **Reward APY in BPS:** `global.rewards.apyBps` is an integer basis points value for yvUSDC APY.
 - **Schema version:** `meta.version` must be `>= 2`.
+- **Clock sync:** `meta.timestamp` is used to align the canonical epoch clock before a wallet connects.
 - **Price in cents:** `global.yfi.priceCts` is an integer string in USD cents (e.g., `"350000"` = $3,500.00).
 - **No floats for amounts:** No decimals for token amounts.
 - **All fields required:** The schema is strict; missing fields will be rejected.

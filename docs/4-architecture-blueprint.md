@@ -236,6 +236,7 @@ On-chain clients are implemented. When mocks are disabled, global data loads fro
 - **Global reads** come from S3 JSON before connect and can switch to on-chain stats after connect for fresher totals.
 - **Account reads** use the wallet-backed public client after connect.
 - **Writes** always go through wallet signing via `useTx`.
+- **Epoch clock** uses latest block timestamp when connected, otherwise S3 `meta.timestamp` (with a local offset), with local time as a final fallback.
 
 ---
 

@@ -40,7 +40,7 @@ It specifically addresses:
 ## 3. Page Structure
 
 1. **Global Header** (standard Yearn header)
-2. **Protocol Stats Bar** (Total Supply, Staked, APR, State; show **“Epoch 1 APR”** when `meta.epoch = 0`). **Staked** should use `styfi.staked` (excludes cooldown balances; `styfi.unstaking` is the cooldown amount).
+2. **Protocol Stats Bar** (Total Supply, Staked, APR, State; show **“Epoch 1 APR”** when current epoch == 0 from the canonical clock). **Staked** should use `styfi.staked` (excludes cooldown balances; `styfi.unstaking` is the cooldown amount).
 3. **AccountSummary** (Hero for new users, positions list for returning users)
 4. **Cockpit** (StakeManageCard + Rewards)
 

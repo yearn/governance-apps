@@ -133,8 +133,12 @@ All interactive flows use a **global transaction state machine**.
 ## 2.6. Epochs
 
 1. Epoch data **MUST** be derived client-side from immutable `GENESIS` and `EPOCH_LENGTH` (from `deployment.json` → `lib/constants.ts`).
-2. The frontend **MUST NOT** call on-chain `epoch()` for UI timing; compute epoch start/end from local wall-clock time vs `GENESIS` using canonical helper logic.
-3. Countdown displays use locally derived epoch end timestamps from `EpochInfo` helpers.
+2. The frontend **MUST NOT** call on-chain `epoch()` for UI timing; compute epoch start/end from a **canonical clock** vs `GENESIS` using shared helper logic.
+3. Canonical clock sources (priority order):
+   - **Connected wallet:** latest block timestamp (chain time).
+   - **Pre-connect:** S3 `meta.timestamp` (snapshot time) with a local offset.
+   - **Fallback:** local system time.
+4. Countdown displays use locally derived epoch end timestamps from `EpochInfo` helpers based on the canonical clock.
 
 ---
 

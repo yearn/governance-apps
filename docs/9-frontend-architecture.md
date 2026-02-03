@@ -202,7 +202,7 @@ Under `/lib/hooks/useStyfi.ts`:
 4. `useEpoch()`
 
    - **Shared hook** (not `/styfi`-specific).
-   - Source: shared epoch info client or config.
+   - Source: canonical epoch clock (latest block timestamp when connected, else S3 `meta.timestamp`, else local time).
    - Returns: `currentEpoch`, `epochStart`, `epochEnd`.
 
 5. Transaction flows use:

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UnstakePanel } from "@/components/domain/UnstakePanel";
+import { renderWithProviders } from "@/tests/test-utils";
 
 const baseProps = {
   availableBalance: 100n * 10n ** 18n,
@@ -25,7 +26,7 @@ const baseProps = {
 
 describe("UnstakePanel", () => {
   it("shows withdraw button when liquid is available", () => {
-    render(
+    renderWithProviders(
       <UnstakePanel
         {...baseProps}
         totalExiting={10n * 10n ** 18n}
@@ -37,7 +38,7 @@ describe("UnstakePanel", () => {
   });
 
   it("shows start cooldown input when no liquid is available", () => {
-    render(<UnstakePanel {...baseProps} />);
+    renderWithProviders(<UnstakePanel {...baseProps} />);
 
     expect(
       screen.getByRole("button", { name: /Start new cooldown/i })
@@ -49,7 +50,7 @@ describe("UnstakePanel", () => {
     const user = userEvent.setup();
     const onWithdraw = vi.fn(async () => {});
 
-    render(
+    renderWithProviders(
       <UnstakePanel
         {...baseProps}
         totalExiting={10n * 10n ** 18n}
