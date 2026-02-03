@@ -172,10 +172,13 @@ export function RewardsCard() {
                 claimable > 0n ? "text-neutral-900" : "text-neutral-400"
               }`}
             >
-              {formatTokenAmount(claimable, data.rewardToken.decimals)}
+              {rewardValueLabel ?? "$0.00"}
             </span>
             <span className="text-sm font-number text-neutral-500 font-medium">
-              {rewardValueLabel ?? "$0.00"}
+              {`${formatTokenAmount(
+                claimable,
+                data.rewardToken.decimals
+              )} ${data.rewardToken.symbol}`}
             </span>
           </div>
         </div>

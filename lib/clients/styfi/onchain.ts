@@ -28,10 +28,35 @@ function toBigInt(value: string | number) {
 }
 
 export class OnchainStyfiClient implements StyfiClient {
+  private rewardTokenDecimals: number | null = null;
+
   constructor(
     private publicClient: PublicClient | null,
     private globalData: GlobalData | null
   ) {}
+
+  private async getRewardTokenDecimals(): Promise<number> {
+    if (this.rewardTokenDecimals !== null) return this.rewardTokenDecimals;
+    if (!this.publicClient) return REWARD_TOKEN_CONFIG.decimals;
+
+    try {
+      const decimals = await this.publicClient.readContract({
+        address: REWARD_TOKEN_CONFIG.address,
+        abi: erc20Abi,
+        functionName: "decimals",
+      });
+      const parsed =
+        typeof decimals === "bigint" ? Number(decimals) : decimals;
+      if (Number.isFinite(parsed)) {
+        this.rewardTokenDecimals = parsed;
+        return parsed;
+      }
+    } catch (error) {
+      console.warn("Failed to fetch reward token decimals", error);
+    }
+
+    return REWARD_TOKEN_CONFIG.decimals;
+  }
 
   async getAccountState(address: Address): Promise<StyfiAccountState> {
     if (!this.publicClient) {
@@ -127,6 +152,7 @@ export class OnchainStyfiClient implements StyfiClient {
 
       const styfiCooldown = formatCooldown(styfiStream, styfiMaxWithdraw);
       const styfiXCooldown = formatCooldown(styfiXStream, styfiXMaxWithdraw);
+      const rewardTokenDecimals = await this.getRewardTokenDecimals();
 
       // In the contracts, "streams" returns [start, total, claimed].
       // The "Active" amount in `balanceOf` is what is earning.
@@ -166,7 +192,10 @@ export class OnchainStyfiClient implements StyfiClient {
         },
 
         epoch: await this.getEpochInfo(),
-        rewardToken: REWARD_TOKEN_CONFIG,
+        rewardToken: {
+          ...REWARD_TOKEN_CONFIG,
+          decimals: rewardTokenDecimals,
+        },
       };
     } catch (error) {
       console.error("Critical error fetching account state:", error);

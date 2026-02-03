@@ -114,7 +114,7 @@ Always visible and owns all write interactions.
     - Optional sublabel: "Auto-compounding vault".
   - **Bottom (Payout Zone):**
     - **Available to claim** label.
-    - Large claimable amount (token units) with a smaller USD value beneath.
+    - Large claimable amount (USD) with a smaller token value beneath (include symbol).
     - Primary CTA: **Claim Rewards**.
 - **States:**
   - **Disconnected:** Centered empty state with icon + "Connect wallet to view rewards."
