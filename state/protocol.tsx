@@ -96,3 +96,7 @@ export function useProtocol() {
   }
   return context;
 }
+
+export function useOptionalProtocol() {
+  return useContext(ProtocolContext);
+}
