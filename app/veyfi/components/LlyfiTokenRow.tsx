@@ -191,10 +191,10 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   );
 
   return (
-    <div className="group bg-surface transition-colors hover:bg-surface-secondary last:rounded-b-box border-b last:border-b-0 border-border">
+    <div className="bg-surface last:rounded-b-box border-b last:border-b-0 border-border">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full grid grid-cols-[1.5fr_1.2fr_1.2fr_1.2fr_1.5fr_60px] items-center p-4 text-left outline-none"
+        className="group w-full grid grid-cols-[1.5fr_1.2fr_1.2fr_1.2fr_1.5fr_60px] items-center p-4 text-left outline-none transition-colors hover:bg-surface-secondary"
       >
         {/* Col 1: Asset */}
         <div className="font-bold text-neutral-900">
@@ -302,7 +302,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
           isExpanded ? "grid-rows-[1fr] border-neutral-100" : "grid-rows-[0fr]"
         )}
       >
-        <div className="overflow-hidden bg-neutral-50/50">
+        <div className="overflow-hidden bg-surface">
           <div className="p-4 md:p-6">
             <LlyfiRowCockpit token={token} />
           </div>
