@@ -72,6 +72,10 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
   const handleStake = async () => {
     if (effectiveAmount <= 0n) return;
     normalizeInput();
+    const { data: freshAllowance = 0n } = await refetchAllowance();
+    if (freshAllowance < effectiveAmount) {
+      return;
+    }
     await stake(token.symbol, effectiveAmount);
     setInput("");
     toast.success(

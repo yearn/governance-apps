@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useIdentity } from "@/state/identity";
 import { Button } from "@/components/ui/Button";
 import { AmountInput } from "@/components/ui/AmountInput";
-import { formatTokenAmount } from "@/lib/format";
+import { formatInputAmount, formatTokenAmount } from "@/lib/format";
 import { parseAmount } from "@/lib/parse";
 import {
   styfiKeys,
@@ -67,7 +67,7 @@ export function StakeTab({ asset }: Props) {
     isSubmitting;
 
   const onMax = () => {
-    setInput(formatTokenAmount(yfiBalance));
+    setInput(formatInputAmount(yfiBalance));
   };
 
   const handleApprove = async () => {
@@ -88,6 +88,10 @@ export function StakeTab({ asset }: Props) {
 
   const handleStake = async () => {
     if (!isValid || amount <= 0n) return;
+    const { data: freshAllowance = 0n } = await refetchAllowance();
+    if (freshAllowance < amount) {
+      return;
+    }
     await stake(asset, amount);
     setInput("");
   };

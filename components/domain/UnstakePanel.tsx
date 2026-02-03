@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Banner } from "@/components/ui/Banner";
-import { formatTokenAmount } from "@/lib/format";
+import { formatInputAmount, formatTokenAmount } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { CooldownState } from "@/lib/clients/shared/types";
 import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
@@ -159,7 +159,7 @@ export function UnstakePanel({
             maxLabel={`Available: ${formatTokenAmount(availableBalance)}`}
             onMaxClick={
               onMaxClick ??
-              (() => onAmountChange(formatTokenAmount(availableBalance)))
+              (() => onAmountChange(formatInputAmount(availableBalance)))
             }
             onBlur={onAmountBlur}
             tokenSymbol={tokenSymbol}
