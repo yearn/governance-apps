@@ -180,6 +180,12 @@ export function RewardsCard() {
             </div>
           </div>
         </div>
+
+        {isEpochZero && (
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-700">
+            {copy.rewards.epochZeroNotice}
+          </div>
+        )}
       </div>
 
       {/* 2. BOTTOM SECTION: The Payout Zone */}

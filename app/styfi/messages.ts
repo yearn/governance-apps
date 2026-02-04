@@ -154,6 +154,8 @@ export const styfiCopy = {
       button: "Claim Rewards",
       empty: "No rewards yet",
     },
+    epochZeroNotice:
+      "Rewards will begin flowing from Epoch 1 and onward.",
     disconnected: "Connect wallet to view rewards.",
   },
 } as const;
