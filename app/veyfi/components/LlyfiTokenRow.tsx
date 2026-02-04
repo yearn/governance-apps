@@ -127,9 +127,12 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
     ? copy.manage.row.tooltips.apr.effectiveEpoch1
     : copy.manage.row.tooltips.apr.effective;
 
-  // Locker Status uses YFI-locked capacity; keep ratio values in YFI (no scale).
+  // Ratio uses YFI-locked capacity; secondary display uses scaled token amounts.
   const displayStaked = stakedForRatio;
   const displayCapacity = capacityForRatio;
+  const displayScale = token.exchangeRate > 0n ? token.exchangeRate : 1n;
+  const displayStakedScaled = displayStaked * displayScale;
+  const displayCapacityScaled = displayCapacity * displayScale;
 
   const formatCompact = (val: bigint) => {
     return Intl.NumberFormat("en-US", {
@@ -223,7 +226,8 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
                 {utilizationRatioLabel}
               </div>
               <div className="text-xs font-medium text-neutral-500 mt-0.5">
-                {formatCompact(displayStaked)} / {formatCompact(displayCapacity)}
+                {formatCompact(displayStakedScaled)} /{" "}
+                {formatCompact(displayCapacityScaled)}
               </div>
             </div>
           </Tooltip>
