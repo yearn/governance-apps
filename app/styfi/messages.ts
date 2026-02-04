@@ -8,10 +8,6 @@ export const styfiCopy = {
     stats: {
       totalSupply: { label: "Total Supply" },
       staked: { label: "Staked" },
-      phase: {
-        label: "State",
-        value: "Staking live, voting coming soon",
-      },
       apr: { label: "APR" },
       aprEpoch1: { label: "Epoch 1 APR" },
     },

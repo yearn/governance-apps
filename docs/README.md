@@ -18,6 +18,7 @@ They define **what the frontend must do** and **how it is built**, and serve as 
 - [**10-veyfi-ui-spec.md**](10-veyfi-ui-spec.md) — veYFI UI spec
 - [**11-testing.md**](11-testing.md) — Testing strategy, infrastructure, and workflow
 - [**12-global-data-schema.md**](12-global-data-schema.md) — S3 JSON schema for global (pre‑wallet) data
+- [**13-motd-schema.md**](13-motd-schema.md) — S3 JSON schema for per-app stats bar messages
 - [**dev-mock-toggles.md**](dev-mock-toggles.md) — Mock scenarios and time offset for local UI testing
 
 ## Usage
@@ -42,6 +43,7 @@ Minimum env vars for non‑mock runs:
 
 Optional:
 
+- `NEXT_PUBLIC_MOTD_URL` — S3 (or similar) JSON for per-app stats bar messages.
 - `NEXT_PUBLIC_RPC_URLS` — Comma‑separated RPC URLs (used for dev/fork transports).
 - `NEXT_PUBLIC_USE_MOCKS=true` — Forces mock clients.
 - `NEXT_PUBLIC_E2E=true` — Enables Test Bridge + mock wallet for Playwright.

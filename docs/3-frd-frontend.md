@@ -55,6 +55,15 @@ These apply across `/styfi` and `/veyfi`.
 
 ---
 
+## 2.1.1. Remote Stats Message (MOTD)
+
+1. The app **MAY** load a per-app stats bar message from a small S3 JSON blob (`NEXT_PUBLIC_MOTD_URL`).
+2. The message **MUST NOT** block render and **MUST** be ignored if the JSON is missing, invalid, or unreachable.
+3. If a `label` is missing, the UI **MUST** default to `State`.
+4. If `value` is missing/empty, the message **MUST NOT** render.
+
+---
+
 ## 2.2. Network Handling
 
 1. The app **MUST** enforce the correct network (Ethereum mainnet).

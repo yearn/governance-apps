@@ -2,11 +2,13 @@
 
 import { StatsBar } from "@/components/ui/StatsBar";
 import { useVeyfiStats } from "@/lib/hooks/useVeyfi";
+import { useMotd } from "@/lib/hooks/useMotd";
 import { formatTokenAmount, formatPercent } from "@/lib/format";
 import { veyfiCopy as copy } from "../messages";
 
 export function VeyfiStatsBar() {
   const { data: stats } = useVeyfiStats();
+  const { data: motd } = useMotd();
 
   let migratedLabel = "--";
   if (stats) {
@@ -27,16 +29,19 @@ export function VeyfiStatsBar() {
     ? formatPercent(stats.totalLlyfiStakedPercent, 1)
     : "--%";
 
+  const motdValue = motd?.veyfi?.value?.trim();
+  const motdLabel = motd?.veyfi?.label?.trim() || "State";
+  const motdItem = motdValue
+    ? { label: motdLabel, value: motdValue }
+    : null;
+
   return (
     <StatsBar
       items={[
         { label: copy.page.stats.migrated.label, value: migratedLabel },
         { label: copy.page.stats.boost.label, value: boostLabel },
         { label: copy.page.stats.staked.label, value: stakedLabel },
-        {
-          label: copy.page.stats.state.label,
-          value: copy.page.stats.state.value,
-        },
+        ...(motdItem ? [motdItem] : []),
       ]}
     />
   );

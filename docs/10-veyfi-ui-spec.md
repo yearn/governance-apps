@@ -51,7 +51,7 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 - **Migrated veYFI:** Total amount + % of legacy supply migrated.
 - **Current Boost:** The current max multiplier (e.g., "1.52x") for legacy locks.
 - **Total Staked:** % of LLYFI supply currently staked in the protocol.
-- **State:** System phase (e.g., "Migration and staking open").
+- **State:** Optional system phase from MOTD JSON (`NEXT_PUBLIC_MOTD_URL`). Omit if missing/invalid.
 
 ### 4.2 Zone 1: Migration
 

@@ -253,6 +253,23 @@ This enables **first paint** of stats and inventory without a wallet connection 
 
 ---
 
+## 6.2 MOTD (S3)
+
+Per-app status text for the stats bar is fetched from a lightweight, versioned JSON blob:
+
+- Source: `NEXT_PUBLIC_MOTD_URL`
+- Validation: Zod schema in `lib/schemas/motd.ts`
+- Fetcher: `lib/clients/motd.ts` (returns `null` on failure). Uses a same-origin proxy route (`/api/motd`) in the browser to avoid CORS issues.
+- Hook: `lib/hooks/useMotd.ts` (React Query cache, 60s staleness)
+
+**Render rules:**
+
+- If `value` is missing/empty -> the message is not rendered.
+- If `label` is missing/empty -> default to `State`.
+- Messages are **per-app** (`styfi`, `veyfi`) and do not affect protocol behavior.
+
+---
+
 # 7. Hooks Layer
 
 All business logic lives in domain hooks.

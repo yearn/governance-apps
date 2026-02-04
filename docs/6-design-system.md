@@ -121,6 +121,7 @@ A full-width, slim informational strip.
 - **Purpose:** Display high-level ecosystem stats (e.g., Total Supply, Staked, APY).
 - **Styling:** `bg-neutral-100`, `border-b`, `py-2`.
 - **Typography:** Labels are uppercase/bold; values are `Aeonik Mono`.
+- **Behavior:** Optional message items (e.g., "State") may be injected via remote MOTD JSON; if missing, the bar renders without them.
 
 ### 4.7. `Badge`
 

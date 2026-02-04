@@ -205,7 +205,13 @@ Under `/lib/hooks/useStyfi.ts`:
    - Source: canonical epoch clock (latest block timestamp when connected, else S3 `meta.timestamp`, else local time).
    - Returns: `currentEpoch`, `epochStart`, `epochEnd`.
 
-5. Transaction flows use:
+5. `useMotd()`
+
+   - **Shared hook** for optional stats-bar messaging.
+   - Source: S3 JSON (`NEXT_PUBLIC_MOTD_URL`) via `/api/motd` proxy in the browser.
+   - Returns: per-app label/value; missing or invalid data is ignored.
+
+6. Transaction flows use:
    - `prepareStake`, `prepareStartCooldown`, `prepareWithdraw`, `prepareClaimRewards`
    - `useTx()` from `/lib/tx/useTx.ts`
 
@@ -213,7 +219,7 @@ Under `/lib/hooks/useStyfi.ts`:
 
 Each card/component uses **only the hooks it needs**:
 
-- `StyfiPageClient` → `useStyfiStats`, `useStyfiApy` (for StatsBar).
+- `StyfiPageClient` → `useStyfiStats`, `useStyfiApy`, `useMotd` (for StatsBar).
 - `AccountSummary` → `useStyfiAccount`.
 - `RewardsCard` → `useStyfiAccount`, `useStyfiApy`, `useRewardTokenInfo`.
 - `StakeTab` → `useStyfiAccount` (wallet balance) + `prepareStake`.
@@ -254,7 +260,7 @@ We do **not** block the entire `/styfi` route on a single slow query.
 /veyfi
   ├── Global Header
   └── VeyfiPageClient
-       ├─ [VeyfiStatsBar]       (Ecosystem health: Migration %, Boost, Staked %)
+       ├─ [VeyfiStatsBar]       (Ecosystem health: Migration %, Boost, Staked %, optional State)
        └─ Main Container
             ├─ [MigrationCard]        (Conditionally visible: Action vs Info)
             ├─ [LlyfiTokenTable]      (The Ledger)
@@ -317,6 +323,11 @@ Under `/lib/hooks/useVeyfi.ts`:
 4.  `useLlyfiTokens()`
     - Selector on `useVeyfiAccount`.
     - Used by: `LlyfiTokenTable`.
+
+5.  `useMotd()`
+
+    - Shared hook for optional stats-bar messaging.
+    - Used by: `VeyfiStatsBar`.
 
 ### 9.4 State Management
 

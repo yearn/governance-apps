@@ -7,7 +7,6 @@ export const veyfiCopy = {
       migrated: { label: "Migrated veYFI" },
       boost: { label: "Max Boost" },
       staked: { label: "LLYFI Staked" },
-      state: { label: "State", value: "Migration & Staking Open" },
     },
     connectBanner: {
       title: "Wallet not connected",
