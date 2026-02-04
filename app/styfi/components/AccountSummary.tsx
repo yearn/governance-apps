@@ -142,6 +142,7 @@ export function AccountSummary({
                 active={row.active}
                 unstaking={row.unstaking}
                 withdrawable={row.withdrawable}
+                onClick={() => onSelectAsset(row.asset)}
               />
             ))
           ) : (
@@ -160,57 +161,67 @@ function PositionRow({
   active,
   unstaking,
   withdrawable,
+  onClick,
 }: {
   asset: StyfiAsset;
   active: bigint;
   unstaking: bigint;
   withdrawable: bigint;
+  onClick: () => void;
 }) {
   const Logo = asset === "stYFI" ? LogoStyfi : LogoStyfix;
-  const accentClass =
-    asset === "stYFI" ? "text-sunset-600" : "text-yearn-blue";
+  const activeClass = active > 0n ? "text-neutral-900" : "text-neutral-300";
+  const unstakingClass =
+    unstaking > 0n ? "text-neutral-900" : "text-neutral-300";
+  const withdrawableClass =
+    withdrawable > 0n
+      ? "text-sunset-600 bg-sunset-50/50 -mx-2 px-2 py-1 rounded-md"
+      : "text-neutral-300";
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-lg border border-border bg-surface/50 p-4 transition-colors hover:bg-surface">
-      <div className="flex items-center gap-3 min-w-[140px]">
+    <button
+      type="button"
+      onClick={onClick}
+      className="grid w-full grid-cols-2 gap-x-4 gap-y-6 items-center rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:bg-surface-secondary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 md:grid-cols-[1.5fr_1fr_1fr_1fr]"
+    >
+      <div className="col-span-2 md:col-span-1 flex items-center gap-3">
         <Logo className="h-8 w-8 shrink-0" aria-hidden />
         <p className="text-base font-bold text-neutral-900">{asset}</p>
       </div>
 
-      <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4 items-center">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
-            Active
-          </span>
-          <span className="text-sm font-number font-bold text-neutral-900">
-            {formatTokenAmount(active)}
-          </span>
-        </div>
-
-        {unstaking > 0n ? (
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
-              Unstaking
-            </span>
-            <span className="text-sm font-number font-medium text-neutral-600">
-              {formatTokenAmount(unstaking)}
-            </span>
-          </div>
-        ) : (
-          <div className="hidden sm:block" />
-        )}
-
-        {withdrawable > 0n ? (
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">
-              Withdrawable
-            </span>
-            <span className={cn("text-sm font-number font-bold", accentClass)}>
-              {formatTokenAmount(withdrawable)}
-            </span>
-          </div>
-        ) : null}
+      <div className="flex flex-col items-end">
+        <span className={cn("font-number font-bold text-lg", activeClass)}>
+          {formatTokenAmount(active)}
+        </span>
+        <span className="mt-0.5 text-[10px] font-sans font-bold uppercase tracking-wide text-neutral-500">
+          Active
+        </span>
       </div>
-    </div>
+
+      <div className="flex flex-col items-end">
+        <span className={cn("font-number font-bold text-lg", unstakingClass)}>
+          {formatTokenAmount(unstaking)}
+        </span>
+        <span className="mt-0.5 text-[10px] font-sans font-bold uppercase tracking-wide text-neutral-500">
+          Unstaking
+        </span>
+      </div>
+
+      <div className="flex flex-col items-end">
+        <span
+          className={cn("font-number font-bold text-lg transition-colors", withdrawableClass)}
+        >
+          {formatTokenAmount(withdrawable)}
+        </span>
+        <span
+          className={cn(
+            "mt-0.5 text-[10px] font-sans font-bold uppercase tracking-wide",
+            withdrawable > 0n ? "text-sunset-600" : "text-neutral-500"
+          )}
+        >
+          Withdrawable
+        </span>
+      </div>
+    </button>
   );
 }
