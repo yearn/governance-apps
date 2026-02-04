@@ -21,7 +21,6 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);
   const scale = token.exchangeRate > 0n ? token.exchangeRate : 1n;
   const roundedAmount = isValid ? amount - (amount % scale) : 0n;
-  const hasRemainder = isValid && amount > 0n && amount !== roundedAmount;
   const effectiveAmount = isValid ? roundedAmount : 0n;
   const { write: stake, state: stakeState } = useLlyfiStake();
   const { write: approve, isLoading: approveLoading } = useTokenApprove();
@@ -45,12 +44,6 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
     isSubmitting ||
     approveLoading;
 
-  const normalizeInput = () => {
-    if (hasRemainder) {
-      setInput(formatInputAmount(roundedAmount));
-    }
-  };
-
   const handleMaxClick = () => {
     const roundedMax = token.walletBalance - (token.walletBalance % scale);
     setInput(formatInputAmount(roundedMax));
@@ -58,7 +51,6 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
 
   const handleApprove = async () => {
     if (effectiveAmount <= 0n) return;
-    normalizeInput();
     await approve(token.address, token.depositorAddress, effectiveAmount, {
       invalidate: async () => {
         await refetchAllowance();
@@ -71,7 +63,6 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
 
   const handleStake = async () => {
     if (effectiveAmount <= 0n) return;
-    normalizeInput();
     const { data: freshAllowance = 0n } = await refetchAllowance();
     if (freshAllowance < effectiveAmount) {
       return;
@@ -98,7 +89,6 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
           token.symbol
         }`}
         onMaxClick={handleMaxClick}
-        onBlur={normalizeInput}
         tokenSymbol={token.symbol}
         error={
           !isSubmitting && insufficientBalance

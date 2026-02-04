@@ -15,7 +15,6 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);
   const scale = token.exchangeRate > 0n ? token.exchangeRate : 1n;
   const roundedAmount = isValid ? amount - (amount % scale) : 0n;
-  const hasRemainder = isValid && amount > 0n && amount !== roundedAmount;
   const effectiveAmount = isValid ? roundedAmount : 0n;
   const { write: startCooldown, state: cooldownState } =
     useLlyfiStartCooldown();
@@ -36,12 +35,6 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
 
   const insufficient = isValid && effectiveAmount > token.stakedBalance;
 
-  const normalizeInput = () => {
-    if (hasRemainder) {
-      setInput(formatInputAmount(roundedAmount));
-    }
-  };
-
   const handleMaxClick = () => {
     const roundedMax = token.stakedBalance - (token.stakedBalance % scale);
     setInput(formatInputAmount(roundedMax));
@@ -49,7 +42,6 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
 
   const handleStart = async (amt: bigint) => {
     if (amt <= 0n) return;
-    normalizeInput();
     await startCooldown(token.symbol, amt);
     setInput("");
   };
@@ -83,7 +75,6 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
         isValid={isValid}
         insufficientBalance={!isSubmitting && insufficient}
         onAmountChange={setInput}
-        onAmountBlur={normalizeInput}
         onMaxClick={handleMaxClick}
         inputValue={input}
       />
