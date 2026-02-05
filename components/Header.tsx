@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSelectedLayoutSegments } from "next/navigation";
 import { AppLauncher } from "@/components/AppLauncher";
 import { WalletButton } from "@/components/WalletButton";
 import { cn } from "@/lib/cn";
@@ -12,25 +12,28 @@ import { useEpochClock } from "@/lib/hooks/useEpochClock";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useGlobalData } from "@/lib/hooks/useGlobalData";
 import { useProtocol } from "@/state/protocol";
+import { resolveHeaderPrimaryNav } from "@/lib/header-nav";
 
 export function Header() {
   const pathname = usePathname();
+  const segments = useSelectedLayoutSegments();
+  const segment = segments[0] ?? null;
   const clock = useEpochClock({ tickMs: 1000 });
   const { isLoading: isGlobalLoading } = useGlobalData();
   const { publicClient } = useProtocol();
   const showEpochPill = !!publicClient || !isGlobalLoading;
 
   const navItems = useMemo(() => {
-    const isVeyfi = pathname?.startsWith("/veyfi");
+    const primaryNav = resolveHeaderPrimaryNav(pathname, segment);
     return [
       {
-        label: isVeyfi ? "veYFI" : "stYFI",
-        href: isVeyfi ? "/veyfi" : "/styfi",
+        label: primaryNav.label,
+        href: primaryNav.path,
         variant: "primary" as const,
       },
       ...appCopy.nav.items.filter((i) => i.variant !== "primary"),
     ];
-  }, [pathname]);
+  }, [pathname, segment]);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-app/80 backdrop-blur-md">

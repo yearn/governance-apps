@@ -31,6 +31,12 @@ declare module "next/link" {
 
 declare module "next/navigation" {
   export function usePathname(): string | null;
+  export function useSelectedLayoutSegment(
+    parallelRouteKey?: string
+  ): string | null;
+  export function useSelectedLayoutSegments(
+    parallelRouteKey?: string
+  ): string[];
   export function useRouter(): unknown;
   export function useSearchParams(): URLSearchParams;
 }
