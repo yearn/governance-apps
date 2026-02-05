@@ -13,16 +13,14 @@ import { useProtocol } from "@/state/protocol";
 import { useIdentity } from "@/state/identity";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
-import { useVeyfiAccount } from "@/lib/hooks/useVeyfi";
-import { getVeyfiBoostMultiplier } from "@/lib/clients/veyfi/boost";
+import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 
 export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: baseApyBps } = useStyfiApy();
   const { globalData } = useProtocol();
   const { isConnected } = useIdentity();
-  const { epochInfo, now } = useEpochClock({ tickMs: 60_000 });
-  const { data: veyfiAccount } = useVeyfiAccount();
+  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
 
   const toNumber = (value?: string | number | null) => {
     if (value === null || value === undefined) return null;
@@ -51,6 +49,8 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
     }
     return formatPercent(value, maximumFractionDigits);
   };
+
+  const displaySymbol = getLlyfiDisplaySymbol(token.symbol);
 
   // --- Derived Metrics ---
   const staked = token.stakedBalance + token.cooldownBalance;
@@ -95,12 +95,8 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
       : formatPercent(utilizationRatioRaw, 1);
 
   const maxBoostBps = toNumber(globalData?.global?.maxBoostBps);
-  const accountBoost = veyfiAccount?.veYfi
-    ? getVeyfiBoostMultiplier(veyfiAccount.veYfi.unlockTime, now)
-    : null;
   const boostMultiplier =
-    accountBoost ??
-    (maxBoostBps !== null ? maxBoostBps / 10000 : token.veyfiBoost || 1);
+    maxBoostBps !== null ? maxBoostBps / 10000 : token.veyfiBoost || 1;
 
   const isEpochZero = epochInfo?.currentEpoch === 0;
   const s3EffectiveAprBps = s3Llyfi
@@ -200,7 +196,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
         <div className="font-bold text-neutral-900">
           {token.name}{" "}
           <span className="text-neutral-500 font-normal ml-1">
-            ({token.symbol})
+            ({displaySymbol})
           </span>
         </div>
 

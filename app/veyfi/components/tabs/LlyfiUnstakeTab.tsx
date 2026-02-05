@@ -7,12 +7,14 @@ import { useLlyfiStartCooldown, useLlyfiWithdraw } from "@/lib/hooks/useVeyfi";
 import { parseAmount } from "@/lib/parse";
 import { formatInputAmount } from "@/lib/format";
 import { UnstakePanel } from "@/components/domain/UnstakePanel";
+import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 
 export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
   const { isConnected } = useIdentity();
   const [input, setInput] = useState("");
 
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);
+  const displaySymbol = getLlyfiDisplaySymbol(token.symbol);
   const scale = token.exchangeRate > 0n ? token.exchangeRate : 1n;
   const roundedAmount = isValid ? amount - (amount % scale) : 0n;
   const effectiveAmount = isValid ? roundedAmount : 0n;
@@ -54,7 +56,7 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
     <div className="max-w-xl">
       <UnstakePanel
         variant="veyfi"
-        tokenSymbol={token.symbol}
+        tokenSymbol={displaySymbol}
         availableBalance={token.stakedBalance}
         totalExiting={totalExiting}
         liquidEstimate={liquidAssets}

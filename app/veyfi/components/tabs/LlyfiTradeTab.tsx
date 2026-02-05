@@ -18,6 +18,7 @@ import { parseAmount } from "@/lib/parse";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { RadioGroup } from "@/components/ui/RadioGroup";
 import { YFI_ADDRESS, SPENDER_REDEMPTION } from "@/lib/constants";
+import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 
 export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   const { isConnected, yfiBalance, isBlacklisted, address } = useIdentity();
@@ -45,8 +46,9 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
 
   const isSell = mode === "sell";
   const userBalance = isSell ? token.walletBalance : yfiBalance;
-  const sourceSymbol = isSell ? token.symbol : "YFI";
-  const targetSymbol = isSell ? "YFI" : token.symbol;
+  const displaySymbol = getLlyfiDisplaySymbol(token.symbol);
+  const sourceSymbol = isSell ? displaySymbol : "YFI";
+  const targetSymbol = isSell ? "YFI" : displaySymbol;
 
   const exchangeRate = token.exchangeRate;
   const ONE_E18 = 10n ** 18n;
@@ -160,8 +162,8 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
           value={mode}
           onChange={setMode}
           options={[
-            { value: "sell", label: `Sell ${token.symbol}` },
-            { value: "buy", label: `Buy ${token.symbol}` },
+            { value: "sell", label: `Sell ${displaySymbol}` },
+            { value: "buy", label: `Buy ${displaySymbol}` },
           ]}
         />
       </div>
@@ -227,7 +229,7 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
               }
             }}
           >
-            {isSell ? `Sell ${token.symbol}` : `Buy ${token.symbol}`}
+            {isSell ? `Sell ${displaySymbol}` : `Buy ${displaySymbol}`}
           </Button>
         )}
       </div>

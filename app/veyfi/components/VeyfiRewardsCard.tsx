@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -19,11 +18,9 @@ function resolveStyfiDashboardHref(hostname?: string) {
 }
 
 export function VeyfiRewardsCard() {
-  const [styfiHref, setStyfiHref] = useState("/styfi");
-
-  useEffect(() => {
-    setStyfiHref(resolveStyfiDashboardHref(window.location.hostname));
-  }, []);
+  const styfiHref = resolveStyfiDashboardHref(
+    typeof window === "undefined" ? undefined : window.location.hostname
+  );
 
   return (
     <Card className="h-full flex flex-col justify-between space-y-6">

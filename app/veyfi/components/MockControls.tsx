@@ -11,6 +11,7 @@ import { useProtocol } from "@/state/protocol";
 import { toast } from "@/components/ui/Toast";
 import { DebugControls } from "@/components/DebugControls";
 import { LlyfiTokenId } from "@/lib/clients/veyfi";
+import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 
 export function MockControls() {
   const queryClient = useQueryClient();
@@ -39,7 +40,9 @@ export function MockControls() {
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
         });
-        toast.success(`Added ${amount / 10n ** 18n} ${symbol}`);
+        toast.success(
+          `Added ${amount / 10n ** 18n} ${getLlyfiDisplaySymbol(symbol)}`
+        );
       } else {
         toast.error("Connect wallet first");
       }
@@ -95,7 +98,7 @@ export function MockControls() {
           className="col-span-2"
           onClick={() => handleInjectLlyfi("upYFI", 10000n * 10n ** 18n)}
         >
-          +10,000 upYFI
+          +10,000 {getLlyfiDisplaySymbol("upYFI")}
         </Button>
       </div>
     </DebugControls>

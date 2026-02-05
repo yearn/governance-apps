@@ -5,6 +5,7 @@ import { useVeyfiStats } from "@/lib/hooks/useVeyfi";
 import { formatTokenAmount, formatPercent } from "@/lib/format";
 import { veyfiCopy as copy } from "../messages";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 
 export function InventoryCard() {
   const { data: stats, isLoading } = useVeyfiStats();
@@ -62,7 +63,7 @@ export function InventoryCard() {
             {stats.tokens.map((token) => (
               <tr key={token.symbol}>
                 <td className="px-6 py-4 font-medium text-neutral-700">
-                  {token.symbol}
+                  {getLlyfiDisplaySymbol(token.symbol)}
                 </td>
                 <td className="px-6 py-4 text-right font-number text-neutral-900">
                   {/* Standardize to 2 decimals */}

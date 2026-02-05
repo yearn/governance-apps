@@ -89,6 +89,51 @@ export class OnchainStyfiClient implements StyfiClient {
     return localNow;
   }
 
+  private buildFallbackAccountState(
+    address: Address,
+    nowSecondsValue: number
+  ): StyfiAccountState {
+    const { currentEpoch, epochEnd } = getEpochInfoFromGenesis(
+      GENESIS,
+      EPOCH_LENGTH,
+      nowSecondsValue
+    );
+
+    return {
+      address,
+      isBlacklisted: false,
+      yfiBalance: 0n,
+      styfiActive: 0n,
+      styfiInCooldown: 0n,
+      styfiUnlocked: 0n,
+      styfiWithdrawable: 0n,
+      styfiCooldown: null,
+      styfiX: {
+        sharesActive: 0n,
+        sharesInCooldown: 0n,
+        assetsActive: 0n,
+        assetsInCooldown: 0n,
+        assetsUnlocked: 0n,
+        assetsWithdrawable: 0n,
+        cooldown: null,
+      },
+      claimableGenericRewards: 0n,
+      claimableBoostedRewards: 0n,
+      accruingGenericRewards: 0n,
+      accruingBoostedRewards: 0n,
+      allowances: {
+        yfiToStyfi: 0n,
+        yfiToStyfiX: 0n,
+      },
+      epoch: {
+        currentEpoch,
+        epochEnd,
+        nextEpochStart: epochEnd,
+      },
+      rewardToken: REWARD_TOKEN_CONFIG,
+    };
+  }
+
   async getAccountState(address: Address): Promise<StyfiAccountState> {
     if (!this.publicClient) {
       throw new Error("Wallet public client not available");
@@ -238,9 +283,9 @@ export class OnchainStyfiClient implements StyfiClient {
           decimals: rewardTokenDecimals,
         },
       };
-    } catch (error) {
-      console.error("Critical error fetching account state:", error);
-      throw error;
+    } catch {
+      console.warn("Failed to fetch stYFI account state; using fallback data.");
+      return this.buildFallbackAccountState(address, nowSeconds());
     }
   }
 

@@ -345,8 +345,8 @@ export class OnchainVeyfiClient implements VeyfiClient {
           feeBps: Number(redemptionGlobalFee) / 10 ** 14,
         },
       };
-    } catch (error) {
-      console.error("Error fetching veYFI account state:", error);
+    } catch {
+      console.warn("Failed to fetch veYFI account state; using fallback data.");
       return {
         address,
         veYfi: null,
@@ -520,13 +520,22 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const now = await this.getCanonicalNowSeconds();
       const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH, now);
       const currentEpochArg = BigInt(currentEpoch);
-
-      const totalWeightResult = await this.publicClient.readContract({
-        address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
-        abi: VotingEscrowRewardDistributorAbi,
-        functionName: "total_weights",
-        args: [currentEpochArg],
-      });
+      let migratedUnderlyingApprox = 0n;
+      if (currentEpoch > 0) {
+        try {
+          const totalWeightResult = await this.publicClient.readContract({
+            address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+            abi: VotingEscrowRewardDistributorAbi,
+            functionName: "total_weights",
+            args: [currentEpochArg],
+          });
+          migratedUnderlyingApprox = totalWeightResult.slope * 104n;
+        } catch {
+          console.warn(
+            "Failed to read veYFI total weights for current epoch; continuing with fallback migrated amount."
+          );
+        }
+      }
 
       const calls = [
         {
@@ -583,8 +592,6 @@ export class OnchainVeyfiClient implements VeyfiClient {
         contracts: calls,
         allowFailure: false,
       });
-
-      const migratedUnderlyingApprox = totalWeightResult.slope * 104n;
 
       const lockedYfi = results[0] as bigint;
       const fee = results[1] as bigint;
@@ -650,8 +657,8 @@ export class OnchainVeyfiClient implements VeyfiClient {
         },
         tokens,
       };
-    } catch (e) {
-      console.error("Failed to fetch veYFI global stats:", e);
+    } catch {
+      console.warn("Failed to fetch veYFI global stats; using fallback data.");
       return {
         migratedYfi: 0n,
         lockedYfi: 0n,

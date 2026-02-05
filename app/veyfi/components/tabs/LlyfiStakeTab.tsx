@@ -12,6 +12,7 @@ import { formatInputAmount, formatTokenAmount } from "@/lib/format";
 import { parseAmount } from "@/lib/parse";
 import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { toast } from "@/components/ui/Toast";
+import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 
 export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
   const { isConnected, address } = useIdentity();
@@ -19,6 +20,7 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
   const [input, setInput] = useState("");
 
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);
+  const displaySymbol = getLlyfiDisplaySymbol(token.symbol);
   const scale = token.exchangeRate > 0n ? token.exchangeRate : 1n;
   const roundedAmount = isValid ? amount - (amount % scale) : 0n;
   const effectiveAmount = isValid ? roundedAmount : 0n;
@@ -70,9 +72,7 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
     await stake(token.symbol, effectiveAmount);
     setInput("");
     toast.success(
-      `Successfully staked ${formatTokenAmount(effectiveAmount)} ${
-        token.symbol
-      }`
+      `Successfully staked ${formatTokenAmount(effectiveAmount)} ${displaySymbol}`
     );
   };
 
@@ -86,10 +86,10 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
         value={input}
         onChange={setInput}
         maxLabel={`Balance: ${formatTokenAmount(token.walletBalance)} ${
-          token.symbol
+          displaySymbol
         }`}
         onMaxClick={handleMaxClick}
-        tokenSymbol={token.symbol}
+        tokenSymbol={displaySymbol}
         error={
           !isSubmitting && insufficientBalance
             ? "Insufficient balance"
@@ -111,7 +111,7 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
             }
             isLoading={approveLoading}
           >
-            Approve {token.symbol}
+            Approve {displaySymbol}
           </Button>
         ) : (
           <Button
@@ -120,7 +120,7 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
             disabled={isDisabled}
             isLoading={isSubmitting}
           >
-            Stake {token.symbol}
+            Stake {displaySymbol}
           </Button>
         )}
       </div>
