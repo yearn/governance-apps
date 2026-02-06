@@ -3,20 +3,24 @@
 import Link from "next/link";
 import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { cn } from "@/lib/cn";
+import { resolveGovernanceHref } from "@/lib/governance-links";
 import { isExternalHref, type NavItem } from "@/lib/nav-data";
 
 type MobileNavTileProps = {
   item: NavItem;
   onSelect?: () => void;
   className?: string;
+  hostname?: string;
 };
 
 export function MobileNavTile({
   item,
   onSelect,
   className,
+  hostname,
 }: MobileNavTileProps) {
   const isExternal = isExternalHref(item.href);
+  const href = resolveGovernanceHref(item.href, hostname);
   const hasIcon = Boolean(item.icon);
   const iconWrapperClass =
     item.iconWrapperClass ??
@@ -25,7 +29,7 @@ export function MobileNavTile({
   return (
     <div onClick={onSelect}>
       <Link
-        href={item.href}
+        href={href}
         target={isExternal ? "_blank" : undefined}
         rel={isExternal ? "noopener noreferrer" : undefined}
         className={cn(

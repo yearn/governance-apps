@@ -80,6 +80,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function VeyfiPage() {
-  return <VeyfiPageClient />;
+export default async function VeyfiPage() {
+  const headerList = await headers();
+  const hostname = headerList.get("host");
+  return <VeyfiPageClient hostname={hostname} />;
 }

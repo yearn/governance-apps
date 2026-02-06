@@ -4,23 +4,14 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { veyfiCopy as copy } from "../messages";
+import { resolveGovernanceAppHref } from "@/lib/governance-links";
 
-const STYFI_DASHBOARD_HOST = "styfi.yearn.fi";
-const VEYFI_HOST = "veyfi.yearn.fi";
+type VeyfiRewardsCardProps = {
+  hostname?: string | null;
+};
 
-function resolveStyfiDashboardHref(hostname?: string) {
-  if (!hostname) return "/styfi";
-  const host = hostname.toLowerCase();
-  if (host === VEYFI_HOST) {
-    return `https://${STYFI_DASHBOARD_HOST}`;
-  }
-  return "/styfi";
-}
-
-export function VeyfiRewardsCard() {
-  const styfiHref = resolveStyfiDashboardHref(
-    typeof window === "undefined" ? undefined : window.location.hostname
-  );
+export function VeyfiRewardsCard({ hostname }: VeyfiRewardsCardProps) {
+  const styfiHref = resolveGovernanceAppHref("styfi", hostname);
 
   return (
     <Card className="h-full flex flex-col justify-between space-y-6">

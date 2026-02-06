@@ -5,7 +5,11 @@ import { VeyfiCockpit } from "./components/VeyfiCockpit";
 import { useProtocol } from "@/state/protocol";
 import { MockControls } from "./components/MockControls";
 
-export function VeyfiPageClient() {
+type VeyfiPageClientProps = {
+  hostname?: string | null;
+};
+
+export function VeyfiPageClient({ hostname }: VeyfiPageClientProps) {
   const { usesMockBackend } = useProtocol();
 
   return (
@@ -13,7 +17,7 @@ export function VeyfiPageClient() {
       <VeyfiStatsBar />
 
       <main className="container mx-auto px-4 md:px-6 pt-8 space-y-8 pb-24">
-        <VeyfiCockpit />
+        <VeyfiCockpit hostname={hostname} />
       </main>
 
       {usesMockBackend && <MockControls />}

@@ -6,6 +6,8 @@ import { IconChevron } from "@/components/icons/IconChevron";
 import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { DropdownPanel } from "./DropdownPanel";
 import { cn } from "@/lib/cn";
+import { resolveGovernanceHref } from "@/lib/governance-links";
+import { useHostname } from "@/lib/hooks/useHostname";
 import {
   COMMUNITY,
   INFO_ITEMS,
@@ -17,16 +19,23 @@ import {
 
 type TMenuKey = "products" | "resources";
 
-function NavTile({ item }: { item: NavItem }): ReactElement {
+function NavTile({
+  item,
+  hostname,
+}: {
+  item: NavItem;
+  hostname?: string;
+}): ReactElement {
   const hasIcon = Boolean(item.icon);
   const isExternal = isExternalHref(item.href);
+  const href = resolveGovernanceHref(item.href, hostname);
   const iconWrapperClass =
     item.iconWrapperClass ??
     "bg-white text-neutral-700 dark:bg-[#0a0a0a] dark:text-neutral-200";
 
   return (
     <Link
-      href={item.href}
+      href={href}
       target={isExternal ? "_blank" : undefined}
       rel={isExternal ? "noopener noreferrer" : undefined}
     >
@@ -68,6 +77,7 @@ function NavTile({ item }: { item: NavItem }): ReactElement {
 export function HeaderNavMenu(): ReactElement {
   const [activeMenu, setActiveMenu] = useState<TMenuKey | null>(null);
   const [pinnedMenu, setPinnedMenu] = useState<TMenuKey | null>(null);
+  const hostname = useHostname();
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function navTriggerClass(isActive: boolean): string {
@@ -151,7 +161,7 @@ export function HeaderNavMenu(): ReactElement {
               <div className="flex flex-col gap-0">
                 {PRODUCTS.map((item) => (
                   <div key={item.href} onClick={closeMenu}>
-                    <NavTile item={item} />
+                    <NavTile item={item} hostname={hostname} />
                   </div>
                 ))}
               </div>
@@ -164,7 +174,7 @@ export function HeaderNavMenu(): ReactElement {
               <div className="flex flex-col gap-0">
                 {TOOLS.map((item) => (
                   <div key={item.href} onClick={closeMenu}>
-                    <NavTile item={item} />
+                    <NavTile item={item} hostname={hostname} />
                   </div>
                 ))}
               </div>
@@ -206,7 +216,7 @@ export function HeaderNavMenu(): ReactElement {
               <div className="flex flex-col gap-0">
                 {INFO_ITEMS.map((item) => (
                   <div key={item.href} onClick={closeMenu}>
-                    <NavTile item={item} />
+                    <NavTile item={item} hostname={hostname} />
                   </div>
                 ))}
               </div>
@@ -219,7 +229,7 @@ export function HeaderNavMenu(): ReactElement {
               <div className="flex flex-col gap-1">
                 {COMMUNITY.map((item) => (
                   <div key={item.href} onClick={closeMenu}>
-                    <NavTile item={item} />
+                    <NavTile item={item} hostname={hostname} />
                   </div>
                 ))}
               </div>

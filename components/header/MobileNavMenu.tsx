@@ -15,6 +15,7 @@ import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
 import { cn } from "@/lib/cn";
 import { formatAddress } from "@/lib/format";
 import { resolveHeaderPrimaryNav } from "@/lib/header-nav";
+import { useHostname } from "@/lib/hooks/useHostname";
 import { useTheme } from "@/lib/hooks/useTheme";
 import {
   APP_LINKS,
@@ -60,6 +61,7 @@ export function MobileNavMenu({
   const [expandedSections, setExpandedSections] = useState(
     getInitialExpandedState,
   );
+  const hostname = useHostname();
   const isDark = theme === "soft-dark";
   const currentAppLabel = resolveHeaderPrimaryNav(pathname, null).label;
   const currentApp = APP_LINKS.find((app) => app.name === currentAppLabel);
@@ -211,6 +213,7 @@ export function MobileNavMenu({
                             key={item.href}
                             item={item}
                             onSelect={handleClose}
+                            hostname={hostname}
                           />
                         ))}
                       </div>
