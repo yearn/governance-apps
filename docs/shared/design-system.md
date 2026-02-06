@@ -149,7 +149,7 @@ Visual indicator for cooldowns or limits.
 
 ## 5. Layout Patterns
 
-- **Header:** Sticky, backdrop-blur. Contains `AppLauncher` and `WalletButton`.
+- **Header:** Sticky, backdrop-blur. Contains route-aware `app_name`, desktop `Ecosystem`/`Resources` dropdown menus, and `WalletButton`.
 - **Stats Bar:** Scrollable with page, distinct background to separate header from content.
 - **Page Layout:** Centered single-column layout. Standard padding `px-4 md:px-6` is enforced on all main containers to ensure grid alignment.
 - **Cards:** All major interactions (Stake, Cooldown) live inside `Card` components.

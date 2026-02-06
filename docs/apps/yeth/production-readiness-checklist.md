@@ -76,7 +76,7 @@ Use this checklist to track all work required to move from current mock-first yE
   - [ ] `app.dao-ops.com/yeth`
 - [ ] Confirm desired discoverability behavior:
   - [ ] included or excluded in sitemap
-  - [ ] included or excluded in app launcher
+  - [ ] included or excluded in global header navigation (`Ecosystem` / `Resources`)
 - [ ] Confirm host-route behavior for `yeth.yearn.fi`:
   - [ ] disabled until ready, or
   - [ ] enabled with Cloudflare route when launch-approved

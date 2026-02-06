@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useSelectedLayoutSegments } from "next/navigation";
-import { AppLauncher } from "@/components/AppLauncher";
 import { WalletButton } from "@/components/WalletButton";
-import { cn } from "@/lib/cn";
-import { appCopy } from "@/app/_shared/messages";
-import { useEffect, useMemo, useState } from "react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useGlobalData } from "@/lib/hooks/useGlobalData";
 import { useProtocol } from "@/state/protocol";
 import { resolveHeaderPrimaryNav } from "@/lib/header-nav";
+import { useEffect, useState } from "react";
+import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
+import { HeaderNavMenu } from "@/components/header/HeaderNavMenu";
 
 export function Header() {
   const pathname = usePathname();
@@ -23,40 +22,29 @@ export function Header() {
   const { publicClient } = useProtocol();
   const showEpochPill = !!publicClient || !isGlobalLoading;
 
-  const navItems = useMemo(() => {
-    const primaryNav = resolveHeaderPrimaryNav(pathname, segment);
-    return [
-      {
-        label: primaryNav.label,
-        href: primaryNav.path,
-        variant: "primary" as const,
-      },
-      ...appCopy.nav.items.filter((i) => i.variant !== "primary"),
-    ];
-  }, [pathname, segment]);
+  // Resolve current app name (stYFI, veYFI, etc)
+  const primaryNav = resolveHeaderPrimaryNav(pathname, segment);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-app/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-4">
-          <AppLauncher />
+          <TypeMarkYearn
+            className="h-8 w-auto text-yearn-blue dark:text-text-primary"
+            color="currentColor"
+          />
           <nav className="hidden gap-6 md:flex">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "transition-colors",
-                  item.variant === "primary"
-                    ? "text-text-primary"
-                    : "text-text-secondary hover:text-text-primary",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
+            <Link
+              href={primaryNav.path}
+              className="transition-colors text-text-primary"
+            >
+              {primaryNav.label}
+            </Link>
           </nav>
           <div className="hidden h-6 w-px bg-border md:block" />
+          <div className="hidden md:block">
+            <HeaderNavMenu />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
