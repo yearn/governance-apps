@@ -1,18 +1,19 @@
-# 4. Architecture Blueprint
+# Architecture Blueprint
 
-**Version 0.9 — 2025-12-20**
-Scope: stYFI • stYFIx • veYFI • LLYFI (BR#1 UI-first architecture)
-Status: Updated after Phase-6 implementation
+**Version 1.0 — 2026-02-06**  
+Scope: stYFI • stYFIx • veYFI • LLYFI • yETH Recovery  
+Status: Updated after initial yETH mock integration
 
-This blueprint defines the front-end implementation architecture for the governance applications under YIP-88, aligned with:
+This blueprint defines the front-end implementation architecture for the governance applications, aligned with:
 
-- **0-normative-spec-yip88.md**
-- **1-user-stories-styfi.md**
-- **2-user-stories-veyfi.md**
-- **3-frontend-frd.md**
-- **5-master-task-list.md**
+- [`normative-spec-yip88.md`](normative-spec-yip88.md)
+- [`../apps/styfi/user-stories.md`](../apps/styfi/user-stories.md)
+- [`../apps/veyfi/user-stories.md`](../apps/veyfi/user-stories.md)
+- [`../apps/yeth/mechanism-spec.md`](../apps/yeth/mechanism-spec.md)
+- [`frontend-frd.md`](frontend-frd.md)
+- [`master-task-list.md`](master-task-list.md)
 
-It is the top-level design document guiding implementers of the `/styfi` and `/veyfi` front-end apps.
+It is the top-level design document guiding implementers of `/styfi`, `/veyfi`, and `/yeth`.
 
 ---
 
@@ -23,13 +24,15 @@ It is the top-level design document guiding implementers of the `/styfi` and `/v
 /app
 ├── styfi/        UI for stYFI + stYFIx
 ├── veyfi/        UI for veYFI + LLYFI
+├── yeth/         UI for yETH recovery
 └── layout.tsx
 
 /lib
 ├── clients/
 │     ├── shared/      shared domain types (CooldownState)
 │     ├── styfi/       domain types + interfaces + mock + onchain
-│     └── veyfi/       domain types + interfaces + mock + onchain
+│     ├── veyfi/       domain types + interfaces + mock + onchain
+│     └── yeth/        domain types + interfaces + mock (on-chain pending)
 ├── tx/                tx lifecycle (Phase-2)
 ├── hooks/             domain hooks (Phase-3)
 └── format/            formatting + helpers
@@ -42,7 +45,7 @@ It is the top-level design document guiding implementers of the `/styfi` and `/v
 
 Core principles:
 
-- **Domain-first**: Two domain clients: `StyfiClient` and `VeyfiClient`.
+- **Domain-first**: Domain clients: `StyfiClient`, `VeyfiClient`, and `YethClient`.
 - **Separation of concerns**: UI never touches viem/wagmi directly except read helpers; all writes go via `useTx`.
 - **Mock-capable**: Deterministic mocks are available for local dev (`NEXT_PUBLIC_USE_MOCKS=true`).
 - **Hybrid data**: Global, non-account stats load from S3 JSON; account-specific data upgrades to wallet RPC after connect.
@@ -148,6 +151,29 @@ All return a `PreparedTransaction`.
 
 ---
 
+## 3.4 yETH Domain Model
+
+### Entities
+
+- **YethGlobalState**
+- **YethAccountState**
+- **YethClaimWindow**
+- **YethRecoveryVaultState**
+- **YethYieldVaultState**
+
+### Actions (writes)
+
+- `prepareClaimAndExit()`
+- `prepareClaimAndStay()`
+- `prepareRedeemToEth()`
+
+### Current Integration Mode
+
+- yETH is currently intentionally mock-backed.
+- On-chain yETH client integration is deferred until contracts are finalized and audited.
+
+---
+
 # 4. Transaction Pipeline
 
 **Phase-1 reality (done):**
@@ -179,11 +205,12 @@ Execution always occurs through `useTx`.
 
 # 5. Client Architecture
 
-Two fully isolated domain clients:
+Domain clients:
 
 ```
 lib/clients/styfi/ (StyfiClient)
 lib/clients/veyfi/ (VeyfiClient)
+lib/clients/yeth/  (YethClient)
 ```
 
 Each folder contains:
@@ -229,7 +256,8 @@ A single top-level provider binds domain clients to the UI.
 - **On-chain clients** (default target)
 - **Mock clients** (`NEXT_PUBLIC_USE_MOCKS=true`)
 
-On-chain clients are implemented. When mocks are disabled, global data loads from S3 (`NEXT_PUBLIC_GLOBAL_DATA_URL`) and the public client is derived from the **connected wallet** (EIP‑1193). This means the app can render global stats before connection and upgrade to live reads after a wallet connects.
+On-chain clients are implemented for stYFI and veYFI. yETH is currently mock-backed in all modes while contract integration is pending.  
+When mocks are disabled, global data loads from S3 (`NEXT_PUBLIC_GLOBAL_DATA_URL`) and the public client is derived from the connected wallet (EIP‑1193). This means the app can render global stats before connection and upgrade to live reads after a wallet connects.
 
 **Read/Write policy:**
 
@@ -266,7 +294,7 @@ Per-app status text for the stats bar is fetched from a lightweight, versioned J
 
 - If `value` is missing/empty -> the message is not rendered.
 - If `label` is missing/empty -> default to `State`.
-- Messages are **per-app** (`styfi`, `veyfi`) and do not affect protocol behavior.
+- Messages are per-app and do not affect protocol behavior.
 
 ---
 
@@ -517,13 +545,13 @@ This architecture:
 - Ensures minimal code duplication
 - Produces a clean, scalable and maintainable FE system for Yearn’s governance apps
 
-**Version 0.9** reflects:
+**Version 1.0** reflects:
 
-- Phase-6 completion (veYFI/LLYFI)
-- Architecture updates for Nested Cockpit and Inventory Card
+- Existing stYFI and veYFI architecture completion
+- yETH route and domain-model introduction (mock-backed phase)
 - Shared CooldownState model
-- Correct sequencing of tx pipeline
+- Unified transaction lifecycle across all apps
 
 ---
 
-**End of `4-architecture-blueprint.md`**
+**End of `architecture-blueprint.md`**

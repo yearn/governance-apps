@@ -1,8 +1,8 @@
-# 9. Frontend Architecture
+# Frontend Architecture
 
-**Version 1.0 — 2025-12-20**
-Scope: stYFI • stYFIx • veYFI (UI implementation architecture)
-Status: Implemented
+**Version 1.1 — 2026-02-06**  
+Scope: stYFI • stYFIx • veYFI • yETH  
+Status: Implemented for stYFI/veYFI, mock-first for yETH
 
 This document defines the **frontend implementation architecture** for the governance apps under YIP-88.
 
@@ -21,6 +21,8 @@ We use the Next.js App Router structure:
     page.tsx          // stYFI + stYFIx UI
   veyfi/
     page.tsx          // veYFI + LLYFI UI
+  yeth/
+    page.tsx          // yETH recovery UI
 ```
 
 ---
@@ -44,6 +46,13 @@ For `/styfi`:
 For `/veyfi`:
 
 - **VeyfiStatsBar:** Displays migration and boost health.
+
+For `/yeth`:
+
+- **RecoveryBanner:** Persistent retired notice + claim window status.
+- **RecoveryCard:** Eligibility, claim actions, and post-claim states.
+- **TrustVerifyDrawer:** Flat disclosures (contracts, vaults, risks, sources).
+- **MockControls:** App-specific state presets and claim-window simulation.
 
 ---
 
@@ -176,7 +185,7 @@ app/
 
 ## 7. Hooks & Data Dependencies
 
-The blueprint (`4-architecture-blueprint.md`) defines domain hooks at a high level.
+The blueprint ([`architecture-blueprint.md`](architecture-blueprint.md)) defines domain hooks at a high level.
 Implementation-wise, we follow **granular hooks** per feature:
 
 ### 7.1 Hooks for stYFI
@@ -336,7 +345,53 @@ Under `/lib/hooks/useVeyfi.ts`:
 
 ---
 
-## 10. Copy Guidelines
+## 10. `/yeth` Implementation Architecture
+
+### 10.1 Overview
+
+`/yeth` is a state-driven recovery interface with a mock-backed domain client.
+
+```text
+/yeth
+  ├── Global Header
+  └── YethPageClient
+       ├─ [RecoveryBanner]       (retired notice + claim window status)
+       └─ Main Container
+            ├─ [ConnectCard]             (wallet-gated entry)
+            ├─ [PreClaimCard]            (eligible + unclaimed state)
+            ├─ [PostClaimExitedCard]     (claim-and-exit receipt state)
+            ├─ [PostClaimStayingCard]    (recovery vault holder state)
+            ├─ [IneligibleCard]          (non-eligible state)
+            ├─ [TrustVerifyDrawer]       (flat disclosure sections)
+            └─ [Risk Modal]              (required for claim-and-stay)
+       └─ [MockControls]          (preset and claim-window debug controls)
+```
+
+### 10.2 Data Dependencies
+
+Under `/lib/hooks/useYeth.ts`:
+
+1. `useYethGlobalState()`
+2. `useYethAccountState()`
+3. `useYethClaimAndExit()`
+4. `useYethClaimAndStay()`
+5. `useYethRedeemToEth()`
+
+Current data source is `MockYethClient` via `ProtocolProvider`.
+
+### 10.3 State Management
+
+- Route renders from account eligibility and claim status.
+- Claim window status is derived from `global.claimWindow` and current time.
+- Risk consent is local component state and required before claim-and-stay write.
+- Post-claim state transitions depend on account `claimStatus`:
+  - `unclaimed`
+  - `staying`
+  - `exited`
+
+---
+
+## 11. Copy Guidelines
 
 - Each route/feature owns a co-located `messages.ts`.
 - Exports follow `<feature>Copy` (or `copy` when obvious).
@@ -344,7 +399,7 @@ Under `/lib/hooks/useVeyfi.ts`:
 
 ---
 
-## 11. Summary
+## 12. Summary
 
 This frontend architecture:
 
@@ -353,6 +408,7 @@ This frontend architecture:
 - Centralizes mode education in **AccountSummary + ModeComparison**.
 - Uses **client state** as the canonical view state.
 - Implements `/veyfi` as a **Registry** with nested **Cockpit** actions.
+- Implements `/yeth` as a state-driven recovery flow with explicit risk gating and trust verification.
 
 ---
 

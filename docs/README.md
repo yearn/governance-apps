@@ -1,49 +1,34 @@
-# `/docs` Directory
+# Governance Apps Documentation
 
-This folder contains all specification and planning documents for the `governance-apps` project.
-They define **what the frontend must do** and **how it is built**, and serve as the reference for all implementation work.
+This directory is organized by **shared system documentation** and **app-specific documentation**.
 
-## Contents
+## Structure
 
-- [**0-normative-spec-yip88.md**](0-normative-spec-yip88.md) — The protocol normative spec
-- [**1-user-stories-styfi.md**](1-user-stories-styfi.md) — User stories for stYFI + stYFIx flows
-- [**2-user-stories-veyfi.md**](2-user-stories-veyfi.md) — User stories for veYFI + LLYFI flows
-- [**3-frd-frontend.md**](3-frd-frontend.md) — Frontend Functional Requirements (canonical behaviour spec)
-- [**4-architecture-blueprint.md**](4-architecture-blueprint.md) — End-to-end implementation strategy and system design
-- [**5-master-task-list.md**](5-master-task-list.md) — Phase-based, actionable roadmap for BR#1
-- [**6-design-system.md**](6-design-system.md) — Visual guidelines, typography, and component usage
-- [**7-copy-and-tone.md**](7-copy-and-tone.md) — Copywriting guidelines and voice commandments
-- [**8-styfi-ui-spec.md**](8-styfi-ui-spec.md) — stYFI UI spec
-- [**9-frontend-architecture.md**](9-frontend-architecture.md) — Frontend architecture doc
-- [**10-veyfi-ui-spec.md**](10-veyfi-ui-spec.md) — veYFI UI spec
-- [**11-testing.md**](11-testing.md) — Testing strategy, infrastructure, and workflow
-- [**12-global-data-schema.md**](12-global-data-schema.md) — S3 JSON schema for global (pre‑wallet) data
-- [**13-motd-schema.md**](13-motd-schema.md) — S3 JSON schema for per-app stats bar messages
-- [**dev-mock-toggles.md**](dev-mock-toggles.md) — Mock scenarios and time offset for local UI testing
+```text
+docs/
+  shared/              # Cross-app architecture, standards, testing, schemas, roadmap
+  apps/
+    styfi/             # stYFI + stYFIx product docs
+    veyfi/             # veYFI + LLYFI product docs
+    yeth/              # yETH recovery docs
+```
 
-## Usage
+## Navigation
 
-- Keep all documents in sync with code changes.
-- Update relevant files in the **same PR** when behaviour changes.
-- Treat these documents as the source of truth for FE logic, state, and flows.
+- Shared docs: [`docs/shared/README.md`](shared/README.md)
+- App docs index: [`docs/apps/README.md`](apps/README.md)
+- stYFI docs: [`docs/apps/styfi/README.md`](apps/styfi/README.md)
+- veYFI docs: [`docs/apps/veyfi/README.md`](apps/veyfi/README.md)
+- yETH docs: [`docs/apps/yeth/README.md`](apps/yeth/README.md)
 
-## Editing Rules
+## Documentation Rules
 
-- No duplication between documents; each has a defined purpose.
-- All changes must reflect YIP-88 and currently targeted contract versions.
-- Keep formatting clean, concise, and consistent.
-- Shared frontend primitives (e.g., CooldownState) MUST be defined once in /lib/clients/shared and referenced consistently across domains.
-
-## Environment Setup (Frontend)
-
-Minimum env vars for non‑mock runs:
-
-- `NEXT_PUBLIC_GLOBAL_DATA_URL` — S3 (or similar) JSON for global stats and inventory.
-- `NEXT_PUBLIC_WC_PROJECT_ID` — WalletConnect project id for RainbowKit.
-
-Optional:
-
-- `NEXT_PUBLIC_MOTD_URL` — S3 (or similar) JSON for per-app stats bar messages.
-- `NEXT_PUBLIC_RPC_URLS` — Comma‑separated RPC URLs (used for dev/fork transports).
-- `NEXT_PUBLIC_USE_MOCKS=true` — Forces mock clients.
-- `NEXT_PUBLIC_E2E=true` — Enables Test Bridge + mock wallet for Playwright.
+- Keep behavior changes and docs updates in the same PR.
+- Put app-specific behavior only in that app's folder.
+- Keep shared standards in `docs/shared` only.
+- Prefer references over duplication.
+- Every production-impacting feature should have:
+  - app-level spec updates,
+  - implementation status notes,
+  - test coverage notes,
+  - production-readiness checklist updates.

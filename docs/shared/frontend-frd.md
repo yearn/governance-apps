@@ -1,9 +1,10 @@
-# `03-frontend-frd.md`
+# `frontend-frd.md`
 
 **Frontend Functional Requirements — stYFI, stYFIx, veYFI, LLYFI**
-**Version:** 0.6
+**Version:** 0.7
 **Applies to:** `governance-apps` repository
-**Scope:** Part I (stYFI/stYFIx) and Part II (veYFI/LLYFI)
+**Scope:** Part I (stYFI/stYFIx) and Part II (veYFI/LLYFI).  
+**Note:** yETH recovery has dedicated product specs under `docs/apps/yeth/`.
 
 ---
 
@@ -577,7 +578,7 @@ UI requirements:
 - This FRD tracks the exact contract version deployed.
 - Any upstream change to YIP-88 MUST result in:
 
-  - update to `0-normative-spec-yip88.md`, and
+  - update to `normative-spec-yip88.md`, and
   - corresponding changes here.
 
 ## 9.1. Changelog

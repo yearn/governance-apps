@@ -1,0 +1,84 @@
+# Master Task List — Governance Apps
+
+Version 2.0 — February 6, 2026  
+Scope: `/styfi`, `/veyfi`, `/yeth`
+
+This is the active delivery roadmap for the repository.  
+Use this with:
+
+- [`../apps/yeth/implementation-status.md`](../apps/yeth/implementation-status.md)
+- [`../apps/yeth/production-readiness-checklist.md`](../apps/yeth/production-readiness-checklist.md)
+- [`architecture-blueprint.md`](architecture-blueprint.md)
+- [`testing.md`](testing.md)
+
+## 1. Foundation and Shared Platform
+
+- [x] Next.js App Router + TypeScript + Tailwind
+- [x] Wagmi + RainbowKit integration
+- [x] Shared transaction lifecycle (`useTx`)
+- [x] Shared design-system primitives
+- [x] Shared debug controls and mock time travel
+- [x] Shared header and host-based route mapping (`middleware.ts`)
+- [ ] Migrate from deprecated Next.js `middleware` convention to `proxy` convention
+
+## 2. stYFI and veYFI Workstream
+
+### 2.1 Completed
+
+- [x] stYFI/stYFIx staking, cooldown, withdrawal, rewards UX
+- [x] veYFI migration + LLYFI stake/unstake/trade UX
+- [x] On-chain clients for stYFI and veYFI
+- [x] Global data + MOTD S3 integration
+
+### 2.2 Remaining
+
+- [ ] Wrong-network global UX hardening and write CTA lock audit
+- [ ] Blacklist behavior consistency audit across all write paths
+- [ ] Full E2E smoke coverage refresh (all critical user paths)
+- [ ] Performance/Lighthouse pass and regression budget tracking
+
+## 3. yETH Workstream
+
+### 3.1 Completed (Current State)
+
+- [x] Dedicated `/yeth` route and page client
+- [x] yETH domain model (`YethClient`, yETH hooks, query keys)
+- [x] Mock yETH claim and redeem flow:
+  - [x] claim and exit
+  - [x] claim and stay
+  - [x] redeem to ETH
+- [x] Recovery UI states:
+  - [x] disconnected
+  - [x] eligible/unclaimed
+  - [x] ineligible
+  - [x] claimed/exited
+  - [x] claimed/staying
+  - [x] claim-ended
+- [x] yETH debug presets and claim-window simulation controls
+- [x] Documentation baseline under `docs/apps/yeth/`
+
+### 3.2 Remaining for Production
+
+- [ ] Implement `OnchainYethClient`
+- [ ] Integrate final contract ABIs and addresses
+- [ ] Replace mock URLs and placeholders with governance-approved URLs
+- [ ] Add yETH unit/integration/e2e test coverage
+- [ ] Run security and invariant validation with contract team
+- [ ] Finalize launch policy for:
+  - [ ] path-only availability (`app.dao-ops.com/yeth`)
+  - [ ] subdomain rollout (`yeth.yearn.fi`)
+
+## 4. Release and Operations
+
+- [ ] Define release checklist template for all app domains
+- [ ] Add post-deploy smoke checks per route (`/styfi`, `/veyfi`, `/yeth`)
+- [ ] Ensure docs update is required in PR template for behavior changes
+- [ ] Maintain changelog entries for app-level releases
+
+## 5. Immediate Next Milestone (yETH Controlled Testing)
+
+- [ ] Merge yETH mock implementation into `master`
+- [ ] Deploy to production worker
+- [ ] Verify path-based access at `app.dao-ops.com/yeth`
+- [ ] Validate no unintended nav/discoverability regressions
+- [ ] Collect internal tester feedback and convert into prioritized issues
