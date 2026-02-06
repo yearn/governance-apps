@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useSelectedLayoutSegments } from "next/navigation";
 import { WalletButton } from "@/components/WalletButton";
+import { IconMenu } from "@/components/icons/IconMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -12,6 +12,7 @@ import { resolveHeaderPrimaryNav } from "@/lib/header-nav";
 import { useEffect, useState } from "react";
 import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
 import { HeaderNavMenu } from "@/components/header/HeaderNavMenu";
+import { MobileNavMenu } from "@/components/header/MobileNavMenu";
 
 export function Header() {
   const pathname = usePathname();
@@ -20,44 +21,59 @@ export function Header() {
   const clock = useEpochClock({ tickMs: 1000 });
   const { isLoading: isGlobalLoading } = useGlobalData();
   const { publicClient } = useProtocol();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const showEpochPill = !!publicClient || !isGlobalLoading;
 
   // Resolve current app name (stYFI, veYFI, etc)
   const primaryNav = resolveHeaderPrimaryNav(pathname, segment);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-app/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-4">
-          <TypeMarkYearn
-            className="h-8 w-auto text-yearn-blue dark:text-text-primary"
-            color="currentColor"
-          />
-          <nav className="hidden gap-6 md:flex">
-            <Link
-              href={primaryNav.path}
-              className="transition-colors text-text-primary"
+    <>
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-app/80 backdrop-blur-md">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
+          <div className="flex items-center gap-4">
+            <TypeMarkYearn
+              className="h-8 w-auto text-yearn-blue dark:text-text-primary"
+              color="currentColor"
+            />
+            <nav className="hidden gap-6 md:flex">
+              <span className="text-text-primary">{primaryNav.label}</span>
+            </nav>
+            <div className="hidden h-6 w-px bg-border md:block" />
+            <div className="hidden md:block">
+              <HeaderNavMenu />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:block">
+              {showEpochPill ? (
+                <EpochCountdownBadge epoch={clock.epochInfo} now={clock.now} />
+              ) : (
+                <Skeleton className="h-7 w-36" />
+              )}
+            </div>
+            <div className="hidden items-center gap-2 md:flex">
+              <ThemeToggle />
+              <WalletButton />
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="inline-flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary md:hidden"
+              aria-label="Open navigation menu"
+              aria-expanded={isMobileMenuOpen}
             >
-              {primaryNav.label}
-            </Link>
-          </nav>
-          <div className="hidden h-6 w-px bg-border md:block" />
-          <div className="hidden md:block">
-            <HeaderNavMenu />
+              <IconMenu className="size-5" />
+            </button>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          {showEpochPill ? (
-            <EpochCountdownBadge epoch={clock.epochInfo} now={clock.now} />
-          ) : (
-            <Skeleton className="h-7 w-36" />
-          )}
-          <ThemeToggle />
-          <WalletButton />
-        </div>
-      </div>
-    </header>
+      </header>
+      <MobileNavMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
+    </>
   );
 }
 

@@ -3,33 +3,21 @@
 import { useRef, useState, type ReactElement } from "react";
 import Link from "next/link";
 import { IconChevron } from "@/components/icons/IconChevron";
-import { IconDiscord } from "@/components/icons/IconDiscord";
 import { IconLinkOut } from "@/components/icons/IconLinkOut";
-import { IconTwitter } from "@/components/icons/IconTwitter";
-import { LogoGithub } from "@/components/icons/LogoGithub";
-import { LogoYearn } from "@/components/icons/LogoYearn";
-import { LogoYearnMark } from "@/components/icons/LogoYearnMark";
-import { LogoCuration } from "@/components/icons/LogoCuration";
 import { DropdownPanel } from "./DropdownPanel";
 import { cn } from "@/lib/cn";
+import {
+  COMMUNITY,
+  INFO_ITEMS,
+  PRODUCTS,
+  TOOLS,
+  isExternalHref,
+  type NavItem,
+} from "@/lib/nav-data";
 
 type TMenuKey = "products" | "resources";
 
-type TNavTile = {
-  name: string;
-  href: string;
-  description: string;
-  icon?: ReactElement;
-  iconWrapperClass?: string;
-};
-
-const BASE_YEARN_ASSET_URI = "https://assets.yearn.fi";
-
-function isExternalHref(href: string): boolean {
-  return /^https?:\/\//i.test(href);
-}
-
-function NavTile({ item }: { item: TNavTile }): ReactElement {
+function NavTile({ item }: { item: NavItem }): ReactElement {
   const hasIcon = Boolean(item.icon);
   const isExternal = isExternalHref(item.href);
   const iconWrapperClass =
@@ -81,154 +69,6 @@ export function HeaderNavMenu(): ReactElement {
   const [activeMenu, setActiveMenu] = useState<TMenuKey | null>(null);
   const [pinnedMenu, setPinnedMenu] = useState<TMenuKey | null>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const neutralImageClass =
-    "size-5 grayscale opacity-90 dark:invert dark:brightness-125";
-  const neutralIconForeground = "text-neutral-700 dark:text-white";
-
-  const products: TNavTile[] = [
-    {
-      name: "yVaults",
-      href: "https://yearn.fi/vaults",
-      description: "Yield-Generating Vaults",
-      icon: <LogoYearnMark className="size-6 text-yearn-blue" />,
-    },
-    {
-      name: "Curation",
-      href: "https://app.morpho.org/ethereum/earn?v2=false&curators=yearn",
-      description: "Lending Market Curation",
-      icon: (
-        <LogoCuration
-          className="size-11"
-          back="text-transparent"
-          front="text-yearn-blue"
-        />
-      ),
-    },
-    {
-      name: "yCRV",
-      href: "https://ycrv.yearn.fi",
-      description: "veCRV Liquid Locker",
-      icon: (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          alt="yCRV"
-          className="size-6"
-          src={`${BASE_YEARN_ASSET_URI}/tokens/1/0xfcc5c47be19d06bf83eb04298b026f81069ff65b/logo-128.png`}
-        />
-      ),
-    },
-    {
-      name: "yYB",
-      href: "https://yyb.yearn.fi",
-      description: "veYB Liquid Locker",
-      icon: <img alt="yYB" className="size-6" src="/yYB-logo.svg" />,
-    },
-    {
-      name: "stYFI",
-      href: "/styfi",
-      description: "YFI Staking",
-      icon: <img alt="stYFI" className="size-6" src="/tokens/styfi.svg" />,
-    },
-  ];
-
-  const infoItems: TNavTile[] = [
-    {
-      name: "Docs",
-      href: "https://docs.yearn.fi/",
-      description: "Yearn Knowledge Base",
-      icon: (
-        <img
-          alt="GitBook"
-          className={neutralImageClass}
-          src="/GitBook - Icon - Dark.svg"
-        />
-      ),
-    },
-    {
-      name: "X (Twitter)",
-      href: "https://x.com/yearnfi",
-      description: "Official Yearn News Feed",
-      icon: <IconTwitter className={cn("size-5", neutralIconForeground)} />,
-    },
-    {
-      name: "Github",
-      href: "https://github.com/yearn",
-      description: "Yearn Codebase",
-      icon: <LogoGithub className={cn("size-5", neutralIconForeground)} />,
-    },
-    {
-      name: "Blog",
-      href: "https://blog.yearn.fi/",
-      description: "Articles about Yearn",
-      icon: (
-        <img alt="Blog" className={neutralImageClass} src="/paragraph.svg" />
-      ),
-    },
-    {
-      name: "Brand Assets",
-      href: "https://brand.yearn.fi",
-      description: "Yearn Brand Resources",
-      icon: (
-        <LogoYearn
-          width={20}
-          height={20}
-          className="size-5"
-          back="text-neutral-700 dark:text-neutral-200"
-          front="text-white"
-        />
-      ),
-    },
-  ];
-
-  const toolItems: TNavTile[] = [
-    {
-      name: "PowerGlove",
-      href: "https://powerglove.yearn.fi",
-      description: "Vault Analytics",
-    },
-    {
-      name: "Kong",
-      href: "https://kong.yearn.fi",
-      description: "Vault Data",
-    },
-    {
-      name: "Kalani",
-      href: "https://kalani.yearn.fi",
-      description: "Vault Management Interface",
-    },
-    {
-      name: "yFactory",
-      href: "https://factory.yearn.fi",
-      description: "LP token Vault Creation",
-    },
-    {
-      name: "APR Oracle",
-      href: "https://oracle.yearn.fi",
-      description: "Projected Vault APY Tool",
-    },
-  ];
-
-  const communityItems: TNavTile[] = [
-    {
-      name: "Support",
-      href: "https://discord.gg/yearn",
-      description: "Yearn Discord Server",
-      icon: <IconDiscord className={cn("size-5", neutralIconForeground)} />,
-    },
-    {
-      name: "Governance",
-      href: "https://gov.yearn.fi/",
-      description: "Yearn Discussion Forum",
-      icon: (
-        <img
-          alt="Discourse"
-          className={neutralImageClass}
-          src="/discourse-icon.svg"
-        />
-      ),
-    },
-  ];
 
   function navTriggerClass(isActive: boolean): string {
     return cn(
@@ -309,7 +149,7 @@ export function HeaderNavMenu(): ReactElement {
                 Products
               </p>
               <div className="flex flex-col gap-0">
-                {products.map((item) => (
+                {PRODUCTS.map((item) => (
                   <div key={item.href} onClick={closeMenu}>
                     <NavTile item={item} />
                   </div>
@@ -322,7 +162,7 @@ export function HeaderNavMenu(): ReactElement {
                 Tools
               </p>
               <div className="flex flex-col gap-0">
-                {toolItems.map((item) => (
+                {TOOLS.map((item) => (
                   <div key={item.href} onClick={closeMenu}>
                     <NavTile item={item} />
                   </div>
@@ -364,7 +204,7 @@ export function HeaderNavMenu(): ReactElement {
                 Information
               </p>
               <div className="flex flex-col gap-0">
-                {infoItems.map((item) => (
+                {INFO_ITEMS.map((item) => (
                   <div key={item.href} onClick={closeMenu}>
                     <NavTile item={item} />
                   </div>
@@ -377,7 +217,7 @@ export function HeaderNavMenu(): ReactElement {
                 Community
               </p>
               <div className="flex flex-col gap-1">
-                {communityItems.map((item) => (
+                {COMMUNITY.map((item) => (
                   <div key={item.href} onClick={closeMenu}>
                     <NavTile item={item} />
                   </div>

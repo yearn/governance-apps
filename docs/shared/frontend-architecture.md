@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-**Version 1.2 — 2026-02-06**  
+**Version 1.3 — 2026-02-06**  
 Scope: stYFI • stYFIx • veYFI • yETH  
 Status: Implemented for stYFI/veYFI, mock-first for yETH
 
@@ -31,11 +31,13 @@ We use the Next.js App Router structure:
 
 ### 2.1 Global Header (`app/layout.tsx`)
 
-The Global Header is a **dumb, stable** component containing:
+The Global Header is a **stable shell with local UI state** containing:
 
-- Yearn wordmark/logo treatment and a route-aware `app_name` link (resolved via `resolveHeaderPrimaryNav`).
-- Desktop navigation menus: `Ecosystem` and `Resources` (dropdown panels).
-- Wallet connect and theme controls.
+- Yearn wordmark/logo treatment and a route-aware `app_name` label (resolved via `resolveHeaderPrimaryNav`).
+- Desktop navigation menus: `Ecosystem` and `Resources` (via `HeaderNavMenu` and `DropdownPanel`).
+- Mobile navigation menu: full-screen drawer (`MobileNavMenu`) with accordion sections for Products, Information, Community, and Tools.
+- Wallet connect and theme controls (desktop in-header, mobile in drawer).
+- Shared nav/link datasets sourced from `lib/nav-data.ts` (used by both desktop and mobile nav).
 
 ### 2.2 Domain Controls (Per-Route)
 
