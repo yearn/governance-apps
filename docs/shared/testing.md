@@ -83,6 +83,8 @@ All time logic must come from `lib/mocks/time.ts`:
 
 - `nowSeconds()` is the single source of truth.
 - `setFixedNow(ts | null)` freezes or clears time.
+- In mock mode, UI epoch/cooldown timing is driven by local mock time only (not S3/chain canonical sources), so debug time travel remains deterministic.
+- Debug time travel controls are expected to invalidate identity plus domain query keys and refetch active/inactive observers immediately.
 
 Any logic that previously called `Date.now()` must use `nowSeconds()` instead.
 

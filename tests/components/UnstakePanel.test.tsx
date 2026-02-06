@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UnstakePanel } from "@/components/domain/UnstakePanel";
 import { renderWithProviders } from "@/tests/test-utils";
@@ -61,5 +61,35 @@ describe("UnstakePanel", () => {
 
     await user.click(screen.getByRole("button", { name: /Withdraw/i }));
     expect(onWithdraw).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows relock warning with liquid amount in start cooldown form", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <UnstakePanel
+        {...baseProps}
+        totalExiting={10n * 10n ** 18n}
+        liquidEstimate={5n * 10n ** 18n}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /Start new cooldown/i }));
+
+    const warningTitle = screen.getByText("Re-locking liquid funds");
+    expect(warningTitle).toBeVisible();
+    expect(
+      screen.getByText(
+        /Starting a new cooldown will re-lock these funds for the full duration\./i
+      )
+    ).toBeVisible();
+    const warningBanner = warningTitle.closest("div");
+    expect(warningBanner).not.toBeNull();
+    expect(
+      within(warningBanner as HTMLElement).getByText(/5(?:\.0+)? YFI/i)
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: /Start new cooldown/i })
+    ).toBeEnabled();
   });
 });

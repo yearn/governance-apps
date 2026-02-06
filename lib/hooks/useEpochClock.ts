@@ -45,22 +45,25 @@ export type EpochClock = {
 
 export function useEpochClock({ tickMs = 1000 }: { tickMs?: number } = {}) {
   const protocol = useOptionalProtocol();
+  const usesMockBackend = protocol?.usesMockBackend ?? false;
   const publicClient = protocol?.publicClient ?? null;
   const globalData = protocol?.globalData ?? null;
   const s3Timestamp = useMemo(
-    () => parseUnixSeconds(globalData?.meta?.timestamp),
-    [globalData?.meta?.timestamp]
+    () =>
+      usesMockBackend ? null : parseUnixSeconds(globalData?.meta?.timestamp),
+    [usesMockBackend, globalData?.meta?.timestamp]
   );
   const initialBase = useMemo(() => {
     const localNow = nowSeconds();
     return computeInitialBase(s3Timestamp, localNow);
   }, [s3Timestamp]);
 
-  const { data: base = initialBase } = useQuery({
+  const { data: resolvedBase = initialBase } = useQuery({
     queryKey: ["epoch-clock-base", publicClient?.chain?.id ?? null, s3Timestamp],
     queryFn: () => resolveEpochClockBase({ publicClient, globalData }),
+    enabled: !usesMockBackend,
     staleTime: CLOCK_REFRESH_MS,
-    refetchInterval: CLOCK_REFRESH_MS,
+    refetchInterval: usesMockBackend ? false : CLOCK_REFRESH_MS,
     initialData: initialBase,
   });
 
@@ -75,6 +78,9 @@ export function useEpochClock({ tickMs = 1000 }: { tickMs?: number } = {}) {
   }, [tickMs]);
 
   const localNow = nowSeconds();
+  const base = usesMockBackend
+    ? computeInitialBase(null, localNow)
+    : resolvedBase;
   const epoch = getEpochWindowFromBase(base, localNow);
   const epochInfo: EpochInfo = {
     currentEpoch: epoch.currentEpoch,

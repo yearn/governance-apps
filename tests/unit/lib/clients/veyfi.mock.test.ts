@@ -5,6 +5,8 @@ import {
   resetMockVeyfiStore,
 } from "@/lib/clients/veyfi/mock";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
+import { setFixedNow } from "@/lib/mocks/time";
+import { STREAM_DURATION } from "@/lib/constants";
 
 describe("MockVeyfiClient", () => {
   const user = "0x000000000000000000000000000000000000bEEF" as Address;
@@ -64,5 +66,46 @@ describe("MockVeyfiClient", () => {
     const endingYfi = GLOBAL_WORLD_STATE.get(user).yfiBalance;
     const delta = endingYfi - startingYfi;
     expect(delta).toBe(95n * 10n ** 17n);
+  });
+
+  it("re-locks liquid llyfi when starting a new cooldown", async () => {
+    const client = createMockVeyfiClient({ latencyMs: 0 });
+    const baseAmount = 10n * 10n ** 18n;
+    const addAmount = 10n * 10n ** 18n;
+    const start = 3_000_000;
+
+    setFixedNow(start);
+    await client.getAccountState(user);
+    client.debugSetLlyfiBalance?.(user, "sdYFI", baseAmount + addAmount);
+
+    const stake = await client.prepareStakeLlyfi("sdYFI", baseAmount + addAmount);
+    await stake();
+
+    const firstCooldown = await client.prepareStartCooldownLlyfi(
+      "sdYFI",
+      baseAmount
+    );
+    await firstCooldown();
+
+    const relockAt = start + STREAM_DURATION / 2;
+    setFixedNow(relockAt);
+
+    let state = await client.getAccountState(user);
+    let token = state.llyfiTokens.find((x) => x.symbol === "sdYFI");
+    expect(token?.withdrawable).toBe(baseAmount / 2n);
+
+    const secondCooldown = await client.prepareStartCooldownLlyfi(
+      "sdYFI",
+      addAmount
+    );
+    await secondCooldown();
+
+    state = await client.getAccountState(user);
+    token = state.llyfiTokens.find((x) => x.symbol === "sdYFI");
+    expect(token?.cooldownBalance).toBe(baseAmount + addAmount);
+    expect(token?.withdrawable).toBe(0n);
+    expect(token?.walletBalance).toBe(0n);
+    expect(token?.cooldown?.amount).toBe(baseAmount + addAmount);
+    expect(token?.cooldown?.endsAt).toBe(relockAt + STREAM_DURATION);
   });
 });

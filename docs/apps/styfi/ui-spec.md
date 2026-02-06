@@ -129,9 +129,10 @@ Always visible and owns all write interactions.
 - **Terminology:** Use **Unstaking** (not Exiting).
 - **Withdrawable visibility:** If `withdrawable > 0`, show a Withdraw section **above** the cooldown input.
 - **Safety warning:**
-  - **Condition:** `existingCooldown.amount > 0` and user enters a value.
-  - **Banner copy:**
-    "Action Rule: Adding to your cooldown will immediately claim any liquid assets and reset the 14-day timer for the stream."
+  - **Condition:** `withdrawable > 0` while the "Start new cooldown" form is visible.
+  - **Banner title:** "Re-locking liquid funds"
+  - **Banner body:** "You have **{formattedLiquid} {symbol}** available to withdraw. Starting a new cooldown will re-lock these funds for the full duration."
+  - **Behavior:** Warning is informational only; do not disable/block the "Start new cooldown" CTA.
 - **Ghost button label:** "Start new cooldown".
 
 ---

@@ -217,7 +217,8 @@ Under `/lib/hooks/useStyfi.ts`:
 4. `useEpoch()`
 
    - **Shared hook** (not `/styfi`-specific).
-   - Source: canonical epoch clock (latest block timestamp when connected, else S3 `meta.timestamp`, else local time).
+   - Source (non-mock): canonical epoch clock (latest block timestamp when connected, else S3 `meta.timestamp`, else local time).
+   - Source (mock mode): local mock clock only (`nowSeconds`) to support deterministic time travel for QA.
    - Returns: `currentEpoch`, `epochStart`, `epochEnd`.
 
 5. `useMotd()`

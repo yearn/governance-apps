@@ -72,8 +72,7 @@ export function UnstakePanel({
   const hasUnstaking = totalExiting > 0n;
   const showWithdrawSection = liquidEstimate > 0n;
   const showInput = !hasUnstaking || isAddingMore;
-  const showResetWarning =
-    !!cooldown?.amount && cooldown.amount > 0n && inputValue.trim().length > 0;
+  const showRelockWarning = liquidEstimate > 0n;
 
   const formattedLiquid = formatTokenAmount(liquidEstimate);
   const formattedStreaming = formatTokenAmount(streamingEstimate);
@@ -170,10 +169,14 @@ export function UnstakePanel({
             }
           />
 
-          {showResetWarning && (
-            <Banner variant="warning">
-              Action Rule: Adding to your cooldown will immediately claim any
-              liquid assets and reset the 14-day timer for the stream.
+          {showRelockWarning && (
+            <Banner variant="warning" title="Re-locking liquid funds">
+              You have{" "}
+              <strong>
+                {formattedLiquid} {tokenSymbol}
+              </strong>{" "}
+              available to withdraw. Starting a new cooldown will re-lock these
+              funds for the full duration.
             </Banner>
           )}
 

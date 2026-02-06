@@ -21,9 +21,22 @@ export function DebugControls({ children }: { children?: ReactNode }) {
     debugAdvanceTime(days * 24 * 60 * 60);
     // Invalidate everything to be safe
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: styfiKeys.all }),
-      queryClient.invalidateQueries({ queryKey: veyfiKeys.all }),
-      queryClient.invalidateQueries({ queryKey: yethKeys.all }),
+      queryClient.invalidateQueries({
+        queryKey: ["protocol", "identity"],
+        refetchType: "all",
+      }),
+      queryClient.invalidateQueries({
+        queryKey: styfiKeys.all,
+        refetchType: "all",
+      }),
+      queryClient.invalidateQueries({
+        queryKey: veyfiKeys.all,
+        refetchType: "all",
+      }),
+      queryClient.invalidateQueries({
+        queryKey: yethKeys.all,
+        refetchType: "all",
+      }),
     ]);
   };
 

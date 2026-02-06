@@ -148,6 +148,7 @@ All interactive flows use a **global transaction state machine**.
    - **Connected wallet:** latest block timestamp (chain time).
    - **Pre-connect:** S3 `meta.timestamp` (snapshot time) with a local offset.
    - **Fallback:** local system time.
+   - **Mock-mode exception (`NEXT_PUBLIC_USE_MOCKS=true`):** use local mock clock only and bypass chain/S3 sources so debug time travel is deterministic.
 4. Countdown displays use locally derived epoch end timestamps from `EpochInfo` helpers based on the canonical clock.
 
 ---
@@ -409,13 +410,16 @@ Flow:
 - On success:
 
   - `styfiInCooldown` / `styfiX.sharesInCooldown` and their `CooldownState` are updated in `StyfiAccountState`.
-  - **Auto-claim Side Effect:** If user already had a cooldown active with unlocked (liquid) funds, those funds are automatically claimed to the wallet **before** the timer resets for the remaining stream. UI must reflect this balance update.
+  - **Re-lock Side Effect:** If user already had withdrawable/liquid funds, those funds are re-locked into the refreshed cooldown stream. The timer resets for the full in-cooldown amount (existing + added), and withdrawable returns to `0` immediately after the reset.
 
 UI:
 
 - Show **Linear Progress Bar** (Labeled "Cooldown Status") reflecting liquid vs streaming ratio.
-- **Progressive Disclosure:** If cooldown is active, hide the "Start Cooldown" input behind a "+ Unstake more" button.
-- **Warning:** If adding to an existing cooldown, warn that the 14-day timer will reset for the streaming portion and liquid funds will be claimed.
+- **Progressive Disclosure:** If cooldown is active, hide the cooldown input behind a "Start new cooldown" button.
+- **Warning:** If `withdrawable > 0` and the cooldown form is visible, show a warning banner:
+  - Title: "Re-locking liquid funds"
+  - Body: "You have **{formattedLiquid} {symbol}** available to withdraw. Starting a new cooldown will re-lock these funds for the full duration."
+- **No Blocking:** Keep the "Start new cooldown" button enabled when valid; warning is informational.
 
 ---
 

@@ -213,29 +213,12 @@ export class MockStyfiClient implements StyfiClient {
       const endsAt = now + STREAM_DURATION;
 
       if (mode === "stYFI") {
-        const liquid = calculateMaxWithdraw(
-          s.styfiInCooldown,
-          s.styfiCooldown ? s.styfiCooldown.endsAt - STREAM_DURATION : 0,
-          0n
-        );
-        s.styfiUnlocked += liquid;
         s.styfiActive -= amount;
-
-        const remainingInStream = s.styfiInCooldown - liquid;
-        s.styfiInCooldown = remainingInStream + amount;
-
+        s.styfiInCooldown += amount;
         s.styfiCooldown = { amount: s.styfiInCooldown, endsAt };
       } else {
-        const liquid = calculateMaxWithdraw(
-          s.styfiX.assetsInCooldown,
-          s.styfiX.cooldown ? s.styfiX.cooldown.endsAt - STREAM_DURATION : 0,
-          0n
-        );
-        s.styfiX.assetsUnlocked += liquid;
-
         s.styfiX.assetsActive -= amount;
-        const remainingInStream = s.styfiX.assetsInCooldown - liquid;
-        s.styfiX.assetsInCooldown = remainingInStream + amount;
+        s.styfiX.assetsInCooldown += amount;
         s.styfiX.sharesInCooldown = s.styfiX.assetsInCooldown; // 1:1 in mock
 
         s.styfiX.cooldown = { amount: s.styfiX.assetsInCooldown, endsAt };

@@ -264,7 +264,8 @@ When mocks are disabled, global data loads from S3 (`NEXT_PUBLIC_GLOBAL_DATA_URL
 - **Global reads** come from S3 JSON before connect and can switch to on-chain stats after connect for fresher totals.
 - **Account reads** use the wallet-backed public client after connect.
 - **Writes** always go through wallet signing via `useTx`.
-- **Epoch clock** uses latest block timestamp when connected, otherwise S3 `meta.timestamp` (with a local offset), with local time as a final fallback.
+- **Epoch clock (non-mock mode)** uses latest block timestamp when connected, otherwise S3 `meta.timestamp` (with a local offset), with local time as a final fallback.
+- **Epoch clock (mock mode)** uses local mock time only and intentionally bypasses chain/S3 sources to keep debug time travel deterministic.
 
 ---
 

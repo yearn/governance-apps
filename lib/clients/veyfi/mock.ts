@@ -298,19 +298,11 @@ export class MockVeyfiClient implements VeyfiClient {
       const s = this.getOrCreate(this.lastAddress!);
       const t = s.llyfiTokens.find((x) => x.symbol === symbol);
       if (t && t.stakedBalance >= amount) {
-        if (t.cooldownBalance > 0n && t.cooldown) {
-          const liquid = calculateMaxWithdraw(
-            t.cooldownBalance,
-            t.cooldown.endsAt - STREAM_DURATION
-          );
-          t.walletBalance += liquid;
-          t.cooldownBalance -= liquid;
-        }
         t.stakedBalance -= amount;
         t.cooldownBalance += amount;
         t.cooldown = {
           amount: t.cooldownBalance,
-          endsAt: nowSeconds() + 1209600,
+          endsAt: nowSeconds() + STREAM_DURATION,
         };
       }
       return nextMockHash();

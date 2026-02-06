@@ -195,10 +195,12 @@ Target user:
 ### Acceptance Criteria
 
 - Only visible if user has staked balance.
-- **Progressive Disclosure:** Input is hidden behind a "+ Unstake more" button if a cooldown is already active.
-- **Partial Resets & Auto-Claim:** If I add to an existing cooldown:
-  - I am explicitly warned that the 14-day timer will **reset** for the remaining stream.
-  - Any funds currently **liquid** (available) from the stream are **automatically claimed** to my wallet (or `Exited` balance) to prevent re-locking them.
+- **Progressive Disclosure:** Input is hidden behind a "Start new cooldown" button if a cooldown is already active.
+- **Re-lock Warning (Non-blocking):** If I add to an existing cooldown while `Withdrawable > 0`:
+  - I am explicitly warned in-context that the withdrawable amount will be re-locked for a full new cooldown.
+  - The warning includes the exact withdrawable amount (`{formattedLiquid} {symbol}`).
+  - The "Start new cooldown" button remains enabled.
+- **Cooldown Reset Behavior:** Starting a new cooldown resets the timer for the full in-cooldown amount (existing stream + new amount). Liquid funds are **not** auto-claimed.
 - If blacklisted: disabled.
 
 ---

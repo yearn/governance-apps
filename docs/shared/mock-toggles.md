@@ -5,6 +5,12 @@
 - Env: `NEXT_PUBLIC_USE_MOCKS=true`
 - **Default:** Disabled in repo; enable for local UI-only testing.
 - **Effect:** Uses `MockStyfiClient` and `MockVeyfiClient` instead of on-chain calls.
+- **Clock behavior in mock mode:** Epoch and cooldown UI timing uses the local mock clock (`nowSeconds`) instead of chain/S3 canonical clock sources.
+
+## Clock Source by Mode
+
+- **Non-mock mode:** Epoch clock source priority remains chain timestamp (when connected) -> S3 `meta.timestamp` (pre-connect) -> local fallback.
+- **Mock mode (`NEXT_PUBLIC_USE_MOCKS=true`):** Epoch clock intentionally bypasses chain/S3 and uses local mock time only. This keeps debug time travel deterministic and isolated from production data feeds.
 
 ## yETH Mock Backend
 
@@ -48,7 +54,7 @@ When running with mocks enabled, a **"🛠️ Debug"** button appears at the bot
 
     - `+1 Day` / `+7 Days`
     - Advances the internal mock clock. Use this to fast-forward through 14-day cooldowns to test unlocking and streaming logic.
-    - Triggers an immediate refetch of epoch-dependent queries.
+    - Triggers an immediate refetch of identity and domain queries (`styfi`, `veyfi`, `yeth`) so UI state updates right away.
 
 2.  **Balance Injection:**
 
