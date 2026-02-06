@@ -5,6 +5,7 @@ import type { NextRequest } from "next/server";
 const HOST_TO_PREFIX: Record<string, string> = {
   "styfi.yearn.fi": "/styfi",
   "veyfi.yearn.fi": "/veyfi",
+  "yeth.yearn.fi": "/yeth",
 };
 
 // Regex to detect public files that should skip rewriting.

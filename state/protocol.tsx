@@ -4,8 +4,10 @@
 import { createContext, useContext, useMemo, ReactNode } from "react";
 import { StyfiClient } from "@/lib/clients/styfi";
 import { VeyfiClient } from "@/lib/clients/veyfi";
+import { YethClient } from "@/lib/clients/yeth";
 import { createMockStyfiClient } from "@/lib/clients/styfi/mock";
 import { createMockVeyfiClient } from "@/lib/clients/veyfi/mock";
+import { createMockYethClient } from "@/lib/clients/yeth/mock";
 import { OnchainStyfiClient } from "@/lib/clients/styfi/onchain";
 import { OnchainVeyfiClient } from "@/lib/clients/veyfi/onchain"; // [New]
 import { useWalletClient } from "wagmi";
@@ -18,8 +20,10 @@ import type { GlobalData } from "@/lib/schemas/global";
 type ProtocolContextValue = {
   styfi: StyfiClient;
   veyfi: VeyfiClient;
+  yeth: YethClient;
   isMock: boolean;
   usesMockBackend: boolean;
+  yethUsesMockBackend: boolean;
   publicClient: PublicClient | null;
   globalData: GlobalData | null;
 };
@@ -35,6 +39,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
     () => ({
       styfi: createMockStyfiClient({ latencyMs: 600 }),
       veyfi: createMockVeyfiClient({ latencyMs: 600 }),
+      yeth: createMockYethClient({ latencyMs: 300 }),
     }),
     []
   );
@@ -60,8 +65,10 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
       return {
         styfi: mockClients.styfi,
         veyfi: mockClients.veyfi,
+        yeth: mockClients.yeth,
         isMock: true,
         usesMockBackend: true,
+        yethUsesMockBackend: true,
         publicClient: null,
         globalData: null,
       };
@@ -70,8 +77,10 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
     return {
       styfi: new OnchainStyfiClient(publicClient, globalData ?? null),
       veyfi: new OnchainVeyfiClient(publicClient, globalData ?? null),
+      yeth: mockClients.yeth,
       isMock: false,
       usesMockBackend: false,
+      yethUsesMockBackend: true,
       publicClient,
       globalData: globalData ?? null,
     };

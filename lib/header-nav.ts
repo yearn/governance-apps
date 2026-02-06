@@ -1,12 +1,13 @@
 const APP_NAV = {
   styfi: { label: "stYFI", path: "/styfi" },
   veyfi: { label: "veYFI", path: "/veyfi" },
+  yeth: { label: "yETH", path: "/yeth" },
 } as const;
 
 type AppKey = keyof typeof APP_NAV;
 
 function isAppKey(value: string | null): value is AppKey {
-  return value === "styfi" || value === "veyfi";
+  return value === "styfi" || value === "veyfi" || value === "yeth";
 }
 
 function resolveAppKey(pathname: string | null, segment: string | null): AppKey | null {
@@ -18,6 +19,9 @@ function resolveAppKey(pathname: string | null, segment: string | null): AppKey 
   const normalizedPathname = pathname?.toLowerCase() ?? "";
   if (normalizedPathname.startsWith(APP_NAV.veyfi.path)) {
     return "veyfi";
+  }
+  if (normalizedPathname.startsWith(APP_NAV.yeth.path)) {
+    return "yeth";
   }
   if (normalizedPathname.startsWith(APP_NAV.styfi.path)) {
     return "styfi";

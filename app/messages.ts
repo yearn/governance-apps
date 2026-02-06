@@ -2,7 +2,7 @@ export const homeCopy = {
   page: {
     title: "Yearn Governance Apps",
     description:
-      "This repo will host the stYFI and veYFI frontends (and later governance and dashboards). For now, choose a section:",
+      "Choose an app:",
   },
   cta: {
     styfi: {
@@ -13,6 +13,9 @@ export const homeCopy = {
       label: "veYFI / LLYFI (veyfi.yearn.fi)",
       href: "/veyfi",
     },
+    yeth: {
+      label: "yETH Recovery (yeth.yearn.fi)",
+      href: "/yeth",
+    },
   },
 } as const;
-

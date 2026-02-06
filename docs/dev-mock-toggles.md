@@ -6,6 +6,17 @@
 - **Default:** Disabled in repo; enable for local UI-only testing.
 - **Effect:** Uses `MockStyfiClient` and `MockVeyfiClient` instead of on-chain calls.
 
+## yETH Mock Backend
+
+- The `yETH` recovery app currently uses a dedicated mock client in all environments.
+- This is isolated from `NEXT_PUBLIC_USE_MOCKS`, so `stYFI` and `veYFI` can stay on on-chain clients while `yETH` remains mocked.
+- yETH includes app-specific debug presets for fast state switching:
+  - Eligible / Unclaimed
+  - Claimed / Exited
+  - Claimed / Staying
+  - Ineligible
+- The debug panel also includes claim-window toggles (`Open`, `Ended`, `Real Time`).
+
 ## Public RPC (Non-Mock Mode)
 
 ## Global Data (Non-Mock Mode)

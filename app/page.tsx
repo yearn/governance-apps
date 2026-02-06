@@ -18,7 +18,7 @@ export default function Home() {
         {copy.page.description}
       </p>
 
-      <div className="flex gap-4">
+      <div className="grid gap-3 sm:grid-cols-3">
         <Link
           href={copy.cta.styfi.href}
           className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
@@ -30,6 +30,12 @@ export default function Home() {
           className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
         >
           {copy.cta.veyfi.label}
+        </Link>
+        <Link
+          href={copy.cta.yeth.href}
+          className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
+        >
+          {copy.cta.yeth.label}
         </Link>
       </div>
     </main>

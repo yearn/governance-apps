@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { debugAdvanceTime } from "@/lib/mocks/time";
 import { styfiKeys } from "@/lib/hooks/useStyfi";
 import { veyfiKeys } from "@/lib/hooks/useVeyfi";
+import { yethKeys } from "@/lib/hooks/useYeth";
 import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
 import { resetMockVeyfiStore } from "@/lib/clients/veyfi/mock";
+import { resetMockYethStore } from "@/lib/clients/yeth/mock";
 
 export function DebugControls({ children }: { children?: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,8 +20,11 @@ export function DebugControls({ children }: { children?: ReactNode }) {
   const handleTimeTravel = async (days: number) => {
     debugAdvanceTime(days * 24 * 60 * 60);
     // Invalidate everything to be safe
-    await queryClient.invalidateQueries({ queryKey: styfiKeys.all });
-    await queryClient.invalidateQueries({ queryKey: veyfiKeys.all });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: styfiKeys.all }),
+      queryClient.invalidateQueries({ queryKey: veyfiKeys.all }),
+      queryClient.invalidateQueries({ queryKey: yethKeys.all }),
+    ]);
   };
 
   const handleReset = useCallback(async () => {
@@ -32,6 +37,7 @@ export function DebugControls({ children }: { children?: ReactNode }) {
 
       resetMockStyfiStore();
       resetMockVeyfiStore();
+      resetMockYethStore();
       queryClient.clear();
 
       if (typeof window !== "undefined") {

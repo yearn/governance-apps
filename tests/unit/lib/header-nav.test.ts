@@ -30,10 +30,24 @@ describe("resolveHeaderPrimaryNav", () => {
     });
   });
 
+  it("keeps path-scoped yETH routes for shared hosts", () => {
+    expect(resolveHeaderPrimaryNav("/yeth", "yeth")).toEqual({
+      label: "yETH",
+      path: "/yeth",
+    });
+  });
+
   it("falls back to pathname when segment is unavailable", () => {
     expect(resolveHeaderPrimaryNav("/veyfi/portfolio", null)).toEqual({
       label: "veYFI",
       path: "/veyfi",
+    });
+  });
+
+  it("falls back to yETH from pathname when segment is unavailable", () => {
+    expect(resolveHeaderPrimaryNav("/yeth/recovery", null)).toEqual({
+      label: "yETH",
+      path: "/yeth",
     });
   });
 
