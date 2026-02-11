@@ -81,6 +81,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // app/styfi/page.tsx
-export default function StyfiPage() {
-  return <StyfiPageClient />;
+export default async function StyfiPage() {
+  const headerList = await headers();
+  const hostname = headerList.get("host");
+  return <StyfiPageClient hostname={hostname} />;
 }

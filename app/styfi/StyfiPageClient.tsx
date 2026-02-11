@@ -19,6 +19,9 @@ import { useProtocol } from "@/state/protocol";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StyfiAccountState } from "@/lib/clients/styfi/types";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
+import { CrossAppNudge } from "@/components/domain/CrossAppNudge";
+import { useCrossChainNudge } from "@/lib/hooks/useCrossChainNudge";
+import { scrollToTargetWhenReady } from "@/lib/scrollToTarget";
 
 function deriveBalances(account: StyfiAccountState) {
   const styfiActive = account.styfiActive;
@@ -56,18 +59,22 @@ function deriveBalances(account: StyfiAccountState) {
   };
 }
 
-export function StyfiPageClient() {
+type StyfiPageClientProps = {
+  hostname?: string | null;
+};
+
+export function StyfiPageClient({ hostname }: StyfiPageClientProps) {
   const { usesMockBackend } = useProtocol();
 
   return (
     <>
-      <StyfiPageShell />
+      <StyfiPageShell hostname={hostname} />
       {usesMockBackend && <MockControls />}
     </>
   );
 }
 
-function StyfiPageShell() {
+function StyfiPageShell({ hostname }: StyfiPageClientProps) {
   const { isConnected } = useIdentity();
   const { openConnectModal } = useConnectModal();
   const { data: apy } = useStyfiApy();
@@ -80,6 +87,10 @@ function StyfiPageShell() {
   const hasUserSelected = useRef(false);
   const hasResolvedDefault = useRef(false);
   const cockpitRef = useRef<HTMLDivElement>(null);
+  const { nudge, dismiss } = useCrossChainNudge({
+    currentApp: "styfi",
+    hostname,
+  });
 
   const handleSelectAsset = useCallback((asset: StyfiAsset) => {
     hasUserSelected.current = true;
@@ -118,6 +129,24 @@ function StyfiPageShell() {
     }
     hasResolvedDefault.current = true;
   }, [account]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const search = new URLSearchParams(window.location.search);
+    const focus = search.get("focus");
+    const hash = window.location.hash.replace(/^#/, "");
+    const targetId =
+      hash ||
+      (focus === "rewards"
+        ? "rewards"
+        : focus === "stake"
+          ? "stake-manage"
+          : "");
+    if (!targetId) return;
+
+    return scrollToTargetWhenReady(targetId);
+  }, []);
 
   // Dynamic stats or loading placeholder
   const totalSupply = stats
@@ -184,6 +213,11 @@ function StyfiPageShell() {
       />
 
       <main className="container mx-auto px-4 md:px-6 pt-8 space-y-6 pb-24">
+        <CrossAppNudge
+          nudge={nudge}
+          onDismiss={dismiss}
+        />
+
         <AccountSummary
           isNewUser={isNewUser}
           selectedAsset={activeAsset}
@@ -196,7 +230,7 @@ function StyfiPageShell() {
           connectBody={copy.page.connectBanner.body}
         />
 
-        <div ref={cockpitRef} className="scroll-mt-8">
+        <div id="stake-manage" ref={cockpitRef} className="scroll-mt-8">
           <StyfiCockpit
             selectedAsset={activeAsset}
             onSelectAsset={handleSelectAsset}

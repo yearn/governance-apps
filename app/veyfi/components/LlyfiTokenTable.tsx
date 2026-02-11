@@ -20,7 +20,7 @@ export function LlyfiTokenTable() {
 
   if (!isS3Ready || tokens.length === 0) {
     return (
-      <div className="space-y-4">
+      <div id="llyfi-ledger" className="space-y-4">
         <h3 className="text-xl font-bold text-neutral-900 px-1">
           {copy.manage.title}
         </h3>
@@ -71,7 +71,7 @@ export function LlyfiTokenTable() {
   }
 
   return (
-    <div className="space-y-4">
+    <div id="llyfi-ledger" className="space-y-4">
       <h3 className="text-xl font-bold text-neutral-900 px-1">
         {copy.manage.title}
       </h3>

@@ -13,6 +13,24 @@ export type StyfiGlobalStats = {
   totalStaked: bigint; // Total YFI staked (stYFI + stYFIx) across all users
 };
 
+export type StyfiNudgeState = {
+  // Wallet
+  yfiBalance: bigint;
+
+  // stYFI
+  styfiActive: bigint;
+  styfiInCooldown: bigint;
+  styfiWithdrawable: bigint;
+
+  // stYFIx
+  styfiXActive: bigint;
+  styfiXInCooldown: bigint;
+  styfiXWithdrawable: bigint;
+
+  // Rewards
+  claimableRewards: bigint;
+};
+
 export type StyfiAllowances = {
   yfiToStyfi: bigint;
   yfiToStyfiX: bigint;

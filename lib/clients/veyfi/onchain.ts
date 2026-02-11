@@ -8,6 +8,7 @@ import type {
   LlyfiTokenId,
   LlyfiTokenState,
   LlyfiGlobalInfo,
+  VeyfiNudgeState,
 } from "./types";
 import type { VeyfiClient } from "./client";
 import type { GlobalData } from "@/lib/schemas/global";
@@ -352,6 +353,110 @@ export class OnchainVeyfiClient implements VeyfiClient {
         veYfi: null,
         llyfiTokens: [],
         inventory: { availableYfi: 0n, feeBps: 0 },
+      };
+    }
+  }
+
+  async getNudgeState(address: Address): Promise<VeyfiNudgeState> {
+    if (!this.publicClient) {
+      return {
+        legacyBalance: 0n,
+        migrationEligible: false,
+        migrated: false,
+        llyfiTokens: [],
+      };
+    }
+
+    try {
+      const [legacyLockResult, snapshotCheckResult, lockInfo, lastClaimed] =
+        await this.publicClient.multicall({
+          contracts: [
+            {
+              address: VEYFI_ADDRESS,
+              abi: LegacyVeYfiAbi,
+              functionName: "locked",
+              args: [address],
+            },
+            {
+              address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+              abi: VotingEscrowRewardDistributorAbi,
+              functionName: "check_lock",
+              args: [address],
+            },
+            {
+              address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+              abi: VotingEscrowRewardDistributorAbi,
+              functionName: "locks",
+              args: [address],
+            },
+            {
+              address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+              abi: VotingEscrowRewardDistributorAbi,
+              functionName: "last_claimed",
+              args: [address],
+            },
+          ],
+          allowFailure: false,
+        });
+
+      const lockerCalls = LIQUID_LOCKERS.flatMap((locker) => [
+        {
+          address: locker.token,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [address],
+        },
+        {
+          address: locker.depositor,
+          abi: LiquidLockerDepositorAbi,
+          functionName: "balanceOf",
+          args: [address],
+        },
+      ]);
+
+      const lockerResults = await this.publicClient.multicall({
+        contracts: lockerCalls,
+        allowFailure: false,
+      });
+
+      const legacyBalance = BigInt(legacyLockResult[0] as bigint);
+      const snapshotAmount = (lockInfo as LockInfo).amount;
+      const snapshotValidAmount = (snapshotCheckResult as [bigint, bigint])[0];
+      const migrated = (lastClaimed as bigint) > 0n;
+      const migrationEligible =
+        !migrated && snapshotAmount > 0n && snapshotValidAmount > 0n;
+
+      const llyfiTokens: Array<{
+        symbol: LlyfiTokenId;
+        walletBalance: bigint;
+        stakedBalance: bigint;
+      }> = [];
+
+      for (let i = 0; i < LIQUID_LOCKERS.length; i++) {
+        const config = LIQUID_LOCKERS[i];
+        const base = i * 2;
+        const walletBalance = lockerResults[base] as bigint;
+        const stakedBalanceShares = lockerResults[base + 1] as bigint;
+        llyfiTokens.push({
+          symbol: config.symbol,
+          walletBalance,
+          stakedBalance: stakedBalanceShares * config.scale,
+        });
+      }
+
+      return {
+        legacyBalance,
+        migrationEligible,
+        migrated,
+        llyfiTokens,
+      };
+    } catch {
+      console.warn("Failed to fetch veYFI nudge state; using fallback data.");
+      return {
+        legacyBalance: 0n,
+        migrationEligible: false,
+        migrated: false,
+        llyfiTokens: [],
       };
     }
   }

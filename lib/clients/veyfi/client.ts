@@ -3,10 +3,12 @@ import type {
   VeyfiAccountState,
   LlyfiTokenId,
   VeyfiGlobalStats,
+  VeyfiNudgeState,
 } from "./types";
 
 export interface VeyfiClient {
   getAccountState(address: `0x${string}`): Promise<VeyfiAccountState>;
+  getNudgeState(address: `0x${string}`): Promise<VeyfiNudgeState>;
   getGlobalStats(): Promise<VeyfiGlobalStats>;
   /**
    * Optional: force an on-chain stats fetch, bypassing S3.

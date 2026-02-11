@@ -58,6 +58,17 @@ export type VeyfiInventory = {
   feeBps: number;
 };
 
+export type VeyfiNudgeState = {
+  legacyBalance: bigint;
+  migrationEligible: boolean;
+  migrated: boolean;
+  llyfiTokens: Array<{
+    symbol: LlyfiTokenId;
+    walletBalance: bigint;
+    stakedBalance: bigint;
+  }>;
+};
+
 export type VeyfiAccountState = {
   address: Address;
   veYfi: {

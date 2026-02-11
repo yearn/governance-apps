@@ -2,7 +2,7 @@ import { cn } from "@/lib/cn";
 import React from "react";
 
 interface BannerProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "warning" | "error" | "info";
+  variant?: "warning" | "error" | "info" | "brand";
   title?: string;
 }
 
@@ -17,6 +17,7 @@ export function Banner({
     warning: "bg-amber-100 text-amber-900 border-amber-200",
     error: "bg-red-100 text-red-900 border-red-200",
     info: "bg-blue-50 text-blue-900 border-blue-200",
+    brand: "bg-sky-50 text-sky-950 border-sky-200",
   };
 
   return (

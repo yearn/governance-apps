@@ -2,7 +2,7 @@
 
 **Status:** Implemented (Phase 6 Complete)
 **Applies to:** `veyfi.yearn.fi` (and `/veyfi` route)
-**Last updated:** 2026-01-08
+**Last updated:** 2026-02-11
 
 ---
 
@@ -138,3 +138,28 @@ The frontend requires a new `getGlobalStats()` method from the VeyfiClient to po
 - **Colors:**
   - **veYFI/LLYFI:** "Disco Salmon" (#CC3767).
   - **Warnings/Caps:** Amber/Red if caps are near full.
+
+---
+
+## 7. Cross-App Nudge
+
+- **Goal:** Contextual guidance to `/styfi` only when an immediate stake action is available.
+- **Trigger policy:** Show at most one nudge for high-intent action:
+  - unstaked YFI in wallet
+  - intentionally **does not** show claim/manage-only nudges to reduce banner fatigue
+- **Connection gating:** Nudge evaluation requires an actual connected wallet (`wagmi` connected), not only mock fallback identity.
+- **Data path:** veYFI uses a lightweight stYFI nudge read (`getNudgeState`) instead of full stYFI page-state hydration.
+  - Includes only: YFI wallet balance + minimal stake-state signals.
+  - Excludes: allowances, cockpit tab state, and full rewards card derivations.
+- **Copy source:** All nudge copy is defined in shared message config (`app/_shared/messages.ts`), not hardcoded in hook logic.
+- **Amount formatting:** token values use standard token formatting with 4 decimal precision.
+- **Visual treatment:** Brand-tinted banner with row-collapse animation (no fixed mobile `min-height`) and top-right dismiss action.
+- **Dismiss behavior:** `X` only; dismissal snoozes for 7 days per wallet and nudge ID.
+- **CTA behavior:**
+  - Label: "Visit stYFI website"
+  - Opens in a new tab with external-link icon
+  - Hostname-aware routing via governance link resolver:
+    - `localhost` / `app.dao-ops.com` -> path-scoped `/styfi`
+    - `*.yearn.fi` -> canonical `https://styfi.yearn.fi`
+- **Deep-link behavior:** CTA routes include `source=nudge` + focus/action params.
+- **Scroll reliability:** Deep-link scroll waits for DOM target readiness via `MutationObserver` instead of fixed timers.

@@ -37,7 +37,9 @@ export function StyfiCockpit({
           selectedAsset={selectedAsset}
           onSelectAsset={onSelectAsset}
         />
-        <RewardsCard />
+        <div id="rewards" className="scroll-mt-8">
+          <RewardsCard />
+        </div>
       </div>
 
       {usesMockBackend && <MockModeBanner />}

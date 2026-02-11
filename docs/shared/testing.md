@@ -155,6 +155,7 @@ Playwright can also be run directly:
 - `NEXT_PUBLIC_USE_MOCKS=true` ensures the app uses mock clients.
 - `NEXT_PUBLIC_E2E=true` also forces mock clients for safety.
 - `NEXT_PUBLIC_MOCK_TIME_OFFSET_SECONDS` can offset the clock in dev.
+- For manual UI QA of disconnected states while mocks are enabled, use `NEXT_PUBLIC_USE_MOCKS=true` with `NEXT_PUBLIC_E2E=false` (otherwise the mock connector is auto-connected).
 
 ## Common Failure Modes
 

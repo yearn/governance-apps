@@ -3,7 +3,12 @@ import { type Address, type PublicClient, erc20Abi } from "viem";
 import { getAccount, writeContract } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import type { PreparedTransaction } from "@/lib/tx/types";
-import type { StyfiAccountState, StyfiGlobalStats, EpochInfo } from "./types";
+import type {
+  StyfiAccountState,
+  StyfiGlobalStats,
+  EpochInfo,
+  StyfiNudgeState,
+} from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
 import { getEpochInfo as getEpochInfoFromGenesis } from "@/lib/format";
 import type { GlobalData } from "@/lib/schemas/global";
@@ -286,6 +291,91 @@ export class OnchainStyfiClient implements StyfiClient {
     } catch {
       console.warn("Failed to fetch stYFI account state; using fallback data.");
       return this.buildFallbackAccountState(address, nowSeconds());
+    }
+  }
+
+  async getNudgeState(address: Address): Promise<StyfiNudgeState> {
+    if (!this.publicClient) {
+      return {
+        yfiBalance: 0n,
+        styfiActive: 0n,
+        styfiInCooldown: 0n,
+        styfiWithdrawable: 0n,
+        styfiXActive: 0n,
+        styfiXInCooldown: 0n,
+        styfiXWithdrawable: 0n,
+        claimableRewards: 0n,
+      };
+    }
+
+    try {
+      const commonStyfi = {
+        abi: StakedYfiAbi,
+        address: STYFI_ADDRESS,
+      } as const;
+      const commonStyfix = {
+        abi: DelegatedStakedYfiAbi,
+        address: STYFIX_ADDRESS,
+      } as const;
+      const commonYfi = { abi: erc20Abi, address: YFI_ADDRESS } as const;
+
+      const [
+        yfiBalance,
+        styfiActive,
+        styfiStream,
+        styfiMaxWithdraw,
+        styfiXActive,
+        styfiXStream,
+        styfiXMaxWithdraw,
+      ] = await this.publicClient.multicall({
+        contracts: [
+          { ...commonYfi, functionName: "balanceOf", args: [address] },
+          { ...commonStyfi, functionName: "balanceOf", args: [address] },
+          { ...commonStyfi, functionName: "streams", args: [address] },
+          { ...commonStyfi, functionName: "maxWithdraw", args: [address] },
+          { ...commonStyfix, functionName: "balanceOf", args: [address] },
+          { ...commonStyfix, functionName: "streams", args: [address] },
+          { ...commonStyfix, functionName: "maxWithdraw", args: [address] },
+        ],
+        allowFailure: false,
+      });
+
+      let claimableRewards = 0n;
+      try {
+        const { result } = await this.publicClient.simulateContract({
+          address: REWARD_CLAIMER_ADDRESS,
+          abi: RewardClaimerAbi,
+          functionName: "claim",
+          args: [address],
+          account: address,
+        });
+        claimableRewards = result;
+      } catch {
+        claimableRewards = 0n;
+      }
+
+      return {
+        yfiBalance,
+        styfiActive,
+        styfiInCooldown: styfiStream[1] - styfiStream[2],
+        styfiWithdrawable: styfiMaxWithdraw,
+        styfiXActive,
+        styfiXInCooldown: styfiXStream[1] - styfiXStream[2],
+        styfiXWithdrawable: styfiXMaxWithdraw,
+        claimableRewards,
+      };
+    } catch {
+      console.warn("Failed to fetch stYFI nudge state; using fallback data.");
+      return {
+        yfiBalance: 0n,
+        styfiActive: 0n,
+        styfiInCooldown: 0n,
+        styfiWithdrawable: 0n,
+        styfiXActive: 0n,
+        styfiXInCooldown: 0n,
+        styfiXWithdrawable: 0n,
+        claimableRewards: 0n,
+      };
     }
   }
 

@@ -3,7 +3,12 @@
 
 import type { Address } from "viem";
 import type { PreparedTransaction, TransactionHash } from "@/lib/tx/types";
-import type { StyfiAccountState, StyfiGlobalStats, EpochInfo } from "./types";
+import type {
+  StyfiAccountState,
+  StyfiGlobalStats,
+  EpochInfo,
+  StyfiNudgeState,
+} from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
 import {
@@ -159,6 +164,21 @@ export class MockStyfiClient implements StyfiClient {
     );
 
     return cloneState(state);
+  }
+
+  async getNudgeState(address: Address): Promise<StyfiNudgeState> {
+    const state = await this.getAccountState(address);
+    return {
+      yfiBalance: state.yfiBalance,
+      styfiActive: state.styfiActive,
+      styfiInCooldown: state.styfiInCooldown,
+      styfiWithdrawable: state.styfiWithdrawable,
+      styfiXActive: state.styfiX.assetsActive,
+      styfiXInCooldown: state.styfiX.assetsInCooldown,
+      styfiXWithdrawable: state.styfiX.assetsWithdrawable,
+      claimableRewards:
+        state.claimableGenericRewards + state.claimableBoostedRewards,
+    };
   }
 
   async getEpochInfo(): Promise<EpochInfo> {

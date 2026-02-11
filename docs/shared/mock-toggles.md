@@ -6,6 +6,7 @@
 - **Default:** Disabled in repo; enable for local UI-only testing.
 - **Effect:** Uses `MockStyfiClient` and `MockVeyfiClient` instead of on-chain calls.
 - **Clock behavior in mock mode:** Epoch and cooldown UI timing uses the local mock clock (`nowSeconds`) instead of chain/S3 canonical clock sources.
+- **Manual UAT tip:** For wallet-connect UX testing in mock mode, set `NEXT_PUBLIC_E2E=false`. If `NEXT_PUBLIC_E2E=true`, the app uses a fixed mock connector address and behaves as connected.
 
 ## Clock Source by Mode
 
@@ -58,9 +59,11 @@ When running with mocks enabled, a **"🛠️ Debug"** button appears at the bot
 
 2.  **Balance Injection:**
 
-    - `Add stYFI`: Injects 100 stYFI into the connected address.
-    - `Add stYFIx`: Injects 100 stYFIx into the connected address.
-    - _Note:_ If wallet is disconnected, these queue a balance injection for the next address that connects. Use this to test the default asset selection logic.
+    - Cross-app controls are available on both `/styfi` and `/veyfi` debug panels.
+    - stYFI actions: `Add stYFI`, `Add stYFIx`.
+    - veYFI actions: `+10 Legacy veYFI`, `+10 sdYFI`, `+10 coveYFI`, `+10,000 supYFI`.
+    - wallet action: `+10 YFI`.
+    - _Note:_ stYFI balance injections can queue for the next wallet connection; other token injections require a connected wallet.
 
 3.  **Local State Tools:**
     - `Reset App`: Full wipe of `localStorage`, `sessionStorage` (chain state), and query cache. Simulates a completely fresh install.

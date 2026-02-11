@@ -2,7 +2,7 @@
 
 **Status:** Final
 **Applies to:** `styfi.yearn.fi` (and `/styfi` route)
-**Last updated:** 2026-01-20
+**Last updated:** 2026-02-11
 
 ---
 
@@ -151,3 +151,29 @@ Always visible and owns all write interactions.
 | :----------- | :--------------- | :-------------------------------- |
 | New User     | 0                | AccountSummary → ModeComparison   |
 | Returning    | > 0              | AccountSummary → Positions List   |
+
+---
+
+## 10. Cross-App Nudge
+
+- **Goal:** Contextual guidance to `/veyfi` without interrupting staking flows.
+- **Trigger policy:** Show at most one nudge, and only for high-intent actions:
+  - legacy veYFI migration available
+  - unstaked liquid locker tokens in wallet
+  - intentionally **does not** show passive/manage-only nudges to avoid fatigue
+- **Connection gating:** Nudge evaluation requires an actual connected wallet (`wagmi` connected), not only mock fallback identity.
+- **Data path:** stYFI uses a lightweight veYFI nudge read (`getNudgeState`) instead of full veYFI account hydration.
+  - Includes only: legacy migration signal + per-token liquid locker balances.
+  - Excludes: allowances, cooldown streams, redemption caps, and cockpit-level data.
+- **Copy source:** All nudge copy is defined in shared message config (`app/_shared/messages.ts`), not hardcoded in hook logic.
+- **Amount formatting:** token values use standard token formatting with 4 decimal precision; liquid locker copy lists per-token symbols and amounts.
+- **Visual treatment:** Brand-tinted banner with row-collapse animation (`grid-template-rows`) and top-right dismiss action.
+- **Dismiss behavior:** `X` only; dismissal snoozes for 7 days per wallet and nudge ID.
+- **CTA behavior:**
+  - Label: "Visit veYFI website"
+  - Opens in a new tab with external-link icon
+  - Hostname-aware routing via governance link resolver:
+    - `localhost` / `app.dao-ops.com` -> path-scoped `/veyfi`
+    - `*.yearn.fi` -> canonical `https://veyfi.yearn.fi`
+- **Deep-link behavior:** CTA routes include `source=nudge` + action/focus params.
+- **Scroll reliability:** Target scrolling uses DOM-observer readiness checks (`MutationObserver`) rather than fixed timeout delays.

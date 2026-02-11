@@ -7,6 +7,7 @@ import type {
   VeyfiAccountState,
   LlyfiTokenId,
   VeyfiGlobalStats,
+  VeyfiNudgeState,
 } from "./types";
 import type { VeyfiClient } from "./client";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
@@ -218,6 +219,21 @@ export class MockVeyfiClient implements VeyfiClient {
       GLOBAL_REDEMPTION.tokens.coveYFI.inventory;
 
     return state;
+  }
+
+  async getNudgeState(address: Address): Promise<VeyfiNudgeState> {
+    const state = await this.getAccountState(address);
+    return {
+      legacyBalance: state.veYfi?.legacyBalance ?? 0n,
+      migrationEligible: state.veYfi?.migrationEligible ?? false,
+      migrated: state.veYfi?.migrated ?? false,
+      llyfiTokens: state.llyfiTokens.map((token) => ({
+        symbol: token.symbol,
+        walletBalance: token.walletBalance,
+        stakedBalance:
+          token.stakedBalance + token.cooldownBalance + token.withdrawable,
+      })),
+    };
   }
 
   async getGlobalStats(): Promise<VeyfiGlobalStats> {

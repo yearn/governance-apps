@@ -23,9 +23,12 @@ export function MockControls() {
     if (veyfi.debugSetPendingVeYfi) {
       veyfi.debugSetPendingVeYfi(amount);
       if (address) {
-        await queryClient.invalidateQueries({
-          queryKey: veyfiKeys.account(address),
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: veyfiKeys.account(address),
+          }),
+          queryClient.invalidateQueries({ queryKey: ["cross-app", "nudge"] }),
+        ]);
         toast.success("Added 10 legacy veYFI");
       } else {
         toast.success("Pending: 10 legacy veYFI will be added upon connection");
@@ -37,9 +40,12 @@ export function MockControls() {
     async (symbol: LlyfiTokenId, amount: bigint) => {
       if (address && veyfi.debugSetLlyfiBalance) {
         veyfi.debugSetLlyfiBalance(address, symbol, amount);
-        await queryClient.invalidateQueries({
-          queryKey: veyfiKeys.account(address),
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: veyfiKeys.account(address),
+          }),
+          queryClient.invalidateQueries({ queryKey: ["cross-app", "nudge"] }),
+        ]);
         toast.success(
           `Added ${amount / 10n ** 18n} ${getLlyfiDisplaySymbol(symbol)}`
         );
@@ -59,12 +65,33 @@ export function MockControls() {
           queryKey: ["protocol", "identity", address],
         }),
         queryClient.invalidateQueries({ queryKey: styfiKeys.account(address) }),
+        queryClient.invalidateQueries({ queryKey: ["cross-app", "nudge"] }),
       ]);
       toast.success("Added 10 YFI");
     } else {
       toast.error("Connect wallet first");
     }
   }, [styfi, address, queryClient]);
+
+  const handleInjectStyfiBalance = useCallback(
+    async (mode: "stYFI" | "stYFIx") => {
+      const amount = 100n * 10n ** 18n;
+      if (address && styfi.debugSetBalance) {
+        styfi.debugSetBalance(address, mode, amount);
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: styfiKeys.account(address),
+          }),
+          queryClient.invalidateQueries({ queryKey: ["cross-app", "nudge"] }),
+        ]);
+        toast.success(`Added 100 ${mode}`);
+      } else if (styfi.debugSetPendingBalance) {
+        styfi.debugSetPendingBalance(mode, amount);
+        toast.success(`Pending: 100 ${mode} will be added upon connection`);
+      }
+    },
+    [address, styfi, queryClient]
+  );
 
   return (
     <DebugControls>
@@ -74,6 +101,23 @@ export function MockControls() {
         </Button>
         <Button size="sm" variant="secondary" onClick={handleInjectYfi}>
           +10 YFI
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-neutral-100 pt-2 mb-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => handleInjectStyfiBalance("stYFI")}
+        >
+          +100 stYFI
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => handleInjectStyfiBalance("stYFIx")}
+        >
+          +100 stYFIx
         </Button>
       </div>
 
