@@ -1,6 +1,13 @@
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
 import path from "path";
+import {
+  CROSS_ORIGIN_OPENER_POLICY_HEADER,
+  CROSS_ORIGIN_RESOURCE_POLICY_HEADER,
+  ORIGIN_AGENT_CLUSTER_HEADER,
+  PERMISSIONS_POLICY_HEADER,
+} from "./lib/runtime/security-headers";
+import { shouldSendNoIndexHeader } from "./lib/runtime/deployment-env";
 
 initOpenNextCloudflareForDev();
 
@@ -11,7 +18,7 @@ interface WebpackConfig {
   };
 }
 
-const isProduction = process.env.VERCEL_ENV === "production";
+const sendNoIndexHeader = shouldSendNoIndexHeader();
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -33,9 +40,25 @@ const nextConfig: NextConfig = {
         key: "X-Frame-Options",
         value: "DENY",
       },
+      {
+        key: "Permissions-Policy",
+        value: PERMISSIONS_POLICY_HEADER,
+      },
+      {
+        key: "Cross-Origin-Opener-Policy",
+        value: CROSS_ORIGIN_OPENER_POLICY_HEADER,
+      },
+      {
+        key: "Cross-Origin-Resource-Policy",
+        value: CROSS_ORIGIN_RESOURCE_POLICY_HEADER,
+      },
+      {
+        key: "Origin-Agent-Cluster",
+        value: ORIGIN_AGENT_CLUSTER_HEADER,
+      },
     ];
 
-    if (!isProduction) {
+    if (sendNoIndexHeader) {
       headers.push({
         key: "X-Robots-Tag",
         value: "noindex, nofollow",

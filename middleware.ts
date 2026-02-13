@@ -1,24 +1,56 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-// Configuration: Map incoming hostnames to internal Next.js application routes
-const HOST_TO_PREFIX: Record<string, string> = {
-  "styfi.yearn.fi": "/styfi",
-  "veyfi.yearn.fi": "/veyfi",
-  "yeth.yearn.fi": "/yeth",
-};
+import { applyHostPrefix, resolveHostPrefix } from "@/lib/runtime/host-routing";
+import { resolveRequestHostname } from "@/lib/runtime/request-host";
+import { buildSecurityHeaders } from "@/lib/runtime/security-headers";
 
 // Regex to detect public files that should skip rewriting.
 // This is safer than checking for dots, which might exist in valid URL slugs.
 const PUBLIC_FILE =
   /\.(?:png|jpg|jpeg|gif|svg|ico|webp|css|js|map|txt|xml|webmanifest|woff|woff2|ttf|eot)$/i;
 
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const IS_DEVELOPMENT = !IS_PRODUCTION;
+const STRICT_CSP_PATHS = ["/styfi", "/veyfi", "/yeth"];
+
+function isStrictCspPath(pathname: string, hostPrefix: string | null) {
+  if (hostPrefix) return true;
+  return STRICT_CSP_PATHS.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function withSecurityHeaders(
+  response: NextResponse,
+  nonce: string,
+  options: { allowUnsafeInlineScripts: boolean }
+) {
+  const securityHeaders = buildSecurityHeaders({
+    nonce,
+    isDevelopment: IS_DEVELOPMENT,
+    isProduction: IS_PRODUCTION,
+    allowUnsafeInlineScripts: options.allowUnsafeInlineScripts,
+  });
+
+  for (const [key, value] of Object.entries(securityHeaders)) {
+    response.headers.set(key, value);
+  }
+
+  response.headers.set("x-nonce", nonce);
+  return response;
+}
+
 export function middleware(request: NextRequest) {
   const url = request.nextUrl;
-  const hostname = url.hostname.toLowerCase();
+  const requestHostname = resolveRequestHostname(request.headers, url.hostname);
+  const nonce = crypto.randomUUID().replace(/-/g, "");
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
 
   // 1. Determine the intended application based on the Host header
-  const prefix = HOST_TO_PREFIX[hostname];
+  const prefix = resolveHostPrefix(requestHostname);
+  const shouldUseStrictCsp = isStrictCspPath(url.pathname, prefix);
+  const securityOptions = {
+    allowUnsafeInlineScripts: !shouldUseStrictCsp,
+  };
 
   const isHeadRequest = request.method === "HEAD";
 
@@ -33,27 +65,59 @@ export function middleware(request: NextRequest) {
     PUBLIC_FILE.test(url.pathname);
 
   if (isHeadRequest && !isSkippablePath) {
+    if (!prefix) {
+      return withSecurityHeaders(
+        NextResponse.next({
+          request: { headers: requestHeaders },
+        }),
+        nonce,
+        securityOptions
+      );
+    }
+
     const headUrl = url.clone();
-    headUrl.pathname = prefix ?? "/";
-    return NextResponse.rewrite(headUrl);
+    headUrl.pathname = applyHostPrefix(headUrl.pathname, prefix);
+    return withSecurityHeaders(
+      NextResponse.rewrite(headUrl, {
+        request: { headers: requestHeaders },
+      }),
+      nonce,
+      securityOptions
+    );
   }
 
   if (!prefix) {
-    return NextResponse.next();
+    return withSecurityHeaders(
+      NextResponse.next({
+        request: { headers: requestHeaders },
+      }),
+      nonce,
+      securityOptions
+    );
   }
 
   if (isSkippablePath) {
-    return NextResponse.next();
+    return withSecurityHeaders(
+      NextResponse.next({
+        request: { headers: requestHeaders },
+      }),
+      nonce,
+      securityOptions
+    );
   }
 
   // 3. Double-Prefix Guard
   // If the user visits styfi.yearn.fi/styfi/dashboard, we don't want /styfi/styfi/dashboard.
   // We only apply the prefix if it's not already there.
-  if (!url.pathname.startsWith(prefix)) {
-    url.pathname = `${prefix}${url.pathname}`;
-  }
+  url.pathname = applyHostPrefix(url.pathname, prefix);
 
-  return NextResponse.rewrite(url);
+  return withSecurityHeaders(
+    NextResponse.rewrite(url, {
+      request: { headers: requestHeaders },
+    }),
+    nonce,
+    securityOptions
+  );
 }
 
 export const config = {

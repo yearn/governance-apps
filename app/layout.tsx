@@ -17,8 +17,6 @@ export default function RootLayout({
         <Web3Providers>
           <ProtocolProvider>
             <IdentityProvider>
-              {" "}
-              {/* Added */}
               <div className="flex min-h-screen flex-col bg-app text-text-primary font-sans">
                 <Header />
                 <main className="flex-1">{children}</main>
