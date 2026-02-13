@@ -4,6 +4,9 @@ import { createConfig, mock } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { defineChain, http, fallback } from "viem";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
+import { assertProductionRuntimeInvariants } from "@/lib/runtime/invariants";
+
+assertProductionRuntimeInvariants("web3/wagmi");
 
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID;
 const rawRpcUrls = (process.env.NEXT_PUBLIC_RPC_URLS ?? "")

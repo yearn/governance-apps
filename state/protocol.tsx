@@ -16,6 +16,9 @@ import { mainnet } from "wagmi/chains";
 import { TestBridgeListener } from "@/components/TestBridgeListener";
 import { useGlobalData } from "@/lib/hooks/useGlobalData";
 import type { GlobalData } from "@/lib/schemas/global";
+import { assertProductionRuntimeInvariants } from "@/lib/runtime/invariants";
+
+assertProductionRuntimeInvariants("state/protocol");
 
 type ProtocolContextValue = {
   styfi: StyfiClient;
