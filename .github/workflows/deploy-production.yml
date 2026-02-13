@@ -2,12 +2,6 @@ name: Deploy Production
 
 on:
   workflow_dispatch:
-    inputs:
-      ref:
-        description: Git ref (branch, tag, or commit SHA) to deploy to production
-        required: false
-        default: master
-        type: string
 
 jobs:
   deploy:
@@ -24,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: master
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -54,7 +48,7 @@ jobs:
           NEXT_PUBLIC_USE_MOCKS: "false"
           NEXT_PUBLIC_E2E: "false"
           NEXT_PUBLIC_ENABLE_DEBUG_UI: "false"
-          NEXT_PUBLIC_ENABLE_YETH: "true"
+          NEXT_PUBLIC_ENABLE_YETH: ${{ vars.NEXT_PUBLIC_ENABLE_YETH }}
           NEXT_PUBLIC_WC_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WC_PROJECT_ID }}
           NEXT_PUBLIC_GLOBAL_DATA_URL: ${{ vars.NEXT_PUBLIC_GLOBAL_DATA_URL }}
           NEXT_PUBLIC_MOTD_URL: ${{ vars.NEXT_PUBLIC_MOTD_URL }}
@@ -68,7 +62,7 @@ jobs:
           NEXT_PUBLIC_USE_MOCKS: "false"
           NEXT_PUBLIC_E2E: "false"
           NEXT_PUBLIC_ENABLE_DEBUG_UI: "false"
-          NEXT_PUBLIC_ENABLE_YETH: "true"
+          NEXT_PUBLIC_ENABLE_YETH: ${{ vars.NEXT_PUBLIC_ENABLE_YETH }}
           NEXT_PUBLIC_WC_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WC_PROJECT_ID }}
           NEXT_PUBLIC_GLOBAL_DATA_URL: ${{ vars.NEXT_PUBLIC_GLOBAL_DATA_URL }}
           NEXT_PUBLIC_MOTD_URL: ${{ vars.NEXT_PUBLIC_MOTD_URL }}
@@ -82,7 +76,7 @@ jobs:
           NEXT_PUBLIC_USE_MOCKS: "false"
           NEXT_PUBLIC_E2E: "false"
           NEXT_PUBLIC_ENABLE_DEBUG_UI: "false"
-          NEXT_PUBLIC_ENABLE_YETH: "true"
+          NEXT_PUBLIC_ENABLE_YETH: ${{ vars.NEXT_PUBLIC_ENABLE_YETH }}
           NEXT_PUBLIC_WC_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WC_PROJECT_ID }}
           NEXT_PUBLIC_GLOBAL_DATA_URL: ${{ vars.NEXT_PUBLIC_GLOBAL_DATA_URL }}
           NEXT_PUBLIC_MOTD_URL: ${{ vars.NEXT_PUBLIC_MOTD_URL }}
