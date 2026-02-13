@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { StyfiPageClient } from "./StyfiPageClient";
+import { resolveAllowedOrigin } from "@/lib/runtime/host-allowlist";
 
 export const viewport: Viewport = {
   themeColor: "#000000",
@@ -58,17 +59,9 @@ const baseMetadata: Metadata = {
   },
 };
 
-async function resolveOrigin(defaultHost: string) {
-  const headerList = await headers();
-  const host = headerList.get("host") ?? defaultHost;
-  const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1")
-    ? "http"
-    : "https";
-  return `${protocol}://${host}`;
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await resolveOrigin("styfi.yearn.fi");
+  const headerList = await headers();
+  const origin = resolveAllowedOrigin("styfi", headerList.get("host"));
 
   return {
     ...baseMetadata,
