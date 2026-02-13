@@ -1,5 +1,14 @@
 # Dev Mocks: Toggles, Scenarios & Tools
 
+## Runtime Mode Baseline
+
+- Env: `NEXT_PUBLIC_RUNTIME_MODE`
+- Allowed values: `development`, `preview`, `production`
+- Recommendation:
+  - local dev: `development`
+  - preview deploys: `preview`
+  - production deploys: `production`
+
 ## Mock Backend Toggle
 
 - Env: `NEXT_PUBLIC_USE_MOCKS=true`
@@ -23,6 +32,13 @@
   - Claimed / Staying
   - Ineligible
 - The debug panel also includes claim-window toggles (`Open`, `Ended`, `Real Time`).
+
+## Production Feature Gates
+
+- `NEXT_PUBLIC_RUNTIME_MODE=production` enables production gating behavior.
+- `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH in production runtime.
+- `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/_debug/ui` in production runtime.
+- If unset in production, yETH routes/host mapping and debug UI are intentionally unavailable.
 
 ## Public RPC (Non-Mock Mode)
 

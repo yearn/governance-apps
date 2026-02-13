@@ -19,6 +19,9 @@ Shared docs define requirements and architecture that apply across multiple apps
 - [`master-task-list.md`](master-task-list.md)
 - [`testing.md`](testing.md)
 - [`mock-toggles.md`](mock-toggles.md)
+- [`runtime-modes.md`](runtime-modes.md)
+- [`security-hardening.md`](security-hardening.md)
+- [`security-hardening-backlog.md`](security-hardening-backlog.md)
 
 ## Data Schemas
 

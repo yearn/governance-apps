@@ -22,9 +22,30 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Environment Variables
 
+- `NEXT_PUBLIC_RUNTIME_MODE`: Runtime mode selector (`development`, `preview`, `production`).
 - `NEXT_PUBLIC_WC_PROJECT_ID`: WalletConnect project ID.
 - `NEXT_PUBLIC_RPC_URLS`: Comma-separated public RPC URLs used for all read-only calls (use `https://` when the app is served over HTTPS).
 - `NEXT_PUBLIC_USE_MOCKS`: Set to `true` to use mock clients instead of on-chain reads/writes.
+- `NEXT_PUBLIC_E2E`: Enables deterministic E2E wallet behavior and mock identity wiring.
+- `NEXT_PUBLIC_GLOBAL_DATA_URL`: URL for global stats JSON payload.
+- `NEXT_PUBLIC_MOTD_URL`: URL for MOTD JSON payload used in stats bars.
+- `NEXT_PUBLIC_ENABLE_YETH`: Enables yETH routes/host in production runtime.
+- `NEXT_PUBLIC_ENABLE_DEBUG_UI`: Enables `/_debug/ui` in production runtime.
+
+Production invariant checks:
+
+- `npm run validate:deps`: Enforces deterministic dependency policy.
+- `npm run validate:prod-env`: Enforces required production env guards and required variables.
+
+Quick mode checklist:
+
+1. Local dev: `NEXT_PUBLIC_RUNTIME_MODE=development`
+2. Preview deploy: `NEXT_PUBLIC_RUNTIME_MODE=preview`
+3. Production deploy: `NEXT_PUBLIC_RUNTIME_MODE=production`
+
+For the full mode matrix and deployment checklists, see:
+
+- `docs/shared/runtime-modes.md`
 
 ## Learn More
 
