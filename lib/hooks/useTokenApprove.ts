@@ -2,12 +2,13 @@
 
 import { Address, erc20Abi } from "viem";
 import { useAccount } from "wagmi";
-import { writeContract } from "wagmi/actions";
+import { getAccount, simulateContract, writeContract } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import { useProtocol } from "@/state/protocol";
 import { useTx } from "@/lib/tx/useTx";
 import { TransactionHash } from "@/lib/tx/types";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
+import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
 
 export function useTokenApprove() {
   const { styfi, veyfi, usesMockBackend } = useProtocol();
@@ -41,12 +42,17 @@ export function useTokenApprove() {
 
         return "0xMOCK_APPROVAL_HASH" as TransactionHash;
       } else {
-        return writeContract(wagmiConfig, {
+        const account = getAccount(wagmiConfig);
+        const address = assertMainnetAccount(account);
+        const simulation = await simulateContract(wagmiConfig, {
           address: token,
           abi: erc20Abi,
           functionName: "approve",
           args: [spender, amount],
+          account: address,
+          chainId: MAINNET_CHAIN_ID,
         });
+        return writeContract(wagmiConfig, simulation.request);
       }
     };
 

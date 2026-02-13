@@ -75,7 +75,7 @@ export function StyfiPageClient({ hostname }: StyfiPageClientProps) {
 }
 
 function StyfiPageShell({ hostname }: StyfiPageClientProps) {
-  const { isConnected } = useIdentity();
+  const { isConnected, isWrongNetwork } = useIdentity();
   const { openConnectModal } = useConnectModal();
   const { data: apy } = useStyfiApy();
   const { data: stats } = useStyfiStats();
@@ -225,9 +225,11 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
           balances={balances}
           isLoading={isAccountLoading}
           isConnected={isConnected}
+          isWrongNetwork={isWrongNetwork}
           onConnect={openConnectModal}
           connectLabel={copy.page.connectBanner.cta}
           connectBody={copy.page.connectBanner.body}
+          wrongNetworkBody={copy.page.connectBanner.wrongNetwork}
         />
 
         <div id="stake-manage" ref={cockpitRef} className="scroll-mt-8">

@@ -10,7 +10,7 @@ import { UnstakePanel } from "@/components/domain/UnstakePanel";
 import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 
 export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
-  const { isConnected } = useIdentity();
+  const { canTransact } = useIdentity();
   const [input, setInput] = useState("");
 
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);
@@ -65,9 +65,9 @@ export function LlyfiUnstakeTab({ token }: { token: LlyfiTokenState }) {
         onStartCooldown={handleStart}
         onWithdraw={handleWithdraw}
         isSubmitting={isSubmitting}
-        canWithdraw={isConnected && liquidAssets > 0n && !isSubmitting}
+        canWithdraw={canTransact && liquidAssets > 0n && !isSubmitting}
         canStart={
-          isConnected &&
+          canTransact &&
           isValid &&
           effectiveAmount > 0n &&
           !insufficient &&

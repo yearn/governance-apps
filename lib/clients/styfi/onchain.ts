@@ -1,6 +1,6 @@
 // lib/clients/styfi/onchain.ts
-import { type Address, type PublicClient, erc20Abi } from "viem";
-import { getAccount, writeContract } from "wagmi/actions";
+import { type Address, type PublicClient, erc20Abi, parseAbi } from "viem";
+import { getAccount, simulateContract, writeContract } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import type { PreparedTransaction } from "@/lib/tx/types";
 import type {
@@ -8,6 +8,7 @@ import type {
   StyfiGlobalStats,
   EpochInfo,
   StyfiNudgeState,
+  BlacklistStatus,
 } from "./types";
 import type { StyfiClient, StyfiStakeMode } from "./client";
 import { getEpochInfo as getEpochInfoFromGenesis } from "@/lib/format";
@@ -16,6 +17,7 @@ import {
   STYFI_ADDRESS,
   STYFIX_ADDRESS,
   YFI_ADDRESS,
+  STAKING_MIDDLEWARE,
   REWARD_CLAIMER_ADDRESS,
   REWARD_TOKEN_CONFIG,
   GENESIS,
@@ -27,6 +29,33 @@ import { nowSeconds } from "@/lib/mocks/time";
 import { StakedYfiAbi } from "@/lib/abis/StakedYfi";
 import { DelegatedStakedYfiAbi } from "@/lib/abis/DelegatedStakedYfi";
 import { RewardClaimerAbi } from "@/lib/abis/RewardClaimer";
+import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
+
+const BLACKLIST_PROBES: ReadonlyArray<{
+  abi: readonly unknown[];
+  functionName: string;
+}> = [
+  {
+    abi: parseAbi([
+      "function isBlacklisted(address user) view returns (bool)",
+    ]),
+    functionName: "isBlacklisted",
+  },
+  {
+    abi: parseAbi([
+      "function is_blacklisted(address user) view returns (bool)",
+    ]),
+    functionName: "is_blacklisted",
+  },
+  {
+    abi: parseAbi(["function blacklisted(address user) view returns (bool)"]),
+    functionName: "blacklisted",
+  },
+  {
+    abi: parseAbi(["function blocked(address user) view returns (bool)"]),
+    functionName: "blocked",
+  },
+];
 
 function toBigInt(value: string | number) {
   return typeof value === "number" ? BigInt(Math.trunc(value)) : BigInt(value);
@@ -94,6 +123,28 @@ export class OnchainStyfiClient implements StyfiClient {
     return localNow;
   }
 
+  private async getBlacklistStatus(address: Address): Promise<BlacklistStatus> {
+    if (!this.publicClient) return "unknown";
+
+    for (const probe of BLACKLIST_PROBES) {
+      try {
+        const result = await this.publicClient.readContract({
+          address: STAKING_MIDDLEWARE,
+          abi: probe.abi as never,
+          functionName: probe.functionName as never,
+          args: [address],
+        });
+        if (typeof result === "boolean") {
+          return result ? "blocked" : "clear";
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return "unknown";
+  }
+
   private buildFallbackAccountState(
     address: Address,
     nowSecondsValue: number
@@ -107,6 +158,7 @@ export class OnchainStyfiClient implements StyfiClient {
     return {
       address,
       isBlacklisted: false,
+      blacklistStatus: "unknown",
       yfiBalance: 0n,
       styfiActive: 0n,
       styfiInCooldown: 0n,
@@ -151,6 +203,8 @@ export class OnchainStyfiClient implements StyfiClient {
     const commonYfi = { abi: erc20Abi, address: YFI_ADDRESS } as const;
 
     try {
+      const blacklistStatusPromise = this.getBlacklistStatus(address);
+
       // 1. Parallel Reads
       const [
         yfiBalance,
@@ -234,6 +288,8 @@ export class OnchainStyfiClient implements StyfiClient {
       const styfiCooldown = formatCooldown(styfiStream, styfiMaxWithdraw);
       const styfiXCooldown = formatCooldown(styfiXStream, styfiXMaxWithdraw);
       const rewardTokenDecimals = await this.getRewardTokenDecimals();
+      const blacklistStatus = await blacklistStatusPromise;
+      const isBlacklisted = blacklistStatus === "blocked";
 
       // In the contracts, "streams" returns [start, total, claimed].
       // The "Active" amount in `balanceOf` is what is earning.
@@ -249,7 +305,8 @@ export class OnchainStyfiClient implements StyfiClient {
 
       return {
         address,
-        isBlacklisted: false,
+        isBlacklisted,
+        blacklistStatus,
         yfiBalance,
 
         styfiActive,
@@ -458,18 +515,22 @@ export class OnchainStyfiClient implements StyfiClient {
     amount: bigint
   ): Promise<PreparedTransaction> {
     return async () => {
-      const { address } = getAccount(wagmiConfig);
-      if (!address) throw new Error("No account connected");
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
 
       const contractAddress = mode === "stYFI" ? STYFI_ADDRESS : STYFIX_ADDRESS;
       const abi = mode === "stYFI" ? StakedYfiAbi : DelegatedStakedYfiAbi;
 
-      return writeContract(wagmiConfig, {
+      const simulation = await simulateContract(wagmiConfig, {
         address: contractAddress,
         abi,
         functionName: "deposit",
         args: [amount, address],
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 
@@ -478,22 +539,28 @@ export class OnchainStyfiClient implements StyfiClient {
     amount: bigint
   ): Promise<PreparedTransaction> {
     return async () => {
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
       const contractAddress = mode === "stYFI" ? STYFI_ADDRESS : STYFIX_ADDRESS;
       const abi = mode === "stYFI" ? StakedYfiAbi : DelegatedStakedYfiAbi;
 
-      return writeContract(wagmiConfig, {
+      const simulation = await simulateContract(wagmiConfig, {
         address: contractAddress,
         abi,
         functionName: "unstake",
         args: [amount],
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 
   async prepareWithdraw(mode: StyfiStakeMode): Promise<PreparedTransaction> {
     return async () => {
-      const { address } = getAccount(wagmiConfig);
-      if (!address) throw new Error("No account connected");
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
       if (!this.publicClient) throw new Error("Wallet public client not available");
 
       const contractAddress = mode === "stYFI" ? STYFI_ADDRESS : STYFIX_ADDRESS;
@@ -508,26 +575,34 @@ export class OnchainStyfiClient implements StyfiClient {
 
       if (max === 0n) throw new Error("Nothing to withdraw");
 
-      return writeContract(wagmiConfig, {
+      const simulation = await simulateContract(wagmiConfig, {
         address: contractAddress,
         abi,
         functionName: "withdraw",
         args: [max, address, address],
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 
   async prepareClaimRewards(): Promise<PreparedTransaction> {
     return async () => {
-      const { address } = getAccount(wagmiConfig);
-      if (!address) throw new Error("No account connected");
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
 
-      return writeContract(wagmiConfig, {
+      const simulation = await simulateContract(wagmiConfig, {
         address: REWARD_CLAIMER_ADDRESS,
         abi: RewardClaimerAbi,
         functionName: "claim",
         args: [address],
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 }

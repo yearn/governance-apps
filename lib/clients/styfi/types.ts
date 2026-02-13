@@ -46,9 +46,12 @@ export type StyfiXPosition = {
   cooldown: CooldownState;
 };
 
+export type BlacklistStatus = "clear" | "blocked" | "unknown";
+
 export type StyfiAccountState = {
   address: Address;
   isBlacklisted: boolean;
+  blacklistStatus: BlacklistStatus;
 
   // Wallet
   yfiBalance: bigint;

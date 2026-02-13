@@ -22,6 +22,8 @@ export const STYFI_REWARD_DISTRIBUTOR_ADDRESS: Address =
   deployment.STYFI_REWARD_DISTRIBUTOR as Address;
 export const STYFIX_REWARD_DISTRIBUTOR_ADDRESS: Address =
   deployment.STYFIX_REWARD_DISTRIBUTOR as Address;
+export const STAKING_MIDDLEWARE: Address =
+  deployment.STAKING_MIDDLEWARE as Address;
 
 // --- VeYFI Domain ---
 export const VEYFI_ADDRESS: Address = deployment.VEYFI as Address;

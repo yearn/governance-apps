@@ -27,6 +27,7 @@ vi.mock("wagmi", async () => {
     useAccount: () => ({
       address: E2E_MOCK_ADDRESS,
       isConnected: true,
+      chainId: 1,
     }),
     useWalletClient: () => ({ data: null }),
     usePublicClient: () => undefined,

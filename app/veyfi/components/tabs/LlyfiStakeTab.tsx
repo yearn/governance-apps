@@ -15,7 +15,7 @@ import { toast } from "@/components/ui/Toast";
 import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 
 export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
-  const { isConnected, address } = useIdentity();
+  const { canTransact, blacklistStatus, address } = useIdentity();
   const queryClient = useQueryClient();
   const [input, setInput] = useState("");
 
@@ -39,7 +39,8 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
     stakeState.status === "signing" || stakeState.status === "mining";
 
   const isDisabled =
-    !isConnected ||
+    !canTransact ||
+    blacklistStatus !== "clear" ||
     !isValid ||
     effectiveAmount <= 0n ||
     insufficientBalance ||
@@ -103,7 +104,8 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
             variant="secondary"
             onClick={handleApprove}
             disabled={
-              !isConnected ||
+              !canTransact ||
+              blacklistStatus !== "clear" ||
               !isValid ||
               amount <= 0n ||
               insufficientBalance ||
@@ -124,6 +126,16 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
           </Button>
         )}
       </div>
+      {blacklistStatus === "blocked" && (
+        <p className="text-xs text-red-600">
+          This address is restricted from making token transfers.
+        </p>
+      )}
+      {blacklistStatus === "unknown" && (
+        <p className="text-xs text-amber-700">
+          Blacklist status is unavailable. Staking is temporarily disabled.
+        </p>
+      )}
     </div>
   );
 }

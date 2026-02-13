@@ -19,9 +19,10 @@ import { LlyfiTokenState } from "@/lib/clients/veyfi";
 import { RadioGroup } from "@/components/ui/RadioGroup";
 import { YFI_ADDRESS, SPENDER_REDEMPTION } from "@/lib/constants";
 import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
+import { computeTradeQuote } from "@/lib/clients/veyfi/trade-quote";
 
 export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
-  const { isConnected, yfiBalance, isBlacklisted, address } = useIdentity();
+  const { canTransact, yfiBalance, blacklistStatus, address } = useIdentity();
   const queryClient = useQueryClient();
   const { data } = useVeyfiAccount();
   const [mode, setMode] = useState<"sell" | "buy">("sell");
@@ -51,11 +52,12 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   const targetSymbol = isSell ? "YFI" : displaySymbol;
 
   const exchangeRate = token.exchangeRate;
+  const { hasValidExchangeRate, yfiValue, llyfiValue } = computeTradeQuote({
+    amount,
+    exchangeRate,
+    isSell,
+  });
   const ONE_E18 = 10n ** 18n;
-
-  // Math & Constraints
-  const yfiValue = isSell ? amount / exchangeRate : amount;
-  const llyfiValue = isSell ? amount : amount * exchangeRate;
 
   const feePercent = token.redemption.fee;
   const feeAmountYfi = (yfiValue * feePercent) / ONE_E18;
@@ -74,7 +76,9 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   let inventoryExceeded = false;
   let maxProtocolInput = 0n;
 
-  if (isSell) {
+  if (!hasValidExchangeRate) {
+    maxProtocolInput = 0n;
+  } else if (isSell) {
     // Selling LLYFI. Constraints are on the YFI Output side.
     const availableGlobalYfi = data?.inventory.availableYfi ?? 0n;
 
@@ -102,9 +106,11 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   }
 
   const currentAllowance = isSell ? llyfiAllowance : yfiAllowance;
-  const needsApproval = isValid && amount > 0n && amount > currentAllowance;
+  const needsApproval =
+    hasValidExchangeRate && isValid && amount > 0n && amount > currentAllowance;
 
   const handleApprove = async () => {
+    if (!hasValidExchangeRate || amount <= 0n) return;
     const tokenAddress = isSell ? token.address : YFI_ADDRESS;
     await approve(tokenAddress, SPENDER_REDEMPTION, amount, {
       invalidate: async () => {
@@ -137,7 +143,10 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   // Error logic with Instructive Messages
   let errorMsg = undefined;
   if (!isSubmitting) {
-    if (capExceeded) {
+    if (!hasValidExchangeRate) {
+      errorMsg =
+        "Trading is temporarily unavailable because the token exchange rate is invalid.";
+    } else if (capExceeded) {
       errorMsg = `Exceeds capacity (Max: ${formatTokenAmount(
         maxProtocolInput,
         18,
@@ -203,7 +212,12 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
         {needsApproval ? (
           <Button
             variant="secondary"
-            disabled={!isConnected || approveLoading}
+            disabled={
+              !canTransact ||
+              !hasValidExchangeRate ||
+              blacklistStatus !== "clear" ||
+              approveLoading
+            }
             isLoading={approveLoading}
             onClick={handleApprove}
           >
@@ -216,8 +230,9 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
               !isValid ||
               amount <= 0n ||
               !!errorMsg ||
-              !isConnected ||
-              isBlacklisted ||
+              !canTransact ||
+              !hasValidExchangeRate ||
+              blacklistStatus !== "clear" ||
               isSubmitting
             }
             isLoading={isSubmitting}
@@ -233,6 +248,16 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
           </Button>
         )}
       </div>
+      {blacklistStatus === "blocked" && (
+        <p className="text-xs text-red-600">
+          This address is restricted from making token transfers.
+        </p>
+      )}
+      {blacklistStatus === "unknown" && (
+        <p className="text-xs text-amber-700">
+          Blacklist status is unavailable. Trading is temporarily disabled.
+        </p>
+      )}
     </div>
   );
 }

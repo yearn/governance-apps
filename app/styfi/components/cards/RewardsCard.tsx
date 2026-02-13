@@ -65,9 +65,10 @@ export function RewardsCard() {
     return formatUsd(value, data.rewardToken.decimals, 2);
   }, [claimable, convertBalanceToUsd, data]);
 
+  const blacklistStatus = data?.blacklistStatus ?? "unknown";
   const isDisabled =
     !data ||
-    data.isBlacklisted ||
+    blacklistStatus !== "clear" ||
     claimable === 0n ||
     state.status === "signing" ||
     state.status === "submitted" ||
@@ -130,9 +131,14 @@ export function RewardsCard() {
           </h3>
         </div>
 
-        {data.isBlacklisted && (
+        {blacklistStatus === "blocked" && (
           <Banner variant="error" title={copy.shared.blacklistedTitle}>
             {copy.shared.blacklistedBody}
+          </Banner>
+        )}
+        {blacklistStatus === "unknown" && (
+          <Banner variant="warning" title={copy.shared.blacklistUnknownTitle}>
+            {copy.shared.blacklistUnknownBody}
           </Banner>
         )}
 

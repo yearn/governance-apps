@@ -19,7 +19,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: baseApyBps } = useStyfiApy();
   const { globalData } = useProtocol();
-  const { isConnected } = useIdentity();
+  const { canTransact, isWrongNetwork } = useIdentity();
   const { epochInfo } = useEpochClock({ tickMs: 60_000 });
 
   const toNumber = (value?: string | number | null) => {
@@ -60,7 +60,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const fallbackRatio =
     Number((token.depositorTotalSupply * 10000n) / capacity) / 10000;
 
-  const preferLiveTotals = isConnected;
+  const preferLiveTotals = canTransact;
   const s3Llyfi = globalData?.llyfi?.find(
     (entry) => entry.symbol === token.symbol
   );
@@ -251,7 +251,7 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
 
         {/* Col 5: Your Deposits */}
         <div className="text-right">
-          {isConnected ? (
+          {canTransact ? (
             <>
               <div className="font-number font-bold text-neutral-900">
                 {formatTokenAmount(staked)}
@@ -270,7 +270,9 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
                 <Skeleton className="h-5 w-16" />
               </div>
               <div className="text-xs font-medium text-neutral-500">
-                {copy.manage.row.connectWalletLabel}
+                {isWrongNetwork
+                  ? copy.manage.row.wrongNetworkLabel
+                  : copy.manage.row.connectWalletLabel}
               </div>
             </>
           )}

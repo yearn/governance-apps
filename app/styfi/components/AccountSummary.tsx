@@ -32,9 +32,11 @@ type AccountSummaryProps = {
   balances?: AccountBalances | null;
   isLoading: boolean;
   isConnected: boolean;
+  isWrongNetwork: boolean;
   onConnect?: () => void;
   connectLabel?: string;
   connectBody?: string;
+  wrongNetworkBody?: string;
 };
 
 export function AccountSummary({
@@ -44,11 +46,13 @@ export function AccountSummary({
   balances,
   isLoading,
   isConnected,
+  isWrongNetwork,
   onConnect,
   connectLabel,
   connectBody,
+  wrongNetworkBody,
 }: AccountSummaryProps) {
-  if (isNewUser && !isLoading && isConnected) {
+  if (isNewUser && !isLoading && isConnected && !isWrongNetwork) {
     return (
       <Card>
         <div className="space-y-4">
@@ -69,7 +73,7 @@ export function AccountSummary({
     );
   }
 
-  if (isLoading && isConnected) {
+  if (isLoading && isConnected && !isWrongNetwork) {
     return (
       <Card>
         <div className="space-y-4">
@@ -133,6 +137,13 @@ export function AccountSummary({
                   {connectLabel ?? "Connect wallet"}
                 </Button>
               )}
+            </div>
+          ) : isWrongNetwork ? (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+              <p className="text-sm text-amber-800">
+                {wrongNetworkBody ??
+                  "Wrong network. Switch your wallet to Ethereum Mainnet to manage positions."}
+              </p>
             </div>
           ) : rows.length > 0 ? (
             rows.map((row) => (

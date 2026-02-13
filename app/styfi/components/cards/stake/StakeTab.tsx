@@ -25,9 +25,9 @@ type Props = {
 export function StakeTab({ asset }: Props) {
   const queryClient = useQueryClient();
   const {
-    isConnected,
+    canTransact,
     yfiBalance,
-    isBlacklisted,
+    blacklistStatus,
     isLoading: isIdentityLoading,
   } = useIdentity();
   const { data: styfiData, isLoading: isStyfiLoading } = useStyfiAccount();
@@ -57,8 +57,8 @@ export function StakeTab({ asset }: Props) {
   const isLoading = isIdentityLoading || isStyfiLoading;
 
   const isDisabled =
-    !isConnected ||
-    isBlacklisted ||
+    !canTransact ||
+    blacklistStatus !== "clear" ||
     !isValid ||
     amount <= 0n ||
     insufficientBalance ||
@@ -128,8 +128,8 @@ export function StakeTab({ asset }: Props) {
             variant="secondary"
             onClick={handleApprove}
             disabled={
-              !isConnected ||
-              isBlacklisted ||
+              !canTransact ||
+              blacklistStatus !== "clear" ||
               !isValid ||
               amount <= 0n ||
               approveLoading
@@ -149,8 +149,13 @@ export function StakeTab({ asset }: Props) {
           </Button>
         )}
 
-        {isBlacklisted && (
+        {blacklistStatus === "blocked" && (
           <p className="text-xs text-red-600">{copy.shared.blacklistedBody}</p>
+        )}
+        {blacklistStatus === "unknown" && (
+          <p className="text-xs text-amber-700">
+            {copy.shared.blacklistUnknownBody}
+          </p>
         )}
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { type Address, type PublicClient, parseAbi, erc20Abi } from "viem";
-import { getAccount, writeContract } from "wagmi/actions";
+import { getAccount, simulateContract, writeContract } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import type { PreparedTransaction } from "@/lib/tx/types";
 import type {
@@ -28,6 +28,7 @@ import { LiquidLockerDepositorAbi } from "@/lib/abis/LiquidLockerDepositor";
 import { LiquidLockerRedemptionAbi } from "@/lib/abis/LiquidLockerRedemption";
 import { deriveCooldownEndsAt } from "@/lib/clients/shared/cooldown";
 import { nowSeconds } from "@/lib/mocks/time";
+import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
 
 const LegacyVeYfiAbi = parseAbi([
   "function locked(address) view returns (int128 amount, uint256 end)",
@@ -777,14 +778,18 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
   async prepareMigrateVeYfi(): Promise<PreparedTransaction> {
     return async () => {
-      const { address } = getAccount(wagmiConfig);
-      if (!address) throw new Error("No account connected");
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
 
-      return writeContract(wagmiConfig, {
+      const simulation = await simulateContract(wagmiConfig, {
         address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
         abi: VotingEscrowRewardDistributorAbi,
         functionName: "migrate",
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 
@@ -800,15 +805,19 @@ export class OnchainVeyfiClient implements VeyfiClient {
   ): Promise<PreparedTransaction> {
     return async () => {
       const config = this.getLockerConfig(symbol);
-      const { address } = getAccount(wagmiConfig);
-      if (!address) throw new Error("No account connected");
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
 
-      return writeContract(wagmiConfig, {
+      const simulation = await simulateContract(wagmiConfig, {
         address: config.depositor,
         abi: LiquidLockerDepositorAbi,
         functionName: "deposit",
         args: [amount, address],
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 
@@ -819,13 +828,19 @@ export class OnchainVeyfiClient implements VeyfiClient {
     return async () => {
       const config = this.getLockerConfig(symbol);
       const shares = amount / config.scale;
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
 
-      return writeContract(wagmiConfig, {
+      const simulation = await simulateContract(wagmiConfig, {
         address: config.depositor,
         abi: LiquidLockerDepositorAbi,
         functionName: "unstake",
         args: [shares],
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 
@@ -834,8 +849,8 @@ export class OnchainVeyfiClient implements VeyfiClient {
   ): Promise<PreparedTransaction> {
     return async () => {
       const config = this.getLockerConfig(symbol);
-      const { address } = getAccount(wagmiConfig);
-      if (!address) throw new Error("No account connected");
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
       if (!this.publicClient) throw new Error("Wallet public client not available");
 
       const maxAssets = await this.publicClient.readContract({
@@ -847,12 +862,16 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
       if (maxAssets === 0n) throw new Error("Nothing to withdraw");
 
-      return writeContract(wagmiConfig, {
+      const simulation = await simulateContract(wagmiConfig, {
         address: config.depositor,
         abi: LiquidLockerDepositorAbi,
         functionName: "withdraw",
         args: [maxAssets, address, address],
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 
@@ -862,12 +881,18 @@ export class OnchainVeyfiClient implements VeyfiClient {
   ): Promise<PreparedTransaction> {
     return async () => {
       const config = this.getLockerConfig(symbol);
-      return writeContract(wagmiConfig, {
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const simulation = await simulateContract(wagmiConfig, {
         address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
         abi: LiquidLockerRedemptionAbi,
         functionName: "redeem",
         args: [BigInt(config.index), amount],
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 
@@ -877,12 +902,18 @@ export class OnchainVeyfiClient implements VeyfiClient {
   ): Promise<PreparedTransaction> {
     return async () => {
       const config = this.getLockerConfig(symbol);
-      return writeContract(wagmiConfig, {
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const simulation = await simulateContract(wagmiConfig, {
         address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
         abi: LiquidLockerRedemptionAbi,
         functionName: "exchange",
         args: [BigInt(config.index), amount],
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
       });
+
+      return writeContract(wagmiConfig, simulation.request);
     };
   }
 }

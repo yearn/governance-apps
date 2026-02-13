@@ -81,6 +81,7 @@ export class MockStyfiClient implements StyfiClient {
       state = {
         address,
         isBlacklisted: identity.isBlacklisted,
+        blacklistStatus: identity.isBlacklisted ? "blocked" : "clear",
         yfiBalance: identity.yfiBalance,
         styfiActive: 0n,
         styfiInCooldown: 0n,
@@ -113,6 +114,7 @@ export class MockStyfiClient implements StyfiClient {
     }
     state.yfiBalance = identity.yfiBalance;
     state.isBlacklisted = identity.isBlacklisted;
+    state.blacklistStatus = identity.isBlacklisted ? "blocked" : "clear";
     return state;
   }
 

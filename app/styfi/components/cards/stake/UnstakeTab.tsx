@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function UnstakeTab({ asset }: Props) {
-  const { isConnected } = useIdentity();
+  const { canTransact } = useIdentity();
   const { data, isLoading } = useStyfiAccount();
   const { write: startCooldown, state: cooldownState } =
     useStyfiStartCooldown();
@@ -65,10 +65,11 @@ export function UnstakeTab({ asset }: Props) {
     withdrawState.status === "mining" ||
     withdrawState.status === "signing";
 
+  const blacklistStatus = data?.blacklistStatus ?? "unknown";
+
   const disableStart =
-    !isConnected ||
+    !canTransact ||
     !data ||
-    data.isBlacklisted ||
     !isValid ||
     amount <= 0n ||
     insufficient ||
@@ -76,9 +77,8 @@ export function UnstakeTab({ asset }: Props) {
     isSubmitting;
 
   const disableWithdraw =
-    !isConnected ||
+    !canTransact ||
     !data ||
-    data.isBlacklisted ||
     contractWithdrawable <= 0n ||
     isSubmitting;
 
@@ -105,24 +105,36 @@ export function UnstakeTab({ asset }: Props) {
   }
 
   return (
-    <UnstakePanel
-      variant="styfi"
-      tokenSymbol={asset}
-      availableBalance={available}
-      totalExiting={totalExiting}
-      liquidEstimate={contractWithdrawable}
-      streamingEstimate={streamingEstimate}
-      cooldown={cooldown}
-      onStartCooldown={handleStart}
-      onWithdraw={handleWithdraw}
-      isSubmitting={isSubmitting}
-      canWithdraw={!disableWithdraw}
-      canStart={!disableStart}
-      amount={amount}
-      isValid={isValid}
-      insufficientBalance={insufficient}
-      onAmountChange={setInput}
-      inputValue={input}
-    />
+    <div className="space-y-2">
+      <UnstakePanel
+        variant="styfi"
+        tokenSymbol={asset}
+        availableBalance={available}
+        totalExiting={totalExiting}
+        liquidEstimate={contractWithdrawable}
+        streamingEstimate={streamingEstimate}
+        cooldown={cooldown}
+        onStartCooldown={handleStart}
+        onWithdraw={handleWithdraw}
+        isSubmitting={isSubmitting}
+        canWithdraw={!disableWithdraw}
+        canStart={!disableStart}
+        amount={amount}
+        isValid={isValid}
+        insufficientBalance={insufficient}
+        onAmountChange={setInput}
+        inputValue={input}
+      />
+      {blacklistStatus === "blocked" && (
+        <p className="text-xs text-amber-700">
+          {copy.unstakeTab.blacklistedHint}
+        </p>
+      )}
+      {blacklistStatus === "unknown" && (
+        <p className="text-xs text-amber-700">
+          {copy.unstakeTab.blacklistUnknownHint}
+        </p>
+      )}
+    </div>
   );
 }
