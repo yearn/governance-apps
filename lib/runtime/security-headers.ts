@@ -34,9 +34,15 @@ export function buildContentSecurityPolicy({
   isProduction,
   allowUnsafeInlineScripts = false,
 }: SecurityHeaderOptions): string {
-  const scriptSrc = allowUnsafeInlineScripts
-    ? "script-src 'self' 'unsafe-inline'"
-    : `script-src 'self' 'nonce-${nonce}'`;
+  const scriptSrcDirectives = [
+    "'self'",
+    // Next.js webpack dev runtime relies on eval for source maps/HMR.
+    isDevelopment ? "'unsafe-eval'" : null,
+    allowUnsafeInlineScripts ? "'unsafe-inline'" : `'nonce-${nonce}'`,
+  ]
+    .filter((directive): directive is string => directive !== null)
+    .join(" ");
+  const scriptSrc = `script-src ${scriptSrcDirectives}`;
   const directives = [
     "default-src 'self'",
     scriptSrc,

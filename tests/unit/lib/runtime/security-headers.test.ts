@@ -26,6 +26,7 @@ describe("security header policy", () => {
       isProduction: false,
     });
 
+    expect(csp).toContain("'unsafe-eval'");
     expect(csp).toContain("http://localhost:*");
     expect(csp).toContain("ws://localhost:*");
   });
