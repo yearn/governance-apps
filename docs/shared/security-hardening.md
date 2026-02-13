@@ -7,7 +7,7 @@ This document defines the enforced frontend security controls and release invari
 
 Operational playbook:
 
-- Runtime mode guide and deploy checklists: `/docs/shared/runtime-modes.md`
+- Runtime mode guide and deploy checklists: `docs/shared/runtime-modes.md`
 
 ## 1. Scope and Runtime Split
 
