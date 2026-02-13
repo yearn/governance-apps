@@ -12,6 +12,12 @@ describe("resolveHostPrefix", () => {
     expect(resolveHostPrefix("yeth.yearn.fi")).toBe("/yeth");
   });
 
+  it("resolves beta hostnames to app prefixes", () => {
+    expect(resolveHostPrefix("styfi-beta.dao-ops.com")).toBe("/styfi");
+    expect(resolveHostPrefix("veyfi-beta.dao-ops.com")).toBe("/veyfi");
+    expect(resolveHostPrefix("yeth-beta.dao-ops.com")).toBe("/yeth");
+  });
+
   it("normalizes hostname casing and whitespace", () => {
     expect(resolveHostPrefix("  YETH.YEARN.FI ")).toBe("/yeth");
   });
@@ -19,6 +25,7 @@ describe("resolveHostPrefix", () => {
   it("supports host header values with explicit ports", () => {
     expect(resolveHostPrefix("styfi.yearn.fi:443")).toBe("/styfi");
     expect(resolveHostPrefix("veyfi.yearn.fi:8443")).toBe("/veyfi");
+    expect(resolveHostPrefix("styfi-beta.dao-ops.com:443")).toBe("/styfi");
   });
 
   it("returns null for unknown or empty hosts", () => {

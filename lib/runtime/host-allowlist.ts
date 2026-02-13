@@ -6,6 +6,12 @@ const CANONICAL_HOSTS: Record<GovernanceAppHost, string> = {
   yeth: "yeth.yearn.fi",
 };
 
+const APP_ALLOWED_HOSTS: Record<GovernanceAppHost, ReadonlySet<string>> = {
+  styfi: new Set(["styfi-beta.dao-ops.com"]),
+  veyfi: new Set(["veyfi-beta.dao-ops.com"]),
+  yeth: new Set(["yeth-beta.dao-ops.com"]),
+};
+
 const SHARED_ALLOWED_HOSTS = new Set(["app.dao-ops.com"]);
 const LOCALHOST_PATTERN =
   /^(localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/;
@@ -54,6 +60,7 @@ export function resolveAllowedOrigin(
   rawHost: string | null | undefined
 ) {
   const canonicalHost = CANONICAL_HOSTS[app];
+  const appAllowedHosts = APP_ALLOWED_HOSTS[app];
   const normalized = normalizeHost(rawHost);
 
   if (!normalized) {
@@ -65,7 +72,11 @@ export function resolveAllowedOrigin(
   }
 
   const hostWithoutPort = stripPort(normalized);
-  if (hostWithoutPort === canonicalHost || SHARED_ALLOWED_HOSTS.has(hostWithoutPort)) {
+  if (
+    hostWithoutPort === canonicalHost ||
+    appAllowedHosts.has(hostWithoutPort) ||
+    SHARED_ALLOWED_HOSTS.has(hostWithoutPort)
+  ) {
     return `https://${hostWithoutPort}`;
   }
 

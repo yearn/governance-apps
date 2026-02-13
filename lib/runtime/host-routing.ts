@@ -2,6 +2,9 @@ const HOST_TO_PREFIX = {
   "styfi.yearn.fi": "/styfi",
   "veyfi.yearn.fi": "/veyfi",
   "yeth.yearn.fi": "/yeth",
+  "styfi-beta.dao-ops.com": "/styfi",
+  "veyfi-beta.dao-ops.com": "/veyfi",
+  "yeth-beta.dao-ops.com": "/yeth",
 } as const;
 
 function stripPort(host: string): string | null {

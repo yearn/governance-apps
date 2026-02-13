@@ -47,6 +47,16 @@ For the full mode matrix and deployment checklists, see:
 
 - `docs/shared/runtime-modes.md`
 
+## Cloudflare Worker Targets
+
+- Production Worker config: `wrangler.jsonc` (`app.dao-ops.com`)
+- Preprod Worker config: `wrangler.preprod.jsonc` (`styfi-beta.dao-ops.com`, `veyfi-beta.dao-ops.com`, `yeth-beta.dao-ops.com`)
+
+Deploy helpers:
+
+- `npm run worker:deploy:prod`
+- `npm run worker:deploy:preprod`
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

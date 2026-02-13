@@ -37,6 +37,27 @@ describe("resolveAllowedOrigin", () => {
     );
   });
 
+  it("accepts app-specific beta hosts", () => {
+    expect(resolveAllowedOrigin("styfi", "styfi-beta.dao-ops.com")).toBe(
+      "https://styfi-beta.dao-ops.com"
+    );
+    expect(resolveAllowedOrigin("veyfi", "veyfi-beta.dao-ops.com")).toBe(
+      "https://veyfi-beta.dao-ops.com"
+    );
+    expect(resolveAllowedOrigin("yeth", "yeth-beta.dao-ops.com")).toBe(
+      "https://yeth-beta.dao-ops.com"
+    );
+  });
+
+  it("does not accept beta hosts assigned to a different app", () => {
+    expect(resolveAllowedOrigin("styfi", "veyfi-beta.dao-ops.com")).toBe(
+      "https://styfi.yearn.fi"
+    );
+    expect(resolveAllowedOrigin("veyfi", "yeth-beta.dao-ops.com")).toBe(
+      "https://veyfi.yearn.fi"
+    );
+  });
+
   it("falls back to canonical origin for untrusted hosts", () => {
     expect(resolveAllowedOrigin("styfi", "evil.example")).toBe(
       "https://styfi.yearn.fi"

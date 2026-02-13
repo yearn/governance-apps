@@ -10,6 +10,8 @@
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "worker:build": "opennextjs-cloudflare build",
     "worker:deploy": "opennextjs-cloudflare deploy -- --keep-vars",
+    "worker:deploy:preprod": "opennextjs-cloudflare deploy -c wrangler.preprod.jsonc -- --keep-vars",
+    "worker:deploy:prod": "opennextjs-cloudflare deploy -c wrangler.jsonc -- --keep-vars",
     "worker:upload": "opennextjs-cloudflare upload -- --keep-vars",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "typecheck": "tsc --noEmit",
