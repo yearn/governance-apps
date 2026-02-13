@@ -7,6 +7,7 @@ import { LogoGithub } from "@/components/icons/LogoGithub";
 import { LogoYearn } from "@/components/icons/LogoYearn";
 import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
 import { LogoYearnMark } from "@/components/icons/LogoYearnMark";
+import { isYethEnabled } from "@/lib/runtime/features";
 
 const BASE_YEARN_ASSET_URI = "https://assets.yearn.fi";
 const NEUTRAL_IMAGE_CLASS =
@@ -191,7 +192,7 @@ export const COMMUNITY: NavItem[] = [
   },
 ];
 
-export const APP_LINKS: AppLink[] = [
+const coreAppLinks: AppLink[] = [
   {
     name: "stYFI",
     href: "/styfi",
@@ -210,11 +211,17 @@ export const APP_LINKS: AppLink[] = [
       frontClassName: "text-white",
     }),
   },
-  {
-    name: "yETH",
-    href: "/yeth",
-    icon: createElement(LogoYearnMark, {
-      className: "size-5 text-yearn-blue",
-    }),
-  },
+];
+
+const yethLink: AppLink = {
+  name: "yETH",
+  href: "/yeth",
+  icon: createElement(LogoYearnMark, {
+    className: "size-5 text-yearn-blue",
+  }),
+};
+
+export const APP_LINKS: AppLink[] = [
+  ...coreAppLinks,
+  ...(isYethEnabled() ? [yethLink] : []),
 ];

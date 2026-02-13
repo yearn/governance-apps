@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Banner } from "@/components/ui/Banner";
-import { Button } from "@/components/ui/Button";
+import { getButtonClassName } from "@/components/ui/Button";
 import { IconClose } from "@/components/icons/IconClose";
 import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { IconStar } from "@/components/icons/IconStar";
@@ -55,20 +55,18 @@ export function CrossAppNudge({
 
                 <Link
                   href={nudge.href}
-                  className="inline-block"
+                  className={getButtonClassName({
+                    variant: "secondary",
+                    size: "sm",
+                    className: "border-sky-300 bg-white/80 hover:bg-white",
+                  })}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="border-sky-300 bg-white/80 hover:bg-white"
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      {nudge.ctaLabel}
-                      <IconLinkOut className="h-3.5 w-3.5" aria-hidden />
-                    </span>
-                  </Button>
+                  <span className="inline-flex items-center gap-1.5">
+                    {nudge.ctaLabel}
+                    <IconLinkOut className="h-3.5 w-3.5" aria-hidden />
+                  </span>
                 </Link>
               </div>
             </div>

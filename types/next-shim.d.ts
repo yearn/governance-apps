@@ -30,6 +30,7 @@ declare module "next/link" {
 }
 
 declare module "next/navigation" {
+  export function notFound(): never;
   export function usePathname(): string | null;
   export function useSelectedLayoutSegment(
     parallelRouteKey?: string

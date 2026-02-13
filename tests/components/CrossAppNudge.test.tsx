@@ -33,8 +33,10 @@ describe("CrossAppNudge", () => {
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain("grid-rows-[1fr]");
     expect(screen.getByText("Optimization available")).toBeInTheDocument();
-    const cta = screen.getByRole("button", { name: /visit veyfi website/i });
-    const ctaLink = cta.closest("a");
+    const ctaLink = screen.getByRole("link", { name: /visit veyfi website/i });
+    expect(
+      screen.queryByRole("button", { name: /visit veyfi website/i })
+    ).not.toBeInTheDocument();
     expect(ctaLink).toHaveAttribute("target", "_blank");
     expect(ctaLink).toHaveAttribute("rel", "noopener noreferrer");
 

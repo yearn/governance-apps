@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { notFound } from "next/navigation";
 import { YethPageClient } from "./YethPageClient";
+import { resolveAllowedOrigin } from "@/lib/runtime/host-allowlist";
+import { isYethEnabled } from "@/lib/runtime/features";
 
 export const viewport: Viewport = {
   themeColor: "#000000",
@@ -58,18 +61,15 @@ const baseMetadata: Metadata = {
   },
 };
 
-async function resolveOrigin(defaultHost: string) {
-  const headerList = await headers();
-  const host = headerList.get("host") ?? defaultHost;
-  const protocol =
-    host.startsWith("localhost") || host.startsWith("127.0.0.1")
-      ? "http"
-      : "https";
-  return `${protocol}://${host}`;
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await resolveOrigin("yeth.yearn.fi");
+  if (!isYethEnabled()) {
+    return {
+      title: "Not Found",
+      robots: { index: false, follow: false },
+    };
+  }
+  const headerList = await headers();
+  const origin = resolveAllowedOrigin("yeth", headerList.get("host"));
 
   return {
     ...baseMetadata,
@@ -82,5 +82,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function YethPage() {
+  if (!isYethEnabled()) {
+    notFound();
+  }
   return <YethPageClient />;
 }

@@ -8,6 +8,45 @@ export interface ButtonProps
   isLoading?: boolean;
 }
 
+type ButtonClassNameOptions = {
+  variant?: ButtonProps["variant"];
+  size?: ButtonProps["size"];
+  className?: string;
+};
+
+const BUTTON_BASE_CLASS_NAME =
+  "inline-flex items-center justify-center rounded-box transition-colors focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app disabled:cursor-not-allowed";
+const BUTTON_VARIANT_CLASS_NAMES: Record<NonNullable<ButtonProps["variant"]>, string> = {
+  primary:
+    "bg-neutral-900 text-neutral-0 hover:bg-neutral-800 disabled:bg-neutral-300 disabled:text-neutral-500",
+  secondary:
+    "bg-surface border border-border text-text-primary hover:bg-surface-secondary disabled:opacity-50",
+  ghost:
+    "bg-transparent text-text-secondary hover:text-text-primary hover:bg-surface-secondary/60",
+  styfi:
+    "bg-sunset-600 text-white hover:bg-sunset-500 disabled:bg-sunset-100 disabled:text-sunset-900",
+  veyfi:
+    "bg-disco-700 text-white hover:bg-disco-600 disabled:bg-disco-100 disabled:text-disco-900",
+};
+const BUTTON_SIZE_CLASS_NAMES: Record<NonNullable<ButtonProps["size"]>, string> = {
+  sm: "h-8 px-3 text-xs",
+  md: "h-12 px-6 text-sm font-bold",
+  lg: "h-14 px-8 text-base font-bold",
+};
+
+export function getButtonClassName({
+  variant = "primary",
+  size = "md",
+  className,
+}: ButtonClassNameOptions = {}) {
+  return cn(
+    BUTTON_BASE_CLASS_NAME,
+    BUTTON_VARIANT_CLASS_NAMES[variant],
+    BUTTON_SIZE_CLASS_NAMES[size],
+    className
+  );
+}
+
 const Spinner = () => (
   <svg
     className="animate-spin h-5 w-5 text-current"
@@ -44,37 +83,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const variants = {
-      primary:
-        "bg-neutral-900 text-neutral-0 hover:bg-neutral-800 disabled:bg-neutral-300 disabled:text-neutral-500",
-      secondary:
-        "bg-surface border border-border text-text-primary hover:bg-surface-secondary disabled:opacity-50",
-      ghost:
-        "bg-transparent text-text-secondary hover:text-text-primary hover:bg-surface-secondary/60",
-
-      // Brand Variants
-      styfi:
-        "bg-sunset-600 text-white hover:bg-sunset-500 disabled:bg-sunset-100 disabled:text-sunset-900",
-      veyfi:
-        "bg-disco-700 text-white hover:bg-disco-600 disabled:bg-disco-100 disabled:text-disco-900",
-    };
-
-    const sizes = {
-      sm: "h-8 px-3 text-xs",
-      md: "h-12 px-6 text-sm font-bold",
-      lg: "h-14 px-8 text-base font-bold",
-    };
-
     return (
       <button
         ref={ref}
         disabled={disabled || isLoading}
-        className={cn(
-          "inline-flex items-center justify-center rounded-box transition-colors focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app disabled:cursor-not-allowed",
-          variants[variant],
-          sizes[size],
-          className
-        )}
+        className={getButtonClassName({ variant, size, className })}
         {...props}
       >
         {isLoading ? <Spinner /> : children}

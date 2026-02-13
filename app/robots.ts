@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/_next/", "/debug/"],
+      disallow: ["/api/", "/_next/", "/_debug/"],
     },
     sitemap: [
       "https://styfi.yearn.fi/sitemap.xml",
