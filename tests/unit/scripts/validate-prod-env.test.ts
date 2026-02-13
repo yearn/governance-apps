@@ -1,0 +1,72 @@
+import { spawnSync } from "node:child_process";
+import { describe, expect, it } from "vitest";
+
+const SCRIPT_PATH = `${process.cwd()}/scripts/validate-prod-env.mjs`;
+
+function runWithEnv(env: Record<string, string | undefined>) {
+  return spawnSync(process.execPath, [SCRIPT_PATH], {
+    env: {
+      ...process.env,
+      ...env,
+    },
+    encoding: "utf8",
+  });
+}
+
+describe("validate-prod-env", () => {
+  it("skips validation when NODE_ENV is not production", () => {
+    const result = runWithEnv({
+      NODE_ENV: "development",
+      NEXT_PUBLIC_RUNTIME_MODE: undefined,
+      NEXT_PUBLIC_USE_MOCKS: "true",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Skipping production env validation");
+  });
+
+  it("fails when runtime mode is missing in production", () => {
+    const result = runWithEnv({
+      NODE_ENV: "production",
+      NEXT_PUBLIC_RUNTIME_MODE: "",
+      NEXT_PUBLIC_USE_MOCKS: "false",
+      NEXT_PUBLIC_E2E: "false",
+      NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
+      NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
+      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("NEXT_PUBLIC_RUNTIME_MODE is required");
+  });
+
+  it("fails when forbidden production flags are enabled", () => {
+    const result = runWithEnv({
+      NODE_ENV: "production",
+      NEXT_PUBLIC_RUNTIME_MODE: "production",
+      NEXT_PUBLIC_USE_MOCKS: "true",
+      NEXT_PUBLIC_E2E: "false",
+      NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
+      NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
+      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("NEXT_PUBLIC_USE_MOCKS must be false");
+  });
+
+  it("passes with production-safe settings", () => {
+    const result = runWithEnv({
+      NODE_ENV: "production",
+      NEXT_PUBLIC_RUNTIME_MODE: "production",
+      NEXT_PUBLIC_USE_MOCKS: "false",
+      NEXT_PUBLIC_E2E: "false",
+      NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
+      NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
+      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Production environment validation passed.");
+  });
+});
