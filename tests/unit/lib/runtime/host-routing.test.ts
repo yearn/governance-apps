@@ -48,6 +48,8 @@ describe("normalizeHostname", () => {
 
   it("returns null for malformed bracket hosts", () => {
     expect(normalizeHostname("[::1")).toBeNull();
+    expect(normalizeHostname("[::1]evil.com")).toBeNull();
+    expect(normalizeHostname("[::1]:bad")).toBeNull();
   });
 });
 

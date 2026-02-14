@@ -52,6 +52,17 @@ For the full mode matrix and deployment checklists, see:
 - Production Worker config: `wrangler.jsonc` (`app.dao-ops.com`)
 - Preprod Worker config: `wrangler.preprod.jsonc` (`styfi-beta.dao-ops.com`, `veyfi-beta.dao-ops.com`, `yeth-beta.dao-ops.com`)
 
+## Cross-App Link Routing
+
+Cross-app links (`/styfi`, `/veyfi`, `/yeth`) are resolved by `lib/governance-links.ts`
+using the current request host surface:
+
+- Local/shared path hosts (`localhost`, `127.0.0.1`, `app.dao-ops.com`) -> path-scoped links (`/styfi`)
+- Preprod subdomain hosts (`*-beta.dao-ops.com`) -> canonical beta app domains (`https://styfi-beta.dao-ops.com`)
+- Production subdomain hosts (`*.yearn.fi`) -> canonical production app domains (`https://styfi.yearn.fi`)
+
+Host/app mappings are centralized in `lib/runtime/governance-hosts.ts`.
+
 Deploy helpers:
 
 - `npm run worker:deploy:prod`

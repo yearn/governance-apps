@@ -174,6 +174,7 @@ Always visible and owns all write interactions.
   - Opens in a new tab with external-link icon
   - Hostname-aware routing via governance link resolver:
     - `localhost` / `app.dao-ops.com` -> path-scoped `/veyfi`
+    - `*-beta.dao-ops.com` -> canonical `https://veyfi-beta.dao-ops.com`
     - `*.yearn.fi` -> canonical `https://veyfi.yearn.fi`
 - **Deep-link behavior:** CTA routes include `source=nudge` + action/focus params.
 - **Scroll reliability:** Target scrolling uses DOM-observer readiness checks (`MutationObserver`) rather than fixed timeout delays.

@@ -22,4 +22,14 @@ describe("VeyfiRewardsCard", () => {
 
     expect(ctaLink).toHaveAttribute("href", "/styfi");
   });
+
+  it("links to the stYFI beta domain on preprod hosts", () => {
+    render(<VeyfiRewardsCard hostname="veyfi-beta.dao-ops.com" />);
+
+    const ctaLink = screen
+      .getByRole("button", { name: /Go to stYFI Dashboard/i })
+      .closest("a");
+
+    expect(ctaLink).toHaveAttribute("href", "https://styfi-beta.dao-ops.com");
+  });
 });

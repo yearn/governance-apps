@@ -160,6 +160,7 @@ The frontend requires a new `getGlobalStats()` method from the VeyfiClient to po
   - Opens in a new tab with external-link icon
   - Hostname-aware routing via governance link resolver:
     - `localhost` / `app.dao-ops.com` -> path-scoped `/styfi`
+    - `*-beta.dao-ops.com` -> canonical `https://styfi-beta.dao-ops.com`
     - `*.yearn.fi` -> canonical `https://styfi.yearn.fi`
 - **Deep-link behavior:** CTA routes include `source=nudge` + focus/action params.
 - **Scroll reliability:** Deep-link scroll waits for DOM target readiness via `MutationObserver` instead of fixed timers.

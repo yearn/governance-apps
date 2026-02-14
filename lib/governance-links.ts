@@ -1,38 +1,17 @@
-const APP_PATHS = {
-  styfi: "/styfi",
-  veyfi: "/veyfi",
-  yeth: "/yeth",
-} as const;
-
-const APP_PROD_HOSTS = {
-  styfi: "styfi.yearn.fi",
-  veyfi: "veyfi.yearn.fi",
-  yeth: "yeth.yearn.fi",
-} as const;
+import {
+  GOVERNANCE_APP_PATHS,
+  GOVERNANCE_APP_PREPROD_HOSTS,
+  GOVERNANCE_APP_PROD_HOSTS,
+  resolveGovernanceLinkSurface,
+  type GovernanceApp,
+} from "@/lib/runtime/governance-hosts";
 
 const APP_BY_PATH: Map<string, GovernanceApp> = new Map(
-  Object.entries(APP_PATHS).map(([app, path]) => [path, app as GovernanceApp])
+  Object.entries(GOVERNANCE_APP_PATHS).map(([app, path]) => [
+    path,
+    app as GovernanceApp,
+  ])
 );
-
-const DEV_HOSTS = new Set(["localhost", "127.0.0.1", "app.dao-ops.com"]);
-
-export type GovernanceApp = keyof typeof APP_PATHS;
-
-function normalizeHostname(hostname?: string | null): string | null {
-  if (!hostname) return null;
-  const normalized = hostname.trim().toLowerCase();
-  if (!normalized) return null;
-
-  // Header-derived host values can include a port (e.g. localhost:3000).
-  if (normalized.startsWith("[")) {
-    const closingBracketIndex = normalized.indexOf("]");
-    return closingBracketIndex >= 0
-      ? normalized.slice(0, closingBracketIndex + 1)
-      : normalized;
-  }
-
-  return normalized.split(":")[0];
-}
 
 function normalizePath(path: string): string {
   if (!path.startsWith("/")) return path;
@@ -40,21 +19,22 @@ function normalizePath(path: string): string {
   return normalized || "/";
 }
 
-function shouldUseProdDomains(hostname: string | null): boolean {
-  if (!hostname) return false;
-  if (DEV_HOSTS.has(hostname)) return false;
-  return hostname.endsWith(".yearn.fi");
-}
+export type { GovernanceApp };
 
 export function resolveGovernanceAppHref(
   app: GovernanceApp,
   hostname?: string | null
 ): string {
-  const normalizedHostname = normalizeHostname(hostname);
-  if (shouldUseProdDomains(normalizedHostname)) {
-    return `https://${APP_PROD_HOSTS[app]}`;
+  const linkSurface = resolveGovernanceLinkSurface(hostname);
+  if (linkSurface === "prod-subdomain") {
+    return `https://${GOVERNANCE_APP_PROD_HOSTS[app]}`;
   }
-  return APP_PATHS[app];
+
+  if (linkSurface === "preprod-subdomain") {
+    return `https://${GOVERNANCE_APP_PREPROD_HOSTS[app]}`;
+  }
+
+  return GOVERNANCE_APP_PATHS[app];
 }
 
 export function resolveGovernanceHref(

@@ -1,18 +1,22 @@
-export type GovernanceAppHost = "styfi" | "veyfi" | "yeth";
+import {
+  GOVERNANCE_APP_PREPROD_HOSTS,
+  GOVERNANCE_APP_PROD_HOSTS,
+  GOVERNANCE_SHARED_PATH_HOSTS,
+  type GovernanceApp,
+} from "@/lib/runtime/governance-hosts";
 
-const CANONICAL_HOSTS: Record<GovernanceAppHost, string> = {
-  styfi: "styfi.yearn.fi",
-  veyfi: "veyfi.yearn.fi",
-  yeth: "yeth.yearn.fi",
-};
+export type GovernanceAppHost = GovernanceApp;
+
+const CANONICAL_HOSTS: Record<GovernanceAppHost, string> =
+  GOVERNANCE_APP_PROD_HOSTS;
 
 const APP_ALLOWED_HOSTS: Record<GovernanceAppHost, ReadonlySet<string>> = {
-  styfi: new Set(["styfi-beta.dao-ops.com"]),
-  veyfi: new Set(["veyfi-beta.dao-ops.com"]),
-  yeth: new Set(["yeth-beta.dao-ops.com"]),
+  styfi: new Set([GOVERNANCE_APP_PREPROD_HOSTS.styfi]),
+  veyfi: new Set([GOVERNANCE_APP_PREPROD_HOSTS.veyfi]),
+  yeth: new Set([GOVERNANCE_APP_PREPROD_HOSTS.yeth]),
 };
 
-const SHARED_ALLOWED_HOSTS = new Set(["app.dao-ops.com"]);
+const SHARED_ALLOWED_HOSTS = GOVERNANCE_SHARED_PATH_HOSTS;
 const LOCALHOST_PATTERN =
   /^(localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/;
 const HOST_WITH_PORT_PATTERN = /^([a-z0-9.-]+):(\d{1,5})$/i;

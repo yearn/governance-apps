@@ -5,13 +5,13 @@ import {
 } from "@/lib/governance-links";
 
 describe("resolveGovernanceAppHref", () => {
-  it("keeps app links path-scoped on shared dev hosts", () => {
+  it("keeps app links path-scoped on local and shared-path hosts", () => {
     expect(resolveGovernanceAppHref("styfi", "localhost")).toBe("/styfi");
     expect(resolveGovernanceAppHref("veyfi", "127.0.0.1:3000")).toBe("/veyfi");
     expect(resolveGovernanceAppHref("yeth", "app.dao-ops.com")).toBe("/yeth");
   });
 
-  it("resolves canonical app subdomains on yearn.fi hosts", () => {
+  it("resolves canonical app subdomains on production hosts", () => {
     expect(resolveGovernanceAppHref("styfi", "veyfi.yearn.fi")).toBe(
       "https://styfi.yearn.fi"
     );
@@ -20,6 +20,18 @@ describe("resolveGovernanceAppHref", () => {
     );
     expect(resolveGovernanceAppHref("yeth", "styfi.yearn.fi")).toBe(
       "https://yeth.yearn.fi"
+    );
+  });
+
+  it("resolves canonical app subdomains on preprod beta hosts", () => {
+    expect(resolveGovernanceAppHref("styfi", "veyfi-beta.dao-ops.com")).toBe(
+      "https://styfi-beta.dao-ops.com"
+    );
+    expect(resolveGovernanceAppHref("veyfi", "yeth-beta.dao-ops.com:443")).toBe(
+      "https://veyfi-beta.dao-ops.com"
+    );
+    expect(resolveGovernanceAppHref("yeth", "https://styfi-beta.dao-ops.com")).toBe(
+      "https://yeth-beta.dao-ops.com"
     );
   });
 
@@ -42,7 +54,19 @@ describe("resolveGovernanceHref", () => {
     );
   });
 
-  it("keeps app hrefs path-scoped on localhost and dao-ops hosts", () => {
+  it("rewrites app hrefs to canonical beta subdomains on preprod hosts", () => {
+    expect(resolveGovernanceHref("/styfi", "veyfi-beta.dao-ops.com")).toBe(
+      "https://styfi-beta.dao-ops.com"
+    );
+    expect(resolveGovernanceHref("/veyfi", "yeth-beta.dao-ops.com")).toBe(
+      "https://veyfi-beta.dao-ops.com"
+    );
+    expect(resolveGovernanceHref("/yeth", "styfi-beta.dao-ops.com:8443")).toBe(
+      "https://yeth-beta.dao-ops.com"
+    );
+  });
+
+  it("keeps app hrefs path-scoped on localhost and app.dao-ops.com", () => {
     expect(resolveGovernanceHref("/styfi", "localhost:3000")).toBe("/styfi");
     expect(resolveGovernanceHref("/veyfi", "app.dao-ops.com")).toBe("/veyfi");
     expect(resolveGovernanceHref("/yeth", "127.0.0.1")).toBe("/yeth");
