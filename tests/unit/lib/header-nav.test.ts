@@ -51,10 +51,24 @@ describe("resolveHeaderPrimaryNav", () => {
     });
   });
 
-  it("falls back to default nav on launcher route", () => {
+  it("does not show an app label for unknown launcher routes", () => {
     expect(resolveHeaderPrimaryNav("/", null)).toEqual({
-      label: "stYFI",
-      path: "/styfi",
+      label: "",
+      path: "/",
+    });
+  });
+
+  it("infers app label from branded host when pathname is unknown", () => {
+    expect(resolveHeaderPrimaryNav("/does-not-exist", null, "veyfi.yearn.fi")).toEqual({
+      label: "veYFI",
+      path: "/",
+    });
+  });
+
+  it("keeps app label empty for unknown paths on shared hosts", () => {
+    expect(resolveHeaderPrimaryNav("/does-not-exist", null, "app.dao-ops.com")).toEqual({
+      label: "",
+      path: "/",
     });
   });
 });

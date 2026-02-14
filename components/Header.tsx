@@ -13,11 +13,13 @@ import { useEffect, useState } from "react";
 import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
 import { HeaderNavMenu } from "@/components/header/HeaderNavMenu";
 import { MobileNavMenu } from "@/components/header/MobileNavMenu";
+import { useHostname } from "@/lib/hooks/useHostname";
 
 export function Header() {
   const pathname = usePathname();
   const segments = useSelectedLayoutSegments();
   const segment = segments[0] ?? null;
+  const hostname = useHostname();
   const clock = useEpochClock({ tickMs: 1000 });
   const { isLoading: isGlobalLoading } = useGlobalData();
   const { publicClient } = useProtocol();
@@ -25,7 +27,7 @@ export function Header() {
   const showEpochPill = !!publicClient || !isGlobalLoading;
 
   // Resolve current app name (stYFI, veYFI, etc)
-  const primaryNav = resolveHeaderPrimaryNav(pathname, segment);
+  const primaryNav = resolveHeaderPrimaryNav(pathname, segment, hostname);
 
   return (
     <>
@@ -36,9 +38,9 @@ export function Header() {
               className="h-8 w-auto text-yearn-blue dark:text-text-primary"
               color="currentColor"
             />
-            <nav className="hidden gap-6 md:flex">
-              <span className="text-text-primary">{primaryNav.label}</span>
-            </nav>
+            {primaryNav.label ? (
+              <span className="hidden text-text-primary md:block">{primaryNav.label}</span>
+            ) : null}
             <div className="hidden h-6 w-px bg-border md:block" />
             <div className="hidden md:block">
               <HeaderNavMenu />

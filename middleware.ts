@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { applyHostPrefix, resolveHostPrefix } from "@/lib/runtime/host-routing";
+import {
+  applyHostPrefix,
+  resolveHeadProbePath,
+  resolveHostPrefix,
+} from "@/lib/runtime/host-routing";
 import { resolveRequestHostname } from "@/lib/runtime/request-host";
 import { buildSecurityHeaders } from "@/lib/runtime/security-headers";
 
@@ -65,18 +69,9 @@ export function middleware(request: NextRequest) {
     PUBLIC_FILE.test(url.pathname);
 
   if (isHeadRequest && !isSkippablePath) {
-    if (!prefix) {
-      return withSecurityHeaders(
-        NextResponse.next({
-          request: { headers: requestHeaders },
-        }),
-        nonce,
-        securityOptions
-      );
-    }
-
     const headUrl = url.clone();
-    headUrl.pathname = applyHostPrefix(headUrl.pathname, prefix);
+    const probePath = resolveHeadProbePath(headUrl.pathname, prefix);
+    headUrl.pathname = applyHostPrefix(probePath, prefix);
     return withSecurityHeaders(
       NextResponse.rewrite(headUrl, {
         request: { headers: requestHeaders },

@@ -1,3 +1,5 @@
+import { resolveHostPrefix } from "@/lib/runtime/host-routing";
+
 const APP_NAV = {
   styfi: { label: "stYFI", path: "/styfi" },
   veyfi: { label: "veYFI", path: "/veyfi" },
@@ -10,7 +12,11 @@ function isAppKey(value: string | null): value is AppKey {
   return value === "styfi" || value === "veyfi" || value === "yeth";
 }
 
-function resolveAppKey(pathname: string | null, segment: string | null): AppKey | null {
+function resolveAppKey(
+  pathname: string | null,
+  segment: string | null,
+  hostname: string | null | undefined
+): AppKey | null {
   const normalizedSegment = segment?.toLowerCase() ?? null;
   if (isAppKey(normalizedSegment)) {
     return normalizedSegment;
@@ -27,13 +33,25 @@ function resolveAppKey(pathname: string | null, segment: string | null): AppKey 
     return "styfi";
   }
 
+  const hostPrefix = hostname ? resolveHostPrefix(hostname) : null;
+  if (hostPrefix === APP_NAV.styfi.path) return "styfi";
+  if (hostPrefix === APP_NAV.veyfi.path) return "veyfi";
+  if (hostPrefix === APP_NAV.yeth.path) return "yeth";
+
   return null;
 }
 
-export function resolveHeaderPrimaryNav(pathname: string | null, segment: string | null) {
-  const appKey = resolveAppKey(pathname, segment);
+export function resolveHeaderPrimaryNav(
+  pathname: string | null,
+  segment: string | null,
+  hostname?: string | null
+) {
+  const appKey = resolveAppKey(pathname, segment, hostname);
   if (!appKey) {
-    return APP_NAV.styfi;
+    return {
+      label: "",
+      path: "/",
+    };
   }
 
   const app = APP_NAV[appKey];

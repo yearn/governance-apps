@@ -63,7 +63,8 @@ export function MobileNavMenu({
   );
   const hostname = useHostname();
   const isDark = theme === "soft-dark";
-  const currentAppLabel = resolveHeaderPrimaryNav(pathname, null).label;
+  const currentAppLabel = resolveHeaderPrimaryNav(pathname, null, hostname).label;
+  const hasCurrentAppLabel = currentAppLabel.length > 0;
   const currentApp = APP_LINKS.find((app) => app.name === currentAppLabel);
   const handleClose = useCallback(() => {
     setExpandedSections(getInitialExpandedState());
@@ -147,19 +148,21 @@ export function MobileNavMenu({
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="space-y-5">
           <div className="space-y-1">
-            <div className="flex min-h-[44px] w-full items-center gap-3 rounded-lg bg-primary/10 bg-text-primary/10 px-4 text-text-primary">
-              {currentApp?.icon ? (
-                <span
-                  className={cn(
-                    "flex size-5 shrink-0 items-center justify-center",
-                    currentApp.iconWrapperClass,
-                  )}
-                >
-                  {currentApp.icon}
-                </span>
-              ) : null}
-              <span className="truncate text-lg font-medium">{currentAppLabel}</span>
-            </div>
+            {hasCurrentAppLabel ? (
+              <div className="flex min-h-[44px] w-full items-center gap-3 rounded-lg bg-primary/10 bg-text-primary/10 px-4 text-text-primary">
+                {currentApp?.icon ? (
+                  <span
+                    className={cn(
+                      "flex size-5 shrink-0 items-center justify-center",
+                      currentApp.iconWrapperClass,
+                    )}
+                  >
+                    {currentApp.icon}
+                  </span>
+                ) : null}
+                <span className="truncate text-lg font-medium">{currentAppLabel}</span>
+              </div>
+            ) : null}
             <MobileWalletButton onSelect={handleClose} />
             <button
               type="button"

@@ -19,3 +19,24 @@ export function applyHostPrefix(pathname: string, prefix: string | null): string
   if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return pathname;
   return `${prefix}${pathname}`;
 }
+
+function resolvePathPrefix(pathname: string): string | null {
+  if (pathname === "/styfi" || pathname.startsWith("/styfi/")) return "/styfi";
+  if (pathname === "/veyfi" || pathname.startsWith("/veyfi/")) return "/veyfi";
+  if (pathname === "/yeth" || pathname.startsWith("/yeth/")) return "/yeth";
+  return null;
+}
+
+export function resolveHeadProbePath(pathname: string, hostPrefix: string | null): string {
+  if (!pathname || pathname === "/") return "/";
+
+  const pathPrefix = resolvePathPrefix(pathname);
+  const appPrefix = hostPrefix ?? pathPrefix;
+  if (!appPrefix) return "/";
+
+  if (pathname === appPrefix || pathname === `${appPrefix}/`) {
+    return pathname;
+  }
+
+  return appPrefix;
+}

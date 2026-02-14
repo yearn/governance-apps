@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyHostPrefix,
   normalizeHostname,
+  resolveHeadProbePath,
   resolveHostPrefix,
 } from "@/lib/runtime/host-routing";
 
@@ -74,5 +75,29 @@ describe("applyHostPrefix", () => {
     expect(applyHostPrefix("/styfi-dashboard", "/styfi")).toBe(
       "/styfi/styfi-dashboard"
     );
+  });
+});
+
+describe("resolveHeadProbePath", () => {
+  it("falls back to root for unknown shared-host paths", () => {
+    expect(resolveHeadProbePath("/does-not-exist", null)).toBe("/");
+  });
+
+  it("keeps app roots unchanged", () => {
+    expect(resolveHeadProbePath("/styfi", null)).toBe("/styfi");
+    expect(resolveHeadProbePath("/styfi/", null)).toBe("/styfi/");
+  });
+
+  it("normalizes nested app paths to app roots", () => {
+    expect(resolveHeadProbePath("/styfi/lasla", null)).toBe("/styfi");
+    expect(resolveHeadProbePath("/veyfi/unknown", null)).toBe("/veyfi");
+  });
+
+  it("uses host prefix for branded hosts", () => {
+    expect(resolveHeadProbePath("/does-not-exist", "/yeth")).toBe("/yeth");
+  });
+
+  it("keeps root path unchanged", () => {
+    expect(resolveHeadProbePath("/", "/styfi")).toBe("/");
   });
 });
