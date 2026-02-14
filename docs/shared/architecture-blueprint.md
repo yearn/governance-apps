@@ -423,9 +423,9 @@ All data comes from:
 
 ## 9.2 Blacklist
 
-- Global banner
-- Disable ALL actions
-- Read-only mode remains enabled
+- If account resolves as `blocked`: show blacklist warning and disable blocked write actions.
+- If blacklist status resolves as `unknown`: keep UI silent and non-blocking.
+- Read-only mode remains enabled.
 
 ## 9.3 Query errors
 

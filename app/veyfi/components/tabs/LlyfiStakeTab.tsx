@@ -40,7 +40,7 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
 
   const isDisabled =
     !canTransact ||
-    blacklistStatus !== "clear" ||
+    blacklistStatus === "blocked" ||
     !isValid ||
     effectiveAmount <= 0n ||
     insufficientBalance ||
@@ -105,7 +105,7 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
             onClick={handleApprove}
             disabled={
               !canTransact ||
-              blacklistStatus !== "clear" ||
+              blacklistStatus === "blocked" ||
               !isValid ||
               amount <= 0n ||
               insufficientBalance ||
@@ -129,11 +129,6 @@ export function LlyfiStakeTab({ token }: { token: LlyfiTokenState }) {
       {blacklistStatus === "blocked" && (
         <p className="text-xs text-red-600">
           This address is restricted from making token transfers.
-        </p>
-      )}
-      {blacklistStatus === "unknown" && (
-        <p className="text-xs text-amber-700">
-          Blacklist status is unavailable. Staking is temporarily disabled.
         </p>
       )}
     </div>

@@ -130,11 +130,6 @@ export function UnstakeTab({ asset }: Props) {
           {copy.unstakeTab.blacklistedHint}
         </p>
       )}
-      {blacklistStatus === "unknown" && (
-        <p className="text-xs text-amber-700">
-          {copy.unstakeTab.blacklistUnknownHint}
-        </p>
-      )}
     </div>
   );
 }

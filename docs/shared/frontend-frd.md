@@ -156,13 +156,15 @@ All interactive flows use a **global transaction state machine**.
 ## 2.7. Blacklisted Addresses
 
 1. The UI **MUST** display a warning banner if `isBlacklisted = true`.
-2. The following actions **MUST** be disabled:
+2. Blacklist restrictions **MUST** apply only when status is explicitly `blocked`.
+3. If blacklist status resolves to `unknown`, UI **MUST** stay silent and **MUST NOT** disable actions on that basis.
+4. The following actions are blacklist-restricted in the current UI:
 
-   - stake, unstake, cooldown, withdraw
-   - migrate veYFI, stake LLYFI, redeem
-   - claim rewards
+   - stYFI/stYFIx staking
+   - LLYFI stake/trade actions
+   - stYFI rewards claim
 
-3. Read-only data still loads normally.
+5. Read-only data still loads normally.
 
 ---
 

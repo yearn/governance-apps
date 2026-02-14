@@ -215,7 +215,7 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
             disabled={
               !canTransact ||
               !hasValidExchangeRate ||
-              blacklistStatus !== "clear" ||
+              blacklistStatus === "blocked" ||
               approveLoading
             }
             isLoading={approveLoading}
@@ -232,7 +232,7 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
               !!errorMsg ||
               !canTransact ||
               !hasValidExchangeRate ||
-              blacklistStatus !== "clear" ||
+              blacklistStatus === "blocked" ||
               isSubmitting
             }
             isLoading={isSubmitting}
@@ -251,11 +251,6 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
       {blacklistStatus === "blocked" && (
         <p className="text-xs text-red-600">
           This address is restricted from making token transfers.
-        </p>
-      )}
-      {blacklistStatus === "unknown" && (
-        <p className="text-xs text-amber-700">
-          Blacklist status is unavailable. Trading is temporarily disabled.
         </p>
       )}
     </div>

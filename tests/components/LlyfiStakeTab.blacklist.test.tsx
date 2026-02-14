@@ -101,7 +101,7 @@ describe("LLYFI stake blacklist behavior", () => {
     ).toBeInTheDocument();
   });
 
-  it("disables stake action when blacklist status is unknown", () => {
+  it("keeps stake action enabled when blacklist status is unknown", () => {
     mockUseIdentity.mockReturnValue({
       canTransact: true,
       blacklistStatus: "unknown",
@@ -114,9 +114,7 @@ describe("LLYFI stake blacklist behavior", () => {
       target: { value: "1" },
     });
 
-    expect(screen.getByRole("button", { name: /Stake sdYFI/i })).toBeDisabled();
-    expect(
-      screen.getByText("Blacklist status is unavailable. Staking is temporarily disabled.")
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Stake sdYFI/i })).toBeEnabled();
+    expect(screen.queryByText(/Blacklist status/i)).not.toBeInTheDocument();
   });
 });

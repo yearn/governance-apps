@@ -99,7 +99,9 @@ Pre-simulation protections:
 Behavior:
 
 - If a known probe resolves, UI uses `clear` or `blocked`.
-- If no probe resolves, fallback is explicit: `unknown`, and transfer actions remain disabled until status checks recover.
+- If no probe resolves, fallback is explicit: `unknown`.
+- `unknown` is treated as a silent, non-blocking state in UI (no blacklist-status warning copy).
+- Only explicit `blocked` status applies blacklist action restrictions.
 
 ## 6. Browser Security Headers
 

@@ -58,7 +58,7 @@ export function StakeTab({ asset }: Props) {
 
   const isDisabled =
     !canTransact ||
-    blacklistStatus !== "clear" ||
+    blacklistStatus === "blocked" ||
     !isValid ||
     amount <= 0n ||
     insufficientBalance ||
@@ -129,7 +129,7 @@ export function StakeTab({ asset }: Props) {
             onClick={handleApprove}
             disabled={
               !canTransact ||
-              blacklistStatus !== "clear" ||
+              blacklistStatus === "blocked" ||
               !isValid ||
               amount <= 0n ||
               approveLoading
@@ -151,11 +151,6 @@ export function StakeTab({ asset }: Props) {
 
         {blacklistStatus === "blocked" && (
           <p className="text-xs text-red-600">{copy.shared.blacklistedBody}</p>
-        )}
-        {blacklistStatus === "unknown" && (
-          <p className="text-xs text-amber-700">
-            {copy.shared.blacklistUnknownBody}
-          </p>
         )}
       </div>
     </div>

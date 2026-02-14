@@ -68,7 +68,7 @@ export function RewardsCard() {
   const blacklistStatus = data?.blacklistStatus ?? "unknown";
   const isDisabled =
     !data ||
-    blacklistStatus !== "clear" ||
+    blacklistStatus === "blocked" ||
     claimable === 0n ||
     state.status === "signing" ||
     state.status === "submitted" ||
@@ -134,11 +134,6 @@ export function RewardsCard() {
         {blacklistStatus === "blocked" && (
           <Banner variant="error" title={copy.shared.blacklistedTitle}>
             {copy.shared.blacklistedBody}
-          </Banner>
-        )}
-        {blacklistStatus === "unknown" && (
-          <Banner variant="warning" title={copy.shared.blacklistUnknownTitle}>
-            {copy.shared.blacklistUnknownBody}
           </Banner>
         )}
 

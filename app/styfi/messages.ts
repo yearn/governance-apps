@@ -3,9 +3,6 @@ export const styfiCopy = {
     blacklistedTitle: "Blacklisted",
     blacklistedBody:
       "This address is restricted from making token transfers or making governance proposals. Voting or unstaking is still allowed.",
-    blacklistUnknownTitle: "Status unavailable",
-    blacklistUnknownBody:
-      "Blacklist status is temporarily unavailable. Transfers are disabled until status checks recover.",
   },
   page: {
     stats: {
@@ -120,8 +117,6 @@ export const styfiCopy = {
     disconnected: "Connect your wallet to manage unstaking.",
     blacklistedHint:
       "Transfer actions are restricted for this address, but unstaking and withdrawals remain available.",
-    blacklistUnknownHint:
-      "Blacklist status is temporarily unavailable. Unstaking and withdrawals remain available; transfer actions remain disabled until status checks recover.",
     empty: "Nothing in cooldown right now. Start a cooldown first.",
     availableLabel: (amount: string) => `${amount} YFI Available`,
     streamingLabel: (amount: string, time?: string) =>
