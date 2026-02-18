@@ -1,5 +1,16 @@
 "use client";
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import {
+  coinbaseWallet,
+  ledgerWallet,
+  metaMaskWallet,
+  rabbyWallet,
+  rainbowWallet,
+  readyWallet,
+  safeWallet,
+  trustWallet,
+  walletConnectWallet,
+} from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, mock } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { defineChain, http, fallback } from "viem";
@@ -81,6 +92,27 @@ export const wagmiConfig = isE2E
   : getDefaultConfig({
       appName: "Yearn Governance Apps",
       projectId: projectId || "demo-project-id",
+      wallets: [
+        {
+          groupName: "Popular",
+          wallets: [
+            metaMaskWallet,
+            coinbaseWallet,
+            rainbowWallet,
+            walletConnectWallet,
+          ],
+        },
+        {
+          groupName: "Other",
+          wallets: [
+            safeWallet,
+            rabbyWallet,
+            ledgerWallet,
+            readyWallet,
+            trustWallet,
+          ],
+        },
+      ],
       // Using the fork definition for Chain ID 1
       chains: [mainnetFork],
       transports,
