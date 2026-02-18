@@ -140,6 +140,14 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
     }
   }, [redeemState.status, mintState.status]);
 
+  if (!token.redemption.enabled) {
+    return (
+      <p className="text-sm text-neutral-600">
+        Trading is currently unavailable for {displaySymbol}.
+      </p>
+    );
+  }
+
   // Error logic with Instructive Messages
   let errorMsg = undefined;
   if (!isSubmitting) {

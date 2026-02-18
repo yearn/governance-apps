@@ -14,6 +14,12 @@ type TabId = "stake" | "unstake" | "trade";
 
 export function LlyfiRowCockpit({ token }: { token: LlyfiTokenState }) {
   const [activeTab, setActiveTab] = useState<TabId>("stake");
+  const tradeEnabled = token.redemption.enabled;
+  const tradeUnavailableTooltip = (
+    <span className="block max-w-[240px] text-left text-neutral-700">
+      {copy.manage.cockpit.tabs.tradeUnavailableTooltip}
+    </span>
+  );
 
   const hasStreaming = token.cooldownBalance > 0n;
   const { isComplete } = useEpochCountdown(token.cooldown?.endsAt);
@@ -40,7 +46,13 @@ export function LlyfiRowCockpit({ token }: { token: LlyfiTokenState }) {
             label: copy.manage.cockpit.tabs.unstake,
             badge: unstakeBadge,
           },
-          { id: "trade", label: copy.manage.cockpit.tabs.trade },
+          {
+            id: "trade",
+            label: copy.manage.cockpit.tabs.trade,
+            disabled: !tradeEnabled,
+            tooltip: !tradeEnabled ? tradeUnavailableTooltip : undefined,
+            tooltipSide: "bottom",
+          },
         ]}
       />
 

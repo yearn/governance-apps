@@ -60,6 +60,7 @@ const TOKEN = {
   depositorCapacity: 0n,
   exchangeRate: ONE,
   redemption: {
+    enabled: true,
     capacity: 0n,
     used: 0n,
     inventory: 0n,

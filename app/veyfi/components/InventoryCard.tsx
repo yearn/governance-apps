@@ -5,10 +5,16 @@ import { useVeyfiStats } from "@/lib/hooks/useVeyfi";
 import { formatTokenAmount, formatPercent } from "@/lib/format";
 import { veyfiCopy as copy } from "../messages";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 
 export function InventoryCard() {
   const { data: stats, isLoading } = useVeyfiStats();
+  const unavailableTooltip = (
+    <span className="block max-w-[240px] text-left text-neutral-700">
+      {copy.inventory.unavailableTooltip}
+    </span>
+  );
 
   if (isLoading || !stats) {
     return (
@@ -65,9 +71,21 @@ export function InventoryCard() {
                 <td className="px-6 py-4 font-medium text-neutral-700">
                   {getLlyfiDisplaySymbol(token.symbol)}
                 </td>
-                <td className="px-6 py-4 text-right font-number text-neutral-900">
+                <td
+                  className={`px-6 py-4 text-right ${
+                    token.redemption.enabled
+                      ? "font-number text-neutral-900"
+                      : "text-neutral-500"
+                  }`}
+                >
                   {/* Standardize to 2 decimals */}
-                  {formatTokenAmount(token.redemption.inventory, 18, 2)}
+                  {token.redemption.enabled
+                    ? formatTokenAmount(token.redemption.inventory, 18, 2)
+                    : (
+                        <Tooltip content={unavailableTooltip}>
+                          <span className="inline-flex cursor-help">N/A</span>
+                        </Tooltip>
+                      )}
                 </td>
                 <td className="px-6 py-4 text-right text-neutral-400">--</td>
               </tr>

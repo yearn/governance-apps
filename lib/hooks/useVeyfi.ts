@@ -15,6 +15,7 @@ import {
 } from "@/lib/clients/veyfi";
 import { useTx } from "@/lib/tx/useTx";
 import { E2E_MOCK_ADDRESS, LIQUID_LOCKERS } from "@/lib/constants";
+import { normalizeLlyfiSymbol } from "@/lib/clients/veyfi/display";
 
 function toNumber(value?: string | number | null) {
   if (value === null || value === undefined) return null;
@@ -147,7 +148,31 @@ export function useVeyfiStats() {
 export function useLlyfiTokens() {
   const { data } = useVeyfiAccount();
   const { globalData } = useProtocol();
-  if (data?.llyfiTokens?.length) return data.llyfiTokens;
+  const redemptionEnabledMap = globalData?.global?.veyfi?.tokens
+    ? new Map(
+        globalData.global.veyfi.tokens.map((token) => [
+          normalizeLlyfiSymbol(token.symbol),
+          token.redemption.enabled,
+        ])
+      )
+    : null;
+
+  if (data?.llyfiTokens?.length) {
+    if (!redemptionEnabledMap) return data.llyfiTokens;
+    return data.llyfiTokens.map((token) => {
+      const enabled = redemptionEnabledMap.get(token.symbol);
+      if (enabled === undefined || enabled === token.redemption.enabled) {
+        return token;
+      }
+      return {
+        ...token,
+        redemption: {
+          ...token.redemption,
+          enabled,
+        },
+      };
+    });
+  }
   if (!globalData?.global?.veyfi || !globalData?.llyfi) return [];
 
   const feeBps = toNumber(globalData.global.veyfi.inventory.feeBps) ?? 0;
@@ -157,12 +182,12 @@ export function useLlyfiTokens() {
 
   const redemptionMap = new Map(
     globalData.global.veyfi.tokens.map((token) => [
-      token.symbol,
+      normalizeLlyfiSymbol(token.symbol),
       token.redemption,
     ])
   );
   const llyfiMap = new Map(
-    globalData.llyfi.map((token) => [token.symbol, token])
+    globalData.llyfi.map((token) => [normalizeLlyfiSymbol(token.symbol), token])
   );
 
   return LIQUID_LOCKERS.map((locker) => {
@@ -173,6 +198,7 @@ export function useLlyfiTokens() {
       : locker.capacity;
     const used = redemption ? toBigInt(redemption.used) : 0n;
     const inventory = redemption ? toBigInt(redemption.inventory) : 0n;
+    const enabled = redemption?.enabled ?? true;
     const stakedYfi = llyfi
       ? toBigInt(llyfi.staked) + toBigInt(llyfi.unstaking)
       : 0n;
@@ -197,6 +223,7 @@ export function useLlyfiTokens() {
       depositorCapacity: capacity,
       exchangeRate: locker.scale,
       redemption: {
+        enabled,
         capacity,
         used,
         inventory,

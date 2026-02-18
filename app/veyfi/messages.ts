@@ -1,3 +1,6 @@
+const redemptionRequirementsTooltip =
+  "Available once redemption requirements are met.";
+
 export const veyfiCopy = {
   page: {
     title: "veYFI / LLYFI",
@@ -46,6 +49,7 @@ export const veyfiCopy = {
     title: "Available Inventory to trade",
     subtitle:
       "Liquidity held by the protocol for instant swaps between YFI and LLYFI tokens.",
+    unavailableTooltip: redemptionRequirementsTooltip,
   },
   manage: {
     title: "Legacy Liquid Locker Tokens",
@@ -83,6 +87,7 @@ export const veyfiCopy = {
         stake: "Stake",
         unstake: "Unstake",
         trade: "Trade",
+        tradeUnavailableTooltip: redemptionRequirementsTooltip,
       },
     },
     trade: {

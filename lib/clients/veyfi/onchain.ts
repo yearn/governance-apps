@@ -29,6 +29,7 @@ import { LiquidLockerRedemptionAbi } from "@/lib/abis/LiquidLockerRedemption";
 import { deriveCooldownEndsAt } from "@/lib/clients/shared/cooldown";
 import { nowSeconds } from "@/lib/mocks/time";
 import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
+import { normalizeLlyfiSymbol } from "@/lib/clients/veyfi/display";
 
 const LegacyVeYfiAbi = parseAbi([
   "function locked(address) view returns (int128 amount, uint256 end)",
@@ -61,6 +62,16 @@ export class OnchainVeyfiClient implements VeyfiClient {
     private publicClient: PublicClient | null,
     private globalData: GlobalData | null
   ) {}
+
+  private resolveRedemptionEnabled(symbol: string): boolean {
+    const tokens = this.globalData?.global?.veyfi?.tokens;
+    if (!tokens?.length) return true;
+    const normalized = normalizeLlyfiSymbol(symbol);
+    const match = tokens.find(
+      (token) => normalizeLlyfiSymbol(token.symbol) === normalized
+    );
+    return match?.redemption.enabled ?? true;
+  }
 
   private async getCanonicalNowSeconds(): Promise<number> {
     const localNow = nowSeconds();
@@ -303,6 +314,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
             : null;
 
         const lockedYfi = totalSupplyToken / config.scale;
+        const redemptionEnabled = this.resolveRedemptionEnabled(config.symbol);
 
         llyfiTokens.push({
           symbol: config.symbol as LlyfiTokenId,
@@ -324,6 +336,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
           depositorCapacity,
           exchangeRate: config.scale,
           redemption: {
+            enabled: redemptionEnabled,
             capacity: capacityRedemption,
             used: usedRedemption,
             inventory: inventoryRedemption,
@@ -478,7 +491,9 @@ export class OnchainVeyfiClient implements VeyfiClient {
     const maxBoostBps = this.globalData.global.maxBoostBps;
     const feeBps = toBps(data.inventory.feeBps, "inventory.feeBps");
     const fee = BigInt(Math.trunc(feeBps)) * 10n ** 14n;
-    const tokenMap = new Map(data.tokens.map((t) => [t.symbol, t]));
+    const tokenMap = new Map(
+      data.tokens.map((token) => [normalizeLlyfiSymbol(token.symbol), token])
+    );
 
     const tokens: LlyfiGlobalInfo[] = LIQUID_LOCKERS.map((locker) => {
       const match = tokenMap.get(locker.symbol as string);
@@ -488,6 +503,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
         name: locker.name,
         address: locker.token,
         redemption: {
+          enabled: redemption?.enabled ?? true,
           capacity: redemption ? BigInt(redemption.capacity) : 0n,
           used: redemption ? BigInt(redemption.used) : 0n,
           inventory: redemption ? BigInt(redemption.inventory) : 0n,
@@ -564,6 +580,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
     const tokens: LlyfiGlobalInfo[] = [];
     const redemptionStart = 2;
     const PER_LOCKER_READS = 3;
+    const baseTokenMap = new Map(base.tokens.map((token) => [token.symbol, token]));
 
     for (let i = 0; i < LIQUID_LOCKERS.length; i++) {
       const config = LIQUID_LOCKERS[i];
@@ -577,6 +594,9 @@ export class OnchainVeyfiClient implements VeyfiClient {
         name: config.name,
         address: config.token,
         redemption: {
+          enabled:
+            baseTokenMap.get(config.symbol as LlyfiTokenId)?.redemption
+              .enabled ?? this.resolveRedemptionEnabled(config.symbol),
           capacity,
           used,
           inventory,
@@ -737,6 +757,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
           name: config.name,
           address: config.token,
           redemption: {
+            enabled: this.resolveRedemptionEnabled(config.symbol),
             capacity,
             used,
             inventory,

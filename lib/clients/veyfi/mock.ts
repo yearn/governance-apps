@@ -39,16 +39,19 @@ const GLOBAL_REDEMPTION = {
   fee: 50000000000000000n, // 5%
   tokens: {
     sdYFI: {
+      enabled: true,
       capacity: 1000n * 10n ** 18n,
       used: 200n * 10n ** 18n,
       inventory: 50n * 10n ** 18n, // LLYFI
     },
     upYFI: {
+      enabled: true,
       capacity: 2000000n * 10n ** 18n,
       used: 100000n * 10n ** 18n,
       inventory: 5000n * 10n ** 18n, // LLYFI
     },
     coveYFI: {
+      enabled: true,
       capacity: 500n * 10n ** 18n,
       used: 10n * 10n ** 18n,
       inventory: 20n * 10n ** 18n, // LLYFI
@@ -112,6 +115,7 @@ export class MockVeyfiClient implements VeyfiClient {
 
           exchangeRate: 1n * 10n ** 18n,
           redemption: {
+            enabled: GLOBAL_REDEMPTION.tokens.sdYFI.enabled,
             capacity: GLOBAL_REDEMPTION.tokens.sdYFI.capacity,
             used: GLOBAL_REDEMPTION.tokens.sdYFI.used,
             inventory: GLOBAL_REDEMPTION.tokens.sdYFI.inventory,
@@ -141,6 +145,7 @@ export class MockVeyfiClient implements VeyfiClient {
 
           exchangeRate: 69420n * 10n ** 18n,
           redemption: {
+            enabled: GLOBAL_REDEMPTION.tokens.upYFI.enabled,
             capacity: GLOBAL_REDEMPTION.tokens.upYFI.capacity,
             used: GLOBAL_REDEMPTION.tokens.upYFI.used,
             inventory: GLOBAL_REDEMPTION.tokens.upYFI.inventory,
@@ -170,6 +175,7 @@ export class MockVeyfiClient implements VeyfiClient {
 
           exchangeRate: 1n * 10n ** 18n,
           redemption: {
+            enabled: GLOBAL_REDEMPTION.tokens.coveYFI.enabled,
             capacity: GLOBAL_REDEMPTION.tokens.coveYFI.capacity,
             used: GLOBAL_REDEMPTION.tokens.coveYFI.used,
             inventory: GLOBAL_REDEMPTION.tokens.coveYFI.inventory,

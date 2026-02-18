@@ -54,6 +54,7 @@ type GlobalData = {
       tokens: Array<{
         symbol: string;
         redemption: {
+          enabled: boolean;
           capacity: string;
           used: string;
           inventory: string;
@@ -127,6 +128,7 @@ type GlobalData = {
         {
           "symbol": "sdYFI",
           "redemption": {
+            "enabled": true,
             "capacity": "236764578940037056317",
             "used": "0",
             "inventory": "0"
@@ -207,5 +209,6 @@ type GlobalData = {
 
 - `global.*` provides protocol-wide aggregates (supply, inventory, weights, rewards) for pre-connect rendering.
 - `styfi`, `styfix`, `veyfi`, and `llyfi` provide preview blocks for each dashboard area without RPC.
+- `global.veyfi.tokens[].redemption.enabled` controls whether redemption/trade is currently active for that liquid locker token.
 - The stYFI **Total Staked** UI value should use `styfi.staked` (excludes cooldown balances). `styfi.unstaking` is provided as the cooldown amount.
 - During **epoch 0**, the UI may show `styfi.projected.aprBps` as **“Epoch 1 APR”** in the stats bar while keeping current APR elsewhere.

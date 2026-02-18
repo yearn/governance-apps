@@ -51,6 +51,7 @@ export const GlobalDataSchema = z.object({
         z.object({
           symbol: z.string().min(1),
           redemption: z.object({
+            enabled: z.boolean(),
             capacity: zBaseUnit,
             used: zBaseUnit,
             inventory: zBaseUnit,

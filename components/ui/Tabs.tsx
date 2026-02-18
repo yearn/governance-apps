@@ -2,11 +2,15 @@
 
 import * as React from "react";
 import { cn } from "@/lib/cn";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 export interface Tab {
   id: string;
-  label: string;
+  label: React.ReactNode;
   badge?: React.ReactNode;
+  disabled?: boolean;
+  tooltip?: React.ReactNode;
+  tooltipSide?: "top" | "bottom" | "left" | "right";
 }
 
 interface TabsProps {
@@ -31,13 +35,18 @@ export function Tabs({
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
-          return (
+          const isDisabled = !!tab.disabled;
+          const button = (
             <button
-              key={tab.id}
-              onClick={() => onChange(tab.id)}
+              onClick={() => {
+                if (!isDisabled) onChange(tab.id);
+              }}
+              disabled={isDisabled}
               className={cn(
                 "pb-2 text-sm font-bold transition-all relative",
-                isActive
+                isDisabled
+                  ? "text-text-secondary/50 cursor-not-allowed pointer-events-none"
+                  : isActive
                   ? "text-text-primary"
                   : "text-text-secondary hover:text-text-primary"
               )}
@@ -46,10 +55,25 @@ export function Tabs({
                 {tab.label}
                 {tab.badge}
               </div>
-              {isActive && (
+              {isActive && !isDisabled && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-text-primary" />
               )}
             </button>
+          );
+
+          return (
+            <span
+              key={tab.id}
+              className={cn("inline-flex", isDisabled && "cursor-not-allowed")}
+            >
+              {tab.tooltip ? (
+                <Tooltip content={tab.tooltip} side={tab.tooltipSide}>
+                  <span className="inline-flex">{button}</span>
+                </Tooltip>
+              ) : (
+                button
+              )}
+            </span>
           );
         })}
       </div>
@@ -65,13 +89,18 @@ export function Tabs({
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
-        return (
+        const isDisabled = !!tab.disabled;
+        const button = (
           <button
-            key={tab.id}
-            onClick={() => onChange(tab.id)}
+            onClick={() => {
+              if (!isDisabled) onChange(tab.id);
+            }}
+            disabled={isDisabled}
             className={cn(
               "px-4 py-1.5 text-sm font-medium rounded-md transition-all",
-              isActive
+              isDisabled
+                ? "text-text-secondary/50 cursor-not-allowed pointer-events-none"
+                : isActive
                 ? "bg-surface text-text-primary shadow-sm"
                 : "text-text-secondary hover:text-text-primary"
             )}
@@ -81,6 +110,21 @@ export function Tabs({
               {tab.badge}
             </span>
           </button>
+        );
+
+        return (
+          <span
+            key={tab.id}
+            className={cn("inline-flex", isDisabled && "cursor-not-allowed")}
+          >
+            {tab.tooltip ? (
+              <Tooltip content={tab.tooltip} side={tab.tooltipSide}>
+                <span className="inline-flex">{button}</span>
+              </Tooltip>
+            ) : (
+              button
+            )}
+          </span>
         );
       })}
     </div>

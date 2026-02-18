@@ -4,6 +4,7 @@ import type { CooldownState } from "@/lib/clients/shared/types";
 export type LlyfiTokenId = "sdYFI" | "upYFI" | "coveYFI";
 
 export type RedemptionState = {
+  enabled: boolean;
   capacity: bigint; // Max YFI redemption capacity (Redemption Contract)
   used: bigint; // Current YFI capacity used
   inventory: bigint; // LLYFI tokens held by redemption contract

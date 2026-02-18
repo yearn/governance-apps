@@ -13,7 +13,10 @@ import { useProtocol } from "@/state/protocol";
 import { useIdentity } from "@/state/identity";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
-import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
+import {
+  getLlyfiDisplaySymbol,
+  normalizeLlyfiSymbol,
+} from "@/lib/clients/veyfi/display";
 
 export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -62,10 +65,10 @@ export function LlyfiTokenRow({ token }: { token: LlyfiTokenState }) {
 
   const preferLiveTotals = canTransact;
   const s3Llyfi = globalData?.llyfi?.find(
-    (entry) => entry.symbol === token.symbol
+    (entry) => normalizeLlyfiSymbol(entry.symbol) === token.symbol
   );
   const s3Redemption = globalData?.global?.veyfi?.tokens?.find(
-    (entry) => entry.symbol === token.symbol
+    (entry) => normalizeLlyfiSymbol(entry.symbol) === token.symbol
   )?.redemption;
   const s3Capacity = s3Redemption
     ? toBigInt(s3Redemption.capacity, token.depositorCapacity)
