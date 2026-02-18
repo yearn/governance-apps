@@ -121,7 +121,7 @@ Enforced headers include:
 - `Strict-Transport-Security`
 - `X-Content-Type-Options`
 - `Referrer-Policy`
-- `X-Frame-Options`
+- `X-Frame-Options` (`DENY`) by default for non-governance surfaces
 - `X-Robots-Tag` (`noindex, nofollow`) for non-production runtime modes (`development`, `preview`)
 - `Permissions-Policy`
 - `Cross-Origin-Opener-Policy`
@@ -130,7 +130,27 @@ Enforced headers include:
 
 Policy is tuned to remain wallet-compatible (`same-origin-allow-popups`, broad `connect-src`/`frame-src` wallet domains).
 
-### 6.3 Middleware Convention Decision
+### 6.3 Safe App Compatibility Controls
+
+To support Safe custom app embedding while preserving clickjacking protections, the app uses a scoped policy:
+
+- Non-governance routes keep strict anti-framing controls:
+  - `X-Frame-Options: DENY`
+  - CSP `frame-ancestors 'none'`
+- Governance app requests (`/styfi`, `/veyfi`, `/yeth`, including mapped governance hosts) allow iframe embedding only from Safe origins via CSP `frame-ancestors` allowlist:
+  - `https://app.safe.global`
+  - `https://*.safe.global`
+  - `https://gnosis-safe.io`
+  - `https://*.gnosis-safe.io`
+- `/manifest.json` is published at the site root with Safe app metadata and route-scoped CORS headers so Safe Wallet can validate app capability.
+
+Security rationale:
+
+- A global removal of framing protections would materially increase clickjacking exposure.
+- Keeping `DENY`/`'none'` as defaults preserves defense-in-depth for all non-Safe traffic.
+- The Safe exception is constrained to governance app surfaces and a narrow origin allowlist, minimizing blast radius while enabling Safe compatibility.
+
+### 6.4 Middleware Convention Decision
 
 - Next.js 16 emits a deprecation warning recommending the `proxy` convention.
 - This repository intentionally keeps the `middleware.ts` convention for now so routing and header logic stay centralized in the current deployment path.

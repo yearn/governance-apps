@@ -22,20 +22,35 @@ function isStrictCspPath(pathname: string, hostPrefix: string | null) {
   return STRICT_CSP_PATHS.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
+function isGovernanceAppRequest(pathname: string, hostPrefix: string | null) {
+  if (hostPrefix) return true;
+  return STRICT_CSP_PATHS.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
 function withSecurityHeaders(
   response: NextResponse,
   nonce: string,
-  options: { allowUnsafeInlineScripts: boolean }
+  options: {
+    allowUnsafeInlineScripts: boolean;
+    allowSafeFrameEmbedding: boolean;
+  }
 ) {
   const securityHeaders = buildSecurityHeaders({
     nonce,
     isDevelopment: IS_DEVELOPMENT,
     isProduction: IS_PRODUCTION,
     allowUnsafeInlineScripts: options.allowUnsafeInlineScripts,
+    allowSafeFrameEmbedding: options.allowSafeFrameEmbedding,
   });
 
   for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value);
+  }
+
+  if (options.allowSafeFrameEmbedding) {
+    response.headers.delete("X-Frame-Options");
+  } else {
+    response.headers.set("X-Frame-Options", "DENY");
   }
 
   response.headers.set("x-nonce", nonce);
@@ -52,8 +67,10 @@ export function middleware(request: NextRequest) {
   // 1. Determine the intended application based on the Host header
   const prefix = resolveHostPrefix(requestHostname);
   const shouldUseStrictCsp = isStrictCspPath(url.pathname, prefix);
+  const allowSafeFrameEmbedding = isGovernanceAppRequest(url.pathname, prefix);
   const securityOptions = {
     allowUnsafeInlineScripts: !shouldUseStrictCsp,
+    allowSafeFrameEmbedding,
   };
 
   const isHeadRequest = request.method === "HEAD";
@@ -66,6 +83,7 @@ export function middleware(request: NextRequest) {
     url.pathname.startsWith("/api") ||
     url.pathname.startsWith("/fonts") ||
     url.pathname.startsWith("/.well-known") ||
+    url.pathname === "/manifest.json" ||
     PUBLIC_FILE.test(url.pathname);
 
   if (isHeadRequest && !isSkippablePath) {

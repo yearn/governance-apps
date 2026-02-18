@@ -37,10 +37,6 @@ const nextConfig: NextConfig = {
         value: "strict-origin-when-cross-origin",
       },
       {
-        key: "X-Frame-Options",
-        value: "DENY",
-      },
-      {
         key: "Permissions-Policy",
         value: PERMISSIONS_POLICY_HEADER,
       },
@@ -66,6 +62,23 @@ const nextConfig: NextConfig = {
     }
 
     return [
+      {
+        source: "/manifest.json",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, OPTIONS",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type, Authorization, X-Requested-With",
+          },
+        ],
+      },
       {
         source: "/(.*)",
         headers,

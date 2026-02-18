@@ -3,6 +3,7 @@ type SecurityHeaderOptions = {
   isDevelopment: boolean;
   isProduction: boolean;
   allowUnsafeInlineScripts?: boolean;
+  allowSafeFrameEmbedding?: boolean;
 };
 
 function joinDirectives(directives: string[]) {
@@ -27,12 +28,19 @@ export const PERMISSIONS_POLICY_HEADER = [
 export const CROSS_ORIGIN_OPENER_POLICY_HEADER = "same-origin-allow-popups";
 export const CROSS_ORIGIN_RESOURCE_POLICY_HEADER = "same-site";
 export const ORIGIN_AGENT_CLUSTER_HEADER = "?1";
+export const SAFE_APP_FRAME_ANCESTORS = [
+  "https://app.safe.global",
+  "https://*.safe.global",
+  "https://gnosis-safe.io",
+  "https://*.gnosis-safe.io",
+] as const;
 
 export function buildContentSecurityPolicy({
   nonce,
   isDevelopment,
   isProduction,
   allowUnsafeInlineScripts = false,
+  allowSafeFrameEmbedding = false,
 }: SecurityHeaderOptions): string {
   const scriptSrcDirectives = [
     "'self'",
@@ -43,6 +51,10 @@ export function buildContentSecurityPolicy({
     .filter((directive): directive is string => directive !== null)
     .join(" ");
   const scriptSrc = `script-src ${scriptSrcDirectives}`;
+  const frameAncestorsDirective = allowSafeFrameEmbedding
+    ? `frame-ancestors ${SAFE_APP_FRAME_ANCESTORS.join(" ")}`
+    : "frame-ancestors 'none'";
+
   const directives = [
     "default-src 'self'",
     scriptSrc,
@@ -56,7 +68,7 @@ export function buildContentSecurityPolicy({
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    frameAncestorsDirective,
   ];
 
   if (isProduction) {

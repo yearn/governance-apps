@@ -4,6 +4,7 @@ import {
   buildPermissionsPolicy,
   buildSecurityHeaders,
   PERMISSIONS_POLICY_HEADER,
+  SAFE_APP_FRAME_ANCESTORS,
 } from "@/lib/runtime/security-headers";
 
 describe("security header policy", () => {
@@ -16,6 +17,7 @@ describe("security header policy", () => {
 
     expect(csp).toContain("script-src 'self' 'nonce-abc123'");
     expect(csp).not.toContain("script-src 'unsafe-inline'");
+    expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("upgrade-insecure-requests");
   });
 
@@ -41,6 +43,19 @@ describe("security header policy", () => {
 
     expect(csp).toContain("script-src 'self' 'unsafe-inline'");
     expect(csp).not.toContain("'nonce-abc123'");
+  });
+
+  it("allows Safe wallet iframe ancestors only when explicitly enabled", () => {
+    const csp = buildContentSecurityPolicy({
+      nonce: "abc123",
+      isDevelopment: false,
+      isProduction: true,
+      allowSafeFrameEmbedding: true,
+    });
+
+    const allowedSafeAncestors = SAFE_APP_FRAME_ANCESTORS.join(" ");
+    expect(csp).toContain(`frame-ancestors ${allowedSafeAncestors}`);
+    expect(csp).not.toContain("frame-ancestors 'none'");
   });
 
   it("builds stricter browser security headers", () => {
