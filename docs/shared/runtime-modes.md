@@ -25,7 +25,7 @@ If `NEXT_PUBLIC_RUNTIME_MODE` is not set, the app falls back to deployment marke
 In `production` mode:
 
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH routes.
-- `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/_debug/ui`.
+- `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/debug/ui`.
 
 ## Required production checklist
 

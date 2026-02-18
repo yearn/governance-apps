@@ -58,7 +58,8 @@ export function CrossAppNudge({
                   className={getButtonClassName({
                     variant: "secondary",
                     size: "sm",
-                    className: "border-sky-300 bg-white/80 hover:bg-white",
+                    className:
+                      "border-sky-300 bg-white/90 text-sky-950 hover:bg-white focus:ring-sky-600 focus:ring-offset-sky-100",
                   })}
                   target="_blank"
                   rel="noopener noreferrer"

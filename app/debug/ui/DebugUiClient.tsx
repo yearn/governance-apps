@@ -1,4 +1,4 @@
-// app/_debug/ui/DebugUiClient.tsx
+// app/debug/ui/DebugUiClient.tsx
 
 "use client";
 
@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { Banner } from "@/components/ui/Banner";
+import { CrossAppNudge } from "@/components/domain/CrossAppNudge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Tabs } from "@/components/ui/Tabs";
-import { Badge } from "@/components/ui/Badge"; // Import Badge
+import { Badge } from "@/components/ui/Badge";
 import {
   Table,
   TableHeader,
@@ -24,6 +25,66 @@ import { toast } from "@/components/ui/Toast";
 import { IconWallet } from "@/components/icons/IconWallet";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { StatsBar } from "@/components/ui/StatsBar";
+import { crossAppNudgeCopy } from "@/app/_shared/messages";
+import type { CrossAppNudge as CrossAppNudgeData } from "@/lib/hooks/useCrossChainNudge";
+
+type DebugCrossAppNudgeVariant = {
+  label: string;
+  nudge: CrossAppNudgeData;
+};
+
+const DEBUG_CROSS_APP_NUDGE_VARIANTS: DebugCrossAppNudgeVariant[] = [
+  {
+    label: "stYFI -> veYFI (Legacy migration)",
+    nudge: {
+      id: "debug_nudge_veyfi_migration",
+      title: crossAppNudgeCopy.styfiPage.migration.title,
+      body: crossAppNudgeCopy.styfiPage.migration.body("125.0000"),
+      ctaLabel: crossAppNudgeCopy.shared.cta.toVeyfi,
+      href: "/veyfi?source=nudge&from=styfi&action=migration#migration-card",
+      targetApp: "veyfi",
+      priority: 110,
+    },
+  },
+  {
+    label: "stYFI -> veYFI (Unstaked liquid lockers)",
+    nudge: {
+      id: "debug_nudge_veyfi_unstaked_llyfi",
+      title: crossAppNudgeCopy.styfiPage.unstakedLlyfi.title,
+      body: crossAppNudgeCopy.styfiPage.unstakedLlyfi.body(
+        "10.0000 sdYFI, 500,000.0000 supYFI, +1 more"
+      ),
+      ctaLabel: crossAppNudgeCopy.shared.cta.toVeyfi,
+      href: "/veyfi?source=nudge&from=styfi&focus=stake",
+      targetApp: "veyfi",
+      priority: 90,
+    },
+  },
+  {
+    label: "stYFI -> veYFI (Unstaked liquid lockers fallback copy)",
+    nudge: {
+      id: "debug_nudge_veyfi_unstaked_llyfi_fallback",
+      title: crossAppNudgeCopy.styfiPage.unstakedLlyfi.title,
+      body: crossAppNudgeCopy.styfiPage.unstakedLlyfi.fallback,
+      ctaLabel: crossAppNudgeCopy.shared.cta.toVeyfi,
+      href: "/veyfi?source=nudge&from=styfi&focus=stake",
+      targetApp: "veyfi",
+      priority: 90,
+    },
+  },
+  {
+    label: "veYFI -> stYFI (Unstaked YFI)",
+    nudge: {
+      id: "debug_nudge_styfi_unstaked_yfi",
+      title: crossAppNudgeCopy.veyfiPage.unstakedYfi.title,
+      body: crossAppNudgeCopy.veyfiPage.unstakedYfi.body("4,480,818.6677"),
+      ctaLabel: crossAppNudgeCopy.shared.cta.toStyfi,
+      href: "/styfi?source=nudge&from=veyfi&focus=stake#stake-manage",
+      targetApp: "styfi",
+      priority: 90,
+    },
+  },
+];
 
 export function DebugUiClient() {
   const [activeTab, setActiveTab] = useState("tab1");
@@ -164,6 +225,26 @@ export function DebugUiClient() {
             <Banner variant="error" title="Blacklisted">
               Your address has been restricted from using this interface.
             </Banner>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
+            Cross-App Nudge Banners
+          </h2>
+          <p className="text-sm text-text-secondary">
+            Toggle light and dark mode from the header to verify CTA contrast
+            across every nudge copy variation.
+          </p>
+          <div className="space-y-4">
+            {DEBUG_CROSS_APP_NUDGE_VARIANTS.map((variant) => (
+              <div key={variant.nudge.id} className="space-y-2">
+                <p className="text-xs uppercase tracking-wide text-text-tertiary">
+                  {variant.label}
+                </p>
+                <CrossAppNudge nudge={variant.nudge} onDismiss={() => {}} />
+              </div>
+            ))}
           </div>
         </section>
 

@@ -47,7 +47,7 @@ Acceptance criteria:
 - `metadataBase` and OG URL generation do not trust arbitrary host headers.
 
 ### 1.3 Lock down debug surface
-- [x] Disable or gate `/_debug/ui` in production.
+- [x] Disable or gate `/debug/ui` in production.
 
 Acceptance criteria:
 - Debug route is unavailable on production builds.

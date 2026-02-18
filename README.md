@@ -30,7 +30,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - `NEXT_PUBLIC_GLOBAL_DATA_URL`: URL for global stats JSON payload.
 - `NEXT_PUBLIC_MOTD_URL`: URL for MOTD JSON payload used in stats bars.
 - `NEXT_PUBLIC_ENABLE_YETH`: Enables yETH routes/host in production runtime.
-- `NEXT_PUBLIC_ENABLE_DEBUG_UI`: Enables `/_debug/ui` in production runtime.
+- `NEXT_PUBLIC_ENABLE_DEBUG_UI`: Enables `/debug/ui` in production runtime.
 
 Production invariant checks:
 

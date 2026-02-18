@@ -39,6 +39,8 @@ describe("CrossAppNudge", () => {
     ).not.toBeInTheDocument();
     expect(ctaLink).toHaveAttribute("target", "_blank");
     expect(ctaLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(ctaLink.className).toContain("text-sky-950");
+    expect(ctaLink.className).toContain("bg-white/90");
 
     fireEvent.click(screen.getByLabelText("Dismiss nudge"));
     expect(onDismiss).toHaveBeenCalledWith("nudge_test");
