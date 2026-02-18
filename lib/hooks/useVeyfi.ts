@@ -101,6 +101,7 @@ export function useVeyfiStats() {
   const connected = usesMockBackend || !!publicClient;
   const globalVersion = globalData?.meta?.timestamp ?? null;
   const chainId = publicClient?.chain?.id ?? null;
+  const hasStatsSource = usesMockBackend || !!globalData || !!publicClient;
   const hasOnchainStats = !!veyfi.getGlobalStatsFromChain;
   const { data: overrideSince = 0 } = useQuery({
     queryKey: veyfiKeys.statsOverride(),
@@ -137,6 +138,7 @@ export function useVeyfiStats() {
         ? veyfi.getGlobalStatsFromChain()
         : veyfi.getGlobalStats(),
     // Global stats (Migration %, Boost)
+    enabled: hasStatsSource,
     refetchInterval: 60_000,
     staleTime: 60_000,
   });

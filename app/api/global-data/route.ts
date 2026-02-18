@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_GLOBAL_DATA_URL;
   if (!url) {
@@ -10,7 +13,7 @@ export async function GET() {
   }
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: "no-store" });
     if (!response.ok) {
       return NextResponse.json(
         { error: "Failed to fetch global data" },
@@ -19,9 +22,8 @@ export async function GET() {
     }
 
     const json = await response.json();
-    const cacheControl = response.headers.get("cache-control");
     return NextResponse.json(json, {
-      headers: cacheControl ? { "Cache-Control": cacheControl } : undefined,
+      headers: { "Cache-Control": "no-store, max-age=0" },
     });
   } catch (error) {
     console.warn("Global data proxy failed", error);
