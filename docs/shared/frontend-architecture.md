@@ -56,8 +56,8 @@ For `/veyfi`:
 For `/yeth`:
 
 - **RecoveryBanner:** Persistent retired notice + claim window status.
-- **RecoveryCard:** Eligibility, claim actions, and post-claim states.
-- **TrustVerifyDrawer:** Flat disclosures (contracts, vaults, risks, sources).
+- **RecoveryHero + ActionDeck + StatsGrid:** De-boxed, action-first unclaimed flow.
+- **TrustFooter:** Flat disclosures (contracts, vaults, risks, sources) in a minimal details footer.
 - **MockControls:** App-specific state presets and claim-window simulation.
 
 ---
@@ -365,11 +365,13 @@ Under `/lib/hooks/useVeyfi.ts`:
        ├─ [RecoveryBanner]       (retired notice + claim window status)
        └─ Main Container
             ├─ [ConnectCard]             (wallet-gated entry)
-            ├─ [PreClaimCard]            (eligible + unclaimed state)
+            ├─ [RecoveryHero]            (eligible + unclaimed state)
+            ├─ [ActionDeck]              (claim paths)
+            ├─ [StatsGrid]               (context metrics)
             ├─ [PostClaimExitedCard]     (claim-and-exit receipt state)
             ├─ [PostClaimStayingCard]    (recovery vault holder state)
             ├─ [IneligibleCard]          (non-eligible state)
-            ├─ [TrustVerifyDrawer]       (flat disclosure sections)
+            ├─ [TrustFooter]             (flat disclosure sections)
             └─ [Risk Modal]              (required for claim-and-stay)
        └─ [MockControls]          (preset and claim-window debug controls)
 ```
@@ -390,6 +392,8 @@ Current data source is `MockYethClient` via `ProtocolProvider`.
 
 - Route renders from account eligibility and claim status.
 - Claim window status is derived from `global.claimWindow` and current time.
+- In `claimStatus === "unclaimed"`, the UI composes hero + action deck + stats grid.
+- If claim window is closed, hero metrics are replaced and action deck is hidden.
 - Risk consent is local component state and required before claim-and-stay write.
 - Post-claim state transitions depend on account `claimStatus`:
   - `unclaimed`

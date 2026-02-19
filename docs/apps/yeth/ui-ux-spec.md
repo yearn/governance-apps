@@ -1,122 +1,148 @@
 # yETH Recovery UI/UX Spec
 
-Version: 0.1  
-Status: Active draft and implementation guide
+**Version:** 2.0 (Tokyo Refresh)  
+**Status:** Active implementation guide  
+**Theme:** Tokyo Party (`#5814FB`)  
+**Core Principle:** Action-first hierarchy (de-boxed layout)
 
 This specification defines the yETH recovery interface behavior for `/yeth`.
 
-## 1. Scope and Principles
+## 1. Visual Identity and Principles
 
-- Single-page recovery interface.
-- Wallet-gated, state-driven rendering.
-- Default path emphasizes immediate exit.
-- Advanced verification detail available but not forced.
+- **Hero color:** Tokyo Party 300 (`#5814FB`).
+  - In code, this hex maps to the `tokyo-600` token to match existing primary button hierarchy conventions.
+- **Layout philosophy:** De-boxed. Avoid nesting cards within cards. Use typography and spacing to create hierarchy instead of borders.
+- **Tone:** Urgent but digital-native. Less accounting software, more mechanism.
+- **Primary action:** `Claim ETH & Exit` must be visually dominant.
+- **Secondary action:** `Recover into Vault A` must feel advanced and optional.
 
 ## 2. Page Structure
 
-### 2.1 Header
+### 2.1 Global Header
 
 - Standard Yearn shell header.
 - Wallet connect/account control in the right cluster.
 
-### 2.2 Persistent Retirement Banner
+### 2.2 Recovery Banner (Persistent)
 
-Always visible on yETH route:
+Always visible on yETH route, pinned below the header.
 
-- "yETH has been retired. This interface is for recovery."
-- Link to approved YIP.
-- Claim window status plus countdown.
+- **Background:** `surface-secondary` (neutral), not brand colored.
+- **Content:**
+  - `yETH has been retired. This interface is for recovery.`
+  - Link to approved YIP.
+  - Claim window countdown (for example, `Ends in 61 days`).
 
-### 2.3 Primary Recovery Card (Eligible Users)
+### 2.3 Recovery Hero (The State)
 
-Always visible when wallet is eligible and unclaimed:
+Replaces the old primary recovery card.
 
-- Snapshot loss (ETH)
-- ETH claimable now
-- Recovery percentage:
-  - "Recovered so far: XX.X% of your original loss"
-- Claim status
-- Claim window end timestamp (UTC)
+- **Centering:** Vertically and horizontally centered top section.
+- **Headline metric:** `ETH Claimable Now` amount rendered in `text-6xl` or `text-7xl` using `font-number`.
+  - Color: `text-tokyo-600` (`#5814FB`).
+- **Secondary metric:** `Recovered so far: XX.X%` in a pill directly below the amount.
 
-### 2.4 Action Paths
+### 2.4 Action Deck (The Decision)
 
-#### Primary (recommended): Get ETH now
+A two-column grid directly below the hero metrics.
 
-- Atomic claim and exit
-- ETH/WETH transferred immediately
-- Recovery session complete
+#### Option A: Claim and Exit (Recommended)
 
-#### Secondary: Keep earning yield (higher risk)
+- **Visual:** Solid card with stronger elevation.
+- **Button:** Primary button (`bg-tokyo-600 text-white`).
+- **Copy:** `Claim ETH & Exit`.
+- **Body:** Bullet points emphasizing immediacy (`Receive ETH immediately`, `Recovery complete`).
 
-- Opens risk acknowledgement modal
-- Atomic claim and stay
-- User receives Recovery Vault shares
+#### Option B: Recover into Vault A (Advanced)
 
-### 2.5 Risk Acknowledgement Modal
+- **Visual:** Outlined or ghost treatment, visually recessed.
+- **Button:** Ghost style (`border-2 border-tokyo-600 text-tokyo-600`).
+- **Copy:** `Recover into Vault A`.
+- **Body:** Bullet points emphasizing risk (`Receive Recovery Vault shares`, `Ongoing risk`).
+- **Interaction:** Opens risk acknowledgement modal.
 
-Required only for claim-and-stay:
+### 2.5 Context Grid (Secondary Stats)
 
-- Explicit smart-contract and strategy risk statement
-- User checkbox consent
-- Continue button disabled until consent is checked
+A clean 2x2 (mobile) or 4x1 (desktop) grid below the Action Deck.
 
-### 2.6 Post-Claim States
+- Wallet address (truncated)
+- Snapshot Value (`Original Snapshot Value`)
+- Claim window end (UTC)
+- Eligibility (`Eligible` / `Ineligible`)
 
-#### Claimed and Exited
+### 2.6 Trust and Verify Footer
 
-- Status confirmation
-- ETH amount received
-- Recovered total percentage
-- Explorer link for transaction
-- No further yield participation actions
+Replaces the old trust drawer treatment.
 
-#### Claimed and Staying
+- Located at the bottom of page content.
+- Uses a minimal `<details>` element style.
+- Includes:
+  - Contract addresses (Claim, Vault A, Vault B) with explorer links
+  - Vault metrics (TVL, PPS, performance fee)
+  - Yield sources and risk disclosures
+  - Manual late-claim instructions
 
-- Recovery Vault share balance
-- Current PPS (ETH/share)
-- Current ETH-equivalent value
-- Updated recovered percentage
-- Primary action: Redeem to ETH now
+## 3. Interaction Flows
 
-### 2.7 Trust and Verify Drawer
+### 3.1 Risk Acknowledgement Modal
 
-Flat (non-nested) disclosure:
+**Trigger:** Clicking `Recover into Vault A`.
 
-- Contract addresses (Claim, Recovery Vault A, Yield Vault B)
-- Explorer links
-- Recovery Vault metrics:
-  - PPS
-  - total assets
-  - no strategies
-- Yield Vault metrics:
-  - TVL
-  - 100% performance fee
-  - fee recipient
-- Yield sources
-- Risks
-- Late claim/manual settlement guidance
+Requirements:
 
-### 2.8 Claim-Ended Behavior
+- Explicit smart-contract and strategy risk statement.
+- Explicit `no recovery of the recovery` warning.
+- Consent checkbox required before confirm button is enabled.
 
-When claim window closes:
+### 3.2 Post-Claim State: Exited
 
-- Claim CTA is disabled
-- Explicit notice that claim window ended
-- Manual late-claim process link is shown
+- **Visual:** Success hero.
+- **Headline:** `Recovery Complete`.
+- **Metric:** `You received X.XXXX ETH`.
+- **Subtext:** `You no longer participate in future recovery yield.`
+- **Action:** Link to block explorer.
 
-## 3. UX Rules
+### 3.3 Post-Claim State: Staying (Vault A Holder)
 
-- Present tense only.
-- No performance or optimization promises.
-- No comparative urgency language ("claim early to maximize").
-- All numbers reflect current state only.
+- **Visual:** Active position dashboard.
+- **Metrics:**
+  - Shares held
+  - Current PPS
+  - Current value (ETH)
+- **Primary action:** `Redeem to ETH` (standard button, distinct from Tokyo claim styling).
 
-## 4. Current Implementation Notes
+### 3.4 Claim Window Ended
 
-Implemented in:
+- Hero metrics replaced by `Claim Window Closed`.
+- Action deck hidden or disabled.
+- Callout to manual late-claim process (governance docs link).
 
-- `app/yeth/YethPageClient.tsx`
-- `app/yeth/messages.ts`
-- `app/yeth/components/MockControls.tsx`
+## 4. Copy Guidelines
 
-The current implementation follows this spec in mock mode and includes debug state cycling for QA and product review.
+- **Avoid:** `Loss`, `Keep earning`, `Optimize`.
+- **Use:** `Snapshot Value`, `Recover`, `Claim`.
+- **Reasoning:** `Loss` is psychologically negative; `Snapshot Value` is neutral. `Keep earning` sounds promotional, while `Recover into Vault A` signals deliberate, risk-aware action.
+
+## 5. Responsive Behavior
+
+### 5.1 Mobile
+
+- Hero text scales down (`text-5xl`).
+- Action deck stacks vertically with Claim and Exit first.
+- Stats grid wraps to 2x2.
+
+### 5.2 Desktop
+
+- Action deck renders side-by-side.
+
+## 6. Implementation References
+
+- **Colors:** `/app/globals.css`
+  - `tokyo-600`: `#5814FB` (primary action and hero text)
+  - `tokyo-700`: `#460dc9` (hover state)
+- **Components:**
+  - `/app/yeth/components/RecoveryHero.tsx`
+  - `/app/yeth/components/ActionDeck.tsx`
+  - `/app/yeth/components/StatsGrid.tsx`
+  - `/app/yeth/components/TrustFooter.tsx`
+- **State driver:** `/app/yeth/YethPageClient.tsx` with `useYethAccountState` and `useYethGlobalState`.

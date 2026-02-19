@@ -11,9 +11,10 @@ Scope: yETH recovery experience under `/yeth`.
 
 ## Current Delivery Status
 
-As of February 6, 2026:
+As of February 19, 2026:
 
 - A full mock-first yETH recovery app is implemented at `/yeth`.
+- Tokyo Refresh (v2.0) UI is implemented with de-boxed action-first hierarchy.
 - stYFI and veYFI remain independently operable.
 - yETH contracts are not integrated yet; on-chain reads/writes are pending.
 

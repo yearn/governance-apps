@@ -1,6 +1,6 @@
 # yETH Implementation Status
 
-Last updated: February 6, 2026  
+Last updated: February 19, 2026  
 Route: `/yeth`  
 Delivery mode: mock-first
 
@@ -10,17 +10,17 @@ This document tracks what is implemented versus what remains before production c
 
 ### 1.1 Route and Shell
 
-- `app/yeth/page.tsx` provides page metadata and entrypoint.
-- `app/yeth/YethPageClient.tsx` provides state-driven client rendering.
+- `/app/yeth/page.tsx` provides page metadata and entrypoint.
+- `/app/yeth/YethPageClient.tsx` provides state-driven client rendering.
 - Route is available under shared host path:
   - `app.dao-ops.com/yeth`
 
 ### 1.2 Domain Client Layer
 
-- `lib/clients/yeth/types.ts`
-- `lib/clients/yeth/client.ts`
-- `lib/clients/yeth/mock.ts`
-- `lib/clients/yeth/index.ts`
+- `/lib/clients/yeth/types.ts`
+- `/lib/clients/yeth/client.ts`
+- `/lib/clients/yeth/mock.ts`
+- `/lib/clients/yeth/index.ts`
 
 Implemented capabilities:
 
@@ -33,7 +33,7 @@ Implemented capabilities:
 
 ### 1.3 Hooks Layer
 
-- `lib/hooks/useYeth.ts`
+- `/lib/hooks/useYeth.ts`
 
 Implemented hooks:
 
@@ -45,10 +45,10 @@ Implemented hooks:
 
 ### 1.4 Protocol Wiring
 
-- `state/protocol.tsx` includes yETH client in protocol context.
+- `/state/protocol.tsx` includes yETH client in protocol context.
 - yETH currently uses dedicated mock backend regardless of stYFI/veYFI on-chain mode.
 
-### 1.5 UI Flow Coverage
+### 1.5 UI Flow Coverage (Tokyo Refresh)
 
 Implemented user states:
 
@@ -60,16 +60,27 @@ Implemented user states:
 - claimed and staying
 - claim window ended
 
-Implemented UX controls:
+Implemented Tokyo refresh components and behavior:
 
-- risk acknowledgment modal for claim-and-stay,
-- trust and verify details drawer,
-- transaction actions via `useTx`.
+- `/app/yeth/components/RecoveryHero.tsx`
+  - de-boxed hero with `ETH Claimable Now` metric in Tokyo color,
+  - recovered percentage badge.
+- `/app/yeth/components/ActionDeck.tsx`
+  - dominant `Claim ETH & Exit` primary action,
+  - advanced `Recover into Vault A` secondary action.
+- `/app/yeth/components/StatsGrid.tsx`
+  - context stats for wallet, snapshot value, claim window, eligibility.
+- `/app/yeth/components/TrustFooter.tsx`
+  - minimal `<details>` trust and verify footer at page bottom.
+- `/app/yeth/YethPageClient.tsx`
+  - unclaimed flow assembled from hero + action deck + context grid,
+  - claim-window-closed branch replaces hero and hides action deck,
+  - risk modal remains required before claim-and-stay write.
 
 ### 1.6 Debug and QA Controls
 
-- `app/yeth/components/MockControls.tsx`
-- shared panel support in `components/DebugControls.tsx`
+- `/app/yeth/components/MockControls.tsx`
+- shared panel support in `/components/DebugControls.tsx`
 
 Implemented debugging tools:
 
@@ -83,7 +94,7 @@ Implemented debugging tools:
   - open
   - ended
   - real time
-- reset + time travel integration with shared debug menu.
+- reset plus time-travel integration with shared debug menu.
 
 ## 2. Routing and Exposure Status
 
@@ -97,12 +108,14 @@ Implemented debugging tools:
 
 Aligned in UI:
 
-- voluntary claim path choice
-- atomic exit path and atomic stay path (mocked transactions)
-- explicit risk acknowledgement for stay flow
-- post-claim state distinction
-- trust and verify surface
-- claim-ended manual process messaging
+- action-first hierarchy with de-boxed layout,
+- Tokyo color tokenized design (`tokyo-600`, `tokyo-700`),
+- voluntary claim path choice,
+- atomic exit path and atomic stay path (mocked transactions),
+- explicit risk acknowledgement for stay flow,
+- post-claim state distinction,
+- trust and verify footer,
+- claim-ended manual process messaging.
 
 Still placeholder/mock:
 
@@ -115,7 +128,7 @@ Still placeholder/mock:
 
 - Real `OnchainYethClient` implementation.
 - Contract ABI integration once finalized.
-- Source-of-truth eligibility/claim amount reads from claim contract.
+- Source-of-truth eligibility and claim amount reads from claim contract.
 - Real Vault A/B metrics from chain/indexer.
 - Real transaction execution and receipt handling against deployed contracts.
 - Production content finalization:
@@ -123,13 +136,13 @@ Still placeholder/mock:
   - manual late-claim instructions URL,
   - legal/comms copy review.
 
-## 5. Acceptance Gate Before "Production Ready"
+## 5. Acceptance Gate Before Production Ready
 
 yETH should be treated as production-ready only when:
 
 - on-chain client is integrated and tested,
 - security and invariants are externally validated,
 - end-to-end tests cover all claim path outcomes,
-- deployment/rollout checklist in
+- deployment and rollout checklist in
   [`production-readiness-checklist.md`](production-readiness-checklist.md)
   is fully complete.
