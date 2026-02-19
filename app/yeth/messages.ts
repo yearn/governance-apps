@@ -4,8 +4,7 @@ export const yethCopy = {
     retiredBanner: "yETH has been retired. This interface is for recovery.",
     openStatus: "Claim open",
     closedStatus: "Claim ended",
-    connectPrompt:
-      "Connect your wallet to check eligibility and recover ETH.",
+    connectPrompt: "Connect your wallet to check eligibility and recover ETH.",
     connectCta: "Connect wallet",
     sections: {
       recovery: "Your Recovery",
@@ -27,10 +26,7 @@ export const yethCopy = {
     exit: {
       title: "Claim & Exit",
       subtitle: "Recommended",
-      body: [
-        "Receive ETH immediately",
-        "Recovery complete",
-      ],
+      body: ["Receive ETH immediately", "Recovery complete"],
       cta: (amount: string) => `Claim ${amount} ETH & Exit`,
     },
     stay: {
@@ -39,12 +35,12 @@ export const yethCopy = {
         "Receive Recovery Vault shares",
         "Ongoing smart-contract and strategy risk",
       ],
-      cta: "Recover into Vault A",
+      cta: "Deposit claim into Recovery Vault",
     },
     redeem: (amount: string) => `Cash out ${amount} ETH`,
   },
   riskModal: {
-    title: "Recover into Vault A - risk acknowledgement",
+    title: "yETH Recovery Vault - risk acknowledgement",
     body: "This option keeps your value inside smart contracts and yield strategies. Losses due to exploits, depegs, or failures may be unrecoverable. There is no recovery of the recovery.",
     checkbox: "I understand and accept these risks",
     cancel: "Cancel",

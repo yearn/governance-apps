@@ -67,6 +67,8 @@ Implemented Tokyo refresh components and behavior:
   - recovered percentage badge.
 - `/app/yeth/components/ActionDeck.tsx`
   - dominant `Claim ETH & Exit` primary action,
+  - dynamic claim amount in CTA (`Claim X.XXXX ETH & Exit`),
+  - card/header/CTA vertical alignment for balanced two-option layout,
   - advanced `Recover into Vault A` secondary action.
 - `/app/yeth/components/StatsGrid.tsx`
   - context stats for wallet, snapshot value, claim window, eligibility.
@@ -96,6 +98,7 @@ Implemented debugging tools:
   - open
   - ended
   - real time
+- toggles update the shared mock clock used by yETH page state and mock client reads.
 - reset plus time-travel integration with shared debug menu.
 
 ## 2. Routing and Exposure Status

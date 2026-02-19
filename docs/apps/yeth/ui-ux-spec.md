@@ -50,7 +50,7 @@ A two-column grid directly below the hero metrics.
 
 - **Visual:** Solid card with stronger elevation.
 - **Button:** Primary button (`bg-tokyo-600 text-white`).
-- **Copy:** `Claim ETH & Exit`.
+- **Copy:** dynamic amount (`Claim X.XXXX ETH & Exit`).
 - **Body:** Bullet points emphasizing immediacy (`Receive ETH immediately`, `Recovery complete`).
 
 #### Option B: Recover into Vault A (Advanced)
@@ -60,6 +60,11 @@ A two-column grid directly below the hero metrics.
 - **Copy:** `Recover into Vault A`.
 - **Body:** Bullet points emphasizing risk (`Receive Recovery Vault shares`, `Ongoing risk`).
 - **Interaction:** Opens risk acknowledgement modal.
+
+Action deck layout constraints:
+
+- Both option headers share a consistent vertical baseline.
+- Both CTA buttons align to the same height on desktop.
 
 ### 2.5 Context Grid (Secondary Stats)
 
