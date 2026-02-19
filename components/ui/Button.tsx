@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost" | "styfi" | "veyfi";
+  variant?: "primary" | "secondary" | "ghost" | "styfi" | "veyfi" | "yeth";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
 }
@@ -27,6 +27,8 @@ const BUTTON_VARIANT_CLASS_NAMES: Record<NonNullable<ButtonProps["variant"]>, st
     "bg-sunset-600 text-white hover:bg-sunset-500 disabled:bg-sunset-100 disabled:text-sunset-900",
   veyfi:
     "bg-disco-700 text-white hover:bg-disco-600 disabled:bg-disco-100 disabled:text-disco-900",
+  yeth:
+    "bg-tokyo-600 text-white hover:bg-tokyo-700 disabled:bg-tokyo-100 disabled:text-tokyo-900",
 };
 const BUTTON_SIZE_CLASS_NAMES: Record<NonNullable<ButtonProps["size"]>, string> = {
   sm: "h-8 px-3 text-xs",

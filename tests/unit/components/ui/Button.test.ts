@@ -16,4 +16,12 @@ describe("getButtonClassName", () => {
 
     expect(className).toContain("custom-extra");
   });
+
+  it("supports the yeth variant classes", () => {
+    const className = getButtonClassName({ variant: "yeth", size: "lg" });
+
+    expect(className).toContain("bg-tokyo-600");
+    expect(className).toContain("hover:bg-tokyo-700");
+    expect(className).toContain("h-14");
+  });
 });

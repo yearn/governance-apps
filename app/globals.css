@@ -35,6 +35,12 @@
   --color-disco-700: #b71962; /* Primary */
   --color-disco-900: #6a0031;
 
+  /* --- Colors: Tokyo Party (yETH Brand) --- */
+  --color-tokyo-100: #e0d4ff;
+  --color-tokyo-600: #5814fb; /* Primary / Hero */
+  --color-tokyo-700: #460dc9; /* Hover */
+  --color-tokyo-900: #2a0580;
+
   /* --- Semantic Theme Tokens --- */
   --color-app: var(--color-neutral-100);
   --color-surface: var(--color-neutral-0);
