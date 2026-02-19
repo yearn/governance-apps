@@ -2,8 +2,7 @@
 
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
-import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { TxStatus } from "@/lib/tx/types";
 import type { YethAccountState, YethGlobalState } from "@/lib/clients/yeth";
 import { Card } from "@/components/ui/Card";
@@ -20,6 +19,10 @@ import {
 } from "@/lib/hooks/useYeth";
 import { yethCopy as copy } from "./messages";
 import { MockControls } from "./components/MockControls";
+import { RecoveryHero } from "./components/RecoveryHero";
+import { ActionDeck } from "./components/ActionDeck";
+import { StatsGrid } from "./components/StatsGrid";
+import { TrustFooter } from "./components/TrustFooter";
 
 const ONE = 10n ** 18n;
 
@@ -82,7 +85,7 @@ export function YethPageClient() {
               claimWindowClosed={claimWindowClosed}
             />
           ) : account.claimStatus === "unclaimed" ? (
-            <PreClaimCard
+            <UnclaimedRecoveryState
               address={address}
               account={account}
               global={global}
@@ -103,7 +106,7 @@ export function YethPageClient() {
             <PostClaimExitedCard account={account} />
           )}
 
-          {global && <TrustVerifyDrawer global={global} />}
+          {global && <TrustFooter global={global} />}
         </main>
 
         <Modal
@@ -134,6 +137,7 @@ export function YethPageClient() {
                 {copy.riskModal.cancel}
               </Button>
               <Button
+                variant="yeth"
                 size="sm"
                 onClick={handleClaimStay}
                 isLoading={claimStayPending}
@@ -160,7 +164,7 @@ function RecoveryBanner({
   claimWindowCountdown: string;
 }) {
   return (
-    <section className="border-b border-border bg-surface-secondary">
+    <section className="sticky top-16 z-30 border-b border-border bg-surface-secondary">
       <div className="container mx-auto px-4 md:px-6 py-4 space-y-2">
         <p className="text-sm font-medium text-text-primary">
           {copy.page.retiredBanner}
@@ -230,7 +234,7 @@ function IneligibleCard({
           label={copy.fields.wallet}
           value={address ? formatAddress(address) : "--"}
         />
-        <DataRow label={copy.fields.eligibility} value="Not eligible" />
+        <DataRow label={copy.fields.eligibility} value="Ineligible" />
         <DataRow
           label={copy.fields.claimStatus}
           value={claimWindowClosed ? copy.page.closedStatus : copy.page.openStatus}
@@ -243,13 +247,13 @@ function IneligibleCard({
 
       <p className="text-sm text-text-secondary">
         If you expected an allocation, review the approved YIP and manual process in
-        the Trust & verify section below.
+        the Trust &amp; verify section below.
       </p>
     </Card>
   );
 }
 
-function PreClaimCard({
+function UnclaimedRecoveryState({
   address,
   account,
   global,
@@ -274,127 +278,67 @@ function PreClaimCard({
   );
 
   return (
-    <Card className="space-y-8">
-      <header className="space-y-1">
-        <h2 className="text-xl font-bold">{copy.page.sections.recovery}</h2>
-        <p className="text-sm text-text-secondary">
-          {copy.fields.claimStatus}: Eligible and unclaimed
-        </p>
-      </header>
-
-      <div className="grid gap-3 text-sm md:grid-cols-2">
-        <DataRow
-          label={copy.fields.wallet}
-          value={address ? formatAddress(address) : "--"}
-        />
-        <DataRow label={copy.fields.eligibility} value="Eligible" />
-        <DataRow
-          label={copy.fields.snapshotLoss}
-          value={formatEth(account.snapshotLossEth)}
-        />
-        <DataRow
-          label={copy.fields.claimableNow}
-          value={formatEth(account.claimableNowEth)}
-        />
-        <DataRow
-          label={copy.fields.recoveredSoFar}
-          value={`${recoveredPct} of original loss`}
-        />
-        <DataRow
-          label={copy.fields.claimWindowEnds}
-          value={formatUtcDateTime(global.claimWindow.closesAt)}
-        />
-      </div>
-
-      <section className="space-y-4">
-        <h3 className="text-sm font-bold uppercase tracking-wide text-text-tertiary">
-          {copy.page.sections.actions}
-        </h3>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ActionPathCard
-            title={copy.actions.exit.title}
-            subtitle={copy.actions.exit.subtitle}
-            bullets={copy.actions.exit.body}
-            cta={copy.actions.exit.cta}
-            disabled={claimWindowClosed || claimExitPending || claimStayPending}
-            loading={claimExitPending}
-            onClick={onClaimExit}
-            emphasize
-          />
-          <ActionPathCard
-            title={copy.actions.stay.title}
-            bullets={copy.actions.stay.body}
-            cta={copy.actions.stay.cta}
-            disabled={claimWindowClosed || claimExitPending || claimStayPending}
-            loading={claimStayPending}
-            onClick={onOpenRiskModal}
-          />
+    <section className="space-y-6">
+      {claimWindowClosed ? (
+        <div className="flex flex-col items-center py-12 text-center space-y-3">
+          <h2 className="text-3xl md:text-5xl font-bold text-text-primary">
+            {copy.claimEnded.title}
+          </h2>
+          <p className="max-w-2xl text-sm text-text-secondary">{copy.claimEnded.body}</p>
+          <a
+            href={global.manualLateClaimUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex text-sm font-medium underline underline-offset-4"
+          >
+            {copy.claimEnded.cta}
+          </a>
         </div>
-      </section>
-
-      {claimWindowClosed && (
-        <Card className="p-5 border-amber-300 bg-amber-50">
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold uppercase tracking-wide text-amber-900">
-              {copy.claimEnded.title}
-            </h3>
-            <p className="text-sm text-amber-900/90">{copy.claimEnded.body}</p>
-            <a
-              href={global.manualLateClaimUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex text-sm font-medium underline underline-offset-4"
-            >
-              {copy.claimEnded.cta}
-            </a>
-          </div>
-        </Card>
+      ) : (
+        <RecoveryHero claimableEth={account.claimableNowEth} recoveredPct={recoveredPct} />
       )}
-    </Card>
+
+      {!claimWindowClosed ? (
+        <ActionDeck
+          onExit={onClaimExit}
+          onStay={onOpenRiskModal}
+          exitPending={claimExitPending}
+          stayPending={claimStayPending}
+          disabled={claimWindowClosed}
+        />
+      ) : null}
+
+      <StatsGrid
+        address={address}
+        snapshotValue={account.snapshotLossEth}
+        closesAt={global.claimWindow.closesAt}
+        eligible={account.eligible}
+      />
+    </section>
   );
 }
 
 function PostClaimExitedCard({ account }: { account: YethAccountState }) {
-  const recoveredPct = formatRecoveryPercent(
-    account.exitedEthReceived,
-    account.snapshotLossEth
-  );
-
   return (
-    <Card className="space-y-6">
-      <header className="space-y-1">
-        <h2 className="text-xl font-bold">{copy.page.sections.recovery}</h2>
-        <p className="text-sm text-text-secondary">{copy.postClaim.exitedTitle}</p>
-      </header>
-
-      <div className="grid gap-3 text-sm md:grid-cols-2">
-        <DataRow
-          label={copy.postClaim.received}
-          value={formatEth(account.exitedEthReceived)}
-        />
-        <DataRow
-          label={copy.postClaim.recoveredTotal}
-          value={`${recoveredPct} of original loss`}
-        />
-        {account.lastTxHash && (
-          <DataRow
-            label={copy.postClaim.transaction}
-            value={
-              <a
-                href={txExplorerLink(account.lastTxHash)}
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-4"
-              >
-                Explorer
-              </a>
-            }
-          />
-        )}
-      </div>
-
+    <section className="flex flex-col items-center py-12 text-center space-y-4">
+      <h2 className="text-3xl md:text-5xl font-bold text-tokyo-600">
+        {copy.postClaim.exitedTitle}
+      </h2>
+      <p className="font-number text-2xl md:text-3xl font-bold text-text-primary">
+        {copy.postClaim.received} {formatEth(account.exitedEthReceived)}
+      </p>
       <p className="text-sm text-text-secondary">{copy.postClaim.exitedNote}</p>
-    </Card>
+      {account.lastTxHash ? (
+        <a
+          href={txExplorerLink(account.lastTxHash)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex text-sm font-medium underline underline-offset-4"
+        >
+          View on block explorer
+        </a>
+      ) : null}
+    </section>
   );
 }
 
@@ -411,231 +355,50 @@ function PostClaimStayingCard({
 }) {
   const pps = global.recoveryVault.pps;
   const currentValueEth = (account.recoveryVaultShares * pps) / ONE;
-  const recoveredPct = formatRecoveryPercent(currentValueEth, account.snapshotLossEth);
 
   return (
-    <Card className="space-y-6">
-      <header className="space-y-1">
-        <h2 className="text-xl font-bold">{copy.page.sections.recovery}</h2>
-        <p className="text-sm text-text-secondary">{copy.postClaim.stayingTitle}</p>
+    <section className="space-y-6">
+      <header className="space-y-2 text-center md:text-left">
+        <h2 className="text-3xl font-bold text-text-primary">
+          {copy.postClaim.stayingTitle}
+        </h2>
+        <p className="text-sm text-text-secondary">
+          You hold Recovery Vault shares and remain exposed to ongoing recovery risk.
+        </p>
       </header>
 
-      <div className="grid gap-3 text-sm md:grid-cols-2">
-        <DataRow
+      <div className="grid gap-4 md:grid-cols-3">
+        <PositionStat
           label={copy.postClaim.shares}
           value={formatTokenAmount(account.recoveryVaultShares, 18, 4)}
         />
-        <DataRow label={copy.postClaim.pps} value={formatPps(pps)} />
-        <DataRow label={copy.postClaim.value} value={formatEth(currentValueEth)} />
-        <DataRow
-          label={copy.fields.recoveredSoFar}
-          value={`${recoveredPct} of original loss`}
-        />
+        <PositionStat label={copy.postClaim.pps} value={formatPps(pps)} />
+        <PositionStat label={copy.postClaim.value} value={formatEth(currentValueEth)} />
       </div>
 
-      <Button className="w-fit" onClick={onRedeem} isLoading={redeemPending}>
+      <Button className="w-full md:w-fit" onClick={onRedeem} isLoading={redeemPending}>
         {copy.actions.redeem}
       </Button>
-    </Card>
+    </section>
   );
 }
 
-function ActionPathCard({
-  title,
-  subtitle,
-  bullets,
-  cta,
-  disabled,
-  loading,
-  onClick,
-  emphasize = false,
-}: {
-  title: string;
-  subtitle?: string;
-  bullets: readonly string[];
-  cta: string;
-  disabled: boolean;
-  loading: boolean;
-  onClick: () => void;
-  emphasize?: boolean;
-}) {
+function PositionStat({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className={`rounded-box border p-5 space-y-4 ${
-        emphasize
-          ? "border-text-primary bg-surface-secondary"
-          : "border-border bg-surface"
-      }`}
-    >
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <h4 className="text-base font-bold text-text-primary">{title}</h4>
-          {subtitle ? (
-            <span className="rounded-md bg-text-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-surface">
-              {subtitle}
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      <ul className="space-y-1 text-sm text-text-secondary list-disc pl-4">
-        {bullets.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-
-      <Button
-        variant={emphasize ? "primary" : "secondary"}
-        className="w-full"
-        onClick={onClick}
-        disabled={disabled}
-        isLoading={loading}
-      >
-        {cta}
-      </Button>
-    </div>
+    <article className="rounded-xl bg-surface-secondary/70 p-4 text-center space-y-2">
+      <p className="text-xs text-neutral-500 uppercase tracking-wide">{label}</p>
+      <p className="font-number font-bold text-neutral-900">{value}</p>
+    </article>
   );
 }
 
-function TrustVerifyDrawer({ global }: { global: YethGlobalState }) {
-  return (
-    <details className="rounded-box border border-border bg-surface p-5 group">
-      <summary className="cursor-pointer list-none text-sm font-bold uppercase tracking-wide text-text-tertiary flex items-center justify-between">
-        <span>{copy.page.sections.trust}</span>
-        <span className="text-xs text-text-secondary transition-transform group-open:rotate-180">
-          ▾
-        </span>
-      </summary>
-
-      <div className="mt-5 space-y-6 text-sm">
-        <section className="space-y-2">
-          <h3 className="font-bold text-text-primary">Contracts</h3>
-          <FlatList
-            items={[
-              <>
-                Claim Contract: {formatAddress(global.contracts.claimContract)}{" "}
-                <a
-                  href={addressExplorerLink(global.contracts.claimContract)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-4"
-                >
-                  Explorer
-                </a>
-              </>,
-              <>
-                Recovery Vault (A): {formatAddress(global.contracts.recoveryVault)}{" "}
-                <a
-                  href={addressExplorerLink(global.contracts.recoveryVault)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-4"
-                >
-                  Explorer
-                </a>
-              </>,
-              <>
-                Yield Vault (B): {formatAddress(global.contracts.yieldVault)}{" "}
-                <a
-                  href={addressExplorerLink(global.contracts.yieldVault)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-4"
-                >
-                  Explorer
-                </a>
-              </>,
-            ]}
-          />
-        </section>
-
-        <section className="space-y-2">
-          <h3 className="font-bold text-text-primary">Recovery Vault (A)</h3>
-          <FlatList
-            items={[
-              "Holds no strategies",
-              "Receives yield through fees and donations",
-              `PPS: ${formatPps(global.recoveryVault.pps)}`,
-              `Total assets: ${formatEth(global.recoveryVault.totalAssetsEth)}`,
-            ]}
-          />
-        </section>
-
-        <section className="space-y-2">
-          <h3 className="font-bold text-text-primary">Yield Vault (B)</h3>
-          <FlatList
-            items={[
-              `TVL: ${formatEth(global.yieldVault.tvlEth)}`,
-              `Performance fee: ${Math.floor(global.yieldVault.performanceFeeBps / 100)}%`,
-              `Fee recipient: ${formatAddress(global.yieldVault.feeRecipient)}`,
-            ]}
-          />
-        </section>
-
-        <section className="space-y-2">
-          <h3 className="font-bold text-text-primary">Yield sources</h3>
-          <FlatList items={global.yieldSources} />
-        </section>
-
-        <section className="space-y-2">
-          <h3 className="font-bold text-text-primary">Mechanism checks</h3>
-          <FlatList
-            items={[
-              `Treasury holds ${formatTokenAmount(global.treasuryRecoveryVaultShares, 18, 4)} Recovery Vault shares`,
-              `Treasury receives ${(global.treasuryYieldShareBps / 100).toFixed(2)}% of yield`,
-            ]}
-          />
-        </section>
-
-        <section className="space-y-2">
-          <h3 className="font-bold text-text-primary">Risks</h3>
-          <FlatList items={global.risks} />
-        </section>
-
-        <section className="space-y-2">
-          <h3 className="font-bold text-text-primary">Late claim process</h3>
-          <p className="text-text-secondary">
-            Late claims settle manually and do not dilute Recovery Vault share holders.
-          </p>
-          <Link
-            href={global.manualLateClaimUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex underline underline-offset-4"
-          >
-            Open manual settlement instructions
-          </Link>
-        </section>
-      </div>
-    </details>
-  );
-}
-
-function FlatList({ items }: { items: readonly ReactNode[] }) {
-  return (
-    <ul className="space-y-1 text-text-secondary list-disc pl-4">
-      {items.map((item, index) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>
-  );
-}
-
-function DataRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: ReactNode;
-}) {
+function DataRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border bg-surface-secondary p-3">
       <p className="text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
         {label}
       </p>
-      <div className="mt-1 text-sm font-number font-bold text-text-primary">
-        {value}
-      </div>
+      <div className="mt-1 text-sm font-number font-bold text-text-primary">{value}</div>
     </div>
   );
 }
@@ -662,8 +425,11 @@ function formatCountdown(closesAt: number, now: number) {
   const remaining = Math.max(0, closesAt - now);
   if (remaining === 0) return "Closed";
   const days = Math.floor(remaining / 86_400);
-  const hours = Math.floor((remaining % 86_400) / 3_600);
-  return `Ends in ${days}d ${hours}h`;
+  if (days > 0) {
+    return `Ends in ${days} days`;
+  }
+  const hours = Math.max(1, Math.floor(remaining / 3_600));
+  return `Ends in ${hours}h`;
 }
 
 function formatUtcDateTime(timestampSeconds: number) {
@@ -678,10 +444,6 @@ function formatUtcDateTime(timestampSeconds: number) {
     hour12: false,
   }).format(date);
   return `${formatted} UTC`;
-}
-
-function addressExplorerLink(address: string) {
-  return `https://etherscan.io/address/${address}`;
 }
 
 function txExplorerLink(hash: string) {
