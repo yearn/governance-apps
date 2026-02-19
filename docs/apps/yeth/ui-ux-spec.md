@@ -75,7 +75,10 @@ A clean 2x2 (mobile) or 4x1 (desktop) grid below the Action Deck.
 Replaces the old trust drawer treatment.
 
 - Located at the bottom of page content.
-- Uses a minimal `<details>` element style.
+- Uses a collapsible `<details>` element with a clear interactive trigger.
+- Trigger copy: `View Contracts, Risks & Sources`.
+- Trigger includes a chevron icon that rotates on open state.
+- Trigger uses subtle hover/focus affordance so it reads as a control, not plain text.
 - Includes:
   - Contract addresses (Claim, Vault A, Vault B) with explorer links
   - Vault metrics (TVL, PPS, performance fee)
@@ -105,11 +108,13 @@ Requirements:
 ### 3.3 Post-Claim State: Staying (Vault A Holder)
 
 - **Visual:** Active position dashboard.
-- **Metrics:**
-  - Shares held
-  - Current PPS
-  - Current value (ETH)
-- **Primary action:** `Redeem to ETH` (standard button, distinct from Tokyo claim styling).
+- **Framing:** Settlement-first ("checkout ticket"), not progress tracking.
+- **Primary metric:** `Liquidation Value` shown as the amount available to withdraw now.
+- **Detail rows:**
+  - Original Snapshot
+  - Recovered vs Original
+  - Vault Shares
+- **Primary action:** dynamic cash-out CTA (`Cash out X.XXXX ETH`) using Tokyo primary styling.
 
 ### 3.4 Claim Window Ended
 

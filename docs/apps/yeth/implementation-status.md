@@ -71,11 +71,13 @@ Implemented Tokyo refresh components and behavior:
 - `/app/yeth/components/StatsGrid.tsx`
   - context stats for wallet, snapshot value, claim window, eligibility.
 - `/app/yeth/components/TrustFooter.tsx`
-  - minimal `<details>` trust and verify footer at page bottom.
+  - collapsible trust and verify footer at page bottom,
+  - stronger trigger affordance (`View Contracts, Risks & Sources`) with chevron state.
 - `/app/yeth/YethPageClient.tsx`
   - unclaimed flow assembled from hero + action deck + context grid,
   - claim-window-closed branch replaces hero and hides action deck,
-  - risk modal remains required before claim-and-stay write.
+  - risk modal remains required before claim-and-stay write,
+  - staying state uses a settlement-style checkout ticket with liquidation value and a dynamic cash-out CTA.
 
 ### 1.6 Debug and QA Controls
 
@@ -114,6 +116,7 @@ Aligned in UI:
 - atomic exit path and atomic stay path (mocked transactions),
 - explicit risk acknowledgement for stay flow,
 - post-claim state distinction,
+- settlement-framed staying state with dynamic cash-out labeling,
 - trust and verify footer,
 - claim-ended manual process messaging.
 

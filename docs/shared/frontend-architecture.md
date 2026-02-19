@@ -369,9 +369,9 @@ Under `/lib/hooks/useVeyfi.ts`:
             ├─ [ActionDeck]              (claim paths)
             ├─ [StatsGrid]               (context metrics)
             ├─ [PostClaimExitedCard]     (claim-and-exit receipt state)
-            ├─ [PostClaimStayingCard]    (recovery vault holder state)
+            ├─ [PostClaimStayingCard]    (recovery vault holder settlement ticket)
             ├─ [IneligibleCard]          (non-eligible state)
-            ├─ [TrustFooter]             (flat disclosure sections)
+            ├─ [TrustFooter]             (collapsible disclosure sections with clear trigger)
             └─ [Risk Modal]              (required for claim-and-stay)
        └─ [MockControls]          (preset and claim-window debug controls)
 ```
@@ -395,6 +395,7 @@ Current data source is `MockYethClient` via `ProtocolProvider`.
 - In `claimStatus === "unclaimed"`, the UI composes hero + action deck + stats grid.
 - If claim window is closed, hero metrics are replaced and action deck is hidden.
 - Risk consent is local component state and required before claim-and-stay write.
+- Staying-state emphasizes settlement: liquidation value and a dynamic cash-out CTA.
 - Post-claim state transitions depend on account `claimStatus`:
   - `unclaimed`
   - `staying`
