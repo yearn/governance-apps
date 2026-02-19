@@ -31,7 +31,7 @@ export const yethCopy = {
         "Receive ETH immediately",
         "Recovery complete",
       ],
-      cta: "Claim ETH & Exit",
+      cta: (amount: string) => `Claim ${amount} ETH & Exit`,
     },
     stay: {
       title: "Active Recovery (Advanced)",

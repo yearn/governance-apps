@@ -2,7 +2,7 @@
 
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { TxStatus } from "@/lib/tx/types";
 import type { YethAccountState, YethGlobalState } from "@/lib/clients/yeth";
 import { Card } from "@/components/ui/Card";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { formatAddress, formatTokenAmount } from "@/lib/format";
 import { useProtocol } from "@/state/protocol";
+import { nowSeconds } from "@/lib/mocks/time";
 import {
   useYethAccountState,
   useYethClaimAndExit,
@@ -37,12 +38,7 @@ export function YethPageClient() {
   const redeem = useYethRedeemToEth();
   const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
   const [riskAccepted, setRiskAccepted] = useState(false);
-  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 30_000);
-    return () => clearInterval(id);
-  }, []);
+  const now = global?.asOf ?? nowSeconds();
 
   const claimExitPending = isTxPending(claimExit.state.status);
   const claimStayPending = isTxPending(claimStay.state.status);
@@ -302,6 +298,7 @@ function UnclaimedRecoveryState({
         <ActionDeck
           onExit={onClaimExit}
           onStay={onOpenRiskModal}
+          claimableEth={formatTokenAmount(account.claimableNowEth, 18, 4)}
           exitPending={claimExitPending}
           stayPending={claimStayPending}
           disabled={claimWindowClosed}
