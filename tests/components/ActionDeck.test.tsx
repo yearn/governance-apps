@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ActionDeck } from "@/app/yeth/components/ActionDeck";
+import { yethCopy } from "@/app/yeth/messages";
 
 describe("ActionDeck", () => {
   it("renders dynamic claim amount and aligned action cards", () => {
@@ -19,7 +20,7 @@ describe("ActionDeck", () => {
       screen.getByRole("button", { name: "Claim 4.2500 ETH & Exit" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Recover into Vault A" })
+      screen.getByRole("button", { name: yethCopy.actions.stay.cta })
     ).toBeInTheDocument();
 
     const headings = [

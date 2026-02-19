@@ -69,7 +69,7 @@ Implemented Tokyo refresh components and behavior:
   - dominant `Claim ETH & Exit` primary action,
   - dynamic claim amount in CTA (`Claim X.XXXX ETH & Exit`),
   - card/header/CTA vertical alignment for balanced two-option layout,
-  - advanced `Recover into Vault A` secondary action.
+  - advanced `Deposit claim into Recovery Vault` secondary action.
 - `/app/yeth/components/StatsGrid.tsx`
   - context stats for wallet, snapshot value, claim window, eligibility.
 - `/app/yeth/components/TrustFooter.tsx`

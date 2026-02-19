@@ -14,7 +14,7 @@ This specification defines the yETH recovery interface behavior for `/yeth`.
 - **Layout philosophy:** De-boxed. Avoid nesting cards within cards. Use typography and spacing to create hierarchy instead of borders.
 - **Tone:** Urgent but digital-native. Less accounting software, more mechanism.
 - **Primary action:** `Claim ETH & Exit` must be visually dominant.
-- **Secondary action:** `Recover into Vault A` must feel advanced and optional.
+- **Secondary action:** `Deposit claim into Recovery Vault` must feel advanced and optional.
 
 ## 2. Page Structure
 
@@ -53,11 +53,11 @@ A two-column grid directly below the hero metrics.
 - **Copy:** dynamic amount (`Claim X.XXXX ETH & Exit`).
 - **Body:** Bullet points emphasizing immediacy (`Receive ETH immediately`, `Recovery complete`).
 
-#### Option B: Recover into Vault A (Advanced)
+#### Option B: Active Recovery (Advanced)
 
 - **Visual:** Outlined or ghost treatment, visually recessed.
 - **Button:** Ghost style (`border-2 border-tokyo-600 text-tokyo-600`).
-- **Copy:** `Recover into Vault A`.
+- **Copy:** `Deposit claim into Recovery Vault`.
 - **Body:** Bullet points emphasizing risk (`Receive Recovery Vault shares`, `Ongoing risk`).
 - **Interaction:** Opens risk acknowledgement modal.
 
@@ -94,7 +94,7 @@ Replaces the old trust drawer treatment.
 
 ### 3.1 Risk Acknowledgement Modal
 
-**Trigger:** Clicking `Recover into Vault A`.
+**Trigger:** Clicking `Deposit claim into Recovery Vault`.
 
 Requirements:
 
@@ -131,7 +131,7 @@ Requirements:
 
 - **Avoid:** `Loss`, `Keep earning`, `Optimize`.
 - **Use:** `Snapshot Value`, `Recover`, `Claim`.
-- **Reasoning:** `Loss` is psychologically negative; `Snapshot Value` is neutral. `Keep earning` sounds promotional, while `Recover into Vault A` signals deliberate, risk-aware action.
+- **Reasoning:** `Loss` is psychologically negative; `Snapshot Value` is neutral. `Keep earning` sounds promotional, while `Deposit claim into Recovery Vault` signals deliberate, risk-aware action.
 
 ## 5. Responsive Behavior
 
