@@ -353,42 +353,61 @@ function PostClaimStayingCard({
   onRedeem: () => void;
   redeemPending: boolean;
 }) {
-  const pps = global.recoveryVault.pps;
-  const currentValueEth = (account.recoveryVaultShares * pps) / ONE;
+  const currentValueEth = (account.recoveryVaultShares * global.recoveryVault.pps) / ONE;
+  const recoveredPct = formatRecoveryPercent(currentValueEth, account.snapshotLossEth);
+  const cashOutAmount = formatTokenAmount(currentValueEth, 18, 4);
 
   return (
-    <section className="space-y-6">
-      <header className="space-y-2 text-center md:text-left">
-        <h2 className="text-3xl font-bold text-text-primary">
+    <section className="max-w-xl mx-auto space-y-6 pt-8">
+      <header className="text-center space-y-2">
+        <h2 className="text-2xl font-bold text-neutral-900">
           {copy.postClaim.stayingTitle}
         </h2>
-        <p className="text-sm text-text-secondary">
-          You hold Recovery Vault shares and remain exposed to ongoing recovery risk.
+        <p className="text-sm text-neutral-500">
+          You are currently exposed to Vault A smart contract risk.
         </p>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <PositionStat
-          label={copy.postClaim.shares}
-          value={formatTokenAmount(account.recoveryVaultShares, 18, 4)}
-        />
-        <PositionStat label={copy.postClaim.pps} value={formatPps(pps)} />
-        <PositionStat label={copy.postClaim.value} value={formatEth(currentValueEth)} />
+      <div className="bg-white border border-neutral-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-6 flex flex-col items-center border-b border-neutral-100">
+          <span className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-2">
+            {copy.postClaim.valueLabel}
+          </span>
+          <span className="text-5xl font-number font-bold text-neutral-900 tracking-tight">
+            {cashOutAmount} <span className="text-2xl text-neutral-400">ETH</span>
+          </span>
+        </div>
+
+        <div className="bg-neutral-50/50 p-4 space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-neutral-500">Original Snapshot</span>
+            <span className="font-number text-neutral-700">
+              {formatEth(account.snapshotLossEth)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-neutral-500">Recovered vs. Original</span>
+            <span className="font-number text-neutral-700">{recoveredPct}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-neutral-500">Vault Shares</span>
+            <span className="font-number text-neutral-700">
+              {formatTokenAmount(account.recoveryVaultShares, 18, 2)}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <Button className="w-full md:w-fit" onClick={onRedeem} isLoading={redeemPending}>
-        {copy.actions.redeem}
+      <Button
+        variant="yeth"
+        size="lg"
+        className="w-full h-16 text-lg shadow-md"
+        onClick={onRedeem}
+        isLoading={redeemPending}
+      >
+        {copy.actions.redeem(cashOutAmount)}
       </Button>
     </section>
-  );
-}
-
-function PositionStat({ label, value }: { label: string; value: string }) {
-  return (
-    <article className="rounded-xl bg-surface-secondary/70 p-4 text-center space-y-2">
-      <p className="text-xs text-neutral-500 uppercase tracking-wide">{label}</p>
-      <p className="font-number font-bold text-neutral-900">{value}</p>
-    </article>
   );
 }
 
@@ -409,10 +428,6 @@ function isTxPending(status: TxStatus) {
 
 function formatEth(amount: bigint) {
   return `${formatTokenAmount(amount, 18, 4)} ETH`;
-}
-
-function formatPps(pps: bigint) {
-  return `${formatTokenAmount(pps, 18, 4)} ETH/share`;
 }
 
 function formatRecoveryPercent(recovered: bigint, original: bigint) {

@@ -41,7 +41,7 @@ export const yethCopy = {
       ],
       cta: "Recover into Vault A",
     },
-    redeem: "Redeem to ETH",
+    redeem: (amount: string) => `Cash out ${amount} ETH`,
   },
   riskModal: {
     title: "Recover into Vault A - risk acknowledgement",
@@ -53,7 +53,8 @@ export const yethCopy = {
   postClaim: {
     exitedTitle: "Recovery Complete",
     exitedNote: "You no longer participate in future recovery yield.",
-    stayingTitle: "Active Recovery Position",
+    stayingTitle: "Recovery Position",
+    valueLabel: "Liquidation Value",
     received: "You received",
     recoveredTotal: "Recovered total",
     transaction: "Transaction",

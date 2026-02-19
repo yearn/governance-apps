@@ -1,16 +1,17 @@
 import type { ReactNode } from "react";
+import { IconChevron } from "@/components/icons/IconChevron";
 import { formatAddress, formatTokenAmount } from "@/lib/format";
 import type { YethGlobalState } from "@/lib/clients/yeth";
-import { yethCopy as copy } from "../messages";
 
 export function TrustFooter({ global }: { global: YethGlobalState }) {
   return (
-    <details className="group w-full max-w-2xl mx-auto border-t border-neutral-200 pt-8 mt-12">
-      <summary className="text-center text-sm font-medium text-neutral-400 hover:text-tokyo-600 cursor-pointer list-none">
-        {copy.page.sections.trust}
+    <details className="group w-full max-w-2xl mx-auto mt-12 border-t border-neutral-200">
+      <summary className="flex items-center justify-center gap-2 w-full py-4 rounded-md text-sm font-medium text-neutral-500 hover:text-tokyo-600 hover:bg-surface-secondary/60 cursor-pointer list-none transition-colors select-none">
+        <span>View Contracts, Risks & Sources</span>
+        <IconChevron className="w-4 h-4 transition-transform group-open:rotate-180" />
       </summary>
 
-      <div className="mt-5 space-y-6 text-sm text-text-secondary">
+      <div className="pb-8 space-y-6 text-sm text-text-secondary animate-in slide-in-from-top-2">
         <section className="space-y-2">
           <h3 className="font-bold text-text-primary">Contracts</h3>
           <FlatList
