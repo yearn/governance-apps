@@ -52,6 +52,15 @@ export async function setScenario(page: Page, name: ScenarioName) {
   }, name);
 }
 
+export async function seedExternalPortfolio(
+  page: Page,
+  address: Address = E2E_ADDRESS
+) {
+  await page.evaluate(async (addr) => {
+    await window.__TEST__?.seedExternalPortfolio(addr);
+  }, address);
+}
+
 export async function setNow(page: Page, timestamp: number) {
   await page.evaluate(async (ts) => {
     await window.__TEST__?.setNow(ts);

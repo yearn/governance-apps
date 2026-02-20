@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { LogoStyfi } from "@/components/icons/LogoStyfi";
 import { LogoStyfix } from "@/components/icons/LogoStyfix";
+import { IconLinkOut } from "@/components/icons/IconLinkOut";
+import { IconPlaceholderToken } from "@/components/icons/IconPlaceholderToken";
 import { cn } from "@/lib/cn";
 import { formatTokenAmount } from "@/lib/format";
+import { resolveGovernanceAppHref } from "@/lib/governance-links";
 import { ModeComparison } from "./ModeComparison";
 import type { StyfiAsset } from "./types";
+import type { ExternalPosition } from "../external-positions";
 
 type AccountBalances = {
   styfi: {
@@ -26,10 +30,11 @@ type AccountBalances = {
 };
 
 type AccountSummaryProps = {
-  isNewUser: boolean;
   selectedAsset?: StyfiAsset;
   onSelectAsset: (asset: StyfiAsset) => void;
   balances?: AccountBalances | null;
+  externalPositions: ExternalPosition[];
+  hostname?: string | null;
   isLoading: boolean;
   isConnected: boolean;
   isWrongNetwork: boolean;
@@ -40,10 +45,11 @@ type AccountSummaryProps = {
 };
 
 export function AccountSummary({
-  isNewUser,
   selectedAsset,
   onSelectAsset,
   balances,
+  externalPositions,
+  hostname,
   isLoading,
   isConnected,
   isWrongNetwork,
@@ -52,27 +58,6 @@ export function AccountSummary({
   connectBody,
   wrongNetworkBody,
 }: AccountSummaryProps) {
-  if (isNewUser && !isLoading && isConnected && !isWrongNetwork) {
-    return (
-      <Card>
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-              Choose your mode
-            </p>
-            <h2 className="text-xl font-bold text-neutral-900">
-              Compare stYFI and stYFIx
-            </h2>
-          </div>
-          <ModeComparison
-            selectedAsset={selectedAsset}
-            onSelectAsset={onSelectAsset}
-          />
-        </div>
-      </Card>
-    );
-  }
-
   if (isLoading && isConnected && !isWrongNetwork) {
     return (
       <Card>
@@ -118,6 +103,9 @@ export function AccountSummary({
       total: bigint;
     } => Boolean(row)
   );
+  const hasInternalPositions = rows.length > 0;
+  const hasExternalPositions = externalPositions.length > 0;
+  const veyfiBaseHref = resolveGovernanceAppHref("veyfi", hostname);
 
   return (
     <Card>
@@ -145,26 +133,75 @@ export function AccountSummary({
                   "Wrong network. Switch your wallet to Ethereum Mainnet to manage positions."}
               </p>
             </div>
-          ) : rows.length > 0 ? (
-            rows.map((row) => (
-              <PositionRow
-                key={row.asset}
-                asset={row.asset}
-                active={row.active}
-                unstaking={row.unstaking}
-                withdrawable={row.withdrawable}
-                onClick={() => onSelectAsset(row.asset)}
+          ) : hasInternalPositions ? (
+            <>
+              <SummarySectionTitle title="Staked YFI" />
+              {rows.map((row) => (
+                <PositionRow
+                  key={row.asset}
+                  asset={row.asset}
+                  active={row.active}
+                  unstaking={row.unstaking}
+                  withdrawable={row.withdrawable}
+                  onClick={() => onSelectAsset(row.asset)}
+                />
+              ))}
+              {hasExternalPositions ? (
+                <>
+                  <SummarySectionTitle title="Other Governance Positions" />
+                  {externalPositions.map((position) => (
+                    <ExternalPositionRow
+                      key={position.id}
+                      position={position}
+                      href={resolveVeyfiHref(position.href, veyfiBaseHref)}
+                    />
+                  ))}
+                </>
+              ) : null}
+            </>
+          ) : hasExternalPositions ? (
+            <>
+              <SummarySectionTitle title="Your Governance Positions" />
+              {externalPositions.map((position) => (
+                <ExternalPositionRow
+                  key={position.id}
+                  position={position}
+                  href={resolveVeyfiHref(position.href, veyfiBaseHref)}
+                />
+              ))}
+              <SummarySectionTitle title="Choose How to Stake" />
+              <ModeComparison
+                selectedAsset={selectedAsset}
+                onSelectAsset={onSelectAsset}
               />
-            ))
+            </>
           ) : (
-            <p className="text-sm text-neutral-600">
-              No active positions found.
-            </p>
+            <>
+              <SummarySectionTitle title="Compare stYFI and stYFIx" />
+              <ModeComparison
+                selectedAsset={selectedAsset}
+                onSelectAsset={onSelectAsset}
+              />
+            </>
           )}
         </div>
       </div>
     </Card>
   );
+}
+
+function SummarySectionTitle({ title }: { title: string }) {
+  return (
+    <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
+      {title}
+    </p>
+  );
+}
+
+function resolveVeyfiHref(href: string, veyfiBaseHref: string): string {
+  if (/^https?:\/\//i.test(href)) return href;
+  if (!veyfiBaseHref.startsWith("http")) return href;
+  return new URL(href, veyfiBaseHref).toString();
 }
 
 function PositionRow({
@@ -193,6 +230,7 @@ function PositionRow({
     <button
       type="button"
       onClick={onClick}
+      data-testid="styfi-position-row"
       className="grid w-full grid-cols-2 gap-x-4 gap-y-6 items-center rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:bg-surface-secondary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 md:grid-cols-[1.5fr_1fr_1fr_1fr]"
     >
       <div className="col-span-2 md:col-span-1 flex items-center gap-3">
@@ -234,5 +272,50 @@ function PositionRow({
         </span>
       </div>
     </button>
+  );
+}
+
+function ExternalPositionRow({
+  position,
+  href,
+}: {
+  position: ExternalPosition;
+  href: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-testid="external-position-row"
+      className="grid w-full grid-cols-2 gap-x-4 gap-y-5 items-center rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:bg-surface-secondary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 md:grid-cols-[1.5fr_1fr_auto]"
+    >
+      <div className="col-span-2 md:col-span-1 flex items-center gap-3">
+        <IconPlaceholderToken
+          letters={position.symbol.slice(0, 2)}
+          className="size-8"
+        />
+        <div>
+          <p className="text-base font-bold text-neutral-900">{position.name}</p>
+          <p className="text-xs font-medium text-neutral-500">{position.symbol}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-end">
+        <span className="font-number font-bold text-lg text-neutral-900">
+          {formatTokenAmount(position.balanceYfi)} YFI
+        </span>
+        <span className="mt-0.5 text-[10px] font-sans font-bold uppercase tracking-wide text-neutral-500">
+          {position.statusLabel}
+        </span>
+      </div>
+
+      <div className="col-span-2 md:col-span-1 flex items-center justify-end gap-2 text-neutral-500">
+        <span className="font-number text-sm font-bold text-neutral-700">
+          {position.boostMultiplier.toFixed(2)}x Boost
+        </span>
+        <IconLinkOut className="size-4 text-neutral-400" />
+      </div>
+    </a>
   );
 }

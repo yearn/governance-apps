@@ -9,6 +9,7 @@ import {
   useStyfiApy,
   useStyfiStats,
 } from "@/lib/hooks/useStyfi";
+import { useVeyfiAccount } from "@/lib/hooks/useVeyfi";
 import { useMotd } from "@/lib/hooks/useMotd";
 import { StyfiCockpit } from "./components/StyfiCockpit";
 import { AccountSummary } from "./components/AccountSummary";
@@ -22,6 +23,7 @@ import { useEpochClock } from "@/lib/hooks/useEpochClock";
 import { CrossAppNudge } from "@/components/domain/CrossAppNudge";
 import { useCrossChainNudge } from "@/lib/hooks/useCrossChainNudge";
 import { scrollToTargetWhenReady } from "@/lib/scrollToTarget";
+import { deriveExternalPositions } from "./external-positions";
 
 function deriveBalances(account: StyfiAccountState) {
   const styfiActive = account.styfiActive;
@@ -80,9 +82,10 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
   const { data: apy } = useStyfiApy();
   const { data: stats } = useStyfiStats();
   const { data: account, isLoading: isAccountLoading } = useStyfiAccount();
+  const { data: veyfiAccount, isLoading: isVeyfiLoading } = useVeyfiAccount();
   const { data: motd } = useMotd();
   const { globalData } = useProtocol();
-  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
+  const { now, epochInfo } = useEpochClock({ tickMs: 60_000 });
   const [selectedAsset, setSelectedAsset] = useState<StyfiAsset>();
   const hasUserSelected = useRef(false);
   const hasResolvedDefault = useRef(false);
@@ -185,10 +188,12 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
     : null;
   const activeAsset = selectedAsset ?? "stYFIx";
   const balances = account ? deriveBalances(account) : null;
+  const externalPositions = deriveExternalPositions(veyfiAccount, now);
   const totalBalance = balances
     ? balances.styfi.total + balances.styfix.total
     : 0n;
   const isNewUser = totalBalance === 0n;
+  const isSummaryLoading = isAccountLoading || isVeyfiLoading;
 
   return (
     <div className="space-y-0">
@@ -219,11 +224,12 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
         />
 
         <AccountSummary
-          isNewUser={isNewUser}
           selectedAsset={activeAsset}
           onSelectAsset={handleHeroSelect}
           balances={balances}
-          isLoading={isAccountLoading}
+          externalPositions={externalPositions}
+          hostname={hostname}
+          isLoading={isSummaryLoading}
           isConnected={isConnected}
           isWrongNetwork={isWrongNetwork}
           onConnect={openConnectModal}

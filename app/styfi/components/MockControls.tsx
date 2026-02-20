@@ -86,6 +86,24 @@ export function MockControls() {
     [veyfi, address, queryClient]
   );
 
+  const handleSeedExternalPortfolio = useCallback(async () => {
+    if (!address || !veyfi.debugSeedStakedExternalPortfolio) {
+      toast.error("Connect wallet first");
+      return;
+    }
+
+    veyfi.debugSeedStakedExternalPortfolio(address);
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: veyfiKeys.account(address),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["cross-app", "nudge"],
+      }),
+    ]);
+    toast.success("Seeded migrated veYFI + staked LLYFI");
+  }, [address, veyfi, queryClient]);
+
   const handleInjectYfi = useCallback(async () => {
     const amount = 10n * 10n ** 18n;
     if (address && styfi.debugMintYfi) {
@@ -119,6 +137,20 @@ export function MockControls() {
           onClick={() => handleInjectBalance("stYFIx")}
         >
           Add stYFIx
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 border-t border-neutral-100 pt-2 mb-2">
+        <p className="col-span-2 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+          Seed External Portfolio
+        </p>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="col-span-2"
+          onClick={handleSeedExternalPortfolio}
+        >
+          Add External Portfolio
         </Button>
       </div>
 

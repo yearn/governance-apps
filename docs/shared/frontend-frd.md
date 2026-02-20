@@ -200,6 +200,10 @@ All stYFI / stYFIx reads come from `StyfiAccountState` and associated types defi
 
 The UI **MUST** use the following domain shapes:
 
+Note:
+- The `/styfi` dashboard now also performs a read-only `VeyfiAccountState` read to assemble a complete Governance Portfolio view (stYFI/x + migrated veYFI + staked LLYFI in YFI-equivalent units).
+- This cross-app read **MUST NOT** introduce cross-domain writes; `/styfi` remains write-scoped to stYFI/x actions only.
+
 ### 3.1.1. `StyfiAccountState`
 
 From the client:

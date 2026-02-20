@@ -58,6 +58,7 @@ export interface TestBridge {
   setScenario: (
     name: "standard" | "active" | "legacy_user" | "caps_exhausted"
   ) => Promise<void>;
+  seedExternalPortfolio: (address: Address) => Promise<void>;
 }
 
 type TestBridgeDeps = {
@@ -136,6 +137,10 @@ export function createTestBridge({
   const debugSetLlyfiBalance = requireDebugMethod(
     veyfi.debugSetLlyfiBalance?.bind(veyfi),
     "veyfi.debugSetLlyfiBalance"
+  );
+  const debugSeedStakedExternalPortfolio = requireDebugMethod(
+    veyfi.debugSeedStakedExternalPortfolio?.bind(veyfi),
+    "veyfi.debugSeedStakedExternalPortfolio"
   );
 
   const reset = async () => {
@@ -279,6 +284,11 @@ export function createTestBridge({
     await queryClient.invalidateQueries({ refetchType: "all" });
   };
 
+  const seedExternalPortfolio = async (address: Address) => {
+    debugSeedStakedExternalPortfolio(address);
+    await queryClient.invalidateQueries({ refetchType: "all" });
+  };
+
   return {
     reset,
     setNow,
@@ -286,5 +296,6 @@ export function createTestBridge({
     setBalance,
     setAllowance,
     setScenario,
+    seedExternalPortfolio,
   };
 }

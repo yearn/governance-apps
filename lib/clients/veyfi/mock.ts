@@ -439,6 +439,22 @@ export class MockVeyfiClient implements VeyfiClient {
     const tok = st.llyfiTokens.find((x) => x.symbol === s);
     if (tok) tok.walletBalance = a;
   }
+  debugSeedStakedExternalPortfolio(u: Address) {
+    const st = this.getOrCreate(u);
+    if (st.veYfi) {
+      st.veYfi.migrated = true;
+      st.veYfi.lockedAmount = 100n * 10n ** 18n;
+      st.veYfi.unlockTime = nowSeconds() + 4 * 365 * 24 * 60 * 60;
+    }
+
+    const sdYfi = st.llyfiTokens.find((token) => token.symbol === "sdYFI");
+    if (sdYfi) {
+      sdYfi.stakedBalance = 50n * 10n ** 18n;
+      sdYfi.cooldownBalance = 0n;
+      sdYfi.withdrawable = 0n;
+      sdYfi.cooldown = null;
+    }
+  }
 }
 
 export function createMockVeyfiClient(options?: { latencyMs?: number }) {

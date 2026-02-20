@@ -32,7 +32,8 @@ It specifically addresses:
 
 ### 2.2 Data Flow
 - `StyfiPageClient` derives `selectedAsset` and `isNewUser`.
-- `AccountSummary` receives `isNewUser` + balances.
+- `StyfiPageClient` also reads `VeyfiAccountState` and derives normalized `externalPositions` (veYFI + staked LLYFI totals in YFI units).
+- `AccountSummary` receives balances + external positions and applies the Active/Hybrid/Newbie matrix.
 - `StyfiCockpit` receives `selectedAsset`, `onSelectAsset`, and `isNewUser`.
 
 ---
@@ -48,29 +49,44 @@ It specifically addresses:
 
 ## 4. AccountSummary
 
-### 4.1 New User (Hero)
-- Inline `<ModeComparison />` grid.
-- Cards act as a selector for the cockpit.
-- Selected card shows an active border in brand color.
-- Selecting a card **smooth-scrolls** the user to the cockpit.
-
-### 4.2 Loading State
+### 4.1 Loading State
 - If connected and account data is loading, show a compact skeleton row.
-- Hero is only shown once balances are loaded and total is zero.
+- Hero/portfolio matrix is only shown once balances are loaded.
 
-### 4.3 Returning User (Positions)
-- Read-only list of active positions.
-- Render `stYFI` row if balance > 0.
-- Render `stYFIx` row if balance > 0.
-- Dense horizontal layout to avoid dead space.
+### 4.2 State Matrix
 
-**Row Layout:**
-- **Icon:** Asset logo
-- **Name:** `stYFI` or `stYFIx`
-- **Balance:** `{amount} Active`
-- **Status:** `{amount} Unstaking` (grey, hide when 0)
-- **Actionable:** `{amount} Withdrawable` (brand color / high contrast, hide when 0)
-- **Note:** Do **not** use green for withdrawable.
+#### A. Active (`stYFI/stYFIx > 0`)
+1. Section: **Staked YFI**
+2. Interactive local rows (`<PositionRow />`) for `stYFI` / `stYFIx`.
+3. Optional section: **Other Governance Positions** when external positions exist.
+4. Read-only external rows (`<ExternalPositionRow />`) link to `/veyfi` in a new tab.
+
+#### B. Hybrid (`stYFI/stYFIx = 0` and external > 0)
+1. Section: **Your Governance Positions**.
+2. Read-only external rows (`<ExternalPositionRow />`).
+3. Section: **Choose How to Stake**.
+4. Inline `<ModeComparison />` cards remain available for onboarding into stYFI/x.
+
+#### C. Newbie (`stYFI/stYFIx = 0` and external = 0)
+1. Section: **Compare stYFI and stYFIx**.
+2. Inline `<ModeComparison />` grid only.
+
+### 4.3 Local Position Row (`<PositionRow />`)
+
+- **Icon:** Asset logo.
+- **Name:** `stYFI` or `stYFIx`.
+- **Balance:** `{amount} Active`.
+- **Status:** `{amount} Unstaking` (grey when 0).
+- **Actionable:** `{amount} Withdrawable` (brand accent, no green).
+
+### 4.4 External Position Row (`<ExternalPositionRow />`)
+
+- Read-only row implemented as external `<a>` (`target="_blank"`, `rel="noopener noreferrer"`).
+- Hostname-aware link resolution uses `resolveGovernanceAppHref("veyfi", hostname)` so local/preprod/prod route correctly.
+- **Left column:** Placeholder token icon + token name + symbol.
+- **Middle column:** Normalized YFI-equivalent amount (`balanceYfi`) with status (`Locked` or `Staked`).
+- **Right column:** Boost display (`{multiplier}x Boost`) + link-out icon.
+- External rows are visually distinct from interactive stYFI/x rows to indicate route-away behavior.
 
 ---
 
@@ -147,10 +163,11 @@ Always visible and owns all write interactions.
 
 ## 9. State Matrix
 
-| User State   | On-Chain Balance | View                              |
-| :----------- | :--------------- | :-------------------------------- |
-| New User     | 0                | AccountSummary → ModeComparison   |
-| Returning    | > 0              | AccountSummary → Positions List   |
+| User State | Condition | View |
+| :--- | :--- | :--- |
+| Active | `stYFI/stYFIx > 0` | Staked YFI rows, plus Other Governance Positions when external data exists |
+| Hybrid | `stYFI/stYFIx = 0` and external positions > 0 | Your Governance Positions, then ModeComparison |
+| Newbie | `stYFI/stYFIx = 0` and external positions = 0 | ModeComparison only |
 
 ---
 

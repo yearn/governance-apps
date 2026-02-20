@@ -46,4 +46,5 @@ export interface VeyfiClient {
     symbol: LlyfiTokenId,
     amount: bigint
   ) => void;
+  debugSeedStakedExternalPortfolio?: (user: `0x${string}`) => void;
 }
