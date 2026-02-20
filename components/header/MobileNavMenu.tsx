@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import {
+  useAccountModal,
+  useChainModal,
+  useConnectModal,
+} from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
 import { usePathname } from "next/navigation";
 import { IconChevron } from "@/components/icons/IconChevron";
 import { IconClose } from "@/components/icons/IconClose";
@@ -17,6 +22,7 @@ import { formatAddress } from "@/lib/format";
 import { resolveHeaderPrimaryNav } from "@/lib/header-nav";
 import { useHostname } from "@/lib/hooks/useHostname";
 import { useTheme } from "@/lib/hooks/useTheme";
+import { MAINNET_CHAIN_ID } from "@/lib/tx/network";
 import {
   APP_LINKS,
   COMMUNITY,
@@ -247,72 +253,69 @@ export function MobileNavMenu({
 }
 
 function MobileWalletButton({ onSelect }: { onSelect: () => void }): ReactElement {
+  const { address, chainId, isConnected } = useAccount();
+  const { openAccountModal } = useAccountModal();
+  const { openChainModal } = useChainModal();
+  const { openConnectModal } = useConnectModal();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!mounted) {
+    return <div className="h-[44px] w-full animate-pulse rounded-lg bg-surface-secondary" />;
+  }
+
+  if (!isConnected || !address) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          onSelect();
+          openConnectModal?.();
+        }}
+        className={LIST_BUTTON_CLASS}
+      >
+        <IconWallet className="size-5 shrink-0" />
+        <span className="truncate">Connect Wallet</span>
+      </button>
+    );
+  }
+
+  const isWrongNetwork = !!chainId && chainId !== MAINNET_CHAIN_ID;
+
+  if (isWrongNetwork) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          onSelect();
+          (openChainModal ?? openConnectModal)?.();
+        }}
+        className="relative flex min-h-[44px] w-full items-center gap-3 rounded-lg px-4 text-left text-lg font-medium text-red-500 transition-colors hover:bg-surface-tertiary"
+      >
+        <IconWallet className="size-5 shrink-0 text-red-500" />
+        <span className="truncate">Wrong Network</span>
+      </button>
+    );
+  }
+
+  const identityLabel = formatAddress(address);
+
   return (
-    <ConnectButton.Custom>
-      {({
-        account,
-        chain,
-        mounted,
-        openAccountModal,
-        openChainModal,
-        openConnectModal,
-      }) => {
-        const ready = mounted;
-        const connected = ready && account && chain;
-
-        if (!ready) {
-          return <div className="h-[44px] w-full animate-pulse rounded-lg bg-surface-secondary" />;
-        }
-
-        if (!connected) {
-          return (
-            <button
-              type="button"
-              onClick={() => {
-                onSelect();
-                openConnectModal?.();
-              }}
-              className={LIST_BUTTON_CLASS}
-            >
-              <IconWallet className="size-5 shrink-0" />
-              <span className="truncate">Connect Wallet</span>
-            </button>
-          );
-        }
-
-        if (chain.unsupported) {
-          return (
-            <button
-              type="button"
-              onClick={() => {
-                onSelect();
-                (openChainModal ?? openConnectModal)?.();
-              }}
-              className="relative flex min-h-[44px] w-full items-center gap-3 rounded-lg px-4 text-left text-lg font-medium text-red-500 transition-colors hover:bg-surface-tertiary"
-            >
-              <IconWallet className="size-5 shrink-0 text-red-500" />
-              <span className="truncate">Wrong Network</span>
-            </button>
-          );
-        }
-
-        const identityLabel = account.ensName ?? formatAddress(account.address);
-
-        return (
-          <button
-            type="button"
-            onClick={() => {
-              onSelect();
-              openAccountModal?.();
-            }}
-            className={LIST_BUTTON_CLASS}
-          >
-            <IconWallet className="size-5 shrink-0" />
-            <span className="truncate">{identityLabel}</span>
-          </button>
-        );
+    <button
+      type="button"
+      onClick={() => {
+        onSelect();
+        openAccountModal?.();
       }}
-    </ConnectButton.Custom>
+      className={LIST_BUTTON_CLASS}
+    >
+      <IconWallet className="size-5 shrink-0" />
+      <span className="truncate">{identityLabel}</span>
+    </button>
   );
 }
 

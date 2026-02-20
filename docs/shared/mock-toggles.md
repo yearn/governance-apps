@@ -53,7 +53,7 @@
 
 - Env: `NEXT_PUBLIC_RPC_URLS` (comma-separated, HTTPS when served over HTTPS).
 - Optional. Used to seed wagmi transports for local/dev or fork testing.
-- If unset, wagmi falls back to default mainnet RPC URLs.
+- If unset, production falls back to `https://rpc.yearn.fi/chain/1`; non-production falls back to viem default mainnet RPC URLs.
 
 ## Persistence
 

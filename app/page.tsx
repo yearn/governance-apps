@@ -12,7 +12,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center gap-6">
       <div>
-        <ConnectButton />
+        <ConnectButton showBalance={false} />
       </div>
 
       <h1 className="text-3xl font-semibold">{copy.page.title}</h1>

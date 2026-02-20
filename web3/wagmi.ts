@@ -24,13 +24,23 @@ const rawRpcUrls = (process.env.NEXT_PUBLIC_RPC_URLS ?? "")
   .split(",")
   .map((url) => url.trim())
   .filter(Boolean);
-const rpcUrls =
-  rawRpcUrls.length > 0 ? rawRpcUrls : mainnet.rpcUrls.default.http;
 const isProd = process.env.NODE_ENV === "production";
+const defaultRpcUrls =
+  rawRpcUrls.length > 0
+    ? rawRpcUrls
+    : isProd
+      ? ["https://rpc.yearn.fi/chain/1"]
+      : mainnet.rpcUrls.default.http;
+const rpcUrls = defaultRpcUrls;
 
 if (!isProd && rawRpcUrls.length === 0) {
   console.warn(
-    "NEXT_PUBLIC_RPC_URLS is not set. Falling back to default mainnet RPCs."
+    "NEXT_PUBLIC_RPC_URLS is not set. Falling back to default mainnet RPC."
+  );
+}
+if (isProd && rawRpcUrls.length === 0) {
+  console.warn(
+    "NEXT_PUBLIC_RPC_URLS is not set in production. Falling back to https://rpc.yearn.fi/chain/1."
   );
 }
 if (!isProd && rpcUrls.length === 0) {
@@ -67,11 +77,15 @@ if (!projectId) {
 }
 
 const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+const httpTransport = (url: string) =>
+  http(url, {
+    retryCount: 1,
+  });
 const transports = {
   [mainnetFork.id]:
     rpcUrls.length > 1
-      ? fallback(rpcUrls.map((url) => http(url)))
-      : http(rpcUrls[0]),
+      ? fallback(rpcUrls.map((url) => httpTransport(url)))
+      : httpTransport(rpcUrls[0]),
 };
 
 export const wagmiConfig = isE2E
