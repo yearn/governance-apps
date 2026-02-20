@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatUnits } from "viem";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -11,6 +12,7 @@ import { IconPlaceholderToken } from "@/components/icons/IconPlaceholderToken";
 import { cn } from "@/lib/cn";
 import { formatTokenAmount } from "@/lib/format";
 import { resolveGovernanceAppHref } from "@/lib/governance-links";
+import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 import { ModeComparison } from "./ModeComparison";
 import type { StyfiAsset } from "./types";
 import type { ExternalPosition } from "../external-positions";
@@ -33,6 +35,22 @@ function formatUnlockDate(timestamp: number) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+function formatCompactTokenAmount(amount: bigint, decimals = 18): string {
+  const asNumber = Number.parseFloat(formatUnits(amount, decimals));
+  if (!Number.isFinite(asNumber)) return "0";
+  return asNumber.toLocaleString("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
+}
+
+function formatExternalMetricAmount(position: ExternalPosition, amount: bigint) {
+  if (getLlyfiDisplaySymbol(position.symbol) === "supYFI") {
+    return formatCompactTokenAmount(amount);
+  }
+  return formatTokenAmount(amount);
 }
 
 type AccountBalances = {
@@ -330,6 +348,7 @@ function ExternalPositionRow({
   position: ExternalPosition;
   href: string;
 }) {
+  const displaySymbol = getLlyfiDisplaySymbol(position.symbol);
   const isVeYfi = position.symbol === "veYFI";
   const isVeYfiUnlocked =
     isVeYfi &&
@@ -359,7 +378,7 @@ function ExternalPositionRow({
           <ExternalTokenIcon symbol={position.symbol} />
           <div>
             <p className="flex items-center gap-1.5 text-base font-bold text-neutral-900">
-              {position.symbol}
+              {displaySymbol}
               <IconLinkOut className="size-3.5 text-neutral-400 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-visible:opacity-100" />
             </p>
             <p className="text-xs font-medium text-neutral-500">{position.subLabel}</p>
@@ -387,7 +406,7 @@ function ExternalPositionRow({
           ) : (
             <>
               <span className={cn(metricValueClass, activeClass)}>
-                {formatTokenAmount(position.activeYfi)}
+                {formatExternalMetricAmount(position, position.activeYfi)}
               </span>
               <span className="mt-0.5 text-[10px] font-sans font-bold uppercase tracking-wide text-neutral-500">
                 Active
@@ -409,7 +428,7 @@ function ExternalPositionRow({
           ) : (
             <>
               <span className={cn(metricValueClass, unstakingClass)}>
-                {formatTokenAmount(position.unstakingYfi)}
+                {formatExternalMetricAmount(position, position.unstakingYfi)}
               </span>
               <span className="mt-0.5 text-[10px] font-sans font-bold uppercase tracking-wide text-neutral-500">
                 Unstaking
@@ -437,7 +456,7 @@ function ExternalPositionRow({
                   withdrawableClass
                 )}
               >
-                {formatTokenAmount(position.withdrawableYfi)}
+                {formatExternalMetricAmount(position, position.withdrawableYfi)}
               </span>
               <span
                 className={cn(

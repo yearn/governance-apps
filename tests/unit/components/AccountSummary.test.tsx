@@ -127,4 +127,25 @@ describe("AccountSummary", () => {
       screen.queryByText("Compare stYFI and stYFIx")
     ).not.toBeInTheDocument();
   });
+
+  it("renders supYFI with compact unstaking metrics", () => {
+    renderSummary(emptyBalances, [
+      {
+        id: "upYFI",
+        symbol: "upYFI",
+        subLabel: "1UP",
+        activeYfi: 4_700_000n * 10n ** 18n,
+        unstakingYfi: 1_200_000n * 10n ** 18n,
+        withdrawableYfi: 300_000n * 10n ** 18n,
+        balanceYfi: 67n * 10n ** 18n,
+        boostMultiplier: 1.9,
+        href: "/veyfi?focus=manage#llyfi-ledger",
+      },
+    ]);
+
+    expect(screen.getByText("supYFI")).toBeInTheDocument();
+    expect(screen.getByText("4.7M")).toBeInTheDocument();
+    expect(screen.getByText("1.2M")).toBeInTheDocument();
+    expect(screen.getByText("300K")).toBeInTheDocument();
+  });
 });

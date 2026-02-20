@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { Address } from "viem";
 import { deriveExternalPositions } from "@/app/styfi/external-positions";
 import type { VeyfiAccountState } from "@/lib/clients/veyfi/types";
+import { LIQUID_LOCKERS } from "@/lib/constants";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000001" as Address;
 const SDYFI_ADDRESS = "0x0000000000000000000000000000000000000002" as Address;
 const UPYFI_ADDRESS = "0x0000000000000000000000000000000000000003" as Address;
 const COVEYFI_ADDRESS = "0x0000000000000000000000000000000000000004" as Address;
+const UPYFI_SCALE =
+  LIQUID_LOCKERS.find((locker) => locker.symbol === "upYFI")?.scale ?? 1n;
 
 function buildAccount(overrides?: Partial<VeyfiAccountState>): VeyfiAccountState {
   const base: VeyfiAccountState = {
@@ -181,6 +184,45 @@ describe("deriveExternalPositions", () => {
     expect(coveYfi?.withdrawableYfi).toBe(0n);
     expect(coveYfi?.balanceYfi).toBe(2n * 10n ** 18n);
     expect(upYfi).toBeUndefined();
+  });
+
+  it("converts supYFI totals to YFI equivalents using scale", () => {
+    const supYfiAmount = 4_760_257_9691n * 10n ** 14n;
+    const account = buildAccount({
+      veYfi: {
+        legacyBalance: 0n,
+        lockedAmount: 0n,
+        migrationEligible: true,
+        migrated: true,
+        unlockTime: 1_800_000_000,
+      },
+      llyfiTokens: [
+        {
+          ...buildAccount().llyfiTokens[0],
+          stakedBalance: 0n,
+          cooldownBalance: 0n,
+          withdrawable: 0n,
+        },
+        {
+          ...buildAccount().llyfiTokens[1],
+          stakedBalance: supYfiAmount,
+          cooldownBalance: 0n,
+          withdrawable: 0n,
+        },
+        {
+          ...buildAccount().llyfiTokens[2],
+          stakedBalance: 0n,
+          cooldownBalance: 0n,
+          withdrawable: 0n,
+        },
+      ],
+    });
+
+    const positions = deriveExternalPositions(account, 1_700_000_000);
+    const upYfi = positions.find((position) => position.symbol === "upYFI");
+
+    expect(upYfi?.activeYfi).toBe(supYfiAmount);
+    expect(upYfi?.balanceYfi).toBe(supYfiAmount / UPYFI_SCALE);
   });
 
   it("maps migrated veYFI with unlock time metadata", () => {

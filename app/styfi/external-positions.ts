@@ -1,5 +1,6 @@
 import type { VeyfiAccountState } from "@/lib/clients/veyfi/types";
 import { getVeyfiBoostMultiplier } from "@/lib/clients/veyfi/boost";
+import { LIQUID_LOCKERS } from "@/lib/constants";
 
 export type ExternalPosition = {
   id: string;
@@ -13,6 +14,16 @@ export type ExternalPosition = {
   unlockTime?: number;
   href: string;
 };
+
+const LLYFI_SCALE_BY_SYMBOL: ReadonlyMap<string, bigint> = new Map(
+  LIQUID_LOCKERS.map((locker) => [locker.symbol, locker.scale])
+);
+
+function getLlyfiYfiEquivalent(symbol: string, amount: bigint): bigint {
+  const scale = LLYFI_SCALE_BY_SYMBOL.get(symbol) ?? 1n;
+  if (scale <= 0n) return amount;
+  return amount / scale;
+}
 
 export function deriveExternalPositions(
   veyfiAccount: VeyfiAccountState | null | undefined,
@@ -35,7 +46,7 @@ export function deriveExternalPositions(
       activeYfi: token.stakedBalance,
       unstakingYfi: token.cooldownBalance,
       withdrawableYfi: token.withdrawable,
-      balanceYfi: totalStaked,
+      balanceYfi: getLlyfiYfiEquivalent(token.symbol, totalStaked),
       boostMultiplier: token.veyfiBoost ?? 1,
       href: "/veyfi?focus=manage#llyfi-ledger",
     });
