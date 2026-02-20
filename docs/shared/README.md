@@ -17,6 +17,7 @@ Shared docs define requirements and architecture that apply across multiple apps
 ## Delivery and Testing
 
 - [`master-task-list.md`](master-task-list.md)
+- [`rpc-reliance-reduction-roadmap.md`](rpc-reliance-reduction-roadmap.md)
 - [`testing.md`](testing.md)
 - [`mock-toggles.md`](mock-toggles.md)
 - [`runtime-modes.md`](runtime-modes.md)
