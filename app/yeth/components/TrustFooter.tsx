@@ -28,7 +28,7 @@ export function TrustFooter({ global }: { global: YethGlobalState }) {
                 </a>
               </>,
               <>
-                Vault A: {formatAddress(global.contracts.recoveryVault)}{" "}
+                Recovery Vault: {formatAddress(global.contracts.recoveryVault)}{" "}
                 <a
                   href={addressExplorerLink(global.contracts.recoveryVault)}
                   target="_blank"
@@ -39,7 +39,7 @@ export function TrustFooter({ global }: { global: YethGlobalState }) {
                 </a>
               </>,
               <>
-                Vault B: {formatAddress(global.contracts.yieldVault)}{" "}
+                Yield Vault: {formatAddress(global.contracts.yieldVault)}{" "}
                 <a
                   href={addressExplorerLink(global.contracts.yieldVault)}
                   target="_blank"
@@ -73,8 +73,8 @@ export function TrustFooter({ global }: { global: YethGlobalState }) {
           <h3 className="font-bold text-text-primary">Risk Disclosures</h3>
           <FlatList items={global.risks} />
           <p className="text-text-secondary">
-            There is no recovery of the recovery. Staying in Vault A means ongoing
-            smart-contract and strategy risk.
+            There is no recovery of the recovery. Staying in the Recovery Vault
+            means ongoing smart-contract and strategy risk.
           </p>
         </section>
 

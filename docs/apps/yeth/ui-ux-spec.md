@@ -85,7 +85,7 @@ Replaces the old trust drawer treatment.
 - Trigger includes a chevron icon that rotates on open state.
 - Trigger uses subtle hover/focus affordance so it reads as a control, not plain text.
 - Includes:
-  - Contract addresses (Claim, Vault A, Vault B) with explorer links
+  - Contract addresses (Claim Contract, Recovery Vault, Yield Vault) with explorer links
   - Vault metrics (TVL, PPS, performance fee)
   - Yield sources and risk disclosures
   - Manual late-claim instructions
@@ -110,7 +110,7 @@ Requirements:
 - **Subtext:** `You no longer participate in future recovery yield.`
 - **Action:** Link to block explorer.
 
-### 3.3 Post-Claim State: Staying (Vault A Holder)
+### 3.3 Post-Claim State: Staying (Recovery Vault Holder)
 
 - **Visual:** Active position dashboard.
 - **Framing:** Settlement-first ("checkout ticket"), not progress tracking.

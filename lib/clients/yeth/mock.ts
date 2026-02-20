@@ -183,7 +183,7 @@ export class MockYethClient implements YethClient {
         feeRecipient: CONTRACTS.recoveryVault,
       },
       yieldSources: [
-        "Strategy yield forwarded from B to A via performance fees",
+        "Strategy yield forwarded from Yield Vault to Recovery Vault via performance fees",
         "External donations (including stYFI revenue share)",
       ],
       risks: [

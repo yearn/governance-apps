@@ -135,7 +135,7 @@ Still placeholder/mock:
 - Real `OnchainYethClient` implementation.
 - Contract ABI integration once finalized.
 - Source-of-truth eligibility and claim amount reads from claim contract.
-- Real Vault A/B metrics from chain/indexer.
+- Real Recovery Vault/Yield Vault metrics from chain/indexer.
 - Real transaction execution and receipt handling against deployed contracts.
 - Production content finalization:
   - approved YIP URL,

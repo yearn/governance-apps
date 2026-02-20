@@ -361,7 +361,7 @@ function PostClaimStayingCard({
           {copy.postClaim.stayingTitle}
         </h2>
         <p className="text-sm text-neutral-500">
-          You are currently exposed to Vault A smart contract risk.
+          You are currently exposed to Recovery Vault smart contract risk.
         </p>
       </header>
 

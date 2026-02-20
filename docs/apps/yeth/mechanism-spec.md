@@ -27,25 +27,25 @@ The design is voluntary, uses no bespoke per-user accounting in vault contracts,
 
 ## 3. Architecture
 
-### 3.1 Yield Vault (Vault B)
+### 3.1 Yield Vault
 
 - Holds ETH capital (Treasury plus recovered ETH pool).
 - Runs curated yield strategies.
 - Uses 100% performance fee.
-- Fee recipient is Recovery Vault (Vault A).
+- Fee recipient is Recovery Vault.
 
-### 3.2 Recovery Vault (Vault A)
+### 3.2 Recovery Vault
 
 - Holds no principal strategies.
 - Receives:
-  - performance fees from Vault B,
+  - performance fees from Yield Vault,
   - external donations (for example stYFI revenue share).
 - Issues Recovery Vault shares to users that choose the "stay" path.
 - Share value increases only through donations and fee inflows.
 
 ### 3.3 Claim Contract
 
-- Holds maximum claimable exposure to Vault B.
+- Holds maximum claimable exposure to Yield Vault.
 - Enforces eligibility and claim window.
 - Executes user claim actions atomically.
 
@@ -53,22 +53,22 @@ The design is voluntary, uses no bespoke per-user accounting in vault contracts,
 
 ### 4.1 Claim and Exit (Atomic)
 
-- Withdraw ETH from Vault B.
+- Withdraw ETH from Yield Vault.
 - Transfer ETH/WETH directly to user.
 - User exits recovery permanently.
 
 ### 4.2 Claim and Stay (Atomic)
 
-- Withdraw ETH from Vault B.
-- Deposit ETH to Vault A.
-- Mint Vault A shares to user.
+- Withdraw ETH from Yield Vault.
+- Deposit ETH to Recovery Vault.
+- Mint Recovery Vault shares to user.
 - User remains exposed to ongoing recovery mechanics and risk.
 
 ## 5. Claim Timing and Fairness
 
-- Vault B uses an initial report delay.
+- Yield Vault uses an initial report delay.
 - During delay, early "stay" users are not advantaged relative to each other.
-- Users claiming after yield realization into Vault A may not receive previously realized upside.
+- Users claiming after yield realization into Recovery Vault may not receive previously realized upside.
 - This behavior is accepted by design.
 
 ## 6. Claim Window
@@ -78,15 +78,15 @@ The design is voluntary, uses no bespoke per-user accounting in vault contracts,
   - eligible users can claim at any time.
 - After window:
   - governance-defined handling for unclaimed amounts,
-  - manual settlement path from Vault B,
-  - no dilution of Vault A share holders from late claims.
+  - manual settlement path from Yield Vault,
+  - no dilution of Recovery Vault share holders from late claims.
 
 ## 7. Required Invariants
 
-- Treasury holds zero Vault A shares.
+- Treasury holds zero Recovery Vault shares.
 - Treasury receives zero yield.
 - Yield accrues only to opt-in participants.
-- Exit remains possible through Vault B and Vault A mechanics.
+- Exit remains possible through Yield Vault and Recovery Vault mechanics.
 
 ## 8. Frontend-Enforced User Communication Requirements
 

@@ -7,7 +7,7 @@ Use this checklist to track all work required to move from current mock-first yE
 
 ## 1. Contract and Protocol Readiness
 
-- [ ] Finalize Vault A (Recovery Vault) and Vault B (Yield Vault) contract addresses.
+- [ ] Finalize Recovery Vault and Yield Vault contract addresses.
 - [ ] Finalize Claim contract interface and eligibility/claim amount methods.
 - [ ] Confirm claim window constants and governance-approved timeline.
 - [ ] Confirm late-claim governance/manual process and endpoint.
