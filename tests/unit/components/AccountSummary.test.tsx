@@ -35,12 +35,26 @@ const activeBalances = {
 
 const externalPositions: ExternalPosition[] = [
   {
+    id: "sdYFI",
+    symbol: "sdYFI",
+    subLabel: "StakeDAO",
+    activeYfi: 40n * 10n ** 18n,
+    unstakingYfi: 5n * 10n ** 18n,
+    withdrawableYfi: 3n * 10n ** 18n,
+    balanceYfi: 48n * 10n ** 18n,
+    boostMultiplier: 1.95,
+    href: "/veyfi?focus=manage#llyfi-ledger",
+  },
+  {
     id: "veyfi",
-    name: "veYFI",
     symbol: "veYFI",
+    subLabel: "Migrated lock",
+    activeYfi: 100n * 10n ** 18n,
+    unstakingYfi: 0n,
+    withdrawableYfi: 0n,
     balanceYfi: 100n * 10n ** 18n,
-    statusLabel: "Locked",
     boostMultiplier: 1.5,
+    unlockTime: 1_800_000_000,
     href: "/veyfi",
   },
 ];
@@ -90,7 +104,11 @@ describe("AccountSummary", () => {
     renderSummary(emptyBalances, externalPositions);
 
     expect(screen.getByText("Your Governance Positions")).toBeInTheDocument();
-    expect(screen.getByTestId("external-position-row")).toBeInTheDocument();
+    expect(screen.getAllByTestId("external-position-row")).toHaveLength(2);
+    expect(screen.getByText("Migrated lock")).toBeInTheDocument();
+    expect(screen.getByText("StakeDAO")).toBeInTheDocument();
+    expect(screen.getByText("Status")).toBeInTheDocument();
+    expect(screen.getByText("Locked")).toBeInTheDocument();
     expect(screen.getByText("Choose How to Stake")).toBeInTheDocument();
     expect(screen.getByText("Variable APY")).toBeInTheDocument();
     expect(screen.getByText("Maximized APY")).toBeInTheDocument();
@@ -102,8 +120,9 @@ describe("AccountSummary", () => {
 
     expect(screen.getByText("Staked YFI")).toBeInTheDocument();
     expect(screen.getByText("Other Governance Positions")).toBeInTheDocument();
+    expect(screen.getAllByText("Total Position")).toHaveLength(3);
     expect(screen.getAllByTestId("styfi-position-row")).toHaveLength(1);
-    expect(screen.getAllByTestId("external-position-row")).toHaveLength(1);
+    expect(screen.getAllByTestId("external-position-row")).toHaveLength(2);
     expect(
       screen.queryByText("Compare stYFI and stYFIx")
     ).not.toBeInTheDocument();

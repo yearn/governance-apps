@@ -3,11 +3,14 @@ import { getVeyfiBoostMultiplier } from "@/lib/clients/veyfi/boost";
 
 export type ExternalPosition = {
   id: string;
-  name: string;
   symbol: string;
+  subLabel: string;
+  activeYfi: bigint;
+  unstakingYfi: bigint;
+  withdrawableYfi: bigint;
   balanceYfi: bigint;
-  statusLabel: string;
   boostMultiplier: number;
+  unlockTime?: number;
   href: string;
 };
 
@@ -19,21 +22,6 @@ export function deriveExternalPositions(
 
   const externalPositions: ExternalPosition[] = [];
 
-  if (veyfiAccount.veYfi?.migrated && veyfiAccount.veYfi.lockedAmount > 0n) {
-    externalPositions.push({
-      id: "veyfi",
-      name: "veYFI",
-      symbol: "veYFI",
-      balanceYfi: veyfiAccount.veYfi.lockedAmount,
-      statusLabel: "Locked",
-      boostMultiplier: getVeyfiBoostMultiplier(
-        veyfiAccount.veYfi.unlockTime,
-        now
-      ),
-      href: "/veyfi",
-    });
-  }
-
   for (const token of veyfiAccount.llyfiTokens) {
     const totalStaked =
       token.stakedBalance + token.cooldownBalance + token.withdrawable;
@@ -42,12 +30,33 @@ export function deriveExternalPositions(
 
     externalPositions.push({
       id: token.symbol,
-      name: token.name,
       symbol: token.symbol,
+      subLabel: token.name,
+      activeYfi: token.stakedBalance,
+      unstakingYfi: token.cooldownBalance,
+      withdrawableYfi: token.withdrawable,
       balanceYfi: totalStaked,
-      statusLabel: "Staked",
       boostMultiplier: token.veyfiBoost ?? 1,
       href: "/veyfi?focus=manage#llyfi-ledger",
+    });
+  }
+
+  // Always keep veYFI below liquid locker positions in the portfolio list.
+  if (veyfiAccount.veYfi?.migrated && veyfiAccount.veYfi.lockedAmount > 0n) {
+    externalPositions.push({
+      id: "veyfi",
+      symbol: "veYFI",
+      subLabel: "Migrated lock",
+      activeYfi: veyfiAccount.veYfi.lockedAmount,
+      unstakingYfi: 0n,
+      withdrawableYfi: 0n,
+      balanceYfi: veyfiAccount.veYfi.lockedAmount,
+      boostMultiplier: getVeyfiBoostMultiplier(
+        veyfiAccount.veYfi.unlockTime,
+        now
+      ),
+      unlockTime: veyfiAccount.veYfi.unlockTime,
+      href: "/veyfi",
     });
   }
 

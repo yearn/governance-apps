@@ -168,8 +168,78 @@ describe("deriveExternalPositions", () => {
     const coveYfi = positions.find((position) => position.symbol === "coveYFI");
     const upYfi = positions.find((position) => position.symbol === "upYFI");
 
+    expect(sdYfi?.symbol).toBe("sdYFI");
+    expect(sdYfi?.subLabel).toBe("StakeDAO");
+    expect(sdYfi?.activeYfi).toBe(40n * 10n ** 18n);
+    expect(sdYfi?.unstakingYfi).toBe(5n * 10n ** 18n);
+    expect(sdYfi?.withdrawableYfi).toBe(3n * 10n ** 18n);
     expect(sdYfi?.balanceYfi).toBe(48n * 10n ** 18n);
+    expect(coveYfi?.symbol).toBe("coveYFI");
+    expect(coveYfi?.subLabel).toBe("Cove");
+    expect(coveYfi?.activeYfi).toBe(0n);
+    expect(coveYfi?.unstakingYfi).toBe(2n * 10n ** 18n);
+    expect(coveYfi?.withdrawableYfi).toBe(0n);
     expect(coveYfi?.balanceYfi).toBe(2n * 10n ** 18n);
     expect(upYfi).toBeUndefined();
+  });
+
+  it("maps migrated veYFI with unlock time metadata", () => {
+    const unlockTime = 1_800_000_000;
+    const account = buildAccount({
+      veYfi: {
+        legacyBalance: 0n,
+        lockedAmount: 100n * 10n ** 18n,
+        migrationEligible: true,
+        migrated: true,
+        unlockTime,
+      },
+    });
+
+    const positions = deriveExternalPositions(account, 1_700_000_000);
+    const veyfi = positions.find((position) => position.id === "veyfi");
+
+    expect(veyfi?.symbol).toBe("veYFI");
+    expect(veyfi?.subLabel).toBe("Migrated lock");
+    expect(veyfi?.activeYfi).toBe(100n * 10n ** 18n);
+    expect(veyfi?.unstakingYfi).toBe(0n);
+    expect(veyfi?.withdrawableYfi).toBe(0n);
+    expect(veyfi?.unlockTime).toBe(unlockTime);
+    expect(veyfi?.balanceYfi).toBe(100n * 10n ** 18n);
+  });
+
+  it("places veYFI below all LLYFI rows", () => {
+    const unlockTime = 1_800_000_000;
+    const account = buildAccount({
+      veYfi: {
+        legacyBalance: 0n,
+        lockedAmount: 100n * 10n ** 18n,
+        migrationEligible: true,
+        migrated: true,
+        unlockTime,
+      },
+      llyfiTokens: [
+        {
+          ...buildAccount().llyfiTokens[0],
+          stakedBalance: 1n * 10n ** 18n,
+        },
+        {
+          ...buildAccount().llyfiTokens[1],
+          stakedBalance: 2n * 10n ** 18n,
+        },
+        {
+          ...buildAccount().llyfiTokens[2],
+          stakedBalance: 3n * 10n ** 18n,
+        },
+      ],
+    });
+
+    const positions = deriveExternalPositions(account, 1_700_000_000);
+
+    expect(positions.map((position) => position.symbol)).toEqual([
+      "sdYFI",
+      "upYFI",
+      "coveYFI",
+      "veYFI",
+    ]);
   });
 });
