@@ -71,7 +71,7 @@ When running with mocks enabled, a **"🛠️ Debug"** button appears at the bot
 
     - `+1 Day` / `+7 Days`
     - Advances the internal mock clock. Use this to fast-forward through 14-day cooldowns to test unlocking and streaming logic.
-    - Triggers an immediate refetch of identity and domain queries (`styfi`, `veyfi`, `yeth`) so UI state updates right away.
+    - Triggers an immediate refetch of account and domain queries (`styfi`, `veyfi`, `yeth`); identity values update from the shared stYFI account query.
 
 2.  **Balance Injection:**
 

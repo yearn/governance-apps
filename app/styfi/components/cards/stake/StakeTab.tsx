@@ -76,12 +76,9 @@ export function StakeTab({ asset }: Props) {
     await approve(YFI_ADDRESS, spender, amount, {
       invalidate: async () => {
         await refetchAllowance();
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["protocol", "identity"] }),
-          queryClient.invalidateQueries({
-            queryKey: styfiKeys.account(styfiData?.address),
-          }),
-        ]);
+        await queryClient.invalidateQueries({
+          queryKey: styfiKeys.account(styfiData?.address),
+        });
       },
     });
   };

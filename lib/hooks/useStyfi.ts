@@ -219,14 +219,9 @@ export function useStyfiStake() {
 
     await execute(prepare, {
       invalidate: async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: styfiKeys.account(address),
-          }),
-          queryClient.invalidateQueries({
-            queryKey: ["protocol", "identity", address],
-          }),
-        ]);
+        await queryClient.invalidateQueries({
+          queryKey: styfiKeys.account(address),
+        });
         await refreshStyfiStatsFromChain(styfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
@@ -250,14 +245,9 @@ export function useStyfiStartCooldown() {
 
     await execute(prepare, {
       invalidate: async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: styfiKeys.account(address),
-          }),
-          queryClient.invalidateQueries({
-            queryKey: ["protocol", "identity", address],
-          }),
-        ]);
+        await queryClient.invalidateQueries({
+          queryKey: styfiKeys.account(address),
+        });
         await refreshStyfiStatsFromChain(styfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,
@@ -281,14 +271,9 @@ export function useStyfiWithdraw() {
 
     await execute(prepare, {
       invalidate: async () => {
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: styfiKeys.account(address),
-          }),
-          queryClient.invalidateQueries({
-            queryKey: ["protocol", "identity", address],
-          }),
-        ]);
+        await queryClient.invalidateQueries({
+          queryKey: styfiKeys.account(address),
+        });
         await refreshStyfiStatsFromChain(styfi, queryClient);
       },
       skipWaitForReceipt: usesMockBackend,

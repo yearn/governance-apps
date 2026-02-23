@@ -3,7 +3,6 @@
 
 import { createContext, useContext, ReactNode, useMemo } from "react";
 import { useAccount } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
 import { useProtocol } from "./protocol";
 import type { Address } from "viem";
 import type { EpochInfo } from "@/lib/clients/styfi/types";
@@ -11,6 +10,7 @@ import type { BlacklistStatus } from "@/lib/clients/styfi/types";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
 import { MAINNET_CHAIN_ID } from "@/lib/tx/network";
+import { useStyfiAccount } from "@/lib/hooks/useStyfi";
 
 type IdentityState = {
   address: Address | undefined;
@@ -36,8 +36,9 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
     isConnected: wagmiConnected,
     chainId: wagmiChainId,
   } = useAccount();
-  const { styfi, publicClient, usesMockBackend } = useProtocol();
+  const { usesMockBackend } = useProtocol();
   const { epochInfo } = useEpochClock({ tickMs: 60_000 });
+  const { data: accountState, isLoading } = useStyfiAccount();
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
   const fallbackAddress =
     isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined;
@@ -48,30 +49,10 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
   const isWrongNetwork = !!wagmiConnected && !fallbackAddress && !isMainnet;
   const canTransact = (wagmiConnected && isMainnet) || !!fallbackAddress;
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["protocol", "identity", address],
-    queryFn: async () => {
-      if (!address) return null;
-      // StYFI client acts as the hub for identity and epoch timing
-      const state = await styfi.getAccountState(address);
-      return {
-        yfiBalance: state.yfiBalance,
-        isBlacklisted: state.isBlacklisted,
-        blacklistStatus: state.blacklistStatus,
-        epoch: state.epoch,
-      };
-    },
-    enabled: !!address && (usesMockBackend || !!publicClient),
-    staleTime: 5_000,
-    refetchInterval: 30_000,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10_000),
-  });
-
   const value = useMemo(
     () => {
       const blacklistStatus: BlacklistStatus =
-        data?.blacklistStatus ?? (address ? "unknown" : "clear");
+        accountState?.blacklistStatus ?? (address ? "unknown" : "clear");
       return {
         address,
         isWalletConnected,
@@ -80,11 +61,11 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
         isWrongNetwork,
         isMainnet,
         chainId,
-        yfiBalance: data?.yfiBalance ?? 0n,
+        yfiBalance: accountState?.yfiBalance ?? 0n,
         isBlacklisted: blacklistStatus === "blocked",
         blacklistStatus,
         isBlacklistStatusKnown: blacklistStatus !== "unknown",
-        epoch: epochInfo ?? data?.epoch,
+        epoch: epochInfo ?? accountState?.epoch,
         isLoading,
       };
     },
@@ -95,7 +76,7 @@ export function IdentityProvider({ children }: { children: ReactNode }) {
       isWrongNetwork,
       isMainnet,
       chainId,
-      data,
+      accountState,
       epochInfo,
       isLoading,
     ]

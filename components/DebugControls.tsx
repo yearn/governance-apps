@@ -22,10 +22,6 @@ export function DebugControls({ children }: { children?: ReactNode }) {
     // Invalidate everything to be safe
     await Promise.all([
       queryClient.invalidateQueries({
-        queryKey: ["protocol", "identity"],
-        refetchType: "all",
-      }),
-      queryClient.invalidateQueries({
         queryKey: styfiKeys.all,
         refetchType: "all",
       }),

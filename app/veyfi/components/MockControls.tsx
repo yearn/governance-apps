@@ -61,9 +61,6 @@ export function MockControls() {
     if (address && styfi.debugMintYfi) {
       styfi.debugMintYfi(address, amount);
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["protocol", "identity", address],
-        }),
         queryClient.invalidateQueries({ queryKey: styfiKeys.account(address) }),
         queryClient.invalidateQueries({ queryKey: ["cross-app", "nudge"] }),
       ]);

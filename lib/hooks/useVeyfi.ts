@@ -8,6 +8,7 @@ import {
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
+import { styfiKeys } from "@/lib/hooks/useStyfi";
 import {
   LlyfiTokenId,
   type LlyfiTokenState,
@@ -365,9 +366,8 @@ export function useLlyfiRedeem() {
 
     await execute(prepare, {
       invalidate: async () => {
-        // Important: Invalidate identity for YFI balance updates
         await queryClient.invalidateQueries({
-          queryKey: ["protocol", "identity"],
+          queryKey: styfiKeys.account(address),
         });
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
@@ -396,7 +396,7 @@ export function useLlyfiMint() {
     await execute(prepare, {
       invalidate: async () => {
         await queryClient.invalidateQueries({
-          queryKey: ["protocol", "identity"],
+          queryKey: styfiKeys.account(address),
         });
         await queryClient.invalidateQueries({
           queryKey: veyfiKeys.account(address),
