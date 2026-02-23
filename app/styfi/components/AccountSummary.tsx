@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { formatUnits } from "viem";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -499,9 +500,11 @@ function ExternalTokenIcon({ symbol }: { symbol: string }) {
   }
 
   return (
-    <img
+    <Image
       src={src}
       alt=""
+      width={32}
+      height={32}
       aria-hidden
       className="size-8 shrink-0 rounded-full object-cover"
       onError={() => setFailed(true)}
