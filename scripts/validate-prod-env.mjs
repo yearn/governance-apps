@@ -3,6 +3,13 @@ function normalize(value) {
   return (value || "").trim().toLowerCase();
 }
 
+function parseCsvList(value) {
+  return (value || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 function resolveRuntimeMode(env = process.env) {
   const explicit = normalize(env.NEXT_PUBLIC_RUNTIME_MODE);
   if (explicit === "development" || explicit === "preview" || explicit === "production") {
@@ -56,12 +63,19 @@ const requiredVars = [
   "NEXT_PUBLIC_WC_PROJECT_ID",
   "NEXT_PUBLIC_GLOBAL_DATA_URL",
   "NEXT_PUBLIC_MOTD_URL",
+  "NEXT_PUBLIC_RPC_URLS",
 ];
 
 for (const name of requiredVars) {
   if (!process.env[name] || !process.env[name]?.trim()) {
     errors.push(`${name} is required in production.`);
   }
+}
+
+if (parseCsvList(process.env.NEXT_PUBLIC_RPC_URLS).length === 0) {
+  errors.push(
+    "NEXT_PUBLIC_RPC_URLS must include at least one non-empty RPC URL in production."
+  );
 }
 
 if (errors.length > 0) {

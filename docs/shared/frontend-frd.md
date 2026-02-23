@@ -52,7 +52,8 @@ These apply across `/styfi` and `/veyfi`.
 
    - Global (non-account) stats **MUST** load from the S3 JSON (`NEXT_PUBLIC_GLOBAL_DATA_URL`) and **MAY** load before connect.
    - Account-specific reads **MUST** remain gated on a connected address and **MUST** use the wallet-backed RPC (EIP‑1193).
-   - `NEXT_PUBLIC_RPC_URLS` is optional and only used to seed wagmi transports for local/dev or fork testing.
+   - `NEXT_PUBLIC_RPC_URLS` seeds wagmi transports and is **required in production**.
+   - In non-production, `NEXT_PUBLIC_RPC_URLS` may be omitted and wagmi falls back to viem mainnet defaults.
 
 ---
 

@@ -6,6 +6,12 @@ function isEnabled(value: string | undefined) {
   return (value || "").trim().toLowerCase() === "true";
 }
 
+function hasConfiguredRpcUrls(value: string | undefined) {
+  return (value || "")
+    .split(",")
+    .some((entry) => entry.trim().length > 0);
+}
+
 export function shouldEnforceProductionRuntimeInvariants(
   env: Record<string, string | undefined> = process.env
 ) {
@@ -23,11 +29,21 @@ export function assertProductionRuntimeInvariants(context: string) {
     isEnabled(process.env.NEXT_PUBLIC_E2E) ? "NEXT_PUBLIC_E2E" : null,
   ].filter((entry): entry is string => entry !== null);
 
-  if (forbiddenEnabled.length === 0) return;
+  const violations: string[] = [];
 
-  throw new Error(
-    `[Security Invariant: ${context}] Forbidden production flags enabled: ${forbiddenEnabled.join(
-      ", "
-    )}.`
-  );
+  if (forbiddenEnabled.length > 0) {
+    violations.push(
+      `Forbidden production flags enabled: ${forbiddenEnabled.join(", ")}.`
+    );
+  }
+
+  if (!hasConfiguredRpcUrls(process.env.NEXT_PUBLIC_RPC_URLS)) {
+    violations.push(
+      "NEXT_PUBLIC_RPC_URLS must include at least one non-empty RPC URL."
+    );
+  }
+
+  if (violations.length === 0) return;
+
+  throw new Error(`[Security Invariant: ${context}] ${violations.join(" ")}`);
 }

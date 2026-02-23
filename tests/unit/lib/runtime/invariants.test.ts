@@ -20,6 +20,7 @@ describe("production runtime invariants", () => {
     const env = process.env as Record<string, string | undefined>;
     env.NODE_ENV = "production";
     env.NEXT_PUBLIC_USE_MOCKS = "true";
+    env.NEXT_PUBLIC_RPC_URLS = "https://rpc.example.invalid";
 
     const { assertProductionRuntimeInvariants } = await loadInvariants();
 
@@ -33,11 +34,26 @@ describe("production runtime invariants", () => {
     env.NODE_ENV = "development";
     env.NEXT_PUBLIC_RUNTIME_MODE = "production";
     env.NEXT_PUBLIC_E2E = "true";
+    env.NEXT_PUBLIC_RPC_URLS = "https://rpc.example.invalid";
 
     const { assertProductionRuntimeInvariants } = await loadInvariants();
 
     expect(() => assertProductionRuntimeInvariants("test/prod")).toThrow(
       "NEXT_PUBLIC_E2E"
+    );
+  });
+
+  it("enforces RPC URL presence in production mode", async () => {
+    const env = process.env as Record<string, string | undefined>;
+    env.NODE_ENV = "production";
+    env.NEXT_PUBLIC_USE_MOCKS = "false";
+    env.NEXT_PUBLIC_E2E = "false";
+    env.NEXT_PUBLIC_RPC_URLS = " , ";
+
+    const { assertProductionRuntimeInvariants } = await loadInvariants();
+
+    expect(() => assertProductionRuntimeInvariants("test/rpc")).toThrow(
+      "NEXT_PUBLIC_RPC_URLS"
     );
   });
 

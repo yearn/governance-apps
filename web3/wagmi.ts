@@ -25,22 +25,17 @@ const rawRpcUrls = (process.env.NEXT_PUBLIC_RPC_URLS ?? "")
   .map((url) => url.trim())
   .filter(Boolean);
 const isProd = process.env.NODE_ENV === "production";
-const defaultRpcUrls =
-  rawRpcUrls.length > 0
-    ? rawRpcUrls
-    : isProd
-      ? ["https://rpc.yearn.fi/chain/1"]
-      : mainnet.rpcUrls.default.http;
-const rpcUrls = defaultRpcUrls;
+if (isProd && rawRpcUrls.length === 0) {
+  throw new Error(
+    "NEXT_PUBLIC_RPC_URLS must include at least one non-empty RPC URL in production."
+  );
+}
+const rpcUrls =
+  rawRpcUrls.length > 0 ? rawRpcUrls : mainnet.rpcUrls.default.http;
 
 if (!isProd && rawRpcUrls.length === 0) {
   console.warn(
     "NEXT_PUBLIC_RPC_URLS is not set. Falling back to default mainnet RPC."
-  );
-}
-if (isProd && rawRpcUrls.length === 0) {
-  console.warn(
-    "NEXT_PUBLIC_RPC_URLS is not set in production. Falling back to https://rpc.yearn.fi/chain/1."
   );
 }
 if (!isProd && rpcUrls.length === 0) {

@@ -34,6 +34,7 @@ describe("validate-prod-env", () => {
       NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
       NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
+      NEXT_PUBLIC_RPC_URLS: "https://rpc.example.invalid",
     });
 
     expect(result.status).toBe(1);
@@ -49,10 +50,27 @@ describe("validate-prod-env", () => {
       NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
       NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
+      NEXT_PUBLIC_RPC_URLS: "https://rpc.example.invalid",
     });
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("NEXT_PUBLIC_USE_MOCKS must be false");
+  });
+
+  it("fails when NEXT_PUBLIC_RPC_URLS is missing in production", () => {
+    const result = runWithEnv({
+      NODE_ENV: "production",
+      NEXT_PUBLIC_RUNTIME_MODE: "production",
+      NEXT_PUBLIC_USE_MOCKS: "false",
+      NEXT_PUBLIC_E2E: "false",
+      NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
+      NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
+      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
+      NEXT_PUBLIC_RPC_URLS: "   ,   ",
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("NEXT_PUBLIC_RPC_URLS");
   });
 
   it("passes with production-safe settings", () => {
@@ -64,6 +82,7 @@ describe("validate-prod-env", () => {
       NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
       NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
+      NEXT_PUBLIC_RPC_URLS: "https://rpc.example.invalid",
     });
 
     expect(result.status).toBe(0);

@@ -501,7 +501,8 @@ The application now supports full on-chain integration via `OnchainStyfiClient` 
 
 - Controlled via `NEXT_PUBLIC_USE_MOCKS=false`.
 - Global data is configured via `NEXT_PUBLIC_GLOBAL_DATA_URL` (S3 or similar).
-- `NEXT_PUBLIC_RPC_URLS` is optional; if provided it seeds wagmi transports for local fork/dev convenience.
+- `NEXT_PUBLIC_RPC_URLS` is required in production and seeds wagmi transports.
+- In non-production, if `NEXT_PUBLIC_RPC_URLS` is unset, wagmi falls back to viem mainnet defaults.
 - Fork testing is handled by pointing `NEXT_PUBLIC_RPC_URLS` at the fork endpoint while keeping Chain ID 1.
 - Uses `viem` multicall to aggregate state for:
   - **stYFI:** Wallet, Staking, Epochs, Rewards.

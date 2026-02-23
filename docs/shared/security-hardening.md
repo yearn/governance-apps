@@ -62,6 +62,7 @@ Production invariants (enforced when runtime mode resolves to `production`):
 - `NEXT_PUBLIC_WC_PROJECT_ID` is required
 - `NEXT_PUBLIC_GLOBAL_DATA_URL` is required
 - `NEXT_PUBLIC_MOTD_URL` is required
+- `NEXT_PUBLIC_RPC_URLS` is required and must include at least one URL
 
 Feature gating in production:
 

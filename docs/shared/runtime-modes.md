@@ -37,7 +37,8 @@ Before deploying production:
 4. `NEXT_PUBLIC_WC_PROJECT_ID` is set
 5. `NEXT_PUBLIC_GLOBAL_DATA_URL` is set
 6. `NEXT_PUBLIC_MOTD_URL` is set
-7. Run `npm run validate:prod-env`
+7. `NEXT_PUBLIC_RPC_URLS` is set (comma-separated list, at least one URL)
+8. Run `npm run validate:prod-env`
 
 ## Preview checklist
 

@@ -49,11 +49,11 @@
 - The client reads via `/api/global-data` proxy to avoid CORS issues.
 - If missing, the UI renders skeletons for global stats until a wallet connects.
 
-## Public RPC (Optional)
+## Public RPC (Required in Production)
 
 - Env: `NEXT_PUBLIC_RPC_URLS` (comma-separated, HTTPS when served over HTTPS).
-- Optional. Used to seed wagmi transports for local/dev or fork testing.
-- If unset, production falls back to `https://rpc.yearn.fi/chain/1`; non-production falls back to viem default mainnet RPC URLs.
+- Required in production. Used to seed wagmi transports for non-wallet and fallback reads.
+- In non-production, if unset, wagmi falls back to viem default mainnet RPC URLs.
 
 ## Persistence
 
