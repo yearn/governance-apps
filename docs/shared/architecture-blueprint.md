@@ -319,6 +319,7 @@ These:
 
 - Use React Query
 - Have stable query keys
+- Default `refetchOnWindowFocus` to off and opt in explicitly via a shared focus policy map for critical account keys
 - Cache and revalidate predictably
 - Derive UI-ready computed values
 

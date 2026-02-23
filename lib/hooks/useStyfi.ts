@@ -13,6 +13,7 @@ import { StyfiStakeMode, type StyfiClient } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { formatPercent } from "@/lib/format";
+import { getRefetchOnWindowFocus } from "@/lib/query/focus-refetch-policy";
 import {
   getEpochWindowFromBase,
   resolveEpochClockBase,
@@ -95,7 +96,7 @@ export function useStyfiAccount() {
     // Poll every 30s to update rewards/balances
     refetchInterval: 30_000,
     // Always refetch when user returns to tab
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: getRefetchOnWindowFocus("styfi.account"),
     // Data is considered fresh for 20s, allowing immediate re-use but ensuring background updates
     staleTime: 20_000,
   });
@@ -149,7 +150,7 @@ export function useStyfiStats() {
     queryFn: async () => 0,
     initialData: 0,
     staleTime: Infinity,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: getRefetchOnWindowFocus("styfi.statsOverride"),
   });
   const globalTimestampMs = toMsTimestamp(globalVersion);
   const hasFreshGlobal =

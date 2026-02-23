@@ -25,7 +25,10 @@ type ExtendedRenderOptions = RenderOptions & ProviderOptions;
 export function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
-      queries: { retry: false },
+      queries: {
+        retry: false,
+        refetchOnWindowFocus: false,
+      },
       mutations: { retry: false },
     },
   });

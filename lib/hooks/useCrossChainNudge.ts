@@ -10,6 +10,7 @@ import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 import { crossAppNudgeCopy as copy } from "@/app/_shared/messages";
 import { useIdentity } from "@/state/identity";
 import { useProtocol } from "@/state/protocol";
+import { getRefetchOnWindowFocus } from "@/lib/query/focus-refetch-policy";
 import type { StyfiNudgeState } from "@/lib/clients/styfi";
 import type { VeyfiNudgeState } from "@/lib/clients/veyfi";
 
@@ -195,7 +196,7 @@ export function useCrossChainNudge({
     },
     refetchInterval: 30_000,
     staleTime: 20_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: getRefetchOnWindowFocus("cross-app.nudge"),
   });
 
   const candidate = queryResult?.candidate ?? null;

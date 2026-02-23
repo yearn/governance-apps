@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { useTx } from "@/lib/tx/useTx";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
+import { getRefetchOnWindowFocus } from "@/lib/query/focus-refetch-policy";
 
 export const yethKeys = {
   all: ["yeth"] as const,
@@ -38,7 +39,7 @@ export function useYethAccountState() {
     enabled: !!address,
     staleTime: 15_000,
     refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: getRefetchOnWindowFocus("yeth.account"),
   });
 }
 

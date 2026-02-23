@@ -8,6 +8,7 @@ import {
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
+import { getRefetchOnWindowFocus } from "@/lib/query/focus-refetch-policy";
 import { styfiKeys } from "@/lib/hooks/useStyfi";
 import {
   LlyfiTokenId,
@@ -91,7 +92,7 @@ export function useVeyfiAccount() {
     enabled: !!address && (usesMockBackend || !!publicClient),
     // Poll every 30s to update caps, inventory, and token status
     refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: getRefetchOnWindowFocus("veyfi.account"),
     staleTime: 20_000,
   });
 }
@@ -109,7 +110,7 @@ export function useVeyfiStats() {
     queryFn: async () => 0,
     initialData: 0,
     staleTime: Infinity,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: getRefetchOnWindowFocus("veyfi.statsOverride"),
   });
   const globalTimestampMs = toMsTimestamp(globalVersion);
   const hasFreshGlobal =
