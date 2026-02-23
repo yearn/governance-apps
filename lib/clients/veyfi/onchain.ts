@@ -30,6 +30,7 @@ import { deriveCooldownEndsAt } from "@/lib/clients/shared/cooldown";
 import { nowSeconds } from "@/lib/mocks/time";
 import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
 import { normalizeLlyfiSymbol } from "@/lib/clients/veyfi/display";
+import { getVeyfiEpochBoostMultiplier } from "@/lib/clients/veyfi/boost";
 
 const LegacyVeYfiAbi = parseAbi([
   "function locked(address) view returns (int128 amount, uint256 end)",
@@ -144,7 +145,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
       });
 
       const currentEpoch = getCurrentEpoch(GENESIS, EPOCH_LENGTH, now);
-      const boostRaw = 1 + Math.max(0, 104 - currentEpoch) / 104;
+      const boostRaw = getVeyfiEpochBoostMultiplier(currentEpoch);
 
       const lockerCalls = LIQUID_LOCKERS.flatMap((locker) => [
         {
@@ -766,8 +767,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
         });
       }
 
-      const maxBoostMultiplier =
-        1 + Math.max(0, 104 - currentEpoch) / 104;
+      const maxBoostMultiplier = getVeyfiEpochBoostMultiplier(currentEpoch);
       const feeBps = toBps(
         Number(fee / 10n ** 14n),
         "redemption.feeBps"

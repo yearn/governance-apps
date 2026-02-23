@@ -1,6 +1,6 @@
 "use client";
 
-import { useLlyfiTokens } from "@/lib/hooks/useVeyfi";
+import { useLlyfiTokens, useVeyfiStats } from "@/lib/hooks/useVeyfi";
 import { LlyfiTokenRow } from "./LlyfiTokenRow";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { veyfiCopy as copy } from "../messages";
@@ -9,6 +9,7 @@ import { useProtocol } from "@/state/protocol";
 
 export function LlyfiTokenTable() {
   const tokens = useLlyfiTokens();
+  const { data: stats } = useVeyfiStats();
   const { epochInfo } = useEpochClock({ tickMs: 60_000 });
   const { globalData, usesMockBackend } = useProtocol();
   const isEpochZero = epochInfo?.currentEpoch === 0;
@@ -88,7 +89,11 @@ export function LlyfiTokenTable() {
 
         <div className="divide-y divide-neutral-200">
           {tokens.map((token) => (
-            <LlyfiTokenRow key={token.symbol} token={token} />
+            <LlyfiTokenRow
+              key={token.symbol}
+              token={token}
+              maxBoostMultiplier={stats?.maxBoostMultiplier}
+            />
           ))}
         </div>
       </div>
