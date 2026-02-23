@@ -30,7 +30,8 @@ function restoreVisibilityDescriptor() {
     );
     return;
   }
-  delete (document as Document & { visibilityState?: string }).visibilityState;
+  delete (document as { visibilityState?: DocumentVisibilityState })
+    .visibilityState;
 }
 
 describe("useVeyfiAccount polling gate", () => {
@@ -55,7 +56,9 @@ describe("useVeyfiAccount polling gate", () => {
       queryKey: veyfiKeys.account(E2E_MOCK_ADDRESS),
     });
 
-    expect(query?.options.refetchInterval).toBe(30_000);
+    expect(query?.options).toEqual(
+      expect.objectContaining({ refetchInterval: 30_000 })
+    );
   });
 
   it("disables polling on /styfi while preserving the initial read", async () => {
@@ -74,7 +77,9 @@ describe("useVeyfiAccount polling gate", () => {
       queryKey: veyfiKeys.account(E2E_MOCK_ADDRESS),
     });
 
-    expect(query?.options.refetchInterval).toBe(false);
+    expect(query?.options).toEqual(
+      expect.objectContaining({ refetchInterval: false })
+    );
   });
 
   it("disables polling when the tab is hidden", async () => {
@@ -93,6 +98,8 @@ describe("useVeyfiAccount polling gate", () => {
       queryKey: veyfiKeys.account(E2E_MOCK_ADDRESS),
     });
 
-    expect(query?.options.refetchInterval).toBe(false);
+    expect(query?.options).toEqual(
+      expect.objectContaining({ refetchInterval: false })
+    );
   });
 });
