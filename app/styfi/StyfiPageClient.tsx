@@ -85,7 +85,7 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
   const { data: veyfiAccount, isLoading: isVeyfiLoading } = useVeyfiAccount();
   const { data: motd } = useMotd();
   const { globalData } = useProtocol();
-  const { now, epochInfo } = useEpochClock({ tickMs: 60_000 });
+  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
   const [selectedAsset, setSelectedAsset] = useState<StyfiAsset>();
   const hasUserSelected = useRef(false);
   const hasResolvedDefault = useRef(false);
@@ -188,7 +188,10 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
     : null;
   const activeAsset = selectedAsset ?? "stYFIx";
   const balances = account ? deriveBalances(account) : null;
-  const externalPositions = deriveExternalPositions(veyfiAccount, now);
+  const externalPositions = deriveExternalPositions(
+    veyfiAccount,
+    epochInfo?.currentEpoch ?? null,
+  );
   const totalBalance = balances
     ? balances.styfi.total + balances.styfix.total
     : 0n;

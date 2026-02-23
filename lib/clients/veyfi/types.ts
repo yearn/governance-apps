@@ -78,6 +78,7 @@ export type VeyfiAccountState = {
     migrationEligible: boolean;
     migrated: boolean;
     unlockTime: number;
+    boostEpochs: number | null;
   } | null;
   llyfiTokens: LlyfiTokenState[];
   inventory: VeyfiInventory;

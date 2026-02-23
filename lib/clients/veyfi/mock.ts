@@ -90,6 +90,7 @@ export class MockVeyfiClient implements VeyfiClient {
         migrationEligible: true,
         migrated: false,
         unlockTime: 0,
+        boostEpochs: 0,
       },
       llyfiTokens: [
         {
@@ -200,6 +201,7 @@ export class MockVeyfiClient implements VeyfiClient {
       state.veYfi.legacyBalance = GLOBAL_PENDING_VEYFI;
       state.veYfi.lockedAmount = GLOBAL_PENDING_VEYFI;
       state.veYfi.unlockTime = nowSeconds() + 126144000;
+      state.veYfi.boostEpochs = 104;
       GLOBAL_PENDING_VEYFI = 0n;
     }
 
@@ -445,6 +447,7 @@ export class MockVeyfiClient implements VeyfiClient {
       st.veYfi.migrated = true;
       st.veYfi.lockedAmount = 100n * 10n ** 18n;
       st.veYfi.unlockTime = nowSeconds() + 4 * 365 * 24 * 60 * 60;
+      st.veYfi.boostEpochs = 104;
     }
 
     const sdYfi = st.llyfiTokens.find((token) => token.symbol === "sdYFI");

@@ -1,5 +1,5 @@
 import type { VeyfiAccountState } from "@/lib/clients/veyfi/types";
-import { getVeyfiBoostMultiplier } from "@/lib/clients/veyfi/boost";
+import { getVeyfiMigratedBoostMultiplier } from "@/lib/clients/veyfi/boost";
 import { LIQUID_LOCKERS } from "@/lib/constants";
 
 export type ExternalPosition = {
@@ -27,7 +27,7 @@ function getLlyfiYfiEquivalent(symbol: string, amount: bigint): bigint {
 
 export function deriveExternalPositions(
   veyfiAccount: VeyfiAccountState | null | undefined,
-  now: number
+  currentEpoch?: number | null
 ): ExternalPosition[] {
   if (!veyfiAccount) return [];
 
@@ -62,9 +62,9 @@ export function deriveExternalPositions(
       unstakingYfi: 0n,
       withdrawableYfi: 0n,
       balanceYfi: veyfiAccount.veYfi.lockedAmount,
-      boostMultiplier: getVeyfiBoostMultiplier(
-        veyfiAccount.veYfi.unlockTime,
-        now
+      boostMultiplier: getVeyfiMigratedBoostMultiplier(
+        veyfiAccount.veYfi.boostEpochs ?? 0,
+        currentEpoch ?? 0,
       ),
       unlockTime: veyfiAccount.veYfi.unlockTime,
       href: "/veyfi",

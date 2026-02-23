@@ -3,14 +3,17 @@
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { useVeyfiAccount, useVeyfiMigration } from "@/lib/hooks/useVeyfi";
+import {
+  useVeyfiAccount,
+  useVeyfiMigration,
+} from "@/lib/hooks/useVeyfi";
 import { useStyfiApy } from "@/lib/hooks/useStyfi";
 import { formatPercent, formatTokenAmount } from "@/lib/format";
 import { veyfiCopy as copy } from "../messages";
 import { useProtocol } from "@/state/protocol";
 import { cn } from "@/lib/cn";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
-import { getVeyfiBoostMultiplier } from "@/lib/clients/veyfi/boost";
+import { getVeyfiMigratedBoostMultiplier } from "@/lib/clients/veyfi/boost";
 
 function toNumber(value?: string | number | null) {
   if (value === null || value === undefined) return null;
@@ -23,7 +26,7 @@ export function MigrationCard() {
   const { write, state } = useVeyfiMigration();
   const { data: styfiApyBps } = useStyfiApy();
   const { globalData } = useProtocol();
-  const { now, epochInfo } = useEpochClock({ tickMs: 1000 });
+  const { epochInfo } = useEpochClock({ tickMs: 1000 });
 
   if (!data?.veYfi) return null;
 
@@ -36,9 +39,10 @@ export function MigrationCard() {
   } = data.veYfi;
   const showAction = legacyBalance > 0n && migrationEligible && !migrated;
 
-  // --- Boost Calculations ---
-  // Boost = 1 + (remaining / max), range: 1.0x to 2.0x
-  const currentBoost = getVeyfiBoostMultiplier(unlockTime, now);
+  const currentBoost = getVeyfiMigratedBoostMultiplier(
+    data.veYfi.boostEpochs ?? 0,
+    epochInfo?.currentEpoch ?? 0,
+  );
 
   const isEpochZero = epochInfo?.currentEpoch === 0;
   const s3AprBps = globalData?.styfi

@@ -17,7 +17,7 @@ import {
   getLlyfiDisplaySymbol,
   normalizeLlyfiSymbol,
 } from "@/lib/clients/veyfi/display";
-import { getVeyfiEpochBoostMultiplier } from "@/lib/clients/veyfi/boost";
+import { resolveVeyfiDisplayBoostMultiplier } from "@/lib/clients/veyfi/boost";
 
 type LlyfiTokenRowProps = {
   token: LlyfiTokenState;
@@ -107,33 +107,12 @@ export function LlyfiTokenRow({
       : formatPercent(utilizationRatioRaw, 1);
 
   const maxBoostBps = toNumber(globalData?.global?.maxBoostBps);
-  const boostFromStats =
-    maxBoostMultiplier !== undefined &&
-    Number.isFinite(maxBoostMultiplier) &&
-    maxBoostMultiplier > 0
-      ? maxBoostMultiplier
-      : null;
-  const boostFromToken =
-    Number.isFinite(token.veyfiBoost) && token.veyfiBoost > 0
-      ? token.veyfiBoost
-      : null;
-  const boostFromEpoch =
-    epochInfo && Number.isFinite(epochInfo.currentEpoch)
-      ? getVeyfiEpochBoostMultiplier(epochInfo.currentEpoch)
-      : null;
-  const boostFromGlobal =
-    maxBoostBps !== null && maxBoostBps > 0 ? maxBoostBps / 10000 : null;
-  // Keep epoch-derived fallback ahead of global.maxBoostBps while upstream
-  // global boost values may lag or remain static (e.g. 2.00x in epoch 1).
-  // Once global.maxBoostBps is confirmed epoch-accurate, this can be simplified
-  // to prefer real data sources only.
-  const boostMultiplier =
-    boostFromStats ??
-    (canTransact ? boostFromToken : null) ??
-    boostFromEpoch ??
-    boostFromGlobal ??
-    boostFromToken ??
-    1;
+  const boostMultiplier = resolveVeyfiDisplayBoostMultiplier({
+    statsMaxBoostMultiplier: maxBoostMultiplier,
+    tokenBoostMultiplier: token.veyfiBoost,
+    globalMaxBoostBps: maxBoostBps,
+    preferTokenBoost: canTransact,
+  });
 
   const isEpochZero = epochInfo?.currentEpoch === 0;
   const s3EffectiveAprBps = s3Llyfi

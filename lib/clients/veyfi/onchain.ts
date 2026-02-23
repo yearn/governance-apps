@@ -252,7 +252,12 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
       const legacyAmount = BigInt(legacyLockResult[0] as bigint);
       const snapshotAmount = (lockInfo as LockInfo).amount;
+      const snapshotBoostEpochs = (lockInfo as LockInfo).boost_epochs;
       const snapshotUnlockTime = (lockInfo as LockInfo).unlock_time;
+      const boostEpochsValue = Number(snapshotBoostEpochs);
+      const boostEpochs = Number.isFinite(boostEpochsValue)
+        ? Math.max(0, Math.floor(boostEpochsValue))
+        : null;
       const isMigrated = (lastClaimed as bigint) > 0n;
       const snapshotValidAmount = (snapshotCheckResult as [bigint, bigint])[0];
       const isEligible =
@@ -354,6 +359,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
           migrationEligible: isEligible,
           migrated: isMigrated,
           unlockTime: Number(snapshotUnlockTime),
+          boostEpochs,
         },
         llyfiTokens,
         inventory: {
