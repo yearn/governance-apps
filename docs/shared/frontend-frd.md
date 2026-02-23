@@ -531,7 +531,8 @@ UI requirements:
   - **Locker Status** MUST display `global.veyfi.tokens[].redemption.capacity` (YFI locked).
   - **Effective APR** MUST use `llyfi[].current.aprBps` (or `projected.aprBps` when `epoch == 0`), which already includes boost + ratio.
   - **Base stYFI APR** uses `styfi.current.aprBps` (or `styfi.projected.aprBps` when `epoch == 0`), matching the migration card.
-  - **veYFI boost** uses the same legacy-lock boost logic as the migration card when connected; when disconnected, fall back to `global.maxBoostBps`.
+  - **Migrated veYFI boost** uses per-user lock data: `1 + max(0, boost_epochs - current_epoch) / 104`, where `boost_epochs` is read from `VotingEscrowRewardDistributor.locks(address)`.
+  - Global max boost values are protocol-wide and must not replace user-specific migrated boost displays.
   - **APR tooltip breakdown** MUST show base stYFI APR, boost multiplier, and the staked ratio derived from `llyfi[].staked + llyfi[].unstaking` over capacity.
 
 ### 4.1.2. `VeyfiGlobalStats` (System)

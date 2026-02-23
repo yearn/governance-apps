@@ -20,6 +20,7 @@ function buildAccount(overrides?: Partial<VeyfiAccountState>): VeyfiAccountState
       migrationEligible: true,
       migrated: false,
       unlockTime: 0,
+      boostEpochs: 0,
     },
     llyfiTokens: [
       {
@@ -128,10 +129,11 @@ describe("deriveExternalPositions", () => {
         migrationEligible: true,
         migrated: false,
         unlockTime: 1_800_000_000,
+        boostEpochs: 95,
       },
     });
 
-    const positions = deriveExternalPositions(account, 1_700_000_000);
+    const positions = deriveExternalPositions(account, 1);
     expect(positions).toHaveLength(0);
   });
 
@@ -143,6 +145,7 @@ describe("deriveExternalPositions", () => {
         migrationEligible: true,
         migrated: true,
         unlockTime: 1_800_000_000,
+        boostEpochs: 95,
       },
       llyfiTokens: [
         {
@@ -166,7 +169,7 @@ describe("deriveExternalPositions", () => {
       ],
     });
 
-    const positions = deriveExternalPositions(account, 1_700_000_000);
+    const positions = deriveExternalPositions(account, 1);
     const sdYfi = positions.find((position) => position.symbol === "sdYFI");
     const coveYfi = positions.find((position) => position.symbol === "coveYFI");
     const upYfi = positions.find((position) => position.symbol === "upYFI");
@@ -195,6 +198,7 @@ describe("deriveExternalPositions", () => {
         migrationEligible: true,
         migrated: true,
         unlockTime: 1_800_000_000,
+        boostEpochs: 95,
       },
       llyfiTokens: [
         {
@@ -218,7 +222,7 @@ describe("deriveExternalPositions", () => {
       ],
     });
 
-    const positions = deriveExternalPositions(account, 1_700_000_000);
+    const positions = deriveExternalPositions(account, 1);
     const upYfi = positions.find((position) => position.symbol === "upYFI");
 
     expect(upYfi?.activeYfi).toBe(supYfiAmount);
@@ -234,10 +238,11 @@ describe("deriveExternalPositions", () => {
         migrationEligible: true,
         migrated: true,
         unlockTime,
+        boostEpochs: 95,
       },
     });
 
-    const positions = deriveExternalPositions(account, 1_700_000_000);
+    const positions = deriveExternalPositions(account, 1);
     const veyfi = positions.find((position) => position.id === "veyfi");
 
     expect(veyfi?.symbol).toBe("veYFI");
@@ -247,6 +252,25 @@ describe("deriveExternalPositions", () => {
     expect(veyfi?.withdrawableYfi).toBe(0n);
     expect(veyfi?.unlockTime).toBe(unlockTime);
     expect(veyfi?.balanceYfi).toBe(100n * 10n ** 18n);
+    expect(veyfi?.boostMultiplier).toBeCloseTo(1.9038461538, 10);
+  });
+
+  it("floors migrated veYFI boost at 1.00x after boost epochs are exhausted", () => {
+    const account = buildAccount({
+      veYfi: {
+        legacyBalance: 0n,
+        lockedAmount: 50n * 10n ** 18n,
+        migrationEligible: true,
+        migrated: true,
+        unlockTime: 1_800_000_000,
+        boostEpochs: 20,
+      },
+    });
+
+    const positions = deriveExternalPositions(account, 40);
+    const veyfi = positions.find((position) => position.id === "veyfi");
+
+    expect(veyfi?.boostMultiplier).toBe(1);
   });
 
   it("places veYFI below all LLYFI rows", () => {
@@ -258,6 +282,7 @@ describe("deriveExternalPositions", () => {
         migrationEligible: true,
         migrated: true,
         unlockTime,
+        boostEpochs: 95,
       },
       llyfiTokens: [
         {
@@ -275,7 +300,7 @@ describe("deriveExternalPositions", () => {
       ],
     });
 
-    const positions = deriveExternalPositions(account, 1_700_000_000);
+    const positions = deriveExternalPositions(account, 1);
 
     expect(positions.map((position) => position.symbol)).toEqual([
       "sdYFI",

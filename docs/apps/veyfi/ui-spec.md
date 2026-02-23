@@ -60,6 +60,8 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 
 - **Action (Legacy Balance > 0):** "You have X legacy veYFI. Migrate now." (Primary CTA).
 - **Info (Migrated):** "veYFI Boost Active". Visualizes the linear decay of the boost multiplier (2.0x -> 1.0x) over time.
+  - User boost display should be derived from account lock data: `1 + max(0, boost_epochs - current_epoch) / 104`.
+  - `boost_epochs` comes from `VotingEscrowRewardDistributor.locks(address)` and reflects the user-specific migrated boost schedule.
 
 ### 4.3 Zone 2: The LLYFI Ledger
 
@@ -74,7 +76,7 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
   - Locker Status uses `global.veyfi.tokens[].redemption.capacity` (YFI locked).
 - Effective APR uses `llyfi[].current.aprBps` (or `projected.aprBps` when `epoch == 0`).
 - Base stYFI APR uses `styfi.current.aprBps` (or `styfi.projected.aprBps` when `epoch == 0`), matching the migration card.
-- veYFI boost uses the same legacy-lock boost logic as the migration card when connected; when disconnected, fall back to `global.maxBoostBps`.
+- veYFI migrated-lock boost uses user-specific `boost_epochs` from account lock data with canonical `current_epoch`; do not substitute global max boost values.
 - The APR tooltip shows base stYFI APR, boost multiplier, and the LLYFI staked ratio derived from `llyfi[].staked + llyfi[].unstaking` over capacity.
 
 **The Cockpit (Tabs):**

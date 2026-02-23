@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   getVeyfiBoostMultiplier,
   getVeyfiEpochBoostMultiplier,
+  getVeyfiMigratedBoostMultiplier,
+  resolveVeyfiDisplayBoostMultiplier,
 } from "@/lib/clients/veyfi/boost";
 
 describe("getVeyfiBoostMultiplier", () => {
@@ -37,5 +39,60 @@ describe("getVeyfiEpochBoostMultiplier", () => {
         boostEpochs: 10,
       })
     ).toBe(1.25);
+  });
+});
+
+describe("getVeyfiMigratedBoostMultiplier", () => {
+  it("calculates user-specific boost from boostEpochs and current epoch", () => {
+    expect(getVeyfiMigratedBoostMultiplier(95, 1)).toBeCloseTo(1.9038461538, 10);
+  });
+
+  it("returns 1.0x when the current epoch is past boost epochs", () => {
+    expect(getVeyfiMigratedBoostMultiplier(20, 40)).toBe(1);
+  });
+
+  it("clamps out-of-range boost epochs to the protocol max", () => {
+    expect(getVeyfiMigratedBoostMultiplier(999, 0)).toBe(2);
+  });
+});
+
+describe("resolveVeyfiDisplayBoostMultiplier", () => {
+  it("prefers stats max boost when available", () => {
+    expect(
+      resolveVeyfiDisplayBoostMultiplier({
+        statsMaxBoostMultiplier: 1.99,
+        tokenBoostMultiplier: 1.5,
+        globalMaxBoostBps: 19800,
+      })
+    ).toBe(1.99);
+  });
+
+  it("prefers token boost over global when token-preferred mode is enabled", () => {
+    expect(
+      resolveVeyfiDisplayBoostMultiplier({
+        tokenBoostMultiplier: 1.7,
+        globalMaxBoostBps: 19500,
+        preferTokenBoost: true,
+      })
+    ).toBe(1.7);
+  });
+
+  it("uses global max boost bps before token fallback by default", () => {
+    expect(
+      resolveVeyfiDisplayBoostMultiplier({
+        tokenBoostMultiplier: 1.4,
+        globalMaxBoostBps: 19900,
+      })
+    ).toBe(1.99);
+  });
+
+  it("falls back to 1 when all sources are invalid", () => {
+    expect(
+      resolveVeyfiDisplayBoostMultiplier({
+        statsMaxBoostMultiplier: null,
+        tokenBoostMultiplier: null,
+        globalMaxBoostBps: null,
+      })
+    ).toBe(1);
   });
 });
