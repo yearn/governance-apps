@@ -14,6 +14,7 @@ import { useTx } from "@/lib/tx/useTx";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { formatPercent } from "@/lib/format";
 import { getRefetchOnWindowFocus } from "@/lib/query/focus-refetch-policy";
+import { useDocumentVisibility, useIsRouteActive } from "@/lib/hooks/usePollingGate";
 import {
   getEpochWindowFromBase,
   resolveEpochClockBase,
@@ -82,9 +83,13 @@ function toMsTimestamp(value: number | null | undefined) {
 export function useStyfiAccount() {
   const { styfi, publicClient, usesMockBackend } = useProtocol();
   const { address: wagmiAddress } = useAccount();
+  const isVisible = useDocumentVisibility();
+  const isPollingRoute = useIsRouteActive(["/styfi", "/veyfi"]);
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
   const address =
     wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
+  const isEnabled = !!address && (usesMockBackend || !!publicClient);
+  const shouldPoll = isVisible && isPollingRoute;
 
   return useQuery({
     queryKey: styfiKeys.account(address),
@@ -92,9 +97,9 @@ export function useStyfiAccount() {
       if (!address) return null;
       return styfi.getAccountState(address);
     },
-    enabled: !!address && (usesMockBackend || !!publicClient),
+    enabled: isEnabled,
     // Poll every 30s to update rewards/balances
-    refetchInterval: 30_000,
+    refetchInterval: shouldPoll ? 30_000 : false,
     // Always refetch when user returns to tab
     refetchOnWindowFocus: getRefetchOnWindowFocus("styfi.account"),
     // Data is considered fresh for 20s, allowing immediate re-use but ensuring background updates

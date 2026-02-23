@@ -10,6 +10,7 @@ import { useAccount } from "wagmi";
 import { useProtocol } from "@/state/protocol";
 import { getRefetchOnWindowFocus } from "@/lib/query/focus-refetch-policy";
 import { styfiKeys } from "@/lib/hooks/useStyfi";
+import { useDocumentVisibility, useIsRouteActive } from "@/lib/hooks/usePollingGate";
 import {
   LlyfiTokenId,
   type LlyfiTokenState,
@@ -79,9 +80,13 @@ function toMsTimestamp(value: number | null | undefined) {
 export function useVeyfiAccount() {
   const { veyfi, publicClient, usesMockBackend } = useProtocol();
   const { address: wagmiAddress } = useAccount();
+  const isVisible = useDocumentVisibility();
+  const isPollingRoute = useIsRouteActive(["/veyfi"]);
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
   const address =
     wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
+  const isEnabled = !!address && (usesMockBackend || !!publicClient);
+  const shouldPoll = isVisible && isPollingRoute;
 
   return useQuery({
     queryKey: veyfiKeys.account(address),
@@ -89,9 +94,9 @@ export function useVeyfiAccount() {
       if (!address) return null;
       return veyfi.getAccountState(address);
     },
-    enabled: !!address && (usesMockBackend || !!publicClient),
+    enabled: isEnabled,
     // Poll every 30s to update caps, inventory, and token status
-    refetchInterval: 30_000,
+    refetchInterval: shouldPoll ? 30_000 : false,
     refetchOnWindowFocus: getRefetchOnWindowFocus("veyfi.account"),
     staleTime: 20_000,
   });

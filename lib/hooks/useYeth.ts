@@ -6,6 +6,7 @@ import { useProtocol } from "@/state/protocol";
 import { useTx } from "@/lib/tx/useTx";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { getRefetchOnWindowFocus } from "@/lib/query/focus-refetch-policy";
+import { useDocumentVisibility, useIsRouteActive } from "@/lib/hooks/usePollingGate";
 
 export const yethKeys = {
   all: ["yeth"] as const,
@@ -27,8 +28,11 @@ export function useYethGlobalState() {
 export function useYethAccountState() {
   const { yeth } = useProtocol();
   const { address: wagmiAddress } = useAccount();
+  const isVisible = useDocumentVisibility();
+  const isPollingRoute = useIsRouteActive(["/yeth"]);
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
   const address = wagmiAddress ?? (isE2E ? E2E_MOCK_ADDRESS : undefined);
+  const shouldPoll = isVisible && isPollingRoute;
 
   return useQuery({
     queryKey: yethKeys.account(address),
@@ -38,7 +42,7 @@ export function useYethAccountState() {
     },
     enabled: !!address,
     staleTime: 15_000,
-    refetchInterval: 15_000,
+    refetchInterval: shouldPoll ? 15_000 : false,
     refetchOnWindowFocus: getRefetchOnWindowFocus("yeth.account"),
   });
 }

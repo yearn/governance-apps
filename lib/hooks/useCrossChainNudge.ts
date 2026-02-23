@@ -11,6 +11,7 @@ import { crossAppNudgeCopy as copy } from "@/app/_shared/messages";
 import { useIdentity } from "@/state/identity";
 import { useProtocol } from "@/state/protocol";
 import { getRefetchOnWindowFocus } from "@/lib/query/focus-refetch-policy";
+import { useDocumentVisibility, useIsRouteActive } from "@/lib/hooks/usePollingGate";
 import type { StyfiNudgeState } from "@/lib/clients/styfi";
 import type { VeyfiNudgeState } from "@/lib/clients/veyfi";
 
@@ -162,14 +163,19 @@ export function useCrossChainNudge({
   const { address, isConnected } = useIdentity();
   const { isConnected: isWalletConnected } = useAccount();
   const { styfi, veyfi, publicClient, usesMockBackend } = useProtocol();
+  const isVisible = useDocumentVisibility();
+  const isPollingRoute = useIsRouteActive([
+    currentApp === "styfi" ? "/styfi" : "/veyfi",
+  ]);
   const searchParams = useSearchParams();
   const [, setDismissVersion] = useState(0);
 
-  const enabled =
+  const baseEnabled =
     !!address &&
     isConnected &&
     isWalletConnected &&
     (usesMockBackend || !!publicClient);
+  const enabled = baseEnabled && isVisible && isPollingRoute;
   const queryKey = ["cross-app", "nudge", currentApp, address] as const;
   const source = searchParams.get("source");
   const from = searchParams.get("from");
@@ -194,7 +200,7 @@ export function useCrossChainNudge({
         checkedAt: Date.now(),
       };
     },
-    refetchInterval: 30_000,
+    refetchInterval: enabled ? 30_000 : false,
     staleTime: 20_000,
     refetchOnWindowFocus: getRefetchOnWindowFocus("cross-app.nudge"),
   });
@@ -228,6 +234,6 @@ export function useCrossChainNudge({
   return {
     nudge,
     dismiss,
-    isLoading: enabled && isLoading,
+    isLoading: baseEnabled && isLoading,
   };
 }

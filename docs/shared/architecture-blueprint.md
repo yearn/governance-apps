@@ -320,6 +320,7 @@ These:
 - Use React Query
 - Have stable query keys
 - Default `refetchOnWindowFocus` to off and opt in explicitly via a shared focus policy map for critical account keys
+- Gate polling intervals by route relevance and tab visibility to avoid background/off-route read churn
 - Cache and revalidate predictably
 - Derive UI-ready computed values
 
