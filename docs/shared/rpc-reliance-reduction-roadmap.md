@@ -1,374 +1,253 @@
 # RPC Reliance Reduction Roadmap
 
-Status: Draft (for future work)  
-Last Updated: February 20, 2026
+Status: Approved for execution (80/20 plan)  
+Last Updated: February 23, 2026
 
-## 1. Purpose
+## 1. Executive Direction
 
-This document defines a concrete, staged plan to reduce frontend dependence on direct public RPC calls while preserving correctness for wallet-connected user actions.
+This plan is explicitly optimized for **80% of benefit with ~20% of change**.
 
-Primary drivers:
+Two decisions are now locked:
 
-- Reliability under traffic spikes.
-- Reduced blast radius from third-party RPC outages/rate limits.
-- Lower request volume from browsers.
-- Better observability and controlled failure behavior.
+1. We **cannot** and should **not** try to eliminate RPC usage completely.
+2. `NEXT_PUBLIC_RPC_URLS` is **mandatory in production**.
 
-This roadmap is intentionally implementation-oriented so it can be translated into tickets without re-discovery.
+This roadmap prioritizes reducing unnecessary browser RPC load and burst behavior first, before adding major backend infrastructure.
 
-## 2. Current Behavior (as implemented)
+## 2. Scope and Non-Goals
 
-### 2.1 Transport bootstrapping
+### In Scope (this roadmap)
 
-- `wagmi` transport is configured in `web3/wagmi.ts`.
-- If `NEXT_PUBLIC_RPC_URLS` is set, those URLs are used.
-- If not set:
-  - production fallback: `https://rpc.yearn.fi/chain/1`
-  - non-production fallback: `viem` mainnet defaults.
+- Reduce duplicate and unnecessary read traffic.
+- Make polling/focus behavior predictable and conservative.
+- Keep wallet-authoritative reads for account-critical correctness.
+- Add minimum telemetry needed to prove improvement.
+- Defer high-complexity backend refactors unless objective gates require them.
 
-### 2.2 Wallet-connected account reads
+### Non-Goals (for now)
 
-- Domain account reads are gated on connected wallet and use wallet-backed EIP-1193 transport via:
-  - `state/protocol.tsx`
-- This is the desired data authority for user-specific account state.
+- No full replacement of wallet-backed reads for signing-critical actions.
+- No broad backend aggregation platform in the first milestone.
+- No proxy allowlist enforcement rollout in first milestone.
+- No precompute/indexing platform build in first milestone.
 
-### 2.3 Browser-side query behavior
+## 3. Current Baseline (What Matters Most)
 
-- stYFI and veYFI account queries poll every 30s with focus refetch enabled.
-- Global/domain stats poll every 60s.
-- Identity and domain hooks can trigger overlapping account-state reads.
-
-### 2.4 Known stress contributors
-
-- Repeated polling from every open tab/session.
-- Duplicate reads for overlapping UI state (identity + domain account slices).
-- Reads that are always-on at app shell level rather than route-scoped.
-- Third-party widget internals (for example wallet UI) can make extra balance requests unless explicitly constrained.
-
-## 3. Non-Goals
-
-- Do not remove wallet-backed reads for signing-critical and account-specific truth.
-- Do not compromise network safety checks (mainnet gating, wrong-network handling).
-- Do not add hidden write paths through proxy infrastructure.
-- Do not rely on eventual consistency for user actions that need immediate post-tx correctness.
+1. Account state is polled every 30s in multiple places with focus refetch enabled.
+2. Identity and domain account hooks overlap and can duplicate expensive reads.
+3. `/styfi` currently reads veYFI account state for external-position UX, which is high fanout.
+4. Nudge queries can perform additional account-like reads every 30s.
+5. Connected sessions prefer on-chain stats polling even when S3/global data exists.
 
 ## 4. Guiding Principles
 
-1. Use wallet RPC only where wallet authority is needed.
-2. Prefer server-owned read aggregation for high-fanout, read-heavy data.
-3. Collapse duplicate queries into canonical sources.
-4. Poll less, invalidate smarter.
-5. Ensure each optimization has measurable impact.
+1. Preserve wallet truth where authority is required.
+2. Remove duplication before adding infrastructure.
+3. Prefer route-scoped and interaction-scoped reads.
+4. Poll less, invalidate precisely after writes.
+5. Add only enough telemetry to enforce decisions.
+6. Defer complex systems until metrics prove they are necessary.
 
-## 5. Target State
+## 5. Mandatory Production RPC Policy
 
-### 5.1 Browser responsibilities
+### 5.1 Policy
 
-- Minimal account-critical reads.
-- Route-scoped query activation.
-- Event-driven refresh after successful writes.
-- Conservative background polling only when visible.
+`NEXT_PUBLIC_RPC_URLS` must be present and non-empty in production validation.
 
-### 5.2 Backend responsibilities
+### 5.2 Rationale
 
-- Aggregate account and global read models behind Yearn-controlled endpoints.
-- Cache hot read methods with chain-aware freshness policy.
-- Provide stable CORS behavior for browser clients.
-- Emit telemetry for cache hit ratio, method mix, and error classes.
+- Wallet-backed reads remain primary for connected account truth.
+- App infrastructure still needs deterministic public transport configuration for non-wallet flows and controlled fallback behavior.
+- Explicit configuration reduces silent fallback ambiguity and incident triage time.
 
-### 5.3 Operational controls
+### 5.3 Required follow-up doc alignment
 
-- Explicit production RPC config requirement.
-- Fallback ladders that are observable and deterministic.
-- Budget-based SLOs for request rate and latency.
+This roadmap supersedes prior wording that `NEXT_PUBLIC_RPC_URLS` is optional in production-facing guidance. Any conflicting docs must be updated in the same milestone as `RPC-001`.
 
-## 6. Workstreams and Detailed Backlog
+## 6. 80/20 Delivery Plan
 
-### 6.1 Workstream A: Query Topology Cleanup (frontend)
+### Phase 1 (Execute Now): Low-Risk, High-Impact (1-2 sprints)
 
-Goal: remove redundant reads and ensure only needed queries run.
+This is the only phase that should be started immediately.
 
-### A1. De-duplicate identity and account-state fetches
+### P1 Goals
 
-- Problem:
-  - `IdentityProvider` and domain hooks both call account state for overlapping fields.
-- Action:
-  - Define a canonical account-state query per domain and derive identity from cache selectors.
-  - Avoid separate network calls for derived properties already in query data.
-- Expected impact:
-  - 20-40% fewer account reads for active connected sessions.
+- 40-60% reduction in browser-side RPC requests per active connected session.
+- Eliminate major tab-focus burst behavior.
+- No regression in tx success path or wrong-network behavior.
 
-### A2. Route-scope account queries
+### P1 Work Items
 
-- Problem:
-  - shared providers mounted globally can trigger reads even on routes that do not need full account state.
-- Action:
-  - Move domain account hook usage into route-local boundaries (`/styfi`, `/veyfi`), or gate by current app route.
-- Expected impact:
-  - Large reduction on home and low-interaction pages.
+1. `RPC-001` Enforce production `NEXT_PUBLIC_RPC_URLS` in env validation and startup checks.
+2. `RPC-002` De-duplicate identity vs stYFI account reads (single source + selectors).
+3. `RPC-003` Disable default focus refetch for non-critical keys and add explicit opt-in map.
+4. `RPC-004` Restrict account/nudge polling to relevant routes and connected states only.
+5. `RPC-005` Cache blacklist probe capability result per session/chain/contract.
+6. `RPC-006` Make expensive simulation-like reads on-demand (or lower cadence) unless visible.
+7. `RPC-007` Use S3-first stats by default; use short-lived post-write chain refresh override instead of always-on connected polling.
+8. `RPC-008` Add minimal telemetry counters required for go/no-go decisions (request volume, error rate, latency).
 
-### A3. Disable unnecessary focus refetches
+### P1 Explicit Constraints (to prevent over-refactor)
 
-- Problem:
-  - switching tabs/windows can burst refetch many queries at once.
-- Action:
-  - Per query key, disable `refetchOnWindowFocus` unless value is latency-sensitive.
-  - Add route-level opt-in for panels requiring fast refresh.
-- Expected impact:
-  - Lower burst load and fewer synchronized spikes.
+- Do not redesign provider tree structure unless required for dedupe.
+- Do not introduce new backend aggregated account APIs in P1.
+- Do not add complex adaptive transport state machines in P1.
+- Do not add CI SLO gates in P1.
 
-### A4. Adaptive polling policy
+### Phase 2 (Conditional): Start Only If P1 Gates Fail (2-4 sprints)
 
-- Action:
-  - Poll only when:
-    - page is visible,
-    - wallet connected,
-    - active route needs data,
-    - no recent fatal transport errors.
-  - Increase interval under transport stress (backoff window).
-- Expected impact:
-  - 30-60% less background traffic in normal use.
+**DO NOT START PHASE 2 UNTIL the Phase 1 gate review is completed and approved.**
 
-### 6.2 Workstream B: Domain Client Efficiency
+### Trigger to start Phase 2
 
-Goal: reduce call count inside each fetch cycle.
+Start only if one or more are true after P1 is fully shipped and observed:
 
-### B1. Consolidate contract reads where ABI allows
+1. Browser RPC reduction is below 40%.
+2. 429/error bursts remain materially user-visible.
+3. p95 latency for key reads remains unstable despite P1 controls.
 
-- Action:
-  - Review per-domain multicall contract sets and remove duplicate or stale reads.
-  - Use narrower read sets for compact UI states (summary vs full detail).
+### Phase 2 Candidate Work
 
-### B2. Cache probe capabilities
+- `RPC-009` Backend aggregated account read API for stYFI only (pilot).
+- `RPC-010` Mixed-freshness cache policy for aggregated endpoint.
+- `RPC-011` Expand telemetry dashboards to include cache hit ratio and source mix.
 
-- Problem:
-  - probing multiple blacklist method names repeatedly incurs failed calls.
-- Action:
-  - Cache successful probe signature per chain + contract for session lifetime.
-- Expected impact:
-  - Removes repeated failed calls and noise logs.
+### Phase 3 (Deferred): Do Not Start Without New Decision
 
-### B3. On-demand expensive reads
+**Explicitly deferred. No ticket kickoff unless roadmap is re-approved.**
 
-- Problem:
-  - reward simulations and certain diagnostic reads can be expensive when polled.
-- Action:
-  - Move to on-demand or lower-frequency channels unless section is actively viewed.
+- Proxy method allowlist enforcement (`C3` equivalent).
+- Precomputed hot-data platform expansion (`C4` equivalent).
+- Full client query-level telemetry + formal SLO CI budget gates (`E2`, `E3` equivalent).
+- Broad multi-app aggregation unification.
 
-### B4. Minimize chain time reads
+## 7. Risk Register (Subtle Regression Focus)
 
-- Action:
-  - Keep cached chain-time offset, refresh only at bounded cadence and when needed.
+### R1. Stale account state during action flows
 
-### 6.3 Workstream C: Backend Read Model and Proxy Evolution
+- Mitigation: wallet-first revalidation before signing-critical actions remains mandatory.
 
-Goal: shift read fanout from browsers to Yearn-managed infrastructure.
+### R2. Over-aggressive polling reduction hides needed updates
 
-### C1. Account read aggregation API
+- Mitigation: post-write targeted invalidation and explicit per-key critical refresh policy.
 
-- Action:
-  - Add API endpoint(s) returning aggregated account model for each app.
-  - Server executes multicalls and enriches response.
-- Benefits:
-  - Browser makes one call; server handles batching and cache.
-  - Better control over retries, rate limits, and circuit breaking.
+### R3. Route-scoping accidentally suppresses required reads
 
-### C2. Global + account mixed freshness strategy
+- Mitigation: integration tests for route transitions and reconnect behavior.
 
-- Action:
-  - TTL tiers:
-    - block-sensitive: 2-6s
-    - epoch-sensitive: 30-60s
-    - metadata/static: 10m+
-- Benefits:
-  - lower backend chain load with predictable staleness budget.
+### R4. Mandatory RPC env enforcement breaks deployments unexpectedly
 
-### C3. Method allowlist and policy enforcement
+- Mitigation: validate in CI early; fail fast with clear error message.
 
-- Action:
-  - enforce read-only methods and chain ID constraints at proxy layer.
-  - reject non-allowlisted methods with explicit error payload.
+## 8. Testing Requirements (Implementation-Blocking)
 
-### C4. Precomputed hot data
+No work item is complete without matching tests.
 
-- Action:
-  - move highest-traffic values (global stats, inventory snapshots) to precomputed store with frequent refresh jobs.
-- Benefits:
-  - near-zero RPC for most anonymous and passive views.
+### Unit
 
-### 6.4 Workstream D: UX and Interaction-Level Reductions
+- Query dedupe selector correctness.
+- Blacklist probe cache behavior.
+- Polling/focus policy map behavior.
 
-Goal: avoid data reads that do not improve user outcome.
-
-### D1. Progressive detail loading
-
-- Action:
-  - load compact summary first.
-  - fetch detail-only data when panel is expanded.
-
-### D2. Post-write targeted invalidation
-
-- Action:
-  - invalidate only affected query keys (not whole domain groups).
-  - avoid broad cache busting on every transaction.
-
-### D3. Debounce high-frequency UI-driven reads
-
-- Action:
-  - where inputs trigger quote/simulation reads, debounce and cancel stale requests.
-
-### 6.5 Workstream E: Observability and SLOs
-
-Goal: make RPC usage measurable and enforceable.
-
-### E1. Instrument per-method counters
-
-Track at minimum:
-
-- `rpc.requests.total` by method/chain/source (browser, proxy, backend job)
-- `rpc.errors.total` by status/error class (429, timeout, CORS, invalid params)
-- `rpc.latency.ms` p50/p95/p99
-- `rpc.cache.hit_ratio` for proxy endpoints
-
-### E2. Client telemetry
-
-- Emit query-key level metrics:
-  - fetch frequency
-  - refetch triggers (interval, focus, invalidate)
-  - error streaks
-
-### E3. SLOs and alerting
-
-Proposed initial SLOs:
-
-- <1% RPC error rate over 10m rolling window.
-- <500ms p95 for cached proxy reads.
-- <2s p95 for uncached aggregated account reads.
-
-## 7. Phased Delivery Plan
-
-### Phase 0: Immediate hardening (completed/ongoing)
-
-- Explicit production fallback to Yearn proxy endpoint.
-- Removed wallet UI patterns that triggered implicit balance polling by default.
-- Reduced noisy transport retry behavior.
-
-### Phase 1: Low-risk frontend reductions (1-2 sprints)
-
-- A1, A2, A3, B2.
-- Deliver with no backend contract changes.
-
-Exit criteria:
-
-- At least 30% drop in browser-side RPC calls per active session.
-- No regressions in transaction success path.
-
-### Phase 2: Backend aggregation foundation (2-4 sprints)
-
-- C1, C2, E1.
-- Introduce account read APIs and route clients gradually.
-
-Exit criteria:
-
-- >70% of read traffic served by Yearn-managed API/proxy paths.
-- Stable p95 latency with controlled cache policy.
-
-### Phase 3: Advanced optimization and enforcement (ongoing)
-
-- C3, C4, D1-D3, E2-E3.
-- Formal SLO governance and budget guardrails in CI/deploy checks.
-
-## 8. Risk Register
-
-### R1. Staleness surprises
-
-- Mitigation:
-  - per-field freshness annotations.
-  - visible “updated at” where relevant.
-
-### R2. Divergence between wallet truth and aggregated responses
-
-- Mitigation:
-  - wallet-first revalidation before signing-critical actions.
-  - compare-and-heal strategy on mismatch.
-
-### R3. Backend complexity and cost
-
-- Mitigation:
-  - phase rollout by highest-traffic reads first.
-  - maintain strict method allowlists.
-
-### R4. Silent fallback regressions
-
-- Mitigation:
-  - production env validation requires explicit RPC URL configuration.
-  - runtime warning telemetry on fallback usage.
-
-## 9. CI/CD and Policy Changes Required
-
-1. Make `NEXT_PUBLIC_RPC_URLS` mandatory in production validation.
-2. Add lint/policy checks for unsupported `ConnectButton` usage patterns that re-enable automatic balance polling where not needed.
-3. Add smoke tests validating configured RPC endpoint path correctness (for example `/chain/1` on proxy).
-4. Add synthetic checks for CORS preflight and JSON-RPC POST behavior.
-
-## 10. Testing Strategy
-
-### 10.1 Unit tests
-
-- Query key de-dup behavior.
-- Cache-derived identity selectors.
-- Adaptive polling state machine.
-
-### 10.2 Integration tests
+### Integration
 
 - Route-scoped query activation.
-- Post-write targeted invalidations.
-- Error backoff behavior under simulated 429.
+- Post-write targeted invalidation paths.
+- 429/backoff behavior for configured keys.
 
-### 10.3 E2E tests
+### E2E
 
-- Multi-tab behavior (ensure no duplicate polling storms).
-- Wrong-network and reconnect behavior without extra balance spam.
-- Recovery from temporary proxy outage.
+- Multi-tab focus switching without polling storms.
+- Wrong-network, reconnect, and tx-success flows remain correct.
+- Fallback and recovery behavior with temporary RPC impairment.
 
-## 11. Suggested Ticket Breakdown (ready-to-file)
+## 9. Handoff-Ready Ticket Specs
 
-1. `RPC-001` Enforce explicit production `NEXT_PUBLIC_RPC_URLS` in env validator.
-2. `RPC-002` De-duplicate identity vs domain account reads.
-3. `RPC-003` Route-scope account queries by active app route.
-4. `RPC-004` Introduce adaptive polling and focus-refetch policy map.
-5. `RPC-005` Cache blacklist probe capability in stYFI client.
-6. `RPC-006` Make reward simulation reads on-demand.
-7. `RPC-007` Add aggregated account read API for stYFI.
-8. `RPC-008` Add aggregated account read API for veYFI.
-9. `RPC-009` Add proxy and client telemetry dashboards.
-10. `RPC-010` Add synthetic monitors for CORS + JSON-RPC path health.
+These can be started by a new agent immediately, in order.
 
-## 12. Definition of Done for “Reduced RPC Reliance”
+### `RPC-001` Production RPC env enforcement
 
-A release can claim meaningful reduction only when all conditions hold:
+- Scope:
+  - Add `NEXT_PUBLIC_RPC_URLS` to production-required env validation.
+  - Ensure startup/runtime checks produce explicit failure/logging for missing value in production mode.
+  - Update conflicting docs in same PR.
+- Acceptance:
+  - Production validation fails when missing/empty.
+  - Test coverage for pass/fail paths.
 
-1. Browser-side RPC request volume reduced by at least 50% compared to baseline (same traffic profile).
-2. 429-originated user-visible failures reduced by at least 90%.
-3. Account-critical actions remain correct with no increase in tx failure rates.
-4. Production has explicit, validated RPC URL configuration with no silent third-party fallback.
-5. Dashboards and alerts exist for method-level volume, error rates, and cache hit ratio.
+### `RPC-002` Identity/account dedupe
 
-## 13. Implementation Notes for Future Contributors
+- Scope:
+  - Remove overlapping network reads between identity and stYFI account state.
+  - Derive identity fields from canonical account query cache where possible.
+- Acceptance:
+  - Connected session account read count drops measurably.
+  - No regressions in blacklist gating, balance display, or tx CTA enablement.
 
-- Preserve the wallet-backed EIP-1193 read path for authoritative account checks at action time.
-- Prefer reducing read frequency and duplication before adding new infrastructure.
-- Any fallback behavior must be explicit in docs and env validation.
-- When adding new hooks, include a query budget rationale (why interval/focus/refetch choices are safe).
-- Any UI component introducing wallet-related read hooks should document expected RPC cost.
+### `RPC-003` Focus refetch policy map
 
-## 14. Open Questions
+- Scope:
+  - Default `refetchOnWindowFocus` to false for non-latency-critical keys.
+  - Explicitly opt in only where necessary.
+- Acceptance:
+  - Tab-switch burst behavior reduced.
+  - Critical panels still refresh correctly.
 
-1. Should proxy cache TTL vary by method and block tag dynamically (for example `latest` vs specific block)?
-2. Should we maintain per-app aggregated endpoints or a shared account-state endpoint with app selectors?
-3. What is the acceptable staleness budget for top-of-page stats under peak load?
-4. Do we want fail-open (stale cache) or fail-closed (error) for each data class?
+### `RPC-004` Route and visibility gating
 
-## 15. Immediate Next Recommended Action
+- Scope:
+  - Gate account and nudge polling by route relevance, connected state, and visibility.
+  - Avoid heavy veYFI account reads on `/styfi` when not needed for visible UI.
+- Acceptance:
+  - Home/low-interaction routes show materially lower read activity.
+  - `/styfi` and `/veyfi` feature completeness unchanged.
 
-Start with `RPC-001` through `RPC-004` in one milestone. These provide the highest reliability gain with the lowest architectural risk and prepare the codebase for backend aggregation in phase 2.
+### `RPC-005` Blacklist probe caching
+
+- Scope:
+  - Cache successful probe signature per session (chain + contract).
+- Acceptance:
+  - Failed probe calls stop repeating every poll cycle.
+  - Blacklist status behavior remains unchanged.
+
+### `RPC-006` Expensive read downgrade
+
+- Scope:
+  - Move high-cost simulation/diagnostic reads to on-demand or lower cadence.
+- Acceptance:
+  - Read volume reduction confirmed.
+  - UI copy/loading states remain coherent.
+
+### `RPC-007` S3-first stats policy
+
+- Scope:
+  - Prefer global/S3 stats for steady-state display.
+  - Keep short-lived on-chain overrides after writes for freshness.
+- Acceptance:
+  - Connected steady-state stats polling load decreases.
+  - Post-write freshness is preserved.
+
+### `RPC-008` Minimum telemetry pack
+
+- Scope:
+  - Add counters for request volume, error class (incl. 429), and p95 latency by source.
+- Acceptance:
+  - Dashboard/report can compare pre/post P1 objectively.
+
+## 10. Go/No-Go Review Template (End of Phase 1)
+
+Phase 2 remains blocked until this review is completed.
+
+1. Browser RPC volume reduction: target >= 40%.
+2. 429-originated visible failures: target >= 50% reduction.
+3. Tx success path: no degradation.
+4. Wrong-network/reconnect behavior: no regression.
+5. Team decision:
+   - If all pass: keep Phase 2 deferred.
+   - If not: start Phase 2 pilot only (`RPC-009` to `RPC-011`).
+
+## 11. Immediate Next Action
+
+Start `RPC-001` through `RPC-004` as the first milestone.
+
+This set delivers the best reliability and load reduction with minimal architectural risk and keeps larger infrastructure work explicitly deferred unless metrics force escalation.
