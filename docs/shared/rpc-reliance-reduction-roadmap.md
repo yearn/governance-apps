@@ -1,6 +1,6 @@
 # RPC Reliance Reduction Roadmap
 
-Status: Approved for execution (80/20 plan)  
+Status: Phase 1 in progress (`RPC-001` to `RPC-004` completed; `RPC-005` to `RPC-008` pending)  
 Last Updated: February 23, 2026
 
 ## 1. Executive Direction
@@ -78,14 +78,23 @@ This is the only phase that should be started immediately.
 
 ### P1 Work Items
 
-1. `RPC-001` Enforce production `NEXT_PUBLIC_RPC_URLS` in env validation and startup checks.
-2. `RPC-002` De-duplicate identity vs stYFI account reads (single source + selectors).
-3. `RPC-003` Disable default focus refetch for non-critical keys and add explicit opt-in map.
-4. `RPC-004` Restrict account/nudge polling to relevant routes and connected states only.
-5. `RPC-005` Cache blacklist probe capability result per session/chain/contract.
-6. `RPC-006` Make expensive simulation-like reads on-demand (or lower cadence) unless visible.
-7. `RPC-007` Use S3-first stats by default; use short-lived post-write chain refresh override instead of always-on connected polling.
-8. `RPC-008` Add minimal telemetry counters required for go/no-go decisions (request volume, error rate, latency).
+- [x] `RPC-001` Enforce production `NEXT_PUBLIC_RPC_URLS` in env validation and startup checks.
+- [x] `RPC-002` De-duplicate identity vs stYFI account reads (single source + selectors).
+- [x] `RPC-003` Disable default focus refetch for non-critical keys and add explicit opt-in map.
+- [x] `RPC-004` Restrict account/nudge polling to relevant routes and connected states only.
+- [ ] `RPC-005` Cache blacklist probe capability result per session/chain/contract.
+- [ ] `RPC-006` Make expensive simulation-like reads on-demand (or lower cadence) unless visible.
+- [ ] `RPC-007` Use S3-first stats by default; use short-lived post-write chain refresh override instead of always-on connected polling.
+- [ ] `RPC-008` Add minimal telemetry counters required for go/no-go decisions (request volume, error rate, latency).
+
+### P1 Completion Notes (Current)
+
+- Completed implementation commits:
+  - `48be3b2` (`RPC-001`)
+  - `d79aec1` (`RPC-002`)
+  - `58da9d5` (`RPC-003`)
+  - `412f06d` (`RPC-004`)
+- Full test suite passed after `RPC-004` (`176/176`).
 
 ### P1 Explicit Constraints (to prevent over-refactor)
 
@@ -248,6 +257,6 @@ Phase 2 remains blocked until this review is completed.
 
 ## 11. Immediate Next Action
 
-Start `RPC-001` through `RPC-004` as the first milestone.
+Run UAT on the shipped `RPC-001` through `RPC-004` milestone and only continue with `RPC-005` to `RPC-008` if UAT or production observation indicates further reduction is needed.
 
 This set delivers the best reliability and load reduction with minimal architectural risk and keeps larger infrastructure work explicitly deferred unless metrics force escalation.
