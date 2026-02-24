@@ -8,6 +8,12 @@ import { MockControls } from "./components/MockControls";
 import { CrossAppNudge } from "@/components/domain/CrossAppNudge";
 import { useCrossChainNudge } from "@/lib/hooks/useCrossChainNudge";
 import { scrollToTargetWhenReady } from "@/lib/scrollToTarget";
+import { ContractsFooter } from "@/components/domain/ContractsFooter";
+import {
+  LIQUID_LOCKER_REDEMPTION_ADDRESS,
+  VEYFI_ADDRESS,
+  VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+} from "@/lib/constants";
 
 type VeyfiPageClientProps = {
   hostname?: string | null;
@@ -45,6 +51,19 @@ export function VeyfiPageClient({ hostname }: VeyfiPageClientProps) {
       <main className="container mx-auto px-4 md:px-6 pt-8 space-y-8 pb-24">
         <CrossAppNudge nudge={nudge} onDismiss={dismiss} />
         <VeyfiCockpit hostname={hostname} />
+        <ContractsFooter
+          contracts={[
+            { label: "Legacy veYFI", address: VEYFI_ADDRESS },
+            {
+              label: "veYFI Reward Distributor",
+              address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
+            },
+            {
+              label: "Global Redemption Facility",
+              address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
+            },
+          ]}
+        />
       </main>
 
       {usesMockBackend && <MockControls />}

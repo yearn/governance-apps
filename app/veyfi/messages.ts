@@ -87,6 +87,7 @@ export const veyfiCopy = {
         stake: "Stake",
         unstake: "Unstake",
         trade: "Trade",
+        info: "Info",
         tradeUnavailableTooltip: redemptionRequirementsTooltip,
       },
     },

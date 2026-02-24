@@ -7,10 +7,11 @@ import { veyfiCopy as copy } from "../messages";
 import { LlyfiStakeTab } from "./tabs/LlyfiStakeTab";
 import { LlyfiUnstakeTab } from "./tabs/LlyfiUnstakeTab";
 import { LlyfiTradeTab } from "./tabs/LlyfiTradeTab";
+import { LlyfiInfoTab } from "./tabs/LlyfiInfoTab";
 import { ReadyBadge, StreamingBadge } from "@/components/domain/Badges";
 import { useEpochCountdown } from "@/lib/hooks/useEpochCountdown";
 
-type TabId = "stake" | "unstake" | "trade";
+type TabId = "stake" | "unstake" | "trade" | "info";
 
 export function LlyfiRowCockpit({ token }: { token: LlyfiTokenState }) {
   const [activeTab, setActiveTab] = useState<TabId>("stake");
@@ -53,6 +54,10 @@ export function LlyfiRowCockpit({ token }: { token: LlyfiTokenState }) {
             tooltip: !tradeEnabled ? tradeUnavailableTooltip : undefined,
             tooltipSide: "bottom",
           },
+          {
+            id: "info",
+            label: copy.manage.cockpit.tabs.info,
+          },
         ]}
       />
 
@@ -60,6 +65,7 @@ export function LlyfiRowCockpit({ token }: { token: LlyfiTokenState }) {
         {activeTab === "stake" && <LlyfiStakeTab token={token} />}
         {activeTab === "unstake" && <LlyfiUnstakeTab token={token} />}
         {activeTab === "trade" && <LlyfiTradeTab token={token} />}
+        {activeTab === "info" && <LlyfiInfoTab token={token} />}
       </div>
     </div>
   );

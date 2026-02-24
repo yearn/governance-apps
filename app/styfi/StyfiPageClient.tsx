@@ -24,6 +24,14 @@ import { CrossAppNudge } from "@/components/domain/CrossAppNudge";
 import { useCrossChainNudge } from "@/lib/hooks/useCrossChainNudge";
 import { scrollToTargetWhenReady } from "@/lib/scrollToTarget";
 import { deriveExternalPositions } from "./external-positions";
+import { ContractsFooter } from "@/components/domain/ContractsFooter";
+import {
+  REWARD_CLAIMER_ADDRESS,
+  REWARD_TOKEN_CONFIG,
+  STYFI_ADDRESS,
+  STYFIX_ADDRESS,
+  YFI_ADDRESS,
+} from "@/lib/constants";
 
 function deriveBalances(account: StyfiAccountState) {
   const styfiActive = account.styfiActive;
@@ -248,6 +256,19 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
             isNewUser={isNewUser}
           />
         </div>
+
+        <ContractsFooter
+          contracts={[
+            { label: "YFI Token", address: YFI_ADDRESS },
+            { label: "stYFI (Staking)", address: STYFI_ADDRESS },
+            { label: "stYFIx (Delegated Vault)", address: STYFIX_ADDRESS },
+            { label: "Reward Claimer", address: REWARD_CLAIMER_ADDRESS },
+            {
+              label: `Reward Token (${REWARD_TOKEN_CONFIG.symbol})`,
+              address: REWARD_TOKEN_CONFIG.address,
+            },
+          ]}
+        />
       </main>
     </div>
   );

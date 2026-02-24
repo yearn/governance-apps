@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { IconChevron } from "@/components/icons/IconChevron";
-import { formatAddress, formatTokenAmount } from "@/lib/format";
+import { ContractLink } from "@/components/ui/ContractLink";
+import { formatTokenAmount } from "@/lib/format";
 import type { YethGlobalState } from "@/lib/clients/yeth";
 
 export function TrustFooter({ global }: { global: YethGlobalState }) {
@@ -14,43 +15,20 @@ export function TrustFooter({ global }: { global: YethGlobalState }) {
       <div className="pb-8 space-y-6 text-sm text-text-secondary animate-in slide-in-from-top-2">
         <section className="space-y-2">
           <h3 className="font-bold text-text-primary">Contracts</h3>
-          <FlatList
-            items={[
-              <>
-                Claim Contract: {formatAddress(global.contracts.claimContract)}{" "}
-                <a
-                  href={addressExplorerLink(global.contracts.claimContract)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-4"
-                >
-                  Explorer
-                </a>
-              </>,
-              <>
-                Recovery Vault: {formatAddress(global.contracts.recoveryVault)}{" "}
-                <a
-                  href={addressExplorerLink(global.contracts.recoveryVault)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-4"
-                >
-                  Explorer
-                </a>
-              </>,
-              <>
-                Yield Vault: {formatAddress(global.contracts.yieldVault)}{" "}
-                <a
-                  href={addressExplorerLink(global.contracts.yieldVault)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-4"
-                >
-                  Explorer
-                </a>
-              </>,
-            ]}
-          />
+          <ul className="mx-auto max-w-sm space-y-2 text-sm text-text-secondary">
+            <li className="flex items-center justify-between gap-4">
+              <span>Claim Contract</span>
+              <ContractLink address={global.contracts.claimContract} />
+            </li>
+            <li className="flex items-center justify-between gap-4">
+              <span>Recovery Vault</span>
+              <ContractLink address={global.contracts.recoveryVault} />
+            </li>
+            <li className="flex items-center justify-between gap-4">
+              <span>Yield Vault</span>
+              <ContractLink address={global.contracts.yieldVault} />
+            </li>
+          </ul>
         </section>
 
         <section className="space-y-2">
@@ -102,8 +80,4 @@ function FlatList({ items }: { items: readonly ReactNode[] }) {
       ))}
     </ul>
   );
-}
-
-function addressExplorerLink(address: string) {
-  return `https://etherscan.io/address/${address}`;
 }
