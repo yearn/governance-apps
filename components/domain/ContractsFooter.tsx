@@ -18,7 +18,7 @@ export function ContractsFooter({ contracts }: { contracts: ContractItem[] }) {
         <ul className="mx-auto max-w-sm space-y-2 text-sm text-text-secondary">
           {contracts.map((contract) => (
             <li
-              key={contract.label}
+              key={`${contract.label}-${contract.address}`}
               className="flex items-center justify-between gap-4"
             >
               <span>{contract.label}</span>
