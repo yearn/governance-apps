@@ -15,7 +15,7 @@ export function TrustFooter({ global }: { global: YethGlobalState }) {
       <div className="pb-8 space-y-6 text-sm text-text-secondary animate-in slide-in-from-top-2">
         <section className="space-y-2">
           <h3 className="font-bold text-text-primary">Contracts</h3>
-          <ul className="mx-auto max-w-sm space-y-2 text-sm text-text-secondary">
+          <ul className="w-full space-y-2 text-sm text-text-secondary">
             <li className="flex items-center justify-between gap-4">
               <span>Claim Contract</span>
               <ContractLink address={global.contracts.claimContract} />

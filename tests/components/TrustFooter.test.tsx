@@ -47,6 +47,9 @@ describe("TrustFooter", () => {
       "https://etherscan.io/address/0x1111111111111111111111111111111111111111"
     );
 
+    const contractsList = screen.getByText("Claim Contract").closest("ul");
+    expect(contractsList).toHaveClass("w-full");
+
     const chevron = container.querySelector("summary svg");
     expect(chevron).not.toBeNull();
     expect(chevron?.getAttribute("class")).toContain("group-open:rotate-180");
