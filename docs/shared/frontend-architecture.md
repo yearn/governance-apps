@@ -48,16 +48,19 @@ For `/styfi`:
 - **Protocol Stats Bar:** A universal component for ecosystem health (Supply/Staked).
 - **AccountSummary:** Context area that renders ModeComparison (new users) or a positions list (returning users).
 - **StyfiCockpit:** StakeManageCard + RewardsCard; always visible.
+- **ContractsFooter:** Collapsible global contracts disclosure (progressive disclosure, Etherscan links).
 
 For `/veyfi`:
 
 - **VeyfiStatsBar:** Displays migration and boost health.
+- **ContractsFooter:** Collapsible global contracts disclosure (legacy veYFI + distributor + redemption facility).
 
 For `/yeth`:
 
 - **RecoveryBanner:** Persistent retired notice + claim window status.
 - **RecoveryHero + ActionDeck + StatsGrid:** De-boxed, action-first unclaimed flow.
 - **TrustFooter:** Flat disclosures (contracts, vaults, risks, sources) in a minimal details footer.
+  - Contracts rows use the shared `ContractLink` primitive for truncated code-style addresses and explorer links.
 - **MockControls:** App-specific state presets and claim-window simulation.
 
 ---

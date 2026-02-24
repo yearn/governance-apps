@@ -35,8 +35,17 @@ describe("TrustFooter", () => {
     const { container } = render(<TrustFooter global={mockGlobal} />);
 
     expect(screen.getByText("View Contracts, Risks & Sources")).toBeInTheDocument();
-    expect(screen.getByText(/Recovery Vault:/)).toBeInTheDocument();
-    expect(screen.getByText(/Yield Vault:/)).toBeInTheDocument();
+    expect(screen.getByText("Claim Contract")).toBeInTheDocument();
+    expect(screen.getByText("Recovery Vault")).toBeInTheDocument();
+    expect(screen.getByText("Yield Vault")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", {
+        name: /0x1111\.\.\.1111/i,
+      })
+    ).toHaveAttribute(
+      "href",
+      "https://etherscan.io/address/0x1111111111111111111111111111111111111111"
+    );
 
     const chevron = container.querySelector("summary svg");
     expect(chevron).not.toBeNull();

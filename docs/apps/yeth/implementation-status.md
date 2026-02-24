@@ -74,7 +74,8 @@ Implemented Tokyo refresh components and behavior:
   - context stats for wallet, snapshot value, claim window, eligibility.
 - `/app/yeth/components/TrustFooter.tsx`
   - collapsible trust and verify footer at page bottom,
-  - stronger trigger affordance (`View Contracts, Risks & Sources`) with chevron state.
+  - stronger trigger affordance (`View Contracts, Risks & Sources`) with chevron state,
+  - contracts section uses shared `ContractLink` formatting (truncated code-style addresses + Etherscan links).
 - `/app/yeth/YethPageClient.tsx`
   - unclaimed flow assembled from hero + action deck + context grid,
   - claim-window-closed branch replaces hero and hides action deck,

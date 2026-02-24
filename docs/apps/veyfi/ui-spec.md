@@ -97,6 +97,10 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
       - **Constraint:** Limited by `Redemption.capacity - Redemption.used` AND `Redemption.YFI_Balance`.
       - **Fee:** Shows exit fee (bps) and Net Receive amount.
       - **Contract:** `redeem()`.
+4.  **Info:**
+    - Read-only contract references for the selected locker.
+    - Displays LLYFI token contract, locker depositor contract, and global redemption facility.
+    - Address links use the shared `ContractLink` primitive (truncated code format + Etherscan link).
 
 ### 4.4 Zone 3: Redemption Intelligence & Rewards
 
@@ -112,6 +116,10 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 **Purpose:** Reinforce stYFI as the yield hub.
 **Content:** "Rewards are aggregated in the stYFI ecosystem."
 **Action:** "Go to stYFI Dashboard".
+
+**Component:** `ContractsFooter`
+**Purpose:** Keep global contract references discoverable without adding cockpit clutter.
+**Content:** Legacy veYFI contract, reward distributor, and global redemption facility with Etherscan links.
 
 ---
 
