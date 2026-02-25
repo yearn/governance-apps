@@ -25,7 +25,7 @@ describe("ActionDeck", () => {
 
     const headings = [
       screen.getByRole("heading", { name: "Claim & Exit" }),
-      screen.getByRole("heading", { name: "Active Recovery (Advanced)" }),
+      screen.getByRole("heading", { name: "Active Recovery (Risk Exposed)" }),
     ];
 
     for (const heading of headings) {

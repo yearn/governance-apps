@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/Modal";
 import { formatAddress, formatTokenAmount } from "@/lib/format";
 import { useProtocol } from "@/state/protocol";
 import { nowSeconds } from "@/lib/mocks/time";
+import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import {
   useYethAccountState,
   useYethClaimAndExit,
@@ -170,9 +171,10 @@ function RecoveryBanner({
             href={global?.approvedYipUrl ?? "https://gov.yearn.fi"}
             target="_blank"
             rel="noreferrer"
-            className="underline underline-offset-4"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-text-primary hover:text-tokyo-600 transition-colors underline underline-offset-4"
           >
             Read the approved YIP
+            <IconLinkOut className="w-3.5 h-3.5" />
           </a>
           <span className="text-text-tertiary">&#183;</span>
           <span className="font-medium text-text-primary">
@@ -243,7 +245,7 @@ function IneligibleCard({
 
       <p className="text-sm text-text-secondary">
         If you expected an allocation, review the approved YIP and manual process in
-        the Trust &amp; verify section below.
+        the Contracts, Risks & Sources section below.
       </p>
     </Card>
   );
@@ -357,53 +359,58 @@ function PostClaimStayingCard({
   return (
     <section className="max-w-xl mx-auto space-y-6 pt-8">
       <header className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-neutral-900">
+        <h2 className="text-2xl font-bold text-text-primary">
           {copy.postClaim.stayingTitle}
         </h2>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-text-secondary">
           You are currently exposed to Recovery Vault smart contract risk.
         </p>
       </header>
 
-      <div className="bg-white border border-neutral-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-6 flex flex-col items-center border-b border-neutral-100">
-          <span className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-2">
+      <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-6 flex flex-col items-center border-b border-border">
+          <span className="text-xs font-bold uppercase tracking-widest text-text-tertiary mb-2">
             {copy.postClaim.valueLabel}
           </span>
-          <span className="text-5xl font-number font-bold text-neutral-900 tracking-tight">
-            {cashOutAmount} <span className="text-2xl text-neutral-400">ETH</span>
+          <span className="text-5xl font-number font-bold text-text-primary tracking-tight">
+            {cashOutAmount} <span className="text-2xl text-text-tertiary">ETH</span>
           </span>
         </div>
 
-        <div className="bg-neutral-50/50 p-4 space-y-3 text-sm">
+        <div className="bg-surface-secondary/50 p-4 space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-neutral-500">Original Snapshot</span>
-            <span className="font-number text-neutral-700">
+            <span className="text-text-secondary">Original Snapshot</span>
+            <span className="font-number text-text-primary">
               {formatEth(account.snapshotLossEth)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-neutral-500">Recovered vs. Original</span>
-            <span className="font-number text-neutral-700">{recoveredPct}</span>
+            <span className="text-text-secondary">Recovered vs. Original</span>
+            <span className="font-number text-text-primary">{recoveredPct}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-neutral-500">Vault Shares</span>
-            <span className="font-number text-neutral-700">
+            <span className="text-text-secondary">Vault Shares</span>
+            <span className="font-number text-text-primary">
               {formatTokenAmount(account.recoveryVaultShares, 18, 2)}
             </span>
           </div>
         </div>
       </div>
 
-      <Button
-        variant="yeth"
-        size="lg"
-        className="w-full h-16 text-lg shadow-md"
-        onClick={onRedeem}
-        isLoading={redeemPending}
-      >
-        {copy.actions.redeem(cashOutAmount)}
-      </Button>
+      <>
+        <Button
+          variant="yeth"
+          size="lg"
+          className="w-full h-16 text-lg shadow-md"
+          onClick={onRedeem}
+          isLoading={redeemPending}
+        >
+          {copy.actions.redeem(cashOutAmount)}
+        </Button>
+        <p className="text-sm text-text-secondary text-center mt-3">
+          This action is <strong>final</strong>. You cannot re-enter the recovery vault later.
+        </p>
+      </>
     </section>
   );
 }

@@ -6,8 +6,8 @@ describe("yethCopy", () => {
     expect(yethCopy.actions.exit.cta("4.2500")).toBe("Claim 4.2500 ETH & Exit");
   });
 
-  it("builds a dynamic cash-out label", () => {
-    expect(yethCopy.actions.redeem("4.2500")).toBe("Cash out 4.2500 ETH");
+  it("builds a dynamic exit label", () => {
+    expect(yethCopy.actions.redeem("4.2500")).toBe("Exit with 4.2500 ETH");
   });
 
   it("uses settlement framing for staying state", () => {

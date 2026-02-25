@@ -9,7 +9,7 @@ export const yethCopy = {
     sections: {
       recovery: "Your Recovery",
       actions: "Choose how you want to recover",
-      trust: "Trust & verify",
+      trust: "Contracts, Risks & Sources",
     },
   },
   fields: {
@@ -19,25 +19,30 @@ export const yethCopy = {
     snapshotValue: "Original Snapshot Value",
     claimableNow: "ETH Claimable Now",
     recoveredSoFar: "Recovered so far",
-    claimWindowEnds: "Claim Window",
+    claimWindowEnds: "Claim Deadline",
     claimWindowClosed: "Claim Window Closed",
   },
   actions: {
     exit: {
       title: "Claim & Exit",
-      subtitle: "Recommended",
-      body: ["Receive ETH immediately", "Recovery complete"],
+      subtitle: "Most Secure",
+      body: [
+        "Receive ETH immediately",
+        "Recovery finalized, no further action required",
+        "Avoid ongoing smart-contract and strategy risk",
+      ],
       cta: (amount: string) => `Claim ${amount} ETH & Exit`,
     },
     stay: {
-      title: "Active Recovery (Advanced)",
+      title: "Active Recovery (Risk Exposed)",
       body: [
         "Receive Recovery Vault shares",
+        "Position grows only from donated yield",
         "Ongoing smart-contract and strategy risk",
       ],
       cta: "Deposit claim into Recovery Vault",
     },
-    redeem: (amount: string) => `Cash out ${amount} ETH`,
+    redeem: (amount: string) => `Exit with ${amount} ETH`,
   },
   riskModal: {
     title: "yETH Recovery Vault - risk acknowledgement",
@@ -48,7 +53,7 @@ export const yethCopy = {
   },
   postClaim: {
     exitedTitle: "Recovery Complete",
-    exitedNote: "You no longer participate in future recovery yield.",
+    exitedNote: "Your recovery is finalized and your ETH is securely in your wallet.",
     stayingTitle: "Recovery Position",
     valueLabel: "Liquidation Value",
     received: "You received",

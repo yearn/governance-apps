@@ -20,14 +20,14 @@ export function ActionDeck({
 
   return (
     <section className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto w-full">
-      <article className="bg-white border border-neutral-200 shadow-lg rounded-2xl p-6 h-full flex flex-col">
+      <article className="bg-surface border border-border shadow-lg rounded-2xl p-6 h-full flex flex-col">
         <header className="space-y-2 min-h-16">
           <div className="inline-flex rounded-md bg-tokyo-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-tokyo-900">
             {copy.actions.exit.subtitle}
           </div>
-          <h3 className="text-lg font-bold text-neutral-900">{copy.actions.exit.title}</h3>
+          <h3 className="text-lg font-bold text-text-primary">{copy.actions.exit.title}</h3>
         </header>
-        <ul className="space-y-1 text-sm text-neutral-600 list-disc pl-4 flex-1 mt-3">
+        <ul className="space-y-1 text-sm text-text-secondary list-disc pl-4 flex-1 mt-3">
           {copy.actions.exit.body.map((line) => (
             <li key={line}>{line}</li>
           ))}
@@ -47,9 +47,9 @@ export function ActionDeck({
       <article className="bg-transparent border border-transparent p-6 h-full flex flex-col">
         <header className="space-y-2 min-h-16">
           <div className="h-[18px]" aria-hidden />
-          <h3 className="text-lg font-bold text-neutral-900">{copy.actions.stay.title}</h3>
+          <h3 className="text-lg font-bold text-text-primary">{copy.actions.stay.title}</h3>
         </header>
-        <ul className="space-y-1 text-sm text-neutral-600 list-disc pl-4 flex-1 mt-3">
+        <ul className="space-y-1 text-sm text-text-secondary list-disc pl-4 flex-1 mt-3">
           {copy.actions.stay.body.map((line) => (
             <li key={line}>{line}</li>
           ))}

@@ -13,8 +13,8 @@ This specification defines the yETH recovery interface behavior for `/yeth`.
   - In code, this hex maps to the `tokyo-600` token to match existing primary button hierarchy conventions.
 - **Layout philosophy:** De-boxed. Avoid nesting cards within cards. Use typography and spacing to create hierarchy instead of borders.
 - **Tone:** Urgent but digital-native. Less accounting software, more mechanism.
-- **Primary action:** `Claim ETH & Exit` must be visually dominant.
-- **Secondary action:** `Deposit claim into Recovery Vault` must feel advanced and optional.
+- **Primary action:** `Claim X.XXXX ETH & Exit` must be visually dominant.
+- **Secondary action:** `Deposit claim into Recovery Vault` must feel risk-aware and optional.
 
 ## 2. Page Structure
 
@@ -46,14 +46,14 @@ Replaces the old primary recovery card.
 
 A two-column grid directly below the hero metrics.
 
-#### Option A: Claim and Exit (Recommended)
+#### Option A: Claim and Exit (Most Secure)
 
 - **Visual:** Solid card with stronger elevation.
 - **Button:** Primary button (`bg-tokyo-600 text-white`).
 - **Copy:** dynamic amount (`Claim X.XXXX ETH & Exit`).
 - **Body:** Bullet points emphasizing immediacy (`Receive ETH immediately`, `Recovery complete`).
 
-#### Option B: Active Recovery (Advanced)
+#### Option B: Active Recovery (Risk Exposed)
 
 - **Visual:** Outlined or ghost treatment, visually recessed.
 - **Button:** Ghost style (`border-2 border-tokyo-600 text-tokyo-600`).
@@ -119,7 +119,7 @@ Requirements:
   - Original Snapshot
   - Recovered vs Original
   - Vault Shares
-- **Primary action:** dynamic cash-out CTA (`Cash out X.XXXX ETH`) using Tokyo primary styling.
+- **Primary action:** dynamic exit CTA (`Exit with X.XXXX ETH`) using Tokyo primary styling.
 
 ### 3.4 Claim Window Ended
 
