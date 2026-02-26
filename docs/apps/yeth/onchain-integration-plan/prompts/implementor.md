@@ -16,6 +16,8 @@ Use `lib/clients/yeth/deployment.json` for:
 - `YETH_CLAIM`
 - `YETH_YIELD_VAULT`
 - `YETH_RECOVERY_VAULT`
+Use dedicated yETH global feed (`NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`) for disconnected-wallet
+global metrics (`deadline`, `TVL`, `PPS`, totals).
 
 ## Work style
 - Prefer small PRs aligned to a single Work Package (WP0–WP7).
@@ -27,12 +29,12 @@ Use `lib/clients/yeth/deployment.json` for:
 - No references to removed concepts remain (e.g., `opensAt`, snapshot loaders, log queries).
 
 ## Helpful implementation notes
-- Global state must load even when wallet is disconnected.
+- Global state must load when wallet is disconnected via yETH feed.
 - Account reads can poll only when wallet is connected and route is active (already handled in hooks).
 - Keep ABIs minimal (only required functions).
+- Keep trust copy / governance URLs static for MVP unless explicit ops requirement is introduced.
 
 When you finish:
 - Provide a concise summary of what changed.
 - List files touched.
 - Include manual test steps (fork recommended).
-

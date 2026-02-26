@@ -15,7 +15,7 @@ integration branch (not directly into `master`).
 ## Merge checklist
 - Repo compiles with mocks enabled and disabled.
 - `yethUsesMockBackend` is `false` in onchain mode.
-- With mocks off and wallet disconnected, `/yeth` still loads global chain data.
+- With mocks off and wallet disconnected, `/yeth` loads yETH global feed data.
 - `/yeth` has no references to:
   - snapshots
   - log scanning
@@ -32,7 +32,8 @@ Capture:
 
 ## Final gate for production enablement
 - Ensure `NEXT_PUBLIC_ENABLE_YETH` remains required in production.
-- Confirm `NEXT_PUBLIC_RPC_URLS` configured for prod/preprod environments.
+- Confirm `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` configured for prod/preprod.
+- Confirm `NEXT_PUBLIC_RPC_URLS` configured for account reads/writes.
 
 If conflicts arise:
 - Prefer preserving the simplified state machine over legacy mock-first states.

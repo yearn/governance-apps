@@ -3,30 +3,38 @@
 ## Objective
 Remove the pre-window (`opensAt`) claim state assumption and simplify UI/account logic.
 
+Status in current codebase: **still required**. The current implementation still relies on:
+- `claimWindow.opensAt`
+- account `eligible` / `claimStatus`
+- dedicated ineligible/exited UI branches
+
 ## Scope
 
 ### 1) Data model
 - Update `lib/clients/yeth/types.ts`
   - `YethClaimWindow` becomes `{ closesAt: number }`
-  - Replace account state modeling:
+  - Replace account state modeling with observable balances:
     - remove `eligible`, `claimStatus`, `exitedEthReceived`, `lastTxHash`
     - keep only what the MVP uses:
       - `snapshotLossEth` (only meaningful when `claimable > 0`)
       - `claimableNowEth`
       - `recoveryVaultShares`
+  - Remove unused global fields:
+    - `treasuryRecoveryVaultShares`
+    - `treasuryYieldShareBps`
 - Update any code that depends on removed fields.
 
 ### 2) Mock client + mock controls
 - Update `lib/clients/yeth/mock.ts`:
   - remove `CLAIM_WINDOW_OPENS_AT`
-  - remove `not_open` logic
+  - remove pre-window simulation logic
   - adjust presets to the new simplified model:
     - `claimable` (claimable > 0)
     - `recovery_position` (shares > 0)
     - `empty` (both 0)
 - Update `app/yeth/components/MockControls.tsx` accordingly:
-  - remove “Not Open” button
-  - keep “Ended” and “Real Time” (optional “Open”)
+  - remove any dependence on `claimWindow.opensAt`
+  - keep “Ended” and “Real Time” controls
 
 ### 3) Page UI flow
 Update `app/yeth/YethPageClient.tsx`:
@@ -37,17 +45,16 @@ Update `app/yeth/YethPageClient.tsx`:
 - Remove:
   - `IneligibleCard`
   - `PostClaimExitedCard`
-  - `claimNotOpen` UI variant
 - Ensure `TrustFooter` still renders when global state exists.
 
 ### 4) Copy cleanup
 Update `app/yeth/messages.ts`:
-- remove `claimNotOpen` copy and `upcomingStatus`
-- adjust fields (remove “Claim Starts”)
+- remove eligibility/ineligible language that no longer applies to MVP logic
+- keep copy aligned to observable states only (`claimable`, `shares`, `closed`)
 
 ### 5) Component cleanup
 Update:
-- `StatsGrid` to remove the “Eligibility” column (optional but recommended).
+- `StatsGrid` to remove the “Eligibility” column.
 
 ## Dependencies
 - WP0 should be merged first (deployment file), but can be developed in parallel.
@@ -59,4 +66,3 @@ Update:
   - Claim flow for claimable wallets
   - Recovery position for share-holding wallets
   - Nothing wallet-specific otherwise
-

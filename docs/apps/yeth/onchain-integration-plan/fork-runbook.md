@@ -16,6 +16,7 @@ Set app env:
 ```bash
 export NEXT_PUBLIC_RPC_URLS="http://127.0.0.1:8545"
 export NEXT_PUBLIC_ENABLE_YETH="true"
+export NEXT_PUBLIC_YETH_GLOBAL_DATA_URL="https://<your-bucket>/yeth-global.json"
 ```
 
 Then run the app normally.

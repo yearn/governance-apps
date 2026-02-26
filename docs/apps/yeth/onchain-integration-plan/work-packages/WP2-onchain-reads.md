@@ -1,7 +1,9 @@
-# WP2 — OnchainYethClient: Reads (Global + Account)
+# WP2 — yETH Reads (S3-backed Global + Onchain Account)
 
 ## Objective
-Implement the onchain read layer for yETH with a minimal surface area.
+Implement yETH read paths with minimal surface area:
+- global state from dedicated yETH S3 feed
+- account state from chain
 
 ## Scope
 
@@ -18,17 +20,24 @@ used in production/fork to avoid selector mismatches.
 ### 2) Implement client
 Add `lib/clients/yeth/onchain.ts`:
 - `class OnchainYethClient implements YethClient`
-- Reads should use `publicClient.multicall` when available.
+- Account reads should use `publicClient.multicall` when available.
 
 **Global state (`getGlobalState`)**
 Return:
-- `asOf` = canonical now (chain block timestamp if you already have a helper, else local time)
-- `claimWindow.closesAt` from `Claim.deadline()`
+- `asOf` from yETH global feed metadata (`generatedAt`), fallback local time
+- `claimWindow.closesAt` from yETH global feed
 - contracts from deployment.json
-- recoveryVault.pps via `convertToAssets(1e18)`
-- recoveryVault.totalAssetsEth, totalShares
-- yieldVault.tvlEth via `totalAssets()`
-- hardcode the remaining static fields (risks, yieldSources, URLs) the same as mock for now.
+- recoveryVault fields from yETH global feed (`pps`, `totalAssetsEth`, `totalShares`)
+- yieldVault.tvlEth from yETH global feed
+- keep static trust/display fields in app constants for MVP:
+  - `approvedYipUrl`
+  - `manualLateClaimUrl`
+  - `yieldSources`
+  - `risks`
+
+Optional freshness overlay (non-blocking):
+- when chain client is available, allow live deadline override from `Claim.deadline()`.
+- if overlay fails, keep feed value.
 
 **Account state (`getAccountState`)**
 Reads:
@@ -47,14 +56,16 @@ Populate account state:
 No logs, no snapshot list, no eligibility inference.
 
 ### 3) Error/fallback behavior
-- If reads fail, return a safe zeroed global/account state (do not crash the route).
+- If yETH global feed is unavailable/invalid, return safe global fallback (do not crash route).
+- If account chain reads fail, return safe zeroed account state.
 - Keep console warnings, but avoid noisy spam during polling.
 
 ## Dependencies
-- WP0 (deployment config file)
+- WP0 (deployment config + yETH global feed contract)
 - WP1 (type shape)
 
 ## Acceptance Criteria
 - Global state loads without needing a connected wallet.
 - Account state loads with a connected wallet and updates via polling.
 - No references to snapshots or event queries exist in the yETH client.
+- yETH global state does not depend on shared stYFI/veYFI global JSON shape.

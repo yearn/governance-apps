@@ -22,10 +22,11 @@ This MVP intentionally prioritizes **simplicity** and a **small onchain read sur
 
 ### In scope
 - Onchain reads for:
-  - global: claim deadline, vault metrics, contract addresses
   - account: claimable amount and Recovery Vault shares
-- Global reads must work with a disconnected wallet by using configured mainnet RPC
-  transport (not wallet RPC only).
+- S3-backed global reads for disconnected-wallet rendering via dedicated yETH feed:
+  - claim deadline
+  - vault metrics
+  - snapshot metadata (`generatedAt`, `blockNumber`)
 - Onchain writes for:
   - claim & exit
   - claim & stay (deposit to Recovery Vault via Claim contract)
@@ -37,6 +38,7 @@ This MVP intentionally prioritizes **simplicity** and a **small onchain read sur
     - `claimable > 0`, or
     - `recoveryVaultShares > 0`
 - Keep yETH deployment config **separate** from the main `lib/deployment.json`.
+- Keep yETH global feed **separate** from the shared `global-data` file used by stYFI/veYFI.
 
 ### Explicit non-goals (defer / future)
 - Snapshots hosted inside this repo
@@ -80,6 +82,32 @@ Avoid adding yETH constants to `lib/constants.ts` unless you want them app-wide.
 For this MVP, it is acceptable for `OnchainYethClient` to import `./deployment.json`
 directly from the yETH client folder.
 
+### 3.3 Separate yETH global data feed (S3)
+
+Create a dedicated yETH JSON feed (same storage location family as existing global data):
+
+- env: `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`
+- proxy route: `/api/yeth-global-data` (recommended to mirror existing proxy pattern)
+- schema: versioned yETH-only payload (see `docs/apps/yeth/onchain-integration-plan/yeth-global-data-schema-v1.md`)
+
+Rationale:
+- yETH is a separate app with separate release/ops cadence.
+- schema evolution for yETH should not block or risk stYFI/veYFI payload validation.
+
+For MVP, this feed contains only dynamic global values used by `/yeth`:
+- `claim.closesAt`
+- `yieldVault.tvlEth`
+- `recoveryVault.pps`
+- `recoveryVault.totalAssetsEth`
+- `recoveryVault.totalShares`
+- metadata (`generatedAt`, `blockNumber`, `chainId`, `version`)
+
+Keep static content in app code for now:
+- governance URLs (`approvedYipUrl`, `manualLateClaimUrl`)
+- `yieldSources`
+- `risks`
+- contract addresses (from `lib/clients/yeth/deployment.json`)
+
 ---
 
 ## 4. Data Model Changes
@@ -114,6 +142,12 @@ No attempt is made to infer:
 - already claimed & exited
 - ineligibility
 
+### 4.3 Global model simplification
+
+Drop unused global fields from yETH domain types/UI:
+- `treasuryRecoveryVaultShares`
+- `treasuryYieldShareBps`
+
 ---
 
 ## 5. UI Specification (MVP)
@@ -135,6 +169,7 @@ The page should render:
 
 - Claim UI is available only when `claimableNowEth > 0` and claim window is open (`now < deadline`).
 - If claim window is closed, show the existing "Manual late claim process" CTA (global URL can remain `https://gov.yearn.fi` for now).
+  - URL can remain static in code for MVP.
 
 ### 5.3 Recovery position behavior
 
@@ -150,10 +185,19 @@ The page should render:
 
 ### 6.1 Reads
 
-Minimal contract reads:
+Minimal reads:
+
+**From yETH S3 feed (`NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`)**
+- `claim.closesAt`
+- `yieldVault.tvlEth`
+- `recoveryVault.pps`
+- `recoveryVault.totalAssetsEth`
+- `recoveryVault.totalShares`
+- metadata (`generatedAt`, `blockNumber`, `chainId`)
+
+**From chain (account + tx-critical state)**
 
 **Claim contract**
-- `deadline() -> uint256`
 - `recovery_rate() -> uint256`
 - `claimable(address) -> uint256`
 
@@ -164,13 +208,12 @@ Minimal contract reads:
 - `convertToAssets(1e18) -> uint256` (PPS)
 
 **Yield vault (ERC4626-like)**
-- `totalAssets() -> uint256` (TVL)
+- no required account reads
 
-Read-path requirement:
-- `getGlobalState()` must succeed when wallet is disconnected.
-- Source reads from an app-level `publicClient` backed by `NEXT_PUBLIC_RPC_URLS`
-  (for example from wagmi config transport / `usePublicClient`), not only from
-  `walletClient`.
+Read-path requirements:
+- `getGlobalState()` must succeed with wallet disconnected from yETH S3 feed.
+- If yETH S3 feed is unavailable/invalid, return safe fallback global state and keep route alive.
+- Optional: when chain read client is available, deadline may be live-overlaid for freshness.
 
 ### 6.2 Writes
 
@@ -190,9 +233,9 @@ Add minimal ABIs under `lib/abis/`:
 ## 7. Protocol Wiring
 
 Update `state/protocol.tsx`:
-- When `preferMocks === false`, use `new OnchainYethClient(...)`
-- Ensure yETH receives a read-capable mainnet `publicClient` even when wallet is
-  disconnected (wallet RPC can still be used for writes via wagmi actions).
+- add yETH global feed loading (`useYethGlobalData`) alongside existing shared global data.
+- when `preferMocks === false`, use `new OnchainYethClient(publicClient, yethGlobalData ?? null)`.
+- disconnected-wallet global path should not depend on wallet RPC.
 - Set `yethUsesMockBackend: false` in onchain mode.
 
 ---
@@ -215,6 +258,7 @@ The fork runbook is in `fork-runbook.md`.
 ## 9. Production Readiness Checklist (MVP)
 
 - [ ] `/yeth` renders global section without wallet connection
+- [ ] yETH global feed (`NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`) is configured in preprod/prod
 - [ ] `claimable > 0` wallet sees claim UI and can transact
 - [ ] `shares > 0` wallet sees recovery UI and can redeem
 - [ ] claim window closed disables claim and links to manual process

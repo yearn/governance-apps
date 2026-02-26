@@ -28,7 +28,8 @@ You are reviewing a PR implementing yETH onchain support for `/yeth`.
 
 ### Architecture
 - yETH deployment config is separate (not added to `lib/deployment.json`).
-- OnchainYethClient does not require a connected wallet to load global state.
+- yETH uses a dedicated global feed (not shared stYFI/veYFI global JSON).
+- Global state loads without wallet connection via yETH feed.
 - Protocol wiring sets `yethUsesMockBackend` correctly.
 
 ### Tests
@@ -38,5 +39,4 @@ You are reviewing a PR implementing yETH onchain support for `/yeth`.
 ## What to request if missing
 - A fork test checklist and/or evidence (tx hashes, screenshots).
 - Reduced ABI surface if ABI includes unnecessary functions.
-- Clear error handling for missing RPC / missing public client.
-
+- Clear fallback behavior when yETH global feed is missing or stale.
