@@ -1,0 +1,48 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "governance-alerts-bot",
+  "main": "workers/alerts-bot/src/index.ts",
+
+  "compatibility_date": "2026-01-22",
+  "compatibility_flags": ["nodejs_compat"],
+  // Required secrets:
+  // wrangler secret put RPC_URL --config wrangler.alerts.jsonc
+  // wrangler secret put TELEGRAM_BOT_TOKEN --config wrangler.alerts.jsonc
+  // wrangler secret put TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
+  // wrangler secret put ADMIN_CHAT_ID --config wrangler.alerts.jsonc
+  // wrangler secret put TEST_TO_CHAT_ID --config wrangler.alerts.jsonc
+  // wrangler secret put ADMIN_TOKEN --config wrangler.alerts.jsonc
+  // wrangler secret put MANUAL_RUN_TOKEN --config wrangler.alerts.jsonc
+  // wrangler secret put GLOBAL_DATA_URL --config wrangler.alerts.jsonc
+  "vars": {
+    "CONFIRMATIONS": "6",
+    "ENABLED": "true",
+    "DRY_RUN": "true",
+    "MAX_MESSAGES_PER_RUN": "5",
+    "MANUAL_RUN_ENABLED": "false",
+    "MAX_SUBREQUESTS_PER_RUN": "45",
+    "BUDGET_STALL_ALERT_THRESHOLD": "3",
+    "BUDGET_STALL_ALERT_COOLDOWN_SECONDS": "3600",
+    "DAILY_IMPACT_DIGEST_ENABLED": "true",
+  },
+
+  "triggers": {
+    "crons": ["* * * * *"],
+  },
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ALERT_STATE",
+        "class_name": "AlertState",
+      },
+    ],
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AlertState"],
+    },
+  ],
+}
