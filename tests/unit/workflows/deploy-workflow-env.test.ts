@@ -22,25 +22,32 @@ const expectedRuntimeEnv: Record<string, string> = {
     "${{ secrets.NEXT_PUBLIC_RPC_URLS || vars.NEXT_PUBLIC_RPC_URLS }}",
 };
 
-function parseAnchoredRuntimeEnv(workflowPath: string) {
-  const content = readFileSync(workflowPath, "utf8");
-  const envBlock = content.match(
-    /^\s{6}- name: Validate Production Env Invariants\n\s{8}env:\s*&prod_runtime_env\n((?:^\s{10}[A-Z0-9_]+:.*\n)+)\s{8}run:\s+npm run validate:prod-env/m
-  );
-  if (!envBlock) {
-    throw new Error(
-      `Missing anchored runtime env block for Validate Production Env Invariants in ${workflowPath}`
-    );
-  }
-
+function parseEnvLines(linesBlock: string) {
   const result: Record<string, string> = {};
-  const lines = envBlock[1].trimEnd().split("\n");
+  const lines = linesBlock.trimEnd().split("\n");
   for (const line of lines) {
     const match = line.match(/^\s{10}([A-Z0-9_]+):\s*(.+)$/);
     if (!match) continue;
     result[match[1]] = match[2].trim();
   }
   return result;
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function parseStepEnvByRun(workflowPath: string, runCommand: string) {
+  const content = readFileSync(workflowPath, "utf8");
+  const envBlockPattern = new RegExp(
+    `^\\s{6}- name: .+\\n\\s{8}env:\\n((?:^\\s{10}[A-Z0-9_]+:.*\\n)+)\\s{8}run:\\s+${escapeRegex(runCommand)}$`,
+    "m"
+  );
+  const envBlock = content.match(envBlockPattern);
+  if (!envBlock) {
+    throw new Error(`Missing env block for step run command "${runCommand}" in ${workflowPath}`);
+  }
+  return parseEnvLines(envBlock[1]);
 }
 
 describe("deploy workflow env wiring", () => {
@@ -51,19 +58,28 @@ describe("deploy workflow env wiring", () => {
 
   for (const relativePath of workflows) {
     const workflowPath = path.resolve(process.cwd(), relativePath);
+    const deployCommand = relativePath.includes("preprod")
+      ? "npm run worker:deploy:preprod"
+      : "npm run worker:deploy:prod";
 
-    it(`${relativePath} keeps production runtime env wiring complete`, () => {
-      expect(parseAnchoredRuntimeEnv(workflowPath)).toEqual(expectedRuntimeEnv);
+    it(`${relativePath} keeps production runtime env on validation step`, () => {
+      expect(parseStepEnvByRun(workflowPath, "npm run validate:prod-env")).toEqual(
+        expectedRuntimeEnv
+      );
     });
 
-    it(`${relativePath} reuses shared runtime env for build and deploy steps`, () => {
-      const content = readFileSync(workflowPath, "utf8");
-      expect(content).toMatch(
-        /^\s{6}- name: Build OpenNext Worker\n\s{8}env:\s+\*prod_runtime_env\n\s{8}run:\s+npm run worker:build/m
+    it(`${relativePath} keeps production runtime env on build step`, () => {
+      expect(parseStepEnvByRun(workflowPath, "npm run worker:build")).toEqual(
+        expectedRuntimeEnv
       );
-      expect(content).toMatch(
-        /^\s{6}- name: Deploy To Cloudflare .+\n\s{8}env:\n\s{10}<<:\s+\*prod_runtime_env/m
-      );
+    });
+
+    it(`${relativePath} keeps runtime env and Cloudflare creds on deploy step`, () => {
+      expect(parseStepEnvByRun(workflowPath, deployCommand)).toEqual({
+        ...expectedRuntimeEnv,
+        CLOUDFLARE_ACCOUNT_ID: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
+        CLOUDFLARE_API_TOKEN: "${{ secrets.CLOUDFLARE_API_TOKEN }}",
+      });
     });
   }
 });
