@@ -67,6 +67,43 @@ describe("alerts-bot Telegram rendering", () => {
     );
   });
 
+  it("renders ENS names for actor links when available", () => {
+    const account = "0x1111111111111111111111111111111111111111";
+    const receiver = "0x2222222222222222222222222222222222222222";
+    const caller = "0x3333333333333333333333333333333333333333";
+    const message = renderTelegramMessage(
+      baseAction({
+        kind: "staked",
+        tokenSymbol: "stYFI",
+        user: account,
+        owner: account,
+        receiver,
+        caller,
+        amounts: {
+          assets: ONE,
+          shares: ONE,
+        },
+      }),
+      {
+        ensNamesByAddress: new Map<string, string>([
+          [account.toLowerCase(), "alice.eth"],
+          [receiver.toLowerCase(), "vault.yfi.eth"],
+          [caller.toLowerCase(), "keeper.yearn.eth"],
+        ]),
+      },
+    );
+
+    expect(message).toContain(
+      "Account: <a href=\"https://etherscan.io/address/0x1111111111111111111111111111111111111111\">alice.eth</a>",
+    );
+    expect(message).toContain(
+      "Receiver: <a href=\"https://etherscan.io/address/0x2222222222222222222222222222222222222222\">vault.yfi.eth</a>",
+    );
+    expect(message).toContain(
+      "Caller: <a href=\"https://etherscan.io/address/0x3333333333333333333333333333333333333333\">keeper.yearn.eth</a>",
+    );
+  });
+
   it("renders upYFI redemption using supYFI labels and fee line", () => {
     const message = renderTelegramMessage(
       baseAction({

@@ -5,6 +5,8 @@ import {
   decodeEventLog,
   decodeFunctionResult,
   encodeFunctionData,
+  namehash,
+  parseAbi,
   type Address,
   type Hex,
 } from "viem";
@@ -118,6 +120,14 @@ const RUN_META_DAILY_IMPACT_PREFIX = "runMeta:dailyImpact:";
 const RUN_META_DAILY_IMPACT_LAST_SENT_DATE_KEY = "runMeta:dailyImpact:lastSentDate";
 const MIN_MAX_SUBREQUESTS_PER_RUN = 1;
 const ETHERSCAN_TX_BASE_URL = "https://etherscan.io/tx";
+const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
+const ENS_REGISTRY_ABI = parseAbi([
+  "function resolver(bytes32 node) view returns (address)",
+]);
+const ENS_REVERSE_RESOLVER_ABI = parseAbi([
+  "function name(bytes32 node) view returns (string)",
+]);
+const ETH_ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
 
 const LIQUID_LOCKER_TOKEN_BY_SYMBOL = new Map<string, Address>(
   LIQUID_LOCKERS.map((locker) => [locker.symbol.toLowerCase(), locker.token]),
@@ -198,6 +208,8 @@ interface DispatchMessageContext {
   yfiPriceCents: bigint | null;
   blockTimestampCache: Map<number, number | null>;
   fallbackTimestampSeconds: number;
+  ensNameCache: Map<string, string | null>;
+  ensResolutionEnabled: boolean;
 }
 
 interface DailyImpactStats {
@@ -822,6 +834,7 @@ async function decodeLogToAction(
   log: RpcLog,
   legacyLockCache: Map<string, LegacyLockSnapshot | null>,
   withdrawBurnSignatures: Set<string>,
+  styfixDepositTxHashes: Set<string>,
 ): Promise<NormalizedAction | null> {
   if (log.removed) {
     return null;
@@ -837,6 +850,16 @@ async function decodeLogToAction(
   if (topic0 === ERC4626_DEPOSIT_TOPIC.toLowerCase()) {
     const tokenSymbol = getTokenSymbolByContract(contractAddress);
     if (tokenSymbol === null) {
+      return null;
+    }
+
+    // stYFIx deposits also emit an internal stYFI deposit in the same tx.
+    // Suppress that internal leg so we only alert on the user-facing stYFIx action.
+    if (
+      tokenSymbol === "stYFI" &&
+      log.transactionHash !== null &&
+      styfixDepositTxHashes.has(log.transactionHash.toLowerCase())
+    ) {
       return null;
     }
 
@@ -1191,6 +1214,29 @@ function buildWithdrawBurnSignatures(logs: RpcLog[]): Set<string> {
   return signatures;
 }
 
+function buildStyfixDepositTxHashes(logs: RpcLog[]): Set<string> {
+  const hashes = new Set<string>();
+
+  for (const log of logs) {
+    if (log.removed || log.transactionHash === null) {
+      continue;
+    }
+
+    const topic0 = log.topics[0]?.toLowerCase();
+    if (topic0 !== ERC4626_DEPOSIT_TOPIC.toLowerCase()) {
+      continue;
+    }
+
+    if (normalizeAddress(log.address) !== normalizeAddress(STYFIX)) {
+      continue;
+    }
+
+    hashes.add(log.transactionHash.toLowerCase());
+  }
+
+  return hashes;
+}
+
 async function resolveMissingUsers(
   rpc: RpcClient,
   actions: NormalizedAction[],
@@ -1252,6 +1298,7 @@ export async function scanChunkForActionsWithProgress(
   });
 
   const withdrawBurnSignatures = buildWithdrawBurnSignatures(logs);
+  const styfixDepositTxHashes = buildStyfixDepositTxHashes(logs);
   const legacyLockCache = new Map<string, LegacyLockSnapshot | null>();
   const actions: NormalizedAction[] = [];
   let lastProcessedBlock = fromBlock - 1;
@@ -1274,6 +1321,7 @@ export async function scanChunkForActionsWithProgress(
         log,
         legacyLockCache,
         withdrawBurnSignatures,
+        styfixDepositTxHashes,
       );
       if (action !== null) {
         actions.push(action);
@@ -1624,6 +1672,145 @@ export class AlertState implements DurableObject {
     }
   }
 
+  private getActionAddressCandidates(action: NormalizedAction): string[] {
+    const candidates = [
+      action.user,
+      action.owner,
+      action.receiver,
+      action.caller,
+    ].filter((value): value is string => typeof value === "string" && value.length > 0);
+
+    const deduped: string[] = [];
+    const seen = new Set<string>();
+
+    for (const candidate of candidates) {
+      const trimmed = candidate.trim();
+      if (!ETH_ADDRESS_PATTERN.test(trimmed)) {
+        continue;
+      }
+
+      const normalized = normalizeAddress(trimmed);
+      if (seen.has(normalized)) {
+        continue;
+      }
+
+      seen.add(normalized);
+      deduped.push(trimmed);
+    }
+
+    return deduped;
+  }
+
+  private async resolveEnsNameForAddress(
+    address: string,
+    context: DispatchMessageContext,
+  ): Promise<string | null> {
+    const normalizedAddress = normalizeAddress(address.trim());
+    const cached = context.ensNameCache.get(normalizedAddress);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const reverseNode = namehash(`${normalizedAddress.slice(2)}.addr.reverse`);
+
+    try {
+      const resolverCallData = encodeFunctionData({
+        abi: ENS_REGISTRY_ABI,
+        functionName: "resolver",
+        args: [reverseNode],
+      });
+      const resolverRaw = await context.rpc.call({
+        to: ENS_REGISTRY,
+        data: resolverCallData,
+      });
+      const resolverAddress = decodeFunctionResult({
+        abi: ENS_REGISTRY_ABI,
+        functionName: "resolver",
+        data: resolverRaw as Hex,
+      }) as Address;
+
+      if (normalizeAddress(resolverAddress) === normalizeAddress(ZERO_ADDRESS)) {
+        context.ensNameCache.set(normalizedAddress, null);
+        return null;
+      }
+
+      const nameCallData = encodeFunctionData({
+        abi: ENS_REVERSE_RESOLVER_ABI,
+        functionName: "name",
+        args: [reverseNode],
+      });
+      const reverseNameRaw = await context.rpc.call({
+        to: resolverAddress,
+        data: nameCallData,
+      });
+      const reverseName = decodeFunctionResult({
+        abi: ENS_REVERSE_RESOLVER_ABI,
+        functionName: "name",
+        data: reverseNameRaw as Hex,
+      }) as string;
+
+      const normalizedName = reverseName.trim();
+      if (normalizedName.length === 0) {
+        context.ensNameCache.set(normalizedAddress, null);
+        return null;
+      }
+
+      context.ensNameCache.set(normalizedAddress, normalizedName);
+      return normalizedName;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message.toLowerCase() : "";
+      const isExpectedTestStubError =
+        error instanceof Error &&
+        errorMessage.includes("not implemented for test");
+      const isAbiZeroDataError = errorMessage.includes("cannot decode zero data");
+
+      if (
+        error instanceof SubrequestBudgetExceededError ||
+        isExpectedTestStubError ||
+        isAbiZeroDataError
+      ) {
+        context.ensResolutionEnabled = false;
+      } else {
+        console.warn("Failed to resolve ENS reverse name", {
+          address: normalizedAddress,
+          error,
+        });
+      }
+
+      context.ensNameCache.set(normalizedAddress, null);
+      return null;
+    }
+  }
+
+  private async resolveEnsNamesForAction(
+    action: NormalizedAction,
+    context: DispatchMessageContext,
+  ): Promise<Map<string, string> | null> {
+    if (!context.ensResolutionEnabled) {
+      return null;
+    }
+
+    const addresses = this.getActionAddressCandidates(action);
+    if (addresses.length === 0) {
+      return null;
+    }
+
+    const resolved = new Map<string, string>();
+    for (const address of addresses) {
+      if (!context.ensResolutionEnabled) {
+        break;
+      }
+
+      const ensName = await this.resolveEnsNameForAddress(address, context);
+      if (ensName) {
+        resolved.set(normalizeAddress(address), ensName);
+      }
+    }
+
+    return resolved.size > 0 ? resolved : null;
+  }
+
   private async getErc20BalanceAtBlock(
     rpc: RpcClient,
     token: Address,
@@ -1709,11 +1896,13 @@ export class AlertState implements DurableObject {
       action,
       context.rpc,
     );
+    const ensNamesByAddress = await this.resolveEnsNamesForAction(action, context);
 
     return {
       yfiPriceCents: context.yfiPriceCents,
       blockTimestampSeconds: blockTimestampSeconds ?? context.fallbackTimestampSeconds,
       redemptionFacilitySnapshot,
+      ensNamesByAddress,
     };
   }
 
@@ -2348,6 +2537,14 @@ export class AlertState implements DurableObject {
       await this.pruneSentEntries(Math.floor(this._deps.now() / 1000));
       const yfiPriceCents = await this.getYfiPriceCents(budget);
       const blockTimestampCache = new Map<number, number | null>();
+      const messageContext: DispatchMessageContext = {
+        rpc,
+        yfiPriceCents,
+        blockTimestampCache,
+        fallbackTimestampSeconds: Math.floor(this._deps.now() / 1000),
+        ensNameCache: new Map<string, string | null>(),
+        ensResolutionEnabled: route.mode === "prod",
+      };
 
       let processedCursorBlock = cursorBlock;
       let nextFromBlock = fromBlock;
@@ -2375,6 +2572,7 @@ export class AlertState implements DurableObject {
         const scanResult = await scanChunkForActionsWithProgress(rpc, chunkFrom, chunkTo, {
           isLogAlreadyProcessed: async (log) => this.hasActionBeenSent(log),
         });
+        messageContext.fallbackTimestampSeconds = Math.floor(this._deps.now() / 1000);
         const dispatchResult = await this.dispatchActions(scanResult.actions, {
           dryRun: route.dryRun,
           chatId: route.chatId,
@@ -2383,12 +2581,7 @@ export class AlertState implements DurableObject {
           budget,
           emittedMessagesBefore: emittedMessages,
           maxMessagesPerRun,
-          messageContext: {
-            rpc,
-            yfiPriceCents,
-            blockTimestampCache,
-            fallbackTimestampSeconds: Math.floor(this._deps.now() / 1000),
-          },
+          messageContext,
           dailyDigestEnabled: this.isDailyImpactDigestEnabled(),
         });
         budget.clearReservedSubrequests();

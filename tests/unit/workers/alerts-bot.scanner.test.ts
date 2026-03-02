@@ -22,6 +22,7 @@ import {
   LIQUID_LOCKER_REDEMPTION,
   LIQUID_LOCKERS,
   STYFI,
+  STYFIX,
   VEYFI,
   VEYFI_REWARD_DISTRIBUTOR,
 } from "@/workers/alerts-bot/src/contracts";
@@ -507,5 +508,50 @@ describe("alerts-bot scanner fixtures", () => {
 
     expect(actions).toHaveLength(1);
     expect(actions[0]?.kind).toBe("withdrew_from_cooldown");
+  });
+
+  it("suppresses internal stYFI stake when the same tx also emits stYFIx stake", async () => {
+    const user = userOf(31);
+    const txHash = hashOf(301);
+    const logs: RpcLog[] = [
+      createLog({
+        address: STYFI,
+        topics: encodeEventTopics({
+          abi: ERC4626_DEPOSIT_ABI,
+          eventName: "Deposit",
+          args: { sender: STYFIX, owner: STYFIX },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [ONE, ONE],
+        ),
+        txHash,
+        blockNumber: 61,
+        logIndex: 0,
+      }),
+      createLog({
+        address: STYFIX,
+        topics: encodeEventTopics({
+          abi: ERC4626_DEPOSIT_ABI,
+          eventName: "Deposit",
+          args: { sender: user, owner: user },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [ONE, ONE],
+        ),
+        txHash,
+        blockNumber: 61,
+        logIndex: 1,
+      }),
+    ];
+
+    const rpc = createMockRpc({ logs });
+    const actions = await scanChunkForActions(rpc, 61, 61);
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]?.kind).toBe("staked");
+    expect(actions[0]?.tokenSymbol).toBe("stYFIX");
+    expect(actions[0]?.txHash).toBe(txHash);
   });
 });

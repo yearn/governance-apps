@@ -43,6 +43,7 @@ export interface RenderTelegramMessageOptions {
   yfiPriceCents?: bigint | null;
   blockTimestampSeconds?: number | null;
   redemptionFacilitySnapshot?: RedemptionFacilitySnapshot | null;
+  ensNamesByAddress?: ReadonlyMap<string, string> | null;
 }
 
 interface MessageBlueprint {
@@ -112,13 +113,29 @@ function areSameAddress(left: string, right: string): boolean {
   return normalizeAddress(left) === normalizeAddress(right);
 }
 
-function buildAddressLink(address: string): string {
+function getAddressDisplayLabel(
+  address: string,
+  ensNamesByAddress: ReadonlyMap<string, string> | null | undefined,
+): string {
+  const ensName = ensNamesByAddress?.get(normalizeAddress(address));
+  if (ensName && ensName.trim().length > 0) {
+    return ensName.trim();
+  }
+
+  return shortAddress(address);
+}
+
+function buildAddressLink(
+  address: string,
+  ensNamesByAddress: ReadonlyMap<string, string> | null | undefined,
+): string {
   const value = address.trim();
   if (!value.startsWith("0x")) {
     return escapeHtml(value);
   }
 
-  return `<a href="${ETHERSCAN_BASE_URL}/address/${value}">${shortAddress(value)}</a>`;
+  const label = getAddressDisplayLabel(value, ensNamesByAddress);
+  return `<a href="${ETHERSCAN_BASE_URL}/address/${value}">${escapeHtml(label)}</a>`;
 }
 
 function buildTxLink(txHash: string): string {
@@ -360,7 +377,10 @@ function buildImpactBasisLine(
   return "";
 }
 
-function buildActorLines(action: NormalizedAction): string[] {
+function buildActorLines(
+  action: NormalizedAction,
+  options: RenderTelegramMessageOptions,
+): string[] {
   const lines: string[] = [];
   const seen: string[] = [];
 
@@ -379,7 +399,7 @@ function buildActorLines(action: NormalizedAction): string[] {
     }
 
     seen.push(value);
-    lines.push(`${label}: ${buildAddressLink(value)}`);
+    lines.push(`${label}: ${buildAddressLink(value, options.ensNamesByAddress)}`);
   };
 
   if (areSameAddress(user, owner) && areSameAddress(user, receiver)) {
@@ -851,7 +871,7 @@ export function renderTelegramMessage(
   if (impactBasisLine) {
     lines.push(impactBasisLine);
   }
-  lines.push(...buildActorLines(action));
+  lines.push(...buildActorLines(action, options));
   lines.push(`Tx: ${buildTxLink(action.txHash)}`);
   lines.push(buildFooterLine(action, options.blockTimestampSeconds ?? null));
 
