@@ -1,5 +1,5 @@
 import { type Address, type PublicClient, parseAbi, erc20Abi } from "viem";
-import { getAccount, simulateContract, writeContract } from "wagmi/actions";
+import { getAccount } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import type { PreparedTransaction } from "@/lib/tx/types";
 import type {
@@ -29,6 +29,7 @@ import { LiquidLockerRedemptionAbi } from "@/lib/abis/LiquidLockerRedemption";
 import { deriveCooldownEndsAt } from "@/lib/clients/shared/cooldown";
 import { nowSeconds } from "@/lib/mocks/time";
 import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
+import { simulateThenWrite } from "@/lib/tx/simulateWrite";
 import { normalizeLlyfiSymbol } from "@/lib/clients/veyfi/display";
 import { getVeyfiEpochBoostMultiplier } from "@/lib/clients/veyfi/boost";
 
@@ -808,15 +809,14 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const account = getAccount(wagmiConfig);
       const address = assertMainnetAccount(account);
 
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: VEYFI_REWARD_DISTRIBUTOR_ADDRESS,
         abi: VotingEscrowRewardDistributorAbi,
         functionName: "migrate",
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, "veYFI migrate");
     };
   }
 
@@ -835,16 +835,15 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const account = getAccount(wagmiConfig);
       const address = assertMainnetAccount(account);
 
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: config.depositor,
         abi: LiquidLockerDepositorAbi,
         functionName: "deposit",
-        args: [amount, address],
+        args: [amount, address] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, `veYFI stake ${symbol}`);
     };
   }
 
@@ -858,16 +857,15 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const account = getAccount(wagmiConfig);
       const address = assertMainnetAccount(account);
 
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: config.depositor,
         abi: LiquidLockerDepositorAbi,
         functionName: "unstake",
-        args: [shares],
+        args: [shares] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, `veYFI cooldown ${symbol}`);
     };
   }
 
@@ -889,16 +887,15 @@ export class OnchainVeyfiClient implements VeyfiClient {
 
       if (maxAssets === 0n) throw new Error("Nothing to withdraw");
 
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: config.depositor,
         abi: LiquidLockerDepositorAbi,
         functionName: "withdraw",
-        args: [maxAssets, address, address],
+        args: [maxAssets, address, address] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, `veYFI withdraw ${symbol}`);
     };
   }
 
@@ -910,16 +907,15 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const config = this.getLockerConfig(symbol);
       const account = getAccount(wagmiConfig);
       const address = assertMainnetAccount(account);
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
         abi: LiquidLockerRedemptionAbi,
         functionName: "redeem",
-        args: [BigInt(config.index), amount],
+        args: [BigInt(config.index), amount] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, `veYFI redeem ${symbol}`);
     };
   }
 
@@ -931,16 +927,15 @@ export class OnchainVeyfiClient implements VeyfiClient {
       const config = this.getLockerConfig(symbol);
       const account = getAccount(wagmiConfig);
       const address = assertMainnetAccount(account);
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: LIQUID_LOCKER_REDEMPTION_ADDRESS,
         abi: LiquidLockerRedemptionAbi,
         functionName: "exchange",
-        args: [BigInt(config.index), amount],
+        args: [BigInt(config.index), amount] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, `veYFI mint ${symbol}`);
     };
   }
 }

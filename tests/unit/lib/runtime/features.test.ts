@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isDebugUiEnabled,
   isProductionRuntime,
+  isSimulationTransportFallbackEnabled,
   isYethEnabled,
 } from "@/lib/runtime/features";
 
@@ -52,5 +53,23 @@ describe("runtime feature flags", () => {
     expect(isProductionRuntime(env)).toBe(false);
     expect(isYethEnabled(env)).toBe(true);
     expect(isDebugUiEnabled(env)).toBe(true);
+  });
+
+  it("keeps simulation transport fallback disabled by default", () => {
+    const env = {
+      NEXT_PUBLIC_RUNTIME_MODE: "preview",
+      NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK: "false",
+    };
+
+    expect(isSimulationTransportFallbackEnabled(env)).toBe(false);
+  });
+
+  it("enables simulation transport fallback only when explicitly set", () => {
+    const env = {
+      NEXT_PUBLIC_RUNTIME_MODE: "preview",
+      NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK: "true",
+    };
+
+    expect(isSimulationTransportFallbackEnabled(env)).toBe(true);
   });
 });

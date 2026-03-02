@@ -2,13 +2,14 @@
 
 import { Address, erc20Abi } from "viem";
 import { useAccount } from "wagmi";
-import { getAccount, simulateContract, writeContract } from "wagmi/actions";
+import { getAccount } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import { useProtocol } from "@/state/protocol";
 import { useTx } from "@/lib/tx/useTx";
 import { TransactionHash } from "@/lib/tx/types";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
+import { simulateThenWrite } from "@/lib/tx/simulateWrite";
 
 export function useTokenApprove() {
   const { styfi, veyfi, usesMockBackend } = useProtocol();
@@ -44,15 +45,15 @@ export function useTokenApprove() {
       } else {
         const account = getAccount(wagmiConfig);
         const address = assertMainnetAccount(account);
-        const simulation = await simulateContract(wagmiConfig, {
+        const request = {
           address: token,
           abi: erc20Abi,
           functionName: "approve",
-          args: [spender, amount],
+          args: [spender, amount] as const,
           account: address,
           chainId: MAINNET_CHAIN_ID,
-        });
-        return writeContract(wagmiConfig, simulation.request);
+        };
+        return simulateThenWrite(request, request, "ERC20 approve");
       }
     };
 

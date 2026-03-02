@@ -27,6 +27,9 @@ export function assertProductionRuntimeInvariants(context: string) {
   const forbiddenEnabled = [
     isEnabled(process.env.NEXT_PUBLIC_USE_MOCKS) ? "NEXT_PUBLIC_USE_MOCKS" : null,
     isEnabled(process.env.NEXT_PUBLIC_E2E) ? "NEXT_PUBLIC_E2E" : null,
+    isEnabled(process.env.NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK)
+      ? "NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK"
+      : null,
   ].filter((entry): entry is string => entry !== null);
 
   const violations: string[] = [];

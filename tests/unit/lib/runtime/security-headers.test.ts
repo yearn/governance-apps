@@ -4,6 +4,7 @@ import {
   buildPermissionsPolicy,
   buildSecurityHeaders,
   PERMISSIONS_POLICY_HEADER,
+  resolveAdditionalConnectSrc,
   SAFE_APP_FRAME_ANCESTORS,
 } from "@/lib/runtime/security-headers";
 
@@ -31,6 +32,19 @@ describe("security header policy", () => {
     expect(csp).toContain("'unsafe-eval'");
     expect(csp).toContain("http://localhost:*");
     expect(csp).toContain("ws://localhost:*");
+  });
+
+  it("allows explicitly configured RPC origins in connect-src", () => {
+    const csp = buildContentSecurityPolicy({
+      nonce: "abc123",
+      isDevelopment: false,
+      isProduction: false,
+      additionalConnectSrc: ["http://178.63.2.245", "https://rpc.example"],
+    });
+
+    expect(csp).toContain("connect-src");
+    expect(csp).toContain("http://178.63.2.245");
+    expect(csp).toContain("https://rpc.example");
   });
 
   it("supports unsafe-inline scripts for static-friendly pages", () => {
@@ -77,5 +91,19 @@ describe("security header policy", () => {
     const policy = buildPermissionsPolicy();
     expect(policy).toBe(PERMISSIONS_POLICY_HEADER);
     expect(policy).not.toContain(";");
+  });
+
+  it("resolves additional connect-src origins from env URLs", () => {
+    const origins = resolveAdditionalConnectSrc({
+      NEXT_PUBLIC_RPC_URLS: "http://127.0.0.1:8545, https://rpc.example/path",
+      NEXT_PUBLIC_GLOBAL_DATA_URL: "https://cdn.example/stats.json",
+      NEXT_PUBLIC_YETH_GLOBAL_DATA_URL: "https://cdn.example/yeth.json",
+    });
+
+    expect(origins).toEqual([
+      "http://127.0.0.1:8545",
+      "https://rpc.example",
+      "https://cdn.example",
+    ]);
   });
 });

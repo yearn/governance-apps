@@ -13,7 +13,7 @@
 
 - Env: `NEXT_PUBLIC_USE_MOCKS=true`
 - **Default:** Disabled in repo; enable for local UI-only testing.
-- **Effect:** Uses `MockStyfiClient` and `MockVeyfiClient` instead of on-chain calls.
+- **Effect:** Uses `MockStyfiClient`, `MockVeyfiClient`, and `MockYethClient` instead of on-chain calls.
 - **Clock behavior in mock mode:** Epoch and cooldown UI timing uses the local mock clock (`nowSeconds`) instead of chain/S3 canonical clock sources.
 - **Manual UAT tip:** For wallet-connect UX testing in mock mode, set `NEXT_PUBLIC_E2E=false`. If `NEXT_PUBLIC_E2E=true`, the app uses a fixed mock connector address and behaves as connected.
 
@@ -24,13 +24,12 @@
 
 ## yETH Mock Backend
 
-- The `yETH` recovery app currently uses a dedicated mock client in all environments.
-- This is isolated from `NEXT_PUBLIC_USE_MOCKS`, so `stYFI` and `veYFI` can stay on on-chain clients while `yETH` remains mocked.
+- In mock mode (`NEXT_PUBLIC_USE_MOCKS=true`), yETH uses `MockYethClient`.
+- In non-mock mode (`NEXT_PUBLIC_USE_MOCKS=false`), yETH uses `OnchainYethClient`.
 - yETH includes app-specific debug presets for fast state switching:
-  - Eligible / Unclaimed
-  - Claimed / Exited
-  - Claimed / Staying
-  - Ineligible
+  - Claimable
+  - Recovery Position
+  - Empty
 - The debug panel also includes claim-window toggles (`Open`, `Ended`, `Real Time`).
 
 ## Production Feature Gates

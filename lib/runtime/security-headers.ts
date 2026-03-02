@@ -4,10 +4,51 @@ type SecurityHeaderOptions = {
   isProduction: boolean;
   allowUnsafeInlineScripts?: boolean;
   allowSafeFrameEmbedding?: boolean;
+  additionalConnectSrc?: string[];
 };
 
 function joinDirectives(directives: string[]) {
   return directives.join("; ");
+}
+
+function parseUrlOrigin(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== "http:" &&
+      url.protocol !== "https:" &&
+      url.protocol !== "ws:" &&
+      url.protocol !== "wss:"
+    ) {
+      return null;
+    }
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveAdditionalConnectSrc(
+  env: Record<string, string | undefined> = process.env
+) {
+  const candidates: string[] = [];
+  const rpcUrls = (env.NEXT_PUBLIC_RPC_URLS ?? "")
+    .split(",")
+    .map((url) => url.trim())
+    .filter(Boolean);
+  candidates.push(...rpcUrls);
+
+  if (env.NEXT_PUBLIC_GLOBAL_DATA_URL) {
+    candidates.push(env.NEXT_PUBLIC_GLOBAL_DATA_URL);
+  }
+  if (env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL) {
+    candidates.push(env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL);
+  }
+
+  const parsed = candidates
+    .map(parseUrlOrigin)
+    .filter((origin): origin is string => origin !== null);
+  return Array.from(new Set(parsed));
 }
 
 export const PERMISSIONS_POLICY_HEADER = [
@@ -41,6 +82,7 @@ export function buildContentSecurityPolicy({
   isProduction,
   allowUnsafeInlineScripts = false,
   allowSafeFrameEmbedding = false,
+  additionalConnectSrc = [],
 }: SecurityHeaderOptions): string {
   const scriptSrcDirectives = [
     "'self'",
@@ -55,13 +97,22 @@ export function buildContentSecurityPolicy({
     ? `frame-ancestors ${SAFE_APP_FRAME_ANCESTORS.join(" ")}`
     : "frame-ancestors 'none'";
 
+  const connectSrcDirective = [
+    "'self'",
+    "https:",
+    "wss:",
+    ...(isDevelopment ? ["http://localhost:*", "ws://localhost:*"] : []),
+    ...additionalConnectSrc,
+  ];
+  const connectSrc = `connect-src ${Array.from(new Set(connectSrcDirective)).join(" ")}`;
+
   const directives = [
     "default-src 'self'",
     scriptSrc,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' https: wss:${isDevelopment ? " http://localhost:* ws://localhost:*" : ""}`,
+    connectSrc,
     "frame-src 'self' https://verify.walletconnect.com https://*.walletconnect.com",
     "worker-src 'self' blob:",
     "manifest-src 'self'",

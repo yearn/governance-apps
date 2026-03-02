@@ -3,6 +3,7 @@ import type { Address } from "viem";
 import type { TestBridge, TokenSymbol } from "@/lib/test-bridge";
 
 type ScenarioName = Parameters<TestBridge["setScenario"]>[0];
+type YethPreset = Parameters<TestBridge["setYethPreset"]>[1];
 
 export const E2E_ADDRESS =
   "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266" as Address;
@@ -59,6 +60,19 @@ export async function seedExternalPortfolio(
   await page.evaluate(async (addr) => {
     await window.__TEST__?.seedExternalPortfolio(addr);
   }, address);
+}
+
+export async function setYethPreset(
+  page: Page,
+  preset: YethPreset,
+  address: Address = E2E_ADDRESS
+) {
+  await page.evaluate(
+    async ({ addr, selectedPreset }) => {
+      await window.__TEST__?.setYethPreset(addr, selectedPreset);
+    },
+    { addr: address, selectedPreset: preset }
+  );
 }
 
 export async function setNow(page: Page, timestamp: number) {

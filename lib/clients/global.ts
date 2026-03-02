@@ -26,25 +26,43 @@ async function fetchAndValidate(url: string, label: string) {
   }
 }
 
+function canAttemptDirectBrowserFetch(url: string): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return new URL(url).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchGlobalData(): Promise<GlobalData | null> {
   if (!GLOBAL_DATA_URL) return null;
 
-  const preferProxy = typeof window !== "undefined";
-  const primary = preferProxy ? GLOBAL_DATA_PROXY : GLOBAL_DATA_URL;
-  const secondary = preferProxy ? GLOBAL_DATA_URL : GLOBAL_DATA_PROXY;
-  const [primaryData, secondaryData] = await Promise.all([
-    fetchAndValidate(primary, preferProxy ? "proxy" : "direct"),
-    fetchAndValidate(secondary, preferProxy ? "direct" : "proxy"),
-  ]);
+  if (typeof window !== "undefined") {
+    const proxyData = await fetchAndValidate(GLOBAL_DATA_PROXY, "proxy");
+    if (proxyData) return proxyData;
 
-  if (primaryData && secondaryData) {
-    return secondaryData.meta.timestamp > primaryData.meta.timestamp
-      ? secondaryData
-      : primaryData;
+    if (canAttemptDirectBrowserFetch(GLOBAL_DATA_URL)) {
+      const directData = await fetchAndValidate(GLOBAL_DATA_URL, "direct");
+      if (directData) return directData;
+    }
+
+    throw new Error("No valid global data payload from proxy source");
   }
 
-  const best = primaryData ?? secondaryData;
+  const [directData, proxyData] = await Promise.all([
+    fetchAndValidate(GLOBAL_DATA_URL, "direct"),
+    fetchAndValidate(GLOBAL_DATA_PROXY, "proxy"),
+  ]);
+
+  if (directData && proxyData) {
+    return proxyData.meta.timestamp > directData.meta.timestamp
+      ? proxyData
+      : directData;
+  }
+
+  const best = directData ?? proxyData;
   if (best) return best;
 
-  throw new Error("No valid global data payload from proxy or direct source");
+  throw new Error("No valid global data payload from direct or proxy source");
 }

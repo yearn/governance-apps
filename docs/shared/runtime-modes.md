@@ -26,6 +26,7 @@ In `production` mode:
 
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH routes.
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/debug/ui`.
+- `NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK` must remain `false` (UAT/fork-only safety override).
 
 ## Required production checklist
 
@@ -37,8 +38,10 @@ Before deploying production:
 4. `NEXT_PUBLIC_WC_PROJECT_ID` is set
 5. `NEXT_PUBLIC_GLOBAL_DATA_URL` is set
 6. `NEXT_PUBLIC_MOTD_URL` is set
-7. `NEXT_PUBLIC_RPC_URLS` is set (comma-separated list, at least one URL)
-8. Run `npm run validate:prod-env`
+7. If `NEXT_PUBLIC_ENABLE_YETH=true`, `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` is set
+8. `NEXT_PUBLIC_RPC_URLS` is set (comma-separated list, at least one URL)
+9. `NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK=false`
+10. Run `npm run validate:prod-env`
 
 ## Preview checklist
 

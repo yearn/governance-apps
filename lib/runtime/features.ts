@@ -19,3 +19,9 @@ export function isDebugUiEnabled(
 ) {
   return !isProductionRuntime(env) || isEnabled(env.NEXT_PUBLIC_ENABLE_DEBUG_UI);
 }
+
+export function isSimulationTransportFallbackEnabled(
+  env: Record<string, string | undefined> = process.env
+) {
+  return isEnabled(env.NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK);
+}

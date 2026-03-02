@@ -169,8 +169,8 @@ All return a `PreparedTransaction`.
 
 ### Current Integration Mode
 
-- yETH is currently intentionally mock-backed.
-- On-chain yETH client integration is deferred until contracts are finalized and audited.
+- yETH uses `OnchainYethClient` when mocks are disabled.
+- yETH uses `MockYethClient` when `NEXT_PUBLIC_USE_MOCKS=true` (or E2E mode).
 
 ---
 
@@ -256,8 +256,8 @@ A single top-level provider binds domain clients to the UI.
 - **On-chain clients** (default target)
 - **Mock clients** (`NEXT_PUBLIC_USE_MOCKS=true`)
 
-On-chain clients are implemented for stYFI and veYFI. yETH is currently mock-backed in all modes while contract integration is pending.  
-When mocks are disabled, global data loads from S3 (`NEXT_PUBLIC_GLOBAL_DATA_URL`) and the public client is derived from the connected wallet (EIP‑1193). This means the app can render global stats before connection and upgrade to live reads after a wallet connects.
+On-chain clients are implemented for stYFI, veYFI, and yETH (when mocks are disabled).  
+When mocks are disabled, global data loads from S3 (`NEXT_PUBLIC_GLOBAL_DATA_URL` for stYFI/veYFI and `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` for yETH), and the public client is derived from the connected wallet (EIP‑1193). This means the app can render global stats before connection and upgrade to live reads after a wallet connects.
 
 **Read/Write policy:**
 

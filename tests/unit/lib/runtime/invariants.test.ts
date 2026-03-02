@@ -81,4 +81,19 @@ describe("production runtime invariants", () => {
       assertProductionRuntimeInvariants("test/development")
     ).not.toThrow();
   });
+
+  it("forbids simulation transport fallback in production mode", async () => {
+    const env = process.env as Record<string, string | undefined>;
+    env.NODE_ENV = "production";
+    env.NEXT_PUBLIC_USE_MOCKS = "false";
+    env.NEXT_PUBLIC_E2E = "false";
+    env.NEXT_PUBLIC_RPC_URLS = "https://rpc.example.invalid";
+    env.NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK = "true";
+
+    const { assertProductionRuntimeInvariants } = await loadInvariants();
+
+    expect(() => assertProductionRuntimeInvariants("test/sim-fallback")).toThrow(
+      "NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK"
+    );
+  });
 });

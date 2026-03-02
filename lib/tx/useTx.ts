@@ -13,6 +13,7 @@ import { wagmiConfig } from "@/web3/wagmi";
 import { toast } from "@/components/ui/Toast";
 import { normalizeTxError } from "./errors";
 import { useProtocol } from "@/state/protocol";
+import { isSimulationTransportFallbackEnabled } from "@/lib/runtime/features";
 
 type TxExecuteOptions = {
   onSuccess?: (hash: TransactionHash) => void | Promise<void>;
@@ -49,6 +50,7 @@ function mapNormalizedCode(code: string): TxErrorType {
 export function useTx() {
   const [state, setState] = useState<TxState>(initialState);
   const { publicClient } = useProtocol();
+  const txTransportFallbackEnabled = isSimulationTransportFallbackEnabled();
 
   const reset = useCallback(() => {
     setState(initialState);
@@ -87,7 +89,19 @@ export function useTx() {
             });
 
             if (publicClient) {
-              await publicClient.waitForTransactionReceipt({ hash });
+              try {
+                await publicClient.waitForTransactionReceipt({ hash });
+              } catch (waitError) {
+                const normalizedWaitError = normalizeTxError(waitError);
+                if (!(txTransportFallbackEnabled && normalizedWaitError.code === "network")) {
+                  throw waitError;
+                }
+                console.warn(
+                  "[tx] Wallet RPC receipt wait failed; falling back to configured app RPC.",
+                  waitError
+                );
+                await waitForTransactionReceipt(wagmiConfig, { hash });
+              }
             } else {
               await waitForTransactionReceipt(wagmiConfig, { hash });
             }
@@ -140,7 +154,7 @@ export function useTx() {
 
       await attemptExecute();
     },
-    [publicClient]
+    [publicClient, txTransportFallbackEnabled]
   );
 
   return {

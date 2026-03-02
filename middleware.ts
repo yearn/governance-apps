@@ -6,7 +6,10 @@ import {
   resolveHostPrefix,
 } from "@/lib/runtime/host-routing";
 import { resolveRequestHostname } from "@/lib/runtime/request-host";
-import { buildSecurityHeaders } from "@/lib/runtime/security-headers";
+import {
+  buildSecurityHeaders,
+  resolveAdditionalConnectSrc,
+} from "@/lib/runtime/security-headers";
 
 // Regex to detect public files that should skip rewriting.
 // This is safer than checking for dots, which might exist in valid URL slugs.
@@ -16,6 +19,7 @@ const PUBLIC_FILE =
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const IS_DEVELOPMENT = !IS_PRODUCTION;
 const STRICT_CSP_PATHS = ["/styfi", "/veyfi", "/yeth"];
+const ADDITIONAL_CONNECT_SRC = resolveAdditionalConnectSrc();
 
 function isStrictCspPath(pathname: string, hostPrefix: string | null) {
   if (hostPrefix) return true;
@@ -41,6 +45,7 @@ function withSecurityHeaders(
     isProduction: IS_PRODUCTION,
     allowUnsafeInlineScripts: options.allowUnsafeInlineScripts,
     allowSafeFrameEmbedding: options.allowSafeFrameEmbedding,
+    additionalConnectSrc: ADDITIONAL_CONNECT_SRC,
   });
 
   for (const [key, value] of Object.entries(securityHeaders)) {

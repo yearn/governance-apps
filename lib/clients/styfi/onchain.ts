@@ -1,6 +1,6 @@
 // lib/clients/styfi/onchain.ts
 import { type Address, type PublicClient, erc20Abi, parseAbi } from "viem";
-import { getAccount, simulateContract, writeContract } from "wagmi/actions";
+import { getAccount } from "wagmi/actions";
 import { wagmiConfig } from "@/web3/wagmi";
 import type { PreparedTransaction } from "@/lib/tx/types";
 import type {
@@ -30,6 +30,7 @@ import { StakedYfiAbi } from "@/lib/abis/StakedYfi";
 import { DelegatedStakedYfiAbi } from "@/lib/abis/DelegatedStakedYfi";
 import { RewardClaimerAbi } from "@/lib/abis/RewardClaimer";
 import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
+import { simulateThenWrite } from "@/lib/tx/simulateWrite";
 
 const BLACKLIST_PROBES: ReadonlyArray<{
   abi: readonly unknown[];
@@ -521,16 +522,15 @@ export class OnchainStyfiClient implements StyfiClient {
       const contractAddress = mode === "stYFI" ? STYFI_ADDRESS : STYFIX_ADDRESS;
       const abi = mode === "stYFI" ? StakedYfiAbi : DelegatedStakedYfiAbi;
 
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: contractAddress,
         abi,
         functionName: "deposit",
-        args: [amount, address],
+        args: [amount, address] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, `stYFI stake (${mode})`);
     };
   }
 
@@ -544,16 +544,15 @@ export class OnchainStyfiClient implements StyfiClient {
       const contractAddress = mode === "stYFI" ? STYFI_ADDRESS : STYFIX_ADDRESS;
       const abi = mode === "stYFI" ? StakedYfiAbi : DelegatedStakedYfiAbi;
 
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: contractAddress,
         abi,
         functionName: "unstake",
-        args: [amount],
+        args: [amount] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, `stYFI start cooldown (${mode})`);
     };
   }
 
@@ -575,16 +574,15 @@ export class OnchainStyfiClient implements StyfiClient {
 
       if (max === 0n) throw new Error("Nothing to withdraw");
 
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: contractAddress,
         abi,
         functionName: "withdraw",
-        args: [max, address, address],
+        args: [max, address, address] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, `stYFI withdraw (${mode})`);
     };
   }
 
@@ -593,16 +591,15 @@ export class OnchainStyfiClient implements StyfiClient {
       const account = getAccount(wagmiConfig);
       const address = assertMainnetAccount(account);
 
-      const simulation = await simulateContract(wagmiConfig, {
+      const request = {
         address: REWARD_CLAIMER_ADDRESS,
         abi: RewardClaimerAbi,
         functionName: "claim",
-        args: [address],
+        args: [address] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
-      });
-
-      return writeContract(wagmiConfig, simulation.request);
+      };
+      return simulateThenWrite(request, request, "stYFI claim rewards");
     };
   }
 }

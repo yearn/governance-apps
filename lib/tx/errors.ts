@@ -45,6 +45,30 @@ export function normalizeTxError(raw: unknown): NormalizedError {
     };
   }
 
+  if (text.includes("nothing claimable") || text.includes("nothing to claim")) {
+    return {
+      code: "insufficient_balance",
+      message: "No claimable yETH recovery balance available.",
+    };
+  }
+
+  if (
+    text.includes("no recovery vault shares") ||
+    text.includes("no shares to redeem")
+  ) {
+    return {
+      code: "insufficient_balance",
+      message: "No Recovery Vault shares available to redeem.",
+    };
+  }
+
+  if (text.includes("insufficient vault liquidity")) {
+    return {
+      code: "revert",
+      message: "Insufficient vault liquidity for this action.",
+    };
+  }
+
   if (text.includes("insufficient")) {
     return {
       code: "insufficient_balance",
@@ -52,12 +76,18 @@ export function normalizeTxError(raw: unknown): NormalizedError {
     };
   }
 
-  if (text.includes("network") || text.includes("rpc")) {
-    return { code: "network", message: "Network issue. Please retry." };
-  }
-
   if (text.includes("revert")) {
     return { code: "revert", message: "Transaction reverted." };
+  }
+
+  if (
+    text.includes("network") ||
+    text.includes("rpc") ||
+    text.includes("http request failed") ||
+    text.includes("failed to fetch") ||
+    text.includes("fetch failed")
+  ) {
+    return { code: "network", message: "Network issue. Please retry." };
   }
 
   return {

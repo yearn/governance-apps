@@ -59,10 +59,11 @@ await page.evaluate(async () => {
 
 - `reset()`: clears mock stores, time, and React Query cache.
 - `setNow(timestamp)`: sets the fixed mock time (seconds since epoch).
-- `getState(address)`: returns a snapshot of mock state.
+- `getState(address)`: returns a snapshot of mock state (stYFI, veYFI, yETH).
 - `setBalance(address, symbol, amount)`: sets wallet or mock token balances.
 - `setAllowance(address, symbol, spender, amount)`: sets mock allowances.
 - `setScenario(name)`: loads a predefined scenario (resets first).
+- `setYethPreset(address, preset)`: applies yETH mock account state (`claimable`, `recovery_position`, `empty`).
 
 Amounts passed to the bridge must be human-readable strings without commas (e.g. `\"100.5\"`).
 
@@ -100,7 +101,8 @@ The mock connector is for testing only and should never be enabled in real user 
 
 ## Parallelism
 
-Parallel Playwright workers are safe because all mocks are client-side and scoped to each browser context.
+Vitest runs in parallel by default.
+Playwright smoke runs are intentionally single-worker (`npm run test:e2e` -> `--workers=1`) to avoid cross-flow flake from shared mock-store mutations and time controls.
 
 ## Test Locations and Naming
 

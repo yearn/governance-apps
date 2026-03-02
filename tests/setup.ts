@@ -4,6 +4,7 @@ import { cleanup } from "@testing-library/react";
 import { setFixedNow } from "@/lib/mocks/time";
 import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
 import { resetMockVeyfiStore } from "@/lib/clients/veyfi/mock";
+import { resetMockYethStore } from "@/lib/clients/yeth/mock";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
 import type { ReactNode } from "react";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
@@ -50,5 +51,6 @@ afterEach(() => {
   setFixedNow(null);
   resetMockStyfiStore();
   resetMockVeyfiStore();
+  resetMockYethStore();
   GLOBAL_WORLD_STATE.reset();
 });

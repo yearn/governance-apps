@@ -3,6 +3,10 @@ function normalize(value) {
   return (value || "").trim().toLowerCase();
 }
 
+function isEnabled(value) {
+  return normalize(value) === "true";
+}
+
 function parseCsvList(value) {
   return (value || "")
     .split(",")
@@ -50,6 +54,7 @@ if (runtimeMode !== "production") {
 const forbiddenEnabledFlags = [
   "NEXT_PUBLIC_USE_MOCKS",
   "NEXT_PUBLIC_E2E",
+  "NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK",
 ];
 
 for (const name of forbiddenEnabledFlags) {
@@ -65,6 +70,10 @@ const requiredVars = [
   "NEXT_PUBLIC_MOTD_URL",
   "NEXT_PUBLIC_RPC_URLS",
 ];
+
+if (isEnabled(process.env.NEXT_PUBLIC_ENABLE_YETH)) {
+  requiredVars.push("NEXT_PUBLIC_YETH_GLOBAL_DATA_URL");
+}
 
 for (const name of requiredVars) {
   if (!process.env[name] || !process.env[name]?.trim()) {
