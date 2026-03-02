@@ -10,12 +10,15 @@ import { createMockVeyfiClient } from "@/lib/clients/veyfi/mock";
 import { createMockYethClient } from "@/lib/clients/yeth/mock";
 import { OnchainStyfiClient } from "@/lib/clients/styfi/onchain";
 import { OnchainVeyfiClient } from "@/lib/clients/veyfi/onchain"; // [New]
+import { OnchainYethClient } from "@/lib/clients/yeth/onchain";
 import { useWalletClient } from "wagmi";
 import { createPublicClient, custom, type PublicClient } from "viem";
 import { mainnet } from "wagmi/chains";
 import { TestBridgeListener } from "@/components/TestBridgeListener";
 import { useGlobalData } from "@/lib/hooks/useGlobalData";
+import { useYethGlobalData } from "@/lib/hooks/useYethGlobalData";
 import type { GlobalData } from "@/lib/schemas/global";
+import type { YethGlobalData } from "@/lib/schemas/yeth-global";
 import { assertProductionRuntimeInvariants } from "@/lib/runtime/invariants";
 
 assertProductionRuntimeInvariants("state/protocol");
@@ -29,6 +32,7 @@ type ProtocolContextValue = {
   yethUsesMockBackend: boolean;
   publicClient: PublicClient | null;
   globalData: GlobalData | null;
+  yethGlobalData: YethGlobalData | null;
 };
 
 const ProtocolContext = createContext<ProtocolContextValue | null>(null);
@@ -48,6 +52,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
   );
 
   const { data: globalData } = useGlobalData();
+  const { data: yethGlobalData } = useYethGlobalData(!preferMocks);
   const { data: walletClient } = useWalletClient();
 
   const publicClient = useMemo<PublicClient | null>(() => {
@@ -74,20 +79,22 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         yethUsesMockBackend: true,
         publicClient: null,
         globalData: null,
+        yethGlobalData: null,
       };
     }
 
     return {
       styfi: new OnchainStyfiClient(publicClient, globalData ?? null),
       veyfi: new OnchainVeyfiClient(publicClient, globalData ?? null),
-      yeth: mockClients.yeth,
+      yeth: new OnchainYethClient(publicClient, yethGlobalData ?? null),
       isMock: false,
       usesMockBackend: false,
-      yethUsesMockBackend: true,
+      yethUsesMockBackend: false,
       publicClient,
       globalData: globalData ?? null,
+      yethGlobalData: yethGlobalData ?? null,
     };
-  }, [preferMocks, publicClient, globalData, mockClients]);
+  }, [preferMocks, publicClient, globalData, yethGlobalData, mockClients]);
 
   return (
     <ProtocolContext.Provider value={value}>
@@ -95,6 +102,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
       <TestBridgeListener
         styfi={value.styfi}
         veyfi={value.veyfi}
+        yeth={value.yeth}
         enabled={process.env.NEXT_PUBLIC_E2E === "true"}
       />
     </ProtocolContext.Provider>

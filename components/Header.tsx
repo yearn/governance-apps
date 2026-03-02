@@ -24,10 +24,11 @@ export function Header() {
   const { isLoading: isGlobalLoading } = useGlobalData();
   const { publicClient } = useProtocol();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const showEpochPill = !!publicClient || !isGlobalLoading;
 
   // Resolve current app name (stYFI, veYFI, etc)
   const primaryNav = resolveHeaderPrimaryNav(pathname, segment, hostname);
+  const isYethApp = primaryNav.label === "yETH";
+  const showEpochPill = !isYethApp && (!!publicClient || !isGlobalLoading);
 
   return (
     <>
@@ -48,13 +49,15 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden sm:block">
-              {showEpochPill ? (
-                <EpochCountdownBadge epoch={clock.epochInfo} now={clock.now} />
-              ) : (
-                <Skeleton className="h-7 w-36" />
-              )}
-            </div>
+            {!isYethApp ? (
+              <div className="hidden sm:block">
+                {showEpochPill ? (
+                  <EpochCountdownBadge epoch={clock.epochInfo} now={clock.now} />
+                ) : (
+                  <Skeleton className="h-7 w-36" />
+                )}
+              </div>
+            ) : null}
             <div className="hidden items-center gap-2 md:flex">
               <ThemeToggle />
               <WalletButton />

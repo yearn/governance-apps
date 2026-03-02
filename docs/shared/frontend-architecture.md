@@ -359,7 +359,7 @@ Under `/lib/hooks/useVeyfi.ts`:
 
 ### 10.1 Overview
 
-`/yeth` is a state-driven recovery interface with a mock-backed domain client.
+`/yeth` is a state-driven recovery interface with onchain mode support and mock fallback.
 
 ```text
 /yeth
@@ -368,12 +368,10 @@ Under `/lib/hooks/useVeyfi.ts`:
        ├─ [RecoveryBanner]       (retired notice + claim window status)
        └─ Main Container
             ├─ [ConnectCard]             (wallet-gated entry)
-            ├─ [RecoveryHero]            (eligible + unclaimed state)
+            ├─ [RecoveryHero]            (claimable state)
             ├─ [ActionDeck]              (claim paths)
             ├─ [StatsGrid]               (context metrics)
-            ├─ [PostClaimExitedCard]     (claim-and-exit receipt state)
             ├─ [PostClaimStayingCard]    (recovery vault holder settlement ticket)
-            ├─ [IneligibleCard]          (non-eligible state)
             ├─ [TrustFooter]             (collapsible disclosure sections with clear trigger)
             └─ [Risk Modal]              (required for claim-and-stay)
        └─ [MockControls]          (preset and claim-window debug controls)
@@ -389,20 +387,18 @@ Under `/lib/hooks/useYeth.ts`:
 4. `useYethClaimAndStay()`
 5. `useYethRedeemToEth()`
 
-Current data source is `MockYethClient` via `ProtocolProvider`.
+Data source is selected by `ProtocolProvider`:
+- mock mode -> `MockYethClient`
+- non-mock mode -> `OnchainYethClient`
 
 ### 10.3 State Management
 
-- Route renders from account eligibility and claim status.
+- Route renders from observable account balances (`claimableNowEth`, `recoveryVaultShares`).
 - Claim window status is derived from `global.claimWindow` and current time.
-- In `claimStatus === "unclaimed"`, the UI composes hero + action deck + stats grid.
+- In `claimableNowEth > 0`, the UI composes hero + action deck + stats grid.
 - If claim window is closed, hero metrics are replaced and action deck is hidden.
 - Risk consent is local component state and required before claim-and-stay write.
 - Staying-state emphasizes settlement: liquidation value and a dynamic cash-out CTA.
-- Post-claim state transitions depend on account `claimStatus`:
-  - `unclaimed`
-  - `staying`
-  - `exited`
 
 ---
 

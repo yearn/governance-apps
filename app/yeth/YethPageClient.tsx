@@ -2,15 +2,17 @@
 
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { TxStatus } from "@/lib/tx/types";
 import type { YethAccountState, YethGlobalState } from "@/lib/clients/yeth";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { formatAddress, formatTokenAmount } from "@/lib/format";
+import { formatTokenAmount } from "@/lib/format";
 import { useProtocol } from "@/state/protocol";
 import { nowSeconds } from "@/lib/mocks/time";
+import { MAINNET_CHAIN_ID } from "@/lib/tx/network";
 import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import {
   useYethAccountState,
@@ -27,9 +29,26 @@ import { StatsGrid } from "./components/StatsGrid";
 import { TrustFooter } from "./components/TrustFooter";
 
 const ONE = 10n ** 18n;
+const CLAIM_HISTORY_STORAGE_KEY = "yeth_claim_history_v1";
+
+type ClaimHistoryRecord = {
+  snapshotLossEth: string;
+  recoveredEth: string;
+  claimedAt: number;
+  txHash: string;
+};
 
 export function YethPageClient() {
-  const { isConnected, address } = useAccount();
+  const {
+    isConnected: wagmiConnected,
+    address: wagmiAddress,
+    chainId: wagmiChainId,
+  } = useAccount();
+  const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
+  const address = wagmiAddress ?? (isE2E ? E2E_MOCK_ADDRESS : undefined);
+  const isConnected = wagmiConnected || !!address;
+  const isWrongNetwork =
+    !!wagmiConnected && wagmiChainId !== undefined && wagmiChainId !== MAINNET_CHAIN_ID;
   const { yethUsesMockBackend } = useProtocol();
   const { openConnectModal } = useConnectModal();
   const { data: global } = useYethGlobalState();
@@ -39,27 +58,150 @@ export function YethPageClient() {
   const redeem = useYethRedeemToEth();
   const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
   const [riskAccepted, setRiskAccepted] = useState(false);
-  const now = global?.asOf ?? nowSeconds();
+  const [claimHistory, setClaimHistory] = useState<ClaimHistoryRecord | null>(null);
+  const pendingClaimSnapshotRef = useRef<bigint | null>(null);
+  const pendingRecoveredRef = useRef<bigint | null>(null);
+  const [, setCountdownTick] = useState(0);
+  const now = nowSeconds();
 
   const claimExitPending = isTxPending(claimExit.state.status);
   const claimStayPending = isTxPending(claimStay.state.status);
   const redeemPending = isTxPending(redeem.state.status);
-
-  const handleClaimStay = () => {
-    setIsRiskModalOpen(false);
-    setRiskAccepted(false);
-    void claimStay.write();
-  };
 
   const claimWindowClosed = useMemo(() => {
     if (!global) return false;
     return now >= global.claimWindow.closesAt;
   }, [global, now]);
 
+  useEffect(() => {
+    setClaimHistory(loadClaimHistory(address));
+  }, [address]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setCountdownTick((tick) => tick + 1);
+    }, 30_000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const successfulClaimHash = useMemo(() => {
+    if (claimExit.state.status === "success" && claimExit.state.hash) {
+      return claimExit.state.hash;
+    }
+    if (claimStay.state.status === "success" && claimStay.state.hash) {
+      return claimStay.state.hash;
+    }
+    return undefined;
+  }, [
+    claimExit.state.hash,
+    claimExit.state.status,
+    claimStay.state.hash,
+    claimStay.state.status,
+  ]);
+
+  useEffect(() => {
+    if (!address || !successfulClaimHash) return;
+    if (claimHistory?.txHash === successfulClaimHash) return;
+
+    const snapshotFromHistory = parseSnapshotValue(claimHistory?.snapshotLossEth);
+    const recoveredFromHistory = parseSnapshotValue(claimHistory?.recoveredEth);
+    const snapshotCandidate =
+      pendingClaimSnapshotRef.current ??
+      (account?.snapshotLossEth && account.snapshotLossEth > 0n
+        ? account.snapshotLossEth
+        : null) ??
+      (snapshotFromHistory > 0n ? snapshotFromHistory : null) ??
+      0n;
+    const recoveredCandidate =
+      pendingRecoveredRef.current ??
+      (account?.claimableNowEth && account.claimableNowEth > 0n
+        ? account.claimableNowEth
+        : null) ??
+      (recoveredFromHistory > 0n ? recoveredFromHistory : null) ??
+      0n;
+
+    const record: ClaimHistoryRecord = {
+      snapshotLossEth: snapshotCandidate.toString(),
+      recoveredEth: recoveredCandidate.toString(),
+      claimedAt: nowSeconds(),
+      txHash: successfulClaimHash,
+    };
+
+    saveClaimHistory(address, record);
+    setClaimHistory(record);
+    pendingClaimSnapshotRef.current = null;
+    pendingRecoveredRef.current = null;
+  }, [
+    account?.claimableNowEth,
+    account?.snapshotLossEth,
+    address,
+    claimHistory,
+    successfulClaimHash,
+  ]);
+
+  const snapshotDisplayValue = useMemo(() => {
+    if (account?.snapshotLossEth && account.snapshotLossEth > 0n) {
+      return account.snapshotLossEth;
+    }
+    const persistedSnapshot = parseSnapshotValue(claimHistory?.snapshotLossEth);
+    if (persistedSnapshot > 0n) {
+      return persistedSnapshot;
+    }
+    return account?.snapshotLossEth ?? 0n;
+  }, [account?.snapshotLossEth, claimHistory?.snapshotLossEth]);
+  const recoveredDisplayValue = useMemo(() => {
+    const persistedRecovered = parseSnapshotValue(claimHistory?.recoveredEth);
+    if (persistedRecovered > 0n) {
+      return persistedRecovered;
+    }
+    return 0n;
+  }, [claimHistory?.recoveredEth]);
+
+  const handleClaimExit = () => {
+    if (claimWindowClosed) return;
+    if (account?.snapshotLossEth && account.snapshotLossEth > 0n) {
+      pendingClaimSnapshotRef.current = account.snapshotLossEth;
+    }
+    if (account?.claimableNowEth && account.claimableNowEth > 0n) {
+      pendingRecoveredRef.current = account.claimableNowEth;
+    }
+    void claimExit.write();
+  };
+
+  const handleOpenRiskModal = () => {
+    if (claimWindowClosed) return;
+    setIsRiskModalOpen(true);
+  };
+
+  const handleClaimStay = () => {
+    if (claimWindowClosed) {
+      setIsRiskModalOpen(false);
+      setRiskAccepted(false);
+      return;
+    }
+    if (account?.snapshotLossEth && account.snapshotLossEth > 0n) {
+      pendingClaimSnapshotRef.current = account.snapshotLossEth;
+    }
+    if (account?.claimableNowEth && account.claimableNowEth > 0n) {
+      pendingRecoveredRef.current = account.claimableNowEth;
+    }
+    setIsRiskModalOpen(false);
+    setRiskAccepted(false);
+    void claimStay.write();
+  };
+
   const claimWindowCountdown = useMemo(() => {
     if (!global) return "--";
     return formatCountdown(global.claimWindow.closesAt, now);
   }, [global, now]);
+
+  useEffect(() => {
+    if (!claimWindowClosed || !isRiskModalOpen) return;
+    setIsRiskModalOpen(false);
+    setRiskAccepted(false);
+  }, [claimWindowClosed, isRiskModalOpen]);
 
   return (
     <>
@@ -73,26 +215,23 @@ export function YethPageClient() {
         <main className="container mx-auto px-4 md:px-6 pt-8 pb-24 space-y-6">
           {!isConnected ? (
             <ConnectCard onConnect={() => openConnectModal?.()} />
+          ) : isWrongNetwork ? (
+            <WrongNetworkCard />
           ) : isAccountLoading || !account || !global ? (
             <LoadingCard />
-          ) : !account.eligible ? (
-            <IneligibleCard
-              address={address}
-              global={global}
-              claimWindowClosed={claimWindowClosed}
-            />
-          ) : account.claimStatus === "unclaimed" ? (
+          ) : account.claimableNowEth > 0n ? (
             <UnclaimedRecoveryState
               address={address}
               account={account}
               global={global}
+              snapshotValue={snapshotDisplayValue}
               claimWindowClosed={claimWindowClosed}
               claimExitPending={claimExitPending}
               claimStayPending={claimStayPending}
-              onClaimExit={() => claimExit.write()}
-              onOpenRiskModal={() => setIsRiskModalOpen(true)}
+              onClaimExit={handleClaimExit}
+              onOpenRiskModal={handleOpenRiskModal}
             />
-          ) : account.claimStatus === "staying" ? (
+          ) : account.recoveryVaultShares > 0n ? (
             <PostClaimStayingCard
               account={account}
               global={global}
@@ -100,7 +239,14 @@ export function YethPageClient() {
               redeemPending={redeemPending}
             />
           ) : (
-            <PostClaimExitedCard account={account} />
+            <NoPositionCard
+              address={address}
+              global={global}
+              snapshotValue={snapshotDisplayValue}
+              claimedAt={claimHistory?.claimedAt}
+              claimTxHash={claimHistory?.txHash}
+              recoveredValue={recoveredDisplayValue}
+            />
           )}
 
           {global && <TrustFooter global={global} />}
@@ -138,7 +284,7 @@ export function YethPageClient() {
                 size="sm"
                 onClick={handleClaimStay}
                 isLoading={claimStayPending}
-                disabled={!riskAccepted || claimStayPending}
+                disabled={!riskAccepted || claimStayPending || claimWindowClosed}
               >
                 {copy.riskModal.continue}
               </Button>
@@ -177,10 +323,21 @@ function RecoveryBanner({
             <IconLinkOut className="w-3.5 h-3.5" />
           </a>
           <span className="text-text-tertiary">&#183;</span>
-          <span className="font-medium text-text-primary">
-            {claimWindowClosed ? copy.page.closedStatus : copy.page.openStatus}
-          </span>
-          <span>{claimWindowCountdown}</span>
+          {global ? (
+            <>
+              <span className="font-medium text-text-primary">
+                {claimWindowClosed ? copy.page.closedStatus : copy.page.openStatus}
+              </span>
+              <span>{claimWindowCountdown}</span>
+            </>
+          ) : (
+            <>
+              <span className="font-medium text-text-primary">
+                {copy.page.statusUnavailable}
+              </span>
+              <span>{copy.page.countdownUnavailable}</span>
+            </>
+          )}
         </div>
       </div>
     </section>
@@ -199,6 +356,15 @@ function ConnectCard({ onConnect }: { onConnect: () => void }) {
   );
 }
 
+function WrongNetworkCard() {
+  return (
+    <Card className="space-y-3">
+      <h2 className="text-xl font-bold">{copy.page.wrongNetworkTitle}</h2>
+      <p className="text-sm text-text-secondary">{copy.page.wrongNetworkBody}</p>
+    </Card>
+  );
+}
+
 function LoadingCard() {
   return (
     <Card className="space-y-3">
@@ -209,52 +375,11 @@ function LoadingCard() {
   );
 }
 
-function IneligibleCard({
-  address,
-  global,
-  claimWindowClosed,
-}: {
-  address: string | undefined;
-  global: YethGlobalState;
-  claimWindowClosed: boolean;
-}) {
-  return (
-    <Card className="space-y-6">
-      <header className="space-y-1">
-        <h2 className="text-xl font-bold">{copy.page.sections.recovery}</h2>
-        <p className="text-sm text-text-secondary">
-          This wallet has no active yETH recovery entitlement.
-        </p>
-      </header>
-
-      <div className="grid gap-3 text-sm md:grid-cols-2">
-        <DataRow
-          label={copy.fields.wallet}
-          value={address ? formatAddress(address) : "--"}
-        />
-        <DataRow label={copy.fields.eligibility} value="Ineligible" />
-        <DataRow
-          label={copy.fields.claimStatus}
-          value={claimWindowClosed ? copy.page.closedStatus : copy.page.openStatus}
-        />
-        <DataRow
-          label={copy.fields.claimWindowEnds}
-          value={formatUtcDateTime(global.claimWindow.closesAt)}
-        />
-      </div>
-
-      <p className="text-sm text-text-secondary">
-        If you expected an allocation, review the approved YIP and manual process in
-        the Contracts, Risks & Sources section below.
-      </p>
-    </Card>
-  );
-}
-
 function UnclaimedRecoveryState({
   address,
   account,
   global,
+  snapshotValue,
   claimWindowClosed,
   claimExitPending,
   claimStayPending,
@@ -264,6 +389,7 @@ function UnclaimedRecoveryState({
   address: string | undefined;
   account: YethAccountState;
   global: YethGlobalState;
+  snapshotValue: bigint;
   claimWindowClosed: boolean;
   claimExitPending: boolean;
   claimStayPending: boolean;
@@ -309,34 +435,45 @@ function UnclaimedRecoveryState({
 
       <StatsGrid
         address={address}
-        snapshotValue={account.snapshotLossEth}
+        snapshotValue={snapshotValue}
         closesAt={global.claimWindow.closesAt}
-        eligible={account.eligible}
       />
     </section>
   );
 }
 
-function PostClaimExitedCard({ account }: { account: YethAccountState }) {
+function NoPositionCard({
+  address,
+  snapshotValue,
+  global,
+  claimedAt,
+  claimTxHash,
+  recoveredValue,
+}: {
+  address: string | undefined;
+  snapshotValue: bigint;
+  global: YethGlobalState;
+  claimedAt?: number;
+  claimTxHash?: string;
+  recoveredValue?: bigint;
+}) {
   return (
-    <section className="flex flex-col items-center py-12 text-center space-y-4">
-      <h2 className="text-3xl md:text-5xl font-bold text-tokyo-600">
-        {copy.postClaim.exitedTitle}
-      </h2>
-      <p className="font-number text-2xl md:text-3xl font-bold text-text-primary">
-        {copy.postClaim.received} {formatEth(account.exitedEthReceived)}
-      </p>
-      <p className="text-sm text-text-secondary">{copy.postClaim.exitedNote}</p>
-      {account.lastTxHash ? (
-        <a
-          href={txExplorerLink(account.lastTxHash)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex text-sm font-medium underline underline-offset-4"
-        >
-          View on block explorer
-        </a>
-      ) : null}
+    <section className="space-y-6">
+      <Card className="space-y-3 py-8 text-center">
+        <h2 className="text-2xl font-bold text-text-primary">{copy.page.completeTitle}</h2>
+        <p className="mx-auto max-w-xl text-sm text-text-secondary">
+          {copy.page.completeBody}
+        </p>
+      </Card>
+
+      <StatsGrid
+        address={address}
+        snapshotValue={snapshotValue}
+        closesAt={global.claimWindow.closesAt}
+        claimedAt={claimedAt}
+        claimTxHash={claimTxHash}
+        recoveredValue={recoveredValue}
+      />
     </section>
   );
 }
@@ -353,7 +490,6 @@ function PostClaimStayingCard({
   redeemPending: boolean;
 }) {
   const currentValueEth = (account.recoveryVaultShares * global.recoveryVault.pps) / ONE;
-  const recoveredPct = formatRecoveryPercent(currentValueEth, account.snapshotLossEth);
   const cashOutAmount = formatTokenAmount(currentValueEth, 18, 4);
 
   return (
@@ -379,19 +515,15 @@ function PostClaimStayingCard({
 
         <div className="bg-surface-secondary/50 p-4 space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-text-secondary">Original Snapshot</span>
-            <span className="font-number text-text-primary">
-              {formatEth(account.snapshotLossEth)}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-text-secondary">Recovered vs. Original</span>
-            <span className="font-number text-text-primary">{recoveredPct}</span>
-          </div>
-          <div className="flex justify-between">
             <span className="text-text-secondary">Vault Shares</span>
             <span className="font-number text-text-primary">
               {formatTokenAmount(account.recoveryVaultShares, 18, 2)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-secondary">Current PPS</span>
+            <span className="font-number text-text-primary">
+              {formatTokenAmount(global.recoveryVault.pps, 18, 4)} ETH/share
             </span>
           </div>
         </div>
@@ -415,23 +547,8 @@ function PostClaimStayingCard({
   );
 }
 
-function DataRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-surface-secondary p-3">
-      <p className="text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
-        {label}
-      </p>
-      <div className="mt-1 text-sm font-number font-bold text-text-primary">{value}</div>
-    </div>
-  );
-}
-
 function isTxPending(status: TxStatus) {
   return status === "signing" || status === "submitted" || status === "mining";
-}
-
-function formatEth(amount: bigint) {
-  return `${formatTokenAmount(amount, 18, 4)} ETH`;
 }
 
 function formatRecoveryPercent(recovered: bigint, original: bigint) {
@@ -443,28 +560,50 @@ function formatRecoveryPercent(recovered: bigint, original: bigint) {
 function formatCountdown(closesAt: number, now: number) {
   const remaining = Math.max(0, closesAt - now);
   if (remaining === 0) return "Closed";
+
   const days = Math.floor(remaining / 86_400);
+  const hours = Math.floor((remaining % 86_400) / 3_600);
+  const minutes = Math.floor((remaining % 3_600) / 60);
   if (days > 0) {
-    return `Ends in ${days} days`;
+    return `Ends in ${days}d ${hours}h`;
   }
-  const hours = Math.max(1, Math.floor(remaining / 3_600));
-  return `Ends in ${hours}h`;
+  if (hours > 0) {
+    return `Ends in ${hours}h ${minutes}m`;
+  }
+  return `Ends in ${Math.max(1, Math.ceil(remaining / 60))}m`;
 }
 
-function formatUtcDateTime(timestampSeconds: number) {
-  const date = new Date(timestampSeconds * 1000);
-  const formatted = new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-    hour12: false,
-  }).format(date);
-  return `${formatted} UTC`;
+function parseSnapshotValue(value: string | undefined): bigint {
+  if (!value) return 0n;
+  try {
+    return BigInt(value);
+  } catch {
+    return 0n;
+  }
 }
 
-function txExplorerLink(hash: string) {
-  return `https://etherscan.io/tx/${hash}`;
+function loadClaimHistory(address: string | undefined): ClaimHistoryRecord | null {
+  if (typeof window === "undefined" || !address) return null;
+  try {
+    const raw = window.localStorage.getItem(CLAIM_HISTORY_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, ClaimHistoryRecord | undefined>;
+    return parsed[address.toLowerCase()] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function saveClaimHistory(address: string, record: ClaimHistoryRecord) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(CLAIM_HISTORY_STORAGE_KEY);
+    const parsed = raw
+      ? (JSON.parse(raw) as Record<string, ClaimHistoryRecord | undefined>)
+      : {};
+    parsed[address.toLowerCase()] = record;
+    window.localStorage.setItem(CLAIM_HISTORY_STORAGE_KEY, JSON.stringify(parsed));
+  } catch {
+    // Best effort only; UI should still function without persistence.
+  }
 }

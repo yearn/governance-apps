@@ -1,27 +1,18 @@
 import type { Address } from "viem";
-import type { TransactionHash } from "@/lib/tx/types";
-
-export type YethClaimStatus = "unclaimed" | "exited" | "staying";
 
 export type YethDebugPreset =
-  | "eligible_unclaimed"
-  | "claimed_exited"
-  | "claimed_staying"
-  | "ineligible";
+  | "claimable"
+  | "recovery_position"
+  | "empty";
 
 export type YethAccountState = {
   address: Address;
-  eligible: boolean;
   snapshotLossEth: bigint;
   claimableNowEth: bigint;
-  claimStatus: YethClaimStatus;
-  exitedEthReceived: bigint;
   recoveryVaultShares: bigint;
-  lastTxHash: TransactionHash | null;
 };
 
 export type YethClaimWindow = {
-  opensAt: number; // unix seconds
   closesAt: number; // unix seconds
 };
 
@@ -39,8 +30,9 @@ export type YethRecoveryVaultState = {
 };
 
 export type YethYieldVaultState = {
-  tvlEth: bigint;
-  performanceFeeBps: number;
+  tvlEth: bigint; // alias of totalAssetsEth for compatibility
+  pps: bigint; // ETH per share, 1e18 scale
+  totalShares: bigint;
   feeRecipient: Address;
 };
 
@@ -54,6 +46,4 @@ export type YethGlobalState = {
   yieldVault: YethYieldVaultState;
   yieldSources: string[];
   risks: string[];
-  treasuryRecoveryVaultShares: bigint;
-  treasuryYieldShareBps: number;
 };

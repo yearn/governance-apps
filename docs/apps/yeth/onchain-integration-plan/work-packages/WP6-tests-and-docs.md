@@ -17,6 +17,6 @@ Update tests and docs to reflect the simplified yETH MVP.
 - WP1
 
 ## Acceptance Criteria
-- `pnpm test` passes.
-- `pnpm lint` passes.
+- `npm run test` passes.
+- `npm run lint` passes.
 - Docs reflect the actual behavior of `/yeth`.

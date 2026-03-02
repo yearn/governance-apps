@@ -57,7 +57,7 @@ export function ActionDeck({
         <Button
           variant="ghost"
           size="lg"
-          className="w-full border-2 border-tokyo-600 text-tokyo-600 bg-transparent hover:bg-tokyo-100 mt-6"
+          className="mt-6 w-full border-2 border-tokyo-600 bg-tokyo-100/40 text-tokyo-700 hover:bg-tokyo-100 hover:text-tokyo-700 dark:border-tokyo-100/40 dark:bg-tokyo-600/25 dark:text-tokyo-100 dark:hover:bg-tokyo-600/40 dark:hover:text-tokyo-100"
           onClick={onStay}
           isLoading={stayPending}
           disabled={actionsDisabled}

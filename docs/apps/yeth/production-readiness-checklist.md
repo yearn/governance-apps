@@ -35,25 +35,25 @@ Use this checklist to track all work required to move from current mock-first yE
 
 ## 3. Frontend Integration Work
 
-- [ ] Implement `OnchainYethClient` in `lib/clients/yeth/onchain.ts`.
-- [ ] Add production client selection path in `state/protocol.tsx`.
-- [ ] Wire contract ABIs and typed read/write methods.
+- [x] Implement `OnchainYethClient` in `lib/clients/yeth/onchain.ts`.
+- [x] Add production client selection path in `state/protocol.tsx`.
+- [x] Wire contract ABIs and typed read/write methods.
 - [ ] Replace mock placeholder URLs with final approved URLs.
 - [ ] Replace mock contract addresses in trust drawer with deployed addresses.
-- [ ] Ensure error mapping for yETH-specific failure modes in `lib/tx/errors.ts`.
+- [x] Ensure error mapping for yETH-specific failure modes in `lib/tx/errors.ts`.
 - [ ] Add loading/error fallback UX for unavailable yETH chain data.
 
 ## 4. Testing and Quality Gates
 
-- [ ] Unit tests for yETH math and state transitions.
-- [ ] Unit tests for on-chain data mapping and formatting.
-- [ ] Integration tests for yETH hooks and query invalidation.
-- [ ] E2E smoke tests:
-  - [ ] eligible claim and exit
-  - [ ] eligible claim and stay
-  - [ ] staying user redeem
-  - [ ] claim window ended flow
-  - [ ] ineligible wallet flow
+- [x] Unit tests for yETH math and state transitions.
+- [x] Unit tests for on-chain data mapping and formatting.
+- [x] Integration tests for yETH hooks and query invalidation.
+- [x] E2E smoke tests:
+  - [x] eligible claim and exit
+  - [x] eligible claim and stay
+  - [x] staying user redeem
+  - [x] claim window ended flow
+  - [x] ineligible wallet flow
 - [ ] E2E failure-path tests:
   - [ ] tx rejection
   - [ ] revert handling

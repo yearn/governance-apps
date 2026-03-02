@@ -3,6 +3,7 @@ import type { Address } from "viem";
 import { formatUnits, parseUnits } from "viem";
 import type { StyfiClient, StyfiStakeMode } from "@/lib/clients/styfi/client";
 import type { VeyfiClient } from "@/lib/clients/veyfi/client";
+import type { YethClient, YethDebugPreset } from "@/lib/clients/yeth";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
 import { setFixedNow } from "@/lib/mocks/time";
 import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
@@ -10,6 +11,7 @@ import {
   resetMockVeyfiStore,
   setMockRedemptionCapsExhausted,
 } from "@/lib/clients/veyfi/mock";
+import { resetMockYethStore } from "@/lib/clients/yeth/mock";
 import {
   MOCK_COVEYFI_ADDRESS,
   MOCK_SDYFI_ADDRESS,
@@ -42,6 +44,11 @@ export interface TestBridge {
       migrated: boolean;
       llyfi: Record<TokenSymbol, { staked: string; cooldown: string }>;
     };
+    yeth: {
+      snapshotLoss: string;
+      claimableNow: string;
+      recoveryShares: string;
+    };
     isBlacklisted: boolean;
   }>;
   setBalance: (
@@ -58,12 +65,14 @@ export interface TestBridge {
   setScenario: (
     name: "standard" | "active" | "legacy_user" | "caps_exhausted"
   ) => Promise<void>;
+  setYethPreset: (address: Address, preset: YethDebugPreset) => Promise<void>;
   seedExternalPortfolio: (address: Address) => Promise<void>;
 }
 
 type TestBridgeDeps = {
   styfi: StyfiClient;
   veyfi: VeyfiClient;
+  yeth: YethClient;
   queryClient: QueryClient;
 };
 
@@ -116,6 +125,7 @@ function resolveStyfiMode(symbol: TokenSymbol): StyfiStakeMode | null {
 export function createTestBridge({
   styfi,
   veyfi,
+  yeth,
   queryClient,
 }: TestBridgeDeps): TestBridge {
   const debugSetStyfiBalance = requireDebugMethod(
@@ -142,10 +152,15 @@ export function createTestBridge({
     veyfi.debugSeedStakedExternalPortfolio?.bind(veyfi),
     "veyfi.debugSeedStakedExternalPortfolio"
   );
+  const debugSetYethPreset = requireDebugMethod(
+    yeth.debugSetAccountPreset?.bind(yeth),
+    "yeth.debugSetAccountPreset"
+  );
 
   const reset = async () => {
     resetMockStyfiStore();
     resetMockVeyfiStore();
+    resetMockYethStore();
     GLOBAL_WORLD_STATE.reset();
     setFixedNow(null);
     await queryClient.resetQueries();
@@ -157,9 +172,10 @@ export function createTestBridge({
   };
 
   const getState = async (address: Address) => {
-    const [styfiState, veyfiState] = await Promise.all([
+    const [styfiState, veyfiState, yethState] = await Promise.all([
       styfi.getAccountState(address),
       veyfi.getAccountState(address),
+      yeth.getAccountState(address),
     ]);
     const identity = GLOBAL_WORLD_STATE.get(address);
     const veYfi = veyfiState.veYfi ?? {
@@ -217,6 +233,11 @@ export function createTestBridge({
         legacyBalance: formatStrictAmount(veYfi.legacyBalance, 18),
         migrated: veYfi.migrated,
         llyfi: llyfiState,
+      },
+      yeth: {
+        snapshotLoss: formatStrictAmount(yethState.snapshotLossEth, 18),
+        claimableNow: formatStrictAmount(yethState.claimableNowEth, 18),
+        recoveryShares: formatStrictAmount(yethState.recoveryVaultShares, 18),
       },
       isBlacklisted: identity.isBlacklisted,
     };
@@ -289,6 +310,11 @@ export function createTestBridge({
     await queryClient.invalidateQueries({ refetchType: "all" });
   };
 
+  const setYethPreset = async (address: Address, preset: YethDebugPreset) => {
+    debugSetYethPreset(address, preset);
+    await queryClient.invalidateQueries({ refetchType: "all" });
+  };
+
   return {
     reset,
     setNow,
@@ -296,6 +322,7 @@ export function createTestBridge({
     setBalance,
     setAllowance,
     setScenario,
+    setYethPreset,
     seedExternalPortfolio,
   };
 }

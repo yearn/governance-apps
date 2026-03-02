@@ -257,10 +257,10 @@ The fork runbook is in `fork-runbook.md`.
 
 ## 9. Production Readiness Checklist (MVP)
 
-- [ ] `/yeth` renders global section without wallet connection
+- [x] `/yeth` renders global section without wallet connection
 - [ ] yETH global feed (`NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`) is configured in preprod/prod
-- [ ] `claimable > 0` wallet sees claim UI and can transact
-- [ ] `shares > 0` wallet sees recovery UI and can redeem
-- [ ] claim window closed disables claim and links to manual process
-- [ ] feature gating still respected (`NEXT_PUBLIC_ENABLE_YETH` in production)
+- [x] `claimable > 0` wallet sees claim UI and can transact
+- [x] `shares > 0` wallet sees recovery UI and can redeem
+- [x] claim window closed disables claim and links to manual process
+- [x] feature gating still respected (`NEXT_PUBLIC_ENABLE_YETH` in production)
 - [ ] mainnet fork test passes (WP5)

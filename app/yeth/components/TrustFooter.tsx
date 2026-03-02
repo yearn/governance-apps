@@ -1,6 +1,14 @@
 import type { ReactNode } from "react";
 import { IconChevron } from "@/components/icons/IconChevron";
 import { ContractLink } from "@/components/ui/ContractLink";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
 import { formatTokenAmount } from "@/lib/format";
 import type { YethGlobalState } from "@/lib/clients/yeth";
 
@@ -21,25 +29,62 @@ export function TrustFooter({ global }: { global: YethGlobalState }) {
               <ContractLink address={global.contracts.claimContract} />
             </li>
             <li className="flex items-center justify-between gap-4">
-              <span>Recovery Vault</span>
-              <ContractLink address={global.contracts.recoveryVault} />
-            </li>
-            <li className="flex items-center justify-between gap-4">
               <span>Yield Vault</span>
               <ContractLink address={global.contracts.yieldVault} />
+            </li>
+            <li className="flex items-center justify-between gap-4">
+              <span>Recovery Vault</span>
+              <ContractLink address={global.contracts.recoveryVault} />
             </li>
           </ul>
         </section>
 
         <section className="space-y-2">
           <h3 className="font-bold text-text-primary">Vault Metrics</h3>
-          <FlatList
-            items={[
-              `TVL: ${formatTokenAmount(global.yieldVault.tvlEth, 18, 4)} ETH`,
-              `PPS: ${formatTokenAmount(global.recoveryVault.pps, 18, 4)} ETH/share`,
-              `Performance fee: ${(global.yieldVault.performanceFeeBps / 100).toFixed(0)}%`,
-            ]}
-          />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Metric</TableHead>
+                <TableHead className="text-right">Yield Vault</TableHead>
+                <TableHead className="text-right">Recovery Vault</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-medium text-text-primary">
+                  Total assets (ETH)
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatVaultMetric(global.yieldVault.tvlEth)}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatVaultMetric(global.recoveryVault.totalAssetsEth)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium text-text-primary">
+                  Total shares
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatVaultMetric(global.yieldVault.totalShares)}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatVaultMetric(global.recoveryVault.totalShares)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium text-text-primary">
+                  PPS (ETH/share)
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatVaultMetric(global.yieldVault.pps)}
+                </TableCell>
+                <TableCell className="text-right">
+                  {formatVaultMetric(global.recoveryVault.pps)}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </section>
 
         <section className="space-y-2">
@@ -80,4 +125,9 @@ function FlatList({ items }: { items: readonly ReactNode[] }) {
       ))}
     </ul>
   );
+}
+
+function formatVaultMetric(amount: bigint): string {
+  if (amount <= 0n) return "N/A";
+  return formatTokenAmount(amount, 18, 4);
 }

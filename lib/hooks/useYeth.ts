@@ -15,24 +15,28 @@ export const yethKeys = {
 };
 
 export function useYethGlobalState() {
-  const { yeth } = useProtocol();
+  const { yeth, publicClient, yethUsesMockBackend, yethGlobalData } = useProtocol();
+  const canReadGlobal = yethUsesMockBackend || !!publicClient || !!yethGlobalData;
 
   return useQuery({
     queryKey: yethKeys.global(),
     queryFn: () => yeth.getGlobalState(),
+    enabled: canReadGlobal,
     staleTime: 30_000,
     refetchInterval: 30_000,
+    refetchOnWindowFocus: getRefetchOnWindowFocus("yeth.global"),
   });
 }
 
 export function useYethAccountState() {
-  const { yeth } = useProtocol();
+  const { yeth, publicClient, yethUsesMockBackend } = useProtocol();
   const { address: wagmiAddress } = useAccount();
   const isVisible = useDocumentVisibility();
   const isPollingRoute = useIsRouteActive(["/yeth"]);
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
   const address = wagmiAddress ?? (isE2E ? E2E_MOCK_ADDRESS : undefined);
   const shouldPoll = isVisible && isPollingRoute;
+  const canReadAccount = yethUsesMockBackend || !!publicClient;
 
   return useQuery({
     queryKey: yethKeys.account(address),
@@ -40,7 +44,7 @@ export function useYethAccountState() {
       if (!address) return null;
       return yeth.getAccountState(address);
     },
-    enabled: !!address,
+    enabled: !!address && canReadAccount,
     staleTime: 15_000,
     refetchInterval: shouldPoll ? 15_000 : false,
     refetchOnWindowFocus: getRefetchOnWindowFocus("yeth.account"),

@@ -4,8 +4,16 @@ export const yethCopy = {
     retiredBanner: "yETH has been retired. This interface is for recovery.",
     openStatus: "Claim open",
     closedStatus: "Claim ended",
-    connectPrompt: "Connect your wallet to check eligibility and recover ETH.",
+    statusUnavailable: "Claim status unavailable",
+    countdownUnavailable: "Waiting for claim window data",
+    connectPrompt: "Connect your wallet to view your yETH recovery state.",
     connectCta: "Connect wallet",
+    wrongNetworkTitle: "Wrong network",
+    wrongNetworkBody:
+      "Switch to Ethereum mainnet to view your yETH recovery position.",
+    completeTitle: "Recovery complete",
+    completeBody:
+      "No claimable yETH balance or Recovery Vault position remains for this wallet.",
     sections: {
       recovery: "Your Recovery",
       actions: "Choose how you want to recover",
@@ -14,12 +22,13 @@ export const yethCopy = {
   },
   fields: {
     wallet: "Wallet",
-    eligibility: "Eligibility",
-    claimStatus: "Claim status",
     snapshotValue: "Original Snapshot Value",
+    recoveredValue: "Recovered Value",
     claimableNow: "ETH Claimable Now",
     recoveredSoFar: "Recovered so far",
     claimWindowEnds: "Claim Deadline",
+    claimedAt: "Claimed At",
+    claimTx: "View transaction",
     claimWindowClosed: "Claim Window Closed",
   },
   actions: {
@@ -52,16 +61,8 @@ export const yethCopy = {
     continue: "Continue",
   },
   postClaim: {
-    exitedTitle: "Recovery Complete",
-    exitedNote: "Your recovery is finalized and your ETH is securely in your wallet.",
     stayingTitle: "Recovery Position",
     valueLabel: "Liquidation Value",
-    received: "You received",
-    recoveredTotal: "Recovered total",
-    transaction: "Transaction",
-    shares: "Shares",
-    pps: "Current PPS",
-    value: "Current value",
   },
   claimEnded: {
     title: "Claim Window Closed",

@@ -15,16 +15,16 @@ const BPS = 10_000n;
 const SECONDS_PER_DAY = 86_400n;
 const STORE_KEY = "mock_yeth_recovery_state_v1";
 
-const CLAIM_WINDOW_OPENS_AT = Date.parse("2026-01-09T12:00:00Z") / 1000;
 const CLAIM_WINDOW_CLOSES_AT = Date.parse("2026-04-09T12:00:00Z") / 1000;
 const INITIAL_RECOVERY_PPS = 1_143_200_000_000_000_000n; // 1.1432 ETH/share
 const PPS_DRIFT_BPS_PER_DAY = 4n; // 0.04% daily
 const INITIAL_YIELD_VAULT_TVL = parseUnits("2134.2", 18);
+const YIELD_VAULT_TOTAL_SHARES = parseUnits("1987.5", 18);
 const INITIAL_RECOVERY_TOTAL_SHARES = parseUnits("448.5", 18);
 const DEFAULT_SNAPSHOT_LOSS = parseUnits("10", 18);
 const DEFAULT_CLAIMABLE = parseUnits("4.25", 18);
-const DEFAULT_EXITED_ETH = parseUnits("4.2478", 18);
 const DEFAULT_STAYING_SHARES = parseUnits("3.718", 18);
+const PPS_DRIFT_ORIGIN = CLAIM_WINDOW_CLOSES_AT - 90 * 86_400;
 
 const CONTRACTS = {
   claimContract: "0x1111111111111111111111111111111111111111" as Address,
@@ -60,7 +60,7 @@ function nextMockHash(): TransactionHash {
 }
 
 function currentPps(now = nowSeconds()) {
-  const elapsed = BigInt(Math.max(0, now - CLAIM_WINDOW_OPENS_AT));
+  const elapsed = BigInt(Math.max(0, now - PPS_DRIFT_ORIGIN));
   const drift =
     (INITIAL_RECOVERY_PPS * elapsed * PPS_DRIFT_BPS_PER_DAY) /
     (BPS * SECONDS_PER_DAY);
@@ -126,13 +126,9 @@ function loadStore() {
 
 function createDefaultAccount(): AccountRecord {
   return {
-    eligible: true,
     snapshotLossEth: DEFAULT_SNAPSHOT_LOSS,
     claimableNowEth: DEFAULT_CLAIMABLE,
-    claimStatus: "unclaimed",
-    exitedEthReceived: 0n,
     recoveryVaultShares: 0n,
-    lastTxHash: null,
   };
 }
 
@@ -161,11 +157,14 @@ export class MockYethClient implements YethClient {
     const now = nowSeconds();
     const pps = currentPps(now);
     const totalAssetsEth = (recoveryVaultTotalShares * pps) / ONE;
+    const yieldVaultPps =
+      YIELD_VAULT_TOTAL_SHARES > 0n
+        ? (yieldVaultTvlEth * ONE) / YIELD_VAULT_TOTAL_SHARES
+        : 0n;
 
     return {
       asOf: now,
       claimWindow: {
-        opensAt: CLAIM_WINDOW_OPENS_AT,
         closesAt: CLAIM_WINDOW_CLOSES_AT,
       },
       approvedYipUrl: "https://gov.yearn.fi",
@@ -179,7 +178,8 @@ export class MockYethClient implements YethClient {
       },
       yieldVault: {
         tvlEth: yieldVaultTvlEth,
-        performanceFeeBps: 10_000,
+        pps: yieldVaultPps,
+        totalShares: YIELD_VAULT_TOTAL_SHARES,
         feeRecipient: CONTRACTS.recoveryVault,
       },
       yieldSources: [
@@ -191,8 +191,6 @@ export class MockYethClient implements YethClient {
         "Strategy and protocol risk",
         "Market events and depegs",
       ],
-      treasuryRecoveryVaultShares: 0n,
-      treasuryYieldShareBps: 0,
     };
   }
 
@@ -212,8 +210,6 @@ export class MockYethClient implements YethClient {
 
     return async () => {
       const account = this.getOrCreate(address);
-      if (!account.eligible) throw new Error("Account is not eligible");
-      if (account.claimStatus !== "unclaimed") throw new Error("Already claimed");
       if (account.claimableNowEth <= 0n) throw new Error("Nothing claimable");
 
       const claimAmount = account.claimableNowEth;
@@ -221,11 +217,10 @@ export class MockYethClient implements YethClient {
 
       yieldVaultTvlEth -= claimAmount;
       account.claimableNowEth = 0n;
-      account.claimStatus = "exited";
-      account.exitedEthReceived += claimAmount;
-      account.lastTxHash = nextMockHash();
+      account.snapshotLossEth = 0n;
+      const hash = nextMockHash();
       saveStore();
-      return account.lastTxHash;
+      return hash;
     };
   }
 
@@ -235,8 +230,6 @@ export class MockYethClient implements YethClient {
 
     return async () => {
       const account = this.getOrCreate(address);
-      if (!account.eligible) throw new Error("Account is not eligible");
-      if (account.claimStatus !== "unclaimed") throw new Error("Already claimed");
       if (account.claimableNowEth <= 0n) throw new Error("Nothing claimable");
 
       const claimAmount = account.claimableNowEth;
@@ -248,11 +241,11 @@ export class MockYethClient implements YethClient {
       yieldVaultTvlEth -= claimAmount;
       recoveryVaultTotalShares += mintedShares;
       account.claimableNowEth = 0n;
-      account.claimStatus = "staying";
+      account.snapshotLossEth = 0n;
       account.recoveryVaultShares += mintedShares;
-      account.lastTxHash = nextMockHash();
+      const hash = nextMockHash();
       saveStore();
-      return account.lastTxHash;
+      return hash;
     };
   }
 
@@ -262,17 +255,12 @@ export class MockYethClient implements YethClient {
 
     return async () => {
       const account = this.getOrCreate(address);
-      if (account.claimStatus !== "staying") throw new Error("No recovery vault position");
       if (account.recoveryVaultShares <= 0n) throw new Error("No shares to redeem");
 
       const shares = account.recoveryVaultShares;
-      const pps = currentPps();
-      const redeemedEth = (shares * pps) / ONE;
 
       account.recoveryVaultShares = 0n;
-      account.claimStatus = "exited";
-      account.exitedEthReceived += redeemedEth;
-      account.lastTxHash = nextMockHash();
+      const hash = nextMockHash();
 
       if (recoveryVaultTotalShares >= shares) {
         recoveryVaultTotalShares -= shares;
@@ -281,45 +269,25 @@ export class MockYethClient implements YethClient {
       }
 
       saveStore();
-      return account.lastTxHash;
+      return hash;
     };
   }
 
   debugSetAccountPreset(address: Address, preset: YethDebugPreset) {
     const account = this.getOrCreate(address);
 
-    if (preset === "eligible_unclaimed") {
-      account.eligible = true;
+    if (preset === "claimable") {
       account.snapshotLossEth = DEFAULT_SNAPSHOT_LOSS;
       account.claimableNowEth = DEFAULT_CLAIMABLE;
-      account.claimStatus = "unclaimed";
-      account.exitedEthReceived = 0n;
       account.recoveryVaultShares = 0n;
-      account.lastTxHash = null;
       saveStore();
       return;
     }
 
-    if (preset === "claimed_exited") {
-      account.eligible = true;
-      account.snapshotLossEth = DEFAULT_SNAPSHOT_LOSS;
+    if (preset === "recovery_position") {
+      account.snapshotLossEth = 0n;
       account.claimableNowEth = 0n;
-      account.claimStatus = "exited";
-      account.exitedEthReceived = DEFAULT_EXITED_ETH;
-      account.recoveryVaultShares = 0n;
-      account.lastTxHash = nextMockHash();
-      saveStore();
-      return;
-    }
-
-    if (preset === "claimed_staying") {
-      account.eligible = true;
-      account.snapshotLossEth = DEFAULT_SNAPSHOT_LOSS;
-      account.claimableNowEth = 0n;
-      account.claimStatus = "staying";
-      account.exitedEthReceived = 0n;
       account.recoveryVaultShares = DEFAULT_STAYING_SHARES;
-      account.lastTxHash = nextMockHash();
       if (recoveryVaultTotalShares < DEFAULT_STAYING_SHARES) {
         recoveryVaultTotalShares = DEFAULT_STAYING_SHARES;
       }
@@ -327,13 +295,9 @@ export class MockYethClient implements YethClient {
       return;
     }
 
-    account.eligible = false;
     account.snapshotLossEth = 0n;
     account.claimableNowEth = 0n;
-    account.claimStatus = "unclaimed";
-    account.exitedEthReceived = 0n;
     account.recoveryVaultShares = 0n;
-    account.lastTxHash = null;
     saveStore();
   }
 }

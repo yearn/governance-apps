@@ -16,7 +16,7 @@ export function RecoveryHero({
       <p className="font-number text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-tokyo-600">
         {formatTokenAmount(claimableEth, 18, 4)} ETH
       </p>
-      <span className="inline-flex items-center gap-2 rounded-full bg-tokyo-100/50 px-4 py-1 text-sm font-bold text-tokyo-900">
+      <span className="inline-flex items-center gap-2 rounded-full border border-tokyo-600/20 bg-tokyo-100/70 px-4 py-1 text-sm font-bold text-tokyo-900 dark:border-tokyo-100/35 dark:bg-tokyo-600/30 dark:text-tokyo-100">
         {copy.fields.recoveredSoFar}: {recoveredPct}
       </span>
     </section>

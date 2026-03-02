@@ -1,6 +1,6 @@
 # Master Task List — Governance Apps
 
-Version 2.0 — February 6, 2026  
+Version 2.1 — February 26, 2026  
 Scope: `/styfi`, `/veyfi`, `/yeth`
 
 This is the active delivery roadmap for the repository.  
@@ -49,20 +49,19 @@ Use this with:
   - [x] redeem to ETH
 - [x] Recovery UI states:
   - [x] disconnected
-  - [x] eligible/unclaimed
-  - [x] ineligible
-  - [x] claimed/exited
-  - [x] claimed/staying
+  - [x] claimable/unclaimed
+  - [x] recovery-position
+  - [x] empty wallet state
   - [x] claim-ended
 - [x] yETH debug presets and claim-window simulation controls
 - [x] Documentation baseline under `docs/apps/yeth/`
 
 ### 3.2 Remaining for Production
 
-- [ ] Implement `OnchainYethClient`
+- [x] Implement `OnchainYethClient`
 - [ ] Integrate final contract ABIs and addresses
 - [ ] Replace mock URLs and placeholders with governance-approved URLs
-- [ ] Add yETH unit/integration/e2e test coverage
+- [x] Add yETH unit/integration/e2e test coverage
 - [ ] Run security and invariant validation with contract team
 - [ ] Finalize launch policy for:
   - [ ] path-only availability (`app.dao-ops.com/yeth`)

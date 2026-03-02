@@ -22,6 +22,11 @@ describe("ActionDeck", () => {
     expect(
       screen.getByRole("button", { name: yethCopy.actions.stay.cta })
     ).toBeInTheDocument();
+    const stayButton = screen.getByRole("button", { name: yethCopy.actions.stay.cta });
+    expect(stayButton).toHaveClass("dark:bg-tokyo-600/25");
+    expect(stayButton).toHaveClass("dark:hover:bg-tokyo-600/40");
+    expect(stayButton).toHaveClass("dark:text-tokyo-100");
+    expect(stayButton).toHaveClass("dark:hover:text-tokyo-100");
 
     const headings = [
       screen.getByRole("heading", { name: "Claim & Exit" }),

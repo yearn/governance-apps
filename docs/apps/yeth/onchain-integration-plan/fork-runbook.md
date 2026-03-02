@@ -17,6 +17,7 @@ Set app env:
 export NEXT_PUBLIC_RPC_URLS="http://127.0.0.1:8545"
 export NEXT_PUBLIC_ENABLE_YETH="true"
 export NEXT_PUBLIC_YETH_GLOBAL_DATA_URL="https://<your-bucket>/yeth-global.json"
+export NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK="true"
 ```
 
 Then run the app normally.

@@ -12,17 +12,15 @@ import { setFixedNow } from "@/lib/mocks/time";
 import type { YethDebugPreset } from "@/lib/clients/yeth";
 
 const PRESET_ORDER: readonly YethDebugPreset[] = [
-  "eligible_unclaimed",
-  "claimed_exited",
-  "claimed_staying",
-  "ineligible",
+  "claimable",
+  "recovery_position",
+  "empty",
 ] as const;
 
 const PRESET_LABEL: Record<YethDebugPreset, string> = {
-  eligible_unclaimed: "Eligible / Unclaimed",
-  claimed_exited: "Claimed / Exited",
-  claimed_staying: "Claimed / Staying",
-  ineligible: "Ineligible",
+  claimable: "Claimable",
+  recovery_position: "Recovery Position",
+  empty: "Empty",
 };
 
 export function MockControls() {
@@ -34,10 +32,9 @@ export function MockControls() {
 
   const activePreset = useMemo<YethDebugPreset | null>(() => {
     if (!account) return null;
-    if (!account.eligible) return "ineligible";
-    if (account.claimStatus === "staying") return "claimed_staying";
-    if (account.claimStatus === "exited") return "claimed_exited";
-    return "eligible_unclaimed";
+    if (account.claimableNowEth > 0n) return "claimable";
+    if (account.recoveryVaultShares > 0n) return "recovery_position";
+    return "empty";
   }, [account]);
 
   const applyPreset = useCallback(
@@ -72,7 +69,7 @@ export function MockControls() {
       toast.error("yETH global state is not loaded");
       return;
     }
-    setFixedNow(global.claimWindow.opensAt + 3600);
+    setFixedNow(Math.max(0, global.claimWindow.closesAt - 3600));
     await queryClient.invalidateQueries({ queryKey: yethKeys.all });
     toast.success("Set claim window to open");
   }, [global, queryClient]);
