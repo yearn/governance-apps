@@ -13,18 +13,6 @@ jobs:
     name: Build And Deploy Preprod Worker
     runs-on: ubuntu-latest
     environment: preprod
-    env:
-      NODE_ENV: production
-      NEXT_PUBLIC_RUNTIME_MODE: production
-      NEXT_PUBLIC_USE_MOCKS: "false"
-      NEXT_PUBLIC_E2E: "false"
-      NEXT_PUBLIC_ENABLE_DEBUG_UI: "false"
-      NEXT_PUBLIC_ENABLE_YETH: ${{ vars.NEXT_PUBLIC_ENABLE_YETH || secrets.NEXT_PUBLIC_ENABLE_YETH || 'false' }}
-      NEXT_PUBLIC_WC_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WC_PROJECT_ID || vars.NEXT_PUBLIC_WC_PROJECT_ID }}
-      NEXT_PUBLIC_GLOBAL_DATA_URL: ${{ vars.NEXT_PUBLIC_GLOBAL_DATA_URL || secrets.NEXT_PUBLIC_GLOBAL_DATA_URL }}
-      NEXT_PUBLIC_YETH_GLOBAL_DATA_URL: ${{ secrets.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL || vars.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL }}
-      NEXT_PUBLIC_MOTD_URL: ${{ vars.NEXT_PUBLIC_MOTD_URL || secrets.NEXT_PUBLIC_MOTD_URL }}
-      NEXT_PUBLIC_RPC_URLS: ${{ secrets.NEXT_PUBLIC_RPC_URLS || vars.NEXT_PUBLIC_RPC_URLS }}
     concurrency:
       group: deploy-preprod
       cancel-in-progress: false
@@ -59,13 +47,27 @@ jobs:
         run: npm test
 
       - name: Validate Production Env Invariants
+        env: &prod_runtime_env
+          NODE_ENV: production
+          NEXT_PUBLIC_RUNTIME_MODE: production
+          NEXT_PUBLIC_USE_MOCKS: "false"
+          NEXT_PUBLIC_E2E: "false"
+          NEXT_PUBLIC_ENABLE_DEBUG_UI: "false"
+          NEXT_PUBLIC_ENABLE_YETH: ${{ vars.NEXT_PUBLIC_ENABLE_YETH || secrets.NEXT_PUBLIC_ENABLE_YETH || 'false' }}
+          NEXT_PUBLIC_WC_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WC_PROJECT_ID || vars.NEXT_PUBLIC_WC_PROJECT_ID }}
+          NEXT_PUBLIC_GLOBAL_DATA_URL: ${{ vars.NEXT_PUBLIC_GLOBAL_DATA_URL || secrets.NEXT_PUBLIC_GLOBAL_DATA_URL }}
+          NEXT_PUBLIC_YETH_GLOBAL_DATA_URL: ${{ secrets.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL || vars.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL }}
+          NEXT_PUBLIC_MOTD_URL: ${{ vars.NEXT_PUBLIC_MOTD_URL || secrets.NEXT_PUBLIC_MOTD_URL }}
+          NEXT_PUBLIC_RPC_URLS: ${{ secrets.NEXT_PUBLIC_RPC_URLS || vars.NEXT_PUBLIC_RPC_URLS }}
         run: npm run validate:prod-env
 
       - name: Build OpenNext Worker
+        env: *prod_runtime_env
         run: npm run worker:build
 
       - name: Deploy To Cloudflare Preprod
         env:
+          <<: *prod_runtime_env
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npm run worker:deploy:preprod
