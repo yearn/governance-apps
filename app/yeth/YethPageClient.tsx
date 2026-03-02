@@ -30,6 +30,7 @@ import { TrustFooter } from "./components/TrustFooter";
 
 const ONE = 10n ** 18n;
 const CLAIM_HISTORY_STORAGE_KEY = "yeth_claim_history_v1";
+const MIN_REASONABLE_DEADLINE_UNIX_SECONDS = 1_577_836_800; // 2020-01-01 00:00:00 UTC
 
 type ClaimHistoryRecord = {
   snapshotLossEth: string;
@@ -61,6 +62,7 @@ export function YethPageClient() {
   const [claimHistory, setClaimHistory] = useState<ClaimHistoryRecord | null>(null);
   const pendingClaimSnapshotRef = useRef<bigint | null>(null);
   const pendingRecoveredRef = useRef<bigint | null>(null);
+  const lastValidClaimDeadlineRef = useRef<number | null>(null);
   const [, setCountdownTick] = useState(0);
   const now = nowSeconds();
 
@@ -68,10 +70,21 @@ export function YethPageClient() {
   const claimStayPending = isTxPending(claimStay.state.status);
   const redeemPending = isTxPending(redeem.state.status);
 
+  const normalizedClaimDeadline = useMemo(
+    () => normalizeClaimDeadline(global?.claimWindow.closesAt),
+    [global?.claimWindow.closesAt]
+  );
+  useEffect(() => {
+    if (normalizedClaimDeadline === null) return;
+    lastValidClaimDeadlineRef.current = normalizedClaimDeadline;
+  }, [normalizedClaimDeadline]);
+  const effectiveClaimDeadline =
+    normalizedClaimDeadline ?? lastValidClaimDeadlineRef.current;
+
   const claimWindowClosed = useMemo(() => {
-    if (!global) return false;
-    return now >= global.claimWindow.closesAt;
-  }, [global, now]);
+    if (effectiveClaimDeadline === null) return false;
+    return now >= effectiveClaimDeadline;
+  }, [effectiveClaimDeadline, now]);
 
   useEffect(() => {
     setClaimHistory(loadClaimHistory(address));
@@ -193,9 +206,11 @@ export function YethPageClient() {
   };
 
   const claimWindowCountdown = useMemo(() => {
-    if (!global) return "--";
-    return formatCountdown(global.claimWindow.closesAt, now);
-  }, [global, now]);
+    if (!global || effectiveClaimDeadline === null) {
+      return copy.page.countdownUnavailable;
+    }
+    return formatCountdown(effectiveClaimDeadline, now);
+  }, [effectiveClaimDeadline, global, now]);
 
   useEffect(() => {
     if (!claimWindowClosed || !isRiskModalOpen) return;
@@ -210,6 +225,7 @@ export function YethPageClient() {
           global={global}
           claimWindowClosed={claimWindowClosed}
           claimWindowCountdown={claimWindowCountdown}
+          hasClaimDeadline={effectiveClaimDeadline !== null}
         />
 
         <main className="container mx-auto px-4 md:px-6 pt-8 pb-24 space-y-6">
@@ -225,6 +241,7 @@ export function YethPageClient() {
               account={account}
               global={global}
               snapshotValue={snapshotDisplayValue}
+              claimDeadline={effectiveClaimDeadline}
               claimWindowClosed={claimWindowClosed}
               claimExitPending={claimExitPending}
               claimStayPending={claimStayPending}
@@ -241,8 +258,8 @@ export function YethPageClient() {
           ) : (
             <NoPositionCard
               address={address}
-              global={global}
               snapshotValue={snapshotDisplayValue}
+              claimDeadline={effectiveClaimDeadline}
               claimedAt={claimHistory?.claimedAt}
               claimTxHash={claimHistory?.txHash}
               recoveredValue={recoveredDisplayValue}
@@ -301,10 +318,12 @@ function RecoveryBanner({
   global,
   claimWindowClosed,
   claimWindowCountdown,
+  hasClaimDeadline,
 }: {
   global: YethGlobalState | undefined;
   claimWindowClosed: boolean;
   claimWindowCountdown: string;
+  hasClaimDeadline: boolean;
 }) {
   return (
     <section className="sticky top-16 z-30 border-b border-border bg-surface-secondary">
@@ -323,7 +342,7 @@ function RecoveryBanner({
             <IconLinkOut className="w-3.5 h-3.5" />
           </a>
           <span className="text-text-tertiary">&#183;</span>
-          {global ? (
+          {global && hasClaimDeadline ? (
             <>
               <span className="font-medium text-text-primary">
                 {claimWindowClosed ? copy.page.closedStatus : copy.page.openStatus}
@@ -380,6 +399,7 @@ function UnclaimedRecoveryState({
   account,
   global,
   snapshotValue,
+  claimDeadline,
   claimWindowClosed,
   claimExitPending,
   claimStayPending,
@@ -390,6 +410,7 @@ function UnclaimedRecoveryState({
   account: YethAccountState;
   global: YethGlobalState;
   snapshotValue: bigint;
+  claimDeadline: number | null;
   claimWindowClosed: boolean;
   claimExitPending: boolean;
   claimStayPending: boolean;
@@ -436,7 +457,7 @@ function UnclaimedRecoveryState({
       <StatsGrid
         address={address}
         snapshotValue={snapshotValue}
-        closesAt={global.claimWindow.closesAt}
+        closesAt={claimDeadline}
       />
     </section>
   );
@@ -445,14 +466,14 @@ function UnclaimedRecoveryState({
 function NoPositionCard({
   address,
   snapshotValue,
-  global,
+  claimDeadline,
   claimedAt,
   claimTxHash,
   recoveredValue,
 }: {
   address: string | undefined;
   snapshotValue: bigint;
-  global: YethGlobalState;
+  claimDeadline: number | null;
   claimedAt?: number;
   claimTxHash?: string;
   recoveredValue?: bigint;
@@ -469,7 +490,7 @@ function NoPositionCard({
       <StatsGrid
         address={address}
         snapshotValue={snapshotValue}
-        closesAt={global.claimWindow.closesAt}
+        closesAt={claimDeadline}
         claimedAt={claimedAt}
         claimTxHash={claimTxHash}
         recoveredValue={recoveredValue}
@@ -571,6 +592,13 @@ function formatCountdown(closesAt: number, now: number) {
     return `Ends in ${hours}h ${minutes}m`;
   }
   return `Ends in ${Math.max(1, Math.ceil(remaining / 60))}m`;
+}
+
+function normalizeClaimDeadline(value: number | undefined): number | null {
+  if (value === undefined || !Number.isFinite(value)) return null;
+  const normalized = Math.trunc(value);
+  if (normalized < MIN_REASONABLE_DEADLINE_UNIX_SECONDS) return null;
+  return normalized;
 }
 
 function parseSnapshotValue(value: string | undefined): bigint {

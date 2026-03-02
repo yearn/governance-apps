@@ -12,7 +12,7 @@ export function StatsGrid({
 }: {
   address: string | undefined;
   snapshotValue: bigint;
-  closesAt: number;
+  closesAt: number | null;
   claimedAt?: number;
   claimTxHash?: string;
   recoveredValue?: bigint;
@@ -73,8 +73,18 @@ function StatItem({
   );
 }
 
-function formatUtcDateTime(timestampSeconds: number) {
-  const date = new Date(timestampSeconds * 1000);
+function formatUtcDateTime(timestampSeconds: number | null | undefined) {
+  if (timestampSeconds === null || timestampSeconds === undefined) {
+    return "--";
+  }
+  if (!Number.isFinite(timestampSeconds)) {
+    return "--";
+  }
+  const normalized = Math.trunc(timestampSeconds);
+  if (normalized <= 0) {
+    return "--";
+  }
+  const date = new Date(normalized * 1000);
   const formatted = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "short",

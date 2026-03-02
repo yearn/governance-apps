@@ -17,6 +17,7 @@ import {
 } from "./deployment";
 
 const ONE = 10n ** 18n;
+const MIN_REASONABLE_DEADLINE_UNIX_SECONDS = 1_577_836_800; // 2020-01-01 00:00:00 UTC
 
 const YETH_YIP_URL = "https://gov.yearn.fi";
 const YETH_MANUAL_LATE_CLAIM_URL = "https://gov.yearn.fi";
@@ -32,10 +33,53 @@ const STATIC_RISKS = [
   "Market events and depegs",
 ] as const;
 
-type WarnKey = "yeth-global-overlay" | "yeth-account-read";
+type WarnKey =
+  | "yeth-global-overlay"
+  | "yeth-account-read"
+  | "yeth-invalid-deadline";
+
+type MulticallResult =
+  | {
+      status: "success";
+      result: unknown;
+    }
+  | {
+      status: "failure";
+      error: unknown;
+    };
+
+function getSuccessfulResult(entry: unknown): unknown | null {
+  if (!entry || typeof entry !== "object") return null;
+  const result = entry as Partial<MulticallResult>;
+  if (result.status !== "success") return null;
+  return "result" in result ? result.result : null;
+}
+
+function getSuccessfulBigInt(entry: unknown): bigint | null {
+  const result = getSuccessfulResult(entry);
+  return typeof result === "bigint" ? result : null;
+}
+
+function normalizeDeadline(value: unknown): number | null {
+  const candidate =
+    typeof value === "bigint"
+      ? value > BigInt(Number.MAX_SAFE_INTEGER)
+        ? NaN
+        : Number(value)
+      : typeof value === "number"
+        ? value
+        : NaN;
+  if (!Number.isFinite(candidate)) return null;
+  const normalized = Math.trunc(candidate);
+  if (normalized < MIN_REASONABLE_DEADLINE_UNIX_SECONDS) return null;
+  return normalized;
+}
 
 export class OnchainYethClient implements YethClient {
   private warned = new Set<WarnKey>();
+  private lastValidClaimDeadline: number | null = null;
+  private lastGlobalState: YethGlobalState | null = null;
+  private lastKnownAccounts = new Map<Address, YethAccountState>();
 
   constructor(
     private publicClient: PublicClient | null,
@@ -50,38 +94,43 @@ export class OnchainYethClient implements YethClient {
 
   async getGlobalState(): Promise<YethGlobalState> {
     const fallbackNow = nowSeconds();
-    let closesAt = this.globalData?.claim.closesAt ?? fallbackNow;
+    const cachedGlobal = this.lastGlobalState;
+    const feedDeadline = normalizeDeadline(this.globalData?.claim.closesAt);
+    let closesAt =
+      feedDeadline ??
+      this.lastValidClaimDeadline ??
+      normalizeDeadline(cachedGlobal?.claimWindow.closesAt);
     let recoveryVaultPps = this.globalData
       ? BigInt(this.globalData.recoveryVault.pps)
-      : 0n;
+      : cachedGlobal?.recoveryVault.pps ?? 0n;
     let recoveryVaultTotalAssetsEth = this.globalData
       ? BigInt(this.globalData.recoveryVault.totalAssetsEth)
-      : 0n;
+      : cachedGlobal?.recoveryVault.totalAssetsEth ?? 0n;
     let recoveryVaultTotalShares = this.globalData
       ? BigInt(this.globalData.recoveryVault.totalShares)
-      : 0n;
+      : cachedGlobal?.recoveryVault.totalShares ?? 0n;
     let yieldVaultTvlEth = this.globalData
       ? BigInt(this.globalData.yieldVault.tvlEth)
-      : 0n;
+      : cachedGlobal?.yieldVault.tvlEth ?? 0n;
     let yieldVaultPps = this.globalData?.yieldVault.pps
       ? BigInt(this.globalData.yieldVault.pps)
-      : 0n;
+      : cachedGlobal?.yieldVault.pps ?? 0n;
     let yieldVaultTotalShares = this.globalData?.yieldVault.totalShares
       ? BigInt(this.globalData.yieldVault.totalShares)
-      : 0n;
-    let asOf = this.globalData?.generatedAt ?? fallbackNow;
+      : cachedGlobal?.yieldVault.totalShares ?? 0n;
+    let asOf = this.globalData?.generatedAt ?? cachedGlobal?.asOf ?? fallbackNow;
 
     if (this.publicClient) {
       try {
         const [
-          deadline,
-          recoveryPps,
-          recoveryTotalAssets,
-          recoveryTotalSupply,
-          yieldPps,
-          yieldTotalAssets,
-          yieldTotalSupply,
-        ] = await this.publicClient.multicall({
+          deadlineResult,
+          recoveryPpsResult,
+          recoveryTotalAssetsResult,
+          recoveryTotalSupplyResult,
+          yieldPpsResult,
+          yieldTotalAssetsResult,
+          yieldTotalSupplyResult,
+        ] = (await this.publicClient.multicall({
           contracts: [
             {
               address: YETH_CLAIM,
@@ -121,16 +170,48 @@ export class OnchainYethClient implements YethClient {
               functionName: "totalSupply",
             },
           ],
-          allowFailure: false,
-        });
+          allowFailure: true,
+        })) as MulticallResult[];
 
-        closesAt = Number(deadline);
-        recoveryVaultPps = recoveryPps;
-        recoveryVaultTotalAssetsEth = recoveryTotalAssets;
-        recoveryVaultTotalShares = recoveryTotalSupply;
-        yieldVaultPps = yieldPps;
-        yieldVaultTvlEth = yieldTotalAssets;
-        yieldVaultTotalShares = yieldTotalSupply;
+        const chainDeadline = normalizeDeadline(getSuccessfulResult(deadlineResult));
+        if (chainDeadline !== null) {
+          if (feedDeadline !== null && chainDeadline < feedDeadline) {
+            this.warnOnce(
+              "yeth-invalid-deadline",
+              "Ignoring yETH chain deadline earlier than feed deadline.",
+              { chainDeadline, feedDeadline }
+            );
+          } else {
+            closesAt = chainDeadline;
+          }
+        } else if (getSuccessfulResult(deadlineResult) !== null) {
+          this.warnOnce(
+            "yeth-invalid-deadline",
+            "Ignoring invalid yETH claim deadline from chain read.",
+            getSuccessfulResult(deadlineResult)
+          );
+        }
+
+        const recoveryPps = getSuccessfulBigInt(recoveryPpsResult);
+        if (recoveryPps !== null) recoveryVaultPps = recoveryPps;
+
+        const recoveryTotalAssets = getSuccessfulBigInt(recoveryTotalAssetsResult);
+        if (recoveryTotalAssets !== null) {
+          recoveryVaultTotalAssetsEth = recoveryTotalAssets;
+        }
+
+        const recoveryTotalSupply = getSuccessfulBigInt(recoveryTotalSupplyResult);
+        if (recoveryTotalSupply !== null) recoveryVaultTotalShares = recoveryTotalSupply;
+
+        const yieldPps = getSuccessfulBigInt(yieldPpsResult);
+        if (yieldPps !== null) yieldVaultPps = yieldPps;
+
+        const yieldTotalAssets = getSuccessfulBigInt(yieldTotalAssetsResult);
+        if (yieldTotalAssets !== null) yieldVaultTvlEth = yieldTotalAssets;
+
+        const yieldTotalSupply = getSuccessfulBigInt(yieldTotalSupplyResult);
+        if (yieldTotalSupply !== null) yieldVaultTotalShares = yieldTotalSupply;
+
         asOf = fallbackNow;
       } catch (error) {
         this.warnOnce(
@@ -141,9 +222,19 @@ export class OnchainYethClient implements YethClient {
       }
     }
 
-    return {
+    if (closesAt !== null) {
+      this.lastValidClaimDeadline = closesAt;
+    } else if (this.globalData?.claim.closesAt !== undefined) {
+      this.warnOnce(
+        "yeth-invalid-deadline",
+        "Ignoring invalid yETH claim deadline from feed data.",
+        this.globalData.claim.closesAt
+      );
+    }
+
+    const next: YethGlobalState = {
       asOf,
-      claimWindow: { closesAt },
+      claimWindow: { closesAt: closesAt ?? 0 },
       approvedYipUrl: YETH_YIP_URL,
       manualLateClaimUrl: YETH_MANUAL_LATE_CLAIM_URL,
       contracts: {
@@ -166,11 +257,14 @@ export class OnchainYethClient implements YethClient {
       yieldSources: [...STATIC_YIELD_SOURCES],
       risks: [...STATIC_RISKS],
     };
+    this.lastGlobalState = next;
+    return next;
   }
 
   async getAccountState(address: Address): Promise<YethAccountState> {
+    const cached = this.lastKnownAccounts.get(address);
     if (!this.publicClient) {
-      return {
+      return cached ?? {
         address,
         snapshotLossEth: 0n,
         claimableNowEth: 0n,
@@ -178,9 +272,13 @@ export class OnchainYethClient implements YethClient {
       };
     }
 
+    let snapshotLossEth = cached?.snapshotLossEth ?? 0n;
+    let claimableNowEth = cached?.claimableNowEth ?? 0n;
+    let recoveryVaultShares = cached?.recoveryVaultShares ?? 0n;
+
     try {
-      const [claimableRaw, recoveryRate, recoveryVaultShares] =
-        await this.publicClient.multicall({
+      const [claimableRawResult, recoveryRateResult, recoveryVaultSharesResult] =
+        (await this.publicClient.multicall({
           contracts: [
             {
               address: YETH_CLAIM,
@@ -200,22 +298,38 @@ export class OnchainYethClient implements YethClient {
               args: [address],
             },
           ],
-          allowFailure: false,
-        });
+          allowFailure: true,
+        })) as MulticallResult[];
 
-      return {
+      const claimableRaw = getSuccessfulBigInt(claimableRawResult);
+      const recoveryRate = getSuccessfulBigInt(recoveryRateResult);
+      const parsedRecoveryVaultShares = getSuccessfulBigInt(recoveryVaultSharesResult);
+
+      if (claimableRaw !== null) {
+        snapshotLossEth = claimableRaw;
+      }
+      if (claimableRaw !== null && recoveryRate !== null) {
+        claimableNowEth = (claimableRaw * recoveryRate) / ONE;
+      }
+      if (parsedRecoveryVaultShares !== null) {
+        recoveryVaultShares = parsedRecoveryVaultShares;
+      }
+
+      const next: YethAccountState = {
         address,
-        snapshotLossEth: claimableRaw,
-        claimableNowEth: (claimableRaw * recoveryRate) / ONE,
+        snapshotLossEth,
+        claimableNowEth,
         recoveryVaultShares,
       };
+      this.lastKnownAccounts.set(address, next);
+      return next;
     } catch (error) {
       this.warnOnce(
         "yeth-account-read",
-        "Failed to fetch yETH account state; returning safe fallback.",
+        "Failed to fetch yETH account state; using last known values when available.",
         error
       );
-      return {
+      return cached ?? {
         address,
         snapshotLossEth: 0n,
         claimableNowEth: 0n,

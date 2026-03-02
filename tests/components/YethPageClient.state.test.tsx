@@ -216,6 +216,25 @@ describe("YethPageClient wallet state gating", () => {
     expect(screen.getByText("Ends in 3h 15m")).toBeInTheDocument();
   });
 
+  it("treats invalid deadlines as unavailable instead of closed/1970", () => {
+    currentGlobalState = buildGlobalState({
+      claimWindow: { closesAt: 0 },
+    });
+    currentAccountState = buildAccountState({
+      claimableNowEth: 2n * ONE,
+    });
+
+    render(<YethPageClient />);
+
+    expect(screen.getByText(yethCopy.page.statusUnavailable)).toBeInTheDocument();
+    expect(screen.getByText(yethCopy.page.countdownUnavailable)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Claim 2(?:\.\d+)? ETH & Exit/ })
+    ).toBeInTheDocument();
+    expect(screen.queryByText(yethCopy.claimEnded.title)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Jan 01, 1970/i)).not.toBeInTheDocument();
+  });
+
   it("closes the risk modal and blocks claim-stay writes once deadline passes", async () => {
     currentGlobalState = buildGlobalState();
     currentAccountState = buildAccountState({

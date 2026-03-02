@@ -17,6 +17,10 @@ vi.mock("wagmi/actions", () => ({
 const USER = "0x1111111111111111111111111111111111111111" as const;
 const ONE = 10n ** 18n;
 
+function okResult<T>(result: T) {
+  return { status: "success" as const, result };
+}
+
 function createFeed(generatedAt = 1_772_126_400) {
   return {
     version: 1 as const,
@@ -69,13 +73,13 @@ describe("OnchainYethClient", () => {
       multicall: vi
         .fn()
         .mockResolvedValue([
-          1_800_000_000n,
-          1_200_000_000_000_000_000n,
-          600n * ONE,
-          500n * ONE,
-          1_030_000_000_000_000_000n,
-          3_000n * ONE,
-          2_900n * ONE,
+          okResult(1_800_000_000n),
+          okResult(1_200_000_000_000_000_000n),
+          okResult(600n * ONE),
+          okResult(500n * ONE),
+          okResult(1_030_000_000_000_000_000n),
+          okResult(3_000n * ONE),
+          okResult(2_900n * ONE),
         ]),
     } as const;
     const client = new OnchainYethClient(publicClient as never, createFeed());
@@ -91,9 +95,79 @@ describe("OnchainYethClient", () => {
     expect(state.yieldVault.totalShares).toBe(2_900n * ONE);
     expect(publicClient.multicall).toHaveBeenCalledWith(
       expect.objectContaining({
-        allowFailure: false,
+        allowFailure: true,
       })
     );
+  });
+
+  it("ignores invalid chain deadline values and keeps feed deadline", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const publicClient = {
+      readContract: vi.fn(),
+      multicall: vi.fn().mockResolvedValue([
+        okResult(0n),
+        okResult(1_200_000_000_000_000_000n),
+        okResult(600n * ONE),
+        okResult(500n * ONE),
+        okResult(1_030_000_000_000_000_000n),
+        okResult(3_000n * ONE),
+        okResult(2_900n * ONE),
+      ]),
+    } as const;
+    const client = new OnchainYethClient(publicClient as never, createFeed());
+
+    const state = await client.getGlobalState();
+
+    expect(state.claimWindow.closesAt).toBe(1_774_804_800);
+  });
+
+  it("keeps feed deadline when chain deadline is unexpectedly earlier", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const publicClient = {
+      readContract: vi.fn(),
+      multicall: vi.fn().mockResolvedValue([
+        okResult(1_700_000_000n),
+        okResult(1_200_000_000_000_000_000n),
+        okResult(600n * ONE),
+        okResult(500n * ONE),
+        okResult(1_030_000_000_000_000_000n),
+        okResult(3_000n * ONE),
+        okResult(2_900n * ONE),
+      ]),
+    } as const;
+    const client = new OnchainYethClient(publicClient as never, createFeed());
+
+    const state = await client.getGlobalState();
+
+    expect(state.claimWindow.closesAt).toBe(1_774_804_800);
+  });
+
+  it("reuses last known global state values when a later overlay read fails", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const publicClient = {
+      readContract: vi.fn(),
+      multicall: vi
+        .fn()
+        .mockResolvedValueOnce([
+          okResult(1_800_000_000n),
+          okResult(1_200_000_000_000_000_000n),
+          okResult(600n * ONE),
+          okResult(500n * ONE),
+          okResult(1_030_000_000_000_000_000n),
+          okResult(3_000n * ONE),
+          okResult(2_900n * ONE),
+        ])
+        .mockRejectedValueOnce(new Error("rpc down")),
+    } as const;
+    const client = new OnchainYethClient(publicClient as never, null);
+
+    const first = await client.getGlobalState();
+    const second = await client.getGlobalState();
+
+    expect(first.claimWindow.closesAt).toBe(1_800_000_000);
+    expect(second.claimWindow.closesAt).toBe(1_800_000_000);
+    expect(second.recoveryVault.pps).toBe(1_200_000_000_000_000_000n);
+    expect(second.yieldVault.tvlEth).toBe(3_000n * ONE);
   });
 
   it("computes account claimable amount from claimable and recovery_rate", async () => {
@@ -101,7 +175,11 @@ describe("OnchainYethClient", () => {
       readContract: vi.fn(),
       multicall: vi
         .fn()
-        .mockResolvedValue([10n * ONE, 800_000_000_000_000_000n, 2n * ONE]),
+        .mockResolvedValue([
+          okResult(10n * ONE),
+          okResult(800_000_000_000_000_000n),
+          okResult(2n * ONE),
+        ]),
     } as const;
     const client = new OnchainYethClient(publicClient as never, createFeed());
 
@@ -128,6 +206,33 @@ describe("OnchainYethClient", () => {
       claimableNowEth: 0n,
       recoveryVaultShares: 0n,
     });
+  });
+
+  it("returns last known account state when a later account read fails", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const publicClient = {
+      readContract: vi.fn(),
+      multicall: vi
+        .fn()
+        .mockResolvedValueOnce([
+          okResult(10n * ONE),
+          okResult(800_000_000_000_000_000n),
+          okResult(2n * ONE),
+        ])
+        .mockRejectedValueOnce(new Error("rpc down")),
+    } as const;
+    const client = new OnchainYethClient(publicClient as never, createFeed());
+
+    const first = await client.getAccountState(USER);
+    const second = await client.getAccountState(USER);
+
+    expect(first).toEqual({
+      address: USER,
+      snapshotLossEth: 10n * ONE,
+      claimableNowEth: 8n * ONE,
+      recoveryVaultShares: 2n * ONE,
+    });
+    expect(second).toEqual(first);
   });
 
   it("prepares claim-and-exit with claim(true)", async () => {

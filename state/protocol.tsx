@@ -1,7 +1,12 @@
 // state/protocol.tsx
 "use client";
 
-import { createContext, useContext, useMemo, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  ReactNode,
+} from "react";
 import { StyfiClient } from "@/lib/clients/styfi";
 import { VeyfiClient } from "@/lib/clients/veyfi";
 import { YethClient } from "@/lib/clients/yeth";
@@ -11,8 +16,8 @@ import { createMockYethClient } from "@/lib/clients/yeth/mock";
 import { OnchainStyfiClient } from "@/lib/clients/styfi/onchain";
 import { OnchainVeyfiClient } from "@/lib/clients/veyfi/onchain"; // [New]
 import { OnchainYethClient } from "@/lib/clients/yeth/onchain";
-import { useWalletClient } from "wagmi";
-import { createPublicClient, custom, type PublicClient } from "viem";
+import { usePublicClient, useWalletClient } from "wagmi";
+import type { PublicClient } from "viem";
 import { mainnet } from "wagmi/chains";
 import { TestBridgeListener } from "@/components/TestBridgeListener";
 import { useGlobalData } from "@/lib/hooks/useGlobalData";
@@ -54,18 +59,13 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
   const { data: globalData } = useGlobalData();
   const { data: yethGlobalData } = useYethGlobalData(!preferMocks);
   const { data: walletClient } = useWalletClient();
+  const rpcPublicClient = usePublicClient({ chainId: mainnet.id });
+  const walletChainId = walletClient?.chain?.id;
 
   const publicClient = useMemo<PublicClient | null>(() => {
-    if (!walletClient?.chain) return null;
-    if (walletClient.chain.id !== mainnet.id) return null;
-    return createPublicClient({
-      chain: walletClient.chain,
-      transport: custom({
-        request: walletClient.request.bind(walletClient),
-      }),
-      batch: { multicall: true },
-    });
-  }, [walletClient]);
+    if (walletChainId !== mainnet.id) return null;
+    return rpcPublicClient ?? null;
+  }, [rpcPublicClient, walletChainId]);
 
   const value = useMemo(() => {
     // If user wants mocks, ignore the public client
