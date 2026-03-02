@@ -124,6 +124,63 @@ describe("alerts-bot Telegram rendering", () => {
     expect(message).toContain("Impact basis: <b>1.00</b> YFI gross (net <b>0.95</b> YFI)");
   });
 
+  it("treats redeem fee as rate and derives fee amount from gross YFI", () => {
+    const message = renderTelegramMessage(
+      baseAction({
+        kind: "redeem",
+        tokenSymbol: "upYFI",
+        amounts: {
+          amount: 138_840n * ONE, // 2.00 YFI gross at 69420 scale
+          fee: 50_000_000_000_000_000n, // 5.00% fee rate
+        },
+      }),
+    );
+
+    expect(message).toContain("Sold: <b>138.84K</b> supYFI");
+    expect(message).toContain("Received: <b>1.90</b> YFI");
+    expect(message).toContain("Fee: <b>0.10</b> YFI (5.00%)");
+    expect(message).toContain("Impact basis: <b>2.00</b> YFI gross (net <b>1.90</b> YFI)");
+  });
+
+  it("keeps sdYFI and coveYFI redemption math at 1:1 scale", () => {
+    for (const tokenSymbol of ["sdYFI", "coveYFI"] as const) {
+      const message = renderTelegramMessage(
+        baseAction({
+          kind: "redeem",
+          tokenSymbol,
+          amounts: {
+            amount: 2n * ONE,
+            fee: 50_000_000_000_000_000n,
+          },
+        }),
+      );
+
+      expect(message).toContain(`Sold: <b>2.00</b> ${tokenSymbol}`);
+      expect(message).toContain("Received: <b>1.90</b> YFI");
+      expect(message).toContain("Fee: <b>0.10</b> YFI (5.00%)");
+      expect(message).toContain("Impact basis: <b>2.00</b> YFI gross (net <b>1.90</b> YFI)");
+    }
+  });
+
+  it("avoids impossible redeem fee percentages for low-supYFI redemptions", () => {
+    const message = renderTelegramMessage(
+      baseAction({
+        kind: "redeem",
+        tokenSymbol: "upYFI",
+        amounts: {
+          amount: 107_440_522_061_066_280_034n,
+          fee: 99_038_461_538_461_538n,
+        },
+      }),
+    );
+
+    expect(message).toContain("Sold: <b>107.44</b> supYFI");
+    expect(message).toContain("Received: <b>0.0014</b> YFI");
+    expect(message).toContain("Fee: <b>0.0002</b> YFI (9.90%)");
+    expect(message).toContain("Impact basis: <b>0.0015</b> YFI gross (net <b>0.0014</b> YFI)");
+    expect(message).not.toContain("6399.12%");
+  });
+
   it("renders lock updates with explicit delta amount line", () => {
     const message = renderTelegramMessage(
       baseAction({

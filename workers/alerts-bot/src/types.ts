@@ -15,6 +15,7 @@ export interface ActionAmounts {
   assets?: bigint;
   shares?: bigint;
   amount?: bigint;
+  // For liquid locker redemption events, this is a 1e18-scaled fee rate.
   fee?: bigint;
   penalty?: bigint;
   unlockEpoch?: bigint;

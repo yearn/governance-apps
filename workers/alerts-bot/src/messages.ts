@@ -197,6 +197,62 @@ function toTokenAmountFromYfi(tokenSymbol: string, yfiAmount: bigint): bigint {
   return yfiAmount * scale;
 }
 
+function clampRatioToOne(value: bigint): bigint {
+  if (value <= 0n) {
+    return 0n;
+  }
+  if (value >= ONE_YFI) {
+    return ONE_YFI;
+  }
+  return value;
+}
+
+function getRedeemGrossYfi(action: NormalizedAction): bigint {
+  return toYfiAmountFromToken(action.tokenSymbol, action.amounts.amount ?? 0n);
+}
+
+function getRedeemFeeRate(action: NormalizedAction): bigint {
+  return clampRatioToOne(action.amounts.fee ?? 0n);
+}
+
+function getRedeemFeeAmountYfi(action: NormalizedAction): bigint {
+  const grossYfi = getRedeemGrossYfi(action);
+  if (grossYfi <= 0n) {
+    return 0n;
+  }
+
+  const feeRate = getRedeemFeeRate(action);
+  if (feeRate <= 0n) {
+    return 0n;
+  }
+
+  // Redemption events expose fee as a 1e18-scaled rate; convert to YFI amount.
+  return (grossYfi * feeRate) / ONE_YFI;
+}
+
+function formatYfiAmount(value: bigint): string {
+  const absolute = value < 0n ? -value : value;
+  if (absolute === 0n) {
+    return "0.00";
+  }
+
+  const hundredth = ONE_YFI / 100n;
+  if (absolute >= hundredth) {
+    return formatAmount(value);
+  }
+
+  const precisionScale = 10_000n;
+  const rounded = (absolute * precisionScale + ONE_YFI / 2n) / ONE_YFI;
+  const sign = value < 0n ? "-" : "";
+  if (rounded <= 0n) {
+    return `${sign}<0.0001`;
+  }
+
+  const whole = rounded / precisionScale;
+  const fraction = (rounded % precisionScale).toString().padStart(4, "0");
+  return `${sign}${whole.toString()}.${fraction}`;
+}
+
 function areEquivalentAtDisplayPrecision(left: bigint, right: bigint): boolean {
   return formatAmount(left) === formatAmount(right);
 }
@@ -342,22 +398,22 @@ function buildImpactBasisLine(
   options: RenderTelegramMessageOptions,
 ): string {
   if (action.kind === "redeem") {
-    const tokenAmount = action.amounts.amount ?? 0n;
-    const feeAmount = action.amounts.fee ?? 0n;
-    if (feeAmount <= 0n) {
-      return "";
-    }
-
-    const grossYfi = toYfiAmountFromToken(action.tokenSymbol, tokenAmount);
+    const grossYfi = getRedeemGrossYfi(action);
     if (grossYfi <= 0n) {
       return "";
     }
+
+    const feeRate = getRedeemFeeRate(action);
+    if (feeRate <= 0n) {
+      return "";
+    }
+    const feeAmount = getRedeemFeeAmountYfi(action);
     const netYfi = grossYfi > feeAmount ? grossYfi - feeAmount : 0n;
 
-    return `Impact basis: <b>${formatAmount(grossYfi)}</b> YFI${formatUsdForYfi(
+    return `Impact basis: <b>${formatYfiAmount(grossYfi)}</b> YFI${formatUsdForYfi(
       grossYfi,
       options.yfiPriceCents,
-    )} gross (net <b>${formatAmount(netYfi)}</b> YFI)`;
+    )} gross (net <b>${formatYfiAmount(netYfi)}</b> YFI)`;
   }
 
   if (action.kind === "legacy_withdraw") {
@@ -627,17 +683,24 @@ function buildRedeemBlueprint(
 
   const symbol = getDisplayTokenSymbol(action.tokenSymbol);
   const tokenAmount = action.amounts.amount ?? 0n;
-  const feeAmount = action.amounts.fee ?? 0n;
-  const grossYfi = toYfiAmountFromToken(action.tokenSymbol, tokenAmount);
+  const grossYfi = getRedeemGrossYfi(action);
+  const feeRate = getRedeemFeeRate(action);
+  const feeAmount = getRedeemFeeAmountYfi(action);
   const netYfi = grossYfi > feeAmount ? grossYfi - feeAmount : 0n;
   const lines: string[] = [
     `Sold: <b>${formatAmount(tokenAmount)}</b> ${escapeHtml(symbol)}`,
-    `Received: <b>${formatAmount(netYfi)}</b> YFI${formatUsdForYfi(netYfi, options.yfiPriceCents)}`,
+    `Received: <b>${formatYfiAmount(netYfi)}</b> YFI${formatUsdForYfi(
+      netYfi,
+      options.yfiPriceCents,
+    )}`,
   ];
 
-  if (feeAmount > 0n) {
+  if (feeRate > 0n) {
     lines.push(
-      `Fee: <b>${formatAmount(feeAmount)}</b> YFI (${formatPercent(feeAmount, grossYfi)}%)${formatUsdForYfi(
+      `Fee: <b>${formatYfiAmount(feeAmount)}</b> YFI (${formatPercent(
+        feeRate,
+        ONE_YFI,
+      )}%)${formatUsdForYfi(
         feeAmount,
         options.yfiPriceCents,
       )}`,
@@ -896,7 +959,12 @@ export function formatActionLine(action: NormalizedAction): string {
     parts.push(`amount=${formatAmount(action.amounts.amount)}`);
   }
   if (action.amounts.fee !== undefined) {
-    parts.push(`fee=${formatAmount(action.amounts.fee)}`);
+    if (action.kind === "redeem") {
+      parts.push(`feeRate=${formatPercent(getRedeemFeeRate(action), ONE_YFI)}%`);
+      parts.push(`fee=${formatAmount(getRedeemFeeAmountYfi(action))}`);
+    } else {
+      parts.push(`fee=${formatAmount(action.amounts.fee)}`);
+    }
   }
   if (action.amounts.penalty !== undefined) {
     parts.push(`penalty=${formatAmount(action.amounts.penalty)}`);

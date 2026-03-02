@@ -997,6 +997,7 @@ async function decodeLogToAction(
       user: UNKNOWN_USER,
       amounts: {
         amount: args.amount,
+        // The redeem event encodes fee as a 1e18-scaled rate, not a YFI amount.
         fee: args.fee,
       },
     });
