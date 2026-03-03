@@ -9,6 +9,8 @@ export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
+const YETH_OG_IMAGE_URL = "/og-yETH.png?v=20260303";
+
 const baseMetadata: Metadata = {
   title: "yETH Recovery | Yearn Finance",
   description:
@@ -47,7 +49,7 @@ const baseMetadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-yETH.png",
+        url: YETH_OG_IMAGE_URL,
         width: 1200,
         height: 630,
         alt: "Yearn Finance",
@@ -59,7 +61,7 @@ const baseMetadata: Metadata = {
     title: "yETH Recovery | Yearn Finance",
     description:
       "Recovery interface for yETH. Claim ETH now, or stay in the Recovery Vault with ongoing risk.",
-    images: ["/og-yETH.png"],
+    images: [YETH_OG_IMAGE_URL],
   },
 };
 
