@@ -14,6 +14,10 @@ export const yethCopy = {
     completeTitle: "Recovery complete",
     completeBody:
       "No claimable yETH balance or Recovery Vault position remains for this wallet.",
+    noSnapshotClaimTitle: "No active recovery position",
+    noSnapshotClaimBody:
+      "This wallet currently has no active yETH recovery position. If you believe this is incorrect, submit a manual settlement/discrepancy request for review.",
+    noSnapshotClaimManualCta: "Open manual settlement/discrepancy request",
     sections: {
       recovery: "Your Recovery",
       actions: "Choose how you want to recover",

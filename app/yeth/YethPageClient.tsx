@@ -171,6 +171,20 @@ export function YethPageClient() {
     }
     return 0n;
   }, [claimHistory?.recoveredEth]);
+  const hasPersistedClaimHistory = useMemo(
+    () => hasClaimHistoryRecord(claimHistory),
+    [claimHistory]
+  );
+  const isNoSnapshotClaimState = useMemo(() => {
+    if (!account) return false;
+    return (
+      account.snapshotLossEth <= 0n &&
+      account.claimableNowEth <= 0n &&
+      account.recoveryVaultShares <= 0n &&
+      snapshotDisplayValue <= 0n &&
+      !hasPersistedClaimHistory
+    );
+  }, [account, hasPersistedClaimHistory, snapshotDisplayValue]);
 
   const handleClaimExit = () => {
     if (claimWindowClosed) return;
@@ -254,6 +268,13 @@ export function YethPageClient() {
               global={global}
               onRedeem={() => redeem.write()}
               redeemPending={redeemPending}
+            />
+          ) : isNoSnapshotClaimState ? (
+            <NoSnapshotClaimCard
+              address={address}
+              snapshotValue={snapshotDisplayValue}
+              claimDeadline={effectiveClaimDeadline}
+              manualLateClaimUrl={global.manualLateClaimUrl}
             />
           ) : (
             <NoPositionCard
@@ -463,6 +484,47 @@ function UnclaimedRecoveryState({
   );
 }
 
+function NoSnapshotClaimCard({
+  address,
+  snapshotValue,
+  claimDeadline,
+  manualLateClaimUrl,
+}: {
+  address: string | undefined;
+  snapshotValue: bigint;
+  claimDeadline: number | null;
+  manualLateClaimUrl: string;
+}) {
+  return (
+    <section className="space-y-6">
+      <Card className="space-y-4 py-8 text-center">
+        <h2 className="text-2xl font-bold text-text-primary">
+          {copy.page.noSnapshotClaimTitle}
+        </h2>
+        <p className="mx-auto max-w-xl text-sm text-text-secondary">
+          {copy.page.noSnapshotClaimBody}
+        </p>
+        <div className="text-sm">
+          <a
+            href={manualLateClaimUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex font-medium text-text-primary underline underline-offset-4"
+          >
+            {copy.page.noSnapshotClaimManualCta}
+          </a>
+        </div>
+      </Card>
+
+      <StatsGrid
+        address={address}
+        snapshotValue={snapshotValue}
+        closesAt={claimDeadline}
+      />
+    </section>
+  );
+}
+
 function NoPositionCard({
   address,
   snapshotValue,
@@ -608,6 +670,18 @@ function parseSnapshotValue(value: string | undefined): bigint {
   } catch {
     return 0n;
   }
+}
+
+function hasClaimHistoryRecord(record: ClaimHistoryRecord | null): boolean {
+  if (!record) return false;
+  const hasSnapshot = parseSnapshotValue(record.snapshotLossEth) > 0n;
+  const hasRecovered = parseSnapshotValue(record.recoveredEth) > 0n;
+  const hasClaimedAt =
+    typeof record.claimedAt === "number" &&
+    Number.isFinite(record.claimedAt) &&
+    record.claimedAt > 0;
+  const hasTxHash = typeof record.txHash === "string" && record.txHash.length > 0;
+  return hasSnapshot || hasRecovered || hasClaimedAt || hasTxHash;
 }
 
 function loadClaimHistory(address: string | undefined): ClaimHistoryRecord | null {

@@ -129,7 +129,7 @@ describe("YethPageClient wallet state gating", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders completion state when both claimable and shares are zero", () => {
+  it("renders no-snapshot state when claim, shares, and snapshot are all zero", () => {
     currentAccountState = buildAccountState({
       claimableNowEth: 0n,
       recoveryVaultShares: 0n,
@@ -142,8 +142,11 @@ describe("YethPageClient wallet state gating", () => {
       screen.queryByRole("button", { name: /Claim .* ETH & Exit/ })
     ).not.toBeInTheDocument();
     expect(screen.queryByText(yethCopy.postClaim.stayingTitle)).not.toBeInTheDocument();
-    expect(screen.getByText(yethCopy.page.completeTitle)).toBeInTheDocument();
-    expect(screen.getByText(yethCopy.page.completeBody)).toBeInTheDocument();
+    expect(screen.getByText(yethCopy.page.noSnapshotClaimTitle)).toBeInTheDocument();
+    expect(screen.getByText(yethCopy.page.noSnapshotClaimBody)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: yethCopy.page.noSnapshotClaimManualCta })
+    ).toHaveAttribute("href", currentGlobalState?.manualLateClaimUrl);
     expect(screen.getByText("View Contracts, Risks & Sources")).toBeInTheDocument();
   });
 
@@ -167,6 +170,8 @@ describe("YethPageClient wallet state gating", () => {
 
     render(<YethPageClient />);
 
+    expect(screen.getByText(yethCopy.page.completeTitle)).toBeInTheDocument();
+    expect(screen.getByText(yethCopy.page.completeBody)).toBeInTheDocument();
     expect(screen.getByText(yethCopy.fields.claimedAt)).toBeInTheDocument();
     expect(screen.getByText(yethCopy.fields.recoveredValue)).toBeInTheDocument();
     expect(screen.getByText(/4(?:\.0+)? ETH/)).toBeInTheDocument();
