@@ -10,9 +10,9 @@ export const viewport: Viewport = {
 };
 
 const baseMetadata: Metadata = {
-  title: "yETH Recovery | Yearn",
+  title: "yETH Recovery | Yearn Finance",
   description:
-    "yETH is retired. Claim recovered ETH now, or stay in the Recovery Vault with ongoing risk.",
+    "Recovery interface for yETH. Claim recovered ETH now, or stay in the Recovery Vault with ongoing risk.",
   applicationName: "yETH Recovery",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -38,9 +38,9 @@ const baseMetadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "yETH Recovery | Yearn",
+    title: "yETH Recovery | Yearn Finance",
     description:
-      "yETH is retired. Claim recovered ETH now, or stay in the Recovery Vault with ongoing risk.",
+      "Recovery interface for yETH. Claim ETH now, or stay in the Recovery Vault with ongoing risk.",
     url: "https://yeth.yearn.fi",
     siteName: "Yearn Finance",
     locale: "en_US",
@@ -56,9 +56,9 @@ const baseMetadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "yETH Recovery | Yearn",
+    title: "yETH Recovery | Yearn Finance",
     description:
-      "yETH is retired. Claim recovered ETH now, or stay in the Recovery Vault with ongoing risk.",
+      "Recovery interface for yETH. Claim ETH now, or stay in the Recovery Vault with ongoing risk.",
     images: ["/og-yETH.png"],
   },
 };
