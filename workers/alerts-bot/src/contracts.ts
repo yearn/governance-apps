@@ -1,4 +1,5 @@
 import deployment from "../../../lib/deployment.json";
+import yethDeployment from "../../../lib/clients/yeth/deployment.json";
 import type { Address } from "viem";
 
 export interface LiquidLockerContract {
@@ -39,6 +40,10 @@ export const VEYFI_REWARD_DISTRIBUTOR =
   deployment.VEYFI_REWARD_DISTRIBUTOR as Address;
 export const LIQUID_LOCKER_REDEMPTION =
   deployment.LIQUID_LOCKER_REDEMPTION as Address;
+export const YETH_CLAIM = yethDeployment.YETH_CLAIM as Address;
+export const YETH_YIELD_VAULT = yethDeployment.YETH_YIELD_VAULT as Address;
+export const YETH_RECOVERY_VAULT = yethDeployment.YETH_RECOVERY_VAULT as Address;
+export const YETH_CLAIM_DEPLOY_BLOCK = yethDeployment.YETH_CLAIM_DEPLOY_BLOCK;
 
 export const LIQUID_LOCKERS: readonly LiquidLockerContract[] =
   deployment.LIQUID_LOCKERS.NAME.map((name, index) => ({
@@ -73,3 +78,10 @@ const monitoredContracts = new Set<string>([
 ].map((address) => address.toLowerCase()));
 
 export const MONITORED_CONTRACTS = Array.from(monitoredContracts);
+
+const yethMonitoredContracts = new Set<string>([
+  YETH_CLAIM,
+  YETH_RECOVERY_VAULT,
+].map((address) => address.toLowerCase()));
+
+export const YETH_MONITORED_CONTRACTS = Array.from(yethMonitoredContracts);

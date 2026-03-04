@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   encodeAbiParameters,
+  encodeFunctionData,
   encodeEventTopics,
   encodeFunctionResult,
   type Address,
@@ -9,13 +10,24 @@ import {
 import deployment from "@/lib/deployment.json";
 import worker, { AlertState } from "@/workers/alerts-bot/src/index";
 import {
+  ERC20_TRANSFER_ABI,
   ERC4626_DEPOSIT_ABI,
   LEGACY_VEYFI_LOCKED_ABI,
   LEGACY_VEYFI_MODIFY_LOCK_ABI,
   LEGACY_VEYFI_PENALTY_ABI,
   LIQUID_LOCKER_REDEEM_ABI,
+  YETH_CLAIM_CALL_ABI,
+  YETH_CLAIM_TOPIC,
+  YETH_SET_CLAIM_TOPIC,
 } from "@/workers/alerts-bot/src/abis";
-import { LIQUID_LOCKER_REDEMPTION, STYFI, VEYFI } from "@/workers/alerts-bot/src/contracts";
+import {
+  LIQUID_LOCKER_REDEMPTION,
+  STYFI,
+  VEYFI,
+  YETH_CLAIM,
+  YETH_CLAIM_DEPLOY_BLOCK,
+  YETH_RECOVERY_VAULT,
+} from "@/workers/alerts-bot/src/contracts";
 import type {
   RpcClient,
   RpcLog,
@@ -179,6 +191,102 @@ function createModifyLockLog(params: {
       [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
       [2n * ONE, 2_000_000n, 1_900_000n],
     ),
+    blockNumber: params.blockNumber,
+    transactionHash: params.txHash,
+    logIndex: params.logIndex,
+    removed: false,
+  };
+}
+
+function topicAddress(address: Address): Hex {
+  return `0x${address.slice(2).toLowerCase().padStart(64, "0")}` as Hex;
+}
+
+function createYethSetClaimLog(params: {
+  blockNumber: number;
+  logIndex: number;
+  txHash: Hex;
+  account: Address;
+  snapshotEth: bigint;
+}): RpcLog {
+  return {
+    address: YETH_CLAIM,
+    topics: [YETH_SET_CLAIM_TOPIC, topicAddress(params.account)],
+    data: encodeAbiParameters([{ type: "uint256" }], [params.snapshotEth]),
+    blockNumber: params.blockNumber,
+    transactionHash: params.txHash,
+    logIndex: params.logIndex,
+    removed: false,
+  };
+}
+
+function createYethClaimLog(params: {
+  blockNumber: number;
+  logIndex: number;
+  txHash: Hex;
+  account: Address;
+  snapshotEth: bigint;
+}): RpcLog {
+  return {
+    address: YETH_CLAIM,
+    topics: [YETH_CLAIM_TOPIC, topicAddress(params.account)],
+    data: encodeAbiParameters(
+      [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
+      [params.snapshotEth, 0n, 0n],
+    ),
+    blockNumber: params.blockNumber,
+    transactionHash: params.txHash,
+    logIndex: params.logIndex,
+    removed: false,
+  };
+}
+
+function createYethStayDepositLog(params: {
+  blockNumber: number;
+  logIndex: number;
+  txHash: Hex;
+  owner: Address;
+  amountEth: bigint;
+}): RpcLog {
+  return {
+    address: YETH_RECOVERY_VAULT,
+    topics: encodeEventTopics({
+      abi: ERC4626_DEPOSIT_ABI,
+      eventName: "Deposit",
+      args: {
+        sender: params.owner,
+        owner: params.owner,
+      },
+    }) as Hex[],
+    data: encodeAbiParameters(
+      [{ type: "uint256" }, { type: "uint256" }],
+      [params.amountEth, params.amountEth],
+    ),
+    blockNumber: params.blockNumber,
+    transactionHash: params.txHash,
+    logIndex: params.logIndex,
+    removed: false,
+  };
+}
+
+function createYethMintTransferLog(params: {
+  blockNumber: number;
+  logIndex: number;
+  txHash: Hex;
+  receiver: Address;
+  shares: bigint;
+}): RpcLog {
+  return {
+    address: YETH_RECOVERY_VAULT,
+    topics: encodeEventTopics({
+      abi: ERC20_TRANSFER_ABI,
+      eventName: "Transfer",
+      args: {
+        sender: "0x0000000000000000000000000000000000000000",
+        receiver: params.receiver,
+      },
+    }) as Hex[],
+    data: encodeAbiParameters([{ type: "uint256" }], [params.shares]),
     blockNumber: params.blockNumber,
     transactionHash: params.txHash,
     logIndex: params.logIndex,
@@ -740,6 +848,509 @@ describe("alerts-bot Durable Object runtime state", () => {
     expect(response.status).toBe(200);
     expect(sendMessage).toHaveBeenCalledTimes(1);
     expect(sendMessage).toHaveBeenCalledWith("test-chat", expect.any(String), "bot-token");
+  });
+
+  it("routes yETH test-mode alerts to TEST_TO_CHAT_ID while legacy alerts stay on prod route", async () => {
+    const baseBlock = YETH_CLAIM_DEPLOY_BLOCK;
+    const yethUser = addressOf(501);
+    const yethClaimTx = hashOf(5001);
+    const legacyTx = hashOf(5002);
+    const { state } = createMockState([
+      ["startBlock", baseBlock],
+      ["cursorBlock", baseBlock - 1],
+    ]);
+
+    const yethLogs: RpcLog[] = [
+      createYethSetClaimLog({
+        blockNumber: baseBlock,
+        logIndex: 0,
+        txHash: hashOf(5000),
+        account: yethUser,
+        snapshotEth: 100n * ONE,
+      }),
+      createYethClaimLog({
+        blockNumber: baseBlock,
+        logIndex: 1,
+        txHash: yethClaimTx,
+        account: yethUser,
+        snapshotEth: 100n * ONE,
+      }),
+      createYethStayDepositLog({
+        blockNumber: baseBlock,
+        logIndex: 2,
+        txHash: yethClaimTx,
+        owner: yethUser,
+        amountEth: 100n * ONE,
+      }),
+      createYethMintTransferLog({
+        blockNumber: baseBlock,
+        logIndex: 3,
+        txHash: yethClaimTx,
+        receiver: yethUser,
+        shares: 100n * ONE,
+      }),
+    ];
+
+    const rpc = createMockRpc({
+      getBlockNumber: async () => baseBlock,
+      getBlockByNumber: async (blockNumber) => ({
+        number: typeof blockNumber === "number" ? blockNumber : baseBlock,
+        hash: "0x1",
+        parentHash: "0x0",
+        timestamp: 1_800_000_000,
+      }),
+      getLogs: async (filter) => {
+        const addresses = (filter.address ?? []).map((value) => value.toLowerCase());
+        if (addresses.includes(YETH_CLAIM.toLowerCase())) {
+          return yethLogs;
+        }
+        if (addresses.includes(STYFI.toLowerCase())) {
+          return [
+            createDepositLog({
+              blockNumber: baseBlock,
+              logIndex: 0,
+              txHash: legacyTx,
+            }),
+          ];
+        }
+        return [];
+      },
+      getTransactionByHash: async (hashOrHashes) => {
+        const toTx = (hash: string) => {
+          if (hash.toLowerCase() !== yethClaimTx.toLowerCase()) {
+            return null;
+          }
+          return {
+            hash,
+            from: yethUser,
+            to: YETH_CLAIM,
+            blockHash: null,
+            blockNumber: baseBlock,
+            nonce: 0,
+            transactionIndex: 0,
+            value: "0x0",
+            input: encodeFunctionData({
+              abi: YETH_CLAIM_CALL_ABI,
+              functionName: "claim",
+              args: [false],
+            }),
+          };
+        };
+
+        if (typeof hashOrHashes === "string") {
+          return toTx(hashOrHashes);
+        }
+        return hashOrHashes.map((hash) => toTx(hash));
+      },
+      getTransactionReceipt: async () => null,
+      call: async () =>
+        encodeAbiParameters([{ type: "uint256" }], [2_240n * ONE]),
+    });
+    const sendMessage = vi
+      .fn<(_chatId: string, _html: string, _token: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    const object = new AlertState(
+      state,
+      {
+        ALERT_STATE: {} as DurableObjectNamespace,
+        RPC_URL: "https://rpc.example",
+        CONFIRMATIONS: "0",
+        DRY_RUN: "false",
+        TELEGRAM_BOT_TOKEN: "bot-token",
+        TELEGRAM_CHAT_ID: "prod-chat",
+        TEST_TO_CHAT_ID: "test-chat",
+        YETH_ALERTS_MODE: "test",
+        YETH_ONLY: "false",
+      } as never,
+      {
+        createRpcClient: () => rpc,
+        sendMessage,
+        now: () => 1_800_000_000_000,
+      },
+    );
+
+    const response = await object.fetch(new Request("https://do/run"));
+    expect(response.status).toBe(200);
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+
+    const yethCall = sendMessage.mock.calls.find((call) =>
+      call[1].includes("yETH Claimed &amp; Stayed"),
+    );
+    const legacyCall = sendMessage.mock.calls.find((call) =>
+      call[1].includes("stYFI Staked"),
+    );
+
+    expect(yethCall?.[0]).toBe("test-chat");
+    expect(legacyCall?.[0]).toBe("prod-chat");
+  });
+
+  it("skips yETH decode/dispatch when YETH_ALERTS_MODE=off", async () => {
+    const baseBlock = YETH_CLAIM_DEPLOY_BLOCK;
+    const { state, storage } = createMockState([
+      ["startBlock", baseBlock],
+      ["cursorBlock", baseBlock - 1],
+    ]);
+    const rpc = createMockRpc({
+      getBlockNumber: async () => baseBlock,
+      getLogs: async (filter) => {
+        const addresses = (filter.address ?? []).map((value) => value.toLowerCase());
+        if (addresses.includes(STYFI.toLowerCase())) {
+          return [
+            createDepositLog({
+              blockNumber: baseBlock,
+              logIndex: 0,
+              txHash: hashOf(5010),
+            }),
+          ];
+        }
+        if (addresses.includes(YETH_CLAIM.toLowerCase())) {
+          return [
+            createYethSetClaimLog({
+              blockNumber: baseBlock,
+              logIndex: 0,
+              txHash: hashOf(5011),
+              account: addressOf(502),
+              snapshotEth: 10n * ONE,
+            }),
+          ];
+        }
+        return [];
+      },
+      getTransactionByHash: async () => null,
+      getTransactionReceipt: async () => null,
+      call: async () => "0x",
+    });
+    const sendMessage = vi
+      .fn<(_chatId: string, _html: string, _token: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    const object = new AlertState(
+      state,
+      {
+        ALERT_STATE: {} as DurableObjectNamespace,
+        RPC_URL: "https://rpc.example",
+        CONFIRMATIONS: "0",
+        DRY_RUN: "false",
+        TELEGRAM_BOT_TOKEN: "bot-token",
+        TELEGRAM_CHAT_ID: "prod-chat",
+        TEST_TO_CHAT_ID: "test-chat",
+        YETH_ALERTS_MODE: "off",
+      } as never,
+      {
+        createRpcClient: () => rpc,
+        sendMessage,
+        now: () => 1_800_000_000_000,
+      },
+    );
+
+    const response = await object.fetch(new Request("https://do/run"));
+    expect(response.status).toBe(200);
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(sendMessage.mock.calls[0]?.[1]).toContain("stYFI Staked");
+    expect(await storage.get<number>("yethCursorBlock")).toBeUndefined();
+  });
+
+  it("suppresses legacy alerts when YETH_ONLY=true", async () => {
+    const baseBlock = YETH_CLAIM_DEPLOY_BLOCK;
+    const yethUser = addressOf(503);
+    const yethClaimTx = hashOf(5020);
+    const { state, storage } = createMockState([
+      ["startBlock", baseBlock],
+      ["cursorBlock", baseBlock - 1],
+    ]);
+    const yethLogs: RpcLog[] = [
+      createYethSetClaimLog({
+        blockNumber: baseBlock,
+        logIndex: 0,
+        txHash: hashOf(5019),
+        account: yethUser,
+        snapshotEth: 20n * ONE,
+      }),
+      createYethClaimLog({
+        blockNumber: baseBlock,
+        logIndex: 1,
+        txHash: yethClaimTx,
+        account: yethUser,
+        snapshotEth: 20n * ONE,
+      }),
+      createYethStayDepositLog({
+        blockNumber: baseBlock,
+        logIndex: 2,
+        txHash: yethClaimTx,
+        owner: yethUser,
+        amountEth: 20n * ONE,
+      }),
+      createYethMintTransferLog({
+        blockNumber: baseBlock,
+        logIndex: 3,
+        txHash: yethClaimTx,
+        receiver: yethUser,
+        shares: 20n * ONE,
+      }),
+    ];
+
+    const rpc = createMockRpc({
+      getBlockNumber: async () => baseBlock,
+      getLogs: async (filter) => {
+        const addresses = (filter.address ?? []).map((value) => value.toLowerCase());
+        if (addresses.includes(YETH_CLAIM.toLowerCase())) {
+          return yethLogs;
+        }
+        if (addresses.includes(STYFI.toLowerCase())) {
+          return [
+            createDepositLog({
+              blockNumber: baseBlock,
+              logIndex: 0,
+              txHash: hashOf(5021),
+            }),
+          ];
+        }
+        return [];
+      },
+      getTransactionByHash: async (hashOrHashes) => {
+        const toTx = (hash: string) => {
+          if (hash.toLowerCase() !== yethClaimTx.toLowerCase()) {
+            return null;
+          }
+          return {
+            hash,
+            from: yethUser,
+            to: YETH_CLAIM,
+            blockHash: null,
+            blockNumber: baseBlock,
+            nonce: 0,
+            transactionIndex: 0,
+            value: "0x0",
+            input: encodeFunctionData({
+              abi: YETH_CLAIM_CALL_ABI,
+              functionName: "claim",
+              args: [false],
+            }),
+          };
+        };
+
+        if (typeof hashOrHashes === "string") {
+          return toTx(hashOrHashes);
+        }
+        return hashOrHashes.map((hash) => toTx(hash));
+      },
+      getTransactionReceipt: async () => null,
+      call: async () => encodeAbiParameters([{ type: "uint256" }], [100n * ONE]),
+    });
+    const sendMessage = vi
+      .fn<(_chatId: string, _html: string, _token: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    const object = new AlertState(
+      state,
+      {
+        ALERT_STATE: {} as DurableObjectNamespace,
+        RPC_URL: "https://rpc.example",
+        CONFIRMATIONS: "0",
+        DRY_RUN: "false",
+        TELEGRAM_BOT_TOKEN: "bot-token",
+        TELEGRAM_CHAT_ID: "prod-chat",
+        TEST_TO_CHAT_ID: "test-chat",
+        YETH_ALERTS_MODE: "test",
+        YETH_ONLY: "true",
+      } as never,
+      {
+        createRpcClient: () => rpc,
+        sendMessage,
+        now: () => 1_800_000_000_000,
+      },
+    );
+
+    const response = await object.fetch(new Request("https://do/run"));
+    expect(response.status).toBe(200);
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(sendMessage.mock.calls[0]?.[0]).toBe("test-chat");
+    expect(sendMessage.mock.calls[0]?.[1]).toContain("yETH Claimed &amp; Stayed");
+    expect(await storage.get<number>("cursorBlock")).toBe(baseBlock - 1);
+  });
+
+  it("backfills yETH from deploy block with a dedicated cursor and keeps cursor on mode switch", async () => {
+    const baseBlock = YETH_CLAIM_DEPLOY_BLOCK;
+    const user = addressOf(504);
+    const firstClaimTx = hashOf(5030);
+    const secondClaimTx = hashOf(5031);
+    const { state, storage } = createMockState([
+      ["startBlock", baseBlock],
+      ["cursorBlock", baseBlock - 1],
+    ]);
+
+    let headBlock = baseBlock;
+    const getLogs = vi.fn(async (filter: { fromBlock: number; toBlock: number; address?: string[] }) => {
+      const addresses = (filter.address ?? []).map((value) => value.toLowerCase());
+      if (!addresses.includes(YETH_CLAIM.toLowerCase())) {
+        return [];
+      }
+
+      if (filter.fromBlock === baseBlock && filter.toBlock === baseBlock) {
+        return [
+          createYethSetClaimLog({
+            blockNumber: baseBlock,
+            logIndex: 0,
+            txHash: hashOf(5029),
+            account: user,
+            snapshotEth: 10n * ONE,
+          }),
+          createYethClaimLog({
+            blockNumber: baseBlock,
+            logIndex: 1,
+            txHash: firstClaimTx,
+            account: user,
+            snapshotEth: 10n * ONE,
+          }),
+          createYethStayDepositLog({
+            blockNumber: baseBlock,
+            logIndex: 2,
+            txHash: firstClaimTx,
+            owner: user,
+            amountEth: 10n * ONE,
+          }),
+          createYethMintTransferLog({
+            blockNumber: baseBlock,
+            logIndex: 3,
+            txHash: firstClaimTx,
+            receiver: user,
+            shares: 10n * ONE,
+          }),
+        ];
+      }
+
+      if (filter.fromBlock === baseBlock + 1 && filter.toBlock === baseBlock + 1) {
+        return [
+          createYethSetClaimLog({
+            blockNumber: baseBlock + 1,
+            logIndex: 0,
+            txHash: hashOf(5032),
+            account: user,
+            snapshotEth: 20n * ONE,
+          }),
+          createYethClaimLog({
+            blockNumber: baseBlock + 1,
+            logIndex: 1,
+            txHash: secondClaimTx,
+            account: user,
+            snapshotEth: 20n * ONE,
+          }),
+          createYethStayDepositLog({
+            blockNumber: baseBlock + 1,
+            logIndex: 2,
+            txHash: secondClaimTx,
+            owner: user,
+            amountEth: 20n * ONE,
+          }),
+          createYethMintTransferLog({
+            blockNumber: baseBlock + 1,
+            logIndex: 3,
+            txHash: secondClaimTx,
+            receiver: user,
+            shares: 20n * ONE,
+          }),
+        ];
+      }
+
+      return [];
+    });
+
+    const rpc = createMockRpc({
+      getBlockNumber: async () => headBlock,
+      getLogs,
+      getTransactionByHash: async (hashOrHashes) => {
+        const toTx = (hash: string) => {
+          if (
+            hash.toLowerCase() !== firstClaimTx.toLowerCase() &&
+            hash.toLowerCase() !== secondClaimTx.toLowerCase()
+          ) {
+            return null;
+          }
+          return {
+            hash,
+            from: user,
+            to: YETH_CLAIM,
+            blockHash: null,
+            blockNumber: baseBlock,
+            nonce: 0,
+            transactionIndex: 0,
+            value: "0x0",
+            input: encodeFunctionData({
+              abi: YETH_CLAIM_CALL_ABI,
+              functionName: "claim",
+              args: [false],
+            }),
+          };
+        };
+
+        if (typeof hashOrHashes === "string") {
+          return toTx(hashOrHashes);
+        }
+        return hashOrHashes.map((hash) => toTx(hash));
+      },
+      getTransactionReceipt: async () => null,
+      call: async () => encodeAbiParameters([{ type: "uint256" }], [100n * ONE]),
+    });
+    const sendMessage = vi
+      .fn<(_chatId: string, _html: string, _token: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
+
+    const firstRun = new AlertState(
+      state,
+      {
+        ALERT_STATE: {} as DurableObjectNamespace,
+        RPC_URL: "https://rpc.example",
+        CONFIRMATIONS: "0",
+        DRY_RUN: "false",
+        TELEGRAM_BOT_TOKEN: "bot-token",
+        TELEGRAM_CHAT_ID: "prod-chat",
+        TEST_TO_CHAT_ID: "test-chat",
+        YETH_ALERTS_MODE: "test",
+        YETH_ONLY: "true",
+      } as never,
+      {
+        createRpcClient: () => rpc,
+        sendMessage,
+        now: () => 1_800_000_000_000,
+      },
+    );
+
+    const firstResponse = await firstRun.fetch(new Request("https://do/run"));
+    expect(firstResponse.status).toBe(200);
+    expect(await storage.get<number>("yethCursorBlock")).toBe(baseBlock);
+
+    headBlock = baseBlock + 1;
+
+    const secondRun = new AlertState(
+      state,
+      {
+        ALERT_STATE: {} as DurableObjectNamespace,
+        RPC_URL: "https://rpc.example",
+        CONFIRMATIONS: "0",
+        DRY_RUN: "false",
+        TELEGRAM_BOT_TOKEN: "bot-token",
+        TELEGRAM_CHAT_ID: "prod-chat",
+        TEST_TO_CHAT_ID: "test-chat",
+        YETH_ALERTS_MODE: "prod",
+        YETH_ONLY: "true",
+      } as never,
+      {
+        createRpcClient: () => rpc,
+        sendMessage,
+        now: () => 1_800_000_000_000,
+      },
+    );
+
+    const secondResponse = await secondRun.fetch(new Request("https://do/run"));
+    expect(secondResponse.status).toBe(200);
+    expect(await storage.get<number>("yethCursorBlock")).toBe(baseBlock + 1);
+    expect(
+      getLogs.mock.calls.some(
+        ([filter]) =>
+          (filter as { fromBlock: number }).fromBlock === baseBlock + 1,
+      ),
+    ).toBe(true);
   });
 
   it("checkpoints completed chunks before a later chunk fails", async () => {
@@ -1540,6 +2151,21 @@ describe("alerts-bot Durable Object runtime state", () => {
     const { state, storage } = createMockState([
       ["startBlock", 123],
       ["cursorBlock", 122],
+      ["yethStartBlock", YETH_CLAIM_DEPLOY_BLOCK],
+      ["yethCursorBlock", YETH_CLAIM_DEPLOY_BLOCK - 1],
+      [
+        "yethState",
+        {
+          accounts: {},
+          trackedStayedSharesByAddress: {},
+          observedSharesByAddress: {},
+          trackedStayedSharesTotal: "0",
+          totalSnapshotDebtEth: "0",
+          snapshotExitedEth: "0",
+          snapshotStayedEth: "0",
+          snapshotUnclaimedEth: "0",
+        },
+      ],
       [`${SENT_KEY_PREFIX}a:0`, 1_700_000_000],
       [`${SENT_KEY_PREFIX}b:1`, 1_700_000_001],
       ["runMeta:scanBudgetNoProgressCount", 5],
@@ -1571,6 +2197,9 @@ describe("alerts-bot Durable Object runtime state", () => {
     expect(response.status).toBe(200);
     expect(await storage.get<number>("startBlock")).toBeUndefined();
     expect(await storage.get<number>("cursorBlock")).toBeUndefined();
+    expect(await storage.get<number>("yethStartBlock")).toBeUndefined();
+    expect(await storage.get<number>("yethCursorBlock")).toBeUndefined();
+    expect(await storage.get("yethState")).toBeUndefined();
     expect(await storage.get<number>(`${SENT_KEY_PREFIX}a:0`)).toBeUndefined();
     expect(await storage.get<number>(`${SENT_KEY_PREFIX}b:1`)).toBeUndefined();
     expect(await storage.get<number>(RUN_META_SCAN_BUDGET_NO_PROGRESS_COUNT_KEY)).toBeUndefined();

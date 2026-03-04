@@ -38,6 +38,8 @@ This runbook describes the single-service operational mode for safe validation i
 - `BUDGET_STALL_ALERT_COOLDOWN_SECONDS` (default `"3600"`)
 - `MANUAL_RUN_ENABLED` (default `"false"`)
 - `DAILY_IMPACT_DIGEST_ENABLED` (default `"false"`, sends one UTC daily impact summary when enabled; buckets alerts by the event block UTC date)
+- `YETH_ALERTS_MODE` (`"off"|"test"|"prod"`, default `"off"`)
+- `YETH_ONLY` (`"true"|"false"`, default `"false"`)
 
 ## Routing Rules
 
@@ -54,6 +56,26 @@ Routing is centralized in runtime logic and always resolves to exactly one mode:
 
 3. Else (`DRY_RUN == "false"`):
 - Alerts go only to `TELEGRAM_CHAT_ID`
+
+### yETH Overrides
+
+yETH uses additional routing controls on top of the global route:
+
+1. `YETH_ALERTS_MODE=off`:
+- no yETH decode
+- no yETH dispatch
+
+2. `YETH_ALERTS_MODE=test`:
+- yETH alerts always route to `TEST_TO_CHAT_ID`
+- independent from global `DRY_RUN`
+- if `TEST_TO_CHAT_ID` is unset, yETH runs in log-only mode
+
+3. `YETH_ALERTS_MODE=prod`:
+- yETH alerts follow normal global routing
+
+4. `YETH_ONLY=true`:
+- suppresses non-yETH alerts entirely
+- only yETH alerts are dispatched/logged
 
 ## Throttling Behavior
 
@@ -99,6 +121,27 @@ When `DRY_RUN=false` and `ADMIN_CHAT_ID` is set, throttling and scan-budget stal
 - if you previously stopped via `/admin/disable`, call `POST /admin/enable`
 - deploy
 
+## yETH Rollout Procedure
+
+### Phase A (validation)
+
+- Keep legacy behavior unchanged (`DRY_RUN` as currently configured)
+- Set:
+  - `YETH_ALERTS_MODE=test`
+  - `YETH_ONLY=false` (or `true` for isolated worker validation)
+  - `TEST_TO_CHAT_ID` configured
+- Deploy and validate yETH message shape/invariants in test chat
+
+### Phase B (production)
+
+- Set `YETH_ALERTS_MODE=prod`
+- Keep `YETH_ONLY=false`
+- Deploy
+
+### Kill switch
+
+- Set `YETH_ALERTS_MODE=off`
+
 ## Admin Endpoints (Optional)
 
 All admin endpoints require:
@@ -111,6 +154,7 @@ Endpoints:
 - `POST /admin/disable`: sets DO-local `overrideEnabled=false`
 - `POST /admin/enable`: sets DO-local `overrideEnabled=true`
 - `POST /admin/reset`: clears cursor/backfill state (`startBlock`, `cursorBlock`) and dedupe keys (`sent:*`)
+  - also clears yETH state/cursors (`yethStartBlock`, `yethCursorBlock`, `yethState`, canonical yETH metric keys)
 
 Effective enable rule:
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   encodeAbiParameters,
+  encodeFunctionData,
   encodeEventTopics,
   encodeFunctionResult,
   type Address,
@@ -17,6 +18,9 @@ import {
   LIQUID_LOCKER_EXCHANGE_ABI,
   LIQUID_LOCKER_REDEEM_ABI,
   VEYFI_DISTRIBUTOR_MIGRATE_ABI,
+  YETH_CLAIM_CALL_ABI,
+  YETH_CLAIM_TOPIC,
+  YETH_SET_CLAIM_TOPIC,
 } from "@/workers/alerts-bot/src/abis";
 import {
   LIQUID_LOCKER_REDEMPTION,
@@ -25,8 +29,14 @@ import {
   STYFIX,
   VEYFI,
   VEYFI_REWARD_DISTRIBUTOR,
+  YETH_CLAIM,
+  YETH_RECOVERY_VAULT,
 } from "@/workers/alerts-bot/src/contracts";
-import { scanChunkForActions } from "@/workers/alerts-bot/src/index";
+import {
+  createEmptyYethStateForTest,
+  scanChunkForActions,
+  scanChunkForYethActions,
+} from "@/workers/alerts-bot/src/index";
 import type { RpcClient, RpcLog } from "@/workers/alerts-bot/src/rpc";
 
 const ONE = 10n ** 18n;
@@ -75,14 +85,57 @@ function createLog(params: {
   };
 }
 
+function topicAddress(address: Address): Hex {
+  return `0x${address.slice(2).toLowerCase().padStart(64, "0")}` as Hex;
+}
+
+function createYethSetClaimLog(params: {
+  account: Address;
+  snapshotEth: bigint;
+  txHash: Hex;
+  blockNumber: number;
+  logIndex: number;
+}): RpcLog {
+  return createLog({
+    address: YETH_CLAIM,
+    topics: [YETH_SET_CLAIM_TOPIC, topicAddress(params.account)],
+    data: encodeAbiParameters([{ type: "uint256" }], [params.snapshotEth]),
+    txHash: params.txHash,
+    blockNumber: params.blockNumber,
+    logIndex: params.logIndex,
+  });
+}
+
+function createYethClaimLog(params: {
+  account: Address;
+  snapshotEth: bigint;
+  txHash: Hex;
+  blockNumber: number;
+  logIndex: number;
+}): RpcLog {
+  return createLog({
+    address: YETH_CLAIM,
+    topics: [YETH_CLAIM_TOPIC, topicAddress(params.account)],
+    data: encodeAbiParameters(
+      [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
+      [params.snapshotEth, 0n, 0n],
+    ),
+    txHash: params.txHash,
+    blockNumber: params.blockNumber,
+    logIndex: params.logIndex,
+  });
+}
+
 function createMockRpc(params: {
   logs: RpcLog[];
   callByBlock?: Record<number, { amount: bigint; end: bigint }>;
   txFromByHash?: Record<string, Address>;
+  txInputByHash?: Record<string, Hex>;
   callError?: Error;
 }): RpcClient {
   const callByBlock = params.callByBlock ?? {};
   const txFromByHash = params.txFromByHash ?? {};
+  const txInputByHash = params.txInputByHash ?? {};
 
   const rpc = {
     getBlockNumber: async () => {
@@ -116,7 +169,7 @@ function createMockRpc(params: {
           return null;
         }
 
-        return {
+      return {
           hash,
           from,
           to: null,
@@ -125,7 +178,7 @@ function createMockRpc(params: {
           nonce: 0,
           transactionIndex: 0,
           value: "0x0",
-          input: "0x",
+          input: txInputByHash[hash.toLowerCase()] ?? "0x",
         };
       };
 
@@ -553,5 +606,255 @@ describe("alerts-bot scanner fixtures", () => {
     expect(actions[0]?.kind).toBe("staked");
     expect(actions[0]?.tokenSymbol).toBe("stYFIX");
     expect(actions[0]?.txHash).toBe(txHash);
+  });
+});
+
+describe("alerts-bot yETH scanner math", () => {
+  it("maintains bucket totals when SetClaim updates an account already in stayed", async () => {
+    const userA = userOf(401);
+    const userB = userOf(402);
+    const claimTx = hashOf(4001);
+    const logs: RpcLog[] = [
+      createYethSetClaimLog({
+        account: userA,
+        snapshotEth: 100n * ONE,
+        txHash: hashOf(4000),
+        blockNumber: 1,
+        logIndex: 0,
+      }),
+      createYethClaimLog({
+        account: userA,
+        snapshotEth: 100n * ONE,
+        txHash: claimTx,
+        blockNumber: 2,
+        logIndex: 0,
+      }),
+      createLog({
+        address: YETH_RECOVERY_VAULT,
+        topics: encodeEventTopics({
+          abi: ERC4626_DEPOSIT_ABI,
+          eventName: "Deposit",
+          args: { sender: userA, owner: userA },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [100n * ONE, 100n * ONE],
+        ),
+        txHash: claimTx,
+        blockNumber: 2,
+        logIndex: 1,
+      }),
+      createLog({
+        address: YETH_RECOVERY_VAULT,
+        topics: encodeEventTopics({
+          abi: ERC20_TRANSFER_ABI,
+          eventName: "Transfer",
+          args: {
+            sender: "0x0000000000000000000000000000000000000000",
+            receiver: userA,
+          },
+        }),
+        data: encodeAbiParameters([{ type: "uint256" }], [100n * ONE]),
+        txHash: claimTx,
+        blockNumber: 2,
+        logIndex: 2,
+      }),
+      createYethSetClaimLog({
+        account: userA,
+        snapshotEth: 120n * ONE,
+        txHash: hashOf(4002),
+        blockNumber: 3,
+        logIndex: 0,
+      }),
+      createYethSetClaimLog({
+        account: userB,
+        snapshotEth: 30n * ONE,
+        txHash: hashOf(4003),
+        blockNumber: 4,
+        logIndex: 0,
+      }),
+    ];
+
+    const rpc = createMockRpc({
+      logs,
+      txFromByHash: {
+        [claimTx.toLowerCase()]: userA,
+      },
+      txInputByHash: {
+        [claimTx.toLowerCase()]: encodeFunctionData({
+          abi: YETH_CLAIM_CALL_ABI,
+          functionName: "claim",
+          args: [false],
+        }),
+      },
+    });
+
+    const state = createEmptyYethStateForTest();
+    const actions = await scanChunkForYethActions(rpc, 1, 5, state);
+
+    expect(actions.map((action) => action.kind)).toEqual(["yeth_claimed_stayed"]);
+    expect(state.snapshotExitedEth).toBe(0n);
+    expect(state.snapshotStayedEth).toBe(120n * ONE);
+    expect(state.snapshotUnclaimedEth).toBe(30n * ONE);
+    expect(state.totalSnapshotDebtEth).toBe(150n * ONE);
+    expect(
+      state.snapshotExitedEth + state.snapshotStayedEth + state.snapshotUnclaimedEth,
+    ).toBe(state.totalSnapshotDebtEth);
+  });
+
+  it("attributes partial and full withdraw burns proportionally into snapshot exited", async () => {
+    const user = userOf(410);
+    const claimTx = hashOf(4101);
+    const partialWithdrawTx = hashOf(4102);
+    const fullWithdrawTx = hashOf(4103);
+    const logs: RpcLog[] = [
+      createYethSetClaimLog({
+        account: user,
+        snapshotEth: 100n * ONE,
+        txHash: hashOf(4100),
+        blockNumber: 10,
+        logIndex: 0,
+      }),
+      createYethClaimLog({
+        account: user,
+        snapshotEth: 100n * ONE,
+        txHash: claimTx,
+        blockNumber: 11,
+        logIndex: 0,
+      }),
+      createLog({
+        address: YETH_RECOVERY_VAULT,
+        topics: encodeEventTopics({
+          abi: ERC4626_DEPOSIT_ABI,
+          eventName: "Deposit",
+          args: { sender: user, owner: user },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [100n * ONE, 100n * ONE],
+        ),
+        txHash: claimTx,
+        blockNumber: 11,
+        logIndex: 1,
+      }),
+      createLog({
+        address: YETH_RECOVERY_VAULT,
+        topics: encodeEventTopics({
+          abi: ERC20_TRANSFER_ABI,
+          eventName: "Transfer",
+          args: {
+            sender: "0x0000000000000000000000000000000000000000",
+            receiver: user,
+          },
+        }),
+        data: encodeAbiParameters([{ type: "uint256" }], [100n * ONE]),
+        txHash: claimTx,
+        blockNumber: 11,
+        logIndex: 2,
+      }),
+      createLog({
+        address: YETH_RECOVERY_VAULT,
+        topics: encodeEventTopics({
+          abi: ERC4626_WITHDRAW_ABI,
+          eventName: "Withdraw",
+          args: { sender: user, receiver: user, owner: user },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [25n * ONE, 25n * ONE],
+        ),
+        txHash: partialWithdrawTx,
+        blockNumber: 12,
+        logIndex: 0,
+      }),
+      createLog({
+        address: YETH_RECOVERY_VAULT,
+        topics: encodeEventTopics({
+          abi: ERC20_TRANSFER_ABI,
+          eventName: "Transfer",
+          args: {
+            sender: user,
+            receiver: "0x0000000000000000000000000000000000000000",
+          },
+        }),
+        data: encodeAbiParameters([{ type: "uint256" }], [25n * ONE]),
+        txHash: partialWithdrawTx,
+        blockNumber: 12,
+        logIndex: 1,
+      }),
+      createLog({
+        address: YETH_RECOVERY_VAULT,
+        topics: encodeEventTopics({
+          abi: ERC20_TRANSFER_ABI,
+          eventName: "Transfer",
+          args: {
+            sender: user,
+            receiver: "0x0000000000000000000000000000000000000000",
+          },
+        }),
+        data: encodeAbiParameters([{ type: "uint256" }], [75n * ONE]),
+        txHash: fullWithdrawTx,
+        blockNumber: 13,
+        logIndex: 0,
+      }),
+      createLog({
+        address: YETH_RECOVERY_VAULT,
+        topics: encodeEventTopics({
+          abi: ERC4626_WITHDRAW_ABI,
+          eventName: "Withdraw",
+          args: { sender: user, receiver: user, owner: user },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [75n * ONE, 75n * ONE],
+        ),
+        txHash: fullWithdrawTx,
+        blockNumber: 13,
+        logIndex: 1,
+      }),
+    ];
+
+    const rpc = createMockRpc({
+      logs,
+      txFromByHash: {
+        [claimTx.toLowerCase()]: user,
+      },
+      txInputByHash: {
+        [claimTx.toLowerCase()]: encodeFunctionData({
+          abi: YETH_CLAIM_CALL_ABI,
+          functionName: "claim",
+          args: [false],
+        }),
+      },
+    });
+
+    const state = createEmptyYethStateForTest();
+    const actions = await scanChunkForYethActions(rpc, 10, 13, state);
+
+    const partialWithdrawAction = actions.find(
+      (action) => action.txHash === partialWithdrawTx,
+    );
+    const fullWithdrawAction = actions.find(
+      (action) => action.txHash === fullWithdrawTx,
+    );
+
+    expect(partialWithdrawAction?.kind).toBe("yeth_recovery_vault_withdraw");
+    expect(partialWithdrawAction?.yethWithdrawalType).toBe("partial");
+    expect(partialWithdrawAction?.amounts.yethSharesBurned).toBe(25n * ONE);
+    expect(partialWithdrawAction?.amounts.yethOwnerSharesBefore).toBe(100n * ONE);
+    expect(partialWithdrawAction?.amounts.yethOwnerSharesAfter).toBe(75n * ONE);
+    expect(partialWithdrawAction?.amounts.yethSnapshotMoved).toBe(25n * ONE);
+
+    expect(fullWithdrawAction?.kind).toBe("yeth_recovery_vault_withdraw");
+    expect(fullWithdrawAction?.yethWithdrawalType).toBe("full");
+    expect(fullWithdrawAction?.amounts.yethSharesBurned).toBe(75n * ONE);
+    expect(fullWithdrawAction?.amounts.yethOwnerSharesBefore).toBe(75n * ONE);
+    expect(fullWithdrawAction?.amounts.yethOwnerSharesAfter).toBe(0n);
+    expect(fullWithdrawAction?.amounts.yethSnapshotMoved).toBe(75n * ONE);
+
+    expect(state.snapshotExitedEth).toBe(100n * ONE);
+    expect(state.snapshotStayedEth).toBe(0n);
+    expect(state.snapshotUnclaimedEth).toBe(0n);
+    expect(state.totalSnapshotDebtEth).toBe(100n * ONE);
   });
 });

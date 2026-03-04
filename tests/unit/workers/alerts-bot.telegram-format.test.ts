@@ -267,6 +267,150 @@ describe("alerts-bot Telegram rendering", () => {
     expect(whale.tier.label).toBe("Whale");
   });
 
+  it("renders yETH claimed-stayed alerts with impact basis, mix, debt, and footer", () => {
+    const message = renderTelegramMessage(
+      baseAction({
+        kind: "yeth_claimed_stayed",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethSnapshotAmount: 20n * ONE,
+          yethTotalSnapshotDebtEth: 10_000n * ONE,
+          yethSnapshotExitedEth: 3_000n * ONE,
+          yethSnapshotStayedEth: 5_620n * ONE,
+          yethSnapshotUnclaimedEth: 1_380n * ONE,
+          yethOutstandingDebtEth: 7_000n * ONE,
+        },
+      }),
+      {
+        blockTimestampSeconds: 1_800_000_000,
+        yethYieldVaultAssetsEth: 2_240n * ONE,
+      },
+    );
+
+    expect(message).toContain("<b>🐟 🟢 yETH Claimed &amp; Stayed</b>");
+    expect(message).toContain("Impact: <b>▰▰▱▱▱ Fish</b> (<b>2/5</b>)");
+    expect(message).toContain(
+      "Impact basis: <b>0.20%</b> of total snapshot debt moved",
+    );
+    expect(message).toContain("Δ Mix: <b>Stayed +0.20%</b> • <b>Unclaimed -0.20%</b>");
+    expect(message).toContain(
+      "Snapshot mix: <b>Exited 30.00%</b> • <b>Stayed 56.20%</b> • <b>Unclaimed 13.80%</b>",
+    );
+    expect(message).toContain("Outstanding debt: <b>7.00K</b> ETH");
+    expect(message).toContain(
+      "Yield Vault assets: <b>2.24K</b> ETH (coverage <b>32.00%</b>)",
+    );
+    expect(message).toContain("<i>Block 1 • 2027-01-15 08:00 UTC</i>");
+  });
+
+  it("renders yETH withdraw whale alerts with full-share details", () => {
+    const message = renderTelegramMessage(
+      baseAction({
+        kind: "yeth_recovery_vault_withdraw",
+        tokenSymbol: "yETH",
+        yethWithdrawalType: "full",
+        amounts: {
+          yethSnapshotMoved: 1_240n * ONE,
+          yethTotalSnapshotDebtEth: 10_000n * ONE,
+          yethSnapshotExitedEth: 4_601n * ONE,
+          yethSnapshotStayedEth: 4_099n * ONE,
+          yethSnapshotUnclaimedEth: 1_300n * ONE,
+          yethOutstandingDebtEth: 5_399n * ONE,
+          yethSharesBurned: 1_240n * ONE,
+          yethOwnerSharesBefore: 1_240n * ONE,
+          yethOwnerSharesAfter: 0n,
+        },
+      }),
+      {
+        yethYieldVaultAssetsEth: 2_240n * ONE,
+      },
+    );
+
+    expect(message).toContain("🚨 <b>WHALE MOVE</b>");
+    expect(message).toContain("<b>🐋 💸 yETH Recovery Vault Withdraw</b>");
+    expect(message).toContain("Impact: <b>▰▰▰▰▰ Whale</b> (<b>5/5</b>)");
+    expect(message).toContain(
+      "Impact basis: <b>12.40%</b> of total snapshot debt moved",
+    );
+    expect(message).toContain("Withdrawal type: <b>Full</b>");
+    expect(message).toContain(
+      "Shares burned: <b>1.24K</b> yswETH of <b>1.24K</b> yswETH (<b>100.00%</b>)",
+    );
+    expect(message).toContain("Shares remaining: <b>0.00</b> yswETH");
+    expect(message).toContain("Snapshot moved to exited: <b>1.24K</b> ETH");
+  });
+
+  it("applies yETH impact tiers with whale at >=10%", () => {
+    const totalSnapshotDebt = 10_000n * ONE;
+    const info = classifyActionImpact(
+      baseAction({
+        kind: "yeth_claimed_exited",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethSnapshotAmount: 0n,
+          yethTotalSnapshotDebtEth: totalSnapshotDebt,
+        },
+      }),
+    );
+    const shrimp = classifyActionImpact(
+      baseAction({
+        kind: "yeth_claimed_exited",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethSnapshotAmount: ONE,
+          yethTotalSnapshotDebtEth: totalSnapshotDebt,
+        },
+      }),
+    );
+    const fish = classifyActionImpact(
+      baseAction({
+        kind: "yeth_claimed_exited",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethSnapshotAmount: 10n * ONE,
+          yethTotalSnapshotDebtEth: totalSnapshotDebt,
+        },
+      }),
+    );
+    const dolphin = classifyActionImpact(
+      baseAction({
+        kind: "yeth_claimed_exited",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethSnapshotAmount: 50n * ONE,
+          yethTotalSnapshotDebtEth: totalSnapshotDebt,
+        },
+      }),
+    );
+    const shark = classifyActionImpact(
+      baseAction({
+        kind: "yeth_claimed_exited",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethSnapshotAmount: 200n * ONE,
+          yethTotalSnapshotDebtEth: totalSnapshotDebt,
+        },
+      }),
+    );
+    const whale = classifyActionImpact(
+      baseAction({
+        kind: "yeth_claimed_exited",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethSnapshotAmount: 1_000n * ONE,
+          yethTotalSnapshotDebtEth: totalSnapshotDebt,
+        },
+      }),
+    );
+
+    expect(info.tier.label).toBe("Info");
+    expect(shrimp.tier.label).toBe("Shrimp");
+    expect(fish.tier.label).toBe("Fish");
+    expect(dolphin.tier.label).toBe("Dolphin");
+    expect(shark.tier.label).toBe("Shark");
+    expect(whale.tier.label).toBe("Whale");
+  });
+
   it("shows cove redemption facility balances for cove buy/sell alerts", () => {
     const message = renderTelegramMessage(
       baseAction({

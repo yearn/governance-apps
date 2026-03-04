@@ -6,7 +6,7 @@ import {
   formatUtcDate,
   shortAddress,
 } from "./format";
-import type { NormalizedAction } from "./types";
+import type { NormalizedAction, YethWithdrawalType } from "./types";
 
 const ETHERSCAN_BASE_URL = "https://etherscan.io";
 const EPOCH_LENGTH_SECONDS = 14n * 24n * 60n * 60n;
@@ -30,6 +30,7 @@ interface ImpactTier {
 
 export interface ImpactClassification {
   impactYfi: bigint;
+  impactPercentHundredths: bigint | null;
   tier: ImpactTier;
 }
 
@@ -44,6 +45,7 @@ export interface RenderTelegramMessageOptions {
   blockTimestampSeconds?: number | null;
   redemptionFacilitySnapshot?: RedemptionFacilitySnapshot | null;
   ensNamesByAddress?: ReadonlyMap<string, string> | null;
+  yethYieldVaultAssetsEth?: bigint | null;
 }
 
 interface MessageBlueprint {
@@ -291,7 +293,35 @@ function formatSignedAmount(value: bigint): string {
   return `${sign}${formatAmount(absolute)}`;
 }
 
-function classifyImpactTier(
+function isYethAction(action: NormalizedAction): boolean {
+  return (
+    action.kind === "yeth_claimed_stayed" ||
+    action.kind === "yeth_claimed_exited" ||
+    action.kind === "yeth_recovery_vault_withdraw"
+  );
+}
+
+function toPercentHundredths(numerator: bigint, denominator: bigint): bigint {
+  if (numerator <= 0n || denominator <= 0n) {
+    return 0n;
+  }
+
+  return (numerator * 10_000n + denominator / 2n) / denominator;
+}
+
+function isBelowPercentHundredthsThreshold(
+  moved: bigint,
+  total: bigint,
+  thresholdHundredths: bigint,
+): boolean {
+  if (moved <= 0n || total <= 0n) {
+    return true;
+  }
+
+  return moved * 10_000n < thresholdHundredths * total;
+}
+
+function classifyLegacyImpactTier(
   impactYfi: bigint,
   forceInfo: boolean,
 ): ImpactTier {
@@ -318,7 +348,34 @@ function classifyImpactTier(
   return IMPACT_TIERS.whale;
 }
 
-function getImpactYfi(action: NormalizedAction): bigint {
+function classifyYethImpactTier(basis: {
+  moved: bigint;
+  total: bigint;
+}): ImpactTier {
+  if (basis.moved <= 0n || basis.total <= 0n) {
+    return IMPACT_TIERS.info;
+  }
+
+  if (isBelowPercentHundredthsThreshold(basis.moved, basis.total, 10n)) {
+    return IMPACT_TIERS.shrimp;
+  }
+
+  if (isBelowPercentHundredthsThreshold(basis.moved, basis.total, 50n)) {
+    return IMPACT_TIERS.fish;
+  }
+
+  if (isBelowPercentHundredthsThreshold(basis.moved, basis.total, 200n)) {
+    return IMPACT_TIERS.dolphin;
+  }
+
+  if (isBelowPercentHundredthsThreshold(basis.moved, basis.total, 1_000n)) {
+    return IMPACT_TIERS.shark;
+  }
+
+  return IMPACT_TIERS.whale;
+}
+
+function getLegacyImpactYfi(action: NormalizedAction): bigint {
   if (
     (action.kind === "extension" || action.kind === "update") &&
     action.amounts.previousAmount !== undefined
@@ -360,7 +417,7 @@ function getImpactYfi(action: NormalizedAction): bigint {
   return action.amounts.amount ?? 0n;
 }
 
-function isInfoImpact(action: NormalizedAction): boolean {
+function isLegacyInfoImpact(action: NormalizedAction): boolean {
   if (action.kind !== "extension" && action.kind !== "update") {
     return false;
   }
@@ -373,11 +430,37 @@ function isInfoImpact(action: NormalizedAction): boolean {
   return current === action.amounts.previousAmount;
 }
 
+function getYethImpactBasis(action: NormalizedAction): {
+  moved: bigint;
+  total: bigint;
+} {
+  const moved =
+    action.kind === "yeth_recovery_vault_withdraw"
+      ? (action.amounts.yethSnapshotMoved ?? 0n)
+      : (action.amounts.yethSnapshotAmount ?? 0n);
+
+  return {
+    moved,
+    total: action.amounts.yethTotalSnapshotDebtEth ?? 0n,
+  };
+}
+
 export function classifyActionImpact(action: NormalizedAction): ImpactClassification {
-  const impactYfi = getImpactYfi(action);
+  if (isYethAction(action)) {
+    const basis = getYethImpactBasis(action);
+    const impactPercentHundredths = toPercentHundredths(basis.moved, basis.total);
+    return {
+      impactYfi: 0n,
+      impactPercentHundredths,
+      tier: classifyYethImpactTier(basis),
+    };
+  }
+
+  const impactYfi = getLegacyImpactYfi(action);
   return {
     impactYfi,
-    tier: classifyImpactTier(impactYfi, isInfoImpact(action)),
+    impactPercentHundredths: null,
+    tier: classifyLegacyImpactTier(impactYfi, isLegacyInfoImpact(action)),
   };
 }
 
@@ -397,6 +480,11 @@ function buildImpactBasisLine(
   action: NormalizedAction,
   options: RenderTelegramMessageOptions,
 ): string {
+  if (isYethAction(action)) {
+    const basis = getYethImpactBasis(action);
+    return `Impact basis: <b>${formatPercent(basis.moved, basis.total)}%</b> of total snapshot debt moved`;
+  }
+
   if (action.kind === "redeem") {
     const grossYfi = getRedeemGrossYfi(action);
     if (grossYfi <= 0n) {
@@ -861,6 +949,159 @@ function buildLegacyWithdrawBlueprint(
   };
 }
 
+function formatPercentHundredths(value: bigint): string {
+  const whole = value / 100n;
+  const fraction = (value % 100n).toString().padStart(2, "0");
+  return `${whole.toString()}.${fraction}`;
+}
+
+function buildYethMixPercents(action: NormalizedAction): {
+  exited: bigint;
+  stayed: bigint;
+  unclaimed: bigint;
+} {
+  const total = action.amounts.yethTotalSnapshotDebtEth ?? 0n;
+  if (total <= 0n) {
+    return {
+      exited: 0n,
+      stayed: 0n,
+      unclaimed: 0n,
+    };
+  }
+
+  let exited = toPercentHundredths(action.amounts.yethSnapshotExitedEth ?? 0n, total);
+  let stayed = toPercentHundredths(action.amounts.yethSnapshotStayedEth ?? 0n, total);
+  let unclaimed = 10_000n - exited - stayed;
+
+  if (unclaimed < 0n) {
+    const overflow = -unclaimed;
+    if (stayed >= exited) {
+      stayed = stayed > overflow ? stayed - overflow : 0n;
+    } else {
+      exited = exited > overflow ? exited - overflow : 0n;
+    }
+    unclaimed = 0n;
+  }
+
+  return {
+    exited,
+    stayed,
+    unclaimed,
+  };
+}
+
+function getYethYieldVaultAssetsEth(
+  action: NormalizedAction,
+  options: RenderTelegramMessageOptions,
+): bigint | null {
+  if (options.yethYieldVaultAssetsEth !== undefined) {
+    return options.yethYieldVaultAssetsEth;
+  }
+  return action.amounts.yethYieldVaultAssetsEth ?? null;
+}
+
+function buildYethCommonMetricLines(
+  action: NormalizedAction,
+  options: RenderTelegramMessageOptions,
+): string[] {
+  const mix = buildYethMixPercents(action);
+  const outstanding = action.amounts.yethOutstandingDebtEth ?? 0n;
+  const yieldVaultAssets = getYethYieldVaultAssetsEth(action, options);
+  const yieldVaultLine =
+    yieldVaultAssets === null
+      ? "Yield Vault assets: <b>n/a</b>"
+      : `Yield Vault assets: <b>${formatAmount(yieldVaultAssets)}</b> ETH${
+          outstanding > 0n
+            ? ` (coverage <b>${formatPercent(yieldVaultAssets, outstanding)}%</b>)`
+            : ""
+        }`;
+
+  return [
+    `Snapshot mix: <b>Exited ${formatPercentHundredths(mix.exited)}%</b> • <b>Stayed ${formatPercentHundredths(
+      mix.stayed,
+    )}%</b> • <b>Unclaimed ${formatPercentHundredths(mix.unclaimed)}%</b>`,
+    `Outstanding debt: <b>${formatAmount(outstanding)}</b> ETH`,
+    yieldVaultLine,
+  ];
+}
+
+function buildYethClaimedStayedBlueprint(
+  action: NormalizedAction,
+  options: RenderTelegramMessageOptions,
+): MessageBlueprint {
+  const snapshotAmount = action.amounts.yethSnapshotAmount ?? 0n;
+  const totalSnapshotDebt = action.amounts.yethTotalSnapshotDebtEth ?? 0n;
+  const impactPercent = formatPercent(snapshotAmount, totalSnapshotDebt);
+
+  return {
+    eventEmoji: "🟢",
+    title: "yETH Claimed & Stayed",
+    lines: [
+      `Snapshot amount: <b>${formatAmount(snapshotAmount)}</b> ETH (account weight <b>${impactPercent}%</b>)`,
+      `Δ Mix: <b>Stayed +${impactPercent}%</b> • <b>Unclaimed -${impactPercent}%</b>`,
+      ...buildYethCommonMetricLines(action, options),
+    ],
+  };
+}
+
+function buildYethClaimedExitedBlueprint(
+  action: NormalizedAction,
+  options: RenderTelegramMessageOptions,
+): MessageBlueprint {
+  const snapshotAmount = action.amounts.yethSnapshotAmount ?? 0n;
+  const totalSnapshotDebt = action.amounts.yethTotalSnapshotDebtEth ?? 0n;
+  const impactPercent = formatPercent(snapshotAmount, totalSnapshotDebt);
+
+  return {
+    eventEmoji: "🏁",
+    title: "yETH Claimed & Exited",
+    lines: [
+      `Snapshot amount: <b>${formatAmount(snapshotAmount)}</b> ETH (account weight <b>${impactPercent}%</b>)`,
+      `Δ Mix: <b>Exited +${impactPercent}%</b> • <b>Unclaimed -${impactPercent}%</b>`,
+      ...buildYethCommonMetricLines(action, options),
+    ],
+  };
+}
+
+function toYethWithdrawalTypeLabel(
+  value: YethWithdrawalType | undefined,
+): "Full" | "Partial" {
+  if (value === "full") {
+    return "Full";
+  }
+  return "Partial";
+}
+
+function buildYethRecoveryVaultWithdrawBlueprint(
+  action: NormalizedAction,
+  options: RenderTelegramMessageOptions,
+): MessageBlueprint {
+  const snapshotMoved = action.amounts.yethSnapshotMoved ?? 0n;
+  const totalSnapshotDebt = action.amounts.yethTotalSnapshotDebtEth ?? 0n;
+  const impactPercent = formatPercent(snapshotMoved, totalSnapshotDebt);
+  const sharesBurned = action.amounts.yethSharesBurned ?? 0n;
+  const ownerSharesBefore = action.amounts.yethOwnerSharesBefore ?? sharesBurned;
+  const ownerSharesAfter = action.amounts.yethOwnerSharesAfter ?? 0n;
+  const withdrawalType =
+    action.yethWithdrawalType ??
+    (ownerSharesAfter <= 0n ? "full" : "partial");
+
+  return {
+    eventEmoji: "💸",
+    title: "yETH Recovery Vault Withdraw",
+    lines: [
+      `Withdrawal type: <b>${toYethWithdrawalTypeLabel(withdrawalType)}</b>`,
+      `Shares burned: <b>${formatAmount(sharesBurned)}</b> yswETH of <b>${formatAmount(
+        ownerSharesBefore,
+      )}</b> yswETH (<b>${formatPercent(sharesBurned, ownerSharesBefore)}%</b>)`,
+      `Shares remaining: <b>${formatAmount(ownerSharesAfter)}</b> yswETH`,
+      `Snapshot moved to exited: <b>${formatAmount(snapshotMoved)}</b> ETH`,
+      `Δ Mix: <b>Exited +${impactPercent}%</b> • <b>Stayed -${impactPercent}%</b>`,
+      ...buildYethCommonMetricLines(action, options),
+    ],
+  };
+}
+
 function buildMessageBlueprint(
   action: NormalizedAction,
   options: RenderTelegramMessageOptions,
@@ -901,6 +1142,18 @@ function buildMessageBlueprint(
     return buildLegacyWithdrawBlueprint(action, options);
   }
 
+  if (action.kind === "yeth_claimed_stayed") {
+    return buildYethClaimedStayedBlueprint(action, options);
+  }
+
+  if (action.kind === "yeth_claimed_exited") {
+    return buildYethClaimedExitedBlueprint(action, options);
+  }
+
+  if (action.kind === "yeth_recovery_vault_withdraw") {
+    return buildYethRecoveryVaultWithdrawBlueprint(action, options);
+  }
+
   return null;
 }
 
@@ -929,11 +1182,11 @@ export function renderTelegramMessage(
     `<b>${impact.tier.emoji} ${blueprint.eventEmoji} ${escapeHtml(blueprint.title)}</b>`,
   );
   lines.push(buildImpactLine(action));
-  lines.push(...blueprint.lines);
   const impactBasisLine = buildImpactBasisLine(action, options);
   if (impactBasisLine) {
     lines.push(impactBasisLine);
   }
+  lines.push(...blueprint.lines);
   lines.push(...buildActorLines(action, options));
   lines.push(`Tx: ${buildTxLink(action.txHash)}`);
   lines.push(buildFooterLine(action, options.blockTimestampSeconds ?? null));
@@ -975,8 +1228,49 @@ export function formatActionLine(action: NormalizedAction): string {
   if (action.amounts.locktime !== undefined) {
     parts.push(`locktime=${action.amounts.locktime.toString()}`);
   }
-  parts.push(`impactYfi=${formatAmount(impact.impactYfi)}`);
+  if (action.amounts.yethSnapshotAmount !== undefined) {
+    parts.push(`yethSnapshotAmount=${formatAmount(action.amounts.yethSnapshotAmount)}`);
+  }
+  if (action.amounts.yethSnapshotMoved !== undefined) {
+    parts.push(`yethSnapshotMoved=${formatAmount(action.amounts.yethSnapshotMoved)}`);
+  }
+  if (action.amounts.yethTotalSnapshotDebtEth !== undefined) {
+    parts.push(
+      `yethTotalSnapshotDebt=${formatAmount(action.amounts.yethTotalSnapshotDebtEth)}`,
+    );
+  }
+  if (action.amounts.yethSnapshotExitedEth !== undefined) {
+    parts.push(`yethExited=${formatAmount(action.amounts.yethSnapshotExitedEth)}`);
+  }
+  if (action.amounts.yethSnapshotStayedEth !== undefined) {
+    parts.push(`yethStayed=${formatAmount(action.amounts.yethSnapshotStayedEth)}`);
+  }
+  if (action.amounts.yethSnapshotUnclaimedEth !== undefined) {
+    parts.push(`yethUnclaimed=${formatAmount(action.amounts.yethSnapshotUnclaimedEth)}`);
+  }
+  if (action.amounts.yethOutstandingDebtEth !== undefined) {
+    parts.push(`yethOutstanding=${formatAmount(action.amounts.yethOutstandingDebtEth)}`);
+  }
+  if (action.amounts.yethSharesBurned !== undefined) {
+    parts.push(`yethSharesBurned=${formatAmount(action.amounts.yethSharesBurned)}`);
+  }
+  if (action.amounts.yethOwnerSharesBefore !== undefined) {
+    parts.push(
+      `yethOwnerSharesBefore=${formatAmount(action.amounts.yethOwnerSharesBefore)}`,
+    );
+  }
+  if (action.amounts.yethOwnerSharesAfter !== undefined) {
+    parts.push(`yethOwnerSharesAfter=${formatAmount(action.amounts.yethOwnerSharesAfter)}`);
+  }
+  if (impact.impactPercentHundredths !== null) {
+    parts.push(`impactPct=${formatPercentHundredths(impact.impactPercentHundredths)}%`);
+  } else {
+    parts.push(`impactYfi=${formatAmount(impact.impactYfi)}`);
+  }
   parts.push(`impactTier=${impact.tier.label.toLowerCase()}`);
+  if (action.yethWithdrawalType) {
+    parts.push(`withdrawalType=${action.yethWithdrawalType}`);
+  }
 
   const token = isLockerToken(action.tokenSymbol)
     ? getDisplayTokenSymbol(action.tokenSymbol)

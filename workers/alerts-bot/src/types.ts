@@ -9,7 +9,12 @@ export type ActionKind =
   | "extension"
   | "update"
   | "legacy_withdraw"
-  | "penalty";
+  | "penalty"
+  | "yeth_claimed_stayed"
+  | "yeth_claimed_exited"
+  | "yeth_recovery_vault_withdraw";
+
+export type YethWithdrawalType = "full" | "partial";
 
 export interface ActionAmounts {
   assets?: bigint;
@@ -22,6 +27,17 @@ export interface ActionAmounts {
   locktime?: bigint;
   previousAmount?: bigint;
   previousLocktime?: bigint;
+  yethSnapshotAmount?: bigint;
+  yethSnapshotMoved?: bigint;
+  yethTotalSnapshotDebtEth?: bigint;
+  yethSnapshotExitedEth?: bigint;
+  yethSnapshotStayedEth?: bigint;
+  yethSnapshotUnclaimedEth?: bigint;
+  yethOutstandingDebtEth?: bigint;
+  yethYieldVaultAssetsEth?: bigint;
+  yethSharesBurned?: bigint;
+  yethOwnerSharesBefore?: bigint;
+  yethOwnerSharesAfter?: bigint;
 }
 
 export interface NormalizedAction {
@@ -35,4 +51,5 @@ export interface NormalizedAction {
   txHash: string;
   blockNumber: number;
   logIndex: number;
+  yethWithdrawalType?: YethWithdrawalType;
 }

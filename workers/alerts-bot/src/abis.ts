@@ -37,12 +37,24 @@ export const LEGACY_VEYFI_WITHDRAW_EVENT = parseAbiItem(
 export const LEGACY_VEYFI_PENALTY_EVENT = parseAbiItem(
   "event Penalty(address indexed sender, address indexed receiver, uint256 amount)",
 );
+export const YETH_SET_CLAIM_EVENT = parseAbiItem(
+  "event SetClaim(address,uint256)",
+);
+export const YETH_CLAIM_EVENT = parseAbiItem(
+  "event Claim(address,uint256,uint256,uint256)",
+);
 
 export const LEGACY_VEYFI_LOCKED_ABI = parseAbi([
   "function locked(address) view returns (int128 amount, uint256 end)",
 ] as const);
 export const ERC20_BALANCE_OF_ABI = parseAbi([
   "function balanceOf(address account) view returns (uint256)",
+] as const);
+export const ERC4626_TOTAL_ASSETS_ABI = parseAbi([
+  "function totalAssets() view returns (uint256)",
+] as const);
+export const YETH_CLAIM_CALL_ABI = parseAbi([
+  "function claim(bool _exit)",
 ] as const);
 
 export const ERC20_TRANSFER_ABI = [ERC20_TRANSFER_EVENT] as const;
@@ -58,6 +70,8 @@ export const LEGACY_VEYFI_MODIFY_LOCK_ABI = [
 ] as const;
 export const LEGACY_VEYFI_WITHDRAW_ABI = [LEGACY_VEYFI_WITHDRAW_EVENT] as const;
 export const LEGACY_VEYFI_PENALTY_ABI = [LEGACY_VEYFI_PENALTY_EVENT] as const;
+export const YETH_SET_CLAIM_ABI = [YETH_SET_CLAIM_EVENT] as const;
+export const YETH_CLAIM_ABI = [YETH_CLAIM_EVENT] as const;
 
 export const ERC20_TRANSFER_TOPIC = toEventSelector(ERC20_TRANSFER_EVENT);
 export const ERC4626_DEPOSIT_TOPIC = toEventSelector(ERC4626_DEPOSIT_EVENT);
@@ -80,6 +94,8 @@ export const LEGACY_VEYFI_WITHDRAW_TOPIC = toEventSelector(
 export const LEGACY_VEYFI_PENALTY_TOPIC = toEventSelector(
   LEGACY_VEYFI_PENALTY_EVENT,
 );
+export const YETH_SET_CLAIM_TOPIC = toEventSelector(YETH_SET_CLAIM_EVENT);
+export const YETH_CLAIM_TOPIC = toEventSelector(YETH_CLAIM_EVENT);
 
 export const MONITORED_EVENT_TOPICS = [
   ERC20_TRANSFER_TOPIC,
@@ -91,4 +107,12 @@ export const MONITORED_EVENT_TOPICS = [
   LEGACY_VEYFI_MODIFY_LOCK_TOPIC,
   LEGACY_VEYFI_WITHDRAW_TOPIC,
   LEGACY_VEYFI_PENALTY_TOPIC,
+] as const;
+
+export const YETH_MONITORED_EVENT_TOPICS = [
+  YETH_SET_CLAIM_TOPIC,
+  YETH_CLAIM_TOPIC,
+  ERC4626_DEPOSIT_TOPIC,
+  ERC4626_WITHDRAW_TOPIC,
+  ERC20_TRANSFER_TOPIC,
 ] as const;

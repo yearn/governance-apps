@@ -2,7 +2,9 @@
 
 import deployment from "../../../lib/deployment.json";
 import {
+  decodeAbiParameters,
   decodeEventLog,
+  decodeFunctionData,
   decodeFunctionResult,
   encodeFunctionData,
   namehash,
@@ -16,6 +18,7 @@ import {
   ERC20_TRANSFER_TOPIC,
   ERC4626_DEPOSIT_ABI,
   ERC4626_DEPOSIT_TOPIC,
+  ERC4626_TOTAL_ASSETS_ABI,
   ERC4626_WITHDRAW_ABI,
   ERC4626_WITHDRAW_TOPIC,
   LEGACY_VEYFI_LOCKED_ABI,
@@ -32,6 +35,10 @@ import {
   MONITORED_EVENT_TOPICS,
   VEYFI_DISTRIBUTOR_MIGRATE_ABI,
   VEYFI_DISTRIBUTOR_MIGRATE_TOPIC,
+  YETH_CLAIM_CALL_ABI,
+  YETH_CLAIM_TOPIC,
+  YETH_MONITORED_EVENT_TOPICS,
+  YETH_SET_CLAIM_TOPIC,
   ZERO_ADDRESS,
 } from "./abis";
 import {
@@ -44,6 +51,11 @@ import {
   STYFIX,
   VEYFI,
   VEYFI_REWARD_DISTRIBUTOR,
+  YETH_CLAIM,
+  YETH_CLAIM_DEPLOY_BLOCK,
+  YETH_MONITORED_CONTRACTS,
+  YETH_RECOVERY_VAULT,
+  YETH_YIELD_VAULT,
   YFI,
 } from "./contracts";
 import {
@@ -63,7 +75,7 @@ import type {
   RpcTransactionReceipt,
 } from "./rpc";
 import { sendMessage } from "./telegram";
-import type { NormalizedAction } from "./types";
+import type { NormalizedAction, YethWithdrawalType } from "./types";
 
 interface Env {
   ALERT_STATE: DurableObjectNamespace;
@@ -74,6 +86,8 @@ interface Env {
   ADMIN_CHAT_ID?: string;
   TEST_TO_CHAT_ID?: string;
   DRY_RUN?: string;
+  YETH_ALERTS_MODE?: string;
+  YETH_ONLY?: string;
   ENABLED?: string;
   ADMIN_TOKEN?: string;
   MANUAL_RUN_ENABLED?: string;
@@ -89,11 +103,20 @@ interface Env {
 const ALERT_STATE_SINGLETON = "singleton";
 const CURSOR_BLOCK_KEY = "cursorBlock";
 const START_BLOCK_KEY = "startBlock";
+const YETH_CURSOR_BLOCK_KEY = "yethCursorBlock";
+const YETH_START_BLOCK_KEY = "yethStartBlock";
+const YETH_STATE_KEY = "yethState";
+const YETH_TOTAL_SNAPSHOT_DEBT_KEY = "yeth:total_snapshot_debt_eth";
+const YETH_SNAPSHOT_EXITED_KEY = "yeth:snapshot_exited_eth";
+const YETH_SNAPSHOT_STAYED_KEY = "yeth:snapshot_stayed_eth";
+const YETH_SNAPSHOT_UNCLAIMED_KEY = "yeth:snapshot_unclaimed_eth";
+const YETH_OUTSTANDING_DEBT_KEY = "yeth:outstanding_debt_eth";
 const OVERRIDE_ENABLED_KEY = "overrideEnabled";
 const DEFAULT_CONFIRMATIONS = 6;
 const MIN_BLOCK_NUMBER = 0;
 const LOG_CHUNK_SIZE = 2_000;
 const MAX_CHUNKS_PER_RUN = 10;
+const YETH_LOG_CHUNK_SIZE = 10_000;
 const DEFAULT_DRY_RUN = true;
 const DEFAULT_ENABLED = true;
 const DEFAULT_MANUAL_RUN_ENABLED = false;
@@ -128,6 +151,7 @@ const ENS_REVERSE_RESOLVER_ABI = parseAbi([
   "function name(bytes32 node) view returns (string)",
 ]);
 const ETH_ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
+const HEX_TOPIC_ADDRESS_LENGTH = 40;
 
 const LIQUID_LOCKER_TOKEN_BY_SYMBOL = new Map<string, Address>(
   LIQUID_LOCKERS.map((locker) => [locker.symbol.toLowerCase(), locker.token]),
@@ -138,6 +162,92 @@ type ActiveChatMode =
   | "dry_run_test_chat"
   | "dry_run_log_only"
   | "prod";
+type YethAlertsMode = "off" | "test" | "prod";
+type YethSnapshotBucket = "unclaimed" | "stayed" | "exited";
+
+interface YethRoutingConfig {
+  mode: YethAlertsMode;
+  only: boolean;
+}
+
+interface YethAccountSnapshot {
+  snapshotEth: bigint;
+  bucket: YethSnapshotBucket;
+}
+
+export interface YethState {
+  accounts: Map<string, YethAccountSnapshot>;
+  trackedStayedSharesByAddress: Map<string, bigint>;
+  observedSharesByAddress: Map<string, bigint>;
+  trackedStayedSharesTotal: bigint;
+  totalSnapshotDebtEth: bigint;
+  snapshotExitedEth: bigint;
+  snapshotStayedEth: bigint;
+  snapshotUnclaimedEth: bigint;
+}
+
+interface StoredYethAccountSnapshot {
+  snapshotEth: string;
+  bucket: YethSnapshotBucket;
+}
+
+interface StoredYethState {
+  accounts: Record<string, StoredYethAccountSnapshot>;
+  trackedStayedSharesByAddress: Record<string, string>;
+  observedSharesByAddress: Record<string, string>;
+  trackedStayedSharesTotal: string;
+  totalSnapshotDebtEth: string;
+  snapshotExitedEth: string;
+  snapshotStayedEth: string;
+  snapshotUnclaimedEth: string;
+}
+
+interface YethWithdrawalAttribution {
+  owner: string;
+  sharesBurned: bigint;
+  ownerSharesBefore: bigint;
+  ownerSharesAfter: bigint;
+  snapshotMovedEth: bigint;
+  withdrawalType: YethWithdrawalType;
+}
+
+type YethDecodedEvent =
+  | {
+      kind: "set_claim";
+      account: Address;
+      snapshotEth: bigint;
+      log: RpcLog;
+    }
+  | {
+      kind: "claim";
+      account: Address;
+      snapshotEth: bigint;
+      log: RpcLog;
+    }
+  | {
+      kind: "deposit";
+      sender: Address;
+      owner: Address;
+      assets: bigint;
+      shares: bigint;
+      log: RpcLog;
+    }
+  | {
+      kind: "withdraw";
+      sender: Address;
+      receiver: Address;
+      owner: Address;
+      assets: bigint;
+      shares: bigint;
+      log: RpcLog;
+    }
+  | {
+      kind: "transfer";
+      sender: Address;
+      receiver: Address;
+      value: bigint;
+      log: RpcLog;
+    };
 
 interface LegacyLockSnapshot {
   amount: bigint;
@@ -395,6 +505,29 @@ function parseStrictTrueFlag(
   return invalidFallback;
 }
 
+function parseYethAlertsMode(rawValue: string | undefined): YethAlertsMode {
+  if (rawValue === undefined) {
+    return "off";
+  }
+
+  const normalized = rawValue.trim().toLowerCase();
+  if (normalized === "off" || normalized === "test" || normalized === "prod") {
+    return normalized;
+  }
+
+  console.warn("Invalid YETH_ALERTS_MODE value; expected off|test|prod", {
+    rawValue,
+  });
+  return "off";
+}
+
+function parseYethRoutingConfig(env: Env): YethRoutingConfig {
+  return {
+    mode: parseYethAlertsMode(env.YETH_ALERTS_MODE),
+    only: parseStrictTrueFlag(env.YETH_ONLY, false, "YETH_ONLY", false),
+  };
+}
+
 function getActiveChatRoute(
   env: Env,
   overrideEnabled: boolean | null,
@@ -458,6 +591,49 @@ function getActiveChatRoute(
     mode: "prod",
     chatId: prodChatId.length > 0 ? prodChatId : null,
     botToken,
+  };
+}
+
+function getYethChatRoute(
+  env: Env,
+  baseRoute: ActiveChatRoute,
+  routingConfig: YethRoutingConfig,
+): ActiveChatRoute {
+  if (!baseRoute.enabled) {
+    return baseRoute;
+  }
+
+  if (routingConfig.mode === "off") {
+    return {
+      enabled: false,
+      dryRun: baseRoute.dryRun,
+      mode: "disabled",
+      chatId: null,
+      botToken: baseRoute.botToken,
+    };
+  }
+
+  if (routingConfig.mode === "prod") {
+    return baseRoute;
+  }
+
+  const testChatId = env.TEST_TO_CHAT_ID?.trim() ?? "";
+  if (testChatId.length > 0) {
+    return {
+      enabled: true,
+      dryRun: true,
+      mode: "dry_run_test_chat",
+      chatId: testChatId,
+      botToken: baseRoute.botToken,
+    };
+  }
+
+  return {
+    enabled: true,
+    dryRun: true,
+    mode: "dry_run_log_only",
+    chatId: null,
+    botToken: baseRoute.botToken,
   };
 }
 
@@ -685,6 +861,867 @@ async function findStartBlockByTimestamp(
 
 function normalizeAddress(address: string): string {
   return address.toLowerCase();
+}
+
+function parseBigIntString(value: unknown, fallback: bigint = 0n): bigint {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) {
+    return fallback;
+  }
+  return BigInt(value);
+}
+
+function createEmptyYethState(): YethState {
+  return {
+    accounts: new Map<string, YethAccountSnapshot>(),
+    trackedStayedSharesByAddress: new Map<string, bigint>(),
+    observedSharesByAddress: new Map<string, bigint>(),
+    trackedStayedSharesTotal: 0n,
+    totalSnapshotDebtEth: 0n,
+    snapshotExitedEth: 0n,
+    snapshotStayedEth: 0n,
+    snapshotUnclaimedEth: 0n,
+  };
+}
+
+export function createEmptyYethStateForTest(): YethState {
+  return createEmptyYethState();
+}
+
+function cloneYethState(state: YethState): YethState {
+  return {
+    accounts: new Map(
+      Array.from(state.accounts.entries()).map(([address, value]) => [
+        address,
+        { snapshotEth: value.snapshotEth, bucket: value.bucket },
+      ]),
+    ),
+    trackedStayedSharesByAddress: new Map(state.trackedStayedSharesByAddress),
+    observedSharesByAddress: new Map(state.observedSharesByAddress),
+    trackedStayedSharesTotal: state.trackedStayedSharesTotal,
+    totalSnapshotDebtEth: state.totalSnapshotDebtEth,
+    snapshotExitedEth: state.snapshotExitedEth,
+    snapshotStayedEth: state.snapshotStayedEth,
+    snapshotUnclaimedEth: state.snapshotUnclaimedEth,
+  };
+}
+
+function mapBigIntFromRecord(record: Record<string, string> | undefined): Map<string, bigint> {
+  const output = new Map<string, bigint>();
+  if (!record) {
+    return output;
+  }
+
+  for (const [key, value] of Object.entries(record)) {
+    output.set(key, parseBigIntString(value));
+  }
+  return output;
+}
+
+function recordFromBigIntMap(map: Map<string, bigint>): Record<string, string> {
+  const entries = Array.from(map.entries()).filter(([, value]) => value !== 0n);
+  entries.sort(([left], [right]) => left.localeCompare(right));
+  return Object.fromEntries(entries.map(([key, value]) => [key, value.toString()]));
+}
+
+function loadYethState(stored: StoredYethState | null | undefined): YethState {
+  if (!stored) {
+    return createEmptyYethState();
+  }
+
+  const accounts = new Map<string, YethAccountSnapshot>();
+  for (const [address, value] of Object.entries(stored.accounts ?? {})) {
+    if (
+      value.bucket !== "unclaimed" &&
+      value.bucket !== "stayed" &&
+      value.bucket !== "exited"
+    ) {
+      continue;
+    }
+    accounts.set(address, {
+      snapshotEth: parseBigIntString(value.snapshotEth),
+      bucket: value.bucket,
+    });
+  }
+
+  const next: YethState = {
+    accounts,
+    trackedStayedSharesByAddress: mapBigIntFromRecord(
+      stored.trackedStayedSharesByAddress,
+    ),
+    observedSharesByAddress: mapBigIntFromRecord(stored.observedSharesByAddress),
+    trackedStayedSharesTotal: parseBigIntString(stored.trackedStayedSharesTotal),
+    totalSnapshotDebtEth: parseBigIntString(stored.totalSnapshotDebtEth),
+    snapshotExitedEth: parseBigIntString(stored.snapshotExitedEth),
+    snapshotStayedEth: parseBigIntString(stored.snapshotStayedEth),
+    snapshotUnclaimedEth: parseBigIntString(stored.snapshotUnclaimedEth),
+  };
+
+  const recomputedTotal =
+    next.snapshotExitedEth + next.snapshotStayedEth + next.snapshotUnclaimedEth;
+  if (next.totalSnapshotDebtEth !== recomputedTotal) {
+    next.totalSnapshotDebtEth = recomputedTotal;
+  }
+
+  return next;
+}
+
+function serializeYethState(state: YethState): StoredYethState {
+  const accountsEntries = Array.from(state.accounts.entries()).filter(
+    ([, value]) => value.snapshotEth > 0n,
+  );
+  accountsEntries.sort(([left], [right]) => left.localeCompare(right));
+
+  const accounts = Object.fromEntries(
+    accountsEntries.map(([address, value]) => [
+      address,
+      {
+        snapshotEth: value.snapshotEth.toString(),
+        bucket: value.bucket,
+      } satisfies StoredYethAccountSnapshot,
+    ]),
+  );
+
+  return {
+    accounts,
+    trackedStayedSharesByAddress: recordFromBigIntMap(state.trackedStayedSharesByAddress),
+    observedSharesByAddress: recordFromBigIntMap(state.observedSharesByAddress),
+    trackedStayedSharesTotal: state.trackedStayedSharesTotal.toString(),
+    totalSnapshotDebtEth: state.totalSnapshotDebtEth.toString(),
+    snapshotExitedEth: state.snapshotExitedEth.toString(),
+    snapshotStayedEth: state.snapshotStayedEth.toString(),
+    snapshotUnclaimedEth: state.snapshotUnclaimedEth.toString(),
+  };
+}
+
+function recomputeYethTotalSnapshotDebt(state: YethState): void {
+  state.totalSnapshotDebtEth =
+    state.snapshotExitedEth + state.snapshotStayedEth + state.snapshotUnclaimedEth;
+}
+
+function assertYethInvariant(state: YethState, context: string): void {
+  const sum =
+    state.snapshotExitedEth + state.snapshotStayedEth + state.snapshotUnclaimedEth;
+  if (sum !== state.totalSnapshotDebtEth) {
+    throw new Error(
+      `yETH invariant violated (${context}): exited+stayed+unclaimed != total`,
+    );
+  }
+}
+
+function subtractFloor(value: bigint, amount: bigint): bigint {
+  if (amount <= 0n) {
+    return value;
+  }
+
+  if (amount >= value) {
+    return 0n;
+  }
+
+  return value - amount;
+}
+
+function getYethAccountSnapshot(
+  state: YethState,
+  account: string,
+): YethAccountSnapshot {
+  const normalized = normalizeAddress(account);
+  const existing = state.accounts.get(normalized);
+  if (existing) {
+    return existing;
+  }
+
+  const created: YethAccountSnapshot = {
+    snapshotEth: 0n,
+    bucket: "unclaimed",
+  };
+  state.accounts.set(normalized, created);
+  return created;
+}
+
+function applySnapshotDeltaToBucket(
+  state: YethState,
+  bucket: YethSnapshotBucket,
+  delta: bigint,
+): void {
+  if (delta === 0n) {
+    return;
+  }
+
+  if (bucket === "unclaimed") {
+    state.snapshotUnclaimedEth =
+      delta > 0n
+        ? state.snapshotUnclaimedEth + delta
+        : subtractFloor(state.snapshotUnclaimedEth, -delta);
+    return;
+  }
+
+  if (bucket === "stayed") {
+    state.snapshotStayedEth =
+      delta > 0n
+        ? state.snapshotStayedEth + delta
+        : subtractFloor(state.snapshotStayedEth, -delta);
+    return;
+  }
+
+  state.snapshotExitedEth =
+    delta > 0n
+      ? state.snapshotExitedEth + delta
+      : subtractFloor(state.snapshotExitedEth, -delta);
+}
+
+function applyYethSetClaim(
+  state: YethState,
+  account: string,
+  snapshotEth: bigint,
+): void {
+  const accountState = getYethAccountSnapshot(state, account);
+  if (accountState.snapshotEth > 0n) {
+    applySnapshotDeltaToBucket(state, accountState.bucket, -accountState.snapshotEth);
+  }
+
+  accountState.snapshotEth = snapshotEth > 0n ? snapshotEth : 0n;
+  if (accountState.snapshotEth > 0n) {
+    applySnapshotDeltaToBucket(state, accountState.bucket, accountState.snapshotEth);
+  }
+
+  recomputeYethTotalSnapshotDebt(state);
+  assertYethInvariant(state, "SetClaim");
+}
+
+function applyYethClaim(
+  state: YethState,
+  account: string,
+  exit: boolean,
+  fallbackSnapshotEth: bigint,
+): bigint {
+  const accountState = getYethAccountSnapshot(state, account);
+  if (accountState.snapshotEth === 0n && fallbackSnapshotEth > 0n) {
+    accountState.snapshotEth = fallbackSnapshotEth;
+    accountState.bucket = "unclaimed";
+    applySnapshotDeltaToBucket(state, "unclaimed", fallbackSnapshotEth);
+  }
+
+  const snapshotAmount = accountState.snapshotEth;
+  if (snapshotAmount <= 0n) {
+    recomputeYethTotalSnapshotDebt(state);
+    assertYethInvariant(state, "ClaimEmpty");
+    return 0n;
+  }
+
+  const targetBucket: YethSnapshotBucket = exit ? "exited" : "stayed";
+  if (accountState.bucket !== targetBucket) {
+    applySnapshotDeltaToBucket(state, accountState.bucket, -snapshotAmount);
+    accountState.bucket = targetBucket;
+    applySnapshotDeltaToBucket(state, targetBucket, snapshotAmount);
+  }
+
+  recomputeYethTotalSnapshotDebt(state);
+  assertYethInvariant(state, exit ? "ClaimExit" : "ClaimStay");
+  return snapshotAmount;
+}
+
+function getMapAmount(map: Map<string, bigint>, key: string): bigint {
+  return map.get(normalizeAddress(key)) ?? 0n;
+}
+
+function setMapAmount(map: Map<string, bigint>, key: string, value: bigint): void {
+  const normalized = normalizeAddress(key);
+  if (value <= 0n) {
+    map.delete(normalized);
+    return;
+  }
+  map.set(normalized, value);
+}
+
+function applyYethShareMintFromClaimStay(
+  state: YethState,
+  owner: string,
+  shares: bigint,
+): void {
+  if (shares <= 0n) {
+    return;
+  }
+
+  const current = getMapAmount(state.trackedStayedSharesByAddress, owner);
+  setMapAmount(state.trackedStayedSharesByAddress, owner, current + shares);
+  state.trackedStayedSharesTotal += shares;
+}
+
+function applyYethTransferLedger(
+  state: YethState,
+  sender: string,
+  receiver: string,
+  value: bigint,
+): YethWithdrawalAttribution | null {
+  if (value <= 0n) {
+    return null;
+  }
+
+  const normalizedSender = normalizeAddress(sender);
+  const normalizedReceiver = normalizeAddress(receiver);
+  const isMint = normalizedSender === normalizeAddress(ZERO_ADDRESS);
+  const isBurn = normalizedReceiver === normalizeAddress(ZERO_ADDRESS);
+
+  if (isMint) {
+    const receiverBefore = getMapAmount(state.observedSharesByAddress, normalizedReceiver);
+    setMapAmount(state.observedSharesByAddress, normalizedReceiver, receiverBefore + value);
+    return null;
+  }
+
+  const ownerSharesBefore = getMapAmount(
+    state.observedSharesByAddress,
+    normalizedSender,
+  );
+  const ownerTrackedBefore = getMapAmount(
+    state.trackedStayedSharesByAddress,
+    normalizedSender,
+  );
+  const burnedOrTransferred = ownerSharesBefore > 0n ? value : 0n;
+  const trackedMoved =
+    ownerSharesBefore > 0n
+      ? (burnedOrTransferred * ownerTrackedBefore) / ownerSharesBefore
+      : 0n;
+  const ownerSharesAfter = subtractFloor(ownerSharesBefore, burnedOrTransferred);
+  const ownerTrackedAfter = subtractFloor(ownerTrackedBefore, trackedMoved);
+
+  setMapAmount(state.observedSharesByAddress, normalizedSender, ownerSharesAfter);
+  setMapAmount(
+    state.trackedStayedSharesByAddress,
+    normalizedSender,
+    ownerTrackedAfter,
+  );
+
+  if (!isBurn) {
+    const receiverBefore = getMapAmount(
+      state.observedSharesByAddress,
+      normalizedReceiver,
+    );
+    const receiverTrackedBefore = getMapAmount(
+      state.trackedStayedSharesByAddress,
+      normalizedReceiver,
+    );
+    setMapAmount(
+      state.observedSharesByAddress,
+      normalizedReceiver,
+      receiverBefore + burnedOrTransferred,
+    );
+    setMapAmount(
+      state.trackedStayedSharesByAddress,
+      normalizedReceiver,
+      receiverTrackedBefore + trackedMoved,
+    );
+    return null;
+  }
+
+  const trackedTotalBefore = state.trackedStayedSharesTotal;
+  const snapshotStayedBefore = state.snapshotStayedEth;
+  const snapshotMovedEth =
+    trackedTotalBefore > 0n
+      ? (snapshotStayedBefore * trackedMoved) / trackedTotalBefore
+      : 0n;
+
+  state.trackedStayedSharesTotal = subtractFloor(
+    state.trackedStayedSharesTotal,
+    trackedMoved,
+  );
+  state.snapshotStayedEth = subtractFloor(state.snapshotStayedEth, snapshotMovedEth);
+  state.snapshotExitedEth += snapshotMovedEth;
+  recomputeYethTotalSnapshotDebt(state);
+  assertYethInvariant(state, "TransferBurn");
+
+  const withdrawalType: YethWithdrawalType =
+    ownerSharesAfter <= 0n ? "full" : "partial";
+
+  return {
+    owner: normalizedSender,
+    sharesBurned: burnedOrTransferred,
+    ownerSharesBefore,
+    ownerSharesAfter,
+    snapshotMovedEth,
+    withdrawalType,
+  };
+}
+
+function decodeAddressTopic(topic: string): Address {
+  const hex = topic.toLowerCase().replace(/^0x/, "");
+  if (hex.length < HEX_TOPIC_ADDRESS_LENGTH) {
+    throw new Error(`Invalid address topic length: ${topic}`);
+  }
+
+  const sliced = hex.slice(-HEX_TOPIC_ADDRESS_LENGTH);
+  return `0x${sliced}` as Address;
+}
+
+function decodeYethSetClaimLog(log: RpcLog): { account: Address; snapshotEth: bigint } | null {
+  try {
+    if (log.topics.length >= 2) {
+      const [snapshotEth] = decodeAbiParameters(
+        [{ type: "uint256" }],
+        log.data as Hex,
+      ) as readonly [bigint];
+      return {
+        account: decodeAddressTopic(log.topics[1]),
+        snapshotEth,
+      };
+    }
+
+    const [account, snapshotEth] = decodeAbiParameters(
+      [{ type: "address" }, { type: "uint256" }],
+      log.data as Hex,
+    ) as readonly [Address, bigint];
+    return {
+      account,
+      snapshotEth,
+    };
+  } catch (error) {
+    console.warn("Failed to decode yETH SetClaim log", {
+      error,
+      txHash: log.transactionHash,
+      blockNumber: log.blockNumber,
+    });
+    return null;
+  }
+}
+
+function decodeYethClaimLog(log: RpcLog): { account: Address; snapshotEth: bigint } | null {
+  try {
+    if (log.topics.length >= 2) {
+      const [snapshotEth] = decodeAbiParameters(
+        [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
+        log.data as Hex,
+      ) as readonly [bigint, bigint, bigint];
+      return {
+        account: decodeAddressTopic(log.topics[1]),
+        snapshotEth,
+      };
+    }
+
+    const [account, snapshotEth] = decodeAbiParameters(
+      [{ type: "address" }, { type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
+      log.data as Hex,
+    ) as readonly [Address, bigint, bigint, bigint];
+    return {
+      account,
+      snapshotEth,
+    };
+  } catch (error) {
+    console.warn("Failed to decode yETH Claim log", {
+      error,
+      txHash: log.transactionHash,
+      blockNumber: log.blockNumber,
+    });
+    return null;
+  }
+}
+
+function decodeYethLog(log: RpcLog): YethDecodedEvent | null {
+  if (log.removed) {
+    return null;
+  }
+
+  const topic0 = log.topics[0]?.toLowerCase();
+  if (!topic0) {
+    return null;
+  }
+
+  const contractAddress = normalizeAddress(log.address);
+
+  if (topic0 === YETH_SET_CLAIM_TOPIC.toLowerCase() && contractAddress === normalizeAddress(YETH_CLAIM)) {
+    const decoded = decodeYethSetClaimLog(log);
+    if (!decoded) {
+      return null;
+    }
+    return {
+      kind: "set_claim",
+      account: decoded.account,
+      snapshotEth: decoded.snapshotEth,
+      log,
+    };
+  }
+
+  if (topic0 === YETH_CLAIM_TOPIC.toLowerCase() && contractAddress === normalizeAddress(YETH_CLAIM)) {
+    const decoded = decodeYethClaimLog(log);
+    if (!decoded) {
+      return null;
+    }
+    return {
+      kind: "claim",
+      account: decoded.account,
+      snapshotEth: decoded.snapshotEth,
+      log,
+    };
+  }
+
+  if (topic0 === ERC4626_DEPOSIT_TOPIC.toLowerCase() && contractAddress === normalizeAddress(YETH_RECOVERY_VAULT)) {
+    const decoded = decodeEventLog({
+      abi: ERC4626_DEPOSIT_ABI,
+      topics: toEventTopics(log.topics),
+      data: log.data as Hex,
+    });
+
+    const args = decoded.args as {
+      sender: Address;
+      owner: Address;
+      assets: bigint;
+      shares: bigint;
+    };
+
+    return {
+      kind: "deposit",
+      sender: args.sender,
+      owner: args.owner,
+      assets: args.assets,
+      shares: args.shares,
+      log,
+    };
+  }
+
+  if (topic0 === ERC4626_WITHDRAW_TOPIC.toLowerCase() && contractAddress === normalizeAddress(YETH_RECOVERY_VAULT)) {
+    const decoded = decodeEventLog({
+      abi: ERC4626_WITHDRAW_ABI,
+      topics: toEventTopics(log.topics),
+      data: log.data as Hex,
+    });
+
+    const args = decoded.args as {
+      sender: Address;
+      receiver: Address;
+      owner: Address;
+      assets: bigint;
+      shares: bigint;
+    };
+
+    return {
+      kind: "withdraw",
+      sender: args.sender,
+      receiver: args.receiver,
+      owner: args.owner,
+      assets: args.assets,
+      shares: args.shares,
+      log,
+    };
+  }
+
+  if (topic0 === ERC20_TRANSFER_TOPIC.toLowerCase() && contractAddress === normalizeAddress(YETH_RECOVERY_VAULT)) {
+    const decoded = decodeEventLog({
+      abi: ERC20_TRANSFER_ABI,
+      topics: toEventTopics(log.topics),
+      data: log.data as Hex,
+    });
+
+    const args = decoded.args as {
+      sender: Address;
+      receiver: Address;
+      value: bigint;
+    };
+
+    return {
+      kind: "transfer",
+      sender: args.sender,
+      receiver: args.receiver,
+      value: args.value,
+      log,
+    };
+  }
+
+  return null;
+}
+
+function decodeYethClaimExitFromTransactionInput(
+  input: string,
+): boolean | null {
+  try {
+    const decoded = decodeFunctionData({
+      abi: YETH_CLAIM_CALL_ABI,
+      data: input as Hex,
+    });
+
+    if (decoded.functionName !== "claim") {
+      return null;
+    }
+
+    const argument = decoded.args?.[0];
+    return typeof argument === "boolean" ? argument : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildYethWithdrawAttributionKey(owner: string, shares: bigint): string {
+  return `${normalizeAddress(owner)}:${shares.toString()}`;
+}
+
+function buildYethActionAmountsFromState(
+  state: YethState,
+): Pick<
+  NormalizedAction["amounts"],
+  | "yethTotalSnapshotDebtEth"
+  | "yethSnapshotExitedEth"
+  | "yethSnapshotStayedEth"
+  | "yethSnapshotUnclaimedEth"
+  | "yethOutstandingDebtEth"
+> {
+  return {
+    yethTotalSnapshotDebtEth: state.totalSnapshotDebtEth,
+    yethSnapshotExitedEth: state.snapshotExitedEth,
+    yethSnapshotStayedEth: state.snapshotStayedEth,
+    yethSnapshotUnclaimedEth: state.snapshotUnclaimedEth,
+    yethOutstandingDebtEth: state.snapshotStayedEth + state.snapshotUnclaimedEth,
+  };
+}
+
+function buildYethClaimAction(
+  log: RpcLog,
+  account: Address,
+  exit: boolean,
+  snapshotAmount: bigint,
+  state: YethState,
+): NormalizedAction | null {
+  return buildAction(log, {
+    kind: exit ? "yeth_claimed_exited" : "yeth_claimed_stayed",
+    tokenSymbol: "yETH",
+    user: account,
+    owner: account,
+    receiver: account,
+    amounts: {
+      yethSnapshotAmount: snapshotAmount,
+      ...buildYethActionAmountsFromState(state),
+    },
+  });
+}
+
+function buildYethWithdrawAction(
+  event: Extract<YethDecodedEvent, { kind: "withdraw" }>,
+  attribution: YethWithdrawalAttribution,
+  state: YethState,
+): NormalizedAction | null {
+  return buildAction(event.log, {
+    kind: "yeth_recovery_vault_withdraw",
+    tokenSymbol: "yETH",
+    user: attribution.owner,
+    owner: event.owner,
+    receiver: event.receiver,
+    caller: event.sender,
+    yethWithdrawalType: attribution.withdrawalType,
+    amounts: {
+      assets: event.assets,
+      shares: event.shares,
+      yethSnapshotMoved: attribution.snapshotMovedEth,
+      yethSharesBurned: attribution.sharesBurned,
+      yethOwnerSharesBefore: attribution.ownerSharesBefore,
+      yethOwnerSharesAfter: attribution.ownerSharesAfter,
+      ...buildYethActionAmountsFromState(state),
+    },
+  });
+}
+
+export async function scanChunkForYethActions(
+  rpc: RpcClient,
+  fromBlock: number,
+  toBlock: number,
+  state: YethState,
+): Promise<NormalizedAction[]> {
+  const logs = await rpc.getLogs({
+    address: YETH_MONITORED_CONTRACTS,
+    topics: [Array.from(YETH_MONITORED_EVENT_TOPICS)],
+    fromBlock,
+    toBlock,
+  });
+
+  logs.sort((left, right) => {
+    const leftBlock = left.blockNumber ?? Number.MAX_SAFE_INTEGER;
+    const rightBlock = right.blockNumber ?? Number.MAX_SAFE_INTEGER;
+    if (leftBlock !== rightBlock) {
+      return leftBlock - rightBlock;
+    }
+
+    const leftIndex = left.logIndex ?? Number.MAX_SAFE_INTEGER;
+    const rightIndex = right.logIndex ?? Number.MAX_SAFE_INTEGER;
+    return leftIndex - rightIndex;
+  });
+
+  const decodedEventsByTxHash = new Map<string, YethDecodedEvent[]>();
+
+  for (const log of logs) {
+    if (log.transactionHash === null) {
+      continue;
+    }
+    let decoded: YethDecodedEvent | null = null;
+    try {
+      decoded = decodeYethLog(log);
+    } catch (error) {
+      console.warn("Failed to decode yETH monitored log", {
+        error,
+        txHash: log.transactionHash,
+        blockNumber: log.blockNumber,
+        address: log.address,
+        topic0: log.topics[0],
+      });
+      decoded = null;
+    }
+    if (decoded === null) {
+      continue;
+    }
+
+    const txHash = log.transactionHash.toLowerCase();
+    const list = decodedEventsByTxHash.get(txHash) ?? [];
+    list.push(decoded);
+    decodedEventsByTxHash.set(txHash, list);
+  }
+
+  const actions: NormalizedAction[] = [];
+
+  for (const [txHash, events] of decodedEventsByTxHash.entries()) {
+    const claimEvents = events.filter(
+      (event): event is Extract<YethDecodedEvent, { kind: "claim" }> =>
+        event.kind === "claim",
+    );
+    const claimAccounts = new Set<string>(
+      claimEvents.map((event) => normalizeAddress(event.account)),
+    );
+    const depositOwnersInTx = new Set<string>(
+      events
+        .filter(
+          (event): event is Extract<YethDecodedEvent, { kind: "deposit" }> =>
+            event.kind === "deposit",
+        )
+        .map((event) => normalizeAddress(event.owner)),
+    );
+
+    let claimExitFromCalldata: boolean | null = null;
+    if (claimEvents.length > 0) {
+      const tx = await rpc.getTransactionByHash(txHash);
+      if (tx?.input) {
+        claimExitFromCalldata = decodeYethClaimExitFromTransactionInput(tx.input);
+      }
+    }
+
+    const pendingWithdrawsByKey = new Map<
+      string,
+      Array<Extract<YethDecodedEvent, { kind: "withdraw" }>>
+    >();
+    const burnAttributionsByKey = new Map<string, YethWithdrawalAttribution[]>();
+
+    for (const event of events) {
+      if (event.kind === "set_claim") {
+        applyYethSetClaim(state, event.account, event.snapshotEth);
+        continue;
+      }
+
+      if (event.kind === "claim") {
+        const account = normalizeAddress(event.account);
+        const exit =
+          claimExitFromCalldata !== null
+            ? claimExitFromCalldata
+            : !depositOwnersInTx.has(account);
+        const snapshotAmount = applyYethClaim(state, event.account, exit, event.snapshotEth);
+        const claimAction = buildYethClaimAction(
+          event.log,
+          event.account,
+          exit,
+          snapshotAmount,
+          state,
+        );
+        if (claimAction !== null) {
+          actions.push(claimAction);
+        }
+        continue;
+      }
+
+      if (event.kind === "deposit") {
+        const owner = normalizeAddress(event.owner);
+        if (claimAccounts.has(owner) && claimExitFromCalldata !== true) {
+          applyYethShareMintFromClaimStay(state, owner, event.shares);
+        }
+        continue;
+      }
+
+      if (event.kind === "withdraw") {
+        const key = buildYethWithdrawAttributionKey(event.owner, event.shares);
+        const attributions = burnAttributionsByKey.get(key) ?? [];
+        const attribution = attributions.shift() ?? null;
+        if (attributions.length === 0) {
+          burnAttributionsByKey.delete(key);
+        } else {
+          burnAttributionsByKey.set(key, attributions);
+        }
+
+        if (attribution !== null) {
+          const withdrawAction = buildYethWithdrawAction(event, attribution, state);
+          if (withdrawAction !== null) {
+            actions.push(withdrawAction);
+          }
+          continue;
+        }
+
+        const pending = pendingWithdrawsByKey.get(key) ?? [];
+        pending.push(event);
+        pendingWithdrawsByKey.set(key, pending);
+        continue;
+      }
+
+      const attribution = applyYethTransferLedger(
+        state,
+        event.sender,
+        event.receiver,
+        event.value,
+      );
+      if (attribution === null) {
+        continue;
+      }
+
+      const key = buildYethWithdrawAttributionKey(
+        attribution.owner,
+        attribution.sharesBurned,
+      );
+      const pending = pendingWithdrawsByKey.get(key) ?? [];
+      const pendingWithdraw = pending.shift() ?? null;
+      if (pending.length === 0) {
+        pendingWithdrawsByKey.delete(key);
+      } else {
+        pendingWithdrawsByKey.set(key, pending);
+      }
+
+      if (pendingWithdraw !== null) {
+        const withdrawAction = buildYethWithdrawAction(
+          pendingWithdraw,
+          attribution,
+          state,
+        );
+        if (withdrawAction !== null) {
+          actions.push(withdrawAction);
+        }
+        continue;
+      }
+
+      const attributions = burnAttributionsByKey.get(key) ?? [];
+      attributions.push(attribution);
+      burnAttributionsByKey.set(key, attributions);
+    }
+
+    for (const pendingWithdraws of pendingWithdrawsByKey.values()) {
+      for (const pendingWithdraw of pendingWithdraws) {
+        const fallback: YethWithdrawalAttribution = {
+          owner: normalizeAddress(pendingWithdraw.owner),
+          sharesBurned: pendingWithdraw.shares,
+          ownerSharesBefore: pendingWithdraw.shares,
+          ownerSharesAfter: 0n,
+          snapshotMovedEth: 0n,
+          withdrawalType: "full",
+        };
+        const withdrawAction = buildYethWithdrawAction(
+          pendingWithdraw,
+          fallback,
+          state,
+        );
+        if (withdrawAction !== null) {
+          actions.push(withdrawAction);
+        }
+      }
+    }
+  }
+
+  return actions;
 }
 
 function toEventTopics(topics: string[]): [Hex, ...Hex[]] {
@@ -1463,6 +2500,50 @@ export class AlertState implements DurableObject {
     return this.getSentStorageKeyFromMetadata(action.txHash, action.logIndex);
   }
 
+  private async loadYethStateFromStorage(): Promise<YethState> {
+    const stored = await this._state.storage.get<StoredYethState>(YETH_STATE_KEY);
+    return loadYethState(stored ?? null);
+  }
+
+  private async persistYethStateToStorage(state: YethState): Promise<void> {
+    const outstandingDebt = state.snapshotStayedEth + state.snapshotUnclaimedEth;
+
+    await this._state.storage.put(YETH_STATE_KEY, serializeYethState(state));
+    await this._state.storage.put(
+      YETH_TOTAL_SNAPSHOT_DEBT_KEY,
+      state.totalSnapshotDebtEth.toString(),
+    );
+    await this._state.storage.put(
+      YETH_SNAPSHOT_EXITED_KEY,
+      state.snapshotExitedEth.toString(),
+    );
+    await this._state.storage.put(
+      YETH_SNAPSHOT_STAYED_KEY,
+      state.snapshotStayedEth.toString(),
+    );
+    await this._state.storage.put(
+      YETH_SNAPSHOT_UNCLAIMED_KEY,
+      state.snapshotUnclaimedEth.toString(),
+    );
+    await this._state.storage.put(YETH_OUTSTANDING_DEBT_KEY, outstandingDebt.toString());
+  }
+
+  private async writeYethCursor(cursorBlock: number): Promise<void> {
+    await this._state.storage.put(YETH_CURSOR_BLOCK_KEY, cursorBlock);
+  }
+
+  private async maybePersistYethCursor(
+    previousCursorBlock: number,
+    nextCursorBlock: number,
+  ): Promise<number> {
+    if (nextCursorBlock <= previousCursorBlock) {
+      return previousCursorBlock;
+    }
+
+    await this.writeYethCursor(nextCursorBlock);
+    return nextCursorBlock;
+  }
+
   private async getOverrideEnabled(): Promise<boolean | null> {
     const value = await this._state.storage.get<boolean | null>(OVERRIDE_ENABLED_KEY);
     if (typeof value === "boolean") {
@@ -1491,6 +2572,14 @@ export class AlertState implements DurableObject {
   private async resetRuntimeState(): Promise<{ deletedSentKeys: number }> {
     await this._state.storage.delete(START_BLOCK_KEY);
     await this._state.storage.delete(CURSOR_BLOCK_KEY);
+    await this._state.storage.delete(YETH_START_BLOCK_KEY);
+    await this._state.storage.delete(YETH_CURSOR_BLOCK_KEY);
+    await this._state.storage.delete(YETH_STATE_KEY);
+    await this._state.storage.delete(YETH_TOTAL_SNAPSHOT_DEBT_KEY);
+    await this._state.storage.delete(YETH_SNAPSHOT_EXITED_KEY);
+    await this._state.storage.delete(YETH_SNAPSHOT_STAYED_KEY);
+    await this._state.storage.delete(YETH_SNAPSHOT_UNCLAIMED_KEY);
+    await this._state.storage.delete(YETH_OUTSTANDING_DEBT_KEY);
     await this._state.storage.delete(SENT_LAST_PRUNE_KEY);
     await this._state.storage.delete(RUN_META_SCAN_BUDGET_NO_PROGRESS_COUNT_KEY);
     await this._state.storage.delete(
@@ -1884,6 +2973,48 @@ export class AlertState implements DurableObject {
     };
   }
 
+  private async resolveYethYieldVaultAssetsEth(
+    action: NormalizedAction,
+    rpc: RpcClient,
+  ): Promise<bigint | null> {
+    if (
+      action.kind !== "yeth_claimed_stayed" &&
+      action.kind !== "yeth_claimed_exited" &&
+      action.kind !== "yeth_recovery_vault_withdraw"
+    ) {
+      return null;
+    }
+
+    try {
+      const data = encodeFunctionData({
+        abi: ERC4626_TOTAL_ASSETS_ABI,
+        functionName: "totalAssets",
+      });
+      const raw = await rpc.call(
+        {
+          to: YETH_YIELD_VAULT,
+          data,
+        },
+        action.blockNumber,
+      );
+      const result = decodeFunctionResult({
+        abi: ERC4626_TOTAL_ASSETS_ABI,
+        functionName: "totalAssets",
+        data: raw as Hex,
+      });
+      return result as bigint;
+    } catch (error) {
+      if (!(error instanceof SubrequestBudgetExceededError)) {
+        console.warn("Failed to resolve yETH yield vault totalAssets", {
+          error,
+          blockNumber: action.blockNumber,
+          txHash: action.txHash,
+        });
+      }
+      return null;
+    }
+  }
+
   private async buildRenderOptions(
     action: NormalizedAction,
     context: DispatchMessageContext,
@@ -1897,6 +3028,10 @@ export class AlertState implements DurableObject {
       action,
       context.rpc,
     );
+    const yethYieldVaultAssetsEth = await this.resolveYethYieldVaultAssetsEth(
+      action,
+      context.rpc,
+    );
     const ensNamesByAddress = await this.resolveEnsNamesForAction(action, context);
 
     return {
@@ -1904,6 +3039,7 @@ export class AlertState implements DurableObject {
       blockTimestampSeconds: blockTimestampSeconds ?? context.fallbackTimestampSeconds,
       redemptionFacilitySnapshot,
       ensNamesByAddress,
+      yethYieldVaultAssetsEth,
     };
   }
 
@@ -2308,6 +3444,127 @@ export class AlertState implements DurableObject {
     };
   }
 
+  private async processYethBackfill(params: {
+    rpc: RpcClient;
+    confirmedHeadBlock: number;
+    route: ActiveChatRoute;
+    budget: SubrequestBudget;
+    emittedMessagesBefore: number;
+    maxMessagesPerRun: number;
+    messageContext: DispatchMessageContext;
+  }): Promise<{
+    emittedMessages: number;
+    lastEmittedTxHash: string | null;
+    throttledSummary: ThrottledSummary | null;
+    processedCursorBlock: number;
+    fromBlock: number;
+    toBlock: number;
+  }> {
+    let yethCursorBlock = await this._state.storage.get<number>(YETH_CURSOR_BLOCK_KEY);
+    if (yethCursorBlock === undefined) {
+      await this._state.storage.put(YETH_START_BLOCK_KEY, YETH_CLAIM_DEPLOY_BLOCK);
+      yethCursorBlock = YETH_CLAIM_DEPLOY_BLOCK - 1;
+      await this.writeYethCursor(yethCursorBlock);
+      console.log("Initialized yETH cursor", {
+        startBlock: YETH_CLAIM_DEPLOY_BLOCK,
+        cursorBlock: yethCursorBlock,
+      });
+    }
+
+    const fromBlock = yethCursorBlock + 1;
+    const toBlock = params.confirmedHeadBlock;
+    let emittedMessages = params.emittedMessagesBefore;
+    let lastEmittedTxHash: string | null = null;
+    let throttledSummary: ThrottledSummary | null = null;
+    let processedCursorBlock = yethCursorBlock;
+
+    if (fromBlock > toBlock) {
+      return {
+        emittedMessages,
+        lastEmittedTxHash,
+        throttledSummary,
+        processedCursorBlock,
+        fromBlock,
+        toBlock,
+      };
+    }
+
+    const persistedState = await this.loadYethStateFromStorage();
+    let workingState = cloneYethState(persistedState);
+    let nextFromBlock = fromBlock;
+
+    while (nextFromBlock <= toBlock) {
+      const chunkFrom = nextFromBlock;
+      const chunkTo = Math.min(chunkFrom + YETH_LOG_CHUNK_SIZE - 1, toBlock);
+      const chunkState = cloneYethState(workingState);
+
+      if (params.route.chatId !== null) {
+        params.budget.reserveSubrequests(RESERVED_SEND_SUBREQUESTS_PER_CHUNK);
+      }
+
+      const actions = await scanChunkForYethActions(
+        params.rpc,
+        chunkFrom,
+        chunkTo,
+        chunkState,
+      );
+      params.messageContext.fallbackTimestampSeconds = Math.floor(this._deps.now() / 1000);
+      const dispatchResult = await this.dispatchActions(actions, {
+        dryRun: params.route.dryRun,
+        chatId: params.route.chatId,
+        botToken: params.route.botToken,
+        fromBlock: chunkFrom,
+        budget: params.budget,
+        emittedMessagesBefore: emittedMessages,
+        maxMessagesPerRun: params.maxMessagesPerRun,
+        messageContext: params.messageContext,
+        dailyDigestEnabled: false,
+      });
+      params.budget.clearReservedSubrequests();
+
+      emittedMessages = dispatchResult.emittedMessages;
+      if (dispatchResult.lastEmittedTxHash !== null) {
+        lastEmittedTxHash = dispatchResult.lastEmittedTxHash;
+      }
+
+      if (
+        dispatchResult.throttled &&
+        dispatchResult.throttledSuppressedCount > 0 &&
+        dispatchResult.throttledSuppressedFromBlock !== null &&
+        dispatchResult.throttledSuppressedToBlock !== null
+      ) {
+        throttledSummary = {
+          sent: emittedMessages,
+          suppressed: dispatchResult.throttledSuppressedCount,
+          fromBlock: dispatchResult.throttledSuppressedFromBlock,
+          toBlock: dispatchResult.throttledSuppressedToBlock,
+          lastSentTxHash: lastEmittedTxHash,
+        };
+      }
+
+      if (!dispatchResult.completed) {
+        break;
+      }
+
+      workingState = chunkState;
+      await this.persistYethStateToStorage(workingState);
+      processedCursorBlock = await this.maybePersistYethCursor(
+        processedCursorBlock,
+        chunkTo,
+      );
+      nextFromBlock = chunkTo + 1;
+    }
+
+    return {
+      emittedMessages,
+      lastEmittedTxHash,
+      throttledSummary,
+      processedCursorBlock,
+      fromBlock,
+      toBlock,
+    };
+  }
+
   private async writeCursor(cursorBlock: number): Promise<void> {
     await this._state.storage.put(CURSOR_BLOCK_KEY, cursorBlock);
   }
@@ -2448,7 +3705,13 @@ export class AlertState implements DurableObject {
   private async run(): Promise<void> {
     const overrideEnabled = await this.getOverrideEnabled();
     const route = getActiveChatRoute(this._env, overrideEnabled);
+    const yethRoutingConfig = parseYethRoutingConfig(this._env);
+    const yethRoute = getYethChatRoute(this._env, route, yethRoutingConfig);
     const warningRoute = getOperationalWarningRoute(this._env, route);
+    const yethWarningRoute = getOperationalWarningRoute(this._env, yethRoute);
+    const processLegacy = !yethRoutingConfig.only;
+    const processYeth = yethRoutingConfig.mode !== "off";
+
     if (!route.enabled) {
       console.log("Alerts bot disabled", {
         mode: route.mode,
@@ -2456,7 +3719,13 @@ export class AlertState implements DurableObject {
       });
       return;
     }
-    assertActiveChatRouteConfigured(route);
+
+    if (processLegacy) {
+      assertActiveChatRouteConfigured(route);
+    }
+    if (processYeth) {
+      assertActiveChatRouteConfigured(yethRoute);
+    }
 
     const confirmations = parseConfirmations(this._env.CONFIRMATIONS);
     const maxMessagesPerRun = parsePositiveIntegerFlag(
@@ -2480,6 +3749,68 @@ export class AlertState implements DurableObject {
         MIN_BLOCK_NUMBER,
         latestHeadBlock - confirmations,
       );
+
+      await this.pruneSentEntries(Math.floor(this._deps.now() / 1000));
+      const yfiPriceCents = await this.getYfiPriceCents(budget);
+      const blockTimestampCache = new Map<number, number | null>();
+      const messageContext: DispatchMessageContext = {
+        rpc,
+        yfiPriceCents,
+        blockTimestampCache,
+        fallbackTimestampSeconds: Math.floor(this._deps.now() / 1000),
+        ensNameCache: new Map<string, string | null>(),
+        ensResolutionEnabled: route.mode === "prod" || yethRoute.mode === "prod",
+      };
+
+      let emittedMessages = 0;
+      let lastEmittedTxHash: string | null = null;
+      let throttledSummary: ThrottledSummary | null = null;
+
+      if (processYeth) {
+        const yethResult = await this.processYethBackfill({
+          rpc,
+          confirmedHeadBlock,
+          route: yethRoute,
+          budget,
+          emittedMessagesBefore: emittedMessages,
+          maxMessagesPerRun,
+          messageContext,
+        });
+        emittedMessages = yethResult.emittedMessages;
+        if (yethResult.lastEmittedTxHash !== null) {
+          lastEmittedTxHash = yethResult.lastEmittedTxHash;
+        }
+        const yethThrottledSummary = yethResult.throttledSummary;
+        const yethThrottledSummaryTimestamp =
+          yethThrottledSummary === null
+            ? Math.floor(this._deps.now() / 1000)
+            : (await this.resolveBlockTimestampSeconds(
+                rpc,
+                yethThrottledSummary.toBlock,
+                blockTimestampCache,
+              )) ?? Math.floor(this._deps.now() / 1000);
+        await this.maybeSendThrottledSummary({
+          summary: yethThrottledSummary,
+          route: yethWarningRoute,
+          timestampSeconds: yethThrottledSummaryTimestamp,
+        });
+
+        console.log("Completed yETH scan pass", {
+          fromBlock: yethResult.fromBlock,
+          processedCursorBlock: yethResult.processedCursorBlock,
+          toBlock: yethResult.toBlock,
+          reachedConfirmedHead: yethResult.processedCursorBlock >= yethResult.toBlock,
+          remainingBlocks: Math.max(0, yethResult.toBlock - yethResult.processedCursorBlock),
+          mode: yethRoute.mode,
+          yethOnly: yethRoutingConfig.only,
+          emittedMessages,
+          throttledSuppressed: yethThrottledSummary?.suppressed ?? 0,
+        });
+      }
+
+      if (!processLegacy) {
+        return;
+      }
 
       const cursorBlock = await this._state.storage.get<number>(CURSOR_BLOCK_KEY);
 
@@ -2535,26 +3866,11 @@ export class AlertState implements DurableObject {
         maxMessagesPerRun,
       });
 
-      await this.pruneSentEntries(Math.floor(this._deps.now() / 1000));
-      const yfiPriceCents = await this.getYfiPriceCents(budget);
-      const blockTimestampCache = new Map<number, number | null>();
-      const messageContext: DispatchMessageContext = {
-        rpc,
-        yfiPriceCents,
-        blockTimestampCache,
-        fallbackTimestampSeconds: Math.floor(this._deps.now() / 1000),
-        ensNameCache: new Map<string, string | null>(),
-        ensResolutionEnabled: route.mode === "prod",
-      };
-
       let processedCursorBlock = cursorBlock;
       let nextFromBlock = fromBlock;
       let chunksProcessed = 0;
       let stoppedEarly = false;
       let stoppedEarlyDueToScanBudgetExhaustion = false;
-      let emittedMessages = 0;
-      let lastEmittedTxHash: string | null = null;
-      let throttledSummary: ThrottledSummary | null = null;
 
       while (nextFromBlock <= toBlock && chunksProcessed < MAX_CHUNKS_PER_RUN) {
         const chunkFrom = nextFromBlock;
@@ -2694,6 +4010,8 @@ export class AlertState implements DurableObject {
         maxChunksPerRun: MAX_CHUNKS_PER_RUN,
         logChunkSize: LOG_CHUNK_SIZE,
         stoppedEarly,
+        yethMode: yethRoutingConfig.mode,
+        yethOnly: yethRoutingConfig.only,
         scanBudgetNoProgressStall,
         scanBudgetNoProgressConsecutiveCount:
           scanBudgetNoProgressState.consecutiveCount,

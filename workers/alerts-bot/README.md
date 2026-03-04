@@ -1,11 +1,12 @@
 # Alerts Bot Worker
 
-This worker scans confirmed mainnet blocks, normalizes governance actions, and delivers Telegram notifications with centralized operational routing (`ENABLED` + `DRY_RUN` + test/prod chat ids).
+This worker scans confirmed mainnet blocks, normalizes governance actions, and delivers Telegram notifications with centralized operational routing (`ENABLED` + `DRY_RUN` + test/prod chat ids). It now also supports yETH user-facing alerts with a dedicated yETH scanner cursor and state machine.
 
 ## Scanner Defaults
 
 - `LOG_CHUNK_SIZE`: `2000` blocks
 - `MAX_CHUNKS_PER_RUN`: `10` chunks per Durable Object run
+- `YETH_LOG_CHUNK_SIZE`: `10000` blocks per yETH chunk (processed to confirmed head each run)
 - Log query strategy: one `eth_getLogs` call per chunk with address filter + topic0 OR filter
 - Subrequest budget per run: `MAX_SUBREQUESTS_PER_RUN` (default `45`)
   - Includes outbound RPC + Telegram calls.
@@ -17,6 +18,9 @@ This worker scans confirmed mainnet blocks, normalizes governance actions, and d
 - Runtime stall tracking:
   - Consecutive runs that stop early due to scan budget exhaustion with unchanged cursor are counted in DO state (`runMeta:scanBudgetNoProgressCount`).
   - When the counter crosses `BUDGET_STALL_ALERT_THRESHOLD`, the worker emits a Telegram incident alert to the same configured chat, rate-limited by `BUDGET_STALL_ALERT_COOLDOWN_SECONDS`.
+- yETH backfill:
+  - yETH state scans from `YETH_CLAIM_DEPLOY_BLOCK` (inclusive) and advances a dedicated cursor (`yethCursorBlock`) independent from legacy `cursorBlock`.
+  - yETH state tracks canonical snapshot buckets (`exited`, `stayed`, `unclaimed`) plus tracked stayed-share attribution for partial/full Recovery Vault withdraws.
 
 ## Telegram Delivery
 
@@ -38,6 +42,14 @@ This worker scans confirmed mainnet blocks, normalizes governance actions, and d
 - Per-run alert cap:
   - `MAX_MESSAGES_PER_RUN` limits emitted alerts per run.
   - Overflow emits exactly one summary alert (`⚠️ Alerts throttled`) to the active chat, or logs it in dry-run log-only mode.
+- yETH routing override:
+  - `YETH_ALERTS_MODE=off|test|prod`
+    - `off`: no yETH decode/dispatch.
+    - `test`: yETH alerts route to `TEST_TO_CHAT_ID`, independent of global `DRY_RUN`.
+    - `prod`: yETH alerts follow normal route logic.
+  - `YETH_ONLY=true|false`
+    - `true`: suppresses legacy alerts and emits only yETH alerts.
+    - `false`: legacy + yETH according to each mode.
 
 ## HTTP Trigger Security
 
@@ -65,6 +77,11 @@ Each decoded action includes:
 - `txHash`
 - `blockNumber`
 - `logIndex`
+
+yETH user-facing action kinds:
+- `yeth_claimed_stayed`
+- `yeth_claimed_exited`
+- `yeth_recovery_vault_withdraw`
 
 ## ModifyLock Classification Safety
 
@@ -101,6 +118,8 @@ The harness avoids live-chain dependency and includes an explicit `locked()` fai
   - `MAX_SUBREQUESTS_PER_RUN` (positive integer, default `45`)
   - `BUDGET_STALL_ALERT_THRESHOLD` (positive integer, default `3`)
   - `BUDGET_STALL_ALERT_COOLDOWN_SECONDS` (positive integer, default `3600`)
+  - `YETH_ALERTS_MODE` (`off|test|prod`, default `off`)
+  - `YETH_ONLY` (`true`/`false`, default `false`)
 
 Operational runbook: `docs/alerts-bot.md`.
 
@@ -109,6 +128,9 @@ Operational runbook: `docs/alerts-bot.md`.
 Durable Object state keys:
 
 - Cursor keys: `startBlock`, `cursorBlock`
+- yETH cursor keys: `yethStartBlock`, `yethCursorBlock`
+- yETH state key: `yethState`
+- yETH canonical metrics: `yeth:total_snapshot_debt_eth`, `yeth:snapshot_exited_eth`, `yeth:snapshot_stayed_eth`, `yeth:snapshot_unclaimed_eth`, `yeth:outstanding_debt_eth`
 - Dedupe keys: `sent:*`
 
 Recommended reset playbooks:
