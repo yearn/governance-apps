@@ -63,6 +63,7 @@ This worker scans confirmed mainnet blocks, normalizes governance actions, and d
   - `POST /admin/disable`
   - `POST /admin/enable`
   - `POST /admin/reset`
+  - `POST /admin/reset-yeth`
   - all require `Authorization: Bearer <ADMIN_TOKEN>`
   - effective enable: `(ENABLED == "true") && (overrideEnabled ?? true)` (`ENABLED=false` is a hard kill switch)
 
@@ -82,6 +83,11 @@ yETH user-facing action kinds:
 - `yeth_claimed_stayed`
 - `yeth_claimed_exited`
 - `yeth_recovery_vault_withdraw`
+- `yeth_debt_paid_down`
+- `yeth_recovery_progress`
+- `yeth_recovery_setback`
+- `yeth_yield_capacity_up`
+- `yeth_yield_capacity_down`
 
 ## ModifyLock Classification Safety
 
@@ -130,8 +136,9 @@ Durable Object state keys:
 - Cursor keys: `startBlock`, `cursorBlock`
 - yETH cursor keys: `yethStartBlock`, `yethCursorBlock`
 - yETH state key: `yethState`
-- yETH canonical metrics: `yeth:total_snapshot_debt_eth`, `yeth:snapshot_exited_eth`, `yeth:snapshot_stayed_eth`, `yeth:snapshot_unclaimed_eth`, `yeth:outstanding_debt_eth`
+- yETH canonical metrics: `yeth:total_snapshot_debt_eth`, `yeth:snapshot_exited_eth`, `yeth:snapshot_stayed_eth`, `yeth:snapshot_unclaimed_eth`, `yeth:outstanding_debt_eth`, `yeth:repayment_metrics`
 - Dedupe keys: `sent:*`
+  - yETH-specific dedupe keys are namespaced as `sent:yeth:*`
 
 Recommended reset playbooks:
 
@@ -143,5 +150,8 @@ Recommended reset playbooks:
 3. Resume from a specific block after an incident:
    - Set `cursorBlock = targetBlock - 1`.
    - Delete `sent:*` only if you want to re-deliver already-sent alerts.
+4. Re-run yETH from scratch without touching legacy cursors/alerts:
+   - Call `POST /admin/reset-yeth`.
+   - This clears `yeth*` cursor/state/metrics and `sent:yeth:*` dedupe keys only.
 
 Apply these DO storage edits via your normal maintenance workflow (one-off migration/maintenance script, DO admin tool, or temporary admin endpoint) with strict access controls.

@@ -37,6 +37,7 @@ import type {
 
 const ONE = 10n ** 18n;
 const SENT_KEY_PREFIX = "sent:";
+const YETH_SENT_KEY_PREFIX = "sent:yeth:";
 const SENT_LAST_PRUNE_KEY = "sentMeta:lastPruneTs";
 const SENT_MAX_KEYS = 5_000;
 const SENT_RETENTION_SECONDS = 30 * 24 * 60 * 60;
@@ -464,6 +465,21 @@ describe("alerts-bot handler wiring", () => {
     expect(allowed.status).toBe(200);
     expect(doFetch).toHaveBeenCalledTimes(1);
     expect(doFetch).toHaveBeenCalledWith("https://do/admin/reset", {
+      method: "POST",
+    });
+
+    const allowedYethReset = await worker.fetch(
+      createFetchRequest("/admin/reset-yeth", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer admin-token",
+        },
+      }),
+      env as never,
+    );
+    expect(allowedYethReset.status).toBe(200);
+    expect(doFetch).toHaveBeenCalledTimes(2);
+    expect(doFetch).toHaveBeenLastCalledWith("https://do/admin/reset-yeth", {
       method: "POST",
     });
   });
@@ -2203,6 +2219,65 @@ describe("alerts-bot Durable Object runtime state", () => {
     expect(await storage.get<number>(`${SENT_KEY_PREFIX}a:0`)).toBeUndefined();
     expect(await storage.get<number>(`${SENT_KEY_PREFIX}b:1`)).toBeUndefined();
     expect(await storage.get<number>(RUN_META_SCAN_BUDGET_NO_PROGRESS_COUNT_KEY)).toBeUndefined();
+  });
+
+  it("resets only yETH state and yETH dedupe keys via /admin/reset-yeth", async () => {
+    const { state, storage } = createMockState([
+      ["startBlock", 123],
+      ["cursorBlock", 122],
+      ["yethStartBlock", YETH_CLAIM_DEPLOY_BLOCK],
+      ["yethCursorBlock", YETH_CLAIM_DEPLOY_BLOCK - 1],
+      [
+        "yethState",
+        {
+          accounts: {},
+          trackedStayedSharesByAddress: {},
+          observedSharesByAddress: {},
+          trackedStayedSharesTotal: "0",
+          totalSnapshotDebtEth: "0",
+          snapshotExitedEth: "0",
+          snapshotStayedEth: "0",
+          snapshotUnclaimedEth: "0",
+        },
+      ],
+      ["yeth:repayment_metrics", { outstandingDebtEth: "1000000000000000000" }],
+      [`${SENT_KEY_PREFIX}legacy-a:0`, 1_700_000_000],
+      [`${YETH_SENT_KEY_PREFIX}yeth-a:0`, 1_700_000_001],
+      [`${YETH_SENT_KEY_PREFIX}yeth-b:1`, 1_700_000_002],
+    ]);
+    const rpc = createMockRpc({
+      getBlockNumber: async () => 0,
+      getLogs: async () => [],
+      getTransactionByHash: async () => null,
+      getTransactionReceipt: async () => null,
+      call: async () => "0x",
+    });
+    const object = new AlertState(
+      state,
+      {
+        ALERT_STATE: {} as DurableObjectNamespace,
+        RPC_URL: "https://rpc.example",
+      } as never,
+      {
+        createRpcClient: () => rpc,
+        sendMessage: vi.fn(async () => undefined),
+        now: () => 1_800_000_000_000,
+      },
+    );
+
+    const response = await object.fetch(
+      new Request("https://do/admin/reset-yeth", { method: "POST" }),
+    );
+    expect(response.status).toBe(200);
+    expect(await storage.get<number>("startBlock")).toBe(123);
+    expect(await storage.get<number>("cursorBlock")).toBe(122);
+    expect(await storage.get<number>("yethStartBlock")).toBeUndefined();
+    expect(await storage.get<number>("yethCursorBlock")).toBeUndefined();
+    expect(await storage.get("yethState")).toBeUndefined();
+    expect(await storage.get("yeth:repayment_metrics")).toBeUndefined();
+    expect(await storage.get<number>(`${SENT_KEY_PREFIX}legacy-a:0`)).toBe(1_700_000_000);
+    expect(await storage.get<number>(`${YETH_SENT_KEY_PREFIX}yeth-a:0`)).toBeUndefined();
+    expect(await storage.get<number>(`${YETH_SENT_KEY_PREFIX}yeth-b:1`)).toBeUndefined();
   });
 
   it("prunes old dedupe keys and enforces max dedupe cardinality", async () => {

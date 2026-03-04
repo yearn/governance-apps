@@ -75,7 +75,7 @@ import type {
   RpcTransactionReceipt,
 } from "./rpc";
 import { sendMessage } from "./telegram";
-import type { NormalizedAction, YethWithdrawalType } from "./types";
+import type { ActionKind, NormalizedAction, YethWithdrawalType } from "./types";
 
 interface Env {
   ALERT_STATE: DurableObjectNamespace;
@@ -111,6 +111,7 @@ const YETH_SNAPSHOT_EXITED_KEY = "yeth:snapshot_exited_eth";
 const YETH_SNAPSHOT_STAYED_KEY = "yeth:snapshot_stayed_eth";
 const YETH_SNAPSHOT_UNCLAIMED_KEY = "yeth:snapshot_unclaimed_eth";
 const YETH_OUTSTANDING_DEBT_KEY = "yeth:outstanding_debt_eth";
+const YETH_REPAYMENT_METRICS_KEY = "yeth:repayment_metrics";
 const OVERRIDE_ENABLED_KEY = "overrideEnabled";
 const DEFAULT_CONFIRMATIONS = 6;
 const MIN_BLOCK_NUMBER = 0;
@@ -125,8 +126,11 @@ const DEFAULT_MAX_SUBREQUESTS_PER_RUN = 45;
 const DEFAULT_BUDGET_STALL_ALERT_THRESHOLD = 3;
 const DEFAULT_BUDGET_STALL_ALERT_COOLDOWN_SECONDS = 60 * 60;
 const RESERVED_SEND_SUBREQUESTS_PER_CHUNK = 1;
+const ONE_ETH = 10n ** 18n;
+const YETH_PROGRESS_ALERT_MIN_DELTA_ETH = ONE_ETH / 2n;
 const UNKNOWN_USER = "unknown";
 const SENT_KEY_PREFIX = "sent:";
+const YETH_SENT_KEY_PREFIX = "sent:yeth:";
 const SENT_LAST_PRUNE_KEY = "sentMeta:lastPruneTs";
 const SENT_PRUNE_INTERVAL_SECONDS = 24 * 60 * 60;
 const SENT_RETENTION_SECONDS = 30 * 24 * 60 * 60;
@@ -328,6 +332,29 @@ interface DailyImpactStats {
   largestImpactYfi: string;
   largestTierLabel: string;
   largestTxHash: string | null;
+}
+
+interface YethRepaymentMetrics {
+  totalSnapshotDebtEth: bigint;
+  snapshotExitedEth: bigint;
+  snapshotStayedEth: bigint;
+  outstandingDebtEth: bigint;
+  recoveryVaultAssetsEth: bigint | null;
+  yieldVaultAssetsEth: bigint | null;
+}
+
+interface StoredYethRepaymentMetrics {
+  totalSnapshotDebtEth: string;
+  snapshotExitedEth: string;
+  snapshotStayedEth: string;
+  outstandingDebtEth: string;
+  recoveryVaultAssetsEth: string | null;
+  yieldVaultAssetsEth: string | null;
+}
+
+interface YethFlowSummary {
+  recoveryNetFlowEth: bigint;
+  yieldNetFlowEth: bigint;
 }
 
 interface AlertRuntimeDependencies {
@@ -870,6 +897,25 @@ function parseBigIntString(value: unknown, fallback: bigint = 0n): bigint {
   return BigInt(value);
 }
 
+function maxBigInt(left: bigint, right: bigint): bigint {
+  return left >= right ? left : right;
+}
+
+function absBigInt(value: bigint): bigint {
+  return value < 0n ? -value : value;
+}
+
+function toPercentHundredths(numerator: bigint, denominator: bigint): bigint {
+  if (numerator <= 0n || denominator <= 0n) {
+    return 0n;
+  }
+  return (numerator * 10_000n + denominator / 2n) / denominator;
+}
+
+function isYethActionKind(kind: ActionKind): boolean {
+  return kind.startsWith("yeth_");
+}
+
 function createEmptyYethState(): YethState {
   return {
     accounts: new Map<string, YethAccountSnapshot>(),
@@ -990,6 +1036,90 @@ function serializeYethState(state: YethState): StoredYethState {
     snapshotExitedEth: state.snapshotExitedEth.toString(),
     snapshotStayedEth: state.snapshotStayedEth.toString(),
     snapshotUnclaimedEth: state.snapshotUnclaimedEth.toString(),
+  };
+}
+
+function buildYethRepaymentMetrics(
+  state: YethState,
+  recoveryVaultAssetsEth: bigint | null,
+  yieldVaultAssetsEth: bigint | null,
+): YethRepaymentMetrics {
+  return {
+    totalSnapshotDebtEth: state.totalSnapshotDebtEth,
+    snapshotExitedEth: state.snapshotExitedEth,
+    snapshotStayedEth: state.snapshotStayedEth,
+    outstandingDebtEth: state.snapshotStayedEth + state.snapshotUnclaimedEth,
+    recoveryVaultAssetsEth,
+    yieldVaultAssetsEth,
+  };
+}
+
+function loadYethRepaymentMetrics(
+  stored: StoredYethRepaymentMetrics | null | undefined,
+): YethRepaymentMetrics | null {
+  if (!stored) {
+    return null;
+  }
+
+  return {
+    totalSnapshotDebtEth: parseBigIntString(stored.totalSnapshotDebtEth),
+    snapshotExitedEth: parseBigIntString(stored.snapshotExitedEth),
+    snapshotStayedEth: parseBigIntString(stored.snapshotStayedEth),
+    outstandingDebtEth: parseBigIntString(stored.outstandingDebtEth),
+    recoveryVaultAssetsEth:
+      stored.recoveryVaultAssetsEth !== null
+        ? parseBigIntString(stored.recoveryVaultAssetsEth)
+        : null,
+    yieldVaultAssetsEth:
+      stored.yieldVaultAssetsEth !== null
+        ? parseBigIntString(stored.yieldVaultAssetsEth)
+        : null,
+  };
+}
+
+function serializeYethRepaymentMetrics(
+  metrics: YethRepaymentMetrics,
+): StoredYethRepaymentMetrics {
+  return {
+    totalSnapshotDebtEth: metrics.totalSnapshotDebtEth.toString(),
+    snapshotExitedEth: metrics.snapshotExitedEth.toString(),
+    snapshotStayedEth: metrics.snapshotStayedEth.toString(),
+    outstandingDebtEth: metrics.outstandingDebtEth.toString(),
+    recoveryVaultAssetsEth:
+      metrics.recoveryVaultAssetsEth !== null
+        ? metrics.recoveryVaultAssetsEth.toString()
+        : null,
+    yieldVaultAssetsEth:
+      metrics.yieldVaultAssetsEth !== null ? metrics.yieldVaultAssetsEth.toString() : null,
+  };
+}
+
+function summarizeYethFlows(actions: NormalizedAction[]): YethFlowSummary {
+  let recoveryNetFlowEth = 0n;
+  let yieldNetFlowEth = 0n;
+
+  for (const action of actions) {
+    if (action.kind === "yeth_claimed_stayed") {
+      const snapshotAmount = action.amounts.yethSnapshotAmount ?? 0n;
+      recoveryNetFlowEth += snapshotAmount;
+      yieldNetFlowEth -= snapshotAmount;
+      continue;
+    }
+
+    if (action.kind === "yeth_claimed_exited") {
+      const snapshotAmount = action.amounts.yethSnapshotAmount ?? 0n;
+      yieldNetFlowEth -= snapshotAmount;
+      continue;
+    }
+
+    if (action.kind === "yeth_recovery_vault_withdraw") {
+      recoveryNetFlowEth -= action.amounts.assets ?? 0n;
+    }
+  }
+
+  return {
+    recoveryNetFlowEth,
+    yieldNetFlowEth,
   };
 }
 
@@ -2436,7 +2566,7 @@ async function triggerAlertRun(env: Env): Promise<Response> {
 
 async function triggerAlertAdmin(
   env: Env,
-  path: "/admin/disable" | "/admin/enable" | "/admin/reset",
+  path: "/admin/disable" | "/admin/enable" | "/admin/reset" | "/admin/reset-yeth",
 ): Promise<Response> {
   const id = env.ALERT_STATE.idFromName(ALERT_STATE_SINGLETON);
   const stub = env.ALERT_STATE.get(id);
@@ -2459,7 +2589,9 @@ async function fetch(request: Request, env: Env): Promise<Response> {
 
   if (
     request.method === "POST" &&
-    ["/admin/disable", "/admin/enable", "/admin/reset"].includes(url.pathname)
+    ["/admin/disable", "/admin/enable", "/admin/reset", "/admin/reset-yeth"].includes(
+      url.pathname,
+    )
   ) {
     if (!isAuthorizedAdminRequest(request, env)) {
       return new Response("Forbidden", { status: 403 });
@@ -2467,7 +2599,11 @@ async function fetch(request: Request, env: Env): Promise<Response> {
 
     return triggerAlertAdmin(
       env,
-      url.pathname as "/admin/disable" | "/admin/enable" | "/admin/reset",
+      url.pathname as
+        | "/admin/disable"
+        | "/admin/enable"
+        | "/admin/reset"
+        | "/admin/reset-yeth",
     );
   }
 
@@ -2491,13 +2627,21 @@ export class AlertState implements DurableObject {
     private readonly _deps: AlertRuntimeDependencies = DEFAULT_ALERT_RUNTIME_DEPENDENCIES,
   ) {}
 
-  private getSentStorageKeyFromMetadata(txHash: string, logIndex: number): string {
+  private getLegacySentStorageKeyFromMetadata(txHash: string, logIndex: number): string {
     const dedupeKey = `${txHash}:${logIndex}`;
     return `${SENT_KEY_PREFIX}${dedupeKey}`;
   }
 
+  private getYethSentStorageKeyFromMetadata(txHash: string, logIndex: number): string {
+    const dedupeKey = `${txHash}:${logIndex}`;
+    return `${YETH_SENT_KEY_PREFIX}${dedupeKey}`;
+  }
+
   private getSentStorageKey(action: NormalizedAction): string {
-    return this.getSentStorageKeyFromMetadata(action.txHash, action.logIndex);
+    if (isYethActionKind(action.kind)) {
+      return this.getYethSentStorageKeyFromMetadata(action.txHash, action.logIndex);
+    }
+    return this.getLegacySentStorageKeyFromMetadata(action.txHash, action.logIndex);
   }
 
   private async loadYethStateFromStorage(): Promise<YethState> {
@@ -2526,6 +2670,22 @@ export class AlertState implements DurableObject {
       state.snapshotUnclaimedEth.toString(),
     );
     await this._state.storage.put(YETH_OUTSTANDING_DEBT_KEY, outstandingDebt.toString());
+  }
+
+  private async loadYethRepaymentMetricsFromStorage(): Promise<YethRepaymentMetrics | null> {
+    const stored = await this._state.storage.get<StoredYethRepaymentMetrics>(
+      YETH_REPAYMENT_METRICS_KEY,
+    );
+    return loadYethRepaymentMetrics(stored ?? null);
+  }
+
+  private async persistYethRepaymentMetricsToStorage(
+    metrics: YethRepaymentMetrics,
+  ): Promise<void> {
+    await this._state.storage.put(
+      YETH_REPAYMENT_METRICS_KEY,
+      serializeYethRepaymentMetrics(metrics),
+    );
   }
 
   private async writeYethCursor(cursorBlock: number): Promise<void> {
@@ -2557,7 +2717,7 @@ export class AlertState implements DurableObject {
       return false;
     }
 
-    const key = this.getSentStorageKeyFromMetadata(log.transactionHash, log.logIndex);
+    const key = this.getLegacySentStorageKeyFromMetadata(log.transactionHash, log.logIndex);
     const existing = await this._state.storage.get<number>(key);
     return existing !== undefined;
   }
@@ -2580,6 +2740,7 @@ export class AlertState implements DurableObject {
     await this._state.storage.delete(YETH_SNAPSHOT_STAYED_KEY);
     await this._state.storage.delete(YETH_SNAPSHOT_UNCLAIMED_KEY);
     await this._state.storage.delete(YETH_OUTSTANDING_DEBT_KEY);
+    await this._state.storage.delete(YETH_REPAYMENT_METRICS_KEY);
     await this._state.storage.delete(SENT_LAST_PRUNE_KEY);
     await this._state.storage.delete(RUN_META_SCAN_BUDGET_NO_PROGRESS_COUNT_KEY);
     await this._state.storage.delete(
@@ -2603,6 +2764,27 @@ export class AlertState implements DurableObject {
     }
 
     return { deletedSentKeys: sentEntries.size };
+  }
+
+  private async resetYethRuntimeState(): Promise<{ deletedYethSentKeys: number }> {
+    await this._state.storage.delete(YETH_START_BLOCK_KEY);
+    await this._state.storage.delete(YETH_CURSOR_BLOCK_KEY);
+    await this._state.storage.delete(YETH_STATE_KEY);
+    await this._state.storage.delete(YETH_TOTAL_SNAPSHOT_DEBT_KEY);
+    await this._state.storage.delete(YETH_SNAPSHOT_EXITED_KEY);
+    await this._state.storage.delete(YETH_SNAPSHOT_STAYED_KEY);
+    await this._state.storage.delete(YETH_SNAPSHOT_UNCLAIMED_KEY);
+    await this._state.storage.delete(YETH_OUTSTANDING_DEBT_KEY);
+    await this._state.storage.delete(YETH_REPAYMENT_METRICS_KEY);
+
+    const sentEntries = await this._state.storage.list<number>({
+      prefix: YETH_SENT_KEY_PREFIX,
+    });
+    for (const key of sentEntries.keys()) {
+      await this._state.storage.delete(key);
+    }
+
+    return { deletedYethSentKeys: sentEntries.size };
   }
 
   private async pruneSentEntries(nowSeconds: number): Promise<void> {
@@ -2985,6 +3167,20 @@ export class AlertState implements DurableObject {
       return null;
     }
 
+    return this.resolveErc4626TotalAssetsAtBlock(
+      rpc,
+      YETH_YIELD_VAULT,
+      action.blockNumber,
+      "yETH yield vault",
+    );
+  }
+
+  private async resolveErc4626TotalAssetsAtBlock(
+    rpc: RpcClient,
+    vault: Address,
+    blockNumber: number,
+    label: string,
+  ): Promise<bigint | null> {
     try {
       const data = encodeFunctionData({
         abi: ERC4626_TOTAL_ASSETS_ABI,
@@ -2992,10 +3188,10 @@ export class AlertState implements DurableObject {
       });
       const raw = await rpc.call(
         {
-          to: YETH_YIELD_VAULT,
+          to: vault,
           data,
         },
-        action.blockNumber,
+        blockNumber,
       );
       const result = decodeFunctionResult({
         abi: ERC4626_TOTAL_ASSETS_ABI,
@@ -3005,10 +3201,11 @@ export class AlertState implements DurableObject {
       return result as bigint;
     } catch (error) {
       if (!(error instanceof SubrequestBudgetExceededError)) {
-        console.warn("Failed to resolve yETH yield vault totalAssets", {
+        console.warn("Failed to resolve ERC4626 totalAssets", {
+          label,
+          vault,
+          blockNumber,
           error,
-          blockNumber: action.blockNumber,
-          txHash: action.txHash,
         });
       }
       return null;
@@ -3444,6 +3641,168 @@ export class AlertState implements DurableObject {
     };
   }
 
+  private getYethSyntheticLogIndex(
+    kind:
+      | "yeth_debt_paid_down"
+      | "yeth_recovery_progress"
+      | "yeth_recovery_setback"
+      | "yeth_yield_capacity_up"
+      | "yeth_yield_capacity_down",
+  ): number {
+    if (kind === "yeth_debt_paid_down") {
+      return 910_001;
+    }
+    if (kind === "yeth_recovery_progress") {
+      return 910_002;
+    }
+    if (kind === "yeth_recovery_setback") {
+      return 910_003;
+    }
+    if (kind === "yeth_yield_capacity_up") {
+      return 910_004;
+    }
+    return 910_005;
+  }
+
+  private buildSyntheticYethProgressAction(params: {
+    kind:
+      | "yeth_debt_paid_down"
+      | "yeth_recovery_progress"
+      | "yeth_recovery_setback"
+      | "yeth_yield_capacity_up"
+      | "yeth_yield_capacity_down";
+    blockNumber: number;
+    amounts: NormalizedAction["amounts"];
+  }): NormalizedAction {
+    return {
+      kind: params.kind,
+      tokenSymbol: "yETH",
+      user: "yeth-system",
+      amounts: params.amounts,
+      txHash: `meta:yeth:${params.kind}:${params.blockNumber}`,
+      blockNumber: params.blockNumber,
+      logIndex: this.getYethSyntheticLogIndex(params.kind),
+    };
+  }
+
+  private buildYethRepaymentAlertActions(params: {
+    previous: YethRepaymentMetrics | null;
+    current: YethRepaymentMetrics;
+    flow: YethFlowSummary;
+    blockNumber: number;
+  }): NormalizedAction[] {
+    if (params.previous === null) {
+      return [];
+    }
+
+    const alerts: NormalizedAction[] = [];
+    const { previous, current, flow, blockNumber } = params;
+
+    const debtPaidDownEth = previous.outstandingDebtEth - current.outstandingDebtEth;
+    if (debtPaidDownEth >= YETH_PROGRESS_ALERT_MIN_DELTA_ETH) {
+      alerts.push(
+        this.buildSyntheticYethProgressAction({
+          kind: "yeth_debt_paid_down",
+          blockNumber,
+          amounts: {
+            yethPreviousOutstandingDebtEth: previous.outstandingDebtEth,
+            yethCurrentOutstandingDebtEth: current.outstandingDebtEth,
+            yethPreviousRepaidPercentHundredths: toPercentHundredths(
+              previous.snapshotExitedEth,
+              previous.totalSnapshotDebtEth,
+            ),
+            yethCurrentRepaidPercentHundredths: toPercentHundredths(
+              current.snapshotExitedEth,
+              current.totalSnapshotDebtEth,
+            ),
+          },
+        }),
+      );
+    }
+
+    if (
+      previous.recoveryVaultAssetsEth !== null &&
+      current.recoveryVaultAssetsEth !== null
+    ) {
+      const shortfallBefore = maxBigInt(
+        0n,
+        previous.snapshotStayedEth - previous.recoveryVaultAssetsEth,
+      );
+      const shortfallAfter = maxBigInt(
+        0n,
+        current.snapshotStayedEth - current.recoveryVaultAssetsEth,
+      );
+      const shortfallDeltaEth = shortfallBefore - shortfallAfter;
+      if (absBigInt(shortfallDeltaEth) >= YETH_PROGRESS_ALERT_MIN_DELTA_ETH) {
+        alerts.push(
+          this.buildSyntheticYethProgressAction({
+            kind:
+              shortfallDeltaEth >= 0n
+                ? "yeth_recovery_progress"
+                : "yeth_recovery_setback",
+            blockNumber,
+            amounts: {
+              yethSnapshotStayedEth: current.snapshotStayedEth,
+              yethPreviousRecoveryShortfallEth: shortfallBefore,
+              yethCurrentRecoveryShortfallEth: shortfallAfter,
+              yethPreviousRecoveryCoverageHundredths: toPercentHundredths(
+                previous.recoveryVaultAssetsEth,
+                previous.snapshotStayedEth,
+              ),
+              yethCurrentRecoveryCoverageHundredths: toPercentHundredths(
+                current.recoveryVaultAssetsEth,
+                current.snapshotStayedEth,
+              ),
+              yethPreviousRecoveryVaultAssetsEth: previous.recoveryVaultAssetsEth,
+              yethCurrentRecoveryVaultAssetsEth: current.recoveryVaultAssetsEth,
+              yethRecoveryNetFlowEth: flow.recoveryNetFlowEth,
+              yethRecoveryOrganicDeltaEth:
+                current.recoveryVaultAssetsEth -
+                previous.recoveryVaultAssetsEth -
+                flow.recoveryNetFlowEth,
+            },
+          }),
+        );
+      }
+    }
+
+    if (previous.yieldVaultAssetsEth !== null && current.yieldVaultAssetsEth !== null) {
+      const yieldCapacityDeltaEth = current.yieldVaultAssetsEth - previous.yieldVaultAssetsEth;
+      if (absBigInt(yieldCapacityDeltaEth) >= YETH_PROGRESS_ALERT_MIN_DELTA_ETH) {
+        alerts.push(
+          this.buildSyntheticYethProgressAction({
+            kind:
+              yieldCapacityDeltaEth >= 0n
+                ? "yeth_yield_capacity_up"
+                : "yeth_yield_capacity_down",
+            blockNumber,
+            amounts: {
+              yethOutstandingDebtEth: current.outstandingDebtEth,
+              yethCurrentOutstandingDebtEth: current.outstandingDebtEth,
+              yethPreviousYieldVaultAssetsEth: previous.yieldVaultAssetsEth,
+              yethCurrentYieldVaultAssetsEth: current.yieldVaultAssetsEth,
+              yethPreviousYieldCoverageHundredths: toPercentHundredths(
+                previous.yieldVaultAssetsEth,
+                previous.outstandingDebtEth,
+              ),
+              yethCurrentYieldCoverageHundredths: toPercentHundredths(
+                current.yieldVaultAssetsEth,
+                current.outstandingDebtEth,
+              ),
+              yethYieldNetFlowEth: flow.yieldNetFlowEth,
+              yethYieldOrganicDeltaEth:
+                current.yieldVaultAssetsEth -
+                previous.yieldVaultAssetsEth -
+                flow.yieldNetFlowEth,
+            },
+          }),
+        );
+      }
+    }
+
+    return alerts;
+  }
+
   private async processYethBackfill(params: {
     rpc: RpcClient;
     confirmedHeadBlock: number;
@@ -3491,6 +3850,7 @@ export class AlertState implements DurableObject {
 
     const persistedState = await this.loadYethStateFromStorage();
     let workingState = cloneYethState(persistedState);
+    let workingRepaymentMetrics = await this.loadYethRepaymentMetricsFromStorage();
     let nextFromBlock = fromBlock;
 
     while (nextFromBlock <= toBlock) {
@@ -3508,8 +3868,36 @@ export class AlertState implements DurableObject {
         chunkTo,
         chunkState,
       );
+      const recoveryVaultAssetsEth = await this.resolveErc4626TotalAssetsAtBlock(
+        params.rpc,
+        YETH_RECOVERY_VAULT,
+        chunkTo,
+        "yETH recovery vault",
+      );
+      const yieldVaultAssetsEth = await this.resolveErc4626TotalAssetsAtBlock(
+        params.rpc,
+        YETH_YIELD_VAULT,
+        chunkTo,
+        "yETH yield vault",
+      );
+      const normalizedRecoveryVaultAssetsEth =
+        recoveryVaultAssetsEth ?? workingRepaymentMetrics?.recoveryVaultAssetsEth ?? null;
+      const normalizedYieldVaultAssetsEth =
+        yieldVaultAssetsEth ?? workingRepaymentMetrics?.yieldVaultAssetsEth ?? null;
+      const nextRepaymentMetrics = buildYethRepaymentMetrics(
+        chunkState,
+        normalizedRecoveryVaultAssetsEth,
+        normalizedYieldVaultAssetsEth,
+      );
+      const repaymentAlerts = this.buildYethRepaymentAlertActions({
+        previous: workingRepaymentMetrics,
+        current: nextRepaymentMetrics,
+        flow: summarizeYethFlows(actions),
+        blockNumber: chunkTo,
+      });
+      const actionsToDispatch = [...actions, ...repaymentAlerts];
       params.messageContext.fallbackTimestampSeconds = Math.floor(this._deps.now() / 1000);
-      const dispatchResult = await this.dispatchActions(actions, {
+      const dispatchResult = await this.dispatchActions(actionsToDispatch, {
         dryRun: params.route.dryRun,
         chatId: params.route.chatId,
         botToken: params.route.botToken,
@@ -3548,6 +3936,8 @@ export class AlertState implements DurableObject {
 
       workingState = chunkState;
       await this.persistYethStateToStorage(workingState);
+      workingRepaymentMetrics = nextRepaymentMetrics;
+      await this.persistYethRepaymentMetricsToStorage(workingRepaymentMetrics);
       processedCursorBlock = await this.maybePersistYethCursor(
         processedCursorBlock,
         chunkTo,
@@ -4052,6 +4442,12 @@ export class AlertState implements DurableObject {
       const result = await this.resetRuntimeState();
       console.log("Reset alerts runtime state", result);
       return new Response("reset", { status: 200 });
+    }
+
+    if (request.method === "POST" && url.pathname === "/admin/reset-yeth") {
+      const result = await this.resetYethRuntimeState();
+      console.log("Reset yETH runtime state", result);
+      return new Response("reset-yeth", { status: 200 });
     }
 
     if (url.pathname === "/run") {
