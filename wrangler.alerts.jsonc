@@ -24,6 +24,15 @@
     "BUDGET_STALL_ALERT_THRESHOLD": "3",
     "BUDGET_STALL_ALERT_COOLDOWN_SECONDS": "3600",
     "DAILY_IMPACT_DIGEST_ENABLED": "true",
+    //YETH_ALERTS_MODE=off|test|prod
+    // - off: no yETH decode/dispatch.
+    // - test: yETH alerts route to TEST_TO_CHAT_ID regardless of global mode.
+    // - prod: yETH alerts use normal route logic.
+    "YETH_ALERTS_MODE": "prod",
+    //YETH_ONLY=true|false
+    // - true: dispatch only yETH alerts (suppress non-yETH alerts).
+    // - false: existing alerts + yETH per mode
+    "YETH_ONLY": "false",
   },
 
   "triggers": {
