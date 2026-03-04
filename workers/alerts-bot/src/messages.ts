@@ -293,11 +293,21 @@ function formatSignedAmount(value: bigint): string {
   return `${sign}${formatAmount(absolute)}`;
 }
 
-function isYethAction(action: NormalizedAction): boolean {
+function isYethSnapshotAction(action: NormalizedAction): boolean {
   return (
     action.kind === "yeth_claimed_stayed" ||
     action.kind === "yeth_claimed_exited" ||
     action.kind === "yeth_recovery_vault_withdraw"
+  );
+}
+
+function isYethProgressAction(action: NormalizedAction): boolean {
+  return (
+    action.kind === "yeth_debt_paid_down" ||
+    action.kind === "yeth_recovery_progress" ||
+    action.kind === "yeth_recovery_setback" ||
+    action.kind === "yeth_yield_capacity_up" ||
+    action.kind === "yeth_yield_capacity_down"
   );
 }
 
@@ -446,13 +456,21 @@ function getYethImpactBasis(action: NormalizedAction): {
 }
 
 export function classifyActionImpact(action: NormalizedAction): ImpactClassification {
-  if (isYethAction(action)) {
+  if (isYethSnapshotAction(action)) {
     const basis = getYethImpactBasis(action);
     const impactPercentHundredths = toPercentHundredths(basis.moved, basis.total);
     return {
       impactYfi: 0n,
       impactPercentHundredths,
       tier: classifyYethImpactTier(basis),
+    };
+  }
+
+  if (isYethProgressAction(action)) {
+    return {
+      impactYfi: 0n,
+      impactPercentHundredths: null,
+      tier: IMPACT_TIERS.info,
     };
   }
 
@@ -480,7 +498,7 @@ function buildImpactBasisLine(
   action: NormalizedAction,
   options: RenderTelegramMessageOptions,
 ): string {
-  if (isYethAction(action)) {
+  if (isYethSnapshotAction(action)) {
     const basis = getYethImpactBasis(action);
     return `Impact basis: <b>${formatPercent(basis.moved, basis.total)}%</b> of total snapshot debt moved`;
   }
@@ -955,6 +973,18 @@ function formatPercentHundredths(value: bigint): string {
   return `${whole.toString()}.${fraction}`;
 }
 
+function formatSignedPercentPointHundredths(value: bigint): string {
+  const sign = value > 0n ? "+" : value < 0n ? "-" : "";
+  const absolute = value < 0n ? -value : value;
+  return `${sign}${formatPercentHundredths(absolute)}`;
+}
+
+function formatSignedEthAmount(value: bigint): string {
+  const sign = value > 0n ? "+" : value < 0n ? "-" : "";
+  const absolute = value < 0n ? -value : value;
+  return `${sign}${formatAmount(absolute)}`;
+}
+
 function buildYethMixPercents(action: NormalizedAction): {
   exited: bigint;
   stayed: bigint;
@@ -1102,6 +1132,110 @@ function buildYethRecoveryVaultWithdrawBlueprint(
   };
 }
 
+function buildYethDebtPaidDownBlueprint(action: NormalizedAction): MessageBlueprint {
+  const previousOutstanding = action.amounts.yethPreviousOutstandingDebtEth ?? 0n;
+  const currentOutstanding =
+    action.amounts.yethCurrentOutstandingDebtEth ?? action.amounts.yethOutstandingDebtEth ?? 0n;
+  const debtPaidDown =
+    previousOutstanding > currentOutstanding ? previousOutstanding - currentOutstanding : 0n;
+  const repaidBefore = action.amounts.yethPreviousRepaidPercentHundredths ?? 0n;
+  const repaidAfter = action.amounts.yethCurrentRepaidPercentHundredths ?? repaidBefore;
+
+  return {
+    eventEmoji: "🟢",
+    title: "yETH Debt Paid Down",
+    lines: [
+      `Debt paid down: <b>${formatAmount(debtPaidDown)}</b> ETH (trigger <b>0.50</b> ETH)`,
+      `Outstanding debt: <b>${formatAmount(previousOutstanding)}</b> → <b>${formatAmount(currentOutstanding)}</b> ETH`,
+      `Repaid since snapshot: <b>${formatPercentHundredths(repaidBefore)}%</b> → <b>${formatPercentHundredths(
+        repaidAfter,
+      )}%</b> (<b>${formatSignedPercentPointHundredths(repaidAfter - repaidBefore)} pts</b>)`,
+    ],
+  };
+}
+
+function buildYethRecoveryProgressBlueprint(action: NormalizedAction): MessageBlueprint {
+  const shortfallBefore = action.amounts.yethPreviousRecoveryShortfallEth ?? 0n;
+  const shortfallAfter = action.amounts.yethCurrentRecoveryShortfallEth ?? 0n;
+  const shortfallDelta = shortfallAfter - shortfallBefore;
+  const shortfallDeltaAbsolute = shortfallDelta < 0n ? -shortfallDelta : shortfallDelta;
+  const coverageBefore = action.amounts.yethPreviousRecoveryCoverageHundredths ?? 0n;
+  const coverageAfter = action.amounts.yethCurrentRecoveryCoverageHundredths ?? 0n;
+  const stayedDebt = action.amounts.yethSnapshotStayedEth ?? 0n;
+  const recoveryAssets = action.amounts.yethCurrentRecoveryVaultAssetsEth ?? 0n;
+  const recoveryNetFlow = action.amounts.yethRecoveryNetFlowEth ?? 0n;
+  const recoveryOrganicDelta = action.amounts.yethRecoveryOrganicDeltaEth ?? 0n;
+  const isProgress = action.kind === "yeth_recovery_progress";
+  const isInitialized =
+    shortfallBefore === 0n &&
+    coverageBefore === 0n &&
+    (shortfallAfter > 0n || coverageAfter > 0n || stayedDebt > 0n || recoveryAssets > 0n);
+  const title = isInitialized
+    ? "yETH Recovery Initialized"
+    : isProgress
+      ? "yETH Recovery Progress"
+      : "yETH Recovery Setback";
+
+  return {
+    eventEmoji: isInitialized ? "ℹ️" : isProgress ? "🟢" : "🟠",
+    title,
+    lines: [
+      isInitialized
+        ? `Recovery baseline: shortfall <b>${formatAmount(shortfallBefore)}</b> → <b>${formatAmount(shortfallAfter)}</b> ETH`
+        : isProgress
+          ? `Shortfall reduced: <b>${formatAmount(shortfallBefore)}</b> → <b>${formatAmount(shortfallAfter)}</b> ETH (<b>-${formatAmount(shortfallDeltaAbsolute)}</b> ETH)`
+          : `Shortfall widened: <b>${formatAmount(shortfallBefore)}</b> → <b>${formatAmount(shortfallAfter)}</b> ETH (<b>+${formatAmount(shortfallDeltaAbsolute)}</b> ETH)`,
+      `Recovery coverage: <b>${formatPercentHundredths(coverageBefore)}%</b> → <b>${formatPercentHundredths(
+        coverageAfter,
+      )}%</b> (<b>${formatSignedPercentPointHundredths(
+        coverageAfter - coverageBefore,
+      )} pts</b>)`,
+      `Stayed debt: <b>${formatAmount(stayedDebt)}</b> ETH • Recovery Vault assets: <b>${formatAmount(recoveryAssets)}</b> ETH`,
+      `Drivers: Net user flow <b>${formatSignedEthAmount(recoveryNetFlow)}</b> ETH • Yield/fees/donations <b>${formatSignedEthAmount(recoveryOrganicDelta)}</b> ETH`,
+    ],
+  };
+}
+
+function buildYethYieldCapacityBlueprint(action: NormalizedAction): MessageBlueprint {
+  const previousAssets = action.amounts.yethPreviousYieldVaultAssetsEth ?? 0n;
+  const currentAssets =
+    action.amounts.yethCurrentYieldVaultAssetsEth ?? action.amounts.yethYieldVaultAssetsEth ?? 0n;
+  const capacityDelta = currentAssets - previousAssets;
+  const coverageBefore = action.amounts.yethPreviousYieldCoverageHundredths ?? 0n;
+  const coverageAfter = action.amounts.yethCurrentYieldCoverageHundredths ?? 0n;
+  const yieldNetFlow = action.amounts.yethYieldNetFlowEth ?? 0n;
+  const yieldOrganicDelta = action.amounts.yethYieldOrganicDeltaEth ?? 0n;
+  const outstanding =
+    action.amounts.yethCurrentOutstandingDebtEth ?? action.amounts.yethOutstandingDebtEth ?? 0n;
+  const isUp = action.kind === "yeth_yield_capacity_up";
+  const isInitialized =
+    previousAssets === 0n &&
+    coverageBefore === 0n &&
+    (currentAssets > 0n || coverageAfter > 0n);
+  const title = isInitialized
+    ? "yETH Yield Capacity Initialized"
+    : isUp
+      ? "yETH Yield Capacity Up"
+      : "yETH Yield Capacity Down";
+
+  return {
+    eventEmoji: isInitialized ? "ℹ️" : isUp ? "🟢" : "🔻",
+    title,
+    lines: [
+      isInitialized
+        ? `Yield Vault baseline: assets <b>${formatAmount(previousAssets)}</b> → <b>${formatAmount(currentAssets)}</b> ETH`
+        : `Yield Vault assets: <b>${formatAmount(previousAssets)}</b> → <b>${formatAmount(currentAssets)}</b> ETH (<b>${formatSignedEthAmount(capacityDelta)}</b> ETH)`,
+      `Capacity vs outstanding debt: <b>${formatPercentHundredths(coverageBefore)}%</b> → <b>${formatPercentHundredths(
+        coverageAfter,
+      )}%</b> (<b>${formatSignedPercentPointHundredths(
+        coverageAfter - coverageBefore,
+      )} pts</b>)`,
+      `Net claim flow: <b>${formatSignedEthAmount(yieldNetFlow)}</b> ETH • Organic delta (yield/loss): <b>${formatSignedEthAmount(yieldOrganicDelta)}</b> ETH`,
+      `Outstanding debt: <b>${formatAmount(outstanding)}</b> ETH`,
+    ],
+  };
+}
+
 function buildMessageBlueprint(
   action: NormalizedAction,
   options: RenderTelegramMessageOptions,
@@ -1154,6 +1288,18 @@ function buildMessageBlueprint(
     return buildYethRecoveryVaultWithdrawBlueprint(action, options);
   }
 
+  if (action.kind === "yeth_debt_paid_down") {
+    return buildYethDebtPaidDownBlueprint(action);
+  }
+
+  if (action.kind === "yeth_recovery_progress" || action.kind === "yeth_recovery_setback") {
+    return buildYethRecoveryProgressBlueprint(action);
+  }
+
+  if (action.kind === "yeth_yield_capacity_up" || action.kind === "yeth_yield_capacity_down") {
+    return buildYethYieldCapacityBlueprint(action);
+  }
+
   return null;
 }
 
@@ -1173,22 +1319,32 @@ export function renderTelegramMessage(
   }
 
   const impact = classifyActionImpact(action);
+  const includeImpact = !isYethProgressAction(action);
+  const includeActors = !isYethProgressAction(action);
+  const includeTx = !isYethProgressAction(action);
+  const titlePrefix = includeImpact
+    ? `${impact.tier.emoji} ${blueprint.eventEmoji}`
+    : blueprint.eventEmoji;
   const lines: string[] = [];
-  if (impact.tier.key === "whale") {
+  if (includeImpact && impact.tier.key === "whale") {
     lines.push("🚨 <b>WHALE MOVE</b>");
   }
 
-  lines.push(
-    `<b>${impact.tier.emoji} ${blueprint.eventEmoji} ${escapeHtml(blueprint.title)}</b>`,
-  );
-  lines.push(buildImpactLine(action));
-  const impactBasisLine = buildImpactBasisLine(action, options);
-  if (impactBasisLine) {
-    lines.push(impactBasisLine);
+  lines.push(`<b>${titlePrefix} ${escapeHtml(blueprint.title)}</b>`);
+  if (includeImpact) {
+    lines.push(buildImpactLine(action));
+    const impactBasisLine = buildImpactBasisLine(action, options);
+    if (impactBasisLine) {
+      lines.push(impactBasisLine);
+    }
   }
   lines.push(...blueprint.lines);
-  lines.push(...buildActorLines(action, options));
-  lines.push(`Tx: ${buildTxLink(action.txHash)}`);
+  if (includeActors) {
+    lines.push(...buildActorLines(action, options));
+  }
+  if (includeTx) {
+    lines.push(`Tx: ${buildTxLink(action.txHash)}`);
+  }
   lines.push(buildFooterLine(action, options.blockTimestampSeconds ?? null));
 
   return lines.join("\n");

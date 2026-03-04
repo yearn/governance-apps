@@ -340,6 +340,116 @@ describe("alerts-bot Telegram rendering", () => {
     expect(message).toContain("Snapshot moved to exited: <b>1.24K</b> ETH");
   });
 
+  it("renders yETH debt-paid-down alerts without actor/tx noise", () => {
+    const message = renderTelegramMessage(
+      baseAction({
+        kind: "yeth_debt_paid_down",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethPreviousOutstandingDebtEth: 2_910_440_000_000_000_000_000n,
+          yethCurrentOutstandingDebtEth: 2_909_720_000_000_000_000_000n,
+          yethPreviousRepaidPercentHundredths: 2_271n,
+          yethCurrentRepaidPercentHundredths: 2_273n,
+        },
+      }),
+    );
+
+    expect(message).toContain("<b>🟢 yETH Debt Paid Down</b>");
+    expect(message).toContain("Debt paid down: <b>0.72</b> ETH (trigger <b>0.50</b> ETH)");
+    expect(message).toContain("Outstanding debt: <b>2.91K</b> → <b>2.91K</b> ETH");
+    expect(message).toContain("Repaid since snapshot: <b>22.71%</b> → <b>22.73%</b>");
+    expect(message).not.toContain("Impact:");
+    expect(message).not.toContain("Account:");
+    expect(message).not.toContain("Tx:");
+  });
+
+  it("renders yETH recovery/yield progress alerts with yETH-prefixed titles", () => {
+    const recoveryMessage = renderTelegramMessage(
+      baseAction({
+        kind: "yeth_recovery_progress",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethSnapshotStayedEth: 2_630n * ONE,
+          yethPreviousRecoveryShortfallEth: 1_204_600_000_000_000_000_000n,
+          yethCurrentRecoveryShortfallEth: 1_168_100_000_000_000_000_000n,
+          yethPreviousRecoveryCoverageHundredths: 5_420n,
+          yethCurrentRecoveryCoverageHundredths: 5_543n,
+          yethCurrentRecoveryVaultAssetsEth: 1_461_900_000_000_000_000_000n,
+          yethRecoveryNetFlowEth: 10n * ONE,
+          yethRecoveryOrganicDeltaEth: 26_500_000_000_000_000_000n,
+        },
+      }),
+    );
+    const yieldMessage = renderTelegramMessage(
+      baseAction({
+        kind: "yeth_yield_capacity_down",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethOutstandingDebtEth: 2_910n * ONE,
+          yethPreviousYieldVaultAssetsEth: 1_740n * ONE,
+          yethCurrentYieldVaultAssetsEth: 1_660n * ONE,
+          yethPreviousYieldCoverageHundredths: 5_980n,
+          yethCurrentYieldCoverageHundredths: 5_704n,
+          yethYieldNetFlowEth: -50n * ONE,
+          yethYieldOrganicDeltaEth: -30n * ONE,
+        },
+      }),
+    );
+
+    expect(recoveryMessage).toContain("<b>🟢 yETH Recovery Progress</b>");
+    expect(recoveryMessage).toContain("Recovery Vault assets: <b>1.46K</b> ETH");
+    expect(recoveryMessage).toContain(
+      "Drivers: Net user flow <b>+10.00</b> ETH • Yield/fees/donations <b>+26.50</b> ETH",
+    );
+    expect(yieldMessage).toContain("<b>🔻 yETH Yield Capacity Down</b>");
+    expect(yieldMessage).toContain(
+      "Net claim flow: <b>-50.00</b> ETH • Organic delta (yield/loss): <b>-30.00</b> ETH",
+    );
+  });
+
+  it("labels first-baseline yETH recovery/yield transitions as initialized", () => {
+    const recoveryMessage = renderTelegramMessage(
+      baseAction({
+        kind: "yeth_recovery_setback",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethSnapshotStayedEth: 661_330_000_000_000_000_000n,
+          yethPreviousRecoveryShortfallEth: 0n,
+          yethCurrentRecoveryShortfallEth: 449_960_000_000_000_000_000n,
+          yethPreviousRecoveryCoverageHundredths: 0n,
+          yethCurrentRecoveryCoverageHundredths: 3_196n,
+          yethCurrentRecoveryVaultAssetsEth: 211_370_000_000_000_000_000n,
+          yethRecoveryNetFlowEth: 661_330_000_000_000_000_000n,
+          yethRecoveryOrganicDeltaEth: -449_960_000_000_000_000_000n,
+        },
+      }),
+    );
+    const yieldMessage = renderTelegramMessage(
+      baseAction({
+        kind: "yeth_yield_capacity_up",
+        tokenSymbol: "yETH",
+        amounts: {
+          yethOutstandingDebtEth: 2_910n * ONE,
+          yethPreviousYieldVaultAssetsEth: 0n,
+          yethCurrentYieldVaultAssetsEth: 2_440n * ONE,
+          yethPreviousYieldCoverageHundredths: 0n,
+          yethCurrentYieldCoverageHundredths: 8_368n,
+          yethYieldNetFlowEth: -661_330_000_000_000_000_000n,
+          yethYieldOrganicDeltaEth: 3_101_330_000_000_000_000_000n,
+        },
+      }),
+    );
+
+    expect(recoveryMessage).toContain("<b>ℹ️ yETH Recovery Initialized</b>");
+    expect(recoveryMessage).toContain(
+      "Recovery baseline: shortfall <b>0.00</b> → <b>449.96</b> ETH",
+    );
+    expect(yieldMessage).toContain("<b>ℹ️ yETH Yield Capacity Initialized</b>");
+    expect(yieldMessage).toContain(
+      "Yield Vault baseline: assets <b>0.00</b> → <b>2.44K</b> ETH",
+    );
+  });
+
   it("applies yETH impact tiers with whale at >=10%", () => {
     const totalSnapshotDebt = 10_000n * ONE;
     const info = classifyActionImpact(
