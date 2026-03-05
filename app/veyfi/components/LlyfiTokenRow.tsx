@@ -72,7 +72,6 @@ export function LlyfiTokenRow({
   const fallbackRatio =
     Number((token.depositorTotalSupply * 10000n) / capacity) / 10000;
 
-  const preferLiveTotals = canTransact;
   const s3Llyfi = globalData?.llyfi?.find(
     (entry) => normalizeLlyfiSymbol(entry.symbol) === token.symbol
   );
@@ -85,7 +84,8 @@ export function LlyfiTokenRow({
   const s3Staked = s3Llyfi
     ? toBigInt(s3Llyfi.staked) + toBigInt(s3Llyfi.unstaking)
     : null;
-  const useS3Totals = !preferLiveTotals;
+  // Keep ratio aligned with global APR inputs whenever S3 totals are present.
+  const useS3Totals = s3Capacity !== null || s3Staked !== null;
   const capacityForRatio = useS3Totals
     ? s3Capacity ?? token.depositorCapacity
     : token.depositorCapacity;
@@ -104,14 +104,15 @@ export function LlyfiTokenRow({
   const utilizationRatioLabel =
     utilizationRatioRaw < MIN_UTILIZATION
       ? "<1%"
-      : formatPercent(utilizationRatioRaw, 1);
+      : formatPercent(utilizationRatioRaw, 2);
 
   const maxBoostBps = toNumber(globalData?.global?.maxBoostBps);
   const boostMultiplier = resolveVeyfiDisplayBoostMultiplier({
-    statsMaxBoostMultiplier: maxBoostMultiplier,
+    // Connected users should use their lock-specific boost when available.
+    statsMaxBoostMultiplier: canTransact ? null : maxBoostMultiplier,
     tokenBoostMultiplier: token.veyfiBoost,
     globalMaxBoostBps: maxBoostBps,
-    preferTokenBoost: canTransact,
+    preferTokenBoost: true,
   });
 
   const isEpochZero = epochInfo?.currentEpoch === 0;
@@ -123,15 +124,28 @@ export function LlyfiTokenRow({
       ? globalData.styfi.projected.aprBps
       : globalData.styfi.current.aprBps
     : null;
+  const s3BaseApyBpsValue = toNumber(s3BaseAprBps);
+  const liveBaseApyBpsValue =
+    baseApyBps !== undefined ? Number(baseApyBps) : null;
+  const hasBaseApySource =
+    s3BaseApyBpsValue !== null ||
+    (liveBaseApyBpsValue !== null && Number.isFinite(liveBaseApyBpsValue));
   const baseApyBpsValue =
-    toNumber(s3BaseAprBps) ??
-    (baseApyBps !== undefined ? Number(baseApyBps) : 0);
+    s3BaseApyBpsValue ??
+    (liveBaseApyBpsValue !== null && Number.isFinite(liveBaseApyBpsValue)
+      ? liveBaseApyBpsValue
+      : 0);
   const baseApy = baseApyBpsValue / 10000;
   const boostedBaseApy = baseApy * boostMultiplier;
-  const effectiveApyFallback =
+  const effectiveApyDerived =
     utilizationRatioForApr > 0 ? boostedBaseApy / utilizationRatioForApr : 0;
   const effectiveApy =
-    s3EffectiveAprBps !== null ? s3EffectiveAprBps / 10000 : effectiveApyFallback;
+    // 0 is a valid derived APR; only fall back when base APR inputs are unavailable.
+    Number.isFinite(effectiveApyDerived) && hasBaseApySource
+      ? effectiveApyDerived
+      : s3EffectiveAprBps !== null
+        ? s3EffectiveAprBps / 10000
+        : 0;
   const baseApyLabel = isEpochZero
     ? copy.manage.row.tooltips.apr.baseEpoch1
     : copy.manage.row.tooltips.apr.base;
