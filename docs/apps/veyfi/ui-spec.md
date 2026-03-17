@@ -75,7 +75,7 @@ Unlike the single-asset dashboard of stYFI, this is a **Registry & Management To
 - **Data sources (pre-connect):**
   - Locker Status uses `global.veyfi.tokens[].redemption.capacity` (YFI locked).
 - Effective APR uses `llyfi[].current.aprBps` (or `projected.aprBps` when `epoch == 0`).
-- Base stYFI APR uses `styfi.current.aprBps` (or `styfi.projected.aprBps` when `epoch == 0`), matching the migration card.
+- Base APR shown in tooltips/cards is back-calculated from the canonical effective APR using the applied boost multiplier and the LLYFI staked ratio; do not source it directly from `styfi.current.aprBps`, which can drift when stYFI stake changes intra-epoch.
 - veYFI migrated-lock boost uses user-specific `boost_epochs` from account lock data with canonical `current_epoch`; do not substitute global max boost values.
 - The APR tooltip shows base stYFI APR, boost multiplier, and the LLYFI staked ratio derived from `llyfi[].staked + llyfi[].unstaking` over capacity.
 

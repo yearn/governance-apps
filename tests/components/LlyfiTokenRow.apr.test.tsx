@@ -124,59 +124,28 @@ describe("LlyfiTokenRow APR calculations", () => {
     expect(screen.getByText("60% Boosted Base")).toBeInTheDocument();
   });
 
-  it("uses S3 staked ratio for effective APR when available", () => {
+  it("uses S3 staked ratio to back-calculate base APR when effective APR is canonical", () => {
     mockUseProtocol.mockReturnValue({
       globalData: buildGlobalData({
         // S3 ratio = 100%; token live ratio = 50%.
         staked: "100000000000000000000",
+        aprBps: 8000,
+        baseAprBps: 1000,
       }),
     });
 
-    const { container } = render(
+    render(
       <LlyfiTokenRow token={{ ...TOKEN, veyfiBoost: 2 }} maxBoostMultiplier={2} />
     );
 
-    const aprNode = container.querySelector(".text-disco-600.text-lg.leading-tight");
-    expect(aprNode?.textContent).toBe("80%");
+    expect(screen.getByText("80% Boosted Base")).toBeInTheDocument();
+    expect(screen.getByText("40%")).toBeInTheDocument();
   });
 
-  it("derives effective APR from tooltip components instead of stale s3 apr", () => {
+  it("uses the token effective APR as the headline value and back-calculates the tooltip base", () => {
     mockUseProtocol.mockReturnValue({
       globalData: buildGlobalData({
-        aprBps: 12345,
-      }),
-    });
-
-    const { container } = render(
-      <LlyfiTokenRow token={{ ...TOKEN, veyfiBoost: 2 }} maxBoostMultiplier={2} />
-    );
-
-    const aprNode = container.querySelector(".text-disco-600.text-lg.leading-tight");
-    expect(aprNode?.textContent).toBe("80%");
-  });
-
-  it("treats derived zero APR as valid and does not fall back to stale s3 effective APR", () => {
-    mockUseProtocol.mockReturnValue({
-      globalData: buildGlobalData({
-        aprBps: 12345,
-        baseAprBps: 0,
-      }),
-    });
-
-    const { container } = render(
-      <LlyfiTokenRow token={{ ...TOKEN, veyfiBoost: 2 }} maxBoostMultiplier={2} />
-    );
-
-    const aprNode = container.querySelector(".text-disco-600.text-lg.leading-tight");
-    expect(aprNode?.textContent).toBe("0%");
-  });
-
-  it("falls back to s3 effective APR when base APR sources are unavailable", () => {
-    mockUseStyfiApy.mockReturnValue({ data: undefined });
-    mockUseProtocol.mockReturnValue({
-      globalData: buildGlobalData({
-        aprBps: 12345,
-        baseAprBps: null,
+        aprBps: 12340,
       }),
     });
 
@@ -186,5 +155,40 @@ describe("LlyfiTokenRow APR calculations", () => {
 
     const aprNode = container.querySelector(".text-disco-600.text-lg.leading-tight");
     expect(aprNode?.textContent).toBe("123%");
+    expect(screen.getByText("61.7%")).toBeInTheDocument();
+  });
+
+  it("falls back to derived effective APR when the token effective APR is unavailable", () => {
+    mockUseProtocol.mockReturnValue({
+      globalData: buildGlobalData({
+        aprBps: null,
+        baseAprBps: 4000,
+      }),
+    });
+
+    const { container } = render(
+      <LlyfiTokenRow token={{ ...TOKEN, veyfiBoost: 2 }} maxBoostMultiplier={2} />
+    );
+
+    const aprNode = container.querySelector(".text-disco-600.text-lg.leading-tight");
+    expect(aprNode?.textContent).toBe("80%");
+  });
+
+  it("falls back to the stYFI APR source when back-calculation inputs are unavailable", () => {
+    mockUseStyfiApy.mockReturnValue({ data: undefined });
+    mockUseProtocol.mockReturnValue({
+      globalData: buildGlobalData({
+        aprBps: 12340,
+        staked: "0",
+      }),
+    });
+
+    const { container } = render(
+      <LlyfiTokenRow token={{ ...TOKEN, veyfiBoost: 2 }} maxBoostMultiplier={2} />
+    );
+
+    const aprNode = container.querySelector(".text-disco-600.text-lg.leading-tight");
+    expect(aprNode?.textContent).toBe("123%");
+    expect(screen.getByText("40%")).toBeInTheDocument();
   });
 });

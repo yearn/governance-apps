@@ -530,7 +530,7 @@ UI requirements:
   - MUST render before wallet connect using S3 global data.
   - **Locker Status** MUST display `global.veyfi.tokens[].redemption.capacity` (YFI locked).
   - **Effective APR** MUST use `llyfi[].current.aprBps` (or `projected.aprBps` when `epoch == 0`), which already includes boost + ratio.
-  - **Base stYFI APR** uses `styfi.current.aprBps` (or `styfi.projected.aprBps` when `epoch == 0`), matching the migration card.
+  - **Base APR** shown in veYFI/LLYFI APR breakdowns MUST be back-calculated from the canonical effective APR using the displayed boost multiplier and staked ratio; it MUST NOT read directly from `styfi.current.aprBps`, because intra-epoch stYFI stake changes can make that value drift from veYFI/LLYFI base APR.
   - **Migrated veYFI boost** uses per-user lock data: `1 + max(0, boost_epochs - current_epoch) / 104`, where `boost_epochs` is read from `VotingEscrowRewardDistributor.locks(address)`.
   - Global max boost values are protocol-wide and must not replace user-specific migrated boost displays.
   - **APR tooltip breakdown** MUST show base stYFI APR, boost multiplier, and the staked ratio derived from `llyfi[].staked + llyfi[].unstaking` over capacity.

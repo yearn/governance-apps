@@ -63,7 +63,32 @@ describe("MigrationCard boost display", () => {
     mockUseStyfiApy.mockReturnValue({ data: 2500 });
     mockUseProtocol.mockReturnValue({
       globalData: {
-        global: { maxBoostBps: "19903" },
+        global: {
+          maxBoostBps: "20000",
+          veyfi: {
+            tokens: [
+              {
+                symbol: "sdYFI",
+                redemption: {
+                  capacity: "100000000000000000000",
+                },
+              },
+            ],
+          },
+        },
+        styfi: {
+          current: { aprBps: 1000 },
+          projected: { aprBps: 1000 },
+        },
+        llyfi: [
+          {
+            symbol: "sdYFI",
+            staked: "100000000000000000000",
+            unstaking: "0",
+            current: { aprBps: 8000 },
+            projected: { aprBps: 8000 },
+          },
+        ],
       },
     });
     mockUseEpochClock.mockReturnValue({
@@ -76,6 +101,13 @@ describe("MigrationCard boost display", () => {
 
     // 1 + (95 - 1) / 104 = 1.9038...
     expect(screen.getByText("1.90x Boost")).toBeInTheDocument();
+  });
+
+  it("derives the migrated base APR from locker effective APR inputs instead of styfi APR", () => {
+    render(<MigrationCard />);
+
+    expect(screen.getAllByText("76.15%")).toHaveLength(2);
+    expect(screen.getByText("40%")).toBeInTheDocument();
   });
 
   it("floors at 1.00x after boost epochs are exhausted", () => {

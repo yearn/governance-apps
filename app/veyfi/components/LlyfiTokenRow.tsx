@@ -17,6 +17,7 @@ import {
   getLlyfiDisplaySymbol,
   normalizeLlyfiSymbol,
 } from "@/lib/clients/veyfi/display";
+import { deriveBaseAprFromEffective } from "@/lib/clients/veyfi/apr";
 import { resolveVeyfiDisplayBoostMultiplier } from "@/lib/clients/veyfi/boost";
 
 type LlyfiTokenRowProps = {
@@ -136,16 +137,24 @@ export function LlyfiTokenRow({
       ? liveBaseApyBpsValue
       : 0);
   const baseApy = baseApyBpsValue / 10000;
-  const boostedBaseApy = baseApy * boostMultiplier;
-  const effectiveApyDerived =
-    utilizationRatioForApr > 0 ? boostedBaseApy / utilizationRatioForApr : 0;
+  const boostedBaseApyFallback = baseApy * boostMultiplier;
+  const effectiveApyFallback =
+    utilizationRatioForApr > 0 ? boostedBaseApyFallback / utilizationRatioForApr : 0;
   const effectiveApy =
-    // 0 is a valid derived APR; only fall back when base APR inputs are unavailable.
-    Number.isFinite(effectiveApyDerived) && hasBaseApySource
-      ? effectiveApyDerived
-      : s3EffectiveAprBps !== null
-        ? s3EffectiveAprBps / 10000
+    s3EffectiveAprBps !== null
+      ? s3EffectiveAprBps / 10000
+      : // 0 is a valid derived APR; only fall back when base APR inputs are unavailable.
+        Number.isFinite(effectiveApyFallback) && hasBaseApySource
+        ? effectiveApyFallback
         : 0;
+  const derivedBaseApy = deriveBaseAprFromEffective({
+    effectiveApr: s3EffectiveAprBps !== null ? effectiveApy : null,
+    utilizationRatio: utilizationRatioRaw,
+    boostMultiplier,
+  });
+  const baseApyForTooltip = derivedBaseApy ?? baseApy;
+  const boostedBaseApy =
+    derivedBaseApy !== null ? baseApyForTooltip * boostMultiplier : boostedBaseApyFallback;
   const baseApyLabel = isEpochZero
     ? copy.manage.row.tooltips.apr.baseEpoch1
     : copy.manage.row.tooltips.apr.base;
@@ -172,7 +181,7 @@ export function LlyfiTokenRow({
       <div className="flex justify-between items-center mb-1">
         <span className="text-neutral-500">{baseApyLabel}</span>
         <span className="font-number font-medium">
-          {formatPercent(baseApy, 2)}
+          {formatPercent(baseApyForTooltip, 2)}
         </span>
       </div>
       <div className="flex justify-between items-center mb-2">

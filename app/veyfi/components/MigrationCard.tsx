@@ -13,6 +13,7 @@ import { veyfiCopy as copy } from "../messages";
 import { useProtocol } from "@/state/protocol";
 import { cn } from "@/lib/cn";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
+import { deriveCommonLlyfiBaseApr } from "@/lib/clients/veyfi/apr";
 import { getVeyfiMigratedBoostMultiplier } from "@/lib/clients/veyfi/boost";
 
 function toNumber(value?: string | number | null) {
@@ -51,8 +52,14 @@ export function MigrationCard() {
       : globalData.styfi.current.aprBps
     : null;
   const s3AprBpsValue = toNumber(s3AprBps);
+  const derivedBaseApr =
+    globalData !== null && globalData !== undefined
+      ? deriveCommonLlyfiBaseApr({ globalData, isEpochZero })
+      : null;
   const baseAprBps =
-    s3AprBpsValue ?? (styfiApyBps !== undefined ? Number(styfiApyBps) : null);
+    derivedBaseApr !== null
+      ? derivedBaseApr * 10000
+      : s3AprBpsValue ?? (styfiApyBps !== undefined ? Number(styfiApyBps) : null);
   const baseAprValueLabel =
     baseAprBps !== null ? formatPercent(baseAprBps / 10000, 2) : "--%";
   const effectiveAprBps =
