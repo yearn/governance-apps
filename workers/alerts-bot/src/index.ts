@@ -154,6 +154,9 @@ const ENS_REGISTRY_ABI = parseAbi([
 const ENS_REVERSE_RESOLVER_ABI = parseAbi([
   "function name(bytes32 node) view returns (string)",
 ]);
+const ERC4626_DEPOSIT_CALL_ABI = parseAbi([
+  "function deposit(uint256 _assets, address _receiver) returns (uint256)",
+]);
 const ETH_ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
 const HEX_TOPIC_ADDRESS_LENGTH = 40;
 
@@ -888,6 +891,14 @@ async function findStartBlockByTimestamp(
 
 function normalizeAddress(address: string): string {
   return address.toLowerCase();
+}
+
+function isZeroAddress(address: string | null | undefined): boolean {
+  if (!address) {
+    return false;
+  }
+
+  return normalizeAddress(address) === normalizeAddress(ZERO_ADDRESS);
 }
 
 function parseBigIntString(value: unknown, fallback: bigint = 0n): bigint {
@@ -2405,6 +2416,206 @@ function buildStyfixDepositTxHashes(logs: RpcLog[]): Set<string> {
   return hashes;
 }
 
+function isStyfiStakeAction(action: NormalizedAction): boolean {
+  if (action.kind !== "staked") {
+    return false;
+  }
+
+  const normalizedSymbol = action.tokenSymbol.toLowerCase();
+  return normalizedSymbol === "styfi" || normalizedSymbol === "styfix";
+}
+
+function needsStyfiStakeActorRepair(action: NormalizedAction): boolean {
+  return (
+    isStyfiStakeAction(action) &&
+    (isZeroAddress(action.user) ||
+      isZeroAddress(action.owner) ||
+      isZeroAddress(action.receiver) ||
+      isZeroAddress(action.caller))
+  );
+}
+
+function getStyfiContractForAction(action: NormalizedAction): Address | null {
+  const normalizedSymbol = action.tokenSymbol.toLowerCase();
+  if (normalizedSymbol === "styfi") {
+    return STYFI;
+  }
+  if (normalizedSymbol === "styfix") {
+    return STYFIX;
+  }
+  return null;
+}
+
+function resolveStyfiStakeReceiverFromTransaction(
+  action: NormalizedAction,
+  tx: RpcTransaction | null | undefined,
+): Address | null {
+  if (!tx || !tx.to || tx.input === "0x") {
+    return null;
+  }
+
+  const expectedContract = getStyfiContractForAction(action);
+  if (!expectedContract) {
+    return null;
+  }
+
+  if (normalizeAddress(tx.to) !== normalizeAddress(expectedContract)) {
+    return null;
+  }
+
+  try {
+    const decoded = decodeFunctionData({
+      abi: ERC4626_DEPOSIT_CALL_ABI,
+      data: tx.input as Hex,
+    });
+
+    if (decoded.functionName !== "deposit") {
+      return null;
+    }
+
+    const receiver = decoded.args?.[1];
+    if (typeof receiver !== "string" || isZeroAddress(receiver)) {
+      return null;
+    }
+
+    return receiver as Address;
+  } catch {
+    return null;
+  }
+}
+
+function resolveStyfiStakeReceiverFromReceipt(
+  action: NormalizedAction,
+  receipt: RpcTransactionReceipt | null | undefined,
+): Address | null {
+  if (!receipt) {
+    return null;
+  }
+
+  const expectedContract = getStyfiContractForAction(action);
+  if (!expectedContract) {
+    return null;
+  }
+
+  const expectedShares = action.amounts.shares ?? action.amounts.assets;
+  for (const log of receipt.logs) {
+    if (normalizeAddress(log.address) !== normalizeAddress(expectedContract)) {
+      continue;
+    }
+
+    if (log.topics[0]?.toLowerCase() !== ERC20_TRANSFER_TOPIC.toLowerCase()) {
+      continue;
+    }
+
+    try {
+      const decoded = decodeEventLog({
+        abi: ERC20_TRANSFER_ABI,
+        topics: toEventTopics(log.topics),
+        data: log.data as Hex,
+      });
+
+      const args = decoded.args as {
+        sender: Address;
+        receiver: Address;
+        value: bigint;
+      };
+
+      if (!isZeroAddress(args.sender) || isZeroAddress(args.receiver)) {
+        continue;
+      }
+
+      if (expectedShares !== undefined && args.value !== expectedShares) {
+        continue;
+      }
+
+      return args.receiver;
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+async function repairStyfiStakeActors(
+  rpc: RpcClient,
+  actions: NormalizedAction[],
+): Promise<void> {
+  const repairableHashes = Array.from(
+    new Set(
+      actions
+        .filter((action) => needsStyfiStakeActorRepair(action))
+        .map((action) => action.txHash),
+    ),
+  );
+
+  if (repairableHashes.length === 0) {
+    return;
+  }
+
+  const [txs, receipts] = await Promise.all([
+    rpc.getTransactionByHash(repairableHashes),
+    rpc.getTransactionReceipt(repairableHashes),
+  ]);
+
+  const txByHash = new Map<string, RpcTransaction | null>();
+  const receiptByHash = new Map<string, RpcTransactionReceipt | null>();
+
+  repairableHashes.forEach((hash, index) => {
+    txByHash.set(hash, txs[index] ?? null);
+    receiptByHash.set(hash, receipts[index] ?? null);
+  });
+
+  for (const action of actions) {
+    if (!needsStyfiStakeActorRepair(action)) {
+      continue;
+    }
+
+    const tx = txByHash.get(action.txHash) ?? null;
+    const receipt = receiptByHash.get(action.txHash) ?? null;
+    const repairedReceiver =
+      resolveStyfiStakeReceiverFromReceipt(action, receipt) ??
+      resolveStyfiStakeReceiverFromTransaction(action, tx) ??
+      (tx?.from && !isZeroAddress(tx.from) ? (tx.from as Address) : null);
+
+    const previousUser = action.user;
+    const previousOwner = action.owner;
+    const previousReceiver = action.receiver;
+    const previousCaller = action.caller;
+
+    if (repairedReceiver) {
+      action.user = repairedReceiver;
+      action.owner = repairedReceiver;
+      action.receiver = repairedReceiver;
+    }
+
+    if ((!action.caller || isZeroAddress(action.caller)) && tx?.from && !isZeroAddress(tx.from)) {
+      action.caller = tx.from;
+    }
+
+    const changed =
+      previousUser !== action.user ||
+      previousOwner !== action.owner ||
+      previousReceiver !== action.receiver ||
+      previousCaller !== action.caller;
+
+    if (changed) {
+      console.warn("Repaired malformed stYFI stake actor attribution", {
+        txHash: action.txHash,
+        tokenSymbol: action.tokenSymbol,
+        previousUser,
+        previousOwner,
+        previousReceiver,
+        previousCaller,
+        repairedUser: action.user,
+        repairedOwner: action.owner,
+        repairedReceiver: action.receiver,
+        repairedCaller: action.caller,
+      });
+    }
+  }
+}
+
 async function resolveMissingUsers(
   rpc: RpcClient,
   actions: NormalizedAction[],
@@ -2533,6 +2744,23 @@ export async function scanChunkForActionsWithProgress(
         fromBlock,
         toBlock,
         actionsWithUnknownUser: actions.filter((action) => action.user === UNKNOWN_USER)
+          .length,
+        budget: error,
+      });
+    } else {
+      throw error;
+    }
+  }
+
+  try {
+    await repairStyfiStakeActors(rpc, actions);
+  } catch (error) {
+    if (error instanceof SubrequestBudgetExceededError) {
+      budgetExhausted = true;
+      console.warn("Subrequest budget exhausted while repairing stYFI stake actors", {
+        fromBlock,
+        toBlock,
+        repairableActions: actions.filter((action) => needsStyfiStakeActorRepair(action))
           .length,
         budget: error,
       });

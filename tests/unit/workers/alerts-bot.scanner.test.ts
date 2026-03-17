@@ -4,6 +4,7 @@ import {
   encodeFunctionData,
   encodeEventTopics,
   encodeFunctionResult,
+  parseAbi,
   type Address,
   type Hex,
 } from "viem";
@@ -37,9 +38,16 @@ import {
   scanChunkForActions,
   scanChunkForYethActions,
 } from "@/workers/alerts-bot/src/index";
-import type { RpcClient, RpcLog } from "@/workers/alerts-bot/src/rpc";
+import type {
+  RpcClient,
+  RpcLog,
+  RpcTransactionReceipt,
+} from "@/workers/alerts-bot/src/rpc";
 
 const ONE = 10n ** 18n;
+const ERC4626_DEPOSIT_CALL_ABI = parseAbi([
+  "function deposit(uint256 _assets, address _receiver) returns (uint256)",
+]);
 
 function hashOf(index: number): Hex {
   return `0x${index.toString(16).padStart(64, "0")}`;
@@ -130,12 +138,16 @@ function createMockRpc(params: {
   logs: RpcLog[];
   callByBlock?: Record<number, { amount: bigint; end: bigint }>;
   txFromByHash?: Record<string, Address>;
+  txToByHash?: Record<string, Address>;
   txInputByHash?: Record<string, Hex>;
+  txReceiptByHash?: Record<string, RpcTransactionReceipt>;
   callError?: Error;
 }): RpcClient {
   const callByBlock = params.callByBlock ?? {};
   const txFromByHash = params.txFromByHash ?? {};
+  const txToByHash = params.txToByHash ?? {};
   const txInputByHash = params.txInputByHash ?? {};
+  const txReceiptByHash = params.txReceiptByHash ?? {};
 
   const rpc = {
     getBlockNumber: async () => {
@@ -169,10 +181,10 @@ function createMockRpc(params: {
           return null;
         }
 
-      return {
+        return {
           hash,
           from,
-          to: null,
+          to: txToByHash[hash.toLowerCase()] ?? null,
           blockHash: null,
           blockNumber: 0,
           nonce: 0,
@@ -188,8 +200,14 @@ function createMockRpc(params: {
 
       return hashOrHashes.map((hash) => toTx(hash));
     },
-    getTransactionReceipt: async () => {
-      throw new Error("Not implemented in test");
+    getTransactionReceipt: async (hashOrHashes: string | string[]) => {
+      const toReceipt = (hash: string) => txReceiptByHash[hash.toLowerCase()] ?? null;
+
+      if (typeof hashOrHashes === "string") {
+        return toReceipt(hashOrHashes);
+      }
+
+      return hashOrHashes.map((hash) => toReceipt(hash));
     },
   } as unknown as RpcClient;
 
@@ -606,6 +624,83 @@ describe("alerts-bot scanner fixtures", () => {
     expect(actions[0]?.kind).toBe("staked");
     expect(actions[0]?.tokenSymbol).toBe("stYFIX");
     expect(actions[0]?.txHash).toBe(txHash);
+  });
+
+  it("repairs zero-address stYFIx stake actors from the tx and mint receipt", async () => {
+    const user = userOf(32);
+    const txHash = hashOf(302);
+    const amount = 5n * ONE;
+    const zeroAddress = "0x0000000000000000000000000000000000000000" as Address;
+    const logs: RpcLog[] = [
+      createLog({
+        address: STYFIX,
+        topics: encodeEventTopics({
+          abi: ERC4626_DEPOSIT_ABI,
+          eventName: "Deposit",
+          args: { sender: zeroAddress, owner: zeroAddress },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [amount, amount],
+        ),
+        txHash,
+        blockNumber: 62,
+        logIndex: 0,
+      }),
+      createLog({
+        address: STYFIX,
+        topics: encodeEventTopics({
+          abi: ERC20_TRANSFER_ABI,
+          eventName: "Transfer",
+          args: {
+            sender: zeroAddress,
+            receiver: user,
+          },
+        }),
+        data: encodeAbiParameters([{ type: "uint256" }], [amount]),
+        txHash,
+        blockNumber: 62,
+        logIndex: 1,
+      }),
+    ];
+
+    const rpc = createMockRpc({
+      logs,
+      txFromByHash: {
+        [txHash.toLowerCase()]: user,
+      },
+      txToByHash: {
+        [txHash.toLowerCase()]: STYFIX,
+      },
+      txInputByHash: {
+        [txHash.toLowerCase()]: encodeFunctionData({
+          abi: ERC4626_DEPOSIT_CALL_ABI,
+          functionName: "deposit",
+          args: [amount, user],
+        }),
+      },
+      txReceiptByHash: {
+        [txHash.toLowerCase()]: {
+          transactionHash: txHash,
+          blockHash: null,
+          blockNumber: 62,
+          status: 1,
+          logs,
+        },
+      },
+    });
+
+    const actions = await scanChunkForActions(rpc, 62, 62);
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({
+      kind: "staked",
+      tokenSymbol: "stYFIX",
+      user,
+      owner: user,
+      receiver: user,
+      caller: user,
+    });
   });
 });
 
