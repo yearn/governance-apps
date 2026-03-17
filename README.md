@@ -69,6 +69,19 @@ Deploy helpers:
 - `npm run worker:deploy:prod`
 - `npm run worker:deploy:preprod`
 
+## APR Inspection
+
+Use the APR inspection helper to validate veYFI / LLYFI base APR derivation from a
+global-data payload before doing any deploy:
+
+- `npm run check:veyfi-apr`
+- `npm run check:veyfi-apr -- /tmp/veyfi-stats.json`
+- `npm run check:veyfi-apr -- /tmp/veyfi-stats.json --boost-epochs 95 --current-epoch 2`
+
+The script reads the payload, treats each locker `aprBps` as canonical effective APR,
+back-calculates the implied base APR from effective APR, boost, and staked ratio, and
+prints the per-locker values plus the common derived base APR.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

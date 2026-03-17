@@ -18,6 +18,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test --project=smoke --workers=1",
     "test:e2e:full": "playwright test --project=full",
+    "check:veyfi-apr": "node ./scripts/check-veyfi-base-apr.mjs",
     "validate:deps": "node ./scripts/validate-dependency-policy.mjs",
     "validate:prod-env": "node ./scripts/validate-prod-env.mjs",
     "agent:sync": "./scripts/sync-agent-env.sh",
