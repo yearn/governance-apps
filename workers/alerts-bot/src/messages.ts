@@ -111,6 +111,10 @@ function normalizeAddress(value: string): string {
   return value.toLowerCase();
 }
 
+function isZeroAddress(value: string): boolean {
+  return normalizeAddress(value) === "0x0000000000000000000000000000000000000000";
+}
+
 function areSameAddress(left: string, right: string): boolean {
   return normalizeAddress(left) === normalizeAddress(right);
 }
@@ -552,6 +556,10 @@ function buildActorLines(
 
   const addLine = (label: string, value: string | undefined): void => {
     if (!value) {
+      return;
+    }
+
+    if (value.startsWith("0x") && isZeroAddress(value)) {
       return;
     }
 

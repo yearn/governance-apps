@@ -104,6 +104,31 @@ describe("alerts-bot Telegram rendering", () => {
     );
   });
 
+  it("suppresses zero-address actor lines in Telegram output", () => {
+    const zeroAddress = "0x0000000000000000000000000000000000000000";
+    const caller = "0x3333333333333333333333333333333333333333";
+    const message = renderTelegramMessage(
+      baseAction({
+        kind: "staked",
+        tokenSymbol: "stYFI",
+        user: zeroAddress,
+        owner: zeroAddress,
+        receiver: zeroAddress,
+        caller,
+        amounts: {
+          assets: ONE,
+          shares: ONE,
+        },
+      }),
+    );
+
+    expect(message).not.toContain("Account:");
+    expect(message).not.toContain(zeroAddress);
+    expect(message).toContain(
+      "Caller: <a href=\"https://etherscan.io/address/0x3333333333333333333333333333333333333333\">",
+    );
+  });
+
   it("renders upYFI redemption using supYFI labels and fee line", () => {
     const message = renderTelegramMessage(
       baseAction({

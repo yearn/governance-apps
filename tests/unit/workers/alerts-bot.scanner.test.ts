@@ -48,6 +48,9 @@ const ONE = 10n ** 18n;
 const ERC4626_DEPOSIT_CALL_ABI = parseAbi([
   "function deposit(uint256 _assets, address _receiver) returns (uint256)",
 ]);
+const STYFI_EXIT_CALL_ABI = parseAbi([
+  "function unstake(uint256 _assets)",
+]);
 
 function hashOf(index: number): Hex {
   return `0x${index.toString(16).padStart(64, "0")}`;
@@ -696,6 +699,68 @@ describe("alerts-bot scanner fixtures", () => {
     expect(actions[0]).toMatchObject({
       kind: "staked",
       tokenSymbol: "stYFIX",
+      user,
+      owner: user,
+      receiver: user,
+      caller: user,
+    });
+  });
+
+  it("repairs zero-address stYFI cooldown actors from the tx sender", async () => {
+    const user = userOf(33);
+    const txHash = hashOf(303);
+    const amount = ONE / 4n;
+    const zeroAddress = "0x0000000000000000000000000000000000000000" as Address;
+    const logs: RpcLog[] = [
+      createLog({
+        address: STYFI,
+        topics: encodeEventTopics({
+          abi: ERC20_TRANSFER_ABI,
+          eventName: "Transfer",
+          args: {
+            sender: zeroAddress,
+            receiver: zeroAddress,
+          },
+        }),
+        data: encodeAbiParameters([{ type: "uint256" }], [amount]),
+        txHash,
+        blockNumber: 63,
+        logIndex: 0,
+      }),
+    ];
+
+    const rpc = createMockRpc({
+      logs,
+      txFromByHash: {
+        [txHash.toLowerCase()]: user,
+      },
+      txToByHash: {
+        [txHash.toLowerCase()]: STYFI,
+      },
+      txInputByHash: {
+        [txHash.toLowerCase()]: encodeFunctionData({
+          abi: STYFI_EXIT_CALL_ABI,
+          functionName: "unstake",
+          args: [amount],
+        }),
+      },
+      txReceiptByHash: {
+        [txHash.toLowerCase()]: {
+          transactionHash: txHash,
+          blockHash: null,
+          blockNumber: 63,
+          status: 1,
+          logs,
+        },
+      },
+    });
+
+    const actions = await scanChunkForActions(rpc, 63, 63);
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({
+      kind: "initiated_cooldown",
+      tokenSymbol: "stYFI",
       user,
       owner: user,
       receiver: user,
