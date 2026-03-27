@@ -54,7 +54,7 @@ function formatExternalMetricAmount(position: ExternalPosition, amount: bigint) 
   return formatTokenAmount(amount);
 }
 
-type AccountBalances = {
+export type AccountBalances = {
   styfi: {
     active: bigint;
     unstaking: bigint;

@@ -11,18 +11,24 @@ import { useProtocol } from "@/state/protocol";
 import { RewardsCard } from "./cards/RewardsCard";
 import { StakeManageCard } from "./cards/StakeManageCard";
 import { styfiCopy as copy } from "../messages";
+import type { AccountBalances } from "./AccountSummary";
+import type { ExternalPosition } from "../external-positions";
 import type { StyfiAsset } from "./types";
 
 type Props = {
   selectedAsset: StyfiAsset;
   onSelectAsset: (asset: StyfiAsset) => void;
   isNewUser: boolean;
+  balances: AccountBalances | null;
+  externalPositions: ExternalPosition[];
 };
 
 export function StyfiCockpit({
   selectedAsset,
   onSelectAsset,
   isNewUser,
+  balances,
+  externalPositions,
 }: Props) {
   const { usesMockBackend } = useProtocol();
 
@@ -38,7 +44,7 @@ export function StyfiCockpit({
           onSelectAsset={onSelectAsset}
         />
         <div id="rewards" className="scroll-mt-8">
-          <RewardsCard />
+          <RewardsCard balances={balances} externalPositions={externalPositions} />
         </div>
       </div>
 

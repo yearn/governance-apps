@@ -3,13 +3,14 @@
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useIdentity } from "@/state/identity";
 import { StatsBar } from "@/components/ui/StatsBar";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { formatPercent, formatTokenAmount } from "@/lib/format";
 import {
   useStyfiAccount,
   useStyfiApy,
   useStyfiStats,
 } from "@/lib/hooks/useStyfi";
-import { useVeyfiAccount } from "@/lib/hooks/useVeyfi";
+import { useVeyfiAccount, useVeyfiStats } from "@/lib/hooks/useVeyfi";
 import { useMotd } from "@/lib/hooks/useMotd";
 import { StyfiCockpit } from "./components/StyfiCockpit";
 import { AccountSummary } from "./components/AccountSummary";
@@ -24,6 +25,7 @@ import { CrossAppNudge } from "@/components/domain/CrossAppNudge";
 import { useCrossChainNudge } from "@/lib/hooks/useCrossChainNudge";
 import { scrollToTargetWhenReady } from "@/lib/scrollToTarget";
 import { deriveExternalPositions } from "./external-positions";
+import { getLlyfiBackingYfi } from "@/lib/portfolio/governance";
 import { ContractsFooter } from "@/components/domain/ContractsFooter";
 import {
   REWARD_CLAIMER_ADDRESS,
@@ -91,6 +93,7 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
   const { data: stats } = useStyfiStats();
   const { data: account, isLoading: isAccountLoading } = useStyfiAccount();
   const { data: veyfiAccount, isLoading: isVeyfiLoading } = useVeyfiAccount();
+  const { data: veyfiStats } = useVeyfiStats();
   const { data: motd } = useMotd();
   const { globalData } = useProtocol();
   const { epochInfo } = useEpochClock({ tickMs: 60_000 });
@@ -164,18 +167,6 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
     ? formatTokenAmount(stats.totalSupply, 18, 0) + " YFI"
     : "-- YFI";
 
-  const totalStaked = stats
-    ? formatTokenAmount(stats.totalStaked, 18, 0) + " YFI"
-    : "-- YFI";
-
-  // Calculate dynamic percentage
-  let stakedPercentage = "0.0";
-  if (stats && stats.totalSupply > 0n) {
-    const ratio =
-      Number((stats.totalStaked * 10000n) / stats.totalSupply) / 100;
-    stakedPercentage = ratio.toFixed(1);
-  }
-
   const projectedApyBps = globalData?.styfi?.projected?.aprBps;
   const isEpochZero = epochInfo?.currentEpoch === 0;
   const showProjectedApy = isEpochZero && projectedApyBps !== undefined;
@@ -199,7 +190,73 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
   const externalPositions = deriveExternalPositions(
     veyfiAccount,
     epochInfo?.currentEpoch ?? null,
+    globalData,
+    statsApyBps,
   );
+  const hasGlobalStakedData = !!stats && !!veyfiStats;
+  const styfiStaked = stats?.totalStaked ?? 0n;
+  const migratedVeYfi = veyfiStats?.migratedYfi ?? 0n;
+  const llyfiLocked =
+    veyfiStats?.tokens.reduce((sum, token) => {
+      return (
+        sum +
+        getLlyfiBackingYfi({
+          symbol: token.symbol,
+          fallbackCapacity: token.redemption.capacity,
+          globalData,
+        })
+      );
+    }, 0n) ?? 0n;
+  const globalStaked = styfiStaked + migratedVeYfi + llyfiLocked;
+  const globalStakedLabel = `${formatTokenAmount(globalStaked, 18, 0)} YFI`;
+  let stakedPercentage = "0.0";
+  if (hasGlobalStakedData && stats.totalSupply > 0n) {
+    const ratio = Number((globalStaked * 10000n) / stats.totalSupply) / 100;
+    stakedPercentage = ratio.toFixed(1);
+  }
+  const stakedTooltipContent = hasGlobalStakedData ? (
+    <div className="w-full min-w-[240px] text-xs leading-tight">
+      <div className="mb-2 font-bold uppercase tracking-wide text-neutral-500">
+        Ecosystem Breakdown
+      </div>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-neutral-600">stYFI & stYFIx</span>
+        <span className="font-medium font-number">
+          {formatTokenAmount(styfiStaked, 18, 0)} YFI
+        </span>
+      </div>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-neutral-600">Liquid Lockers</span>
+        <span className="font-medium font-number">
+          {formatTokenAmount(llyfiLocked, 18, 0)} YFI
+        </span>
+      </div>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-neutral-600">Migrated veYFI</span>
+        <span className="font-medium font-number">
+          {formatTokenAmount(migratedVeYfi, 18, 0)} YFI
+        </span>
+      </div>
+      <div className="my-1.5 border-t border-neutral-200" />
+      <div className="flex items-center justify-between">
+        <span className="font-bold text-neutral-900">Total Participating</span>
+        <span className="font-bold font-number text-neutral-900">
+          {formatTokenAmount(globalStaked, 18, 0)} YFI
+        </span>
+      </div>
+    </div>
+  ) : null;
+  const stakedValue = hasGlobalStakedData ? (
+    <Tooltip content={stakedTooltipContent} side="bottom">
+      <button
+        type="button"
+        className="cursor-help border-b border-dotted border-neutral-400 transition-colors hover:text-neutral-700 focus:outline-none focus-visible:text-neutral-700"
+        aria-label="View ecosystem staking breakdown"
+      >
+        {globalStakedLabel} ({stakedPercentage}%)
+      </button>
+    </Tooltip>
+  ) : "-- YFI";
   const totalBalance = balances
     ? balances.styfi.total + balances.styfix.total
     : 0n;
@@ -216,9 +273,7 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
           },
           {
             label: copy.page.stats.staked.label,
-            value: stats
-              ? `${totalStaked} (${stakedPercentage}%)`
-              : totalStaked,
+            value: stakedValue,
           },
           {
             label: aprLabel,
@@ -254,6 +309,8 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
             selectedAsset={activeAsset}
             onSelectAsset={handleSelectAsset}
             isNewUser={isNewUser}
+            balances={balances}
+            externalPositions={externalPositions}
           />
         </div>
 
