@@ -17,6 +17,33 @@ export function Tooltip({
   className,
 }: TooltipProps) {
   const [open, setOpen] = React.useState(false);
+  const closeTimeoutRef = React.useRef<number | null>(null);
+
+  const clearCloseTimeout = React.useCallback(() => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  }, []);
+
+  const showTooltip = React.useCallback(() => {
+    clearCloseTimeout();
+    setOpen(true);
+  }, [clearCloseTimeout]);
+
+  const scheduleHideTooltip = React.useCallback(() => {
+    clearCloseTimeout();
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setOpen(false);
+      closeTimeoutRef.current = null;
+    }, 100);
+  }, [clearCloseTimeout]);
+
+  React.useEffect(() => {
+    return () => {
+      clearCloseTimeout();
+    };
+  }, [clearCloseTimeout]);
 
   // Position logic:
   // - "bottom-full" anchors the bottom of the tooltip to the top of the trigger.
@@ -34,17 +61,19 @@ export function Tooltip({
   return (
     <span
       className={cn("relative inline-flex", className)}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
+      onMouseEnter={showTooltip}
+      onMouseLeave={scheduleHideTooltip}
+      onFocus={showTooltip}
+      onBlur={scheduleHideTooltip}
     >
       {children}
       <span
         role="tooltip"
+        onMouseEnter={showTooltip}
+        onMouseLeave={scheduleHideTooltip}
         className={cn(
           // Layout
-          "pointer-events-none absolute z-50 w-max max-w-[280px]", // Increased max-width for tables
+          "absolute z-50 w-max max-w-[280px]", // Increased max-width for tables
           sideClasses,
 
           // Visuals (Pop-over Card style)
@@ -56,8 +85,8 @@ export function Tooltip({
           // Animation
           "transition-all duration-200 ease-out origin-center",
           open
-            ? "opacity-100 scale-100 visible"
-            : "opacity-0 scale-95 invisible"
+            ? "pointer-events-auto opacity-100 scale-100 visible"
+            : "pointer-events-none opacity-0 scale-95 invisible"
         )}
       >
         {content}
