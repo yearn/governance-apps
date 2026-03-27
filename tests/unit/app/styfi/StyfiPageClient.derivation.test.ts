@@ -133,7 +133,7 @@ describe("deriveExternalPositions", () => {
       },
     });
 
-    const positions = deriveExternalPositions(account, 1);
+    const positions = deriveExternalPositions(account, 1, null);
     expect(positions).toHaveLength(0);
   });
 
@@ -169,7 +169,7 @@ describe("deriveExternalPositions", () => {
       ],
     });
 
-    const positions = deriveExternalPositions(account, 1);
+    const positions = deriveExternalPositions(account, 1, null);
     const sdYfi = positions.find((position) => position.symbol === "sdYFI");
     const coveYfi = positions.find((position) => position.symbol === "coveYFI");
     const upYfi = positions.find((position) => position.symbol === "upYFI");
@@ -180,6 +180,7 @@ describe("deriveExternalPositions", () => {
     expect(sdYfi?.unstakingYfi).toBe(5n * 10n ** 18n);
     expect(sdYfi?.withdrawableYfi).toBe(3n * 10n ** 18n);
     expect(sdYfi?.balanceYfi).toBe(48n * 10n ** 18n);
+    expect(sdYfi?.activeBalanceYfi).toBe(40n * 10n ** 18n);
     expect(coveYfi?.symbol).toBe("coveYFI");
     expect(coveYfi?.subLabel).toBe("Cove");
     expect(coveYfi?.activeYfi).toBe(0n);
@@ -222,11 +223,12 @@ describe("deriveExternalPositions", () => {
       ],
     });
 
-    const positions = deriveExternalPositions(account, 1);
+    const positions = deriveExternalPositions(account, 1, null);
     const upYfi = positions.find((position) => position.symbol === "upYFI");
 
     expect(upYfi?.activeYfi).toBe(supYfiAmount);
     expect(upYfi?.balanceYfi).toBe(supYfiAmount / UPYFI_SCALE);
+    expect(upYfi?.activeBalanceYfi).toBe(supYfiAmount / UPYFI_SCALE);
   });
 
   it("maps migrated veYFI with unlock time metadata", () => {
@@ -242,7 +244,7 @@ describe("deriveExternalPositions", () => {
       },
     });
 
-    const positions = deriveExternalPositions(account, 1);
+    const positions = deriveExternalPositions(account, 1, null);
     const veyfi = positions.find((position) => position.id === "veyfi");
 
     expect(veyfi?.symbol).toBe("veYFI");
@@ -252,6 +254,7 @@ describe("deriveExternalPositions", () => {
     expect(veyfi?.withdrawableYfi).toBe(0n);
     expect(veyfi?.unlockTime).toBe(unlockTime);
     expect(veyfi?.balanceYfi).toBe(100n * 10n ** 18n);
+    expect(veyfi?.activeBalanceYfi).toBe(100n * 10n ** 18n);
     expect(veyfi?.boostMultiplier).toBeCloseTo(1.9038461538, 10);
   });
 
@@ -267,7 +270,7 @@ describe("deriveExternalPositions", () => {
       },
     });
 
-    const positions = deriveExternalPositions(account, 40);
+    const positions = deriveExternalPositions(account, 40, null);
     const veyfi = positions.find((position) => position.id === "veyfi");
 
     expect(veyfi?.boostMultiplier).toBe(1);
@@ -300,7 +303,7 @@ describe("deriveExternalPositions", () => {
       ],
     });
 
-    const positions = deriveExternalPositions(account, 1);
+    const positions = deriveExternalPositions(account, 1, null);
 
     expect(positions.map((position) => position.symbol)).toEqual([
       "sdYFI",
@@ -308,5 +311,36 @@ describe("deriveExternalPositions", () => {
       "coveYFI",
       "veYFI",
     ]);
+  });
+
+  it("derives effective APRs for weighted portfolio math", () => {
+    const account = buildAccount({
+      veYfi: {
+        legacyBalance: 0n,
+        lockedAmount: 100n * 10n ** 18n,
+        migrationEligible: true,
+        migrated: true,
+        unlockTime: 1_800_000_000,
+        boostEpochs: 95,
+      },
+      llyfiTokens: [
+        {
+          ...buildAccount().llyfiTokens[0],
+          stakedBalance: 40n * 10n ** 18n,
+          depositorTotalSupply: 100n * 10n ** 18n,
+          depositorCapacity: 200n * 10n ** 18n,
+          veyfiBoost: 1.3,
+        },
+        buildAccount().llyfiTokens[1],
+        buildAccount().llyfiTokens[2],
+      ],
+    });
+
+    const positions = deriveExternalPositions(account, 1, null, 5000);
+    const sdYfi = positions.find((position) => position.symbol === "sdYFI");
+    const veyfi = positions.find((position) => position.symbol === "veYFI");
+
+    expect(sdYfi?.effectiveApr).toBeCloseTo(1.3, 10);
+    expect(veyfi?.effectiveApr).toBeCloseTo(0.9519230769, 10);
   });
 });

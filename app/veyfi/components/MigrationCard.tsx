@@ -13,14 +13,7 @@ import { veyfiCopy as copy } from "../messages";
 import { useProtocol } from "@/state/protocol";
 import { cn } from "@/lib/cn";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
-import { deriveCommonLlyfiBaseApr } from "@/lib/clients/veyfi/apr";
-import { getVeyfiMigratedBoostMultiplier } from "@/lib/clients/veyfi/boost";
-
-function toNumber(value?: string | number | null) {
-  if (value === null || value === undefined) return null;
-  const numeric = typeof value === "string" ? Number(value) : value;
-  return Number.isFinite(numeric) ? numeric : null;
-}
+import { deriveMigratedVeYfiAprMetrics } from "@/lib/portfolio/governance";
 
 export function MigrationCard() {
   const { data } = useVeyfiAccount();
@@ -40,33 +33,19 @@ export function MigrationCard() {
   } = data.veYfi;
   const showAction = legacyBalance > 0n && migrationEligible && !migrated;
 
-  const currentBoost = getVeyfiMigratedBoostMultiplier(
-    data.veYfi.boostEpochs ?? 0,
-    epochInfo?.currentEpoch ?? 0,
-  );
-
   const isEpochZero = epochInfo?.currentEpoch === 0;
-  const s3AprBps = globalData?.styfi
-    ? isEpochZero
-      ? globalData.styfi.projected.aprBps
-      : globalData.styfi.current.aprBps
-    : null;
-  const s3AprBpsValue = toNumber(s3AprBps);
-  const derivedBaseApr =
-    globalData !== null && globalData !== undefined
-      ? deriveCommonLlyfiBaseApr({ globalData, isEpochZero })
-      : null;
-  const baseAprBps =
-    derivedBaseApr !== null
-      ? derivedBaseApr * 10000
-      : s3AprBpsValue ?? (styfiApyBps !== undefined ? Number(styfiApyBps) : null);
+  const aprMetrics = deriveMigratedVeYfiAprMetrics({
+    boostEpochs: data.veYfi.boostEpochs ?? 0,
+    currentEpoch: epochInfo?.currentEpoch ?? 0,
+    globalData,
+    isEpochZero,
+    fallbackBaseAprBps: styfiApyBps !== undefined ? Number(styfiApyBps) : null,
+  });
   const baseAprValueLabel =
-    baseAprBps !== null ? formatPercent(baseAprBps / 10000, 2) : "--%";
-  const effectiveAprBps =
-    baseAprBps !== null ? baseAprBps * currentBoost : null;
+    aprMetrics.baseApr !== null ? formatPercent(aprMetrics.baseApr, 2) : "--%";
   const effectiveAprValueLabel =
-    effectiveAprBps !== null
-      ? formatPercent(effectiveAprBps / 10000, 2)
+    aprMetrics.effectiveApr !== null
+      ? formatPercent(aprMetrics.effectiveApr, 2)
       : "--%";
   const baseAprLabelText = isEpochZero
     ? copy.migration.boost.stats.baseAprEpoch1
@@ -86,7 +65,7 @@ export function MigrationCard() {
       <div className="flex justify-between items-center mb-2">
         <span className="text-neutral-500">veYFI Boost</span>
         <span className="font-number font-medium">
-          × {currentBoost.toFixed(2)}
+          × {aprMetrics.boostMultiplier.toFixed(2)}
         </span>
       </div>
 
@@ -244,13 +223,13 @@ export function MigrationCard() {
                 </div>
                 <p className="font-number font-bold text-4xl text-disco-600 tracking-tight">
                   {effectiveAprValueLabel}
-                </p>
-              </div>
+                  </p>
+                </div>
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-end">
                   <span className="text-xs font-bold text-disco-800 dark:text-disco-100">
-                    {currentBoost.toFixed(2)}x Boost
+                    {aprMetrics.boostMultiplier.toFixed(2)}x Boost
                   </span>
                   <span className="text-[10px] text-neutral-400 font-medium dark:text-text-tertiary">
                     Max 2.0x
@@ -261,7 +240,7 @@ export function MigrationCard() {
                     className="h-full bg-disco-600 transition-all duration-500 ease-out"
                     style={{
                       width: `${
-                        Math.max(0, Math.min(1, currentBoost - 1)) * 100
+                        Math.max(0, Math.min(1, aprMetrics.boostMultiplier - 1)) * 100
                       }%`,
                     }}
                   />

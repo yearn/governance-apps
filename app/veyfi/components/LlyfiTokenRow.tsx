@@ -13,12 +13,9 @@ import { useProtocol } from "@/state/protocol";
 import { useIdentity } from "@/state/identity";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
-import {
-  getLlyfiDisplaySymbol,
-  normalizeLlyfiSymbol,
-} from "@/lib/clients/veyfi/display";
-import { deriveBaseAprFromEffective } from "@/lib/clients/veyfi/apr";
+import { getLlyfiDisplaySymbol } from "@/lib/clients/veyfi/display";
 import { resolveVeyfiDisplayBoostMultiplier } from "@/lib/clients/veyfi/boost";
+import { deriveLlyfiAprMetrics } from "@/lib/portfolio/governance";
 
 type LlyfiTokenRowProps = {
   token: LlyfiTokenState;
@@ -41,15 +38,6 @@ export function LlyfiTokenRow({
     return Number.isFinite(numeric) ? numeric : null;
   };
 
-  const toBigInt = (value?: string | number | null, fallback = 0n) => {
-    if (value === null || value === undefined) return fallback;
-    try {
-      return BigInt(value);
-    } catch {
-      return fallback;
-    }
-  };
-
   const formatPercentSmart = (value: number, maximumFractionDigits = 1) => {
     if (!Number.isFinite(value)) return "0%";
     const percentValue = value * 100;
@@ -69,44 +57,6 @@ export function LlyfiTokenRow({
   const staked = token.stakedBalance + token.cooldownBalance;
   const wallet = token.walletBalance;
 
-  const capacity = token.depositorCapacity > 0n ? token.depositorCapacity : 1n;
-  const fallbackRatio =
-    Number((token.depositorTotalSupply * 10000n) / capacity) / 10000;
-
-  const s3Llyfi = globalData?.llyfi?.find(
-    (entry) => normalizeLlyfiSymbol(entry.symbol) === token.symbol
-  );
-  const s3Redemption = globalData?.global?.veyfi?.tokens?.find(
-    (entry) => normalizeLlyfiSymbol(entry.symbol) === token.symbol
-  )?.redemption;
-  const s3Capacity = s3Redemption
-    ? toBigInt(s3Redemption.capacity, token.depositorCapacity)
-    : null;
-  const s3Staked = s3Llyfi
-    ? toBigInt(s3Llyfi.staked) + toBigInt(s3Llyfi.unstaking)
-    : null;
-  // Keep ratio aligned with global APR inputs whenever S3 totals are present.
-  const useS3Totals = s3Capacity !== null || s3Staked !== null;
-  const capacityForRatio = useS3Totals
-    ? s3Capacity ?? token.depositorCapacity
-    : token.depositorCapacity;
-  const stakedForRatio = useS3Totals
-    ? s3Staked ?? token.depositorTotalSupply
-    : token.depositorTotalSupply;
-  const utilizationRatioRaw =
-    capacityForRatio > 0n
-      ? Number((stakedForRatio * 10000n) / capacityForRatio) / 10000
-      : fallbackRatio;
-  const MIN_UTILIZATION = 0.01;
-  const utilizationRatioForApr = Math.max(
-    MIN_UTILIZATION,
-    utilizationRatioRaw
-  );
-  const utilizationRatioLabel =
-    utilizationRatioRaw < MIN_UTILIZATION
-      ? "<1%"
-      : formatPercent(utilizationRatioRaw, 2);
-
   const maxBoostBps = toNumber(globalData?.global?.maxBoostBps);
   const boostMultiplier = resolveVeyfiDisplayBoostMultiplier({
     // Connected users should use their lock-specific boost when available.
@@ -117,44 +67,21 @@ export function LlyfiTokenRow({
   });
 
   const isEpochZero = epochInfo?.currentEpoch === 0;
-  const s3EffectiveAprBps = s3Llyfi
-    ? toNumber(isEpochZero ? s3Llyfi.projected.aprBps : s3Llyfi.current.aprBps)
-    : null;
-  const s3BaseAprBps = globalData?.styfi
-    ? isEpochZero
-      ? globalData.styfi.projected.aprBps
-      : globalData.styfi.current.aprBps
-    : null;
-  const s3BaseApyBpsValue = toNumber(s3BaseAprBps);
-  const liveBaseApyBpsValue =
-    baseApyBps !== undefined ? Number(baseApyBps) : null;
-  const hasBaseApySource =
-    s3BaseApyBpsValue !== null ||
-    (liveBaseApyBpsValue !== null && Number.isFinite(liveBaseApyBpsValue));
-  const baseApyBpsValue =
-    s3BaseApyBpsValue ??
-    (liveBaseApyBpsValue !== null && Number.isFinite(liveBaseApyBpsValue)
-      ? liveBaseApyBpsValue
-      : 0);
-  const baseApy = baseApyBpsValue / 10000;
-  const boostedBaseApyFallback = baseApy * boostMultiplier;
-  const effectiveApyFallback =
-    utilizationRatioForApr > 0 ? boostedBaseApyFallback / utilizationRatioForApr : 0;
-  const effectiveApy =
-    s3EffectiveAprBps !== null
-      ? s3EffectiveAprBps / 10000
-      : // 0 is a valid derived APR; only fall back when base APR inputs are unavailable.
-        Number.isFinite(effectiveApyFallback) && hasBaseApySource
-        ? effectiveApyFallback
-        : 0;
-  const derivedBaseApy = deriveBaseAprFromEffective({
-    effectiveApr: s3EffectiveAprBps !== null ? effectiveApy : null,
-    utilizationRatio: utilizationRatioRaw,
+  const llyfiApr = deriveLlyfiAprMetrics({
+    symbol: token.symbol,
+    depositorCapacity: token.depositorCapacity,
+    depositorTotalSupply: token.depositorTotalSupply,
     boostMultiplier,
+    globalData,
+    isEpochZero,
+    fallbackBaseAprBps: baseApyBps !== undefined ? Number(baseApyBps) : null,
   });
-  const baseApyForTooltip = derivedBaseApy ?? baseApy;
-  const boostedBaseApy =
-    derivedBaseApy !== null ? baseApyForTooltip * boostMultiplier : boostedBaseApyFallback;
+  const utilizationRatioRaw = llyfiApr.utilizationRatio;
+  const utilizationRatioLabel =
+    utilizationRatioRaw < 0.01 ? "<1%" : formatPercent(utilizationRatioRaw, 2);
+  const effectiveApy = llyfiApr.effectiveApr ?? 0;
+  const baseApyForTooltip = llyfiApr.baseApr ?? 0;
+  const boostedBaseApy = llyfiApr.boostedBaseApr ?? 0;
   const baseApyLabel = isEpochZero
     ? copy.manage.row.tooltips.apr.baseEpoch1
     : copy.manage.row.tooltips.apr.base;
@@ -163,8 +90,8 @@ export function LlyfiTokenRow({
     : copy.manage.row.tooltips.apr.effective;
 
   // Ratio uses YFI-locked capacity; secondary display uses scaled token amounts.
-  const displayStaked = stakedForRatio;
-  const displayCapacity = capacityForRatio;
+  const displayStaked = llyfiApr.stakedForRatio;
+  const displayCapacity = llyfiApr.backingYfi;
   const displayScale = token.exchangeRate > 0n ? token.exchangeRate : 1n;
   const displayStakedScaled = displayStaked * displayScale;
   const displayCapacityScaled = displayCapacity * displayScale;
