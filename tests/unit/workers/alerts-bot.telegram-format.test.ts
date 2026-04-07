@@ -129,6 +129,35 @@ describe("alerts-bot Telegram rendering", () => {
     );
   });
 
+  it("uses owner as the primary account for cooldown-withdraw messages when user is malformed", () => {
+    const zeroAddress = "0x0000000000000000000000000000000000000000";
+    const account = "0x1111111111111111111111111111111111111111";
+    const caller = "0x3333333333333333333333333333333333333333";
+    const message = renderTelegramMessage(
+      baseAction({
+        kind: "withdrew_from_cooldown",
+        tokenSymbol: "stYFI",
+        user: zeroAddress,
+        owner: account,
+        receiver: account,
+        caller,
+        amounts: {
+          assets: ONE,
+          shares: ONE,
+        },
+      }),
+    );
+
+    expect(message).toContain(
+      "Account: <a href=\"https://etherscan.io/address/0x1111111111111111111111111111111111111111\">",
+    );
+    expect(message).not.toContain(zeroAddress);
+    expect(message).not.toContain("Owner:");
+    expect(message).toContain(
+      "Caller: <a href=\"https://etherscan.io/address/0x3333333333333333333333333333333333333333\">",
+    );
+  });
+
   it("renders upYFI redemption using supYFI labels and fee line", () => {
     const message = renderTelegramMessage(
       baseAction({

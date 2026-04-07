@@ -51,6 +51,9 @@ const ERC4626_DEPOSIT_CALL_ABI = parseAbi([
 const STYFI_EXIT_CALL_ABI = parseAbi([
   "function unstake(uint256 _assets)",
 ]);
+const STYFI_WITHDRAW_CALL_ABI = parseAbi([
+  "function withdraw(uint256 _assets, address _receiver, address _owner) returns (uint256)",
+]);
 
 function hashOf(index: number): Hex {
   return `0x${index.toString(16).padStart(64, "0")}`;
@@ -760,6 +763,72 @@ describe("alerts-bot scanner fixtures", () => {
     expect(actions).toHaveLength(1);
     expect(actions[0]).toMatchObject({
       kind: "initiated_cooldown",
+      tokenSymbol: "stYFI",
+      user,
+      owner: user,
+      receiver: user,
+      caller: user,
+    });
+  });
+
+  it("reconciles stYFI withdraw actors from tx calldata when log actors are wrong but non-zero", async () => {
+    const user = userOf(34);
+    const malformedActor = userOf(340);
+    const txHash = hashOf(304);
+    const amount = 28_338_591_054_761_904n;
+    const logs: RpcLog[] = [
+      createLog({
+        address: STYFI,
+        topics: encodeEventTopics({
+          abi: ERC4626_WITHDRAW_ABI,
+          eventName: "Withdraw",
+          args: {
+            sender: malformedActor,
+            receiver: malformedActor,
+            owner: malformedActor,
+          },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [amount, amount],
+        ),
+        txHash,
+        blockNumber: 64,
+        logIndex: 0,
+      }),
+    ];
+
+    const rpc = createMockRpc({
+      logs,
+      txFromByHash: {
+        [txHash.toLowerCase()]: user,
+      },
+      txToByHash: {
+        [txHash.toLowerCase()]: STYFI,
+      },
+      txInputByHash: {
+        [txHash.toLowerCase()]: encodeFunctionData({
+          abi: STYFI_WITHDRAW_CALL_ABI,
+          functionName: "withdraw",
+          args: [amount, user, user],
+        }),
+      },
+      txReceiptByHash: {
+        [txHash.toLowerCase()]: {
+          transactionHash: txHash,
+          blockHash: null,
+          blockNumber: 64,
+          status: 1,
+          logs,
+        },
+      },
+    });
+
+    const actions = await scanChunkForActions(rpc, 64, 64);
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({
+      kind: "withdrew_from_cooldown",
       tokenSymbol: "stYFI",
       user,
       owner: user,

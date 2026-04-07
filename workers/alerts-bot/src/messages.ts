@@ -550,9 +550,32 @@ function buildActorLines(
   const lines: string[] = [];
   const seen: string[] = [];
 
-  const user = action.user;
-  const owner = action.owner ?? action.user;
-  const receiver = action.receiver ?? action.user;
+  const isRenderableActor = (value: string | undefined): value is string => {
+    if (typeof value !== "string") {
+      return false;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length === 0 || trimmed.toLowerCase() === "unknown") {
+      return false;
+    }
+
+    return !trimmed.startsWith("0x") || !isZeroAddress(trimmed);
+  };
+
+  const accountCandidates =
+    action.kind === "withdrew_from_cooldown"
+      ? [action.owner, action.receiver, action.user]
+      : [action.user, action.owner, action.receiver];
+  const account =
+    accountCandidates.find((candidate) => isRenderableActor(candidate))?.trim() ?? null;
+  const owner = isRenderableActor(action.owner)
+    ? action.owner.trim()
+    : account ?? undefined;
+  const receiver = isRenderableActor(action.receiver)
+    ? action.receiver.trim()
+    : account ?? undefined;
+  const caller = isRenderableActor(action.caller) ? action.caller.trim() : undefined;
 
   const addLine = (label: string, value: string | undefined): void => {
     if (!value) {
@@ -572,20 +595,24 @@ function buildActorLines(
     lines.push(`${label}: ${buildAddressLink(value, options.ensNamesByAddress)}`);
   };
 
-  if (areSameAddress(user, owner) && areSameAddress(user, receiver)) {
-    addLine("Account", user);
+  if (account && owner && receiver && areSameAddress(account, owner) && areSameAddress(account, receiver)) {
+    addLine("Account", account);
   } else {
-    addLine("Account", user);
-    if (!areSameAddress(owner, user)) {
+    addLine("Account", account ?? undefined);
+    if (owner && (!account || !areSameAddress(owner, account))) {
       addLine("Owner", owner);
     }
-    if (!areSameAddress(receiver, user) && !areSameAddress(receiver, owner)) {
+    if (
+      receiver &&
+      (!account || !areSameAddress(receiver, account)) &&
+      (!owner || !areSameAddress(receiver, owner))
+    ) {
       addLine("Receiver", receiver);
     }
   }
 
-  if (action.caller) {
-    addLine("Caller", action.caller);
+  if (caller) {
+    addLine("Caller", caller);
   }
 
   return lines;

@@ -2440,13 +2440,28 @@ function isStyfiAction(action: NormalizedAction): boolean {
   return normalizedSymbol === "styfi" || normalizedSymbol === "styfix";
 }
 
+function isMalformedStyfiActor(value: string | undefined): boolean {
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return normalized === UNKNOWN_USER || isZeroAddress(value);
+}
+
 function needsStyfiActorRepair(action: NormalizedAction): boolean {
   if (!isStyfiAction(action)) {
     return false;
   }
 
+  if (action.kind === "withdrew_from_cooldown") {
+    // Withdraw alerts depend on the account-facing owner/receiver tuple, and the
+    // tx calldata is authoritative even when the decoded event attribution is malformed.
+    return true;
+  }
+
   return [action.user, action.owner, action.receiver, action.caller].some(
-    (value) => typeof value === "string" && isZeroAddress(value),
+    (value) => isMalformedStyfiActor(value),
   );
 }
 
