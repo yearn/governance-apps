@@ -709,6 +709,117 @@ describe("alerts-bot scanner fixtures", () => {
     });
   });
 
+  it("reconciles stYFIx stake actors from receipt metadata when log actors are wrong but non-zero", async () => {
+    const user = userOf(321);
+    const malformedActor = userOf(322);
+    const txHash = hashOf(3021);
+    const amount = 4_465_182_738_811_854_735n;
+    const zeroAddress = "0x0000000000000000000000000000000000000000" as Address;
+    const logs: RpcLog[] = [
+      createLog({
+        address: STYFIX,
+        topics: encodeEventTopics({
+          abi: ERC4626_DEPOSIT_ABI,
+          eventName: "Deposit",
+          args: { sender: malformedActor, owner: malformedActor },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [amount, amount],
+        ),
+        txHash,
+        blockNumber: 63,
+        logIndex: 1,
+      }),
+    ];
+
+    const receiptLogs: RpcLog[] = [
+      createLog({
+        address: STYFI,
+        topics: encodeEventTopics({
+          abi: ERC4626_DEPOSIT_ABI,
+          eventName: "Deposit",
+          args: { sender: STYFIX, owner: STYFIX },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [amount, amount],
+        ),
+        txHash,
+        blockNumber: 63,
+        logIndex: 0,
+      }),
+      createLog({
+        address: STYFIX,
+        topics: encodeEventTopics({
+          abi: ERC4626_DEPOSIT_ABI,
+          eventName: "Deposit",
+          args: { sender: user, owner: user },
+        }),
+        data: encodeAbiParameters(
+          [{ type: "uint256" }, { type: "uint256" }],
+          [amount, amount],
+        ),
+        txHash,
+        blockNumber: 63,
+        logIndex: 1,
+      }),
+      createLog({
+        address: STYFIX,
+        topics: encodeEventTopics({
+          abi: ERC20_TRANSFER_ABI,
+          eventName: "Transfer",
+          args: {
+            sender: zeroAddress,
+            receiver: user,
+          },
+        }),
+        data: encodeAbiParameters([{ type: "uint256" }], [amount]),
+        txHash,
+        blockNumber: 63,
+        logIndex: 2,
+      }),
+    ];
+
+    const rpc = createMockRpc({
+      logs,
+      txFromByHash: {
+        [txHash.toLowerCase()]: user,
+      },
+      txToByHash: {
+        [txHash.toLowerCase()]: STYFIX,
+      },
+      txInputByHash: {
+        [txHash.toLowerCase()]: encodeFunctionData({
+          abi: ERC4626_DEPOSIT_CALL_ABI,
+          functionName: "deposit",
+          args: [amount, user],
+        }),
+      },
+      txReceiptByHash: {
+        [txHash.toLowerCase()]: {
+          transactionHash: txHash,
+          blockHash: null,
+          blockNumber: 63,
+          status: 1,
+          logs: receiptLogs,
+        },
+      },
+    });
+
+    const actions = await scanChunkForActions(rpc, 63, 63);
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toMatchObject({
+      kind: "staked",
+      tokenSymbol: "stYFIX",
+      user,
+      owner: user,
+      receiver: user,
+      caller: user,
+    });
+  });
+
   it("repairs zero-address stYFI cooldown actors from the tx sender", async () => {
     const user = userOf(33);
     const txHash = hashOf(303);

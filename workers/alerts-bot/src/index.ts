@@ -2449,19 +2449,20 @@ function isMalformedStyfiActor(value: string | undefined): boolean {
   return normalized === UNKNOWN_USER || isZeroAddress(value);
 }
 
-function needsStyfiActorRepair(action: NormalizedAction): boolean {
+function shouldCanonicalizeStyfiActors(action: NormalizedAction): boolean {
   if (!isStyfiAction(action)) {
     return false;
   }
 
-  if (action.kind === "withdrew_from_cooldown") {
-    // Withdraw alerts depend on the account-facing owner/receiver tuple, and the
-    // tx calldata is authoritative even when the decoded event attribution is malformed.
-    return true;
-  }
-
-  return [action.user, action.owner, action.receiver, action.caller].some(
-    (value) => isMalformedStyfiActor(value),
+  // stYFI/stYFIx actor fields are cheap to reconcile in batch and tx/receipt
+  // metadata is authoritative even when event actors look superficially valid.
+  return (
+    action.kind === "staked" ||
+    action.kind === "initiated_cooldown" ||
+    action.kind === "withdrew_from_cooldown" ||
+    [action.user, action.owner, action.receiver, action.caller].some((value) =>
+      isMalformedStyfiActor(value),
+    )
   );
 }
 
@@ -2854,7 +2855,7 @@ async function repairStyfiActors(
   const repairableHashes = Array.from(
     new Set(
       actions
-        .filter((action) => needsStyfiActorRepair(action))
+        .filter((action) => shouldCanonicalizeStyfiActors(action))
         .map((action) => action.txHash),
     ),
   );
@@ -2877,7 +2878,7 @@ async function repairStyfiActors(
   });
 
   for (const action of actions) {
-    if (!needsStyfiActorRepair(action)) {
+    if (!shouldCanonicalizeStyfiActors(action)) {
       continue;
     }
 
@@ -2909,7 +2910,7 @@ async function repairStyfiActors(
       previousCaller !== action.caller;
 
     if (changed) {
-      console.warn("Repaired malformed stYFI actor attribution", {
+      console.warn("Canonicalized stYFI actor attribution", {
         txHash: action.txHash,
         kind: action.kind,
         tokenSymbol: action.tokenSymbol,
@@ -3070,7 +3071,8 @@ export async function scanChunkForActionsWithProgress(
       console.warn("Subrequest budget exhausted while repairing stYFI actors", {
         fromBlock,
         toBlock,
-        repairableActions: actions.filter((action) => needsStyfiActorRepair(action)).length,
+        repairableActions: actions.filter((action) => shouldCanonicalizeStyfiActors(action))
+          .length,
         budget: error,
       });
     } else {
