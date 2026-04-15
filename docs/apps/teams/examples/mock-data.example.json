@@ -1,138 +1,1104 @@
 {
   "version": 1,
   "generatedAt": 1776200000,
-  "currentPeriod": 4,
-  "totals": {
-    "globalRevenueUsd": "1850000.00",
-    "globalCostUsd": "1175000.00",
-    "globalProfitUsd": "675000.00",
-    "globalLossUsd": "0.00"
-  },
-  "teams": [
+  "scenarios": [
     {
-      "id": "growth",
-      "name": "Growth",
-      "address": "0x1111111111111111111111111111111111111111",
-      "owner": "0xaaaa000000000000000000000000000000000001",
-      "pendingOwner": null,
-      "status": "active",
-      "currentPeriod": {
-        "revenueUsd": "250000.00",
-        "costUsd": "160000.00",
-        "profitUsd": "90000.00",
-        "lossUsd": "0.00"
-      },
-      "lifetime": {
-        "revenueUsd": "1225000.00",
-        "costUsd": "845000.00",
-        "profitUsd": "380000.00",
-        "lossUsd": "0.00"
-      },
-      "revenueOptions": [
-        {
-          "symbol": "USDC",
-          "tokenAddress": "0x0000000000000000000000000000000000000001",
-          "decimals": 6,
-          "isConvertible": true,
-          "convertToSymbol": "yvUSDC-1",
-          "oraclePriceUsd": "1.00",
-          "estimatedCreditUsd": "9985.40"
+      "id": "directory-observer",
+      "label": "Observer directory with active, retiring, and retired teams",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "currentPeriod": 4,
+        "viewer": {
+          "role": "observer",
+          "address": null,
+          "teamId": null,
+          "canDepositRevenue": true,
+          "canClaimFunding": false,
+          "canReturnFunding": false,
+          "canClaimBonus": false,
+          "canUseAdmin": false
         },
-        {
-          "symbol": "yvUSDC-1",
-          "tokenAddress": "0x0000000000000000000000000000000000000002",
-          "decimals": 18,
-          "isConvertible": false,
-          "oraclePriceUsd": "1.01",
-          "estimatedCreditUsd": "10100.00"
-        }
-      ],
-      "revenueHistory": [
-        {
-          "id": "rev-1",
-          "period": 4,
-          "symbol": "USDC",
-          "amount": "10000",
-          "creditedUsd": "9985.40",
-          "convertedToSymbol": "yvUSDC-1",
-          "depositedBy": "0xbbbb000000000000000000000000000000000001",
-          "createdAt": 1776180000
-        }
-      ],
-      "fundingApprovals": [
-        {
-          "id": "approval-12",
-          "idx": 12,
-          "approvedPeriod": 4,
-          "symbol": "USDC",
-          "tokenAddress": "0x0000000000000000000000000000000000000001",
-          "totalApproved": "50000",
-          "used": "40000",
-          "claimable": "10000",
-          "streamDurationDays": 60,
-          "status": "late-liquid",
-          "recipient": "0xcccc000000000000000000000000000000000001",
-          "claimedCostUsd": "40000.00",
-          "refundValueUsd": "0.00",
-          "averageClaimPriceUsd": "1.00"
+        "selectedTeamId": null,
+        "totals": {
+          "globalRevenueUsd": "2121000.00",
+          "globalCostUsd": "1420000.00",
+          "globalProfitUsd": "701000.00",
+          "globalLossUsd": "29000.00",
+          "activeTeamCount": 2,
+          "retiringTeamCount": 1,
+          "retiredTeamCount": 1
         },
-        {
-          "id": "approval-13",
-          "idx": 13,
-          "approvedPeriod": 4,
-          "symbol": "YFI",
-          "tokenAddress": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
-          "totalApproved": "5.0",
-          "used": "2.0",
-          "claimable": "3.0",
-          "streamDurationDays": 90,
-          "status": "claimable",
-          "recipient": null,
-          "claimedCostUsd": "12000.00",
-          "averageClaimPriceUsd": "6000.00"
-        }
-      ],
-      "bonus": {
-        "tokenSymbol": "YFI",
-        "totalClaimable": "14.5",
-        "periods": [
+        "teams": [
           {
-            "period": 3,
-            "finalized": true,
-            "claimed": false,
-            "profitUsd": "50000.00",
-            "spotPriceUsd": "3000.00",
-            "adjustedPriceUsd": "2700.00",
-            "growthFactorBps": 11000,
-            "ybcSplitBps": 1000,
-            "claimableYfi": "14.5"
+            "id": "platform",
+            "name": "Platform",
+            "address": "0x1111111111111111111111111111111111111111",
+            "owner": "0xaaaa000000000000000000000000000000000001",
+            "pendingOwner": null,
+            "status": "active",
+            "readOnlyReason": null,
+            "currentPeriod": {
+              "revenueUsd": "250000.00",
+              "costUsd": "160000.00",
+              "profitUsd": "90000.00",
+              "lossUsd": "0.00"
+            },
+            "lifetime": {
+              "revenueUsd": "1225000.00",
+              "costUsd": "845000.00",
+              "profitUsd": "380000.00",
+              "lossUsd": "0.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "not-needed",
+              "successorTeamId": null,
+              "retirementAnnouncedAt": null,
+              "retirementEffectivePeriod": null
+            },
+            "revenueOptions": [
+              {
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "decimals": 6,
+                "isConvertible": true,
+                "convertToSymbol": "yvUSDC-1",
+                "oraclePriceUsd": "1.00",
+                "previewAmount": "10000",
+                "estimatedCreditUsd": "9985.40"
+              }
+            ],
+            "revenueHistory": [
+              {
+                "id": "rev-platform-4-1",
+                "period": 4,
+                "symbol": "USDC",
+                "amount": "10000",
+                "creditedUsd": "9985.40",
+                "convertedToSymbol": "yvUSDC-1",
+                "depositedBy": "0xbbbb000000000000000000000000000000000001",
+                "createdAt": 1776180000
+              }
+            ],
+            "fundingSummary": {
+              "state": "no-approvals",
+              "claimableUsd": "0.00",
+              "refundableUsd": "0.00"
+            },
+            "fundingApprovals": [],
+            "fundingReturns": [],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "none",
+              "totalClaimable": "0",
+              "includedPeriodCount": 0,
+              "periods": []
+            }
+          },
+          {
+            "id": "security",
+            "name": "Security",
+            "address": "0x2222222222222222222222222222222222222222",
+            "owner": "0xaaaa000000000000000000000000000000000002",
+            "pendingOwner": null,
+            "status": "active",
+            "readOnlyReason": null,
+            "currentPeriod": {
+              "revenueUsd": "68000.00",
+              "costUsd": "92000.00",
+              "profitUsd": "0.00",
+              "lossUsd": "24000.00"
+            },
+            "lifetime": {
+              "revenueUsd": "508000.00",
+              "costUsd": "440000.00",
+              "profitUsd": "68000.00",
+              "lossUsd": "24000.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "not-needed",
+              "successorTeamId": null,
+              "retirementAnnouncedAt": null,
+              "retirementEffectivePeriod": null
+            },
+            "revenueOptions": [
+              {
+                "symbol": "DAI",
+                "tokenAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                "decimals": 18,
+                "isConvertible": false,
+                "convertToSymbol": null,
+                "oraclePriceUsd": "1.00",
+                "previewAmount": "7500",
+                "estimatedCreditUsd": "7500.00"
+              }
+            ],
+            "revenueHistory": [],
+            "fundingSummary": {
+              "state": "partially-claimed",
+              "claimableUsd": "43000.00",
+              "refundableUsd": "27500.00"
+            },
+            "fundingApprovals": [
+              {
+                "id": "approval-security-22",
+                "idx": 22,
+                "approvedPeriod": 4,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "50000",
+                "used": "18000",
+                "claimable": "32000",
+                "streamDurationDays": 60,
+                "status": "partially-claimed",
+                "recipient": "0xcccc000000000000000000000000000000000002",
+                "claimedCostUsd": "18000.00",
+                "refundValueUsd": "18000.00",
+                "averageClaimPriceUsd": "1.00"
+              }
+            ],
+            "fundingReturns": [
+              {
+                "id": "return-security-4-1",
+                "approvalId": "approval-security-22",
+                "period": 4,
+                "symbol": "USDC",
+                "amount": "2500",
+                "refundValueUsd": "2500.00",
+                "returnedBy": "0xaaaa000000000000000000000000000000000002",
+                "createdAt": 1776100000
+              }
+            ],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "claimed",
+              "totalClaimable": "0",
+              "includedPeriodCount": 1,
+              "periods": [
+                {
+                  "period": 3,
+                  "status": "claimed",
+                  "finalized": true,
+                  "claimed": true,
+                  "profitUsd": "50000.00",
+                  "spotPriceUsd": "3000.00",
+                  "adjustedPriceUsd": "2700.00",
+                  "growthFactorBps": 10500,
+                  "ybcSplitBps": 1000,
+                  "claimableYfi": "0"
+                }
+              ]
+            }
+          },
+          {
+            "id": "research",
+            "name": "Research",
+            "address": "0x3333333333333333333333333333333333333333",
+            "owner": "0xaaaa000000000000000000000000000000000003",
+            "pendingOwner": "0xdddd000000000000000000000000000000000003",
+            "status": "retiring",
+            "readOnlyReason": null,
+            "currentPeriod": {
+              "revenueUsd": "120000.00",
+              "costUsd": "125000.00",
+              "profitUsd": "0.00",
+              "lossUsd": "5000.00"
+            },
+            "lifetime": {
+              "revenueUsd": "338000.00",
+              "costUsd": "135000.00",
+              "profitUsd": "203000.00",
+              "lossUsd": "5000.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "ready",
+              "successorTeamId": "platform",
+              "retirementAnnouncedAt": 1775000000,
+              "retirementEffectivePeriod": 5
+            },
+            "revenueOptions": [
+              {
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "decimals": 6,
+                "isConvertible": true,
+                "convertToSymbol": "yvUSDC-1",
+                "oraclePriceUsd": "1.00",
+                "previewAmount": "5000",
+                "estimatedCreditUsd": "4992.70"
+              }
+            ],
+            "revenueHistory": [],
+            "fundingSummary": {
+              "state": "fully-used",
+              "claimableUsd": "0.00",
+              "refundableUsd": "0.00"
+            },
+            "fundingApprovals": [
+              {
+                "id": "approval-research-18",
+                "idx": 18,
+                "approvedPeriod": 3,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "25000",
+                "used": "25000",
+                "claimable": "0",
+                "streamDurationDays": 45,
+                "status": "fully-used",
+                "recipient": "0xcccc000000000000000000000000000000000003",
+                "claimedCostUsd": "25000.00",
+                "refundValueUsd": "0.00",
+                "averageClaimPriceUsd": "1.00"
+              }
+            ],
+            "fundingReturns": [],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "pending-finalization",
+              "totalClaimable": "0",
+              "includedPeriodCount": 1,
+              "periods": [
+                {
+                  "period": 4,
+                  "status": "pending-finalization",
+                  "finalized": false,
+                  "claimed": false,
+                  "profitUsd": "0.00",
+                  "spotPriceUsd": "3200.00",
+                  "adjustedPriceUsd": "3200.00",
+                  "growthFactorBps": 10000,
+                  "ybcSplitBps": 1000,
+                  "claimableYfi": "0"
+                }
+              ]
+            }
+          },
+          {
+            "id": "grants-archive",
+            "name": "Grants Archive",
+            "address": "0x4444444444444444444444444444444444444444",
+            "owner": "0xaaaa000000000000000000000000000000000004",
+            "pendingOwner": null,
+            "status": "retired",
+            "readOnlyReason": "retired",
+            "currentPeriod": {
+              "revenueUsd": "0.00",
+              "costUsd": "0.00",
+              "profitUsd": "0.00",
+              "lossUsd": "0.00"
+            },
+            "lifetime": {
+              "revenueUsd": "50000.00",
+              "costUsd": "0.00",
+              "profitUsd": "50000.00",
+              "lossUsd": "0.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "completed",
+              "successorTeamId": "platform",
+              "retirementAnnouncedAt": 1771200000,
+              "retirementEffectivePeriod": 4
+            },
+            "revenueOptions": [],
+            "revenueHistory": [
+              {
+                "id": "rev-grants-3-1",
+                "period": 3,
+                "symbol": "USDC",
+                "amount": "50000",
+                "creditedUsd": "50000.00",
+                "convertedToSymbol": null,
+                "depositedBy": "0xbbbb000000000000000000000000000000000004",
+                "createdAt": 1772200000
+              }
+            ],
+            "fundingSummary": {
+              "state": "fully-used",
+              "claimableUsd": "0.00",
+              "refundableUsd": "0.00"
+            },
+            "fundingApprovals": [],
+            "fundingReturns": [],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "none",
+              "totalClaimable": "0",
+              "includedPeriodCount": 1,
+              "periods": [
+                {
+                  "period": 3,
+                  "status": "finalized-zero",
+                  "finalized": true,
+                  "claimed": false,
+                  "profitUsd": "0.00",
+                  "spotPriceUsd": "3000.00",
+                  "adjustedPriceUsd": "3000.00",
+                  "growthFactorBps": 10000,
+                  "ybcSplitBps": 1000,
+                  "claimableYfi": "0"
+                }
+              ]
+            }
           }
         ]
       }
+    },
+    {
+      "id": "team-owner-funding",
+      "label": "Team owner with claimable, late-liquid, and historical funding approvals",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "currentPeriod": 4,
+        "viewer": {
+          "role": "team-owner",
+          "address": "0xaaaa000000000000000000000000000000000002",
+          "teamId": "security",
+          "canDepositRevenue": true,
+          "canClaimFunding": true,
+          "canReturnFunding": true,
+          "canClaimBonus": false,
+          "canUseAdmin": false
+        },
+        "selectedTeamId": "security",
+        "totals": {
+          "globalRevenueUsd": "2121000.00",
+          "globalCostUsd": "1420000.00",
+          "globalProfitUsd": "701000.00",
+          "globalLossUsd": "29000.00",
+          "activeTeamCount": 2,
+          "retiringTeamCount": 1,
+          "retiredTeamCount": 1
+        },
+        "teams": [
+          {
+            "id": "security",
+            "name": "Security",
+            "address": "0x2222222222222222222222222222222222222222",
+            "owner": "0xaaaa000000000000000000000000000000000002",
+            "pendingOwner": null,
+            "status": "active",
+            "readOnlyReason": null,
+            "currentPeriod": {
+              "revenueUsd": "68000.00",
+              "costUsd": "92000.00",
+              "profitUsd": "0.00",
+              "lossUsd": "24000.00"
+            },
+            "lifetime": {
+              "revenueUsd": "508000.00",
+              "costUsd": "440000.00",
+              "profitUsd": "68000.00",
+              "lossUsd": "24000.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "not-needed",
+              "successorTeamId": null,
+              "retirementAnnouncedAt": null,
+              "retirementEffectivePeriod": null
+            },
+            "revenueOptions": [
+              {
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "decimals": 6,
+                "isConvertible": true,
+                "convertToSymbol": "yvUSDC-1",
+                "oraclePriceUsd": "1.00",
+                "previewAmount": "12000",
+                "estimatedCreditUsd": "11982.48"
+              },
+              {
+                "symbol": "DAI",
+                "tokenAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+                "decimals": 18,
+                "isConvertible": false,
+                "convertToSymbol": null,
+                "oraclePriceUsd": "1.00",
+                "previewAmount": "7500",
+                "estimatedCreditUsd": "7500.00"
+              }
+            ],
+            "revenueHistory": [
+              {
+                "id": "rev-security-4-1",
+                "period": 4,
+                "symbol": "DAI",
+                "amount": "7500",
+                "creditedUsd": "7500.00",
+                "convertedToSymbol": null,
+                "depositedBy": "0xbbbb000000000000000000000000000000000002",
+                "createdAt": 1776040000
+              }
+            ],
+            "fundingSummary": {
+              "state": "late-liquid-available",
+              "claimableUsd": "43000.00",
+              "refundableUsd": "27500.00"
+            },
+            "fundingApprovals": [
+              {
+                "id": "approval-security-22",
+                "idx": 22,
+                "approvedPeriod": 4,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "50000",
+                "used": "18000",
+                "claimable": "32000",
+                "streamDurationDays": 60,
+                "status": "partially-claimed",
+                "recipient": "0xcccc000000000000000000000000000000000002",
+                "claimedCostUsd": "18000.00",
+                "refundValueUsd": "18000.00",
+                "averageClaimPriceUsd": "1.00"
+              },
+              {
+                "id": "approval-security-23",
+                "idx": 23,
+                "approvedPeriod": 4,
+                "symbol": "YFI",
+                "tokenAddress": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+                "totalApproved": "2.5",
+                "used": "0",
+                "claimable": "2.5",
+                "streamDurationDays": 90,
+                "status": "claimable-current-period",
+                "recipient": null,
+                "claimedCostUsd": "0.00",
+                "refundValueUsd": "0.00",
+                "averageClaimPriceUsd": null
+              },
+              {
+                "id": "approval-security-21",
+                "idx": 21,
+                "approvedPeriod": 3,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "20000",
+                "used": "9000",
+                "claimable": "11000",
+                "streamDurationDays": 30,
+                "status": "late-liquid",
+                "recipient": "0xcccc000000000000000000000000000000000002",
+                "claimedCostUsd": "9000.00",
+                "refundValueUsd": "9000.00",
+                "averageClaimPriceUsd": "1.00"
+              },
+              {
+                "id": "approval-security-20",
+                "idx": 20,
+                "approvedPeriod": 2,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "15000",
+                "used": "15000",
+                "claimable": "0",
+                "streamDurationDays": 30,
+                "status": "fully-used",
+                "recipient": "0xcccc000000000000000000000000000000000002",
+                "claimedCostUsd": "15000.00",
+                "refundValueUsd": "0.00",
+                "averageClaimPriceUsd": "1.00"
+              },
+              {
+                "id": "approval-security-24",
+                "idx": 24,
+                "approvedPeriod": 5,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "18000",
+                "used": "0",
+                "claimable": "0",
+                "streamDurationDays": 45,
+                "status": "not-current-period",
+                "recipient": null,
+                "claimedCostUsd": "0.00",
+                "refundValueUsd": "0.00",
+                "averageClaimPriceUsd": null
+              }
+            ],
+            "fundingReturns": [
+              {
+                "id": "return-security-4-1",
+                "approvalId": "approval-security-22",
+                "period": 4,
+                "symbol": "USDC",
+                "amount": "2500",
+                "refundValueUsd": "2500.00",
+                "returnedBy": "0xaaaa000000000000000000000000000000000002",
+                "createdAt": 1776100000
+              }
+            ],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "claimed",
+              "totalClaimable": "0",
+              "includedPeriodCount": 1,
+              "periods": [
+                {
+                  "period": 3,
+                  "status": "claimed",
+                  "finalized": true,
+                  "claimed": true,
+                  "profitUsd": "50000.00",
+                  "spotPriceUsd": "3000.00",
+                  "adjustedPriceUsd": "2700.00",
+                  "growthFactorBps": 10500,
+                  "ybcSplitBps": 1000,
+                  "claimableYfi": "0"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "bonus-available",
+      "label": "Team owner with finalized bonus available and pending period detail",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "currentPeriod": 4,
+        "viewer": {
+          "role": "team-owner",
+          "address": "0xaaaa000000000000000000000000000000000001",
+          "teamId": "platform",
+          "canDepositRevenue": true,
+          "canClaimFunding": false,
+          "canReturnFunding": false,
+          "canClaimBonus": true,
+          "canUseAdmin": false
+        },
+        "selectedTeamId": "platform",
+        "totals": {
+          "globalRevenueUsd": "2121000.00",
+          "globalCostUsd": "1420000.00",
+          "globalProfitUsd": "701000.00",
+          "globalLossUsd": "29000.00",
+          "activeTeamCount": 2,
+          "retiringTeamCount": 1,
+          "retiredTeamCount": 1
+        },
+        "teams": [
+          {
+            "id": "platform",
+            "name": "Platform",
+            "address": "0x1111111111111111111111111111111111111111",
+            "owner": "0xaaaa000000000000000000000000000000000001",
+            "pendingOwner": null,
+            "status": "active",
+            "readOnlyReason": null,
+            "currentPeriod": {
+              "revenueUsd": "250000.00",
+              "costUsd": "160000.00",
+              "profitUsd": "90000.00",
+              "lossUsd": "0.00"
+            },
+            "lifetime": {
+              "revenueUsd": "1225000.00",
+              "costUsd": "845000.00",
+              "profitUsd": "380000.00",
+              "lossUsd": "0.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "not-needed",
+              "successorTeamId": null,
+              "retirementAnnouncedAt": null,
+              "retirementEffectivePeriod": null
+            },
+            "revenueOptions": [
+              {
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "decimals": 6,
+                "isConvertible": true,
+                "convertToSymbol": "yvUSDC-1",
+                "oraclePriceUsd": "1.00",
+                "previewAmount": "10000",
+                "estimatedCreditUsd": "9985.40"
+              },
+              {
+                "symbol": "yvUSDC-1",
+                "tokenAddress": "0x5555555555555555555555555555555555555555",
+                "decimals": 18,
+                "isConvertible": false,
+                "convertToSymbol": null,
+                "oraclePriceUsd": "1.01",
+                "previewAmount": "10000",
+                "estimatedCreditUsd": "10100.00"
+              }
+            ],
+            "revenueHistory": [
+              {
+                "id": "rev-platform-4-1",
+                "period": 4,
+                "symbol": "USDC",
+                "amount": "10000",
+                "creditedUsd": "9985.40",
+                "convertedToSymbol": "yvUSDC-1",
+                "depositedBy": "0xbbbb000000000000000000000000000000000001",
+                "createdAt": 1776180000
+              }
+            ],
+            "fundingSummary": {
+              "state": "no-approvals",
+              "claimableUsd": "0.00",
+              "refundableUsd": "0.00"
+            },
+            "fundingApprovals": [],
+            "fundingReturns": [],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "claimable",
+              "totalClaimable": "14.5",
+              "includedPeriodCount": 2,
+              "periods": [
+                {
+                  "period": 3,
+                  "status": "finalized-claimable",
+                  "finalized": true,
+                  "claimed": false,
+                  "profitUsd": "50000.00",
+                  "spotPriceUsd": "3000.00",
+                  "adjustedPriceUsd": "2700.00",
+                  "growthFactorBps": 11000,
+                  "ybcSplitBps": 1000,
+                  "claimableYfi": "14.5"
+                },
+                {
+                  "period": 4,
+                  "status": "pending-finalization",
+                  "finalized": false,
+                  "claimed": false,
+                  "profitUsd": "90000.00",
+                  "spotPriceUsd": "3200.00",
+                  "adjustedPriceUsd": "3040.00",
+                  "growthFactorBps": 10400,
+                  "ybcSplitBps": 1000,
+                  "claimableYfi": "0"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "retired-read-only",
+      "label": "Retired team workspace in read-only mode",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "currentPeriod": 4,
+        "viewer": {
+          "role": "team-owner",
+          "address": "0xaaaa000000000000000000000000000000000004",
+          "teamId": "grants-archive",
+          "canDepositRevenue": false,
+          "canClaimFunding": false,
+          "canReturnFunding": false,
+          "canClaimBonus": false,
+          "canUseAdmin": false
+        },
+        "selectedTeamId": "grants-archive",
+        "totals": {
+          "globalRevenueUsd": "2121000.00",
+          "globalCostUsd": "1420000.00",
+          "globalProfitUsd": "701000.00",
+          "globalLossUsd": "29000.00",
+          "activeTeamCount": 2,
+          "retiringTeamCount": 1,
+          "retiredTeamCount": 1
+        },
+        "teams": [
+          {
+            "id": "grants-archive",
+            "name": "Grants Archive",
+            "address": "0x4444444444444444444444444444444444444444",
+            "owner": "0xaaaa000000000000000000000000000000000004",
+            "pendingOwner": null,
+            "status": "retired",
+            "readOnlyReason": "retired",
+            "currentPeriod": {
+              "revenueUsd": "0.00",
+              "costUsd": "0.00",
+              "profitUsd": "0.00",
+              "lossUsd": "0.00"
+            },
+            "lifetime": {
+              "revenueUsd": "50000.00",
+              "costUsd": "0.00",
+              "profitUsd": "50000.00",
+              "lossUsd": "0.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "completed",
+              "successorTeamId": "platform",
+              "retirementAnnouncedAt": 1771200000,
+              "retirementEffectivePeriod": 4
+            },
+            "revenueOptions": [],
+            "revenueHistory": [
+              {
+                "id": "rev-grants-3-1",
+                "period": 3,
+                "symbol": "USDC",
+                "amount": "50000",
+                "creditedUsd": "50000.00",
+                "convertedToSymbol": null,
+                "depositedBy": "0xbbbb000000000000000000000000000000000004",
+                "createdAt": 1772200000
+              }
+            ],
+            "fundingSummary": {
+              "state": "fully-used",
+              "claimableUsd": "0.00",
+              "refundableUsd": "0.00"
+            },
+            "fundingApprovals": [],
+            "fundingReturns": [],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "none",
+              "totalClaimable": "0",
+              "includedPeriodCount": 1,
+              "periods": [
+                {
+                  "period": 3,
+                  "status": "finalized-zero",
+                  "finalized": true,
+                  "claimed": false,
+                  "profitUsd": "0.00",
+                  "spotPriceUsd": "3000.00",
+                  "adjustedPriceUsd": "3000.00",
+                  "growthFactorBps": 10000,
+                  "ybcSplitBps": 1000,
+                  "claimableYfi": "0"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "operator-admin",
+      "label": "Operator/admin with bucket usage near limits",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "currentPeriod": 4,
+        "viewer": {
+          "role": "operator-admin",
+          "address": "0xeeee000000000000000000000000000000000001",
+          "teamId": null,
+          "canDepositRevenue": true,
+          "canClaimFunding": false,
+          "canReturnFunding": false,
+          "canClaimBonus": false,
+          "canUseAdmin": true
+        },
+        "selectedTeamId": "security",
+        "totals": {
+          "globalRevenueUsd": "2121000.00",
+          "globalCostUsd": "1420000.00",
+          "globalProfitUsd": "701000.00",
+          "globalLossUsd": "29000.00",
+          "activeTeamCount": 2,
+          "retiringTeamCount": 1,
+          "retiredTeamCount": 1
+        },
+        "teams": [
+          {
+            "id": "security",
+            "name": "Security",
+            "address": "0x2222222222222222222222222222222222222222",
+            "owner": "0xaaaa000000000000000000000000000000000002",
+            "pendingOwner": null,
+            "status": "active",
+            "readOnlyReason": null,
+            "currentPeriod": {
+              "revenueUsd": "68000.00",
+              "costUsd": "92000.00",
+              "profitUsd": "0.00",
+              "lossUsd": "24000.00"
+            },
+            "lifetime": {
+              "revenueUsd": "508000.00",
+              "costUsd": "440000.00",
+              "profitUsd": "68000.00",
+              "lossUsd": "24000.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "not-needed",
+              "successorTeamId": null,
+              "retirementAnnouncedAt": null,
+              "retirementEffectivePeriod": null
+            },
+            "revenueOptions": [
+              {
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "decimals": 6,
+                "isConvertible": true,
+                "convertToSymbol": "yvUSDC-1",
+                "oraclePriceUsd": "1.00",
+                "previewAmount": "12000",
+                "estimatedCreditUsd": "11982.48"
+              }
+            ],
+            "revenueHistory": [
+              {
+                "id": "rev-security-4-1",
+                "period": 4,
+                "symbol": "DAI",
+                "amount": "7500",
+                "creditedUsd": "7500.00",
+                "convertedToSymbol": null,
+                "depositedBy": "0xbbbb000000000000000000000000000000000002",
+                "createdAt": 1776040000
+              }
+            ],
+            "fundingSummary": {
+              "state": "late-liquid-available",
+              "claimableUsd": "43000.00",
+              "refundableUsd": "27500.00"
+            },
+            "fundingApprovals": [
+              {
+                "id": "approval-security-22",
+                "idx": 22,
+                "approvedPeriod": 4,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "50000",
+                "used": "18000",
+                "claimable": "32000",
+                "streamDurationDays": 60,
+                "status": "partially-claimed",
+                "recipient": "0xcccc000000000000000000000000000000000002",
+                "claimedCostUsd": "18000.00",
+                "refundValueUsd": "18000.00",
+                "averageClaimPriceUsd": "1.00"
+              },
+              {
+                "id": "approval-security-21",
+                "idx": 21,
+                "approvedPeriod": 3,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "20000",
+                "used": "9000",
+                "claimable": "11000",
+                "streamDurationDays": 30,
+                "status": "late-liquid",
+                "recipient": "0xcccc000000000000000000000000000000000002",
+                "claimedCostUsd": "9000.00",
+                "refundValueUsd": "9000.00",
+                "averageClaimPriceUsd": "1.00"
+              }
+            ],
+            "fundingReturns": [
+              {
+                "id": "return-security-4-1",
+                "approvalId": "approval-security-22",
+                "period": 4,
+                "symbol": "USDC",
+                "amount": "2500",
+                "refundValueUsd": "2500.00",
+                "returnedBy": "0xaaaa000000000000000000000000000000000002",
+                "createdAt": 1776100000
+              }
+            ],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "claimed",
+              "totalClaimable": "0",
+              "includedPeriodCount": 1,
+              "periods": [
+                {
+                  "period": 3,
+                  "status": "claimed",
+                  "finalized": true,
+                  "claimed": true,
+                  "profitUsd": "50000.00",
+                  "spotPriceUsd": "3000.00",
+                  "adjustedPriceUsd": "2700.00",
+                  "growthFactorBps": 10500,
+                  "ybcSplitBps": 1000,
+                  "claimableYfi": "0"
+                }
+              ]
+            }
+          },
+          {
+            "id": "research",
+            "name": "Research",
+            "address": "0x3333333333333333333333333333333333333333",
+            "owner": "0xaaaa000000000000000000000000000000000003",
+            "pendingOwner": "0xdddd000000000000000000000000000000000003",
+            "status": "retiring",
+            "readOnlyReason": null,
+            "currentPeriod": {
+              "revenueUsd": "120000.00",
+              "costUsd": "125000.00",
+              "profitUsd": "0.00",
+              "lossUsd": "5000.00"
+            },
+            "lifetime": {
+              "revenueUsd": "338000.00",
+              "costUsd": "135000.00",
+              "profitUsd": "203000.00",
+              "lossUsd": "5000.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "ready",
+              "successorTeamId": "platform",
+              "retirementAnnouncedAt": 1775000000,
+              "retirementEffectivePeriod": 5
+            },
+            "revenueOptions": [
+              {
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "decimals": 6,
+                "isConvertible": true,
+                "convertToSymbol": "yvUSDC-1",
+                "oraclePriceUsd": "1.00",
+                "previewAmount": "5000",
+                "estimatedCreditUsd": "4992.70"
+              }
+            ],
+            "revenueHistory": [],
+            "fundingSummary": {
+              "state": "fully-used",
+              "claimableUsd": "0.00",
+              "refundableUsd": "0.00"
+            },
+            "fundingApprovals": [
+              {
+                "id": "approval-research-18",
+                "idx": 18,
+                "approvedPeriod": 3,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "25000",
+                "used": "25000",
+                "claimable": "0",
+                "streamDurationDays": 45,
+                "status": "fully-used",
+                "recipient": "0xcccc000000000000000000000000000000000003",
+                "claimedCostUsd": "25000.00",
+                "refundValueUsd": "0.00",
+                "averageClaimPriceUsd": "1.00"
+              }
+            ],
+            "fundingReturns": [],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "pending-finalization",
+              "totalClaimable": "0",
+              "includedPeriodCount": 1,
+              "periods": [
+                {
+                  "period": 4,
+                  "status": "pending-finalization",
+                  "finalized": false,
+                  "claimed": false,
+                  "profitUsd": "0.00",
+                  "spotPriceUsd": "3200.00",
+                  "adjustedPriceUsd": "3200.00",
+                  "growthFactorBps": 10000,
+                  "ybcSplitBps": 1000,
+                  "claimableYfi": "0"
+                }
+              ]
+            }
+          }
+        ],
+        "admin": {
+          "registryStatus": "active",
+          "periodFinalizationStatus": "ready",
+          "rewardsBucket": {
+            "budget": "800000.00",
+            "used": "760000.00",
+            "remaining": "40000.00",
+            "status": "watch"
+          },
+          "treasuryBucket": {
+            "budget": "100000.00",
+            "used": "98500.00",
+            "remaining": "1500.00",
+            "status": "watch"
+          },
+          "recoveryBucket": {
+            "budget": "100000.00",
+            "used": "100000.00",
+            "remaining": "0.00",
+            "status": "limit-reached"
+          },
+          "whitelistedRevenueTokens": [
+            {
+              "symbol": "USDC",
+              "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+              "oracle": "0x7777777777777777777777777777777777777777",
+              "converter": "0x8888888888888888888888888888888888888888",
+              "status": "active"
+            },
+            {
+              "symbol": "DAI",
+              "tokenAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+              "oracle": "0x7777777777777777777777777777777777777778",
+              "converter": null,
+              "status": "active"
+            },
+            {
+              "symbol": "yvUSDC-1",
+              "tokenAddress": "0x5555555555555555555555555555555555555555",
+              "oracle": "0x7777777777777777777777777777777777777779",
+              "converter": null,
+              "status": "paused"
+            }
+          ],
+          "fundingQueue": [
+            {
+              "approvalId": "approval-security-22",
+              "teamId": "security",
+              "status": "partially-claimed",
+              "requiresOperatorAttention": false
+            },
+            {
+              "approvalId": "approval-security-21",
+              "teamId": "security",
+              "status": "late-liquid",
+              "requiresOperatorAttention": true
+            },
+            {
+              "approvalId": "approval-research-18",
+              "teamId": "research",
+              "status": "fully-used",
+              "requiresOperatorAttention": false
+            }
+          ],
+          "bonusQueue": [
+            {
+              "teamId": "platform",
+              "period": 4,
+              "status": "pending-finalization",
+              "requiresFinalization": true
+            },
+            {
+              "teamId": "security",
+              "period": 3,
+              "status": "claimed",
+              "requiresFinalization": false
+            }
+          ]
+        }
+      }
     }
-  ],
-  "admin": {
-    "registryStatus": "active",
-    "rewardsBucket": {
-      "budget": "800000.00",
-      "used": "760000.00",
-      "remaining": "40000.00"
-    },
-    "treasuryBucket": {
-      "budget": "100000.00",
-      "used": "72000.00",
-      "remaining": "28000.00"
-    },
-    "recoveryBucket": {
-      "budget": "100000.00",
-      "used": "92000.00",
-      "remaining": "8000.00"
-    },
-    "whitelistedRevenueTokens": [
-      "USDC",
-      "yvUSDC-1",
-      "DAI",
-      "yvDAI"
-    ]
-  }
+  ]
 }
