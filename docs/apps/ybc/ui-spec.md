@@ -5,6 +5,7 @@ Applies to: `/ybc` route, `ybc-beta.dao-ops.com` beta host, and gated production
 host `ybc.yearn.fi`
 Recommended app key: `ybc`
 Recommended display label: `Yearn Builder's Collective`
+Production gate: disabled until live contract wiring and production approval
 
 ## 1. Product framing
 
@@ -70,6 +71,21 @@ Sections:
 3. Proposals
 4. Rewards
 5. Admin (conditional)
+
+Default landing state: Overview.
+
+WP0 approved shell map:
+
+- Overview summarizes member count, internal member weight, public delegated weight,
+  total governance influence, current epoch, active proposals, and proposals awaiting
+  execution.
+- Members keeps raw stake, effective voting weight, target weight, maturity progress,
+  and source mix visible as separate values.
+- Proposals maps addition and expulsion proposals through discussion, voting, awaiting
+  execution, executed, and expired terminal states.
+- Rewards shows YBC-related rewards and hands claim actions to the shared claim surface.
+- Admin is conditional and limited to scoped membership, operator, hooks, threshold, and
+  reward status controls.
 
 ## 5. Core UX rules
 

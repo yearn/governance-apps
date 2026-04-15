@@ -3,8 +3,8 @@
 ## 1. Canonical naming
 
 - app name / slug: `ybc`
-- route key: `ybc`
-- recommended public label: `Yearn Builder's Collective`
+- route key: `/ybc`
+- display label: `Yearn Builder's Collective`
 - initial beta exposure: `ybc-beta.dao-ops.com` with mock / dummy data
 - production host: `ybc.yearn.fi` (gated until live contract wiring and production approval)
 
@@ -95,3 +95,7 @@ Recommended launch order:
 2. live-contract wiring accepted
 3. production green light recorded
 4. production exposure on `ybc.yearn.fi` after release checklist approval
+
+Production exposure must stay feature-gated until steps 2 and 3 are complete. Shared-host
+path routing on `/ybc` and beta-host routing on `ybc-beta.dao-ops.com` are the validation
+targets before production.
