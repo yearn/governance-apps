@@ -37,6 +37,13 @@ describe("resolveHeaderPrimaryNav", () => {
     });
   });
 
+  it("keeps path-scoped ybc routes for shared hosts", () => {
+    expect(resolveHeaderPrimaryNav("/ybc", "ybc")).toEqual({
+      label: "Yearn Builder's Collective",
+      path: "/ybc",
+    });
+  });
+
   it("falls back to pathname when segment is unavailable", () => {
     expect(resolveHeaderPrimaryNav("/veyfi/portfolio", null)).toEqual({
       label: "veYFI",
@@ -48,6 +55,13 @@ describe("resolveHeaderPrimaryNav", () => {
     expect(resolveHeaderPrimaryNav("/yeth/recovery", null)).toEqual({
       label: "yETH",
       path: "/yeth",
+    });
+  });
+
+  it("falls back to ybc from pathname when segment is unavailable", () => {
+    expect(resolveHeaderPrimaryNav("/ybc/members", null)).toEqual({
+      label: "Yearn Builder's Collective",
+      path: "/ybc",
     });
   });
 

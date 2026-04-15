@@ -10,7 +10,8 @@
   "routes": [
     { "pattern": "styfi-beta.dao-ops.com", "custom_domain": true },
     { "pattern": "veyfi-beta.dao-ops.com", "custom_domain": true },
-    { "pattern": "yeth-beta.dao-ops.com", "custom_domain": true }
+    { "pattern": "yeth-beta.dao-ops.com", "custom_domain": true },
+    { "pattern": "ybc-beta.dao-ops.com", "custom_domain": true }
   ],
 
   "assets": {

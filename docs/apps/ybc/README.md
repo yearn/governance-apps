@@ -24,11 +24,27 @@ This surface is broader than a simple vote page. It covers:
 
 ## Naming stance
 
-- Keep the **route key** short and stable: `ybc`
+- Keep the **app slug** short and stable: `ybc`
+- Keep the **route key** explicit and stable: `/ybc`
 - Use the richer **display label** in product copy and headers: `Yearn Builder's Collective`
 
 This keeps routing, hostnames, branch names, and domain client keys durable even if the
 surface grows.
+
+## Route shell baseline
+
+The shared-host route is `/ybc`. The first accepted shell lands on the Overview section
+and maps the top-level product sections in this order:
+
+1. Overview
+2. Members
+3. Proposals
+4. Rewards
+5. Admin (conditional)
+
+The beta host is `ybc-beta.dao-ops.com`. The production host is `ybc.yearn.fi`, but
+production exposure remains gated until live contract wiring and explicit production
+approval are complete.
 
 ## Included docs
 

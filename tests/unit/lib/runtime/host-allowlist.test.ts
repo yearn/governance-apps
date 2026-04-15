@@ -47,6 +47,9 @@ describe("resolveAllowedOrigin", () => {
     expect(resolveAllowedOrigin("yeth", "yeth-beta.dao-ops.com")).toBe(
       "https://yeth-beta.dao-ops.com"
     );
+    expect(resolveAllowedOrigin("ybc", "ybc-beta.dao-ops.com")).toBe(
+      "https://ybc-beta.dao-ops.com"
+    );
   });
 
   it("does not accept beta hosts assigned to a different app", () => {
@@ -55,6 +58,9 @@ describe("resolveAllowedOrigin", () => {
     );
     expect(resolveAllowedOrigin("veyfi", "yeth-beta.dao-ops.com")).toBe(
       "https://veyfi.yearn.fi"
+    );
+    expect(resolveAllowedOrigin("ybc", "styfi-beta.dao-ops.com")).toBe(
+      "https://ybc.yearn.fi"
     );
   });
 

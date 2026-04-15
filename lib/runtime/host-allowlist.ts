@@ -14,6 +14,7 @@ const APP_ALLOWED_HOSTS: Record<GovernanceAppHost, ReadonlySet<string>> = {
   styfi: new Set([GOVERNANCE_APP_PREPROD_HOSTS.styfi]),
   veyfi: new Set([GOVERNANCE_APP_PREPROD_HOSTS.veyfi]),
   yeth: new Set([GOVERNANCE_APP_PREPROD_HOSTS.yeth]),
+  ybc: new Set([GOVERNANCE_APP_PREPROD_HOSTS.ybc]),
 };
 
 const SHARED_ALLOWED_HOSTS = GOVERNANCE_SHARED_PATH_HOSTS;

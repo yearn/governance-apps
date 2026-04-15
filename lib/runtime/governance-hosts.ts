@@ -2,6 +2,7 @@ export const GOVERNANCE_APP_PATHS = {
   styfi: "/styfi",
   veyfi: "/veyfi",
   yeth: "/yeth",
+  ybc: "/ybc",
 } as const;
 
 export type GovernanceApp = keyof typeof GOVERNANCE_APP_PATHS;
@@ -11,12 +12,14 @@ export const GOVERNANCE_APP_PROD_HOSTS: Record<GovernanceApp, string> = {
   styfi: "styfi.yearn.fi",
   veyfi: "veyfi.yearn.fi",
   yeth: "yeth.yearn.fi",
+  ybc: "ybc.yearn.fi",
 };
 
 export const GOVERNANCE_APP_PREPROD_HOSTS: Record<GovernanceApp, string> = {
   styfi: "styfi-beta.dao-ops.com",
   veyfi: "veyfi-beta.dao-ops.com",
   yeth: "yeth-beta.dao-ops.com",
+  ybc: "ybc-beta.dao-ops.com",
 };
 
 export const GOVERNANCE_SHARED_PATH_HOSTS = new Set(["app.dao-ops.com"]);
