@@ -57,6 +57,7 @@ app/teams/
   components/
     TeamsDirectory.tsx
     TeamWorkspace.tsx
+    TeamOverviewCard.tsx
     RevenueDepositCard.tsx
     FundingApprovalsTable.tsx
     BonusCard.tsx
