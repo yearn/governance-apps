@@ -7,10 +7,13 @@ import {
   waitForTestBridge,
 } from "../utils";
 
+const OPEN_CLAIM_WINDOW_NOW = 1_770_000_000;
+
 test("claim, stay, redeem, claim-ended, and empty-state flows", async ({ page }) => {
   await page.goto("/yeth");
   await waitForTestBridge(page);
   await resetBridge(page);
+  await setNow(page, OPEN_CLAIM_WINDOW_NOW);
 
   await setYethPreset(page, "claimable");
   await page.waitForFunction(
@@ -89,7 +92,7 @@ test("claim, stay, redeem, claim-ended, and empty-state flows", async ({ page })
     page.getByRole("link", { name: /Manual Late Claim Process/i })
   ).toBeVisible();
 
-  await setNow(page, 1_770_000_000);
+  await setNow(page, OPEN_CLAIM_WINDOW_NOW);
   await setYethPreset(page, "empty");
   await page.waitForFunction(
     async ({ addr }: { addr: typeof E2E_ADDRESS }) => {
