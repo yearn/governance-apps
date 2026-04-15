@@ -4,7 +4,7 @@ App name / slug: `teams`
 Route key: `/teams`
 Beta host: `teams-beta.dao-ops.com`
 Production host: `teams.yearn.fi` (gated until live contract wiring and production approval)
-Recommended display label: `Team Finances`
+Display label: `Team Finances`
 
 ## Product summary
 
@@ -24,11 +24,33 @@ This surface is broader than accounting alone. It covers:
 
 ## Naming stance
 
-- Keep the **route key** short and stable: `teams`
+- Keep the **app key / slug** short and stable: `teams`
+- Keep the **route key** path-scoped and stable: `/teams`
 - Use the richer **display label** in product copy and headers: `Team Finances`
 
 This keeps routing, hostnames, branch names, and domain client keys durable even if the
 surface grows.
+
+## Route shell baseline
+
+The default `/teams` landing state is the team directory. It introduces the app through
+the `Team Finances` label and gives users a scannable path into a selected team
+workspace.
+
+The approved top-level shell sections are:
+
+1. Team directory
+2. Team workspace overview
+3. Revenue
+4. Funding
+5. Bonus
+6. Ownership & lifecycle
+7. Admin, shown only for operator/admin contexts
+
+The route remains path-first on shared hosts. `teams-beta.dao-ops.com` is the beta
+review target for mock/dummy data. `teams.yearn.fi` is reserved for production and
+must remain gated until live contract wiring is complete and production approval is
+recorded.
 
 ## Included docs
 

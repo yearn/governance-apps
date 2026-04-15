@@ -3,8 +3,8 @@
 ## 1. Canonical naming
 
 - app name / slug: `teams`
-- route key: `teams`
-- recommended public label: `Team Finances`
+- route key: `/teams`
+- display label: `Team Finances`
 - initial beta exposure: `teams-beta.dao-ops.com` with mock / dummy data
 - production host: `teams.yearn.fi` (gated until live contract wiring and production approval)
 
@@ -35,7 +35,19 @@ Plan for:
 - wallet-specific writes only after read model is stable
 - historical price rendering supplied by indexer / feed, not inferred ad hoc in UI
 
-## 4. Suggested route and file layout
+## 4. Approved route shell and file layout
+
+The initial `/teams` route lands on the team directory. From there, users open a
+team workspace whose sections are:
+
+1. Overview
+2. Revenue
+3. Funding
+4. Bonus
+5. Ownership & lifecycle
+6. Admin, shown only for operator/admin contexts
+
+Approved file layout:
 
 ```text
 app/teams/
@@ -91,7 +103,7 @@ Controlled production rollout approved.
 
 ## 7. Launch stance
 
-Recommended launch order:
+Required launch order:
 1. mock / dummy data beta host
 2. live-contract wiring accepted
 3. production green light recorded

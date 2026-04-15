@@ -1,12 +1,13 @@
 # Team Finances UI Spec
 
-Status: planning baseline
+Status: WP0 route, naming, and shell baseline approved
 Applies to: `/teams` route, `teams-beta.dao-ops.com` beta host, and gated
 production host `teams.yearn.fi`
-Recommended app key: `teams`
-Recommended display label: `Team Finances`
+App key / slug: `teams`
+Route key: `/teams`
+Display label: `Team Finances`
 
-## 1. Why `teams` should stay the app key
+## 1. Why `teams` is the app key
 
 `teams` is the best durable app key because the surface is team-centric and lifecycle-centric.
 
@@ -42,7 +43,7 @@ Needs:
 
 ## 3. Route structure
 
-Recommended initial structure:
+Approved initial route structure:
 
 ```text
 /teams
@@ -61,6 +62,19 @@ Recommended initial structure:
 ```
 
 ## 4. Information architecture
+
+The default landing state is the directory layer. A user opens a team workspace from
+the directory, then uses the workspace sections for more focused operational tasks.
+
+Approved top-level shell sections:
+
+1. Team directory
+2. Team workspace overview
+3. Revenue
+4. Funding
+5. Bonus
+6. Ownership & lifecycle
+7. Admin, shown only for operator/admin contexts
 
 ## 4.1 Directory layer
 
@@ -164,7 +178,7 @@ Show:
 
 Admin is a separate surface within the app, not the default landing state.
 
-Recommended admin groups:
+Approved admin groups:
 
 ### Registry
 - teams list

@@ -1,12 +1,11 @@
 # Team Finances Naming Decision
 
-## Recommendation
+## Decision
 
 Use:
 
 - app name / slug: `teams`
-- route key: `teams`
-- shared-host path: `/teams`
+- route key: `/teams`
 - beta host: `teams-beta.dao-ops.com`
 - production host: `teams.yearn.fi` (gated until live contract wiring and production approval)
 - display label: `Team Finances`
