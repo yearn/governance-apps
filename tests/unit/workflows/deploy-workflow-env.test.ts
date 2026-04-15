@@ -8,6 +8,8 @@ const expectedRuntimeEnv: Record<string, string> = {
   NEXT_PUBLIC_USE_MOCKS: '"false"',
   NEXT_PUBLIC_E2E: '"false"',
   NEXT_PUBLIC_ENABLE_DEBUG_UI: '"false"',
+  NEXT_PUBLIC_ENABLE_YBC:
+    "${{ vars.NEXT_PUBLIC_ENABLE_YBC || secrets.NEXT_PUBLIC_ENABLE_YBC || 'false' }}",
   NEXT_PUBLIC_ENABLE_YETH:
     "${{ vars.NEXT_PUBLIC_ENABLE_YETH || secrets.NEXT_PUBLIC_ENABLE_YETH || 'false' }}",
   NEXT_PUBLIC_WC_PROJECT_ID:
@@ -82,4 +84,22 @@ describe("deploy workflow env wiring", () => {
       });
     });
   }
+});
+
+describe("preprod worker routes", () => {
+  it("registers all beta custom domains", () => {
+    const wranglerConfig = readFileSync(
+      path.resolve(process.cwd(), "wrangler.preprod.jsonc"),
+      "utf8"
+    );
+
+    for (const host of [
+      "styfi-beta.dao-ops.com",
+      "veyfi-beta.dao-ops.com",
+      "yeth-beta.dao-ops.com",
+      "ybc-beta.dao-ops.com",
+    ]) {
+      expect(wranglerConfig).toContain(`"pattern": "${host}"`);
+    }
+  });
 });
