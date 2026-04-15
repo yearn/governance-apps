@@ -6,6 +6,9 @@ Purpose: a stable mock data contract for design, prototypes, and mock-backed imp
 `TeamsMockDataV1` payload so later prototypes can swap user context without changing
 the field contract.
 
+The TypeScript mirror for this contract lives in `lib/clients/teams/types.ts`.
+Update this document, that type mirror, and `examples/mock-data.example.json` together.
+
 ## Type shape
 
 ```ts
