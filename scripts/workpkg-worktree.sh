@@ -19,8 +19,9 @@ EOF
   exit 2
 }
 
-if [ ! -d .git ]; then
-  echo "ERROR: run from repo root (missing .git)" >&2
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$REPO_ROOT" ] || [ "$(cd "$REPO_ROOT" && pwd -P)" != "$(pwd -P)" ]; then
+  echo "ERROR: run from repo root" >&2
   exit 1
 fi
 

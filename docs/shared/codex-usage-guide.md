@@ -20,6 +20,9 @@ Example:
 ./scripts/workpkg-worktree.sh create --track teams --milestone m1 --wp wp3 --seed-template
 ```
 
+`--seed-template` is optional. It uses a local `.env.worktree.example` file when present
+and warns without failing when that local template is absent.
+
 This creates a worktree under:
 
 ```bash

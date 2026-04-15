@@ -27,6 +27,18 @@ type YbcMockDataV1 = {
   admin?: YbcAdminRecord;
 };
 
+type YbcMockExampleScenariosV1 = {
+  version: 1;
+  generatedAt: number;
+  scenarios: YbcMockScenario[];
+};
+
+type YbcMockScenario = {
+  id: "observer" | "member-ramping" | "operator-admin";
+  label: string;
+  data: YbcMockDataV1;
+};
+
 type MemberPerspective = {
   isMember: boolean;
   rawStaked: string;
@@ -94,3 +106,4 @@ type YbcAdminRecord = {
 - proposal timestamps should be explicit in mocks, not only inferred by epoch
 - expired proposals remain visible but non-actionable
 - rewards are visible in YBC but are not assumed to be claimed on a separate isolated YBC claim page
+- `mock-data.example.json` is a scenario set that should include observer, member, and operator/admin perspectives
