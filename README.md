@@ -30,6 +30,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - `NEXT_PUBLIC_GLOBAL_DATA_URL`: URL for global stats JSON payload.
 - `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`: URL for yETH global stats JSON payload.
 - `NEXT_PUBLIC_MOTD_URL`: URL for MOTD JSON payload used in stats bars.
+- `NEXT_PUBLIC_ENABLE_YBC`: Enables YBC routes/host in production runtime.
 - `NEXT_PUBLIC_ENABLE_YETH`: Enables yETH routes/host in production runtime.
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI`: Enables `/debug/ui` in production runtime.
 
@@ -51,11 +52,11 @@ For the full mode matrix and deployment checklists, see:
 ## Cloudflare Worker Targets
 
 - Production Worker config: `wrangler.jsonc` (`app.dao-ops.com`)
-- Preprod Worker config: `wrangler.preprod.jsonc` (`styfi-beta.dao-ops.com`, `veyfi-beta.dao-ops.com`, `yeth-beta.dao-ops.com`)
+- Preprod Worker config: `wrangler.preprod.jsonc` (`styfi-beta.dao-ops.com`, `veyfi-beta.dao-ops.com`, `yeth-beta.dao-ops.com`, `ybc-beta.dao-ops.com`)
 
 ## Cross-App Link Routing
 
-Cross-app links (`/styfi`, `/veyfi`, `/yeth`) are resolved by `lib/governance-links.ts`
+Cross-app links (`/styfi`, `/veyfi`, `/yeth`, `/ybc`) are resolved by `lib/governance-links.ts`
 using the current request host surface:
 
 - Local/shared path hosts (`localhost`, `127.0.0.1`, `app.dao-ops.com`) -> path-scoped links (`/styfi`)
