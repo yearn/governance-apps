@@ -1,0 +1,213 @@
+# Team Finance UI Spec
+
+Status: planning baseline
+Applies to: `/teams` path first, later `teams.yearn.fi` if desired
+Recommended app key: `teams`
+Recommended display label: `Team Finance`
+
+## 1. Why `teams` should stay the app key
+
+`teams` is the best durable app key because the surface is team-centric and lifecycle-centric.
+
+Rejected as primary route keys:
+
+- `accounting` — too narrow once registry, funding, bonus, and admin views exist
+- `budget` — too narrow because revenue and bonus are first-class
+- `pnl` — too narrow and too jargon-heavy
+
+## 2. Primary personas
+
+### Team owner
+Needs:
+- team overview
+- claim funding
+- return funding visibility
+- claim bonus
+- owner transfer visibility
+
+### Team contributor / finance operator
+Needs:
+- deposit revenue on behalf of a team
+- understand conversion / credited USD value
+- inspect recent reporting history
+
+### Protocol operator / admin
+Needs:
+- registry overview
+- approval / funding operations
+- revenue bucket operations
+- bonus period finalization
+- oracle / converter / split configuration visibility
+
+## 3. Route structure
+
+Recommended initial structure:
+
+```text
+/teams
+  page.tsx
+  TeamsPageClient.tsx
+  messages.ts
+  components/
+    TeamsDirectory.tsx
+    TeamWorkspace.tsx
+    TeamOverviewCard.tsx
+    RevenueDepositCard.tsx
+    FundingApprovalsTable.tsx
+    BonusCard.tsx
+    TeamLifecycleCard.tsx
+    AdminConsole.tsx
+```
+
+## 4. Information architecture
+
+## 4.1 Directory layer
+
+Landing directory should show:
+
+- team name
+- address
+- owner
+- status: active / retiring / retired
+- current-period revenue
+- current-period cost
+- current-period profit / loss
+- quick action: open workspace
+- quick action: deposit revenue
+
+## 4.2 Team workspace
+
+Sections / tabs:
+
+1. Overview
+2. Revenue
+3. Funding
+4. Bonus
+5. Ownership & Lifecycle
+6. Admin (conditional)
+
+## 5. Must-show interactions
+
+## 5.1 Deposit Revenue
+
+Key UX rules:
+- permissionless action
+- preview token conversion if naked token auto-converts into a vault token
+- show estimated accountant credit in USD
+- explain that the credit may differ from nominal token count because of conversion / pricing
+
+### Suggested UI block
+
+- token selector
+- amount input
+- conversion line
+- estimated credit line
+- submit CTA
+- recent deposits list
+
+## 5.2 Funding Claim
+
+Per approval row, show:
+
+- approval id
+- approved period
+- token
+- total approved
+- used
+- claimable now
+- recipient
+- stream / liquid status
+
+Statuses to visualize:
+- claimable this period
+- partially claimed
+- late claim / fully liquid
+- not claimable this period
+- fully used
+
+## 5.3 Return Funding
+
+This should be described as a return flow, not as an owner-only reverse claim flow.
+
+Expose:
+- token amount input
+- refund estimate in USD
+- note that refund accounting uses historical average claim price
+
+## 5.4 Bonus
+
+Keep the default presentation simple:
+
+- total claimable bonus
+- period count included
+- primary CTA
+- short detail rows
+
+Hide the heavier math in expandable details or tooltip copy:
+- team profit
+- spot price
+- adjusted bonus price
+- growth factor / cap note
+- YBC split
+
+## 5.5 Lifecycle
+
+Show:
+- owner
+- pending owner
+- retirement state
+- migration readiness
+- successor registry if relevant
+
+## 6. Admin console
+
+Admin is a separate surface within the app, not the default landing state.
+
+Recommended admin groups:
+
+### Registry
+- teams list
+- retirements
+- successor / migration state
+
+### Revenue ops
+- whitelisted tokens
+- price oracles
+- converters
+- rewards / treasury / recovery bucket budgets and usage
+
+### Funding ops
+- approvals list
+- claim/refund history
+- token pricing / vesting metadata
+
+### Bonus ops
+- period finalization queue
+- growth cap / smoothing / split config
+- price source visibility
+
+## 7. Mock-first scenario set
+
+Required mock scenarios:
+
+1. active team with no approvals yet
+2. active team with partially used approval
+3. late claim that is fully liquid
+4. team with bonus available
+5. retiring / retired team in read-only view
+6. admin view with bucket usage near limits
+
+## 8. Copy posture
+
+Prefer:
+- `Team Finance`
+- `Deposit Revenue`
+- `Claim Funding`
+- `Return Funding`
+- `Claim Bonus`
+- `Current Budget Period`
+
+Avoid:
+- overly accounting-heavy jargon as the only terminology
+- implying vest claim management is handled in this app
+- implying revenue deposits are owner-only

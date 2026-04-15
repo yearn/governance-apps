@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "generatedAt": 1776200000,
+  "currentPeriod": 4,
+  "totals": {
+    "globalRevenueUsd": "1850000.00",
+    "globalCostUsd": "1175000.00",
+    "globalProfitUsd": "675000.00",
+    "globalLossUsd": "0.00"
+  },
+  "teams": [
+    {
+      "id": "growth",
+      "name": "Growth",
+      "address": "0x1111111111111111111111111111111111111111",
+      "owner": "0xaaaa000000000000000000000000000000000001",
+      "pendingOwner": null,
+      "status": "active",
+      "currentPeriod": {
+        "revenueUsd": "250000.00",
+        "costUsd": "160000.00",
+        "profitUsd": "90000.00",
+        "lossUsd": "0.00"
+      },
+      "lifetime": {
+        "revenueUsd": "1225000.00",
+        "costUsd": "845000.00",
+        "profitUsd": "380000.00",
+        "lossUsd": "0.00"
+      },
+      "revenueOptions": [
+        {
+          "symbol": "USDC",
+          "tokenAddress": "0x0000000000000000000000000000000000000001",
+          "decimals": 6,
+          "isConvertible": true,
+          "convertToSymbol": "yvUSDC-1",
+          "oraclePriceUsd": "1.00",
+          "estimatedCreditUsd": "9985.40"
+        },
+        {
+          "symbol": "yvUSDC-1",
+          "tokenAddress": "0x0000000000000000000000000000000000000002",
+          "decimals": 18,
+          "isConvertible": false,
+          "oraclePriceUsd": "1.01",
+          "estimatedCreditUsd": "10100.00"
+        }
+      ],
+      "revenueHistory": [
+        {
+          "id": "rev-1",
+          "period": 4,
+          "symbol": "USDC",
+          "amount": "10000",
+          "creditedUsd": "9985.40",
+          "convertedToSymbol": "yvUSDC-1",
+          "depositedBy": "0xbbbb000000000000000000000000000000000001",
+          "createdAt": 1776180000
+        }
+      ],
+      "fundingApprovals": [
+        {
+          "id": "approval-12",
+          "idx": 12,
+          "approvedPeriod": 4,
+          "symbol": "USDC",
+          "tokenAddress": "0x0000000000000000000000000000000000000001",
+          "totalApproved": "50000",
+          "used": "40000",
+          "claimable": "10000",
+          "streamDurationDays": 60,
+          "status": "late-liquid",
+          "recipient": "0xcccc000000000000000000000000000000000001",
+          "claimedCostUsd": "40000.00",
+          "refundValueUsd": "0.00",
+          "averageClaimPriceUsd": "1.00"
+        },
+        {
+          "id": "approval-13",
+          "idx": 13,
+          "approvedPeriod": 4,
+          "symbol": "YFI",
+          "tokenAddress": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+          "totalApproved": "5.0",
+          "used": "2.0",
+          "claimable": "3.0",
+          "streamDurationDays": 90,
+          "status": "claimable",
+          "recipient": null,
+          "claimedCostUsd": "12000.00",
+          "averageClaimPriceUsd": "6000.00"
+        }
+      ],
+      "bonus": {
+        "tokenSymbol": "YFI",
+        "totalClaimable": "14.5",
+        "periods": [
+          {
+            "period": 3,
+            "finalized": true,
+            "claimed": false,
+            "profitUsd": "50000.00",
+            "spotPriceUsd": "3000.00",
+            "adjustedPriceUsd": "2700.00",
+            "growthFactorBps": 11000,
+            "ybcSplitBps": 1000,
+            "claimableYfi": "14.5"
+          }
+        ]
+      }
+    }
+  ],
+  "admin": {
+    "registryStatus": "active",
+    "rewardsBucket": {
+      "budget": "800000.00",
+      "used": "760000.00",
+      "remaining": "40000.00"
+    },
+    "treasuryBucket": {
+      "budget": "100000.00",
+      "used": "72000.00",
+      "remaining": "28000.00"
+    },
+    "recoveryBucket": {
+      "budget": "100000.00",
+      "used": "92000.00",
+      "remaining": "8000.00"
+    },
+    "whitelistedRevenueTokens": [
+      "USDC",
+      "yvUSDC-1",
+      "DAI",
+      "yvDAI"
+    ]
+  }
+}

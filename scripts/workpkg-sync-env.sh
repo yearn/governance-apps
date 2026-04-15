@@ -1,22 +1,41 @@
 #!/usr/bin/env sh
 set -eu
 
-# -----------------------------------------------------------------------------
-# Sync selected environment / config files from base repo to agent worktrees
-#
-# - Must be run from the base repo directory
-# - Copies files only if they exist in base repo
-# - Never overwrites existing files in agent worktrees
-# - Safe to run repeatedly
-#
-# Usage:
-#   ./scripts/sync-agent-env.sh
-#   ./scripts/sync-agent-env.sh ../repo.agent.ui ../repo.agent.dev
-#   ./scripts/sync-agent-env.sh --install ../repo.agent.ui
-# -----------------------------------------------------------------------------
+usage() {
+  cat >&2 <<'EOF'
+Usage:
+  workpkg-sync-env.sh [--install|--no-install] [--seed-template] [worktree_dir...]
+Notes:
+  - With no worktree_dir args: syncs all ../<repo>.<track>.<milestone>[.<wp>] worktrees
+  - Copies selected env/config files only when missing in the target
+  - --seed-template copies .env.worktree.example -> .env.local when target has no .env.local
+  - --install runs a lockfile-aware install in each target
+EOF
+  exit 2
+}
+
+DO_INSTALL=0
+SEED_TEMPLATE=0
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --install) DO_INSTALL=1; shift ;;
+    --no-install) DO_INSTALL=0; shift ;;
+    --seed-template) SEED_TEMPLATE=1; shift ;;
+    -h|--help) usage ;;
+    --) shift; break ;;
+    -*) echo "Unknown option: $1" >&2; usage ;;
+    *) break ;;
+  esac
+done
+
+if [ ! -d .git ]; then
+  echo "ERROR: run from repo root (missing .git)" >&2
+  exit 1
+fi
 
 REPO_NAME="$(basename "$(pwd)")"
-DEFAULT_WORKTREE_GLOB="../${REPO_NAME}.agent.*"
+ROOT_PREFIX="../${REPO_NAME}"
 
 FILES="
 .env
@@ -25,66 +44,17 @@ FILES="
 next-env.d.ts
 "
 
-usage() {
-  cat >&2 <<'EOF'
-Usage:
-  sync-agent-env.sh [--install|--no-install] [--sync-only] [worktree_dir...]
-Notes:
-  - With no worktree_dir args: syncs all ../<repo>.agent.* worktrees
-  - With worktree_dir args: syncs only those dirs
-  - --install runs a lockfile-aware install in each target
-EOF
-  exit 2
-}
+TEMPLATE_FILE=".env.worktree.example"
 
-DO_INSTALL=0
-SYNC_ONLY=0
-
-# Parse flags (POSIX-ish; flags must come before dirs)
-while [ "$#" -gt 0 ]; do
-  case "$1" in
-    --install) DO_INSTALL=1; shift ;;
-    --no-install) DO_INSTALL=0; shift ;;
-    --sync-only) SYNC_ONLY=1; shift ;;
-    -h|--help) usage ;;
-    --) shift; break ;;
-    -*) echo "Unknown option: $1" >&2; usage ;;
-    *) break ;;
-  esac
-done
-
-# Must run from base repo root
-if [ ! -d .git ]; then
-  echo "ERROR: must be run from repo root (missing .git directory)" >&2
-  exit 1
-fi
-
-# Determine targets: either args (explicit) or glob (default)
 if [ "$#" -gt 0 ]; then
   TARGETS="$*"
 else
-  TARGETS="$DEFAULT_WORKTREE_GLOB"
+  TARGETS=""
+  for path in "${ROOT_PREFIX}.teams."* "${ROOT_PREFIX}.ybc."* "${ROOT_PREFIX}.shared."*; do
+    [ -d "$path" ] || continue
+    TARGETS="${TARGETS}${TARGETS:+ }$path"
+  done
 fi
-
-# ---- preflight: ensure at least one source file exists in base repo ----------
-FOUND_FILES=0
-for f in $FILES; do
-  if [ -f "$f" ]; then
-    FOUND_FILES=1
-    break
-  fi
-done
-
-if [ "$FOUND_FILES" -eq 0 ]; then
-  echo "ERROR: none of the configured files exist in base repo:" >&2
-  for f in $FILES; do echo "  - $f" >&2; done
-  exit 1
-fi
-
-# ---- main -------------------------------------------------------------------
-FOUND_WT=0
-COPIED=0
-SKIPPED=0
 
 load_nvm() {
   if command -v nvm >/dev/null 2>&1; then
@@ -273,46 +243,39 @@ install_deps() {
   fi
 
   echo "  WARN: no recognized lockfile; skipping install" >&2
-  return 0
 }
 
-for d in $TARGETS; do
-  [ -d "$d" ] || continue
-  FOUND_WT=1
+FOUND=0
 
-  echo "→ $d"
+for wt in $TARGETS; do
+  [ -d "$wt" ] || continue
+  FOUND=1
+
+  echo "→ $wt"
 
   for f in $FILES; do
     [ -f "$f" ] || continue
+    target="$wt/$f"
 
-    TARGET="$d/$f"
-
-    if [ -f "$TARGET" ]; then
+    if [ -f "$target" ]; then
       echo "  • $f exists — skipping"
-      SKIPPED=$((SKIPPED + 1))
     else
-      mkdir -p "$(dirname "$TARGET")"
-      cp "$f" "$TARGET"
+      mkdir -p "$(dirname "$target")"
+      cp "$f" "$target"
       echo "  ✓ copied $f"
-      COPIED=$((COPIED + 1))
     fi
   done
 
-  if [ "$SYNC_ONLY" -eq 0 ] && [ "$DO_INSTALL" -eq 1 ]; then
-    install_deps "$d"
+  if [ "$SEED_TEMPLATE" -eq 1 ] && [ -f "$TEMPLATE_FILE" ] && [ ! -f "$wt/.env.local" ]; then
+    cp "$TEMPLATE_FILE" "$wt/.env.local"
+    echo "  ✓ seeded .env.local from $TEMPLATE_FILE"
+  fi
+
+  if [ "$DO_INSTALL" -eq 1 ]; then
+    install_deps "$wt"
   fi
 done
 
-# ---- summary ----------------------------------------------------------------
-if [ "$FOUND_WT" -eq 0 ]; then
-  if [ "$#" -gt 0 ]; then
-    echo "No matching worktrees found in args: $*" >&2
-  else
-    echo "No agent worktrees found (pattern: $DEFAULT_WORKTREE_GLOB)" >&2
-  fi
-else
-  echo ""
-  echo "Summary:"
-  echo "  copied : $COPIED"
-  echo "  skipped: $SKIPPED"
+if [ "$FOUND" -eq 0 ]; then
+  echo "No matching worktrees found." >&2
 fi
