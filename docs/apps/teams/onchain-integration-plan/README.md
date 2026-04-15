@@ -1,7 +1,7 @@
-# Team Finance Delivery Plan
+# Team Finances Delivery Plan
 
 This folder mirrors the delivery style already used by the existing yETH planning docs, but
-targets the new Team Finance surface.
+targets the new Team Finances surface.
 
 ## Recommended sequence
 

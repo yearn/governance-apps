@@ -2,13 +2,13 @@
 
 ## Objective
 
-Document and validate fork testing, UAT checkpoints, and rollout guidance for Team Finance.
+Document and validate fork testing, UAT checkpoints, and rollout guidance for Team Finances.
 
 ## Scope
 
 - finalize the fork runbook
 - record UAT checklist and evidence expectations
-- record path-first rollout and later host stance
+- record beta-host, preprod, and production-gate rollout stance
 - document rollback and smoke-test expectations
 
 ## Non-goals
@@ -45,12 +45,12 @@ UAT-T8: preprod readiness reviewed.
 You are implementing `teams` `WP9` — **Fork testing, UAT, and rollout notes**.
 
 Objective:
-Document and validate fork testing, UAT checkpoints, and rollout guidance for Team Finance.
+Document and validate fork testing, UAT checkpoints, and rollout guidance for Team Finances.
 
 Scope:
 - finalize the fork runbook
 - record UAT checklist and evidence expectations
-- record path-first rollout and later host stance
+- record beta-host, preprod, and production-gate rollout stance
 - document rollback and smoke-test expectations
 
 Constraints:
@@ -87,7 +87,7 @@ Block if:
 
 ### Integrator prompt for WP9
 
-Integrate `teams` `WP9` — **Fork testing, UAT, and rollout notes** into the active milestone branch only after:
+Integrate `teams` `WP9` — **Fork testing, UAT, and rollout notes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

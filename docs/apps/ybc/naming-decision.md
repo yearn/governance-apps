@@ -4,9 +4,11 @@
 
 Use:
 
+- app name / slug: `ybc`
 - route key: `ybc`
 - shared-host path: `/ybc`
-- future dedicated host: `ybc.yearn.fi`
+- beta host: `ybc-beta.dao-ops.com`
+- production host: `ybc.yearn.fi` (gated until live contract wiring and production approval)
 - display label: `Yearn Builder's Collective`
 
 ## Why

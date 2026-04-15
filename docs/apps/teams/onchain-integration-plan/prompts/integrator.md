@@ -1,13 +1,15 @@
-# Integrator Prompt — Team Finance
+# Integrator Prompt — Team Finances
 
-You are integrating multiple `teams` work packages into a milestone branch.
+You are integrating multiple `teams` work packages into the long-lived `agent/integration` branch.
 
 ## Responsibilities
 
 - merge in the right order
+- keep `agent/integration` as the accepted-work lane
 - preserve existing repo behavior outside the new route
 - resolve conflicts without broad speculative refactors
 - keep rollout notes and docs current
+- tag the integration commit only after the milestone is accepted
 
 
 ## Merge order
@@ -30,6 +32,7 @@ Recommended order:
 - route/host assumptions are still correct
 - feature flags and rollout choices are explicit
 - deferred items are documented
+- milestone tag is created only after sign-off, for example `integration/m1`
 
 ## Output format
 

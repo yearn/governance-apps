@@ -89,7 +89,7 @@ Block if:
 
 ### Integrator prompt for WP7
 
-Integrate `ybc` `WP7` — **Onchain writes** into the active milestone branch only after:
+Integrate `ybc` `WP7` — **Onchain writes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

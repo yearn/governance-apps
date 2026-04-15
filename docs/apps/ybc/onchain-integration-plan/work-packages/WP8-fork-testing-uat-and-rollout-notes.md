@@ -8,7 +8,7 @@ Document and validate fork testing, UAT checkpoints, and rollout guidance for YB
 
 - finalize the fork runbook
 - record UAT checklist and evidence expectations
-- record path-first rollout and later host stance
+- record beta-host, preprod, and production-gate rollout stance
 - document rollback and smoke-test expectations
 
 ## Non-goals
@@ -50,7 +50,7 @@ Document and validate fork testing, UAT checkpoints, and rollout guidance for YB
 Scope:
 - finalize the fork runbook
 - record UAT checklist and evidence expectations
-- record path-first rollout and later host stance
+- record beta-host, preprod, and production-gate rollout stance
 - document rollback and smoke-test expectations
 
 Constraints:
@@ -87,7 +87,7 @@ Block if:
 
 ### Integrator prompt for WP8
 
-Integrate `ybc` `WP8` — **Fork testing, UAT, and rollout notes** into the active milestone branch only after:
+Integrate `ybc` `WP8` — **Fork testing, UAT, and rollout notes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

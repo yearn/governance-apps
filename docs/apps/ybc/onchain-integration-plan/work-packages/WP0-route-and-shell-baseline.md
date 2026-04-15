@@ -6,10 +6,10 @@ Establish the YBC route baseline, naming stance, and top-level shell for mock-fi
 
 ## Scope
 
-- document the canonical route key and display label
+- document the canonical app name, slug, route key, and display label
 - define the route/file layout
 - define the top-level sections and default landing state
-- confirm path-first rollout stance
+- confirm beta-host rollout stance and production gate
 
 ## Non-goals
 
@@ -28,8 +28,12 @@ Establish the YBC route baseline, naming stance, and top-level shell for mock-fi
 
 ## Acceptance criteria
 
+- app name / slug is fixed as `ybc` in docs
 - route key is fixed as `/ybc` in docs
-- display label is explicit in docs
+- display label `Yearn Builder's Collective` is explicit in docs
+- beta host `ybc-beta.dao-ops.com` is explicit in docs
+- production host `ybc.yearn.fi` is explicit in docs
+- production remains gated until live contract wiring and production approval
 - shell and section map are approved
 - no ambiguity remains about naming or rollout posture
 
@@ -48,10 +52,10 @@ Objective:
 Establish the YBC route baseline, naming stance, and top-level shell for mock-first delivery.
 
 Scope:
-- document the canonical route key and display label
+- document the canonical app name, slug, route key, and display label
 - define the route/file layout
 - define the top-level sections and default landing state
-- confirm path-first rollout stance
+- confirm beta-host rollout stance and production gate
 
 Constraints:
 - stay inside this package only
@@ -60,8 +64,12 @@ Constraints:
 - update tests and docs if behavior changes
 
 Definition of done:
+- app name / slug is fixed as `ybc` in docs
 - route key is fixed as `/ybc` in docs
-- display label is explicit in docs
+- display label `Yearn Builder's Collective` is explicit in docs
+- beta host `ybc-beta.dao-ops.com` is explicit in docs
+- production host `ybc.yearn.fi` is explicit in docs
+- production remains gated until live contract wiring and production approval
 - shell and section map are approved
 - no ambiguity remains about naming or rollout posture
 
@@ -87,7 +95,7 @@ Block if:
 
 ### Integrator prompt for WP0
 
-Integrate `ybc` `WP0` — **Route, naming, and shell baseline** into the active milestone branch only after:
+Integrate `ybc` `WP0` — **Route, naming, and shell baseline** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

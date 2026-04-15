@@ -9,6 +9,7 @@ Notes:
   - With no worktree_dir args: syncs all ../<repo>.<track>.<milestone>[.<wp>] worktrees
   - Copies selected env/config files only when missing in the target
   - --seed-template copies .env.worktree.example -> .env.local when target has no .env.local
+    and warns when that optional local template is not present
   - --install runs a lockfile-aware install in each target
 EOF
   exit 2
@@ -29,8 +30,9 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ ! -d .git ]; then
-  echo "ERROR: run from repo root (missing .git)" >&2
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$REPO_ROOT" ] || [ "$(cd "$REPO_ROOT" && pwd -P)" != "$(pwd -P)" ]; then
+  echo "ERROR: run from repo root" >&2
   exit 1
 fi
 
@@ -266,9 +268,15 @@ for wt in $TARGETS; do
     fi
   done
 
-  if [ "$SEED_TEMPLATE" -eq 1 ] && [ -f "$TEMPLATE_FILE" ] && [ ! -f "$wt/.env.local" ]; then
-    cp "$TEMPLATE_FILE" "$wt/.env.local"
-    echo "  ✓ seeded .env.local from $TEMPLATE_FILE"
+  if [ "$SEED_TEMPLATE" -eq 1 ]; then
+    if [ -f "$wt/.env.local" ]; then
+      :
+    elif [ -f "$TEMPLATE_FILE" ]; then
+      cp "$TEMPLATE_FILE" "$wt/.env.local"
+      echo "  ✓ seeded .env.local from $TEMPLATE_FILE"
+    else
+      echo "  WARN: --seed-template requested but $TEMPLATE_FILE is not present; skipping" >&2
+    fi
   fi
 
   if [ "$DO_INSTALL" -eq 1 ]; then

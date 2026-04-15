@@ -88,7 +88,7 @@ Block if:
 
 ### Integrator prompt for WP3
 
-Integrate `teams` `WP3` — **Revenue deposit prototype** into the active milestone branch only after:
+Integrate `teams` `WP3` — **Revenue deposit prototype** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

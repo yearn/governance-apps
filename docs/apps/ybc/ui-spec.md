@@ -1,7 +1,8 @@
 # YBC UI Spec
 
 Status: planning baseline
-Applies to: `/ybc` path first, later `ybc.yearn.fi` if desired
+Applies to: `/ybc` route, `ybc-beta.dao-ops.com` beta host, and gated production
+host `ybc.yearn.fi`
 Recommended app key: `ybc`
 Recommended display label: `Yearn Builder's Collective`
 

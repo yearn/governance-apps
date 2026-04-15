@@ -11,7 +11,7 @@ You are implementing work for `ybc` inside `governance-apps`.
 
 
 ## Non-negotiable product decisions
-- Route key stays `/ybc`.
+- Route key stays `/ybc`; display label is `Yearn Builder's Collective`.
 - Raw stake and effective voting weight must remain separate.
 - MVP supports add/remove member flows only, not a generic arbitrary-call builder.
 - Expired proposals are terminal; the user must start over.
@@ -30,4 +30,4 @@ You are implementing work for `ybc` inside `governance-apps`.
 - package scope is complete
 - acceptance criteria in the WP doc are satisfied
 - tests and docs are updated
-- the route remains coherent on shared/path-based hosts
+- the route remains coherent on the beta host, production host, and path-based route

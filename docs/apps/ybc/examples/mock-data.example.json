@@ -1,104 +1,344 @@
 {
   "version": 1,
   "generatedAt": 1776200000,
-  "currentEpoch": 11,
-  "influence": {
-    "internalWeight": "45000",
-    "delegatedWeight": "100000",
-    "totalWeight": "145000"
-  },
-  "collective": {
-    "address": "0x9999999999999999999999999999999999999999",
-    "memberCount": 7,
-    "stakedSupply": "52000",
-    "effectiveWeight": "45000",
-    "pendingExecutions": 1
-  },
-  "me": {
-    "isMember": true,
-    "rawStaked": "500",
-    "effectiveWeight": "250",
-    "targetWeight": "500",
-    "maturityBps": 5000,
-    "pendingRewards": "18.0"
-  },
-  "members": [
+  "scenarios": [
     {
-      "address": "0xaaaa000000000000000000000000000000000001",
-      "ens": "banteg.eth",
-      "isMember": true,
-      "rawStaked": "500",
-      "effectiveWeight": "250",
-      "targetWeight": "500",
-      "maturityBps": 5000,
-      "sources": {
-        "styfi": "250",
-        "llYfi": "150",
-        "migratedVeYfi": "100"
+      "id": "observer",
+      "label": "Observer, not a member",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "currentEpoch": 11,
+        "influence": {
+          "internalWeight": "45000",
+          "delegatedWeight": "100000",
+          "totalWeight": "145000"
+        },
+        "collective": {
+          "address": "0x9999999999999999999999999999999999999999",
+          "memberCount": 7,
+          "stakedSupply": "52000",
+          "effectiveWeight": "45000",
+          "pendingExecutions": 1
+        },
+        "me": {
+          "isMember": false,
+          "rawStaked": "0",
+          "effectiveWeight": "0",
+          "targetWeight": "0",
+          "maturityBps": 0,
+          "pendingRewards": "0"
+        },
+        "members": [
+          {
+            "address": "0xaaaa000000000000000000000000000000000001",
+            "ens": "banteg.eth",
+            "isMember": true,
+            "rawStaked": "500",
+            "effectiveWeight": "250",
+            "targetWeight": "500",
+            "maturityBps": 5000,
+            "sources": {
+              "styfi": "250",
+              "llYfi": "150",
+              "migratedVeYfi": "100"
+            }
+          },
+          {
+            "address": "0xbbbb000000000000000000000000000000000001",
+            "ens": "tracheopteryx.eth",
+            "isMember": true,
+            "rawStaked": "1200",
+            "effectiveWeight": "1200",
+            "targetWeight": "1200",
+            "maturityBps": 10000,
+            "sources": {
+              "styfi": "700",
+              "llYfi": "500",
+              "migratedVeYfi": "0"
+            }
+          }
+        ],
+        "proposals": [
+          {
+            "id": 8,
+            "type": "addition",
+            "account": "0xcccc000000000000000000000000000000000002",
+            "proposer": "0xaaaa000000000000000000000000000000000001",
+            "epoch": 12,
+            "thresholdBps": 5000,
+            "votesTotal": "0",
+            "votesYea": "0",
+            "votesNay": "0",
+            "phase": "discussion",
+            "opensAt": 1776600000,
+            "closesAt": 1777200000,
+            "executeBy": 1777800000,
+            "canRetract": false,
+            "canVote": false,
+            "canExecute": false
+          },
+          {
+            "id": 7,
+            "type": "addition",
+            "account": "0xcccc000000000000000000000000000000000001",
+            "proposer": "0xaaaa000000000000000000000000000000000001",
+            "epoch": 12,
+            "thresholdBps": 5000,
+            "votesTotal": "20000",
+            "votesYea": "11000",
+            "votesNay": "9000",
+            "phase": "voting",
+            "opensAt": 1776400000,
+            "closesAt": 1777000000,
+            "executeBy": 1777600000,
+            "canRetract": false,
+            "canVote": false,
+            "canExecute": false
+          },
+          {
+            "id": 6,
+            "type": "expulsion",
+            "account": "0xdddd000000000000000000000000000000000001",
+            "proposer": "0xbbbb000000000000000000000000000000000001",
+            "epoch": 11,
+            "thresholdBps": 6000,
+            "votesTotal": "20000",
+            "votesYea": "14000",
+            "votesNay": "6000",
+            "phase": "passed",
+            "opensAt": 1775800000,
+            "closesAt": 1776400000,
+            "executeBy": 1777000000,
+            "canRetract": false,
+            "canVote": false,
+            "canExecute": false
+          },
+          {
+            "id": 5,
+            "type": "addition",
+            "account": "0xffff000000000000000000000000000000000001",
+            "proposer": "0xbbbb000000000000000000000000000000000001",
+            "epoch": 10,
+            "thresholdBps": 5000,
+            "votesTotal": "20000",
+            "votesYea": "12500",
+            "votesNay": "7500",
+            "phase": "expired",
+            "opensAt": 1775000000,
+            "closesAt": 1775600000,
+            "executeBy": 1776000000,
+            "canRetract": false,
+            "canVote": false,
+            "canExecute": false
+          }
+        ]
       }
     },
     {
-      "address": "0xbbbb000000000000000000000000000000000001",
-      "ens": "tracheopteryx.eth",
-      "isMember": true,
-      "rawStaked": "1200",
-      "effectiveWeight": "1200",
-      "targetWeight": "1200",
-      "maturityBps": 10000,
-      "sources": {
-        "styfi": "700",
-        "llYfi": "500",
-        "migratedVeYfi": "0"
+      "id": "member-ramping",
+      "label": "Member with ramping weight",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "currentEpoch": 11,
+        "influence": {
+          "internalWeight": "45000",
+          "delegatedWeight": "100000",
+          "totalWeight": "145000"
+        },
+        "collective": {
+          "address": "0x9999999999999999999999999999999999999999",
+          "memberCount": 7,
+          "stakedSupply": "52000",
+          "effectiveWeight": "45000",
+          "pendingExecutions": 1
+        },
+        "me": {
+          "isMember": true,
+          "rawStaked": "500",
+          "effectiveWeight": "250",
+          "targetWeight": "500",
+          "maturityBps": 5000,
+          "pendingRewards": "18.0"
+        },
+        "members": [
+          {
+            "address": "0xaaaa000000000000000000000000000000000001",
+            "ens": "banteg.eth",
+            "isMember": true,
+            "rawStaked": "500",
+            "effectiveWeight": "250",
+            "targetWeight": "500",
+            "maturityBps": 5000,
+            "sources": {
+              "styfi": "250",
+              "llYfi": "150",
+              "migratedVeYfi": "100"
+            }
+          },
+          {
+            "address": "0xbbbb000000000000000000000000000000000001",
+            "ens": "tracheopteryx.eth",
+            "isMember": true,
+            "rawStaked": "1200",
+            "effectiveWeight": "1200",
+            "targetWeight": "1200",
+            "maturityBps": 10000,
+            "sources": {
+              "styfi": "700",
+              "llYfi": "500",
+              "migratedVeYfi": "0"
+            }
+          }
+        ],
+        "proposals": [
+          {
+            "id": 7,
+            "type": "addition",
+            "account": "0xcccc000000000000000000000000000000000001",
+            "proposer": "0xaaaa000000000000000000000000000000000001",
+            "epoch": 12,
+            "thresholdBps": 5000,
+            "votesTotal": "20000",
+            "votesYea": "11000",
+            "votesNay": "9000",
+            "phase": "voting",
+            "opensAt": 1776400000,
+            "closesAt": 1777000000,
+            "executeBy": 1777600000,
+            "canRetract": false,
+            "canVote": true,
+            "canExecute": false
+          },
+          {
+            "id": 6,
+            "type": "expulsion",
+            "account": "0xdddd000000000000000000000000000000000001",
+            "proposer": "0xbbbb000000000000000000000000000000000001",
+            "epoch": 11,
+            "thresholdBps": 6000,
+            "votesTotal": "20000",
+            "votesYea": "14000",
+            "votesNay": "6000",
+            "phase": "passed",
+            "opensAt": 1775800000,
+            "closesAt": 1776400000,
+            "executeBy": 1777000000,
+            "canRetract": false,
+            "canVote": false,
+            "canExecute": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "operator-admin",
+      "label": "Operator/admin view",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "currentEpoch": 11,
+        "influence": {
+          "internalWeight": "45000",
+          "delegatedWeight": "100000",
+          "totalWeight": "145000"
+        },
+        "collective": {
+          "address": "0x9999999999999999999999999999999999999999",
+          "memberCount": 7,
+          "stakedSupply": "52000",
+          "effectiveWeight": "45000",
+          "pendingExecutions": 1
+        },
+        "me": {
+          "isMember": true,
+          "rawStaked": "1200",
+          "effectiveWeight": "1200",
+          "targetWeight": "1200",
+          "maturityBps": 10000,
+          "pendingRewards": "42.0"
+        },
+        "members": [
+          {
+            "address": "0xaaaa000000000000000000000000000000000001",
+            "ens": "banteg.eth",
+            "isMember": true,
+            "rawStaked": "500",
+            "effectiveWeight": "250",
+            "targetWeight": "500",
+            "maturityBps": 5000,
+            "sources": {
+              "styfi": "250",
+              "llYfi": "150",
+              "migratedVeYfi": "100"
+            }
+          },
+          {
+            "address": "0xbbbb000000000000000000000000000000000001",
+            "ens": "tracheopteryx.eth",
+            "isMember": true,
+            "rawStaked": "1200",
+            "effectiveWeight": "1200",
+            "targetWeight": "1200",
+            "maturityBps": 10000,
+            "sources": {
+              "styfi": "700",
+              "llYfi": "500",
+              "migratedVeYfi": "0"
+            }
+          }
+        ],
+        "proposals": [
+          {
+            "id": 6,
+            "type": "expulsion",
+            "account": "0xdddd000000000000000000000000000000000001",
+            "proposer": "0xbbbb000000000000000000000000000000000001",
+            "epoch": 11,
+            "thresholdBps": 6000,
+            "votesTotal": "20000",
+            "votesYea": "14000",
+            "votesNay": "6000",
+            "phase": "passed",
+            "opensAt": 1775800000,
+            "closesAt": 1776400000,
+            "executeBy": 1777000000,
+            "canRetract": false,
+            "canVote": false,
+            "canExecute": true
+          },
+          {
+            "id": 5,
+            "type": "addition",
+            "account": "0xffff000000000000000000000000000000000001",
+            "proposer": "0xbbbb000000000000000000000000000000000001",
+            "epoch": 10,
+            "thresholdBps": 5000,
+            "votesTotal": "20000",
+            "votesYea": "12500",
+            "votesNay": "7500",
+            "phase": "expired",
+            "opensAt": 1775000000,
+            "closesAt": 1775600000,
+            "executeBy": 1776000000,
+            "canRetract": false,
+            "canVote": false,
+            "canExecute": false
+          }
+        ],
+        "admin": {
+          "operators": [
+            "0xaaaa000000000000000000000000000000000009",
+            "0xbbbb000000000000000000000000000000000009"
+          ],
+          "thresholds": {
+            "additionBps": 5000,
+            "expulsionBps": 6000
+          },
+          "hooks": "0xeeee000000000000000000000000000000000001"
+        }
       }
     }
-  ],
-  "proposals": [
-    {
-      "id": 7,
-      "type": "addition",
-      "account": "0xcccc000000000000000000000000000000000001",
-      "proposer": "0xaaaa000000000000000000000000000000000001",
-      "epoch": 12,
-      "thresholdBps": 5000,
-      "votesTotal": "20000",
-      "votesYea": "11000",
-      "votesNay": "9000",
-      "phase": "voting",
-      "opensAt": 1776400000,
-      "closesAt": 1777000000,
-      "executeBy": 1777600000,
-      "canRetract": false,
-      "canVote": true,
-      "canExecute": false
-    },
-    {
-      "id": 6,
-      "type": "expulsion",
-      "account": "0xdddd000000000000000000000000000000000001",
-      "proposer": "0xbbbb000000000000000000000000000000000001",
-      "epoch": 11,
-      "thresholdBps": 6000,
-      "votesTotal": "20000",
-      "votesYea": "14000",
-      "votesNay": "6000",
-      "phase": "passed",
-      "opensAt": 1775800000,
-      "closesAt": 1776400000,
-      "executeBy": 1777000000,
-      "canRetract": false,
-      "canVote": false,
-      "canExecute": true
-    }
-  ],
-  "admin": {
-    "operators": [
-      "0xaaaa000000000000000000000000000000000009",
-      "0xbbbb000000000000000000000000000000000009"
-    ],
-    "thresholds": {
-      "additionBps": 5000,
-      "expulsionBps": 6000
-    },
-    "hooks": "0xeeee000000000000000000000000000000000001"
-  }
+  ]
 }

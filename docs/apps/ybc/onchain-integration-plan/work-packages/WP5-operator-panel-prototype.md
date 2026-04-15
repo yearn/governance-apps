@@ -88,7 +88,7 @@ Block if:
 
 ### Integrator prompt for WP5
 
-Integrate `ybc` `WP5` — **Operator panel prototype** into the active milestone branch only after:
+Integrate `ybc` `WP5` — **Operator panel prototype** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

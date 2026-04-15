@@ -90,7 +90,7 @@ Block if:
 
 ### Integrator prompt for WP6
 
-Integrate `teams` `WP6` — **Admin console prototype** into the active milestone branch only after:
+Integrate `teams` `WP6` — **Admin console prototype** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

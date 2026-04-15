@@ -1,4 +1,4 @@
-# Team Finance Fork Runbook
+# Team Finances Fork Runbook
 
 Use this runbook once mock UX is accepted and onchain work begins.
 

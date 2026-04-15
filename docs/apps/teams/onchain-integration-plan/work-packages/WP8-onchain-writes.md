@@ -2,7 +2,7 @@
 
 ## Objective
 
-Add write preparation and execution for in-scope Team Finance actions.
+Add write preparation and execution for in-scope Team Finances actions.
 
 ## Scope
 
@@ -45,7 +45,7 @@ UAT-T7: fork-backed write paths validated.
 You are implementing `teams` `WP8` — **Onchain writes**.
 
 Objective:
-Add write preparation and execution for in-scope Team Finance actions.
+Add write preparation and execution for in-scope Team Finances actions.
 
 Scope:
 - prepare and execute revenue deposit
@@ -87,7 +87,7 @@ Block if:
 
 ### Integrator prompt for WP8
 
-Integrate `teams` `WP8` — **Onchain writes** into the active milestone branch only after:
+Integrate `teams` `WP8` — **Onchain writes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

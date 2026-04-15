@@ -7,15 +7,34 @@ fork-backed, contract-backed flows with controlled rollout.
 
 ## Naming decision
 
-### Recommended public route key
+### Canonical app names and slugs
 
-- `teams` → **keep**
-- `ybc` → **keep**
+- Teams app name / slug: `teams`
+- YBC app name / slug: `ybc`
 
 ### Recommended display labels
 
-- `/teams` route / host label: **Team Finance**
+- `/teams` route / host label: **Team Finances**
 - `/ybc` route / host label: **Yearn Builder's Collective**
+
+### Beta publication hosts
+
+- Teams beta host: `teams-beta.dao-ops.com`
+- YBC beta host: `ybc-beta.dao-ops.com`
+
+These beta hosts may publish mock / dummy data for review. Production exposure remains
+blocked until live contract wiring is complete and the production green light is explicit.
+
+### Production hosts
+
+- Teams production host: `teams.yearn.fi`
+- YBC production host: `ybc.yearn.fi`
+
+These hostnames are fixed, but they must not go live until the work is delivered, live
+contracts are wired, and production launch is approved.
+
+App menu / navigation placement is intentionally out of scope for M0 and should be
+handled separately during production readiness.
 
 ### Why this split is preferred
 
@@ -30,9 +49,10 @@ product copy.
 
 1. Mock-first before onchain.
 2. One work package = one reviewable PR.
-3. Use milestone integration branches, not only per-WP branches.
+3. Merge accepted work through the long-lived `agent/integration` branch.
 4. Do not create every future worktree up front.
 5. Only start fork / onchain work once mock UX and data contracts are accepted.
+6. Tag `agent/integration` when a milestone is accepted, for example `integration/m0`.
 
 ## Shared dependency tree
 
@@ -40,16 +60,17 @@ product copy.
 
 These should be decided once before both tracks move far:
 
-- canonical route keys and display labels
-- path-first rollout policy on shared hosts
+- canonical app names / slugs, route keys, and display labels
+- beta-host rollout policy for mock / dummy data
+- production hostnames and rollout gate after live contract wiring
 - dedicated mock data schemas for both tracks
 - iconography / copy tone alignment
-- whether new routes get feature flags immediately or later
+- beta host, production host, and runtime gate behavior
 - any shared UI primitives needed by both tracks
 
 ### Teams-specific dependencies
 
-- final route key decision (`teams`)
+- final app name / slug and route key decision (`teams`)
 - mock data contract for:
   - team directory
   - team workspace
@@ -61,7 +82,7 @@ These should be decided once before both tracks move far:
 
 ### YBC-specific dependencies
 
-- final route key decision (`ybc`)
+- final app name / slug and route key decision (`ybc`)
 - mock data contract for:
   - governance influence hero
   - members roster
@@ -76,7 +97,7 @@ These should be decided once before both tracks move far:
 
 Shared:
 - finalize naming
-- finalize route/host stance
+- finalize route / beta-host / production-host stance
 - define mock schemas and example payloads
 - create planning docs, work packages, prompts, and worktree scripts
 
@@ -102,6 +123,8 @@ Teams:
 - team directory
 - team workspace overview
 - mock-only cards / tables / empty states
+- beta-host review target: `teams-beta.dao-ops.com`
+- production host target remains gated: `teams.yearn.fi`
 
 YBC:
 - route shell
@@ -109,6 +132,8 @@ YBC:
 - members roster
 - proposal cards with timeline / thresholds
 - mock-only cards / tables / empty states
+- beta-host review target: `ybc-beta.dao-ops.com`
+- production host target remains gated: `ybc.yearn.fi`
 
 ### Exit gate
 - design review passed
@@ -182,11 +207,13 @@ YBC:
 
 Teams:
 - internal UAT with representative team-owner and admin scenarios
-- path-based exposure on shared/preprod host
+- beta/preprod exposure on `teams-beta.dao-ops.com`
+- production host readiness for `teams.yearn.fi`
 
 YBC:
 - internal UAT with observer/member/operator scenarios
-- path-based exposure on shared/preprod host
+- beta/preprod exposure on `ybc-beta.dao-ops.com`
+- production host readiness for `ybc.yearn.fi`
 
 ### Exit gate
 - UAT sign-off
@@ -198,9 +225,10 @@ YBC:
 ## M6 — Controlled production rollout
 
 Recommended order:
-1. path-based access on shared host
-2. limited internal / governance audience
-3. later subdomain rollout if still desired
+1. live-contract wiring accepted
+2. production green light recorded
+3. limited internal / governance audience
+4. production exposure on `teams.yearn.fi` and `ybc.yearn.fi` only after release checklist approval
 
 ### Exit gate
 - release checklist complete
@@ -208,16 +236,34 @@ Recommended order:
 - rollback path tested
 - monitoring and smoke steps documented
 
-## Suggested worktree creation order
+## Integration and worktree creation order
 
-Create these first:
-- `shared / m0`
-- `teams / m0 / wp0`
-- `ybc / m0 / wp0`
-- `teams / m1 / wp1`
-- `ybc / m1 / wp1`
+Create the integration lane first from the `bootstrap` checkout:
+
+```fish
+./scripts/agent-worktree.sh create integration --no-install
+```
+
+This creates branch `agent/integration` and worktree `../governance-apps.agent.integration`.
+
+Create work package worktrees from the integration worktree and base them on `agent/integration`:
+
+```fish
+cd ../governance-apps.agent.integration
+./scripts/workpkg-worktree.sh create --track teams --milestone m0 --wp wp0 --base agent/integration --no-install
+./scripts/workpkg-worktree.sh create --track ybc --milestone m0 --wp wp0 --base agent/integration --no-install
+```
+
+Merge only reviewed work package branches back into `agent/integration`. Tag the integration
+commit after a milestone is accepted, for example:
+
+```fish
+git tag -a integration/m0 -m "Complete M0 integration"
+```
 
 Create later, only when needed:
+- `teams / m1 / wp1`
+- `ybc / m1 / wp1`
 - any `m3+` fork/onchain worktrees
 - any production rollout worktrees
 - admin-console worktrees before base user surfaces are accepted

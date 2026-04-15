@@ -1,7 +1,9 @@
 # Yearn Builder's Collective
 
+App name / slug: `ybc`
 Route key: `/ybc`
-Recommended future host: `ybc.yearn.fi`
+Beta host: `ybc-beta.dao-ops.com`
+Production host: `ybc.yearn.fi` (gated until live contract wiring and production approval)
 Recommended display label: `Yearn Builder's Collective`
 
 ## Product summary

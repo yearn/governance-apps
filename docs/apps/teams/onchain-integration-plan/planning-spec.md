@@ -1,11 +1,12 @@
-# Team Finance Planning Spec
+# Team Finances Planning Spec
 
 ## 1. Canonical naming
 
+- app name / slug: `teams`
 - route key: `teams`
-- recommended public label: `Team Finance`
-- initial exposure: path-based `/teams`
-- later public host if desired: `teams.yearn.fi`
+- recommended public label: `Team Finances`
+- initial beta exposure: `teams-beta.dao-ops.com` with mock / dummy data
+- production host: `teams.yearn.fi` (gated until live contract wiring and production approval)
 
 ## 2. MVP scope
 
@@ -91,6 +92,7 @@ Controlled production rollout approved.
 ## 7. Launch stance
 
 Recommended launch order:
-1. path-based route on shared host
-2. internal / governance audience
-3. later dedicated host if still useful
+1. mock / dummy data beta host
+2. live-contract wiring accepted
+3. production green light recorded
+4. production exposure on `teams.yearn.fi` after release checklist approval
