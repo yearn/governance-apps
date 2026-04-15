@@ -4,10 +4,11 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Link from "next/link";
 import { homeCopy as copy } from "./messages";
-import { isYethEnabled } from "@/lib/runtime/features";
+import { isYbcEnabled, isYethEnabled } from "@/lib/runtime/features";
 
 export default function Home() {
   const showYeth = isYethEnabled();
+  const showYbc = isYbcEnabled();
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center gap-6">
@@ -21,7 +22,7 @@ export default function Home() {
         {copy.page.description}
       </p>
 
-      <div className={`grid gap-3 ${showYeth ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href={copy.cta.styfi.href}
           className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
@@ -40,6 +41,14 @@ export default function Home() {
             className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
           >
             {copy.cta.yeth.label}
+          </Link>
+        )}
+        {showYbc && (
+          <Link
+            href={copy.cta.ybc.href}
+            className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
+          >
+            {copy.cta.ybc.label}
           </Link>
         )}
       </div>

@@ -9,6 +9,7 @@ describe("resolveGovernanceAppHref", () => {
     expect(resolveGovernanceAppHref("styfi", "localhost")).toBe("/styfi");
     expect(resolveGovernanceAppHref("veyfi", "127.0.0.1:3000")).toBe("/veyfi");
     expect(resolveGovernanceAppHref("yeth", "app.dao-ops.com")).toBe("/yeth");
+    expect(resolveGovernanceAppHref("ybc", "app.dao-ops.com")).toBe("/ybc");
   });
 
   it("resolves canonical app subdomains on production hosts", () => {
@@ -21,6 +22,9 @@ describe("resolveGovernanceAppHref", () => {
     expect(resolveGovernanceAppHref("yeth", "styfi.yearn.fi")).toBe(
       "https://yeth.yearn.fi"
     );
+    expect(resolveGovernanceAppHref("ybc", "styfi.yearn.fi")).toBe(
+      "https://ybc.yearn.fi"
+    );
   });
 
   it("resolves canonical app subdomains on preprod beta hosts", () => {
@@ -32,6 +36,9 @@ describe("resolveGovernanceAppHref", () => {
     );
     expect(resolveGovernanceAppHref("yeth", "https://styfi-beta.dao-ops.com")).toBe(
       "https://yeth-beta.dao-ops.com"
+    );
+    expect(resolveGovernanceAppHref("ybc", "styfi-beta.dao-ops.com")).toBe(
+      "https://ybc-beta.dao-ops.com"
     );
   });
 
@@ -52,6 +59,9 @@ describe("resolveGovernanceHref", () => {
     expect(resolveGovernanceHref("/yeth", "app.yearn.fi")).toBe(
       "https://yeth.yearn.fi"
     );
+    expect(resolveGovernanceHref("/ybc", "app.yearn.fi")).toBe(
+      "https://ybc.yearn.fi"
+    );
   });
 
   it("rewrites app hrefs to canonical beta subdomains on preprod hosts", () => {
@@ -64,12 +74,16 @@ describe("resolveGovernanceHref", () => {
     expect(resolveGovernanceHref("/yeth", "styfi-beta.dao-ops.com:8443")).toBe(
       "https://yeth-beta.dao-ops.com"
     );
+    expect(resolveGovernanceHref("/ybc", "styfi-beta.dao-ops.com:8443")).toBe(
+      "https://ybc-beta.dao-ops.com"
+    );
   });
 
   it("keeps app hrefs path-scoped on localhost and app.dao-ops.com", () => {
     expect(resolveGovernanceHref("/styfi", "localhost:3000")).toBe("/styfi");
     expect(resolveGovernanceHref("/veyfi", "app.dao-ops.com")).toBe("/veyfi");
     expect(resolveGovernanceHref("/yeth", "127.0.0.1")).toBe("/yeth");
+    expect(resolveGovernanceHref("/ybc", "127.0.0.1")).toBe("/ybc");
   });
 
   it("leaves non-app links unchanged", () => {

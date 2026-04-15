@@ -14,6 +14,10 @@ export function isYethEnabled(env: Record<string, string | undefined> = process.
   return !isProductionRuntime(env) || isEnabled(env.NEXT_PUBLIC_ENABLE_YETH);
 }
 
+export function isYbcEnabled(env: Record<string, string | undefined> = process.env) {
+  return !isProductionRuntime(env) || isEnabled(env.NEXT_PUBLIC_ENABLE_YBC);
+}
+
 export function isDebugUiEnabled(
   env: Record<string, string | undefined> = process.env
 ) {

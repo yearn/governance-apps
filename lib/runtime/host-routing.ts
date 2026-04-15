@@ -24,6 +24,7 @@ function resolvePathPrefix(pathname: string): string | null {
   if (pathname === "/styfi" || pathname.startsWith("/styfi/")) return "/styfi";
   if (pathname === "/veyfi" || pathname.startsWith("/veyfi/")) return "/veyfi";
   if (pathname === "/yeth" || pathname.startsWith("/yeth/")) return "/yeth";
+  if (pathname === "/ybc" || pathname.startsWith("/ybc/")) return "/ybc";
   return null;
 }
 

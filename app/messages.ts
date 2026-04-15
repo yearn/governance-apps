@@ -17,5 +17,9 @@ export const homeCopy = {
       label: "yETH Recovery (yeth.yearn.fi)",
       href: "/yeth",
     },
+    ybc: {
+      label: "Yearn Builder's Collective (ybc-beta.dao-ops.com)",
+      href: "/ybc",
+    },
   },
 } as const;

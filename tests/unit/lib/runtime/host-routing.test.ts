@@ -11,12 +11,14 @@ describe("resolveHostPrefix", () => {
     expect(resolveHostPrefix("styfi.yearn.fi")).toBe("/styfi");
     expect(resolveHostPrefix("veyfi.yearn.fi")).toBe("/veyfi");
     expect(resolveHostPrefix("yeth.yearn.fi")).toBe("/yeth");
+    expect(resolveHostPrefix("ybc.yearn.fi")).toBe("/ybc");
   });
 
   it("resolves beta hostnames to app prefixes", () => {
     expect(resolveHostPrefix("styfi-beta.dao-ops.com")).toBe("/styfi");
     expect(resolveHostPrefix("veyfi-beta.dao-ops.com")).toBe("/veyfi");
     expect(resolveHostPrefix("yeth-beta.dao-ops.com")).toBe("/yeth");
+    expect(resolveHostPrefix("ybc-beta.dao-ops.com")).toBe("/ybc");
   });
 
   it("normalizes hostname casing and whitespace", () => {
@@ -91,6 +93,7 @@ describe("resolveHeadProbePath", () => {
   it("normalizes nested app paths to app roots", () => {
     expect(resolveHeadProbePath("/styfi/lasla", null)).toBe("/styfi");
     expect(resolveHeadProbePath("/veyfi/unknown", null)).toBe("/veyfi");
+    expect(resolveHeadProbePath("/ybc/members", null)).toBe("/ybc");
   });
 
   it("uses host prefix for branded hosts", () => {
