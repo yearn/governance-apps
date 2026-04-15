@@ -7,6 +7,7 @@ import type {
   PeriodFinalizationStatus,
   RevenueTokenAdminStatus,
   TeamBonusStatus,
+  TeamFinancials,
   TeamFundingSummaryState,
   TeamLifecycleStatus,
   TeamMigrationReadiness,
@@ -23,6 +24,7 @@ const expectedScenarioIds: TeamsMockScenarioId[] = [
   "directory-observer",
   "team-owner-funding",
   "bonus-available",
+  "finance-operator-revenue",
   "retired-read-only",
   "operator-admin",
 ];
@@ -160,10 +162,8 @@ function assertViewerContext(value: unknown): void {
 
 function assertTotals(value: unknown): void {
   assertRecord(value);
-  assertDecimalString(value.globalRevenueUsd);
-  assertDecimalString(value.globalCostUsd);
-  assertDecimalString(value.globalProfitUsd);
-  assertDecimalString(value.globalLossUsd);
+  assertFinancials(value.currentPeriod);
+  assertFinancials(value.lifetime);
   assertNumber(value.activeTeamCount);
   assertNumber(value.retiringTeamCount);
   assertNumber(value.retiredTeamCount);
@@ -440,6 +440,76 @@ function expectOneOf<T extends string>(
   expect(allowedValues).toContain(value as T);
 }
 
+const financialKeys = [
+  "revenueUsd",
+  "costUsd",
+  "profitUsd",
+  "lossUsd",
+] as const;
+
+const stableFundingSymbols = new Set(["USDC", "DAI", "yvUSDC-1", "yvDAI"]);
+
+function sumFinancials(
+  teams: TeamRecord[],
+  scope: "currentPeriod" | "lifetime"
+): TeamFinancials {
+  const sums = Object.fromEntries(
+    financialKeys.map((key) => [key, 0])
+  ) as Record<keyof TeamFinancials, number>;
+
+  for (const team of teams) {
+    for (const key of financialKeys) {
+      sums[key] += toCents(team[scope][key]);
+    }
+  }
+
+  return {
+    revenueUsd: formatCents(sums.revenueUsd),
+    costUsd: formatCents(sums.costUsd),
+    profitUsd: formatCents(sums.profitUsd),
+    lossUsd: formatCents(sums.lossUsd),
+  };
+}
+
+function expectFinancialsToEqual(
+  actual: TeamFinancials,
+  expected: TeamFinancials
+): void {
+  for (const key of financialKeys) {
+    expect(actual[key]).toBe(expected[key]);
+  }
+}
+
+function toCents(value: string): number {
+  return Math.round(Number(value) * 100);
+}
+
+function formatCents(value: number): string {
+  return (value / 100).toFixed(2);
+}
+
+function expectStableFundingSummaryToReconcile(team: TeamRecord): void {
+  if (
+    !team.fundingApprovals.every((approval) =>
+      stableFundingSymbols.has(approval.symbol)
+    )
+  ) {
+    return;
+  }
+
+  const claimableCents = team.fundingApprovals.reduce(
+    (sum, approval) => sum + toCents(approval.claimable),
+    0
+  );
+  const refundableCents = team.fundingApprovals.reduce(
+    (sum, approval) => sum + toCents(approval.refundValueUsd),
+    0
+  );
+
+  expect(team.fundingSummary.claimableUsd).toBe(formatCents(claimableCents));
+  expect(team.fundingSummary.refundableUsd).toBe(formatCents(refundableCents));
+}
+
 describe("Team Finances mock data contract", () => {
   it("binds the example JSON to the exported v1 TypeScript contract", () => {
     const teamsMockData = parseTeamsMockData();
@@ -455,12 +525,17 @@ describe("Team Finances mock data contract", () => {
     const fundingStatuses = new Set<FundingApprovalStatus>();
     const bonusStatuses = new Set<TeamBonusStatus>();
     const bonusPeriodStatuses = new Set<BonusPeriodStatus>();
+    const fundingSummaryStates = new Set<TeamFundingSummaryState>();
     const lifecycleStatuses = new Set<TeamLifecycleStatus>();
+    const viewerRoles = new Set<TeamsViewerRole>();
 
     for (const scenario of teamsMockData.scenarios) {
+      viewerRoles.add(scenario.data.viewer.role);
+
       for (const team of scenario.data.teams) {
         lifecycleStatuses.add(team.status);
         bonusStatuses.add(team.bonus.status);
+        fundingSummaryStates.add(team.fundingSummary.state);
 
         for (const approval of team.fundingApprovals) {
           fundingStatuses.add(approval.status);
@@ -477,7 +552,11 @@ describe("Team Finances mock data contract", () => {
     expect([...bonusPeriodStatuses].sort()).toEqual(
       expectedBonusPeriodStatuses
     );
+    expect([...fundingSummaryStates].sort()).toEqual(
+      expectedFundingSummaryStates
+    );
     expect([...lifecycleStatuses].sort()).toEqual(expectedLifecycleStatuses);
+    expect([...viewerRoles].sort()).toEqual(expectedViewerRoles);
   });
 
   it("keeps route-ready mock invariants explicit", () => {
@@ -485,12 +564,33 @@ describe("Team Finances mock data contract", () => {
 
     for (const scenario of teamsMockData.scenarios) {
       const teamIds = new Set(scenario.data.teams.map((team) => team.id));
+      const { teams, totals } = scenario.data;
+
+      expectFinancialsToEqual(
+        totals.currentPeriod,
+        sumFinancials(teams, "currentPeriod")
+      );
+      expectFinancialsToEqual(
+        totals.lifetime,
+        sumFinancials(teams, "lifetime")
+      );
+      expect(totals.activeTeamCount).toBe(
+        teams.filter((team) => team.status === "active").length
+      );
+      expect(totals.retiringTeamCount).toBe(
+        teams.filter((team) => team.status === "retiring").length
+      );
+      expect(totals.retiredTeamCount).toBe(
+        teams.filter((team) => team.status === "retired").length
+      );
 
       if (scenario.data.selectedTeamId) {
         expect(teamIds.has(scenario.data.selectedTeamId)).toBe(true);
       }
 
       for (const team of scenario.data.teams) {
+        expectStableFundingSummaryToReconcile(team);
+
         if (team.status === "retired") {
           expect(team.readOnlyReason).not.toBeNull();
         }

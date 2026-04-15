@@ -23,6 +23,7 @@ type TeamsMockScenario = {
     | "directory-observer"
     | "team-owner-funding"
     | "bonus-available"
+    | "finance-operator-revenue"
     | "retired-read-only"
     | "operator-admin";
   label: string;
@@ -60,10 +61,8 @@ type TeamsViewerContext = {
 };
 
 type TeamsTotals = {
-  globalRevenueUsd: UsdDecimalString;
-  globalCostUsd: UsdDecimalString;
-  globalProfitUsd: UsdDecimalString;
-  globalLossUsd: UsdDecimalString;
+  currentPeriod: TeamFinancials;
+  lifetime: TeamFinancials;
   activeTeamCount: number;
   retiringTeamCount: number;
   retiredTeamCount: number;
@@ -273,6 +272,8 @@ type AdminBonusQueueEntry = {
   `10000` when the multiplier is greater than 1x.
 - All timestamps are Unix seconds.
 - Period fields are non-negative protocol period numbers.
+- Aggregate totals are period-scoped. `totals.currentPeriod` and `totals.lifetime` must
+  remain distinct and must reconcile with the teams included in that scenario payload.
 - Team ids and record ids are stable lowercase strings suitable for mock routing and tests.
 - `selectedTeamId` is `null` for directory-only scenarios.
 - Revenue deposit is permissionless. `viewer.canDepositRevenue` may be true even when the

@@ -14,6 +14,7 @@ export type TeamsMockScenarioId =
   | "directory-observer"
   | "team-owner-funding"
   | "bonus-available"
+  | "finance-operator-revenue"
   | "retired-read-only"
   | "operator-admin";
 
@@ -54,10 +55,8 @@ export type TeamsViewerRole =
   | "operator-admin";
 
 export type TeamsTotals = {
-  globalRevenueUsd: UsdDecimalString;
-  globalCostUsd: UsdDecimalString;
-  globalProfitUsd: UsdDecimalString;
-  globalLossUsd: UsdDecimalString;
+  currentPeriod: TeamFinancials;
+  lifetime: TeamFinancials;
   activeTeamCount: number;
   retiringTeamCount: number;
   retiredTeamCount: number;

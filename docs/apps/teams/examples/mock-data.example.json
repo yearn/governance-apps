@@ -21,10 +21,18 @@
         },
         "selectedTeamId": null,
         "totals": {
-          "globalRevenueUsd": "2121000.00",
-          "globalCostUsd": "1420000.00",
-          "globalProfitUsd": "701000.00",
-          "globalLossUsd": "29000.00",
+          "currentPeriod": {
+            "revenueUsd": "438000.00",
+            "costUsd": "377000.00",
+            "profitUsd": "90000.00",
+            "lossUsd": "29000.00"
+          },
+          "lifetime": {
+            "revenueUsd": "2121000.00",
+            "costUsd": "1420000.00",
+            "profitUsd": "701000.00",
+            "lossUsd": "29000.00"
+          },
           "activeTeamCount": 2,
           "retiringTeamCount": 1,
           "retiredTeamCount": 1
@@ -136,8 +144,8 @@
             "revenueHistory": [],
             "fundingSummary": {
               "state": "partially-claimed",
-              "claimableUsd": "43000.00",
-              "refundableUsd": "27500.00"
+              "claimableUsd": "32000.00",
+              "refundableUsd": "18000.00"
             },
             "fundingApprovals": [
               {
@@ -363,13 +371,21 @@
         },
         "selectedTeamId": "security",
         "totals": {
-          "globalRevenueUsd": "2121000.00",
-          "globalCostUsd": "1420000.00",
-          "globalProfitUsd": "701000.00",
-          "globalLossUsd": "29000.00",
-          "activeTeamCount": 2,
-          "retiringTeamCount": 1,
-          "retiredTeamCount": 1
+          "currentPeriod": {
+            "revenueUsd": "68000.00",
+            "costUsd": "92000.00",
+            "profitUsd": "0.00",
+            "lossUsd": "24000.00"
+          },
+          "lifetime": {
+            "revenueUsd": "508000.00",
+            "costUsd": "440000.00",
+            "profitUsd": "68000.00",
+            "lossUsd": "24000.00"
+          },
+          "activeTeamCount": 1,
+          "retiringTeamCount": 0,
+          "retiredTeamCount": 0
         },
         "teams": [
           {
@@ -435,7 +451,7 @@
             "fundingSummary": {
               "state": "late-liquid-available",
               "claimableUsd": "43000.00",
-              "refundableUsd": "27500.00"
+              "refundableUsd": "27000.00"
             },
             "fundingApprovals": [
               {
@@ -574,13 +590,21 @@
         },
         "selectedTeamId": "platform",
         "totals": {
-          "globalRevenueUsd": "2121000.00",
-          "globalCostUsd": "1420000.00",
-          "globalProfitUsd": "701000.00",
-          "globalLossUsd": "29000.00",
-          "activeTeamCount": 2,
-          "retiringTeamCount": 1,
-          "retiredTeamCount": 1
+          "currentPeriod": {
+            "revenueUsd": "250000.00",
+            "costUsd": "160000.00",
+            "profitUsd": "90000.00",
+            "lossUsd": "0.00"
+          },
+          "lifetime": {
+            "revenueUsd": "1225000.00",
+            "costUsd": "845000.00",
+            "profitUsd": "380000.00",
+            "lossUsd": "0.00"
+          },
+          "activeTeamCount": 1,
+          "retiringTeamCount": 0,
+          "retiredTeamCount": 0
         },
         "teams": [
           {
@@ -687,6 +711,137 @@
       }
     },
     {
+      "id": "finance-operator-revenue",
+      "label": "Finance operator revenue deposit with visible claimable funding",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "currentPeriod": 4,
+        "viewer": {
+          "role": "finance-operator",
+          "address": "0xbbbb000000000000000000000000000000000005",
+          "teamId": "platform",
+          "canDepositRevenue": true,
+          "canClaimFunding": false,
+          "canReturnFunding": false,
+          "canClaimBonus": false,
+          "canUseAdmin": false
+        },
+        "selectedTeamId": "platform",
+        "totals": {
+          "currentPeriod": {
+            "revenueUsd": "250000.00",
+            "costUsd": "160000.00",
+            "profitUsd": "90000.00",
+            "lossUsd": "0.00"
+          },
+          "lifetime": {
+            "revenueUsd": "1225000.00",
+            "costUsd": "845000.00",
+            "profitUsd": "380000.00",
+            "lossUsd": "0.00"
+          },
+          "activeTeamCount": 1,
+          "retiringTeamCount": 0,
+          "retiredTeamCount": 0
+        },
+        "teams": [
+          {
+            "id": "platform",
+            "name": "Platform",
+            "address": "0x1111111111111111111111111111111111111111",
+            "owner": "0xaaaa000000000000000000000000000000000001",
+            "pendingOwner": null,
+            "status": "active",
+            "readOnlyReason": null,
+            "currentPeriod": {
+              "revenueUsd": "250000.00",
+              "costUsd": "160000.00",
+              "profitUsd": "90000.00",
+              "lossUsd": "0.00"
+            },
+            "lifetime": {
+              "revenueUsd": "1225000.00",
+              "costUsd": "845000.00",
+              "profitUsd": "380000.00",
+              "lossUsd": "0.00"
+            },
+            "lifecycle": {
+              "migrationReadiness": "not-needed",
+              "successorTeamId": null,
+              "retirementAnnouncedAt": null,
+              "retirementEffectivePeriod": null
+            },
+            "revenueOptions": [
+              {
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "decimals": 6,
+                "isConvertible": true,
+                "convertToSymbol": "yvUSDC-1",
+                "oraclePriceUsd": "1.00",
+                "previewAmount": "10000",
+                "estimatedCreditUsd": "9985.40"
+              },
+              {
+                "symbol": "yvUSDC-1",
+                "tokenAddress": "0x5555555555555555555555555555555555555555",
+                "decimals": 18,
+                "isConvertible": false,
+                "convertToSymbol": null,
+                "oraclePriceUsd": "1.01",
+                "previewAmount": "10000",
+                "estimatedCreditUsd": "10100.00"
+              }
+            ],
+            "revenueHistory": [
+              {
+                "id": "rev-platform-4-1",
+                "period": 4,
+                "symbol": "USDC",
+                "amount": "10000",
+                "creditedUsd": "9985.40",
+                "convertedToSymbol": "yvUSDC-1",
+                "depositedBy": "0xbbbb000000000000000000000000000000000001",
+                "createdAt": 1776180000
+              }
+            ],
+            "fundingSummary": {
+              "state": "has-claimable",
+              "claimableUsd": "10000.00",
+              "refundableUsd": "0.00"
+            },
+            "fundingApprovals": [
+              {
+                "id": "approval-platform-30",
+                "idx": 30,
+                "approvedPeriod": 4,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "10000",
+                "used": "0",
+                "claimable": "10000",
+                "streamDurationDays": 30,
+                "status": "claimable-current-period",
+                "recipient": null,
+                "claimedCostUsd": "0.00",
+                "refundValueUsd": "0.00",
+                "averageClaimPriceUsd": null
+              }
+            ],
+            "fundingReturns": [],
+            "bonus": {
+              "tokenSymbol": "YFI",
+              "status": "none",
+              "totalClaimable": "0",
+              "includedPeriodCount": 0,
+              "periods": []
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "retired-read-only",
       "label": "Retired team workspace in read-only mode",
       "data": {
@@ -705,12 +860,20 @@
         },
         "selectedTeamId": "grants-archive",
         "totals": {
-          "globalRevenueUsd": "2121000.00",
-          "globalCostUsd": "1420000.00",
-          "globalProfitUsd": "701000.00",
-          "globalLossUsd": "29000.00",
-          "activeTeamCount": 2,
-          "retiringTeamCount": 1,
+          "currentPeriod": {
+            "revenueUsd": "0.00",
+            "costUsd": "0.00",
+            "profitUsd": "0.00",
+            "lossUsd": "0.00"
+          },
+          "lifetime": {
+            "revenueUsd": "50000.00",
+            "costUsd": "0.00",
+            "profitUsd": "50000.00",
+            "lossUsd": "0.00"
+          },
+          "activeTeamCount": 0,
+          "retiringTeamCount": 0,
           "retiredTeamCount": 1
         },
         "teams": [
@@ -803,13 +966,21 @@
         },
         "selectedTeamId": "security",
         "totals": {
-          "globalRevenueUsd": "2121000.00",
-          "globalCostUsd": "1420000.00",
-          "globalProfitUsd": "701000.00",
-          "globalLossUsd": "29000.00",
-          "activeTeamCount": 2,
+          "currentPeriod": {
+            "revenueUsd": "188000.00",
+            "costUsd": "217000.00",
+            "profitUsd": "0.00",
+            "lossUsd": "29000.00"
+          },
+          "lifetime": {
+            "revenueUsd": "846000.00",
+            "costUsd": "575000.00",
+            "profitUsd": "271000.00",
+            "lossUsd": "29000.00"
+          },
+          "activeTeamCount": 1,
           "retiringTeamCount": 1,
-          "retiredTeamCount": 1
+          "retiredTeamCount": 0
         },
         "teams": [
           {
@@ -865,7 +1036,7 @@
             "fundingSummary": {
               "state": "late-liquid-available",
               "claimableUsd": "43000.00",
-              "refundableUsd": "27500.00"
+              "refundableUsd": "27000.00"
             },
             "fundingApprovals": [
               {
