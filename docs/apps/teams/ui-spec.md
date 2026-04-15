@@ -1,9 +1,10 @@
-# Team Finance UI Spec
+# Team Finances UI Spec
 
 Status: planning baseline
-Applies to: `/teams` path first, later `teams.yearn.fi` if desired
+Applies to: `/teams` route, `teams-beta.dao-ops.com` beta host, and gated
+production host `teams.yearn.fi`
 Recommended app key: `teams`
-Recommended display label: `Team Finance`
+Recommended display label: `Team Finances`
 
 ## 1. Why `teams` should stay the app key
 
@@ -200,7 +201,7 @@ Required mock scenarios:
 ## 8. Copy posture
 
 Prefer:
-- `Team Finance`
+- `Team Finances`
 - `Deposit Revenue`
 - `Claim Funding`
 - `Return Funding`

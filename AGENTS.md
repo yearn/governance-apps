@@ -87,9 +87,10 @@ Use the supplied scripts in this overlay:
 - `./scripts/workpkg-worktree.sh`
 - `./scripts/workpkg-sync-env.sh`
 
-Worktree root is intentionally **outside** the repo:
+Work package worktrees are intentionally **outside** the repo and use dot-suffixed
+sibling paths:
 
-- `../governance-apps.worktree`
+- `../<repo>.<track>.<milestone>[.<wp>]`
 
 Create only the worktrees you need for the current milestone or work package.
 

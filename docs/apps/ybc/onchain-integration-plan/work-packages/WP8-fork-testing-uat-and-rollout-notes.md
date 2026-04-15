@@ -8,7 +8,7 @@ Document and validate fork testing, UAT checkpoints, and rollout guidance for YB
 
 - finalize the fork runbook
 - record UAT checklist and evidence expectations
-- record path-first rollout and later host stance
+- record beta-host, preprod, and production-gate rollout stance
 - document rollback and smoke-test expectations
 
 ## Non-goals
@@ -50,7 +50,7 @@ Document and validate fork testing, UAT checkpoints, and rollout guidance for YB
 Scope:
 - finalize the fork runbook
 - record UAT checklist and evidence expectations
-- record path-first rollout and later host stance
+- record beta-host, preprod, and production-gate rollout stance
 - document rollback and smoke-test expectations
 
 Constraints:

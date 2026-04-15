@@ -1,4 +1,4 @@
-# Integrator Prompt — Team Finance
+# Integrator Prompt — Team Finances
 
 You are integrating multiple `teams` work packages into a milestone branch.
 

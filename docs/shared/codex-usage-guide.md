@@ -23,13 +23,13 @@ Example:
 This creates a worktree under:
 
 ```bash
-../governance-apps.worktree/teams/m1/wp3
+../governance-apps.shared.m0.teams.m1.wp3
 ```
 
 and a branch like:
 
 ```bash
-codex/teams/m1/wp3
+agent/teams/m1/wp3
 ```
 
 ## 3. Open the right docs in the worktree

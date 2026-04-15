@@ -1,8 +1,10 @@
-# Team Finance
+# Team Finances
 
+App name / slug: `teams`
 Route key: `/teams`
-Recommended future host: `teams.yearn.fi`
-Recommended display label: `Team Finance`
+Beta host: `teams-beta.dao-ops.com`
+Production host: `teams.yearn.fi` (gated until live contract wiring and production approval)
+Recommended display label: `Team Finances`
 
 ## Product summary
 
@@ -23,7 +25,7 @@ This surface is broader than accounting alone. It covers:
 ## Naming stance
 
 - Keep the **route key** short and stable: `teams`
-- Use the richer **display label** in product copy and headers: `Team Finance`
+- Use the richer **display label** in product copy and headers: `Team Finances`
 
 This keeps routing, hostnames, branch names, and domain client keys durable even if the
 surface grows.

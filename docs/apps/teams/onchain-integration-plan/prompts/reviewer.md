@@ -1,4 +1,4 @@
-# Reviewer Prompt — Team Finance
+# Reviewer Prompt — Team Finances
 
 You are reviewing a PR for `teams` in `governance-apps`.
 

@@ -1,4 +1,4 @@
-# Team Finance User Stories
+# Team Finances User Stories
 
 ## Team owner
 

@@ -1,4 +1,4 @@
-# Implementor Prompt — Team Finance
+# Implementor Prompt — Team Finances
 
 You are implementing work for `teams` inside `governance-apps`.
 
@@ -11,7 +11,7 @@ You are implementing work for `teams` inside `governance-apps`.
 
 
 ## Non-negotiable product decisions
-- Route key stays `/teams`; display label is `Team Finance`.
+- Route key stays `/teams`; display label is `Team Finances`.
 - Revenue deposit is modeled as permissionless.
 - Vest claiming itself is out of scope; only the initial funding claim flow is in scope.
 - Bonus math should stay simple in the main UI and richer in details / tooltip states.
@@ -29,4 +29,4 @@ You are implementing work for `teams` inside `governance-apps`.
 - package scope is complete
 - acceptance criteria in the WP doc are satisfied
 - tests and docs are updated
-- the route remains coherent on shared/path-based hosts
+- the route remains coherent on the beta host, production host, and path-based route

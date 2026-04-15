@@ -1,4 +1,4 @@
-# Team Finance Mock Data Schema v1
+# Team Finances Mock Data Schema v1
 
 Purpose: a stable mock data contract for design, prototypes, and mock-backed implementation.
 
