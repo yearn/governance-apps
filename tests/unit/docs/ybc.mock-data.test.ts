@@ -22,7 +22,16 @@ const requiredProposalPhases: YbcProposalPhase[] = [
   "discussion",
   "executed",
   "expired",
+  "failed",
+  "retracted",
   "voting",
+];
+
+const terminalProposalPhases: YbcProposalPhase[] = [
+  "executed",
+  "expired",
+  "failed",
+  "retracted",
 ];
 
 const amountPattern = /^\d+(\.\d+)?$/;
@@ -158,12 +167,15 @@ describe("YBC mock data contract", () => {
   });
 
   it("keeps terminal proposals non-actionable and admin scope narrow", () => {
-    const expiredProposals = getAllProposals().filter(
-      (proposal) => proposal.phase === "expired"
+    const terminalProposals = getAllProposals().filter((proposal) =>
+      terminalProposalPhases.includes(proposal.phase)
     );
-    expect(expiredProposals.length).toBeGreaterThan(0);
 
-    for (const proposal of expiredProposals) {
+    expect(new Set(terminalProposals.map((proposal) => proposal.phase))).toEqual(
+      new Set(terminalProposalPhases)
+    );
+
+    for (const proposal of terminalProposals) {
       expect(proposal.actions).toEqual(
         expect.objectContaining({
           canRetract: false,

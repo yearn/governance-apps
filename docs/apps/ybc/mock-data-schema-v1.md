@@ -235,6 +235,8 @@ Across those scenarios, proposal fixtures should cover:
 - awaiting execution
 - executed terminal state
 - expired terminal state
+- failed terminal state
+- retracted terminal state
 
 The scenario set is the source of truth for WP1 design and mock-backed prototype
 work until onchain reads supersede the mock contract in a later work package.

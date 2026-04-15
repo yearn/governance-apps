@@ -107,7 +107,7 @@
           "summary": {
             "activeCount": 2,
             "awaitingExecutionCount": 1,
-            "terminalCount": 2
+            "terminalCount": 4
           },
           "items": [
             {
@@ -228,7 +228,7 @@
                 "canVote": false,
                 "canExecute": false,
                 "nextAction": "none",
-                "disabledReason": "Proposal already executed."
+                "disabledReason": "Executed proposals are terminal."
               }
             },
             {
@@ -259,6 +259,66 @@
                 "canExecute": false,
                 "nextAction": "none",
                 "disabledReason": "Expired proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-3",
+              "type": "expulsion",
+              "targetAccount": "0x9999999999999999999999999999999999999998",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 9,
+              "phase": "failed",
+              "outcome": "failed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "8000",
+                "nay": "12000"
+              },
+              "timing": {
+                "createdAt": 1772600000,
+                "discussionStartsAt": 1772600000,
+                "votingStartsAt": 1773000000,
+                "votingEndsAt": 1773600000,
+                "executionOpensAt": 1773600000,
+                "expiresAt": 1774204800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Failed proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-2",
+              "type": "addition",
+              "targetAccount": "0x9999999999999999999999999999999999999997",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 8,
+              "phase": "retracted",
+              "outcome": "failed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1771800000,
+                "discussionStartsAt": 1771800000,
+                "votingStartsAt": 1772200000,
+                "votingEndsAt": 1772800000,
+                "executionOpensAt": 1772800000,
+                "expiresAt": 1773404800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Retracted proposals are terminal; start a new proposal."
               }
             }
           ]
@@ -387,7 +447,7 @@
           "summary": {
             "activeCount": 2,
             "awaitingExecutionCount": 1,
-            "terminalCount": 2
+            "terminalCount": 4
           },
           "items": [
             {
@@ -508,7 +568,7 @@
                 "canVote": false,
                 "canExecute": false,
                 "nextAction": "none",
-                "disabledReason": "Proposal already executed."
+                "disabledReason": "Executed proposals are terminal."
               }
             },
             {
@@ -539,6 +599,66 @@
                 "canExecute": false,
                 "nextAction": "none",
                 "disabledReason": "Expired proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-3",
+              "type": "expulsion",
+              "targetAccount": "0x9999999999999999999999999999999999999998",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 9,
+              "phase": "failed",
+              "outcome": "failed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "8000",
+                "nay": "12000"
+              },
+              "timing": {
+                "createdAt": 1772600000,
+                "discussionStartsAt": 1772600000,
+                "votingStartsAt": 1773000000,
+                "votingEndsAt": 1773600000,
+                "executionOpensAt": 1773600000,
+                "expiresAt": 1774204800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Failed proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-2",
+              "type": "addition",
+              "targetAccount": "0x9999999999999999999999999999999999999997",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 8,
+              "phase": "retracted",
+              "outcome": "failed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1771800000,
+                "discussionStartsAt": 1771800000,
+                "votingStartsAt": 1772200000,
+                "votingEndsAt": 1772800000,
+                "executionOpensAt": 1772800000,
+                "expiresAt": 1773404800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Retracted proposals are terminal; start a new proposal."
               }
             }
           ]
@@ -682,7 +802,7 @@
           "summary": {
             "activeCount": 2,
             "awaitingExecutionCount": 1,
-            "terminalCount": 2
+            "terminalCount": 4
           },
           "items": [
             {
@@ -803,7 +923,7 @@
                 "canVote": false,
                 "canExecute": false,
                 "nextAction": "none",
-                "disabledReason": "Proposal already executed."
+                "disabledReason": "Executed proposals are terminal."
               }
             },
             {
@@ -834,6 +954,66 @@
                 "canExecute": false,
                 "nextAction": "none",
                 "disabledReason": "Expired proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-3",
+              "type": "expulsion",
+              "targetAccount": "0x9999999999999999999999999999999999999998",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 9,
+              "phase": "failed",
+              "outcome": "failed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "8000",
+                "nay": "12000"
+              },
+              "timing": {
+                "createdAt": 1772600000,
+                "discussionStartsAt": 1772600000,
+                "votingStartsAt": 1773000000,
+                "votingEndsAt": 1773600000,
+                "executionOpensAt": 1773600000,
+                "expiresAt": 1774204800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Failed proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-2",
+              "type": "addition",
+              "targetAccount": "0x9999999999999999999999999999999999999997",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 8,
+              "phase": "retracted",
+              "outcome": "failed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1771800000,
+                "discussionStartsAt": 1771800000,
+                "votingStartsAt": 1772200000,
+                "votingEndsAt": 1772800000,
+                "executionOpensAt": 1772800000,
+                "expiresAt": 1773404800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Retracted proposals are terminal; start a new proposal."
               }
             }
           ]
@@ -977,7 +1157,7 @@
           "summary": {
             "activeCount": 2,
             "awaitingExecutionCount": 1,
-            "terminalCount": 2
+            "terminalCount": 4
           },
           "items": [
             {
@@ -1098,7 +1278,7 @@
                 "canVote": false,
                 "canExecute": false,
                 "nextAction": "none",
-                "disabledReason": "Proposal already executed."
+                "disabledReason": "Executed proposals are terminal."
               }
             },
             {
@@ -1129,6 +1309,66 @@
                 "canExecute": false,
                 "nextAction": "none",
                 "disabledReason": "Expired proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-3",
+              "type": "expulsion",
+              "targetAccount": "0x9999999999999999999999999999999999999998",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 9,
+              "phase": "failed",
+              "outcome": "failed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "8000",
+                "nay": "12000"
+              },
+              "timing": {
+                "createdAt": 1772600000,
+                "discussionStartsAt": 1772600000,
+                "votingStartsAt": 1773000000,
+                "votingEndsAt": 1773600000,
+                "executionOpensAt": 1773600000,
+                "expiresAt": 1774204800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Failed proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-2",
+              "type": "addition",
+              "targetAccount": "0x9999999999999999999999999999999999999997",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 8,
+              "phase": "retracted",
+              "outcome": "failed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1771800000,
+                "discussionStartsAt": 1771800000,
+                "votingStartsAt": 1772200000,
+                "votingEndsAt": 1772800000,
+                "executionOpensAt": 1772800000,
+                "expiresAt": 1773404800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Retracted proposals are terminal; start a new proposal."
               }
             }
           ]
