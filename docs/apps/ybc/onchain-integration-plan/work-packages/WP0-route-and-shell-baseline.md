@@ -95,7 +95,7 @@ Block if:
 
 ### Integrator prompt for WP0
 
-Integrate `ybc` `WP0` — **Route, naming, and shell baseline** into the active milestone branch only after:
+Integrate `ybc` `WP0` — **Route, naming, and shell baseline** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

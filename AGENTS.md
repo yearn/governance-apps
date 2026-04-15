@@ -84,14 +84,25 @@ npm run test:e2e:full
 
 Use the supplied scripts in this overlay:
 
+- `./scripts/agent-worktree.sh`
 - `./scripts/workpkg-worktree.sh`
 - `./scripts/workpkg-sync-env.sh`
+
+Use one long-lived accepted-work lane:
+
+- branch: `agent/integration`
+- worktree: `../<repo>.agent.integration`
+
+Create it from the `bootstrap` checkout with `./scripts/agent-worktree.sh create integration --no-install`.
+Merge approved work package branches into `agent/integration`, then tag the integration commit when a
+milestone finishes, for example `integration/m0`.
 
 Work package worktrees are intentionally **outside** the repo and use dot-suffixed
 sibling paths:
 
 - `../<repo>.<track>.<milestone>[.<wp>]`
 
+Create work package worktrees from the integration worktree and pass `--base agent/integration`.
 Create only the worktrees you need for the current milestone or work package.
 
 ## Required docs updates

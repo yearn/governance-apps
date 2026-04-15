@@ -49,9 +49,10 @@ product copy.
 
 1. Mock-first before onchain.
 2. One work package = one reviewable PR.
-3. Use milestone integration branches, not only per-WP branches.
+3. Merge accepted work through the long-lived `agent/integration` branch.
 4. Do not create every future worktree up front.
 5. Only start fork / onchain work once mock UX and data contracts are accepted.
+6. Tag `agent/integration` when a milestone is accepted, for example `integration/m0`.
 
 ## Shared dependency tree
 
@@ -235,16 +236,34 @@ Recommended order:
 - rollback path tested
 - monitoring and smoke steps documented
 
-## Suggested worktree creation order
+## Integration and worktree creation order
 
-Create these first:
-- `shared / m0`
-- `teams / m0 / wp0`
-- `ybc / m0 / wp0`
-- `teams / m1 / wp1`
-- `ybc / m1 / wp1`
+Create the integration lane first from the `bootstrap` checkout:
+
+```fish
+./scripts/agent-worktree.sh create integration --no-install
+```
+
+This creates branch `agent/integration` and worktree `../governance-apps.agent.integration`.
+
+Create work package worktrees from the integration worktree and base them on `agent/integration`:
+
+```fish
+cd ../governance-apps.agent.integration
+./scripts/workpkg-worktree.sh create --track teams --milestone m0 --wp wp0 --base agent/integration --no-install
+./scripts/workpkg-worktree.sh create --track ybc --milestone m0 --wp wp0 --base agent/integration --no-install
+```
+
+Merge only reviewed work package branches back into `agent/integration`. Tag the integration
+commit after a milestone is accepted, for example:
+
+```fish
+git tag -a integration/m0 -m "Complete M0 integration"
+```
 
 Create later, only when needed:
+- `teams / m1 / wp1`
+- `ybc / m1 / wp1`
 - any `m3+` fork/onchain worktrees
 - any production rollout worktrees
 - admin-console worktrees before base user surfaces are accepted

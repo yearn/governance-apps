@@ -84,7 +84,7 @@ Block if:
 
 ### Integrator prompt for WP1
 
-Integrate `ybc` `WP1` — **Domain types and mock data contracts** into the active milestone branch only after:
+Integrate `ybc` `WP1` — **Domain types and mock data contracts** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

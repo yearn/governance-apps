@@ -14,10 +14,32 @@ Do **not** create every future worktree up front.
 
 ## 2. Create a focused worktree
 
+Create the long-lived integration worktree first from the `bootstrap` checkout:
+
+```fish
+cd /Users/hydra/Developer/yearn/governance-apps
+./scripts/agent-worktree.sh create integration --no-install
+```
+
+This creates:
+
+```text
+../governance-apps.agent.integration
+```
+
+and branch:
+
+```text
+agent/integration
+```
+
+Work package branches should start from `agent/integration`.
+
 Example:
 
-```bash
-./scripts/workpkg-worktree.sh create --track teams --milestone m1 --wp wp3 --seed-template
+```fish
+cd /Users/hydra/Developer/yearn/governance-apps.agent.integration
+./scripts/workpkg-worktree.sh create --track teams --milestone m1 --wp wp3 --base agent/integration --seed-template
 ```
 
 `--seed-template` is optional. It uses a local `.env.worktree.example` file when present
@@ -25,13 +47,13 @@ and warns without failing when that local template is absent.
 
 This creates a worktree under:
 
-```bash
-../governance-apps.shared.m0.teams.m1.wp3
+```text
+../governance-apps.agent.integration.teams.m1.wp3
 ```
 
 and a branch like:
 
-```bash
+```text
 agent/teams/m1/wp3
 ```
 
@@ -54,7 +76,7 @@ For implementers:
 
 ## 5. Run the minimum validation
 
-```bash
+```fish
 npm run typecheck
 npm run lint
 npm run test
@@ -72,20 +94,21 @@ The reviewer should check:
 - docs updated
 - tests changed where behavior changed
 
-## 7. Integrate into milestone branch
+## 7. Integrate into `agent/integration`
 
-Use a milestone worktree such as:
+Merge approved WP branches into the long-lived integration worktree:
 
-```bash
-./scripts/workpkg-worktree.sh create --track teams --milestone m1 --seed-template
+```fish
+cd /Users/hydra/Developer/yearn/governance-apps.agent.integration
+git merge --no-ff agent/teams/m1/wp3
 ```
 
-Merge accepted WP branches into the milestone branch first.
+Re-run the minimum validation after each accepted merge.
 Do not merge every WP directly into `master`.
 
 ## 8. Remove finished worktrees
 
-```bash
+```fish
 ./scripts/workpkg-worktree.sh remove --track teams --milestone m1 --wp wp3 --prune
 ```
 
@@ -96,9 +119,10 @@ Add `--keep-branch` if you want to retain the branch temporarily.
 Recommended promotion path:
 
 1. WP branch
-2. milestone integration branch
-3. shared integration / release branch if needed
-4. `master`
+2. `agent/integration`
+3. milestone tag such as `integration/m1`
+4. shared release branch if needed
+5. `master`
 
 ## 10. Default role split
 

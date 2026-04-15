@@ -92,7 +92,7 @@ Block if:
 
 ### Integrator prompt for WP6
 
-Integrate `ybc` `WP6` — **Onchain reads** into the active milestone branch only after:
+Integrate `ybc` `WP6` — **Onchain reads** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

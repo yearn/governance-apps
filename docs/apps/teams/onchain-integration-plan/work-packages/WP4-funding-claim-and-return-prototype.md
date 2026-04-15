@@ -88,7 +88,7 @@ Block if:
 
 ### Integrator prompt for WP4
 
-Integrate `teams` `WP4` — **Funding claim and return prototype** into the active milestone branch only after:
+Integrate `teams` `WP4` — **Funding claim and return prototype** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

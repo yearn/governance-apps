@@ -88,7 +88,7 @@ Block if:
 
 ### Integrator prompt for WP4
 
-Integrate `ybc` `WP4` — **Rewards and cross-app claim handoff** into the active milestone branch only after:
+Integrate `ybc` `WP4` — **Rewards and cross-app claim handoff** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

@@ -87,7 +87,7 @@ Block if:
 
 ### Integrator prompt for WP8
 
-Integrate `ybc` `WP8` — **Fork testing, UAT, and rollout notes** into the active milestone branch only after:
+Integrate `ybc` `WP8` — **Fork testing, UAT, and rollout notes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green
