@@ -114,6 +114,22 @@ describe("YbcPageClient", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
+  it("keeps the operator panel gated for non-operator perspectives", async () => {
+    const data = await getScenarioData("observer");
+
+    render(<YbcPageContent data={data} />);
+
+    expect(
+      screen.getByText(ybcCopy.operatorPanel.accessCard.title)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(ybcCopy.operatorPanel.accessCard.hint)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(ybcCopy.operatorPanel.operatorsTitle)
+    ).not.toBeInTheDocument();
+  });
+
   it("renders the proposal board with visible thresholds and timeline states", async () => {
     render(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
 
@@ -204,6 +220,38 @@ describe("YbcPageClient", () => {
     );
     expect(
       within(screen.getByRole("article", { name: /YBC-6/i })).getByText("Executed")
+    ).toBeInTheDocument();
+  });
+
+  it("renders scoped operator controls for the operator/admin perspective", async () => {
+    render(<YbcPageClient scenarioOverride="operator-admin" latencyMs={0} />);
+
+    await screen.findByText(ybcCopy.operatorPanel.operationsTitle);
+
+    expect(
+      screen.queryByText(ybcCopy.operatorPanel.accessCard.title)
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.operatorPanel.operatorsTitle)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.operatorPanel.hooksTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(ybcCopy.operatorPanel.rewardStatus.funded)
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("bobby-ybc.eth").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(ybcCopy.operatorPanel.roles.you).length).toBeGreaterThan(0);
+    expect(
+      screen.getByText("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: ybcCopy.operatorPanel.operations.addMember.cta,
+      })
+    );
+
+    expect(
+      screen.getByRole("article", {
+        name: /YBC-9/i,
+      })
     ).toBeInTheDocument();
   });
 
