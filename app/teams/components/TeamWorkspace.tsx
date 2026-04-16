@@ -3,16 +3,25 @@ import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { TeamRecord, TeamsViewerContext } from "@/lib/clients/teams";
+import { FundingApprovalsTable } from "./FundingApprovalsTable";
 import { TeamOverviewCard } from "./TeamOverviewCard";
 import { teamsCopy } from "../messages";
 
 type TeamWorkspaceProps = {
   team: TeamRecord | null;
   viewer: TeamsViewerContext | null;
+  currentPeriod: number | null;
+  onUpdateTeam: (team: TeamRecord) => void;
   state: "ready" | "loading" | "empty";
 };
 
-export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
+export function TeamWorkspace({
+  team,
+  viewer,
+  currentPeriod,
+  onUpdateTeam,
+  state,
+}: TeamWorkspaceProps) {
   if (state === "loading") {
     return (
       <Card className="space-y-5" aria-busy="true">
@@ -25,6 +34,7 @@ export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
           <Skeleton className="h-64 w-full" />
         </div>
         <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-96 w-full" />
       </Card>
     );
   }
@@ -127,6 +137,15 @@ export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
           />
         </dl>
       </Card>
+
+      {currentPeriod !== null ? (
+        <FundingApprovalsTable
+          team={team}
+          viewer={viewer}
+          currentPeriod={currentPeriod}
+          onUpdateTeam={onUpdateTeam}
+        />
+      ) : null}
     </div>
   );
 }
