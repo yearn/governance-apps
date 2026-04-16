@@ -54,6 +54,7 @@ proposal board prototype with:
 - explicit proposal phases and UTC timeline rows
 - visible addition and expulsion threshold targets
 - mock propose / retract / vote / execute interactions
+- an explicit empty-board perspective for no-proposal state coverage
 - terminal expired proposals that stay visible but cannot be revived
 
 ## Included docs

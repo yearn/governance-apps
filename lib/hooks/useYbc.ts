@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { YbcMockDataV1, YbcProposalType, YbcScenarioId } from "@/lib/clients/ybc";
 import {
   cloneAllYbcMockScenarioData,
+  createEmptyYbcMockScenarioData,
   createYbcMockProposal,
   executeYbcMockProposal,
   listYbcMockScenarios,
@@ -12,23 +13,32 @@ import {
   voteOnYbcMockProposal,
 } from "@/lib/clients/ybc/mock";
 
+type YbcBoardScenarioId = YbcScenarioId | "empty-board";
+
 type YbcScenarioOption = {
-  id: YbcScenarioId;
+  id: YbcBoardScenarioId;
   label: string;
 };
 
-const ybcScenarioOptions: YbcScenarioOption[] = listYbcMockScenarios().map(
-  (scenario) => ({
+const ybcScenarioOptions: YbcScenarioOption[] = [
+  ...listYbcMockScenarios().map((scenario) => ({
     id: scenario.id,
     label: scenario.label,
-  })
-);
+  })),
+  {
+    id: "empty-board",
+    label: "Empty proposal board",
+  },
+];
 
-export function useYbc(initialScenarioId: YbcScenarioId = "member-ramping") {
-  const [scenarioId, setScenarioId] = useState<YbcScenarioId>(initialScenarioId);
+export function useYbc(initialScenarioId: YbcBoardScenarioId = "member-ramping") {
+  const [scenarioId, setScenarioId] = useState<YbcBoardScenarioId>(initialScenarioId);
   const [scenarioDataById, setScenarioDataById] = useState<
-    Record<YbcScenarioId, YbcMockDataV1>
-  >(() => cloneAllYbcMockScenarioData());
+    Record<YbcBoardScenarioId, YbcMockDataV1>
+  >(() => ({
+    ...cloneAllYbcMockScenarioData(),
+    "empty-board": createEmptyYbcMockScenarioData(),
+  }));
 
   const data = scenarioDataById[scenarioId];
 

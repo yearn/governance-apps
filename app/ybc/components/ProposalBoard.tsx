@@ -37,7 +37,7 @@ export function ProposalBoard({ id }: ProposalBoardProps) {
           <Badge variant="warning">{copy.proposalBoard.mockBadge}</Badge>
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold">{copy.sections[2].title}</h2>
+          <h2 className="text-2xl font-bold">{copy.proposalBoard.title}</h2>
           <p className="max-w-3xl text-sm leading-6 text-text-secondary">
             {copy.proposalBoard.description}
           </p>
@@ -108,19 +108,41 @@ export function ProposalBoard({ id }: ProposalBoardProps) {
             />
           </div>
 
-          <div className="space-y-4">
-            {data.proposals.items.map((proposal) => (
-              <ProposalCard
-                key={proposal.id}
-                proposal={proposal}
-                proposerLabel={accountLabels[proposal.proposer.toLowerCase()] ?? formatAddress(proposal.proposer)}
-                targetLabel={accountLabels[proposal.targetAccount.toLowerCase()] ?? formatAddress(proposal.targetAccount)}
-                onRetract={() => retractProposal(proposal.id)}
-                onVote={(choice) => voteOnProposal(proposal.id, choice)}
-                onExecute={() => executeProposal(proposal.id)}
-              />
-            ))}
-          </div>
+          {data.proposals.items.length > 0 ? (
+            <div className="space-y-4">
+              {data.proposals.items.map((proposal) => (
+                <ProposalCard
+                  key={proposal.id}
+                  proposal={proposal}
+                  proposerLabel={
+                    accountLabels[proposal.proposer.toLowerCase()] ??
+                    formatAddress(proposal.proposer)
+                  }
+                  targetLabel={
+                    accountLabels[proposal.targetAccount.toLowerCase()] ??
+                    formatAddress(proposal.targetAccount)
+                  }
+                  onRetract={() => retractProposal(proposal.id)}
+                  onVote={(choice) => voteOnProposal(proposal.id, choice)}
+                  onExecute={() => executeProposal(proposal.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <Card className="border-dashed bg-app/40">
+              <div className="space-y-3">
+                <h3 className="text-lg font-bold text-text-primary">
+                  {copy.proposalBoard.emptyTitle}
+                </h3>
+                <p className="text-sm leading-6 text-text-secondary">
+                  {copy.proposalBoard.emptyBody}
+                </p>
+                <p className="text-sm font-medium text-text-primary">
+                  {copy.proposalBoard.emptyHint}
+                </p>
+              </div>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-4">

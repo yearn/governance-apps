@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cloneYbcMockScenarioData,
+  createEmptyYbcMockScenarioData,
   createYbcMockProposal,
   executeYbcMockProposal,
   getYbcProposalThresholdState,
@@ -98,5 +99,21 @@ describe("YBC mock proposal helpers", () => {
       thresholdRatio: 0.5,
       thresholdMet: true,
     });
+  });
+
+  it("builds an explicit empty proposal board scenario", () => {
+    const empty = createEmptyYbcMockScenarioData();
+
+    expect(empty.proposals).toEqual({
+      summary: {
+        activeCount: 0,
+        awaitingExecutionCount: 0,
+        terminalCount: 0,
+      },
+      items: [],
+    });
+    expect(empty.hero.activeProposalCount).toBe(0);
+    expect(empty.hero.awaitingExecutionCount).toBe(0);
+    expect(empty.me.canPropose).toBe(true);
   });
 });

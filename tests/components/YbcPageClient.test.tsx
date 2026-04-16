@@ -44,7 +44,7 @@ describe("YbcPageClient", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: ybcCopy.sections[2].title,
+        name: ybcCopy.proposalBoard.title,
         level: 2,
       })
     ).toBeInTheDocument();
@@ -58,6 +58,21 @@ describe("YbcPageClient", () => {
     expect(
       within(proposal).getByText(/start a new proposal instead/i)
     ).toBeInTheDocument();
+  });
+
+  it("renders an explicit empty-board scenario", () => {
+    render(<YbcPageClient />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Empty proposal board/i,
+      })
+    );
+
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.emptyTitle)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.emptyBody)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.emptyHint)).toBeInTheDocument();
   });
 
   it("supports mock propose, retract, vote, and execute actions", () => {
@@ -101,6 +116,27 @@ describe("YbcPageClient", () => {
     );
     expect(
       within(screen.getByRole("article", { name: /YBC-6/i })).getByText("Executed")
+    ).toBeInTheDocument();
+  });
+
+  it("can seed the empty-board scenario with a new mock proposal", () => {
+    render(<YbcPageClient />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Empty proposal board/i,
+      })
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: ybcCopy.proposalBoard.proposeAdditionCta,
+      })
+    );
+
+    expect(
+      screen.getByRole("article", {
+        name: /YBC-1/i,
+      })
     ).toBeInTheDocument();
   });
 });

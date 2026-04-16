@@ -61,6 +61,29 @@ export function cloneAllYbcMockScenarioData(): Record<
   };
 }
 
+export function createEmptyYbcMockScenarioData(
+  baseScenarioId: YbcScenarioId = "member-matured"
+): YbcMockDataV1 {
+  const base = cloneYbcMockScenarioData(baseScenarioId);
+
+  return {
+    ...base,
+    hero: {
+      ...base.hero,
+      activeProposalCount: 0,
+      awaitingExecutionCount: 0,
+    },
+    proposals: {
+      summary: {
+        activeCount: 0,
+        awaitingExecutionCount: 0,
+        terminalCount: 0,
+      },
+      items: [],
+    },
+  };
+}
+
 export function getYbcProposalThresholdState(proposal: YbcProposalRecord) {
   const total = parseAmount(proposal.votes.total);
   const yea = parseAmount(proposal.votes.yea);

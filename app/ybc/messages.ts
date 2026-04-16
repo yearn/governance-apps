@@ -22,10 +22,16 @@ export const ybcCopy = {
     { label: "Active Proposals", value: "--" },
   ],
   proposalBoard: {
+    title: "Proposal Board",
     eyebrow: "Proposal lifecycle",
     mockBadge: "Mock interactions",
     description:
       "Inspect every proposal phase with explicit UTC timing, visible vote thresholds, and scoped mock actions for propose, retract, vote, and execute.",
+    emptyTitle: "No active proposal history in this perspective",
+    emptyBody:
+      "This mock perspective keeps the board intentionally empty so the route can exercise its no-proposal state without implying hidden history.",
+    emptyHint:
+      "Use the mock propose controls above or switch perspectives to inspect a populated board.",
     perspectiveLabel: "Mock perspective",
     thresholdTitle: "Threshold guide",
     viewerTitle: "Current viewer",
