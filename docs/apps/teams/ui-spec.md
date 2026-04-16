@@ -157,7 +157,9 @@ Statuses to visualize:
 - fully used
 
 The accepted WP4 prototype implements this as a mock approvals table plus a separate
-claim form that can be pointed at a selected approval row.
+claim form that can be pointed at a selected approval row. Each row keeps the token
+symbol and total approved amount visible next to used and claimable balances so the
+remaining budget can be compared at a glance.
 
 ## 5.3 Return Funding
 

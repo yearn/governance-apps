@@ -4,6 +4,7 @@ import {
   applyMockTeamsFundingReturn,
   createMockTeamsClient,
   resolveSelectedTeam,
+  resolveTeamsFundingUnitPriceUsd,
 } from "@/lib/clients/teams";
 
 describe("MockTeamsClient", () => {
@@ -105,5 +106,20 @@ describe("MockTeamsClient", () => {
       refundValueUsd: "1000.00",
       createdAt: 1776200500,
     });
+  });
+
+  it("reuses the same funding unit price fallback for UI estimates and mock accounting", async () => {
+    const client = createMockTeamsClient({ latencyMs: 0 });
+    const scenario = await client.getScenario("finance-operator-revenue");
+    const team = resolveSelectedTeam(scenario.data, "platform");
+
+    expect(team).not.toBeNull();
+
+    const approval = team!.fundingApprovals.find(
+      (candidate) => candidate.id === "approval-platform-30"
+    );
+
+    expect(approval).toBeDefined();
+    expect(resolveTeamsFundingUnitPriceUsd(approval!)).toBe(1);
   });
 });

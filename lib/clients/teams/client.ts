@@ -214,7 +214,7 @@ export function applyMockTeamsFundingClaim(
 
     const nextClaimableUnits = claimableUnits - amountUnits;
     const nextUsedUnits = toScaledInteger(approval.used) + amountUnits;
-    const claimPriceUsd = resolveAverageClaimPriceUsd(approval);
+    const claimPriceUsd = resolveTeamsFundingUnitPriceUsd(approval);
     const nextClaimedCostUsdCents = sumUsdByAmount(
       approval.claimedCostUsd,
       amount,
@@ -285,7 +285,7 @@ export function applyMockTeamsFundingReturn(
       throw new Error("Return amount exceeds the used balance.");
     }
 
-    const claimPriceUsd = resolveAverageClaimPriceUsd(approval);
+    const claimPriceUsd = resolveTeamsFundingUnitPriceUsd(approval);
     if (claimPriceUsd === null) {
       throw new Error("Refund estimate is unavailable for this approval.");
     }
@@ -319,7 +319,7 @@ export function applyMockTeamsFundingReturn(
     };
   });
 
-  const claimPriceUsd = resolveAverageClaimPriceUsd(originalApproval);
+  const claimPriceUsd = resolveTeamsFundingUnitPriceUsd(originalApproval);
   if (claimPriceUsd === null) {
     throw new Error("Refund estimate is unavailable for this approval.");
   }
@@ -364,7 +364,9 @@ function deriveFundingApprovalStatus(
   return usedUnits > 0 ? "partially-claimed" : "claimable-current-period";
 }
 
-function resolveAverageClaimPriceUsd(approval: FundingApproval): number | null {
+export function resolveTeamsFundingUnitPriceUsd(
+  approval: FundingApproval
+): number | null {
   const explicitAverage = Number(approval.averageClaimPriceUsd);
   if (Number.isFinite(explicitAverage) && explicitAverage > 0) {
     return explicitAverage;

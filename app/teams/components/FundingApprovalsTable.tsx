@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { formatAddress } from "@/lib/format";
 import {
@@ -10,6 +10,7 @@ import {
   formatTeamsUsd,
   isTeamsFundingApprovalClaimable,
   isTeamsFundingApprovalReturnable,
+  resolveTeamsFundingUnitPriceUsd,
   type FundingApproval,
   type TeamRecord,
   type TeamsViewerContext,
@@ -89,6 +90,7 @@ export function FundingApprovalsTable({
     team.fundingApprovals.find((approval) => approval.id === selectedClaimApprovalId) ?? null;
   const selectedReturnApproval =
     team.fundingApprovals.find((approval) => approval.id === selectedReturnApprovalId) ?? null;
+  const previousClaimApprovalIdRef = useRef<string | null>(selectedClaimApprovalId);
 
   useEffect(() => {
     if (
@@ -113,14 +115,22 @@ export function FundingApprovalsTable({
   }, [returnableApprovals, selectedReturnApprovalId]);
 
   useEffect(() => {
+    const approvalChanged = previousClaimApprovalIdRef.current !== selectedClaimApprovalId;
+    previousClaimApprovalIdRef.current = selectedClaimApprovalId;
+
     setClaimRecipient(selectedClaimApproval?.recipient ?? viewer?.address ?? "");
     setClaimAmount("");
     setClaimErrors(EMPTY_CLAIM_ERRORS);
+
+    if (approvalChanged) {
+      setClaimFeedback(null);
+    }
   }, [selectedClaimApprovalId, selectedClaimApproval?.recipient, viewer?.address]);
 
   useEffect(() => {
     setReturnAmount("");
     setReturnAmountError(null);
+    setReturnFeedback(null);
   }, [selectedReturnApprovalId]);
 
   if (team.fundingApprovals.length === 0) {
@@ -165,8 +175,12 @@ export function FundingApprovalsTable({
           <TableHeader>
             <TableRow>
               <TableHead>{teamsCopy.funding.headers.approval}</TableHead>
+              <TableHead>{teamsCopy.funding.headers.token}</TableHead>
               <TableHead>{teamsCopy.funding.headers.period}</TableHead>
               <TableHead>{teamsCopy.funding.headers.recipient}</TableHead>
+              <TableHead className="text-right">
+                {teamsCopy.funding.headers.totalApproved}
+              </TableHead>
               <TableHead className="text-right">{teamsCopy.funding.headers.used}</TableHead>
               <TableHead className="text-right">
                 {teamsCopy.funding.headers.claimable}
@@ -194,6 +208,11 @@ export function FundingApprovalsTable({
                     </div>
                   </TableCell>
                   <TableCell>
+                    <p className="font-number text-sm font-bold text-text-primary">
+                      {approval.symbol}
+                    </p>
+                  </TableCell>
+                  <TableCell>
                     <div className="space-y-1">
                       <p className="font-number text-sm font-bold text-text-primary">
                         {`Period #${approval.approvedPeriod}`}
@@ -209,6 +228,14 @@ export function FundingApprovalsTable({
                         ? formatAddress(approval.recipient)
                         : teamsCopy.funding.recipientMissing}
                     </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <AmountValue
+                      primary={formatApprovalAmount(
+                        approval.totalApproved,
+                        approval.symbol
+                      )}
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     <AmountValue
@@ -775,21 +802,22 @@ function validateAmount(
 }
 
 function getAveragePriceLabel(approval: FundingApproval) {
-  if (!approval.averageClaimPriceUsd) {
+  const resolvedUnitPriceUsd = resolveTeamsFundingUnitPriceUsd(approval);
+  if (resolvedUnitPriceUsd === null) {
     return "Unavailable";
   }
 
-  return formatTeamsUsd(approval.averageClaimPriceUsd, 2);
+  return formatTeamsUsd(resolvedUnitPriceUsd.toFixed(2), 2);
 }
 
 function formatReturnEstimate(approval: FundingApproval, amount: string) {
   const numericAmount = Number(amount);
-  const averagePrice = Number(approval.averageClaimPriceUsd);
+  const averagePrice = resolveTeamsFundingUnitPriceUsd(approval);
 
   if (
     !Number.isFinite(numericAmount) ||
     numericAmount <= 0 ||
-    !Number.isFinite(averagePrice) ||
+    averagePrice === null ||
     averagePrice <= 0
   ) {
     return formatTeamsUsd("0.00", 2);

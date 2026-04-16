@@ -153,8 +153,10 @@ export const teamsCopy = {
     } satisfies Record<TeamFundingSummaryState, string>,
     headers: {
       approval: "Approval",
+      token: "Token",
       period: "Period scope",
       recipient: "Recipient",
+      totalApproved: "Total approved",
       used: "Used",
       claimable: "Claimable now",
       flow: "Claim style",
