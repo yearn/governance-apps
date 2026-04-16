@@ -16,7 +16,7 @@ export function TeamLifecycleCard({ team }: TeamLifecycleCardProps) {
   const migrationState = teamsCopy.lifecycle.migrationReadiness[team.lifecycle.migrationReadiness];
 
   return (
-    <Card id="lifecycle" className="space-y-5">
+    <Card className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">

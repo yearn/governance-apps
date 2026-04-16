@@ -160,7 +160,7 @@ export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
       <div className="grid gap-4 xl:grid-cols-2">
         <div id="bonus">
           <BonusCard
-            key={readyTeam.id}
+            key={getBonusCardKey(readyTeam, viewer)}
             bonus={readyTeam.bonus}
             canClaimBonus={viewer?.canClaimBonus ?? false}
           />
@@ -238,4 +238,25 @@ function WorkspaceSectionHeader({
       <p className="text-sm leading-6 text-text-secondary">{description}</p>
     </div>
   );
+}
+
+function getBonusCardKey(team: TeamRecord, viewer: TeamsViewerContext | null) {
+  const periodKey = team.bonus.periods
+    .map(
+      (period) =>
+        `${period.period}:${period.status}:${period.finalized}:${period.claimed}:${period.claimableYfi}`
+    )
+    .join("|");
+
+  return [
+    team.id,
+    viewer?.role ?? "observer",
+    viewer?.address ?? "no-address",
+    viewer?.teamId ?? "no-team",
+    viewer?.canClaimBonus ? "claimable" : "read-only",
+    team.bonus.status,
+    team.bonus.totalClaimable,
+    team.bonus.includedPeriodCount,
+    periodKey,
+  ].join("::");
 }
