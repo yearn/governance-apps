@@ -13,6 +13,10 @@ export const homeCopy = {
       label: "veYFI / LLYFI (veyfi.yearn.fi)",
       href: "/veyfi",
     },
+    teams: {
+      label: "Team Finances (teams-beta.dao-ops.com)",
+      href: "/teams",
+    },
     yeth: {
       label: "yETH Recovery (yeth.yearn.fi)",
       href: "/yeth",

@@ -8,6 +8,7 @@ describe("resolveGovernanceAppHref", () => {
   it("keeps app links path-scoped on local and shared-path hosts", () => {
     expect(resolveGovernanceAppHref("styfi", "localhost")).toBe("/styfi");
     expect(resolveGovernanceAppHref("veyfi", "127.0.0.1:3000")).toBe("/veyfi");
+    expect(resolveGovernanceAppHref("teams", "app.dao-ops.com")).toBe("/teams");
     expect(resolveGovernanceAppHref("yeth", "app.dao-ops.com")).toBe("/yeth");
     expect(resolveGovernanceAppHref("ybc", "app.dao-ops.com")).toBe("/ybc");
   });
@@ -18,6 +19,9 @@ describe("resolveGovernanceAppHref", () => {
     );
     expect(resolveGovernanceAppHref("veyfi", "yeth.yearn.fi")).toBe(
       "https://veyfi.yearn.fi"
+    );
+    expect(resolveGovernanceAppHref("teams", "styfi.yearn.fi")).toBe(
+      "https://teams.yearn.fi"
     );
     expect(resolveGovernanceAppHref("yeth", "styfi.yearn.fi")).toBe(
       "https://yeth.yearn.fi"
@@ -33,6 +37,9 @@ describe("resolveGovernanceAppHref", () => {
     );
     expect(resolveGovernanceAppHref("veyfi", "yeth-beta.dao-ops.com:443")).toBe(
       "https://veyfi-beta.dao-ops.com"
+    );
+    expect(resolveGovernanceAppHref("teams", "https://styfi-beta.dao-ops.com")).toBe(
+      "https://teams-beta.dao-ops.com"
     );
     expect(resolveGovernanceAppHref("yeth", "https://styfi-beta.dao-ops.com")).toBe(
       "https://yeth-beta.dao-ops.com"
@@ -56,6 +63,9 @@ describe("resolveGovernanceHref", () => {
     expect(resolveGovernanceHref("/veyfi/", "styfi.yearn.fi")).toBe(
       "https://veyfi.yearn.fi"
     );
+    expect(resolveGovernanceHref("/teams", "app.yearn.fi")).toBe(
+      "https://teams.yearn.fi"
+    );
     expect(resolveGovernanceHref("/yeth", "app.yearn.fi")).toBe(
       "https://yeth.yearn.fi"
     );
@@ -71,6 +81,9 @@ describe("resolveGovernanceHref", () => {
     expect(resolveGovernanceHref("/veyfi", "yeth-beta.dao-ops.com")).toBe(
       "https://veyfi-beta.dao-ops.com"
     );
+    expect(resolveGovernanceHref("/teams", "styfi-beta.dao-ops.com:8443")).toBe(
+      "https://teams-beta.dao-ops.com"
+    );
     expect(resolveGovernanceHref("/yeth", "styfi-beta.dao-ops.com:8443")).toBe(
       "https://yeth-beta.dao-ops.com"
     );
@@ -82,6 +95,7 @@ describe("resolveGovernanceHref", () => {
   it("keeps app hrefs path-scoped on localhost and app.dao-ops.com", () => {
     expect(resolveGovernanceHref("/styfi", "localhost:3000")).toBe("/styfi");
     expect(resolveGovernanceHref("/veyfi", "app.dao-ops.com")).toBe("/veyfi");
+    expect(resolveGovernanceHref("/teams", "127.0.0.1")).toBe("/teams");
     expect(resolveGovernanceHref("/yeth", "127.0.0.1")).toBe("/yeth");
     expect(resolveGovernanceHref("/ybc", "127.0.0.1")).toBe("/ybc");
   });

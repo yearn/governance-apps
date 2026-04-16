@@ -24,6 +24,7 @@ If `NEXT_PUBLIC_RUNTIME_MODE` is not set, the app falls back to deployment marke
 
 In `production` mode:
 
+- `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Team Finances routes.
 - `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC routes.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH routes.
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/debug/ui`.
@@ -39,11 +40,12 @@ Before deploying production:
 4. `NEXT_PUBLIC_WC_PROJECT_ID` is set
 5. `NEXT_PUBLIC_GLOBAL_DATA_URL` is set
 6. `NEXT_PUBLIC_MOTD_URL` is set
-7. `NEXT_PUBLIC_ENABLE_YBC` is set to `true` only after production approval
-8. If `NEXT_PUBLIC_ENABLE_YETH=true`, `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` is set
-9. `NEXT_PUBLIC_RPC_URLS` is set (comma-separated list, at least one URL)
-10. `NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK=false`
-11. Run `npm run validate:prod-env`
+7. `NEXT_PUBLIC_ENABLE_TEAMS` is set to `true` only after production approval
+8. `NEXT_PUBLIC_ENABLE_YBC` is set to `true` only after production approval
+9. If `NEXT_PUBLIC_ENABLE_YETH=true`, `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` is set
+10. `NEXT_PUBLIC_RPC_URLS` is set (comma-separated list, at least one URL)
+11. `NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK=false`
+12. Run `npm run validate:prod-env`
 
 ## Preview checklist
 
@@ -66,5 +68,5 @@ For normal local dev:
 ## Troubleshooting
 
 - If production behavior appears locally: check `NEXT_PUBLIC_RUNTIME_MODE` first.
-- If YBC, yETH, or debug routes are unexpectedly hidden: check mode and corresponding `NEXT_PUBLIC_ENABLE_*` flags.
+- If Team Finances, YBC, yETH, or debug routes are unexpectedly hidden: check mode and corresponding `NEXT_PUBLIC_ENABLE_*` flags.
 - If startup/build fails with invariant errors: confirm production checklist values above.

@@ -44,6 +44,9 @@ describe("resolveAllowedOrigin", () => {
     expect(resolveAllowedOrigin("veyfi", "veyfi-beta.dao-ops.com")).toBe(
       "https://veyfi-beta.dao-ops.com"
     );
+    expect(resolveAllowedOrigin("teams", "teams-beta.dao-ops.com")).toBe(
+      "https://teams-beta.dao-ops.com"
+    );
     expect(resolveAllowedOrigin("yeth", "yeth-beta.dao-ops.com")).toBe(
       "https://yeth-beta.dao-ops.com"
     );
@@ -58,6 +61,9 @@ describe("resolveAllowedOrigin", () => {
     );
     expect(resolveAllowedOrigin("veyfi", "yeth-beta.dao-ops.com")).toBe(
       "https://veyfi.yearn.fi"
+    );
+    expect(resolveAllowedOrigin("teams", "styfi-beta.dao-ops.com")).toBe(
+      "https://teams.yearn.fi"
     );
     expect(resolveAllowedOrigin("ybc", "styfi-beta.dao-ops.com")).toBe(
       "https://ybc.yearn.fi"

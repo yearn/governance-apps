@@ -13,6 +13,7 @@ const CANONICAL_HOSTS: Record<GovernanceAppHost, string> =
 const APP_ALLOWED_HOSTS: Record<GovernanceAppHost, ReadonlySet<string>> = {
   styfi: new Set([GOVERNANCE_APP_PREPROD_HOSTS.styfi]),
   veyfi: new Set([GOVERNANCE_APP_PREPROD_HOSTS.veyfi]),
+  teams: new Set([GOVERNANCE_APP_PREPROD_HOSTS.teams]),
   yeth: new Set([GOVERNANCE_APP_PREPROD_HOSTS.yeth]),
   ybc: new Set([GOVERNANCE_APP_PREPROD_HOSTS.ybc]),
 };

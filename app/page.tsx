@@ -4,9 +4,10 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Link from "next/link";
 import { homeCopy as copy } from "./messages";
-import { isYbcEnabled, isYethEnabled } from "@/lib/runtime/features";
+import { isTeamsEnabled, isYbcEnabled, isYethEnabled } from "@/lib/runtime/features";
 
 export default function Home() {
+  const showTeams = isTeamsEnabled();
   const showYeth = isYethEnabled();
   const showYbc = isYbcEnabled();
 
@@ -22,7 +23,7 @@ export default function Home() {
         {copy.page.description}
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Link
           href={copy.cta.styfi.href}
           className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
@@ -35,6 +36,14 @@ export default function Home() {
         >
           {copy.cta.veyfi.label}
         </Link>
+        {showTeams && (
+          <Link
+            href={copy.cta.teams.href}
+            className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
+          >
+            {copy.cta.teams.label}
+          </Link>
+        )}
         {showYeth && (
           <Link
             href={copy.cta.yeth.href}

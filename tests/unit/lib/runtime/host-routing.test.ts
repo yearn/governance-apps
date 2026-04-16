@@ -10,6 +10,7 @@ describe("resolveHostPrefix", () => {
   it("resolves canonical hostnames to app prefixes", () => {
     expect(resolveHostPrefix("styfi.yearn.fi")).toBe("/styfi");
     expect(resolveHostPrefix("veyfi.yearn.fi")).toBe("/veyfi");
+    expect(resolveHostPrefix("teams.yearn.fi")).toBe("/teams");
     expect(resolveHostPrefix("yeth.yearn.fi")).toBe("/yeth");
     expect(resolveHostPrefix("ybc.yearn.fi")).toBe("/ybc");
   });
@@ -17,6 +18,7 @@ describe("resolveHostPrefix", () => {
   it("resolves beta hostnames to app prefixes", () => {
     expect(resolveHostPrefix("styfi-beta.dao-ops.com")).toBe("/styfi");
     expect(resolveHostPrefix("veyfi-beta.dao-ops.com")).toBe("/veyfi");
+    expect(resolveHostPrefix("teams-beta.dao-ops.com")).toBe("/teams");
     expect(resolveHostPrefix("yeth-beta.dao-ops.com")).toBe("/yeth");
     expect(resolveHostPrefix("ybc-beta.dao-ops.com")).toBe("/ybc");
   });
@@ -93,6 +95,7 @@ describe("resolveHeadProbePath", () => {
   it("normalizes nested app paths to app roots", () => {
     expect(resolveHeadProbePath("/styfi/lasla", null)).toBe("/styfi");
     expect(resolveHeadProbePath("/veyfi/unknown", null)).toBe("/veyfi");
+    expect(resolveHeadProbePath("/teams/security", null)).toBe("/teams");
     expect(resolveHeadProbePath("/ybc/members", null)).toBe("/ybc");
   });
 

@@ -30,6 +30,13 @@ describe("resolveHeaderPrimaryNav", () => {
     });
   });
 
+  it("keeps path-scoped Team Finances routes for shared hosts", () => {
+    expect(resolveHeaderPrimaryNav("/teams", "teams")).toEqual({
+      label: "Team Finances",
+      path: "/teams",
+    });
+  });
+
   it("keeps path-scoped yETH routes for shared hosts", () => {
     expect(resolveHeaderPrimaryNav("/yeth", "yeth")).toEqual({
       label: "yETH",
@@ -48,6 +55,13 @@ describe("resolveHeaderPrimaryNav", () => {
     expect(resolveHeaderPrimaryNav("/veyfi/portfolio", null)).toEqual({
       label: "veYFI",
       path: "/veyfi",
+    });
+  });
+
+  it("falls back to Team Finances from pathname when segment is unavailable", () => {
+    expect(resolveHeaderPrimaryNav("/teams/platform", null)).toEqual({
+      label: "Team Finances",
+      path: "/teams",
     });
   });
 
@@ -75,6 +89,13 @@ describe("resolveHeaderPrimaryNav", () => {
   it("infers app label from branded host when pathname is unknown", () => {
     expect(resolveHeaderPrimaryNav("/does-not-exist", null, "veyfi.yearn.fi")).toEqual({
       label: "veYFI",
+      path: "/",
+    });
+  });
+
+  it("infers Team Finances label from branded host when pathname is unknown", () => {
+    expect(resolveHeaderPrimaryNav("/does-not-exist", null, "teams.yearn.fi")).toEqual({
+      label: "Team Finances",
       path: "/",
     });
   });

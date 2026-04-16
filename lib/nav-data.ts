@@ -7,7 +7,7 @@ import { LogoGithub } from "@/components/icons/LogoGithub";
 import { LogoYearn } from "@/components/icons/LogoYearn";
 import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
 import { LogoYearnMark } from "@/components/icons/LogoYearnMark";
-import { isYbcEnabled, isYethEnabled } from "@/lib/runtime/features";
+import { isTeamsEnabled, isYbcEnabled, isYethEnabled } from "@/lib/runtime/features";
 
 const BASE_YEARN_ASSET_URI = "https://assets.yearn.fi";
 const NEUTRAL_IMAGE_CLASS =
@@ -221,6 +221,16 @@ const yethLink: AppLink = {
   }),
 };
 
+const teamsLink: AppLink = {
+  name: "Team Finances",
+  href: "/teams",
+  icon: createElement(LogoYearnGlyph, {
+    className: "size-5",
+    backClassName: "text-neutral-900 dark:text-neutral-200",
+    frontClassName: "text-yearn-blue",
+  }),
+};
+
 const ybcLink: AppLink = {
   name: "Yearn Builder's Collective",
   href: "/ybc",
@@ -233,6 +243,7 @@ const ybcLink: AppLink = {
 
 export const APP_LINKS: AppLink[] = [
   ...coreAppLinks,
+  ...(isTeamsEnabled() ? [teamsLink] : []),
   ...(isYethEnabled() ? [yethLink] : []),
   ...(isYbcEnabled() ? [ybcLink] : []),
 ];
