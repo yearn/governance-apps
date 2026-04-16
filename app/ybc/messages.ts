@@ -15,19 +15,46 @@ export const ybcCopy = {
     loadingTitle: "Loading collective influence",
     loadingBody:
       "Seeding the YBC overview and member roster from the mock state machine.",
+    errorTitle: "Unable to load collective influence",
+    errorBody:
+      "The YBC mock state could not be loaded. Retry to restore the overview and roster prototype.",
+    retryCta: "Retry",
   },
   sections: [
     {
       id: "overview",
       label: "Overview",
+      status: "Default",
       title: "Collective Influence",
-      body: "Separate internal member weight from delegated public influence before proposal actions come online.",
+      body: "Summarizes member count, internal member weight, public delegated weight, total influence, current epoch, active proposals, and execution queue.",
     },
     {
       id: "members",
       label: "Members",
+      status: "Mapped",
       title: "Members and Weight",
-      body: "Keep raw stake, effective voting weight, target weight, maturity progress, and source mix distinct for every member.",
+      body: "Keeps raw staked YFI, effective voting weight, target weight, maturity progress, and source mix visible as separate values.",
+    },
+    {
+      id: "proposals",
+      label: "Proposals",
+      status: "Mapped",
+      title: "Proposal Board",
+      body: "Tracks addition and expulsion proposals through discussion, voting, awaiting execution, executed, and expired terminal states.",
+    },
+    {
+      id: "rewards",
+      label: "Rewards",
+      status: "Mapped",
+      title: "Rewards Handoff",
+      body: "Shows YBC-related rewards here while sending claim actions through the shared reward surface.",
+    },
+    {
+      id: "admin",
+      label: "Admin",
+      status: "Conditional",
+      title: "Scoped Operator Panel",
+      body: "Limits MVP operations to add member, remove member, operator visibility, hooks visibility, threshold visibility, and reward status.",
     },
   ],
   hero: {
@@ -96,10 +123,10 @@ export const ybcCopy = {
         "This prototype state has no member records yet. Load a seeded YBC mock state to inspect maturity and weight splits.",
     },
   },
-  roadmap: {
-    title: "Later work packages",
+  shell: {
+    title: "Accepted shell map",
     body:
-      "Proposal actions, reward handoff, and scoped operator controls stay mapped but out of scope for this prototype.",
-    items: ["Proposals", "Rewards", "Admin"],
+      "WP2 fills the overview and member roster while the approved proposal, rewards, and admin sections remain visible as mapped shells for later work packages.",
+    footerLabel: "Later work package",
   },
 } as const;

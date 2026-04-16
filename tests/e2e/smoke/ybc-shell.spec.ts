@@ -8,10 +8,34 @@ test("renders the YBC overview and members prototype", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText("/ybc")).toBeVisible();
   await expect(page.getByText("Production gated")).toBeVisible();
+  const sectionNav = page.getByRole("navigation", { name: "YBC sections" });
+  await expect(sectionNav.getByRole("link", { name: "Overview" })).toHaveAttribute(
+    "href",
+    "#overview"
+  );
+  await expect(sectionNav.getByRole("link", { name: "Members" })).toHaveAttribute(
+    "href",
+    "#members"
+  );
+  await expect(sectionNav.getByRole("link", { name: "Proposals" })).toHaveAttribute(
+    "href",
+    "#proposals"
+  );
+  await expect(sectionNav.getByRole("link", { name: "Rewards" })).toHaveAttribute(
+    "href",
+    "#rewards"
+  );
+  await expect(sectionNav.getByRole("link", { name: "Admin" })).toHaveAttribute(
+    "href",
+    "#admin"
+  );
   await expect(page.getByText("Internal influence", { exact: true })).toBeVisible();
   await expect(page.getByText("Delegated influence", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Observer view", level: 2 })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Raw staked" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Effective weight" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Target weight" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proposal Board", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Rewards Handoff", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Scoped Operator Panel", level: 2 })).toBeVisible();
 });

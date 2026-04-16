@@ -80,7 +80,7 @@ export class MockYbcClient implements YbcClient {
       }
     }
 
-    return "member-ramping";
+    return "observer";
   }
 
   async getPageState(options: {

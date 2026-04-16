@@ -9,6 +9,16 @@ describe("MockYbcClient", () => {
     expect(client.resolveDefaultScenario(null)).toBe("observer");
   });
 
+  it("keeps unknown connected addresses on the observer scenario", () => {
+    const client = createMockYbcClient({ latencyMs: 0 });
+
+    expect(
+      client.resolveDefaultScenario(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address
+      )
+    ).toBe("observer");
+  });
+
   it("maps a seeded member address to the matching member scenario", () => {
     const client = createMockYbcClient({ latencyMs: 0 });
 

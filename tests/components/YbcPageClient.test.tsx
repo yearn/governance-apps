@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import { YbcPageContent, YbcPageLoadingState } from "@/app/ybc/YbcPageClient";
+import {
+  YbcPageContent,
+  YbcPageErrorState,
+  YbcPageLoadingState,
+} from "@/app/ybc/YbcPageClient";
 import { ybcCopy } from "@/app/ybc/messages";
 import {
   createMockYbcClient,
@@ -21,6 +25,14 @@ describe("YbcPageClient", () => {
     expect(screen.getByText(ybcCopy.page.loadingBody)).toBeInTheDocument();
   });
 
+  it("renders an explicit error state when the mock state cannot be loaded", () => {
+    render(<YbcPageErrorState errorMessage="fixture load failed" />);
+
+    expect(screen.getByText(ybcCopy.page.errorTitle)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.page.errorBody)).toBeInTheDocument();
+    expect(screen.getByText("fixture load failed")).toBeInTheDocument();
+  });
+
   it("renders the observer overview with separate internal and delegated influence", async () => {
     const data = await getScenarioData("observer");
 
@@ -39,11 +51,17 @@ describe("YbcPageClient", () => {
     expect(screen.getAllByText(ybcCopy.hero.perspective.observerTitle).length).toBeGreaterThan(
       0
     );
+    expect(screen.queryByText(ybcCopy.members.states.you)).not.toBeInTheDocument();
 
     const sectionNav = screen.getByRole("navigation", { name: "YBC sections" });
     for (const section of ybcCopy.sections) {
       expect(within(sectionNav).getByRole("link", { name: section.label }))
         .toHaveAttribute("href", `#${section.id}`);
+    }
+    for (const section of ybcCopy.sections.slice(2)) {
+      expect(
+        screen.getByRole("heading", { name: section.title, level: 2 })
+      ).toBeInTheDocument();
     }
 
     const table = screen.getByRole("table");
