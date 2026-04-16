@@ -45,6 +45,52 @@ export const ybcCopy = {
       terminal: "Terminal",
     },
   },
+  rewards: {
+    title: "Rewards Handoff",
+    eyebrow: "Rewards visibility",
+    handoffBadge: "Shared claim surface",
+    description:
+      "Track YBC-attributed rewards here, then hand claim execution to the shared rewards route instead of implying a separate YBC claim stack.",
+    summary: {
+      pending: "Pending for this wallet",
+      claimable: "Claimable on shared route",
+      accruing: "Accruing this epoch",
+    },
+    periodsTitle: "Reward periods",
+    periodsBody:
+      "Each period keeps the YBC reward source visible here while the actual claim path stays on the shared rewards surface.",
+    viewerTitle: "Current viewer",
+    handoffTitle: "Claim path",
+    handoffBody:
+      "YBC shows rewards sourced from member weight and operator bonuses, but claiming remains on the shared stYFI rewards surface.",
+    rows: {
+      role: "Role",
+      pendingRewards: "Pending rewards",
+      claimMode: "Claim mode",
+      lastUpdated: "Last updated",
+      claimable: "Claimable",
+      earned: "Earned",
+    },
+    states: {
+      observer: "Observer",
+      member: "Member",
+      operator: "Operator",
+      sharedClaimMode: "Shared reward surface only",
+      finalized: "Finalized",
+      pending: "Accruing",
+      memberWeight: "Member weight",
+      operatorBonus: "Operator bonus",
+      emptyMemberTitle: "No finalized YBC rewards yet",
+      emptyMemberBody:
+        "This member perspective keeps the handoff visible, but there are no finalized YBC reward periods ready for the shared claim surface yet.",
+      emptyObserverTitle: "Connect a member wallet to view YBC reward periods",
+      emptyObserverBody:
+        "Observer wallets can inspect the reward section, but only member wallets with YBC rewards unlock the shared-claim handoff.",
+      emptyUnseededTitle: "No YBC reward periods seeded",
+      emptyUnseededBody:
+        "This prototype state has no reward periods yet. Load a seeded YBC member scenario to inspect the shared-claim handoff.",
+    },
+  },
   sections: [
     {
       id: "overview",
@@ -151,7 +197,7 @@ export const ybcCopy = {
   shell: {
     title: "Accepted shell map",
     body:
-      "WP2 and WP3 fill the overview, member roster, and proposal board while the approved rewards and admin sections remain visible as mapped shells for later work packages.",
+      "WP2, WP3, and WP4 now fill the overview, member roster, proposal board, and rewards handoff while the approved admin section remains visible as a mapped shell for later work packages.",
     footerLabel: "Later work package",
   },
 } as const;

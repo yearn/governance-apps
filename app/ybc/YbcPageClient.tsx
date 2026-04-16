@@ -16,6 +16,7 @@ import {
 } from "@/lib/hooks/useYbc";
 import { MembersTable, MembersTableSkeleton } from "./components/MembersTable";
 import { ProposalBoard } from "./components/ProposalBoard";
+import { RewardsCard } from "./components/RewardsCard";
 import { YbcHero, YbcHeroSkeleton } from "./components/YbcHero";
 import { ybcCopy as copy } from "./messages";
 
@@ -29,16 +30,19 @@ const shellSections = copy.sections.filter(
   (section) =>
     section.id !== "overview" &&
     section.id !== "members" &&
-    section.id !== "proposals"
+    section.id !== "proposals" &&
+    section.id !== "rewards"
 );
 
 type YbcPageClientProps = {
   scenarioOverride?: YbcPrototypeScenarioId;
   latencyMs?: number;
+  hostname?: string | null;
 };
 
 type YbcPageContentProps = {
   data: YbcMockDataV1;
+  hostname?: string | null;
   scenarioId?: YbcBoardScenarioId;
   scenarios?: readonly YbcScenarioOption[];
   setScenarioId?: (scenarioId: YbcBoardScenarioId) => void;
@@ -51,6 +55,7 @@ type YbcPageContentProps = {
 export function YbcPageClient({
   scenarioOverride,
   latencyMs,
+  hostname,
 }: YbcPageClientProps = {}) {
   const {
     createProposal,
@@ -88,6 +93,7 @@ export function YbcPageClient({
   return (
     <YbcPageContent
       data={data}
+      hostname={hostname}
       scenarioId={scenarioId}
       scenarios={scenarios}
       setScenarioId={setScenarioId}
@@ -101,6 +107,7 @@ export function YbcPageClient({
 
 export function YbcPageContent({
   data,
+  hostname,
   scenarioId,
   scenarios,
   setScenarioId,
@@ -133,6 +140,9 @@ export function YbcPageContent({
           voteOnProposal={voteOnProposal}
           executeProposal={executeProposal}
         />
+        <div className="pt-6">
+          <RewardsCard id="rewards" data={data} hostname={hostname} />
+        </div>
         <div className="grid gap-4 pt-6 md:grid-cols-2">
           {shellSections.map((section) => (
             <SectionShellCard key={section.id} {...section} />

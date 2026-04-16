@@ -104,6 +104,60 @@ describe("YbcPageClient", () => {
     expect(screen.getAllByText("50%").length).toBeGreaterThan(0);
   });
 
+  it("renders member rewards with a shared-claim handoff across host surfaces", async () => {
+    const data = await getScenarioData("member-matured");
+    const { rerender } = render(
+      <YbcPageContent data={data} hostname="app.dao-ops.com" />
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: ybcCopy.rewards.title,
+        level: 2,
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.rewards.handoffBody)).toBeInTheDocument();
+    expect(screen.getByText("Epoch 10")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", {
+        name: data.rewards.claim.ctaLabel,
+      })
+    ).toHaveAttribute("href", "/styfi");
+
+    rerender(<YbcPageContent data={data} hostname="ybc-beta.dao-ops.com" />);
+    expect(
+      screen.getByRole("link", {
+        name: data.rewards.claim.ctaLabel,
+      })
+    ).toHaveAttribute("href", "https://styfi-beta.dao-ops.com");
+
+    rerender(<YbcPageContent data={data} hostname="ybc.yearn.fi" />);
+    expect(
+      screen.getByRole("link", {
+        name: data.rewards.claim.ctaLabel,
+      })
+    ).toHaveAttribute("href", "https://styfi.yearn.fi");
+  });
+
+  it("keeps rewards visible but disables the handoff for non-members", async () => {
+    const data = await getScenarioData("observer");
+
+    render(<YbcPageContent data={data} />);
+
+    expect(
+      screen.getByText(ybcCopy.rewards.states.emptyObserverTitle)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(ybcCopy.rewards.states.emptyObserverBody)
+    ).toBeInTheDocument();
+    expect(screen.getByText(data.rewards.claim.disabledReason ?? "")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: data.rewards.claim.ctaLabel,
+      })
+    ).toBeDisabled();
+  });
+
   it("renders the empty members state when no roster data is seeded", async () => {
     const data = await getScenarioData("empty");
 
@@ -112,6 +166,19 @@ describe("YbcPageClient", () => {
     expect(screen.getByText(ybcCopy.members.states.emptyTitle)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.members.states.emptyBody)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("renders the unseeded rewards state when no reward periods are available", async () => {
+    const data = await getScenarioData("empty");
+
+    render(<YbcPageContent data={data} />);
+
+    expect(
+      screen.getByText(ybcCopy.rewards.states.emptyUnseededTitle)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(ybcCopy.rewards.states.emptyUnseededBody)
+    ).toBeInTheDocument();
   });
 
   it("renders the proposal board with visible thresholds and timeline states", async () => {

@@ -75,10 +75,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function YbcPage() {
+export default async function YbcPage() {
   if (!isYbcEnabled()) {
     notFound();
   }
 
-  return <YbcPageClient />;
+  const headerList = await headers();
+  const hostname = headerList.get("host");
+
+  return <YbcPageClient hostname={hostname} />;
 }
