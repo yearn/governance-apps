@@ -23,4 +23,17 @@ test("renders the Team Finances route shell", async ({ page }) => {
     "href",
     "#workspace"
   );
+  await expect(sectionNav.getByRole("link", { name: "Bonus" })).toHaveAttribute(
+    "href",
+    "#bonus"
+  );
+  await expect(
+    sectionNav.getByRole("link", { name: "Ownership & Lifecycle" })
+  ).toHaveAttribute("href", "#lifecycle");
+
+  await page.getByRole("button", { name: "Open Platform workspace" }).click();
+  await expect(page.getByRole("heading", { name: "Bonus", level: 3 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Ownership & Lifecycle", level: 3 })
+  ).toBeVisible();
 });
