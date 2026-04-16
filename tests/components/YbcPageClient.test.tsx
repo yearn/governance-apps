@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { YbcPageClient } from "@/app/ybc/YbcPageClient";
 import { ybcCopy } from "@/app/ybc/messages";
 
@@ -37,5 +37,70 @@ describe("YbcPageClient", () => {
     expect(
       screen.getAllByText(ybcCopy.sections[0].body).length
     ).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders the proposal board with visible thresholds and timeline states", () => {
+    render(<YbcPageClient />);
+
+    expect(
+      screen.getByRole("heading", {
+        name: ybcCopy.sections[2].title,
+        level: 2,
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.thresholdTitle)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.terminalTitle)).toBeInTheDocument();
+
+    const proposal = screen.getByRole("article", {
+      name: /YBC-4/i,
+    });
+    expect(within(proposal).getByText("Expired")).toBeInTheDocument();
+    expect(
+      within(proposal).getByText(/start a new proposal instead/i)
+    ).toBeInTheDocument();
+  });
+
+  it("supports mock propose, retract, vote, and execute actions", () => {
+    render(<YbcPageClient />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: ybcCopy.proposalBoard.proposeAdditionCta,
+      })
+    );
+
+    const createdProposal = screen.getByRole("article", { name: /YBC-9/i });
+    expect(
+      within(createdProposal).getByText(/Add member proposal/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByRole("article", { name: /YBC-8/i })).getByRole("button", {
+        name: /Retract proposal/i,
+      })
+    );
+    expect(
+      within(screen.getByRole("article", { name: /YBC-8/i })).getByText("Retracted")
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByRole("article", { name: /YBC-7/i })).getByRole("button", {
+        name: /Vote yea/i,
+      })
+    );
+    expect(
+      within(screen.getByRole("article", { name: /YBC-7/i })).getByText(
+        /Mock yea vote recorded/i
+      )
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByRole("article", { name: /YBC-6/i })).getByRole("button", {
+        name: /Execute proposal/i,
+      })
+    );
+    expect(
+      within(screen.getByRole("article", { name: /YBC-6/i })).getByText("Executed")
+    ).toBeInTheDocument();
   });
 });

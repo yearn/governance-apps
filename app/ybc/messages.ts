@@ -21,6 +21,25 @@ export const ybcCopy = {
     { label: "Current Epoch", value: "--" },
     { label: "Active Proposals", value: "--" },
   ],
+  proposalBoard: {
+    eyebrow: "Proposal lifecycle",
+    mockBadge: "Mock interactions",
+    description:
+      "Inspect every proposal phase with explicit UTC timing, visible vote thresholds, and scoped mock actions for propose, retract, vote, and execute.",
+    perspectiveLabel: "Mock perspective",
+    thresholdTitle: "Threshold guide",
+    viewerTitle: "Current viewer",
+    terminalTitle: "Expired proposals",
+    terminalBody:
+      "Expired proposals stay visible as terminal history. The UI does not offer a revive path; members must start a fresh proposal instead.",
+    proposeAdditionCta: "Mock propose addition",
+    proposeExpulsionCta: "Mock propose expulsion",
+    summary: {
+      active: "Active",
+      awaitingExecution: "Awaiting execution",
+      terminal: "Terminal",
+    },
+  },
   sections: [
     {
       id: "overview",

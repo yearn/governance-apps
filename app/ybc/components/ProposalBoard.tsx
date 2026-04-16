@@ -1,0 +1,243 @@
+"use client";
+
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { formatAddress, formatPercent } from "@/lib/format";
+import type { YbcMockDataV1, YbcProposalType } from "@/lib/clients/ybc";
+import { useYbc } from "@/lib/hooks/useYbc";
+import { ProposalCard } from "./ProposalCard";
+import { ybcCopy as copy } from "../messages";
+
+type ProposalBoardProps = {
+  id?: string;
+};
+
+export function ProposalBoard({ id }: ProposalBoardProps) {
+  const {
+    data,
+    scenarioId,
+    scenarios,
+    setScenarioId,
+    createProposal,
+    executeProposal,
+    retractProposal,
+    voteOnProposal,
+  } = useYbc();
+
+  const additionThresholdBps = getThresholdBps(data, "addition");
+  const expulsionThresholdBps = getThresholdBps(data, "expulsion");
+  const accountLabels = getAccountLabels(data);
+
+  return (
+    <Card id={id} className="space-y-6">
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="brand">{copy.proposalBoard.eyebrow}</Badge>
+          <Badge variant="warning">{copy.proposalBoard.mockBadge}</Badge>
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">{copy.sections[2].title}</h2>
+          <p className="max-w-3xl text-sm leading-6 text-text-secondary">
+            {copy.proposalBoard.description}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-6">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase text-text-tertiary">
+                {copy.proposalBoard.perspectiveLabel}
+              </p>
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label={copy.proposalBoard.perspectiveLabel}
+              >
+                {scenarios.map((scenario) => (
+                  <button
+                    key={scenario.id}
+                    type="button"
+                    aria-pressed={scenario.id === scenarioId}
+                    onClick={() => setScenarioId(scenario.id)}
+                    className={
+                      scenario.id === scenarioId
+                        ? "rounded-box border border-yearn-blue bg-yearn-blue/10 px-3 py-2 text-sm font-bold text-yearn-blue"
+                        : "rounded-box border border-border bg-app px-3 py-2 text-sm font-bold text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
+                    }
+                  >
+                    {scenario.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button
+                size="sm"
+                onClick={() => createProposal("addition")}
+                disabled={!data.me.canPropose}
+              >
+                {copy.proposalBoard.proposeAdditionCta}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => createProposal("expulsion")}
+                disabled={!data.me.canPropose}
+              >
+                {copy.proposalBoard.proposeExpulsionCta}
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <SummaryStat
+              label={copy.proposalBoard.summary.active}
+              value={String(data.proposals.summary.activeCount)}
+            />
+            <SummaryStat
+              label={copy.proposalBoard.summary.awaitingExecution}
+              value={String(data.proposals.summary.awaitingExecutionCount)}
+            />
+            <SummaryStat
+              label={copy.proposalBoard.summary.terminal}
+              value={String(data.proposals.summary.terminalCount)}
+            />
+          </div>
+
+          <div className="space-y-4">
+            {data.proposals.items.map((proposal) => (
+              <ProposalCard
+                key={proposal.id}
+                proposal={proposal}
+                proposerLabel={accountLabels[proposal.proposer.toLowerCase()] ?? formatAddress(proposal.proposer)}
+                targetLabel={accountLabels[proposal.targetAccount.toLowerCase()] ?? formatAddress(proposal.targetAccount)}
+                onRetract={() => retractProposal(proposal.id)}
+                onVote={(choice) => voteOnProposal(proposal.id, choice)}
+                onExecute={() => executeProposal(proposal.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <Card className="bg-app/50 p-4">
+            <p className="text-xs font-bold uppercase text-text-tertiary">
+              {copy.proposalBoard.thresholdTitle}
+            </p>
+            <div className="mt-4 space-y-4">
+              <ThresholdRow
+                label="Add member"
+                value={formatPercent(additionThresholdBps / 10_000, 0)}
+              />
+              <ThresholdRow
+                label="Remove member"
+                value={formatPercent(expulsionThresholdBps / 10_000, 0)}
+              />
+            </div>
+          </Card>
+
+          <Card className="bg-app/50 p-4">
+            <p className="text-xs font-bold uppercase text-text-tertiary">
+              {copy.proposalBoard.viewerTitle}
+            </p>
+            <div className="mt-4 space-y-3 text-sm text-text-secondary">
+              <ViewerRow
+                label="Wallet"
+                value={
+                  data.me.address
+                    ? accountLabels[data.me.address.toLowerCase()] ?? formatAddress(data.me.address)
+                    : "Observer"
+                }
+              />
+              <ViewerRow
+                label="Effective weight"
+                value={`${data.me.weight.effectiveWeight} voting weight`}
+              />
+              <ViewerRow
+                label="Can propose"
+                value={data.me.canPropose ? "Yes" : "No"}
+              />
+              <ViewerRow
+                label="Can vote"
+                value={data.me.canVote ? "Yes" : "No"}
+              />
+            </div>
+          </Card>
+
+          <Card className="bg-app/50 p-4">
+            <p className="text-xs font-bold uppercase text-text-tertiary">
+              {copy.proposalBoard.terminalTitle}
+            </p>
+            <p className="mt-3 text-sm leading-6 text-text-secondary">
+              {copy.proposalBoard.terminalBody}
+            </p>
+          </Card>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function getThresholdBps(data: YbcMockDataV1, type: YbcProposalType): number {
+  if (type === "addition") {
+    return (
+      data.admin?.thresholds.additionBps ??
+      data.proposals.items.find((proposal) => proposal.type === "addition")
+        ?.thresholdBps ??
+      5000
+    );
+  }
+
+  return (
+    data.admin?.thresholds.expulsionBps ??
+    data.proposals.items.find((proposal) => proposal.type === "expulsion")
+      ?.thresholdBps ??
+    6000
+  );
+}
+
+function getAccountLabels(data: YbcMockDataV1): Record<string, string> {
+  const labels: Record<string, string> = {};
+
+  for (const member of data.roster.members) {
+    labels[member.address.toLowerCase()] = member.ens ?? formatAddress(member.address);
+  }
+
+  if (data.me.address) {
+    labels[data.me.address.toLowerCase()] =
+      labels[data.me.address.toLowerCase()] ?? "You";
+  }
+
+  return labels;
+}
+
+function SummaryStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-box border border-border bg-app/60 p-4">
+      <p className="text-xs font-bold uppercase text-text-tertiary">{label}</p>
+      <p className="mt-2 font-number text-2xl font-bold text-text-primary">{value}</p>
+    </div>
+  );
+}
+
+function ThresholdRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-border pt-3 first:border-t-0 first:pt-0">
+      <span className="text-sm text-text-secondary">{label}</span>
+      <span className="font-number text-sm font-bold text-text-primary">{value}</span>
+    </div>
+  );
+}
+
+function ViewerRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-border pt-3 first:border-t-0 first:pt-0">
+      <span className="text-text-tertiary">{label}</span>
+      <span className="font-medium text-text-primary">{value}</span>
+    </div>
+  );
+}

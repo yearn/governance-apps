@@ -46,6 +46,16 @@ The beta host is `ybc-beta.dao-ops.com`. The production host is `ybc.yearn.fi`, 
 production exposure remains gated until live contract wiring and explicit production
 approval are complete.
 
+## Current prototype status
+
+The current mock-backed route keeps the shell structure from WP0 and now includes a
+proposal board prototype with:
+
+- explicit proposal phases and UTC timeline rows
+- visible addition and expulsion threshold targets
+- mock propose / retract / vote / execute interactions
+- terminal expired proposals that stay visible but cannot be revived
+
 ## Included docs
 
 - `docs/apps/ybc/ui-spec.md`

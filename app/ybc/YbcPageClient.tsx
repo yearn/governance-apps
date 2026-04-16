@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
 import { ybcCopy as copy } from "./messages";
+import { ProposalBoard } from "./components/ProposalBoard";
 
 const sectionStatusVariant = {
   Default: "brand",
@@ -14,6 +15,8 @@ const sectionStatusVariant = {
 } as const;
 
 export function YbcPageClient() {
+  const shellSections = copy.sections.filter((section) => section.id !== "proposals");
+
   return (
     <div className="bg-app text-text-primary">
       <section className="border-b border-border bg-surface">
@@ -86,33 +89,41 @@ export function YbcPageClient() {
 
       <StatsBar items={[...copy.heroStats]} />
 
-      <section className="container mx-auto px-4 py-10 md:px-6 md:py-14">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {copy.sections.map((section) => (
-            <Card
-              key={section.id}
-              id={section.id}
-              className="flex min-h-[220px] flex-col justify-between gap-8"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-bold">{section.title}</h2>
-                  <Badge variant={sectionStatusVariant[section.status]}>
-                    {section.status}
-                  </Badge>
-                </div>
-                <p className="text-sm leading-6 text-text-secondary">
-                  {section.body}
-                </p>
-              </div>
-              <p className="text-xs font-bold uppercase text-text-tertiary">
-                {section.label}
-              </p>
-            </Card>
+      <section className="container mx-auto space-y-6 px-4 py-10 md:px-6 md:py-14">
+        <div className="grid gap-4 xl:grid-cols-2">
+          {shellSections.slice(0, 2).map((section) => (
+            <SectionShellCard key={section.id} {...section} />
+          ))}
+        </div>
+        <ProposalBoard id="proposals" />
+        <div className="grid gap-4 xl:grid-cols-2">
+          {shellSections.slice(2).map((section) => (
+            <SectionShellCard key={section.id} {...section} />
           ))}
         </div>
       </section>
     </div>
+  );
+}
+
+function SectionShellCard({
+  id,
+  label,
+  status,
+  title,
+  body,
+}: (typeof copy.sections)[number]) {
+  return (
+    <Card id={id} className="flex min-h-[220px] flex-col justify-between gap-8">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-bold">{title}</h2>
+          <Badge variant={sectionStatusVariant[status]}>{status}</Badge>
+        </div>
+        <p className="text-sm leading-6 text-text-secondary">{body}</p>
+      </div>
+      <p className="text-xs font-bold uppercase text-text-tertiary">{label}</p>
+    </Card>
   );
 }
 
