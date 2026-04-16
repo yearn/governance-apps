@@ -139,6 +139,17 @@ describe("YbcPageClient", () => {
     ).toHaveAttribute("href", "https://styfi.yearn.fi");
   });
 
+  it("renders operator rewards with the operator bonus period and operator viewer label", async () => {
+    const data = await getScenarioData("operator-admin");
+
+    render(<YbcPageContent data={data} />);
+
+    expect(screen.getByText(ybcCopy.rewards.states.operator)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.rewards.states.operatorBonus)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.rewards.rows.role)).toBeInTheDocument();
+    expect(screen.getAllByText("5 YFI").length).toBeGreaterThan(0);
+  });
+
   it("keeps rewards visible but disables the handoff for non-members", async () => {
     const data = await getScenarioData("observer");
 
