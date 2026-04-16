@@ -37,9 +37,15 @@ The default `/teams` landing state is the team directory. It introduces the app 
 the `Team Finances` label and gives users a scannable path into a selected team
 workspace.
 
-The current accepted prototype covers the directory table plus the overview workspace.
-It includes explicit loading and empty coverage so UAT can validate state handling
-before revenue, funding, bonus, lifecycle depth, and admin interactions ship.
+The current accepted prototype covers the directory table, the overview workspace,
+the bonus summary with period drilldown, and the ownership/lifecycle card.
+It keeps explicit loading and empty coverage across the route so UAT can validate
+state handling before revenue, funding, and admin write interactions ship.
+
+The bonus surface keeps the main card action-oriented by showing claimable YFI first,
+then moving profit and pricing inputs into period detail and tooltip states.
+The ownership/lifecycle card keeps owner, pending owner, retirement, migration, and
+successor state visible without introducing ownership write actions yet.
 
 The approved top-level shell sections are:
 
