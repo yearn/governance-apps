@@ -18,6 +18,7 @@ import { TeamsDirectory } from "./components/TeamsDirectory";
 import { teamsCopy } from "./messages";
 
 const DEFAULT_SCENARIO_ID: TeamsMockScenarioId = "directory-observer";
+const EMPTY_STATS_VALUE = "--";
 
 type SurfaceState = "scenario" | "loading" | "empty";
 
@@ -31,6 +32,12 @@ export function TeamsPageClient() {
   const scenarioQuery = useTeamsScenario(activeScenarioId);
   const scenario = scenarioQuery.data ?? null;
   const scenarioData = scenario?.data ?? null;
+  const renderState =
+    surfaceState === "loading" || scenarioQuery.isPending
+      ? "loading"
+      : surfaceState === "empty"
+        ? "empty"
+        : "ready";
 
   const selectedTeamId = useMemo(() => {
     if (!scenarioData) return null;
@@ -57,43 +64,37 @@ export function TeamsPageClient() {
     [scenarioData, selectedTeamId]
   );
 
-  const statsItems = scenarioData
-    ? [
-        {
-          label: teamsCopy.stats.currentPeriod,
-          value: `#${scenarioData.currentPeriod}`,
-        },
-        {
-          label: teamsCopy.stats.activeTeams,
-          value: scenarioData.totals.activeTeamCount,
-        },
-        {
-          label: teamsCopy.stats.retiringTeams,
-          value: scenarioData.totals.retiringTeamCount,
-        },
-        {
-          label: teamsCopy.stats.retiredTeams,
-          value: scenarioData.totals.retiredTeamCount,
-        },
-        {
-          label: teamsCopy.stats.viewerRole,
-          value: teamsCopy.viewerRoles[scenarioData.viewer.role],
-        },
-      ]
-    : [
-        { label: teamsCopy.stats.currentPeriod, value: "--" },
-        { label: teamsCopy.stats.activeTeams, value: "--" },
-        { label: teamsCopy.stats.retiringTeams, value: "--" },
-        { label: teamsCopy.stats.retiredTeams, value: "--" },
-        { label: teamsCopy.stats.viewerRole, value: "--" },
-      ];
-
-  const renderState =
-    surfaceState === "loading" || scenarioQuery.isPending
-      ? "loading"
-      : surfaceState === "empty"
-        ? "empty"
-        : "ready";
+  const statsItems =
+    renderState === "ready" && scenarioData
+      ? [
+          {
+            label: teamsCopy.stats.currentPeriod,
+            value: `#${scenarioData.currentPeriod}`,
+          },
+          {
+            label: teamsCopy.stats.activeTeams,
+            value: scenarioData.totals.activeTeamCount,
+          },
+          {
+            label: teamsCopy.stats.retiringTeams,
+            value: scenarioData.totals.retiringTeamCount,
+          },
+          {
+            label: teamsCopy.stats.retiredTeams,
+            value: scenarioData.totals.retiredTeamCount,
+          },
+          {
+            label: teamsCopy.stats.viewerRole,
+            value: teamsCopy.viewerRoles[scenarioData.viewer.role],
+          },
+        ]
+      : [
+          { label: teamsCopy.stats.currentPeriod, value: EMPTY_STATS_VALUE },
+          { label: teamsCopy.stats.activeTeams, value: EMPTY_STATS_VALUE },
+          { label: teamsCopy.stats.retiringTeams, value: EMPTY_STATS_VALUE },
+          { label: teamsCopy.stats.retiredTeams, value: EMPTY_STATS_VALUE },
+          { label: teamsCopy.stats.viewerRole, value: EMPTY_STATS_VALUE },
+        ];
 
   return (
     <div className="bg-app text-text-primary">
@@ -169,12 +170,13 @@ export function TeamsPageClient() {
                         }
                         onClick={() => {
                           setSurfaceState("scenario");
+                          setManualSelectedTeamId(null);
                           startTransition(() => {
                             setActiveScenarioId(scenarioOption.id);
                           });
                         }}
                       >
-                        {scenarioOption.label}
+                        {teamsCopy.controls.scenarioNames[scenarioOption.id]}
                       </Button>
                     ))}
                   </div>

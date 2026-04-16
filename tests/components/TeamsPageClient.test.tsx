@@ -6,6 +6,12 @@ import { teamsCopy } from "@/app/teams/messages";
 import { renderWithProviders } from "@/tests/test-utils";
 
 describe("TeamsPageClient", () => {
+  const directoryMixLabel = teamsCopy.controls.scenarioNames["directory-observer"];
+  const retiredWorkspaceLabel =
+    teamsCopy.controls.scenarioNames["retired-read-only"];
+  const twoTeamSnapshotLabel =
+    teamsCopy.controls.scenarioNames["operator-admin"];
+
   it("renders the Team Finances shell, directory states, and overview cards", async () => {
     const user = userEvent.setup();
 
@@ -51,17 +57,44 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
-    await screen.findByRole("button", {
-      name: "Observer directory with active, retiring, and retired teams",
-    });
+    await screen.findByRole("button", { name: directoryMixLabel });
+    expect(screen.getByText("#4")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Loading" }));
     expect(screen.getByText(teamsCopy.directory.loadingTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.workspace.loadingTitle)).toBeInTheDocument();
+    expect(screen.queryByText("#4")).not.toBeInTheDocument();
+    expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(5);
 
     await user.click(screen.getByRole("button", { name: "Empty" }));
     expect(screen.getByText(teamsCopy.directory.emptyTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.workspace.noTeamsTitle)).toBeInTheDocument();
+    expect(screen.queryByText("#4")).not.toBeInTheDocument();
+    expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("resets workspace selection to the scenario default when switching scenarios", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Open Research workspace",
+      })
+    );
+    expect(
+      await screen.findByRole("heading", { name: "Research", level: 2 })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: twoTeamSnapshotLabel }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Security", level: 2 })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Research", level: 2 })
+    ).not.toBeInTheDocument();
   });
 
   it("switches to the retired workspace scenario and keeps the read-only state visible", async () => {
@@ -71,7 +104,7 @@ describe("TeamsPageClient", () => {
 
     await user.click(
       await screen.findByRole("button", {
-        name: "Retired team workspace in read-only mode",
+        name: retiredWorkspaceLabel,
       })
     );
 

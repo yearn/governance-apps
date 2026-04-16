@@ -56,6 +56,14 @@ export const teamsCopy = {
     title: "Prototype controls",
     scenarioLabel: "Scenarios",
     surfaceLabel: "Surface state",
+    scenarioNames: {
+      "directory-observer": "Directory mix",
+      "team-owner-funding": "Owner workspace",
+      "bonus-available": "Single-team snapshot",
+      "finance-operator-revenue": "Operator workspace",
+      "retired-read-only": "Retired workspace",
+      "operator-admin": "Two-team snapshot",
+    },
     surfaceModes: {
       scenario: "Scenario",
       loading: "Loading",

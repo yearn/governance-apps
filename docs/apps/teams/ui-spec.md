@@ -110,6 +110,11 @@ For the approved WP2 prototype, the route must keep explicit state coverage for:
 - loading state
 - empty state
 
+The prototype controls should apply coherently across the whole route:
+
+- loading and empty controls blank the stat strip as well as the directory/workspace panes
+- switching scenarios reverts the workspace to that scenario's declared selected team
+
 ## 5. Must-show interactions
 
 ## 5.1 Deposit Revenue
