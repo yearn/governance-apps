@@ -14,7 +14,16 @@ type TeamWorkspaceProps = {
 };
 
 export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
-  if (state === "loading") {
+  const workspaceState =
+    state === "loading"
+      ? "loading"
+      : state === "empty"
+        ? "empty"
+        : team
+          ? "ready"
+          : "unselected";
+
+  if (workspaceState === "loading") {
     return (
       <div className="space-y-4" aria-busy="true">
         <Card className="space-y-5">
@@ -29,36 +38,84 @@ export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
         </Card>
 
         <div className="grid gap-4 xl:grid-cols-2">
-          <Skeleton className="h-[360px] w-full" />
-          <Skeleton className="h-[360px] w-full" />
+          <div id="bonus">
+            <WorkspaceSectionStateCard
+              title={teamsCopy.bonus.title}
+              description={teamsCopy.bonus.description}
+              body={teamsCopy.bonus.placeholders.loading}
+              state="loading"
+            />
+          </div>
+          <div id="lifecycle">
+            <WorkspaceSectionStateCard
+              title={teamsCopy.lifecycle.title}
+              description={teamsCopy.lifecycle.description}
+              body={teamsCopy.lifecycle.placeholders.loading}
+              state="loading"
+            />
+          </div>
         </div>
       </div>
     );
   }
 
-  if (state === "empty") {
+  const placeholderBody =
+    workspaceState === "empty"
+      ? {
+          bonus: teamsCopy.bonus.placeholders.empty,
+          lifecycle: teamsCopy.lifecycle.placeholders.empty,
+        }
+      : {
+          bonus: teamsCopy.bonus.placeholders.unselected,
+          lifecycle: teamsCopy.lifecycle.placeholders.unselected,
+        };
+
+  if (workspaceState !== "ready") {
     return (
-      <Card className="space-y-4">
-        <WorkspaceHeader
-          title={teamsCopy.workspace.noTeamsTitle}
-          description={teamsCopy.workspace.noTeamsBody}
-        />
-      </Card>
+      <div className="space-y-4">
+        <Card className="space-y-4">
+          <WorkspaceHeader
+            title={
+              workspaceState === "empty"
+                ? teamsCopy.workspace.noTeamsTitle
+                : teamsCopy.workspace.emptyTitle
+            }
+            description={
+              workspaceState === "empty"
+                ? teamsCopy.workspace.noTeamsBody
+                : teamsCopy.workspace.emptyBody
+            }
+          />
+        </Card>
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div id="bonus">
+            <WorkspaceSectionStateCard
+              title={teamsCopy.bonus.title}
+              description={teamsCopy.bonus.description}
+              body={placeholderBody.bonus}
+              state="idle"
+            />
+          </div>
+          <div id="lifecycle">
+            <WorkspaceSectionStateCard
+              title={teamsCopy.lifecycle.title}
+              description={teamsCopy.lifecycle.description}
+              body={placeholderBody.lifecycle}
+              state="idle"
+            />
+          </div>
+        </div>
+      </div>
     );
   }
 
-  if (!team) {
-    return (
-      <Card className="space-y-4">
-        <WorkspaceHeader
-          title={teamsCopy.workspace.emptyTitle}
-          description={teamsCopy.workspace.emptyBody}
-        />
-      </Card>
-    );
+  const readyTeam = team;
+  if (!readyTeam) {
+    return null;
   }
 
-  const status = teamsCopy.statuses[team.status];
+  const status = teamsCopy.statuses[readyTeam.status];
 
   return (
     <div className="space-y-4">
@@ -67,15 +124,15 @@ export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={status.variant}>{status.label}</Badge>
-              {team.readOnlyReason && (
+              {readyTeam.readOnlyReason && (
                 <Badge variant="neutral">
-                  {teamsCopy.readOnlyReasons[team.readOnlyReason]}
+                  {teamsCopy.readOnlyReasons[readyTeam.readOnlyReason]}
                 </Badge>
               )}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-text-primary">{team.name}</h2>
-              <p className="text-sm text-text-secondary">{team.id}</p>
+              <h2 className="text-2xl font-bold text-text-primary">{readyTeam.name}</h2>
+              <p className="text-sm text-text-secondary">{readyTeam.id}</p>
             </div>
           </div>
           <div className="rounded-box border border-border bg-app px-4 py-3">
@@ -91,20 +148,62 @@ export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
         <div className="grid gap-4 md:grid-cols-2">
           <TeamOverviewCard
             title={teamsCopy.workspace.cards.current}
-            financials={team.currentPeriod}
+            financials={readyTeam.currentPeriod}
           />
           <TeamOverviewCard
             title={teamsCopy.workspace.cards.lifetime}
-            financials={team.lifetime}
+            financials={readyTeam.lifetime}
           />
         </div>
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <BonusCard bonus={team.bonus} />
-        <TeamLifecycleCard team={team} />
+        <div id="bonus">
+          <BonusCard
+            key={readyTeam.id}
+            bonus={readyTeam.bonus}
+            canClaimBonus={viewer?.canClaimBonus ?? false}
+          />
+        </div>
+        <div id="lifecycle">
+          <TeamLifecycleCard team={readyTeam} />
+        </div>
       </div>
     </div>
+  );
+}
+
+function WorkspaceSectionStateCard({
+  title,
+  description,
+  body,
+  state,
+}: {
+  title: string;
+  description: string;
+  body: string;
+  state: "loading" | "idle";
+}) {
+  if (state === "loading") {
+    return (
+      <Card className="space-y-5" aria-busy="true">
+        <WorkspaceSectionHeader title={title} description={description} />
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="space-y-4">
+      <WorkspaceSectionHeader title={title} description={description} />
+      <div className="rounded-box border border-border bg-app px-4 py-4">
+        <p className="text-sm leading-6 text-text-secondary">{body}</p>
+      </div>
+    </Card>
   );
 }
 
@@ -118,6 +217,24 @@ function WorkspaceHeader({
   return (
     <div className="space-y-1">
       <h2 className="text-2xl font-bold text-text-primary">{title}</h2>
+      <p className="text-sm leading-6 text-text-secondary">{description}</p>
+    </div>
+  );
+}
+
+function WorkspaceSectionHeader({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+        {teamsCopy.workspace.title}
+      </p>
+      <h3 className="text-xl font-bold text-text-primary">{title}</h3>
       <p className="text-sm leading-6 text-text-secondary">{description}</p>
     </div>
   );

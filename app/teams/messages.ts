@@ -144,6 +144,13 @@ export const teamsCopy = {
     title: "Bonus",
     description:
       "Lead with claimable YFI and period state. Open the drilldown only when you need the profit and pricing inputs behind a finalized amount.",
+    placeholders: {
+      loading: "Preparing bonus totals and period detail for the selected workspace.",
+      empty:
+        "Load a populated scenario to inspect claimable bonus state, period drilldown, and mock claim actions.",
+      unselected:
+        "Open a team from the directory to inspect claimable bonus, the primary claim action, and period-level detail.",
+    },
     summary: {
       claimable: "Claimable now",
       periods: "Periods included",
@@ -164,6 +171,26 @@ export const teamsCopy = {
       growthFactor: "Growth factor",
       ybcSplit: "YBC split",
       yfiOutput: "YFI output",
+    },
+    action: {
+      title: "Primary action",
+      claimCta: "Claim Bonus",
+      stagedCta: "Mock claim staged",
+      pendingCta: "Waiting for finalization",
+      claimedCta: "Already claimed",
+      noneCta: "No bonus to claim",
+      claimBody:
+        "Stage the mock bonus claim from the default view, then keep the period drilldown available for audit detail.",
+      stagedBody:
+        "The mock claim is staged for review only. This prototype keeps the fixture unchanged so the bonus breakdown stays visible until live writes land later.",
+      permissionBody:
+        "This bonus is claimable, but the mock action stays limited to the eligible team-owner view.",
+      pendingBody:
+        "The primary action stays blocked until the included period finishes finalization and moves into the claimable total.",
+      claimedBody:
+        "The latest finalized bonus is already claimed, so the primary action stays in a historical state.",
+      noneBody:
+        "There is no claimable bonus in this workspace yet, so the default view stays focused on availability rather than submission.",
     },
     summaries: {
       claimable: (amount: string) =>
@@ -224,6 +251,13 @@ export const teamsCopy = {
     title: "Ownership & Lifecycle",
     description:
       "Keep ownership transfer, retirement, and successor state readable before any ownership writes are introduced.",
+    placeholders: {
+      loading: "Preparing owner, retirement, migration, and successor state for the selected workspace.",
+      empty:
+        "Load a populated scenario to inspect ownership handoff, retirement, and migration coverage.",
+      unselected:
+        "Open a team from the directory to inspect owner, pending owner, retirement, and migration readiness.",
+    },
     atAGlance: "At a glance",
     activeWorkspace: "Active workspace",
     pendingOwnerNone: "No pending transfer",

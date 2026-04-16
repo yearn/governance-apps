@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Tooltip } from "@/components/ui/Tooltip";
 import {
@@ -11,16 +15,19 @@ import { teamsCopy } from "../messages";
 
 type BonusCardProps = {
   bonus: TeamBonusState;
+  canClaimBonus: boolean;
 };
 
-export function BonusCard({ bonus }: BonusCardProps) {
+export function BonusCard({ bonus, canClaimBonus }: BonusCardProps) {
+  const [isMockClaimStaged, setIsMockClaimStaged] = useState(false);
   const status = teamsCopy.bonus.statuses[bonus.status];
   const pendingPeriods = bonus.periods.filter(
     (period) => period.status === "pending-finalization"
   ).length;
+  const action = getBonusAction(bonus, canClaimBonus, isMockClaimStaged);
 
   return (
-    <Card id="bonus" className="space-y-5">
+    <Card className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
@@ -61,6 +68,27 @@ export function BonusCard({ bonus }: BonusCardProps) {
         <p className="mt-1 text-sm leading-6 text-text-primary">
           {getBonusSummary(bonus, pendingPeriods)}
         </p>
+      </div>
+
+      <div className="flex flex-wrap items-start justify-between gap-4 rounded-box border border-border bg-app px-4 py-4">
+        <div className="max-w-xl space-y-1">
+          <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+            {teamsCopy.bonus.action.title}
+          </p>
+          <p className="text-sm leading-6 text-text-primary">{action.body}</p>
+        </div>
+
+        <Button
+          size="sm"
+          variant={action.variant}
+          disabled={action.disabled}
+          onClick={() => {
+            if (!action.canStageMockClaim) return;
+            setIsMockClaimStaged(true);
+          }}
+        >
+          {action.label}
+        </Button>
       </div>
 
       <details className="group rounded-box border border-border bg-app">
@@ -218,4 +246,68 @@ function getBonusSummary(bonus: TeamBonusState, pendingPeriods: number) {
   return bonus.periods.length > 0
     ? teamsCopy.bonus.summaries.noneWithHistory
     : teamsCopy.bonus.summaries.none;
+}
+
+function getBonusAction(
+  bonus: TeamBonusState,
+  canClaimBonus: boolean,
+  isMockClaimStaged: boolean
+) {
+  if (isMockClaimStaged) {
+    return {
+      label: teamsCopy.bonus.action.stagedCta,
+      body: teamsCopy.bonus.action.stagedBody,
+      disabled: true,
+      variant: "secondary" as const,
+      canStageMockClaim: false,
+    };
+  }
+
+  if (bonus.status === "claimable" && canClaimBonus) {
+    return {
+      label: teamsCopy.bonus.action.claimCta,
+      body: teamsCopy.bonus.action.claimBody,
+      disabled: false,
+      variant: "primary" as const,
+      canStageMockClaim: true,
+    };
+  }
+
+  if (bonus.status === "claimable") {
+    return {
+      label: teamsCopy.bonus.action.claimCta,
+      body: teamsCopy.bonus.action.permissionBody,
+      disabled: true,
+      variant: "secondary" as const,
+      canStageMockClaim: false,
+    };
+  }
+
+  if (bonus.status === "pending-finalization") {
+    return {
+      label: teamsCopy.bonus.action.pendingCta,
+      body: teamsCopy.bonus.action.pendingBody,
+      disabled: true,
+      variant: "secondary" as const,
+      canStageMockClaim: false,
+    };
+  }
+
+  if (bonus.status === "claimed") {
+    return {
+      label: teamsCopy.bonus.action.claimedCta,
+      body: teamsCopy.bonus.action.claimedBody,
+      disabled: true,
+      variant: "secondary" as const,
+      canStageMockClaim: false,
+    };
+  }
+
+  return {
+    label: teamsCopy.bonus.action.noneCta,
+    body: teamsCopy.bonus.action.noneBody,
+    disabled: true,
+    variant: "secondary" as const,
+    canStageMockClaim: false,
+  };
 }
