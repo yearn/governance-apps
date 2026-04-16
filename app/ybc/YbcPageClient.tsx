@@ -1,11 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { StatsBar } from "@/components/ui/StatsBar";
-import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
+import type { YbcMockDataV1, YbcPrototypeScenarioId } from "@/lib/clients/ybc";
+import { useYbcState } from "@/lib/hooks/useYbc";
 import { ybcCopy as copy } from "./messages";
+import { MembersTable, MembersTableSkeleton } from "./components/MembersTable";
+import { YbcHero, YbcHeroSkeleton } from "./components/YbcHero";
 
 const sectionStatusVariant = {
   Default: "brand",
@@ -13,82 +15,53 @@ const sectionStatusVariant = {
   Conditional: "warning",
 } as const;
 
-export function YbcPageClient() {
+type YbcPageClientProps = {
+  scenarioOverride?: YbcPrototypeScenarioId;
+};
+
+type YbcPageContentProps = {
+  data: YbcMockDataV1;
+};
+
+export function YbcPageClient({ scenarioOverride }: YbcPageClientProps = {}) {
+  const { data, error, isError, isLoading, refetch } = useYbcState({
+    scenarioOverride,
+  });
+
+  if (isError) {
+    return (
+      <YbcPageErrorState
+        errorMessage={error instanceof Error ? error.message : null}
+        onRetry={() => {
+          void refetch();
+        }}
+      />
+    );
+  }
+
+  if (isLoading || !data) {
+    return <YbcPageLoadingState />;
+  }
+
+  return <YbcPageContent data={data.data} />;
+}
+
+export function YbcPageContent({ data }: YbcPageContentProps) {
   return (
     <div className="bg-app text-text-primary">
-      <section className="border-b border-border bg-surface">
-        <div className="container mx-auto grid min-h-[420px] items-center gap-10 px-4 py-12 md:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] md:px-6 md:py-16">
-          <div className="max-w-3xl space-y-7">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="brand">{copy.app.routeKey}</Badge>
-              <Badge variant="warning">{copy.page.productionGate}</Badge>
-            </div>
-            <div className="space-y-4">
-              <p className="text-sm font-bold uppercase text-text-tertiary">
-                {copy.page.eyebrow}
-              </p>
-              <h1 className="text-4xl font-bold md:text-6xl">{copy.page.title}</h1>
-              <p className="max-w-2xl text-base leading-7 text-text-secondary md:text-lg">
-                {copy.page.description}
-              </p>
-            </div>
-            <nav
-              aria-label="YBC sections"
-              className="flex flex-wrap gap-2"
-            >
-              {copy.sections.map((section) => (
-                <Link
-                  key={section.id}
-                  href={`#${section.id}`}
-                  className="rounded-box border border-border bg-app px-3 py-2 text-sm font-bold text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
-                >
-                  {section.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          <div className="relative overflow-hidden rounded-box border border-border bg-app p-6">
-            <div className="absolute right-0 top-0 h-24 w-24 border-b border-l border-yearn-blue/20 bg-yearn-blue/10" />
-            <div className="relative space-y-8">
-              <div className="flex size-16 items-center justify-center rounded-box bg-yearn-blue text-white">
-                <LogoYearnGlyph
-                  className="size-9"
-                  backClassName="text-yearn-blue"
-                  frontClassName="text-white"
-                />
-              </div>
-              <div className="space-y-4">
-                <p className="text-sm font-bold uppercase text-text-tertiary">
-                  {copy.page.defaultSection}
-                </p>
-                <h2 className="text-2xl font-bold">{copy.sections[0].title}</h2>
-                <p className="text-sm leading-6 text-text-secondary">
-                  {copy.sections[0].body}
-                </p>
-              </div>
-              <div className="grid gap-3 text-sm">
-                <RolloutRow
-                  label={copy.rollout.beta.label}
-                  value={copy.rollout.beta.value}
-                  status={copy.rollout.beta.status}
-                />
-                <RolloutRow
-                  label={copy.rollout.production.label}
-                  value={copy.rollout.production.value}
-                  status={copy.rollout.production.status}
-                />
-              </div>
-            </div>
-          </div>
+      <YbcHero data={data} />
+      <MembersTable roster={data.roster} currentAddress={data.me.address} />
+      <section className="container mx-auto px-4 pb-16 md:px-6 md:pb-20">
+        <div className="space-y-2 pb-6">
+          <p className="text-sm font-bold uppercase text-text-tertiary">
+            {copy.shell.title}
+          </p>
+          <p className="max-w-3xl text-sm leading-6 text-text-secondary">
+            {copy.shell.body}
+          </p>
         </div>
-      </section>
-
-      <StatsBar items={[...copy.heroStats]} />
-
-      <section className="container mx-auto px-4 py-10 md:px-6 md:py-14">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          {copy.sections.map((section) => (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {copy.sections.slice(2).map((section) => (
             <Card
               key={section.id}
               id={section.id}
@@ -106,7 +79,7 @@ export function YbcPageClient() {
                 </p>
               </div>
               <p className="text-xs font-bold uppercase text-text-tertiary">
-                {section.label}
+                {copy.shell.footerLabel}
               </p>
             </Card>
           ))}
@@ -116,26 +89,59 @@ export function YbcPageClient() {
   );
 }
 
-function RolloutRow({
-  label,
-  value,
-  status,
+export function YbcPageLoadingState() {
+  return (
+    <div className="bg-app text-text-primary" aria-busy="true">
+      <section className="border-b border-border bg-surface">
+        <div className="container mx-auto space-y-3 px-4 py-8 md:px-6">
+          <p className="text-sm font-bold uppercase text-text-tertiary">
+            {copy.page.loadingTitle}
+          </p>
+          <p className="max-w-2xl text-sm leading-6 text-text-secondary">
+            {copy.page.loadingBody}
+          </p>
+        </div>
+      </section>
+      <YbcHeroSkeleton />
+      <MembersTableSkeleton />
+    </div>
+  );
+}
+
+export function YbcPageErrorState({
+  errorMessage,
+  onRetry,
 }: {
-  label: string;
-  value: string;
-  status: string;
+  errorMessage?: string | null;
+  onRetry?: () => void;
 }) {
   return (
-    <div className="grid gap-1 border-t border-border pt-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-bold uppercase text-text-tertiary">
-          {label}
-        </span>
-        <span className="font-number text-sm font-bold text-text-primary">
-          {value}
-        </span>
-      </div>
-      <p className="text-xs text-text-secondary">{status}</p>
+    <div className="bg-app text-text-primary">
+      <section className="container mx-auto px-4 py-16 md:px-6 md:py-24">
+        <Card className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm font-bold uppercase text-text-tertiary">
+              {copy.page.errorTitle}
+            </p>
+            <h1 className="text-3xl font-bold">{copy.app.displayLabel}</h1>
+            <p className="max-w-2xl text-sm leading-6 text-text-secondary">
+              {copy.page.errorBody}
+            </p>
+            {errorMessage ? (
+              <p className="font-number text-xs text-text-tertiary">
+                {errorMessage}
+              </p>
+            ) : null}
+          </div>
+          {onRetry ? (
+            <div>
+              <Button type="button" variant="secondary" onClick={onRetry}>
+                {copy.page.retryCta}
+              </Button>
+            </div>
+          ) : null}
+        </Card>
+      </section>
     </div>
   );
 }

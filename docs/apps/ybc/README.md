@@ -46,6 +46,20 @@ The beta host is `ybc-beta.dao-ops.com`. The production host is `ybc.yearn.fi`, 
 production exposure remains gated until live contract wiring and explicit production
 approval are complete.
 
+## Current prototype state
+
+The current mock-first route implements the WP2 overview and member roster prototype:
+
+- the five-section YBC shell map remains live on the route
+- the hero separates internal member influence from delegated public influence
+- unknown connected non-member wallets remain on the observer path
+- observer and member perspectives render distinct weight summaries
+- the members table keeps raw stake, effective weight, target weight, and maturity separate
+- loading and empty roster states are implemented for the prototype state machine
+
+Proposal actions, reward handoff, and operator controls remain visible as mapped shell
+sections until later work packages implement their interactive depth.
+
 ## Included docs
 
 - `docs/apps/ybc/ui-spec.md`
