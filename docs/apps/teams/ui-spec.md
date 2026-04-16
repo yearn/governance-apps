@@ -101,6 +101,15 @@ Sections / tabs:
 5. Ownership & Lifecycle
 6. Admin (conditional)
 
+## 4.3 Prototype state coverage
+
+For the approved WP2 prototype, the route must keep explicit state coverage for:
+
+- populated directory with multiple teams
+- selected workspace overview with current-period and lifetime cards
+- loading state
+- empty state
+
 ## 5. Must-show interactions
 
 ## 5.1 Deposit Revenue
