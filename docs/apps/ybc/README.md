@@ -46,7 +46,7 @@ approval are complete.
 
 ## Current prototype state
 
-The current mock-backed route integrates the accepted WP2 and WP3 prototypes:
+The current mock-backed route integrates the accepted WP2, WP3, and WP5 prototypes:
 
 - the five-section YBC shell map remains live on the route
 - the hero separates internal member influence from delegated public influence
@@ -58,9 +58,11 @@ The current mock-backed route integrates the accepted WP2 and WP3 prototypes:
 - mock propose, retract, vote, and execute interactions are available
 - an explicit empty-board perspective covers the no-proposal state
 - expired proposals remain visible as terminal history
+- the operator/admin perspective now exposes a scoped panel for add/remove member affordances,
+  operator visibility, hook visibility, threshold visibility, and reward sync status
 
-Reward handoff and operator controls remain visible as mapped shell sections until
-later work packages implement their interactive depth.
+Reward handoff remains visible as a mapped shell section until a later work package
+implements its interactive depth.
 
 ## Included docs
 
