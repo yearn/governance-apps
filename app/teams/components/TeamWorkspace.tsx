@@ -1,8 +1,9 @@
-import { formatAddress } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { TeamRecord, TeamsViewerContext } from "@/lib/clients/teams";
+import { BonusCard } from "./BonusCard";
+import { TeamLifecycleCard } from "./TeamLifecycleCard";
 import { TeamOverviewCard } from "./TeamOverviewCard";
 import { teamsCopy } from "../messages";
 
@@ -15,17 +16,23 @@ type TeamWorkspaceProps = {
 export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
   if (state === "loading") {
     return (
-      <Card className="space-y-5" aria-busy="true">
-        <WorkspaceHeader
-          title={teamsCopy.workspace.loadingTitle}
-          description={teamsCopy.workspace.loadingBody}
-        />
-        <div className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-64 w-full" />
+      <div className="space-y-4" aria-busy="true">
+        <Card className="space-y-5">
+          <WorkspaceHeader
+            title={teamsCopy.workspace.loadingTitle}
+            description={teamsCopy.workspace.loadingBody}
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+          </div>
+        </Card>
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          <Skeleton className="h-[360px] w-full" />
+          <Skeleton className="h-[360px] w-full" />
         </div>
-        <Skeleton className="h-40 w-full" />
-      </Card>
+      </div>
     );
   }
 
@@ -93,40 +100,10 @@ export function TeamWorkspace({ team, viewer, state }: TeamWorkspaceProps) {
         </div>
       </Card>
 
-      <Card className="space-y-4">
-        <WorkspaceHeader
-          title={teamsCopy.workspace.title}
-          description={teamsCopy.workspace.description}
-        />
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <WorkspaceField
-            label={teamsCopy.workspace.fields.teamId}
-            value={team.id}
-          />
-          <WorkspaceField
-            label={teamsCopy.workspace.fields.owner}
-            value={formatAddress(team.owner)}
-          />
-          <WorkspaceField
-            label={teamsCopy.workspace.fields.pendingOwner}
-            value={
-              team.pendingOwner ? formatAddress(team.pendingOwner) : "No pending transfer"
-            }
-          />
-          <WorkspaceField
-            label={teamsCopy.workspace.fields.migration}
-            value={team.lifecycle.migrationReadiness}
-          />
-          <WorkspaceField
-            label={teamsCopy.workspace.fields.successor}
-            value={team.lifecycle.successorTeamId ?? "No successor"}
-          />
-          <WorkspaceField
-            label={teamsCopy.workspace.fields.retirement}
-            value={formatRetirement(team)}
-          />
-        </dl>
-      </Card>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <BonusCard bonus={team.bonus} />
+        <TeamLifecycleCard team={team} />
+      </div>
     </div>
   );
 }
@@ -144,47 +121,4 @@ function WorkspaceHeader({
       <p className="text-sm leading-6 text-text-secondary">{description}</p>
     </div>
   );
-}
-
-function WorkspaceField({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-box border border-border bg-app px-4 py-3">
-      <dt className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm font-medium text-text-primary">{value}</dd>
-    </div>
-  );
-}
-
-function formatRetirement(team: TeamRecord) {
-  const effectivePeriod = team.lifecycle.retirementEffectivePeriod;
-  const announcedAt = team.lifecycle.retirementAnnouncedAt;
-
-  if (team.status === "active") {
-    return teamsCopy.workspace.retirement.active;
-  }
-
-  const effectiveLabel =
-    effectivePeriod === null
-      ? "not scheduled"
-      : `${team.status === "retired" ? teamsCopy.workspace.retirement.retiredPrefix : teamsCopy.workspace.retirement.retiringPrefix} ${effectivePeriod}`;
-
-  if (announcedAt === null) {
-    return effectiveLabel;
-  }
-
-  const announcedDate = new Date(announcedAt * 1000).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  return `${effectiveLabel} • ${teamsCopy.workspace.retirement.announcedPrefix} ${announcedDate}`;
 }

@@ -145,10 +145,10 @@ export function TeamsPageClient() {
                   <p className="text-sm font-bold uppercase text-text-tertiary">
                     {teamsCopy.controls.title}
                   </p>
-                  <h2 className="text-2xl font-bold">{teamsCopy.sections[2].title}</h2>
+                  <h2 className="text-2xl font-bold">{teamsCopy.controls.cardTitle}</h2>
                 </div>
                 <p className="text-sm leading-6 text-text-secondary">
-                  {teamsCopy.sections[2].body}
+                  {teamsCopy.controls.cardBody}
                 </p>
               </div>
 
