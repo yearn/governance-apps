@@ -1,6 +1,8 @@
 import type { BadgeProps } from "@/components/ui/Badge";
 import type {
+  FundingApprovalStatus,
   TeamLifecycleStatus,
+  TeamFundingSummaryState,
   TeamReadOnlyReason,
   TeamsViewerRole,
 } from "@/lib/clients/teams";
@@ -20,35 +22,31 @@ export const teamsCopy = {
   },
   page: {
     title: "Team Finances",
-    eyebrow: "Revenue deposit prototype",
+    eyebrow: "Interactive mock finance flows",
     description:
-      "Mock-first workspace for scanning registered teams, opening a selected team overview, and previewing permissionless revenue deposits with conversion-aware credited USD.",
+      "Mock-first workspace for scanning registered teams, opening a selected team overview, and validating revenue deposit plus funding claim and return flows without collapsing current-period reporting into lifetime history.",
     productionGate: "Production gated",
   },
-  sections: [
+  navigation: [
     {
       id: "directory",
       label: "Directory",
-      title: "Team Directory",
-      body: "Scan multiple teams, compare current-period revenue, cost, and net performance, then open a workspace state from the same route.",
     },
     {
       id: "workspace",
       label: "Workspace",
-      title: "Workspace Overview",
-      body: "Use current-period and lifetime cards to keep the active reporting window distinct from the longer-lived team history.",
     },
     {
       id: "revenue",
       label: "Revenue",
-      title: "Revenue Deposit",
-      body: "Preview supported tokens, auto-conversion paths, and accountant credit before recording a mock deposit.",
+    },
+    {
+      id: "funding",
+      label: "Funding",
     },
     {
       id: "states",
       label: "States",
-      title: "Prototype States",
-      body: "Switch between approved viewer scenarios and force explicit loading or empty coverage without leaving the route.",
     },
   ],
   stats: {
@@ -60,6 +58,9 @@ export const teamsCopy = {
   },
   controls: {
     title: "Prototype controls",
+    heading: "Prototype States",
+    description:
+      "Switch between approved viewer scenarios and force explicit loading or empty coverage while validating both revenue deposit and funding claim flows.",
     scenarioLabel: "Scenarios",
     surfaceLabel: "Surface state",
     scenarioNames: {
@@ -204,6 +205,147 @@ export const teamsCopy = {
       body:
         "The credited USD estimate and recent deposit history have been updated for this session.",
       currentPeriodPrefix: "Current period",
+    },
+  },
+  funding: {
+    title: "Funding Approvals",
+    description:
+      "Keep current-period claimability, late-liquid handling, and return accounting visible from the same selected team workspace.",
+    emptyTitle: "No funding approvals in this scenario",
+    emptyBody:
+      "This selected team does not have any funding approvals yet, so claim and return flows stay inactive.",
+    summary: {
+      claimableUsd: "Stable claimable value",
+      refundableUsd: "Refundable value",
+      state: "Funding state",
+      lateLiquidCount: "Late-liquid approvals",
+    },
+    summaryStates: {
+      "no-approvals": "No approvals",
+      "has-claimable": "Claimable balance available",
+      "partially-claimed": "Claimed and claimable balances",
+      "late-liquid-available": "Late-liquid balance available",
+      "fully-used": "Fully used",
+    } satisfies Record<TeamFundingSummaryState, string>,
+    headers: {
+      approval: "Approval",
+      token: "Token",
+      period: "Period scope",
+      recipient: "Recipient",
+      totalApproved: "Total approved",
+      used: "Used",
+      claimable: "Claimable now",
+      flow: "Claim style",
+      actions: "Actions",
+    },
+    statuses: {
+      "claimable-current-period": {
+        label: "Claimable now",
+        variant: "success",
+      },
+      "partially-claimed": {
+        label: "Partially claimed",
+        variant: "warning",
+      },
+      "late-liquid": {
+        label: "Late liquid",
+        variant: "error",
+      },
+      "not-current-period": {
+        label: "Future period",
+        variant: "neutral",
+      },
+      "fully-used": {
+        label: "Fully used",
+        variant: "neutral",
+      },
+    } satisfies Record<FundingApprovalStatus, StatusCopy>,
+    periodScope: {
+      currentPeriod: (period: number) => `Current period #${period} claimable now`,
+      lateLiquid: (period: number) => `Period #${period} late-claim window`,
+      future: (period: number) => `Queued for period #${period}`,
+      spent: (period: number) => `Period #${period} fully used`,
+    },
+    recipientMissing: "Recipient required on claim",
+    actions: {
+      claim: "Use in claim flow",
+      claimSelected: "Selected for claim",
+      return: "Use in return flow",
+      returnSelected: "Selected for return",
+      none: "No action available",
+    },
+    flow: {
+      streamBacked: (days: number) => `Stream-backed • ${days}-day vest`,
+      lateLiquid: "Liquid immediately",
+      future: "Not claimable this period",
+      spent: "No remaining balance",
+    },
+    claimForm: {
+      title: "Claim Funding",
+      description:
+        "Select a claimable approval, set a recipient, and simulate the owner claim flow.",
+      disabledPermission: "This viewer cannot claim funding in the current scenario.",
+      disabledNoApproval: "Select a claimable approval from the table.",
+      selectedApproval: "Selected approval",
+      selectedState: "Claim status",
+      recipient: "Recipient",
+      recipientPlaceholder: "0x0000000000000000000000000000000000000000",
+      amount: "Amount to claim",
+      maxLabel: "Claimable",
+      submit: "Simulate claim",
+      helpers: {
+        streamBacked: (days: number) =>
+          `This approval remains stream-backed for ${days} days after claim.`,
+        lateLiquid:
+          "This approval is late-liquid. Claimed funds arrive immediately in the prototype.",
+        future: "This approval is visible but not claimable in the current period.",
+        spent: "This approval has no remaining claimable balance.",
+      },
+      success: (
+        amount: string,
+        symbol: string,
+        approvalId: string,
+        recipient: string
+      ) => `Claimed ${amount} ${symbol} from ${approvalId} to ${recipient}.`,
+      errors: {
+        recipientRequired: "Enter a recipient address.",
+        recipientInvalid: "Enter a valid recipient address.",
+        amountRequired: "Enter an amount to claim.",
+        amountInvalid: "Enter an amount greater than zero.",
+        amountExceeds: "Claim amount exceeds the remaining balance.",
+      },
+    },
+    returnForm: {
+      title: "Return Funding",
+      description:
+        "Represent funding returns separately from claims. Refund value uses the historical average claim price.",
+      disabledPermission: "This viewer cannot return funding in the current scenario.",
+      disabledNoApproval: "Select a refundable approval from the table.",
+      selectedApproval: "Selected approval",
+      averagePrice: "Historical average claim price",
+      amount: "Amount to return",
+      maxLabel: "Used balance",
+      estimate: "Estimated refund value",
+      note: "Refund accounting uses the historical average claim price for this approval.",
+      submit: "Simulate return",
+      success: (
+        amount: string,
+        symbol: string,
+        approvalId: string,
+        refundValue: string
+      ) => `Returned ${amount} ${symbol} from ${approvalId} for ${refundValue}.`,
+      errors: {
+        amountRequired: "Enter an amount to return.",
+        amountInvalid: "Enter an amount greater than zero.",
+        amountExceeds: "Return amount exceeds the used balance.",
+      },
+    },
+    history: {
+      title: "Return history",
+      empty: "No funding returns recorded in this scenario yet.",
+      period: (period: number) => `Period #${period}`,
+      approval: (approvalId: string) => `Approval ${approvalId}`,
+      returnedBy: "Returned by",
     },
   },
   viewerRoles: {

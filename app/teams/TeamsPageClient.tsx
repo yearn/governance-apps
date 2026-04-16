@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   startTransition,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -11,7 +12,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
-import { resolveSelectedTeam, type TeamsMockScenarioId } from "@/lib/clients/teams";
+import {
+  resolveSelectedTeam,
+  type TeamsMockDataV1,
+  type TeamsMockScenarioId,
+  type TeamRecord,
+} from "@/lib/clients/teams";
 import { useTeamsScenario, useTeamsScenarioCatalog } from "@/lib/hooks/useTeams";
 import { RevenueDepositCard } from "./components/RevenueDepositCard";
 import { TeamWorkspace } from "./components/TeamWorkspace";
@@ -28,17 +34,25 @@ export function TeamsPageClient() {
     useState<TeamsMockScenarioId>(DEFAULT_SCENARIO_ID);
   const [manualSelectedTeamId, setManualSelectedTeamId] = useState<string | null>(null);
   const [surfaceState, setSurfaceState] = useState<SurfaceState>("scenario");
+  const [scenarioData, setScenarioData] = useState<TeamsMockDataV1 | null>(null);
 
   const scenarioCatalogQuery = useTeamsScenarioCatalog();
   const scenarioQuery = useTeamsScenario(activeScenarioId);
   const scenario = scenarioQuery.data ?? null;
-  const scenarioData = scenario?.data ?? null;
   const renderState =
     surfaceState === "loading" || scenarioQuery.isPending
       ? "loading"
       : surfaceState === "empty"
         ? "empty"
         : "ready";
+
+  useEffect(() => {
+    if (surfaceState !== "scenario") {
+      return;
+    }
+
+    setScenarioData(scenario?.data ?? null);
+  }, [scenario, surfaceState]);
 
   const selectedTeamId = useMemo(() => {
     if (!scenarioData) return null;
@@ -64,8 +78,6 @@ export function TeamsPageClient() {
     () => resolveSelectedTeam(scenarioData, selectedTeamId),
     [scenarioData, selectedTeamId]
   );
-  const statesSection =
-    teamsCopy.sections.find((section) => section.id === "states") ?? teamsCopy.sections[0];
 
   const statsItems =
     renderState === "ready" && scenarioData
@@ -120,7 +132,7 @@ export function TeamsPageClient() {
             </div>
 
             <nav aria-label="Team Finances sections" className="flex flex-wrap gap-2">
-              {teamsCopy.sections.map((section) => (
+              {teamsCopy.navigation.map((section) => (
                 <Link
                   key={section.id}
                   href={`#${section.id}`}
@@ -148,10 +160,10 @@ export function TeamsPageClient() {
                   <p className="text-sm font-bold uppercase text-text-tertiary">
                     {teamsCopy.controls.title}
                   </p>
-                  <h2 className="text-2xl font-bold">{statesSection.title}</h2>
+                  <h2 className="text-2xl font-bold">{teamsCopy.controls.heading}</h2>
                 </div>
                 <p className="text-sm leading-6 text-text-secondary">
-                  {statesSection.body}
+                  {teamsCopy.controls.description}
                 </p>
               </div>
 
@@ -244,6 +256,8 @@ export function TeamsPageClient() {
             <TeamWorkspace
               team={renderState === "ready" ? selectedTeam : null}
               viewer={renderState === "ready" ? scenarioData?.viewer ?? null : null}
+              currentPeriod={renderState === "ready" ? scenarioData?.currentPeriod ?? null : null}
+              onUpdateTeam={handleTeamUpdate}
               state={renderState}
             />
           </div>
@@ -261,6 +275,19 @@ export function TeamsPageClient() {
       </section>
     </div>
   );
+
+  function handleTeamUpdate(nextTeam: TeamRecord) {
+    setScenarioData((currentData) => {
+      if (!currentData) {
+        return currentData;
+      }
+
+      return {
+        ...currentData,
+        teams: currentData.teams.map((team) => (team.id === nextTeam.id ? nextTeam : team)),
+      };
+    });
+  }
 }
 
 function RolloutRow({

@@ -38,9 +38,10 @@ the `Team Finances` label and gives users a scannable path into a selected team
 workspace.
 
 The current accepted prototype covers the directory table, the overview workspace,
-and the mock revenue deposit flow. It keeps explicit loading and empty coverage while
-adding token selection, conversion preview, estimated credited USD, recent deposit
-history, and a mock success state for UAT.
+the mock revenue deposit flow, and the mock-backed funding approvals table with
+separate claim and return flows. It includes explicit loading and empty coverage so
+UAT can validate state handling before bonus, lifecycle depth, admin interactions,
+and onchain writes ship.
 
 The approved top-level shell sections are:
 
