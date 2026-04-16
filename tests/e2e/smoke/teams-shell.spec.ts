@@ -11,6 +11,14 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Open Platform workspace" })
   ).toBeVisible();
+  await expect(
+    page.locator("#bonus").getByRole("heading", { name: "Bonus", level: 3 })
+  ).toBeVisible();
+  await expect(
+    page
+      .locator("#lifecycle")
+      .getByRole("heading", { name: "Ownership & Lifecycle", level: 3 })
+  ).toBeVisible();
 
   const sectionNav = page.getByRole("navigation", {
     name: "Team Finances sections",

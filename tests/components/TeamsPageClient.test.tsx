@@ -10,8 +10,7 @@ describe("TeamsPageClient", () => {
   const bonusAvailableLabel = teamsCopy.controls.scenarioNames["bonus-available"];
   const retiredWorkspaceLabel =
     teamsCopy.controls.scenarioNames["retired-read-only"];
-  const twoTeamSnapshotLabel =
-    teamsCopy.controls.scenarioNames["operator-admin"];
+  const twoTeamSnapshotLabel = teamsCopy.controls.scenarioNames["operator-admin"];
 
   it("renders the Team Finances shell, directory states, and workspace cards", async () => {
     const user = userEvent.setup();
@@ -30,6 +29,29 @@ describe("TeamsPageClient", () => {
     const openPlatformButton = await screen.findByRole("button", {
       name: "Open Platform workspace",
     });
+    const bonusSection = document.getElementById("bonus");
+    const lifecycleSection = document.getElementById("lifecycle");
+
+    expect(bonusSection).not.toBeNull();
+    expect(lifecycleSection).not.toBeNull();
+    expect(
+      within(bonusSection!).getByRole("heading", {
+        name: teamsCopy.bonus.title,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(lifecycleSection!).getByRole("heading", {
+        name: teamsCopy.lifecycle.title,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(bonusSection!).getByText(teamsCopy.bonus.placeholders.unselected)
+    ).toBeInTheDocument();
+    expect(
+      within(lifecycleSection!).getByText(teamsCopy.lifecycle.placeholders.unselected)
+    ).toBeInTheDocument();
 
     expect(screen.getByText("Retiring")).toBeInTheDocument();
     expect(screen.getByText("Retired")).toBeInTheDocument();
@@ -64,6 +86,11 @@ describe("TeamsPageClient", () => {
       })
     ).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.bonus.noPeriods)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: teamsCopy.bonus.action.noneCta,
+      })
+    ).toBeDisabled();
   });
 
   it("exposes deterministic loading and empty coverage through the prototype controls", async () => {
@@ -77,12 +104,16 @@ describe("TeamsPageClient", () => {
     await user.click(screen.getByRole("button", { name: "Loading" }));
     expect(screen.getByText(teamsCopy.directory.loadingTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.workspace.loadingTitle)).toBeInTheDocument();
+    expect(document.getElementById("bonus")).not.toBeNull();
+    expect(document.getElementById("lifecycle")).not.toBeNull();
     expect(screen.queryByText("#4")).not.toBeInTheDocument();
     expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(5);
 
     await user.click(screen.getByRole("button", { name: "Empty" }));
     expect(screen.getByText(teamsCopy.directory.emptyTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.workspace.noTeamsTitle)).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.bonus.placeholders.empty)).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.lifecycle.placeholders.empty)).toBeInTheDocument();
     expect(screen.queryByText("#4")).not.toBeInTheDocument();
     expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(5);
   });
@@ -132,8 +163,21 @@ describe("TeamsPageClient", () => {
     expect(within(bonusCard!).getAllByText("14.5 YFI").length).toBeGreaterThan(0);
     expect(within(bonusCard!).getByText("2 periods")).toBeInTheDocument();
     expect(within(bonusCard!).getByText("1 period")).toBeInTheDocument();
+    const claimButton = within(bonusCard!).getByRole("button", {
+      name: teamsCopy.bonus.action.claimCta,
+    });
+    expect(claimButton).toBeEnabled();
     expect(within(lifecycleCard!).getByText("No retirement scheduled")).toBeInTheDocument();
     expect(within(lifecycleCard!).getAllByText("No migration needed").length).toBeGreaterThan(0);
+
+    await user.click(claimButton);
+
+    expect(
+      within(bonusCard!).getByRole("button", {
+        name: teamsCopy.bonus.action.stagedCta,
+      })
+    ).toBeDisabled();
+    expect(within(bonusCard!).getByText(teamsCopy.bonus.action.stagedBody)).toBeInTheDocument();
 
     await user.click(screen.getByText(teamsCopy.bonus.periodDetailSummary));
 
@@ -142,6 +186,46 @@ describe("TeamsPageClient", () => {
     expect(
       screen.getAllByRole("button", { name: teamsCopy.bonus.mathTrigger })
     ).toHaveLength(2);
+  });
+
+  it("covers claimed and pending-finalization bonus states in the operator scenario", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: twoTeamSnapshotLabel,
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Security", level: 2 })
+    ).toBeInTheDocument();
+    const bonusSection = document.getElementById("bonus");
+    expect(bonusSection).not.toBeNull();
+    expect(
+      within(bonusSection!).getByRole("button", {
+        name: teamsCopy.bonus.action.claimedCta,
+      })
+    ).toBeDisabled();
+    expect(within(bonusSection!).getByText(teamsCopy.bonus.action.claimedBody)).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Open Research workspace",
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Research", level: 2 })
+    ).toBeInTheDocument();
+    expect(
+      within(bonusSection!).getByRole("button", {
+        name: teamsCopy.bonus.action.pendingCta,
+      })
+    ).toBeDisabled();
+    expect(within(bonusSection!).getByText(teamsCopy.bonus.action.pendingBody)).toBeInTheDocument();
   });
 
   it("switches to the retired workspace scenario and keeps the read-only state visible", async () => {
