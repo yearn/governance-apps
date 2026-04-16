@@ -116,6 +116,7 @@ The prototype controls should apply coherently across the whole route:
 
 - loading and empty controls blank the stat strip as well as the directory/workspace panes
 - switching scenarios reverts the workspace to that scenario's declared selected team
+- switching scenarios also reset any staged mock bonus action to the target fixture default
 - bonus math stays out of the default view until the period drilldown or tooltip is opened
 - bonus and ownership/lifecycle section anchors remain present across selected, loading, empty, and no-team states
 

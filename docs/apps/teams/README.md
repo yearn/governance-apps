@@ -45,6 +45,8 @@ state handling before revenue, funding, and admin write interactions ship.
 The bonus surface keeps the main card action-oriented by showing claimable YFI first,
 exposing a mock `Claim Bonus` CTA when the workspace is eligible, and moving profit
 and pricing inputs into period detail and tooltip states.
+Scenario switches reset any staged mock bonus action back to the target fixture so
+the prototype controls stay deterministic.
 The ownership/lifecycle card keeps owner, pending owner, retirement, migration, and
 successor state visible without introducing ownership write actions yet.
 Bonus and ownership/lifecycle anchors stay stable across selected, loading, empty,
