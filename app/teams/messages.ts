@@ -20,9 +20,9 @@ export const teamsCopy = {
   },
   page: {
     title: "Team Finances",
-    eyebrow: "Directory and overview prototype",
+    eyebrow: "Revenue deposit prototype",
     description:
-      "Mock-first workspace for scanning registered teams, opening a selected team overview, and keeping current budget period values distinct from lifetime history.",
+      "Mock-first workspace for scanning registered teams, opening a selected team overview, and previewing permissionless revenue deposits with conversion-aware credited USD.",
     productionGate: "Production gated",
   },
   sections: [
@@ -37,6 +37,12 @@ export const teamsCopy = {
       label: "Workspace",
       title: "Workspace Overview",
       body: "Use current-period and lifetime cards to keep the active reporting window distinct from the longer-lived team history.",
+    },
+    {
+      id: "revenue",
+      label: "Revenue",
+      title: "Revenue Deposit",
+      body: "Preview supported tokens, auto-conversion paths, and accountant credit before recording a mock deposit.",
     },
     {
       id: "states",
@@ -126,6 +132,78 @@ export const teamsCopy = {
       retiringPrefix: "Retires in period",
       retiredPrefix: "Retired in period",
       announcedPrefix: "Announced",
+    },
+  },
+  revenue: {
+    title: "Revenue Deposit",
+    description:
+      "Deposit revenue on behalf of the selected team, preview any auto-conversion, and compare the submitted amount with the credited USD estimate.",
+    loadingTitle: "Loading revenue deposit flow",
+    loadingBody:
+      "Preparing supported tokens, the conversion preview, and recent deposit history.",
+    emptyTitle: "No revenue workspace available",
+    emptyBody:
+      "A revenue deposit flow appears here when the current scenario includes a team workspace.",
+    noTeamTitle: "No team selected",
+    noTeamBody:
+      "Open a team from the directory to preview permissionless deposits and recent revenue history.",
+    permissionless: {
+      title: "Permissionless action",
+      body: "Anyone can deposit supported revenue tokens on behalf of this team. Owner status is not required.",
+    },
+    unavailable: {
+      title: "Deposits unavailable in this workspace",
+      viewerBody:
+        "This mock viewer cannot submit deposits, but recent history stays visible for review.",
+      readOnlyBody:
+        "This team is read-only in the current scenario, so new deposits stay disabled.",
+      optionsBody:
+        "This scenario exposes no supported revenue tokens for new deposits.",
+    },
+    form: {
+      tokenLabel: "Supported tokens",
+      amountLabel: "Deposit amount",
+      amountHint:
+        "Credited USD can differ from the nominal token amount because conversion and pricing apply before accounting.",
+      submit: "Record mock deposit",
+      amountError: "Enter an amount greater than 0.",
+    },
+    tokenBadges: {
+      convertible: "Auto-converts",
+      direct: "Direct credit",
+    },
+    preview: {
+      title: "Deposit preview",
+      submitted: "Depositing",
+      path: "Deposit path",
+      credit: "Estimated accountant credit",
+      direct: "Direct accountant credit",
+      quote: "Mock quote",
+      convertedPrefix: "Auto-converts to",
+    },
+    history: {
+      title: "Recent deposit history",
+      description:
+        "Recent deposits stay visible beside the next mock submission so UAT can compare the quoted credit against recorded entries.",
+      emptyTitle: "No deposits recorded yet",
+      emptyBody:
+        "This selected team has no mock revenue deposit history in the current scenario.",
+      headers: {
+        period: "Period",
+        deposit: "Deposit",
+        credit: "Credited USD",
+        path: "Path",
+        depositor: "Deposited by",
+        recorded: "Recorded",
+      },
+      direct: "Direct credit",
+      permissionlessDepositor: "Permissionless depositor",
+    },
+    success: {
+      title: "Mock deposit recorded",
+      body:
+        "The credited USD estimate and recent deposit history have been updated for this session.",
+      currentPeriodPrefix: "Current period",
     },
   },
   viewerRoles: {

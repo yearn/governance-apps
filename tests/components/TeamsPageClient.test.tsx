@@ -7,6 +7,8 @@ import { renderWithProviders } from "@/tests/test-utils";
 
 describe("TeamsPageClient", () => {
   const directoryMixLabel = teamsCopy.controls.scenarioNames["directory-observer"];
+  const revenueWorkspaceLabel =
+    teamsCopy.controls.scenarioNames["finance-operator-revenue"];
   const retiredWorkspaceLabel =
     teamsCopy.controls.scenarioNames["retired-read-only"];
   const twoTeamSnapshotLabel =
@@ -50,6 +52,13 @@ describe("TeamsPageClient", () => {
         level: 3,
       })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: teamsCopy.revenue.title, level: 2 })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Revenue" })).toHaveAttribute(
+      "href",
+      "#revenue"
+    );
   });
 
   it("exposes deterministic loading and empty coverage through the prototype controls", async () => {
@@ -63,12 +72,14 @@ describe("TeamsPageClient", () => {
     await user.click(screen.getByRole("button", { name: "Loading" }));
     expect(screen.getByText(teamsCopy.directory.loadingTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.workspace.loadingTitle)).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.revenue.loadingTitle)).toBeInTheDocument();
     expect(screen.queryByText("#4")).not.toBeInTheDocument();
     expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(5);
 
     await user.click(screen.getByRole("button", { name: "Empty" }));
     expect(screen.getByText(teamsCopy.directory.emptyTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.workspace.noTeamsTitle)).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.revenue.emptyTitle)).toBeInTheDocument();
     expect(screen.queryByText("#4")).not.toBeInTheDocument();
     expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(5);
   });
@@ -113,5 +124,61 @@ describe("TeamsPageClient", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Read-only after retirement")).toBeInTheDocument();
     expect(screen.getAllByText("Retired").length).toBeGreaterThan(0);
+  });
+
+  it("renders the revenue preview, validation, and success state for the revenue scenario", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: revenueWorkspaceLabel,
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: teamsCopy.revenue.title, level: 2 })
+    ).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.revenue.permissionless.title)).toBeInTheDocument();
+    expect(screen.getAllByText("$9,985.40").length).toBeGreaterThan(0);
+
+    const amountInput = screen.getByRole("textbox", {
+      name: teamsCopy.revenue.form.amountLabel,
+    });
+
+    await user.clear(amountInput);
+    await user.click(
+      screen.getByRole("button", { name: teamsCopy.revenue.form.submit })
+    );
+
+    expect(screen.getByText(teamsCopy.revenue.form.amountError)).toBeInTheDocument();
+
+    await user.type(amountInput, "2500");
+    await user.click(
+      screen.getByRole("button", { name: teamsCopy.revenue.form.submit })
+    );
+
+    expect(screen.getByText(teamsCopy.revenue.success.title)).toBeInTheDocument();
+    expect(screen.getByText(/Current period #4:/)).toBeInTheDocument();
+    expect(screen.getAllByText("$2,496.35").length).toBeGreaterThan(0);
+  });
+
+  it("shows the explicit empty history state when the selected team has no deposits yet", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Open Research workspace",
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Research", level: 2 })
+    ).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.revenue.history.emptyTitle)).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.revenue.history.emptyBody)).toBeInTheDocument();
   });
 });
