@@ -13,6 +13,7 @@ import { StatsBar } from "@/components/ui/StatsBar";
 import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
 import { resolveSelectedTeam, type TeamsMockScenarioId } from "@/lib/clients/teams";
 import { useTeamsScenario, useTeamsScenarioCatalog } from "@/lib/hooks/useTeams";
+import { RevenueDepositCard } from "./components/RevenueDepositCard";
 import { TeamWorkspace } from "./components/TeamWorkspace";
 import { TeamsDirectory } from "./components/TeamsDirectory";
 import { teamsCopy } from "./messages";
@@ -63,6 +64,8 @@ export function TeamsPageClient() {
     () => resolveSelectedTeam(scenarioData, selectedTeamId),
     [scenarioData, selectedTeamId]
   );
+  const statesSection =
+    teamsCopy.sections.find((section) => section.id === "states") ?? teamsCopy.sections[0];
 
   const statsItems =
     renderState === "ready" && scenarioData
@@ -145,10 +148,10 @@ export function TeamsPageClient() {
                   <p className="text-sm font-bold uppercase text-text-tertiary">
                     {teamsCopy.controls.title}
                   </p>
-                  <h2 className="text-2xl font-bold">{teamsCopy.sections[2].title}</h2>
+                  <h2 className="text-2xl font-bold">{statesSection.title}</h2>
                 </div>
                 <p className="text-sm leading-6 text-text-secondary">
-                  {teamsCopy.sections[2].body}
+                  {statesSection.body}
                 </p>
               </div>
 
@@ -245,6 +248,16 @@ export function TeamsPageClient() {
             />
           </div>
         </div>
+      </section>
+
+      <section id="revenue" className="container mx-auto px-4 pb-10 md:px-6 md:pb-14">
+        <RevenueDepositCard
+          key={`${renderState}:${activeScenarioId}:${selectedTeamId ?? "none"}`}
+          team={renderState === "ready" ? selectedTeam : null}
+          viewer={renderState === "ready" ? scenarioData?.viewer ?? null : null}
+          currentPeriod={renderState === "ready" ? scenarioData?.currentPeriod ?? null : null}
+          state={renderState}
+        />
       </section>
     </div>
   );

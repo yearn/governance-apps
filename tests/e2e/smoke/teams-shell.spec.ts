@@ -23,4 +23,11 @@ test("renders the Team Finances route shell", async ({ page }) => {
     "href",
     "#workspace"
   );
+  await expect(sectionNav.getByRole("link", { name: "Revenue" })).toHaveAttribute(
+    "href",
+    "#revenue"
+  );
+  await expect(
+    page.getByRole("heading", { name: "Revenue Deposit", level: 2 })
+  ).toBeVisible();
 });
