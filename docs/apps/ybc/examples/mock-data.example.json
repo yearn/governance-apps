@@ -8,131 +8,693 @@
       "data": {
         "version": 1,
         "generatedAt": 1776200000,
-        "currentEpoch": 11,
-        "influence": {
-          "internalWeight": "45000",
-          "delegatedWeight": "100000",
-          "totalWeight": "145000"
+        "asOf": 1776200000,
+        "epoch": {
+          "current": 11,
+          "startsAt": 1776124800,
+          "endsAt": 1776729600
         },
-        "collective": {
-          "address": "0x9999999999999999999999999999999999999999",
-          "memberCount": 7,
-          "stakedSupply": "52000",
-          "effectiveWeight": "45000",
-          "pendingExecutions": 1
+        "hero": {
+          "collectiveAddress": "0x9999999999999999999999999999999999999999",
+          "memberCount": 3,
+          "internalWeight": "5650",
+          "delegatedWeight": "100000",
+          "totalInfluence": "105650",
+          "currentEpoch": 11,
+          "activeProposalCount": 2,
+          "awaitingExecutionCount": 1
         },
         "me": {
+          "address": null,
           "isMember": false,
-          "rawStaked": "0",
-          "effectiveWeight": "0",
-          "targetWeight": "0",
-          "maturityBps": 0,
+          "isOperator": false,
+          "canPropose": false,
+          "canVote": false,
+          "weight": {
+            "rawStaked": "0",
+            "effectiveWeight": "0",
+            "targetWeight": "0",
+            "maturityBps": 0,
+            "maturesAt": null
+          },
           "pendingRewards": "0"
         },
-        "members": [
-          {
-            "address": "0xaaaa000000000000000000000000000000000001",
-            "ens": "banteg.eth",
-            "isMember": true,
-            "rawStaked": "500",
-            "effectiveWeight": "250",
-            "targetWeight": "500",
-            "maturityBps": 5000,
-            "sources": {
-              "styfi": "250",
-              "llYfi": "150",
-              "migratedVeYfi": "100"
-            }
+        "roster": {
+          "totals": {
+            "rawStaked": "5900",
+            "effectiveWeight": "5650",
+            "targetWeight": "5900",
+            "rampingMemberCount": 1
           },
-          {
-            "address": "0xbbbb000000000000000000000000000000000001",
-            "ens": "tracheopteryx.eth",
-            "isMember": true,
+          "members": [
+            {
+              "address": "0x1111111111111111111111111111111111111111",
+              "ens": "alice-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1775000000,
+              "weight": {
+                "rawStaked": "500",
+                "effectiveWeight": "250",
+                "targetWeight": "500",
+                "maturityBps": 5000,
+                "maturesAt": 1777420800
+              },
+              "sources": {
+                "stYFI": "250",
+                "stYFIx": "150",
+                "migratedVeYfi": "100"
+              }
+            },
+            {
+              "address": "0x2222222222222222222222222222222222222222",
+              "ens": "bobby-ybc.eth",
+              "status": "active",
+              "joinedAt": 1773100000,
+              "weight": {
+                "rawStaked": "1200",
+                "effectiveWeight": "1200",
+                "targetWeight": "1200",
+                "maturityBps": 10000,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "700",
+                "stYFIx": "500",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x3333333333333333333333333333333333333333",
+              "ens": null,
+              "status": "active",
+              "joinedAt": 1772200000,
+              "weight": {
+                "rawStaked": "4200",
+                "effectiveWeight": "4200",
+                "targetWeight": "4200",
+                "maturityBps": 10000,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "3000",
+                "stYFIx": "1200",
+                "migratedVeYfi": "0"
+              }
+            }
+          ]
+        },
+        "proposals": {
+          "summary": {
+            "activeCount": 2,
+            "awaitingExecutionCount": 1,
+            "terminalCount": 4
+          },
+          "items": [
+            {
+              "id": "YBC-8",
+              "type": "addition",
+              "targetAccount": "0x4444444444444444444444444444444444444444",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 12,
+              "phase": "discussion",
+              "outcome": "pending",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1776180000,
+                "discussionStartsAt": 1776180000,
+                "votingStartsAt": 1776380000,
+                "votingEndsAt": 1776984800,
+                "executionOpensAt": 1776984800,
+                "expiresAt": 1777589600
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Connect a member wallet to act on this proposal."
+              }
+            },
+            {
+              "id": "YBC-7",
+              "type": "addition",
+              "targetAccount": "0x5555555555555555555555555555555555555555",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 12,
+              "phase": "voting",
+              "outcome": "passing",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "20000",
+                "yea": "11000",
+                "nay": "9000"
+              },
+              "timing": {
+                "createdAt": 1775600000,
+                "discussionStartsAt": 1775600000,
+                "votingStartsAt": 1776000000,
+                "votingEndsAt": 1776604800,
+                "executionOpensAt": 1776604800,
+                "expiresAt": 1777209600
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Connect a member wallet to vote."
+              }
+            },
+            {
+              "id": "YBC-6",
+              "type": "expulsion",
+              "targetAccount": "0x6666666666666666666666666666666666666666",
+              "proposer": "0x3333333333333333333333333333333333333333",
+              "epoch": 11,
+              "phase": "awaiting-execution",
+              "outcome": "passed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "14000",
+                "nay": "6000"
+              },
+              "timing": {
+                "createdAt": 1775000000,
+                "discussionStartsAt": 1775000000,
+                "votingStartsAt": 1775400000,
+                "votingEndsAt": 1776000000,
+                "executionOpensAt": 1776000000,
+                "expiresAt": 1776604800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Connect a member wallet to execute."
+              }
+            },
+            {
+              "id": "YBC-5",
+              "type": "addition",
+              "targetAccount": "0x7777777777777777777777777777777777777777",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 10,
+              "phase": "executed",
+              "outcome": "passed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "21000",
+                "yea": "16000",
+                "nay": "5000"
+              },
+              "timing": {
+                "createdAt": 1774300000,
+                "discussionStartsAt": 1774300000,
+                "votingStartsAt": 1774700000,
+                "votingEndsAt": 1775300000,
+                "executionOpensAt": 1775300000,
+                "expiresAt": 1775904800,
+                "executedAt": 1775550000
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Executed proposals are terminal."
+              }
+            },
+            {
+              "id": "YBC-4",
+              "type": "addition",
+              "targetAccount": "0x8888888888888888888888888888888888888888",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 9,
+              "phase": "expired",
+              "outcome": "passed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "20000",
+                "yea": "12500",
+                "nay": "7500"
+              },
+              "timing": {
+                "createdAt": 1773000000,
+                "discussionStartsAt": 1773000000,
+                "votingStartsAt": 1773400000,
+                "votingEndsAt": 1774000000,
+                "executionOpensAt": 1774000000,
+                "expiresAt": 1774604800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Expired proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-3",
+              "type": "expulsion",
+              "targetAccount": "0x9999999999999999999999999999999999999998",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 9,
+              "phase": "failed",
+              "outcome": "failed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "8000",
+                "nay": "12000"
+              },
+              "timing": {
+                "createdAt": 1772600000,
+                "discussionStartsAt": 1772600000,
+                "votingStartsAt": 1773000000,
+                "votingEndsAt": 1773600000,
+                "executionOpensAt": 1773600000,
+                "expiresAt": 1774204800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Failed proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-2",
+              "type": "addition",
+              "targetAccount": "0x9999999999999999999999999999999999999997",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 8,
+              "phase": "retracted",
+              "outcome": "failed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1771800000,
+                "discussionStartsAt": 1771800000,
+                "votingStartsAt": 1772200000,
+                "votingEndsAt": 1772800000,
+                "executionOpensAt": 1772800000,
+                "expiresAt": 1773404800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Retracted proposals are terminal; start a new proposal."
+              }
+            }
+          ]
+        },
+        "rewards": {
+          "token": {
+            "symbol": "YFI",
+            "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+            "decimals": 18
+          },
+          "claimable": "0",
+          "accruing": "0",
+          "lastUpdatedAt": 1776200000,
+          "claim": {
+            "mode": "shared-claim-surface",
+            "href": "/styfi",
+            "ctaLabel": "Open shared rewards",
+            "disabledReason": "Connect a member wallet to view claimable rewards."
+          },
+          "periods": []
+        }
+      }
+    },
+    {
+      "id": "member-matured",
+      "label": "Member with fully matured weight",
+      "data": {
+        "version": 1,
+        "generatedAt": 1776200000,
+        "asOf": 1776200000,
+        "epoch": {
+          "current": 11,
+          "startsAt": 1776124800,
+          "endsAt": 1776729600
+        },
+        "hero": {
+          "collectiveAddress": "0x9999999999999999999999999999999999999999",
+          "memberCount": 3,
+          "internalWeight": "5650",
+          "delegatedWeight": "100000",
+          "totalInfluence": "105650",
+          "currentEpoch": 11,
+          "activeProposalCount": 2,
+          "awaitingExecutionCount": 1
+        },
+        "me": {
+          "address": "0x2222222222222222222222222222222222222222",
+          "isMember": true,
+          "isOperator": false,
+          "canPropose": true,
+          "canVote": true,
+          "weight": {
             "rawStaked": "1200",
             "effectiveWeight": "1200",
             "targetWeight": "1200",
             "maturityBps": 10000,
-            "sources": {
-              "styfi": "700",
-              "llYfi": "500",
-              "migratedVeYfi": "0"
+            "maturesAt": null
+          },
+          "pendingRewards": "42.0"
+        },
+        "roster": {
+          "totals": {
+            "rawStaked": "5900",
+            "effectiveWeight": "5650",
+            "targetWeight": "5900",
+            "rampingMemberCount": 1
+          },
+          "members": [
+            {
+              "address": "0x1111111111111111111111111111111111111111",
+              "ens": "alice-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1775000000,
+              "weight": {
+                "rawStaked": "500",
+                "effectiveWeight": "250",
+                "targetWeight": "500",
+                "maturityBps": 5000,
+                "maturesAt": 1777420800
+              },
+              "sources": {
+                "stYFI": "250",
+                "stYFIx": "150",
+                "migratedVeYfi": "100"
+              }
+            },
+            {
+              "address": "0x2222222222222222222222222222222222222222",
+              "ens": "bobby-ybc.eth",
+              "status": "active",
+              "joinedAt": 1773100000,
+              "weight": {
+                "rawStaked": "1200",
+                "effectiveWeight": "1200",
+                "targetWeight": "1200",
+                "maturityBps": 10000,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "700",
+                "stYFIx": "500",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x3333333333333333333333333333333333333333",
+              "ens": null,
+              "status": "active",
+              "joinedAt": 1772200000,
+              "weight": {
+                "rawStaked": "4200",
+                "effectiveWeight": "4200",
+                "targetWeight": "4200",
+                "maturityBps": 10000,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "3000",
+                "stYFIx": "1200",
+                "migratedVeYfi": "0"
+              }
             }
-          }
-        ],
-        "proposals": [
-          {
-            "id": 8,
-            "type": "addition",
-            "account": "0xcccc000000000000000000000000000000000002",
-            "proposer": "0xaaaa000000000000000000000000000000000001",
-            "epoch": 12,
-            "thresholdBps": 5000,
-            "votesTotal": "0",
-            "votesYea": "0",
-            "votesNay": "0",
-            "phase": "discussion",
-            "opensAt": 1776600000,
-            "closesAt": 1777200000,
-            "executeBy": 1777800000,
-            "canRetract": false,
-            "canVote": false,
-            "canExecute": false
+          ]
+        },
+        "proposals": {
+          "summary": {
+            "activeCount": 2,
+            "awaitingExecutionCount": 1,
+            "terminalCount": 4
           },
-          {
-            "id": 7,
-            "type": "addition",
-            "account": "0xcccc000000000000000000000000000000000001",
-            "proposer": "0xaaaa000000000000000000000000000000000001",
-            "epoch": 12,
-            "thresholdBps": 5000,
-            "votesTotal": "20000",
-            "votesYea": "11000",
-            "votesNay": "9000",
-            "phase": "voting",
-            "opensAt": 1776400000,
-            "closesAt": 1777000000,
-            "executeBy": 1777600000,
-            "canRetract": false,
-            "canVote": false,
-            "canExecute": false
+          "items": [
+            {
+              "id": "YBC-8",
+              "type": "addition",
+              "targetAccount": "0x4444444444444444444444444444444444444444",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 12,
+              "phase": "discussion",
+              "outcome": "pending",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1776180000,
+                "discussionStartsAt": 1776180000,
+                "votingStartsAt": 1776380000,
+                "votingEndsAt": 1776984800,
+                "executionOpensAt": 1776984800,
+                "expiresAt": 1777589600
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Voting has not opened yet."
+              }
+            },
+            {
+              "id": "YBC-7",
+              "type": "addition",
+              "targetAccount": "0x5555555555555555555555555555555555555555",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 12,
+              "phase": "voting",
+              "outcome": "passing",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "20000",
+                "yea": "11000",
+                "nay": "9000"
+              },
+              "timing": {
+                "createdAt": 1775600000,
+                "discussionStartsAt": 1775600000,
+                "votingStartsAt": 1776000000,
+                "votingEndsAt": 1776604800,
+                "executionOpensAt": 1776604800,
+                "expiresAt": 1777209600
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": true,
+                "canExecute": false,
+                "nextAction": "vote",
+                "disabledReason": null
+              }
+            },
+            {
+              "id": "YBC-6",
+              "type": "expulsion",
+              "targetAccount": "0x6666666666666666666666666666666666666666",
+              "proposer": "0x3333333333333333333333333333333333333333",
+              "epoch": 11,
+              "phase": "awaiting-execution",
+              "outcome": "passed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "14000",
+                "nay": "6000"
+              },
+              "timing": {
+                "createdAt": 1775000000,
+                "discussionStartsAt": 1775000000,
+                "votingStartsAt": 1775400000,
+                "votingEndsAt": 1776000000,
+                "executionOpensAt": 1776000000,
+                "expiresAt": 1776604800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": true,
+                "nextAction": "execute",
+                "disabledReason": null
+              }
+            },
+            {
+              "id": "YBC-5",
+              "type": "addition",
+              "targetAccount": "0x7777777777777777777777777777777777777777",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 10,
+              "phase": "executed",
+              "outcome": "passed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "21000",
+                "yea": "16000",
+                "nay": "5000"
+              },
+              "timing": {
+                "createdAt": 1774300000,
+                "discussionStartsAt": 1774300000,
+                "votingStartsAt": 1774700000,
+                "votingEndsAt": 1775300000,
+                "executionOpensAt": 1775300000,
+                "expiresAt": 1775904800,
+                "executedAt": 1775550000
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Executed proposals are terminal."
+              }
+            },
+            {
+              "id": "YBC-4",
+              "type": "addition",
+              "targetAccount": "0x8888888888888888888888888888888888888888",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 9,
+              "phase": "expired",
+              "outcome": "passed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "20000",
+                "yea": "12500",
+                "nay": "7500"
+              },
+              "timing": {
+                "createdAt": 1773000000,
+                "discussionStartsAt": 1773000000,
+                "votingStartsAt": 1773400000,
+                "votingEndsAt": 1774000000,
+                "executionOpensAt": 1774000000,
+                "expiresAt": 1774604800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Expired proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-3",
+              "type": "expulsion",
+              "targetAccount": "0x9999999999999999999999999999999999999998",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 9,
+              "phase": "failed",
+              "outcome": "failed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "8000",
+                "nay": "12000"
+              },
+              "timing": {
+                "createdAt": 1772600000,
+                "discussionStartsAt": 1772600000,
+                "votingStartsAt": 1773000000,
+                "votingEndsAt": 1773600000,
+                "executionOpensAt": 1773600000,
+                "expiresAt": 1774204800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Failed proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-2",
+              "type": "addition",
+              "targetAccount": "0x9999999999999999999999999999999999999997",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 8,
+              "phase": "retracted",
+              "outcome": "failed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1771800000,
+                "discussionStartsAt": 1771800000,
+                "votingStartsAt": 1772200000,
+                "votingEndsAt": 1772800000,
+                "executionOpensAt": 1772800000,
+                "expiresAt": 1773404800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Retracted proposals are terminal; start a new proposal."
+              }
+            }
+          ]
+        },
+        "rewards": {
+          "token": {
+            "symbol": "YFI",
+            "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+            "decimals": 18
           },
-          {
-            "id": 6,
-            "type": "expulsion",
-            "account": "0xdddd000000000000000000000000000000000001",
-            "proposer": "0xbbbb000000000000000000000000000000000001",
-            "epoch": 11,
-            "thresholdBps": 6000,
-            "votesTotal": "20000",
-            "votesYea": "14000",
-            "votesNay": "6000",
-            "phase": "passed",
-            "opensAt": 1775800000,
-            "closesAt": 1776400000,
-            "executeBy": 1777000000,
-            "canRetract": false,
-            "canVote": false,
-            "canExecute": false
+          "claimable": "42.0",
+          "accruing": "3.2",
+          "lastUpdatedAt": 1776200000,
+          "claim": {
+            "mode": "shared-claim-surface",
+            "href": "/styfi",
+            "ctaLabel": "Open shared rewards",
+            "disabledReason": null
           },
-          {
-            "id": 5,
-            "type": "addition",
-            "account": "0xffff000000000000000000000000000000000001",
-            "proposer": "0xbbbb000000000000000000000000000000000001",
-            "epoch": 10,
-            "thresholdBps": 5000,
-            "votesTotal": "20000",
-            "votesYea": "12500",
-            "votesNay": "7500",
-            "phase": "expired",
-            "opensAt": 1775000000,
-            "closesAt": 1775600000,
-            "executeBy": 1776000000,
-            "canRetract": false,
-            "canVote": false,
-            "canExecute": false
-          }
-        ]
+          "periods": [
+            {
+              "epoch": 10,
+              "source": "member-weight",
+              "earned": "39.0",
+              "claimable": "39.0",
+              "finalized": true
+            },
+            {
+              "epoch": 11,
+              "source": "member-weight",
+              "earned": "3.0",
+              "claimable": "3.0",
+              "finalized": true
+            }
+          ]
+        }
       }
     },
     {
@@ -141,95 +703,353 @@
       "data": {
         "version": 1,
         "generatedAt": 1776200000,
-        "currentEpoch": 11,
-        "influence": {
-          "internalWeight": "45000",
-          "delegatedWeight": "100000",
-          "totalWeight": "145000"
+        "asOf": 1776200000,
+        "epoch": {
+          "current": 11,
+          "startsAt": 1776124800,
+          "endsAt": 1776729600
         },
-        "collective": {
-          "address": "0x9999999999999999999999999999999999999999",
-          "memberCount": 7,
-          "stakedSupply": "52000",
-          "effectiveWeight": "45000",
-          "pendingExecutions": 1
+        "hero": {
+          "collectiveAddress": "0x9999999999999999999999999999999999999999",
+          "memberCount": 3,
+          "internalWeight": "5650",
+          "delegatedWeight": "100000",
+          "totalInfluence": "105650",
+          "currentEpoch": 11,
+          "activeProposalCount": 2,
+          "awaitingExecutionCount": 1
         },
         "me": {
+          "address": "0x1111111111111111111111111111111111111111",
           "isMember": true,
-          "rawStaked": "500",
-          "effectiveWeight": "250",
-          "targetWeight": "500",
-          "maturityBps": 5000,
-          "pendingRewards": "18.0"
-        },
-        "members": [
-          {
-            "address": "0xaaaa000000000000000000000000000000000001",
-            "ens": "banteg.eth",
-            "isMember": true,
+          "isOperator": false,
+          "canPropose": true,
+          "canVote": true,
+          "weight": {
             "rawStaked": "500",
             "effectiveWeight": "250",
             "targetWeight": "500",
             "maturityBps": 5000,
-            "sources": {
-              "styfi": "250",
-              "llYfi": "150",
-              "migratedVeYfi": "100"
-            }
+            "maturesAt": 1777420800
           },
-          {
-            "address": "0xbbbb000000000000000000000000000000000001",
-            "ens": "tracheopteryx.eth",
-            "isMember": true,
-            "rawStaked": "1200",
-            "effectiveWeight": "1200",
-            "targetWeight": "1200",
-            "maturityBps": 10000,
-            "sources": {
-              "styfi": "700",
-              "llYfi": "500",
-              "migratedVeYfi": "0"
-            }
-          }
-        ],
-        "proposals": [
-          {
-            "id": 7,
-            "type": "addition",
-            "account": "0xcccc000000000000000000000000000000000001",
-            "proposer": "0xaaaa000000000000000000000000000000000001",
-            "epoch": 12,
-            "thresholdBps": 5000,
-            "votesTotal": "20000",
-            "votesYea": "11000",
-            "votesNay": "9000",
-            "phase": "voting",
-            "opensAt": 1776400000,
-            "closesAt": 1777000000,
-            "executeBy": 1777600000,
-            "canRetract": false,
-            "canVote": true,
-            "canExecute": false
+          "pendingRewards": "18.0"
+        },
+        "roster": {
+          "totals": {
+            "rawStaked": "5900",
+            "effectiveWeight": "5650",
+            "targetWeight": "5900",
+            "rampingMemberCount": 1
           },
-          {
-            "id": 6,
-            "type": "expulsion",
-            "account": "0xdddd000000000000000000000000000000000001",
-            "proposer": "0xbbbb000000000000000000000000000000000001",
-            "epoch": 11,
-            "thresholdBps": 6000,
-            "votesTotal": "20000",
-            "votesYea": "14000",
-            "votesNay": "6000",
-            "phase": "passed",
-            "opensAt": 1775800000,
-            "closesAt": 1776400000,
-            "executeBy": 1777000000,
-            "canRetract": false,
-            "canVote": false,
-            "canExecute": true
-          }
-        ]
+          "members": [
+            {
+              "address": "0x1111111111111111111111111111111111111111",
+              "ens": "alice-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1775000000,
+              "weight": {
+                "rawStaked": "500",
+                "effectiveWeight": "250",
+                "targetWeight": "500",
+                "maturityBps": 5000,
+                "maturesAt": 1777420800
+              },
+              "sources": {
+                "stYFI": "250",
+                "stYFIx": "150",
+                "migratedVeYfi": "100"
+              }
+            },
+            {
+              "address": "0x2222222222222222222222222222222222222222",
+              "ens": "bobby-ybc.eth",
+              "status": "active",
+              "joinedAt": 1773100000,
+              "weight": {
+                "rawStaked": "1200",
+                "effectiveWeight": "1200",
+                "targetWeight": "1200",
+                "maturityBps": 10000,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "700",
+                "stYFIx": "500",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x3333333333333333333333333333333333333333",
+              "ens": null,
+              "status": "active",
+              "joinedAt": 1772200000,
+              "weight": {
+                "rawStaked": "4200",
+                "effectiveWeight": "4200",
+                "targetWeight": "4200",
+                "maturityBps": 10000,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "3000",
+                "stYFIx": "1200",
+                "migratedVeYfi": "0"
+              }
+            }
+          ]
+        },
+        "proposals": {
+          "summary": {
+            "activeCount": 2,
+            "awaitingExecutionCount": 1,
+            "terminalCount": 4
+          },
+          "items": [
+            {
+              "id": "YBC-8",
+              "type": "addition",
+              "targetAccount": "0x4444444444444444444444444444444444444444",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 12,
+              "phase": "discussion",
+              "outcome": "pending",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1776180000,
+                "discussionStartsAt": 1776180000,
+                "votingStartsAt": 1776380000,
+                "votingEndsAt": 1776984800,
+                "executionOpensAt": 1776984800,
+                "expiresAt": 1777589600
+              },
+              "actions": {
+                "canRetract": true,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "retract",
+                "disabledReason": null
+              }
+            },
+            {
+              "id": "YBC-7",
+              "type": "addition",
+              "targetAccount": "0x5555555555555555555555555555555555555555",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 12,
+              "phase": "voting",
+              "outcome": "passing",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "20000",
+                "yea": "11000",
+                "nay": "9000"
+              },
+              "timing": {
+                "createdAt": 1775600000,
+                "discussionStartsAt": 1775600000,
+                "votingStartsAt": 1776000000,
+                "votingEndsAt": 1776604800,
+                "executionOpensAt": 1776604800,
+                "expiresAt": 1777209600
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": true,
+                "canExecute": false,
+                "nextAction": "vote",
+                "disabledReason": null
+              }
+            },
+            {
+              "id": "YBC-6",
+              "type": "expulsion",
+              "targetAccount": "0x6666666666666666666666666666666666666666",
+              "proposer": "0x3333333333333333333333333333333333333333",
+              "epoch": 11,
+              "phase": "awaiting-execution",
+              "outcome": "passed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "14000",
+                "nay": "6000"
+              },
+              "timing": {
+                "createdAt": 1775000000,
+                "discussionStartsAt": 1775000000,
+                "votingStartsAt": 1775400000,
+                "votingEndsAt": 1776000000,
+                "executionOpensAt": 1776000000,
+                "expiresAt": 1776604800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": true,
+                "nextAction": "execute",
+                "disabledReason": null
+              }
+            },
+            {
+              "id": "YBC-5",
+              "type": "addition",
+              "targetAccount": "0x7777777777777777777777777777777777777777",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 10,
+              "phase": "executed",
+              "outcome": "passed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "21000",
+                "yea": "16000",
+                "nay": "5000"
+              },
+              "timing": {
+                "createdAt": 1774300000,
+                "discussionStartsAt": 1774300000,
+                "votingStartsAt": 1774700000,
+                "votingEndsAt": 1775300000,
+                "executionOpensAt": 1775300000,
+                "expiresAt": 1775904800,
+                "executedAt": 1775550000
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Executed proposals are terminal."
+              }
+            },
+            {
+              "id": "YBC-4",
+              "type": "addition",
+              "targetAccount": "0x8888888888888888888888888888888888888888",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 9,
+              "phase": "expired",
+              "outcome": "passed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "20000",
+                "yea": "12500",
+                "nay": "7500"
+              },
+              "timing": {
+                "createdAt": 1773000000,
+                "discussionStartsAt": 1773000000,
+                "votingStartsAt": 1773400000,
+                "votingEndsAt": 1774000000,
+                "executionOpensAt": 1774000000,
+                "expiresAt": 1774604800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Expired proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-3",
+              "type": "expulsion",
+              "targetAccount": "0x9999999999999999999999999999999999999998",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 9,
+              "phase": "failed",
+              "outcome": "failed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "8000",
+                "nay": "12000"
+              },
+              "timing": {
+                "createdAt": 1772600000,
+                "discussionStartsAt": 1772600000,
+                "votingStartsAt": 1773000000,
+                "votingEndsAt": 1773600000,
+                "executionOpensAt": 1773600000,
+                "expiresAt": 1774204800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Failed proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-2",
+              "type": "addition",
+              "targetAccount": "0x9999999999999999999999999999999999999997",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 8,
+              "phase": "retracted",
+              "outcome": "failed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1771800000,
+                "discussionStartsAt": 1771800000,
+                "votingStartsAt": 1772200000,
+                "votingEndsAt": 1772800000,
+                "executionOpensAt": 1772800000,
+                "expiresAt": 1773404800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Retracted proposals are terminal; start a new proposal."
+              }
+            }
+          ]
+        },
+        "rewards": {
+          "token": {
+            "symbol": "YFI",
+            "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+            "decimals": 18
+          },
+          "claimable": "18.0",
+          "accruing": "1.6",
+          "lastUpdatedAt": 1776200000,
+          "claim": {
+            "mode": "shared-claim-surface",
+            "href": "/styfi",
+            "ctaLabel": "Open shared rewards",
+            "disabledReason": null
+          },
+          "periods": [
+            {
+              "epoch": 10,
+              "source": "member-weight",
+              "earned": "16.0",
+              "claimable": "16.0",
+              "finalized": true
+            },
+            {
+              "epoch": 11,
+              "source": "member-weight",
+              "earned": "2.0",
+              "claimable": "2.0",
+              "finalized": true
+            }
+          ]
+        }
       }
     },
     {
@@ -238,105 +1058,399 @@
       "data": {
         "version": 1,
         "generatedAt": 1776200000,
-        "currentEpoch": 11,
-        "influence": {
-          "internalWeight": "45000",
-          "delegatedWeight": "100000",
-          "totalWeight": "145000"
+        "asOf": 1776200000,
+        "epoch": {
+          "current": 11,
+          "startsAt": 1776124800,
+          "endsAt": 1776729600
         },
-        "collective": {
-          "address": "0x9999999999999999999999999999999999999999",
-          "memberCount": 7,
-          "stakedSupply": "52000",
-          "effectiveWeight": "45000",
-          "pendingExecutions": 1
+        "hero": {
+          "collectiveAddress": "0x9999999999999999999999999999999999999999",
+          "memberCount": 3,
+          "internalWeight": "5650",
+          "delegatedWeight": "100000",
+          "totalInfluence": "105650",
+          "currentEpoch": 11,
+          "activeProposalCount": 2,
+          "awaitingExecutionCount": 1
         },
         "me": {
+          "address": "0x2222222222222222222222222222222222222222",
           "isMember": true,
-          "rawStaked": "1200",
-          "effectiveWeight": "1200",
-          "targetWeight": "1200",
-          "maturityBps": 10000,
-          "pendingRewards": "42.0"
-        },
-        "members": [
-          {
-            "address": "0xaaaa000000000000000000000000000000000001",
-            "ens": "banteg.eth",
-            "isMember": true,
-            "rawStaked": "500",
-            "effectiveWeight": "250",
-            "targetWeight": "500",
-            "maturityBps": 5000,
-            "sources": {
-              "styfi": "250",
-              "llYfi": "150",
-              "migratedVeYfi": "100"
-            }
-          },
-          {
-            "address": "0xbbbb000000000000000000000000000000000001",
-            "ens": "tracheopteryx.eth",
-            "isMember": true,
+          "isOperator": true,
+          "canPropose": true,
+          "canVote": true,
+          "weight": {
             "rawStaked": "1200",
             "effectiveWeight": "1200",
             "targetWeight": "1200",
             "maturityBps": 10000,
-            "sources": {
-              "styfi": "700",
-              "llYfi": "500",
-              "migratedVeYfi": "0"
-            }
-          }
-        ],
-        "proposals": [
-          {
-            "id": 6,
-            "type": "expulsion",
-            "account": "0xdddd000000000000000000000000000000000001",
-            "proposer": "0xbbbb000000000000000000000000000000000001",
-            "epoch": 11,
-            "thresholdBps": 6000,
-            "votesTotal": "20000",
-            "votesYea": "14000",
-            "votesNay": "6000",
-            "phase": "passed",
-            "opensAt": 1775800000,
-            "closesAt": 1776400000,
-            "executeBy": 1777000000,
-            "canRetract": false,
-            "canVote": false,
-            "canExecute": true
+            "maturesAt": null
           },
-          {
-            "id": 5,
-            "type": "addition",
-            "account": "0xffff000000000000000000000000000000000001",
-            "proposer": "0xbbbb000000000000000000000000000000000001",
-            "epoch": 10,
-            "thresholdBps": 5000,
-            "votesTotal": "20000",
-            "votesYea": "12500",
-            "votesNay": "7500",
-            "phase": "expired",
-            "opensAt": 1775000000,
-            "closesAt": 1775600000,
-            "executeBy": 1776000000,
-            "canRetract": false,
-            "canVote": false,
-            "canExecute": false
-          }
-        ],
+          "pendingRewards": "47.0"
+        },
+        "roster": {
+          "totals": {
+            "rawStaked": "5900",
+            "effectiveWeight": "5650",
+            "targetWeight": "5900",
+            "rampingMemberCount": 1
+          },
+          "members": [
+            {
+              "address": "0x1111111111111111111111111111111111111111",
+              "ens": "alice-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1775000000,
+              "weight": {
+                "rawStaked": "500",
+                "effectiveWeight": "250",
+                "targetWeight": "500",
+                "maturityBps": 5000,
+                "maturesAt": 1777420800
+              },
+              "sources": {
+                "stYFI": "250",
+                "stYFIx": "150",
+                "migratedVeYfi": "100"
+              }
+            },
+            {
+              "address": "0x2222222222222222222222222222222222222222",
+              "ens": "bobby-ybc.eth",
+              "status": "active",
+              "joinedAt": 1773100000,
+              "weight": {
+                "rawStaked": "1200",
+                "effectiveWeight": "1200",
+                "targetWeight": "1200",
+                "maturityBps": 10000,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "700",
+                "stYFIx": "500",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x3333333333333333333333333333333333333333",
+              "ens": null,
+              "status": "active",
+              "joinedAt": 1772200000,
+              "weight": {
+                "rawStaked": "4200",
+                "effectiveWeight": "4200",
+                "targetWeight": "4200",
+                "maturityBps": 10000,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "3000",
+                "stYFIx": "1200",
+                "migratedVeYfi": "0"
+              }
+            }
+          ]
+        },
+        "proposals": {
+          "summary": {
+            "activeCount": 2,
+            "awaitingExecutionCount": 1,
+            "terminalCount": 4
+          },
+          "items": [
+            {
+              "id": "YBC-8",
+              "type": "addition",
+              "targetAccount": "0x4444444444444444444444444444444444444444",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 12,
+              "phase": "discussion",
+              "outcome": "pending",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1776180000,
+                "discussionStartsAt": 1776180000,
+                "votingStartsAt": 1776380000,
+                "votingEndsAt": 1776984800,
+                "executionOpensAt": 1776984800,
+                "expiresAt": 1777589600
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Voting has not opened yet."
+              }
+            },
+            {
+              "id": "YBC-7",
+              "type": "addition",
+              "targetAccount": "0x5555555555555555555555555555555555555555",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 12,
+              "phase": "voting",
+              "outcome": "passing",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "20000",
+                "yea": "11000",
+                "nay": "9000"
+              },
+              "timing": {
+                "createdAt": 1775600000,
+                "discussionStartsAt": 1775600000,
+                "votingStartsAt": 1776000000,
+                "votingEndsAt": 1776604800,
+                "executionOpensAt": 1776604800,
+                "expiresAt": 1777209600
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": true,
+                "canExecute": false,
+                "nextAction": "vote",
+                "disabledReason": null
+              }
+            },
+            {
+              "id": "YBC-6",
+              "type": "expulsion",
+              "targetAccount": "0x6666666666666666666666666666666666666666",
+              "proposer": "0x3333333333333333333333333333333333333333",
+              "epoch": 11,
+              "phase": "awaiting-execution",
+              "outcome": "passed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "14000",
+                "nay": "6000"
+              },
+              "timing": {
+                "createdAt": 1775000000,
+                "discussionStartsAt": 1775000000,
+                "votingStartsAt": 1775400000,
+                "votingEndsAt": 1776000000,
+                "executionOpensAt": 1776000000,
+                "expiresAt": 1776604800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": true,
+                "nextAction": "execute",
+                "disabledReason": null
+              }
+            },
+            {
+              "id": "YBC-5",
+              "type": "addition",
+              "targetAccount": "0x7777777777777777777777777777777777777777",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 10,
+              "phase": "executed",
+              "outcome": "passed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "21000",
+                "yea": "16000",
+                "nay": "5000"
+              },
+              "timing": {
+                "createdAt": 1774300000,
+                "discussionStartsAt": 1774300000,
+                "votingStartsAt": 1774700000,
+                "votingEndsAt": 1775300000,
+                "executionOpensAt": 1775300000,
+                "expiresAt": 1775904800,
+                "executedAt": 1775550000
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Executed proposals are terminal."
+              }
+            },
+            {
+              "id": "YBC-4",
+              "type": "addition",
+              "targetAccount": "0x8888888888888888888888888888888888888888",
+              "proposer": "0x2222222222222222222222222222222222222222",
+              "epoch": 9,
+              "phase": "expired",
+              "outcome": "passed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "20000",
+                "yea": "12500",
+                "nay": "7500"
+              },
+              "timing": {
+                "createdAt": 1773000000,
+                "discussionStartsAt": 1773000000,
+                "votingStartsAt": 1773400000,
+                "votingEndsAt": 1774000000,
+                "executionOpensAt": 1774000000,
+                "expiresAt": 1774604800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Expired proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-3",
+              "type": "expulsion",
+              "targetAccount": "0x9999999999999999999999999999999999999998",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 9,
+              "phase": "failed",
+              "outcome": "failed",
+              "thresholdBps": 6000,
+              "votes": {
+                "total": "20000",
+                "yea": "8000",
+                "nay": "12000"
+              },
+              "timing": {
+                "createdAt": 1772600000,
+                "discussionStartsAt": 1772600000,
+                "votingStartsAt": 1773000000,
+                "votingEndsAt": 1773600000,
+                "executionOpensAt": 1773600000,
+                "expiresAt": 1774204800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Failed proposals are terminal; start a new proposal."
+              }
+            },
+            {
+              "id": "YBC-2",
+              "type": "addition",
+              "targetAccount": "0x9999999999999999999999999999999999999997",
+              "proposer": "0x1111111111111111111111111111111111111111",
+              "epoch": 8,
+              "phase": "retracted",
+              "outcome": "failed",
+              "thresholdBps": 5000,
+              "votes": {
+                "total": "0",
+                "yea": "0",
+                "nay": "0"
+              },
+              "timing": {
+                "createdAt": 1771800000,
+                "discussionStartsAt": 1771800000,
+                "votingStartsAt": 1772200000,
+                "votingEndsAt": 1772800000,
+                "executionOpensAt": 1772800000,
+                "expiresAt": 1773404800
+              },
+              "actions": {
+                "canRetract": false,
+                "canVote": false,
+                "canExecute": false,
+                "nextAction": "none",
+                "disabledReason": "Retracted proposals are terminal; start a new proposal."
+              }
+            }
+          ]
+        },
+        "rewards": {
+          "token": {
+            "symbol": "YFI",
+            "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+            "decimals": 18
+          },
+          "claimable": "47.0",
+          "accruing": "3.2",
+          "lastUpdatedAt": 1776200000,
+          "claim": {
+            "mode": "shared-claim-surface",
+            "href": "/styfi",
+            "ctaLabel": "Open shared rewards",
+            "disabledReason": null
+          },
+          "periods": [
+            {
+              "epoch": 10,
+              "source": "member-weight",
+              "earned": "39.0",
+              "claimable": "39.0",
+              "finalized": true
+            },
+            {
+              "epoch": 11,
+              "source": "member-weight",
+              "earned": "3.0",
+              "claimable": "3.0",
+              "finalized": true
+            },
+            {
+              "epoch": 11,
+              "source": "operator-bonus",
+              "earned": "5.0",
+              "claimable": "5.0",
+              "finalized": true
+            }
+          ]
+        },
         "admin": {
+          "isOperator": true,
           "operators": [
-            "0xaaaa000000000000000000000000000000000009",
-            "0xbbbb000000000000000000000000000000000009"
+            {
+              "address": "0x2222222222222222222222222222222222222222",
+              "ens": "bobby-ybc.eth",
+              "role": "operator"
+            },
+            {
+              "address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "ens": null,
+              "role": "management"
+            }
           ],
           "thresholds": {
             "additionBps": 5000,
             "expulsionBps": 6000
           },
-          "hooks": "0xeeee000000000000000000000000000000000001"
+          "hooks": {
+            "membershipHook": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "rewardsDistributor": "0xcccccccccccccccccccccccccccccccccccccccc",
+            "bonusRecipient": "0xdddddddddddddddddddddddddddddddddddddddd"
+          },
+          "scopedOperations": [
+            {
+              "id": "add-member",
+              "label": "Add member",
+              "enabled": true
+            },
+            {
+              "id": "remove-member",
+              "label": "Remove member",
+              "enabled": true
+            }
+          ],
+          "rewardStatus": {
+            "distributorFunded": true,
+            "lastSyncedAt": 1776199000
+          }
         }
       }
     }
