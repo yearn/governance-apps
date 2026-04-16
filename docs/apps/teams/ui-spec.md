@@ -117,6 +117,7 @@ The prototype controls should apply coherently across the whole route:
 - loading and empty controls blank the stat strip as well as the directory/workspace panes
 - switching scenarios reverts the workspace to that scenario's declared selected team
 - bonus math stays out of the default view until the period drilldown or tooltip is opened
+- bonus and ownership/lifecycle section anchors remain present across selected, loading, empty, and no-team states
 
 ## 5. Must-show interactions
 
@@ -174,6 +175,10 @@ Keep the default presentation simple:
 - period count included
 - primary CTA
 - short detail rows
+
+For the WP5 prototype, the primary CTA is a mock `Claim Bonus` action. It should be
+visibly available in claimable states, visibly blocked in non-claimable states, and
+must not imply that a live write has been submitted yet.
 
 Hide the heavier math in expandable details or tooltip copy:
 - team profit
