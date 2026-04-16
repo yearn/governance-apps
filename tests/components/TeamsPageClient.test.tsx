@@ -8,6 +8,8 @@ import { renderWithProviders } from "@/tests/test-utils";
 describe("TeamsPageClient", () => {
   const directoryMixLabel = teamsCopy.controls.scenarioNames["directory-observer"];
   const bonusAvailableLabel = teamsCopy.controls.scenarioNames["bonus-available"];
+  const operatorWorkspaceLabel =
+    teamsCopy.controls.scenarioNames["finance-operator-revenue"];
   const retiredWorkspaceLabel =
     teamsCopy.controls.scenarioNames["retired-read-only"];
   const twoTeamSnapshotLabel = teamsCopy.controls.scenarioNames["operator-admin"];
@@ -91,6 +93,7 @@ describe("TeamsPageClient", () => {
         name: teamsCopy.bonus.action.noneCta,
       })
     ).toBeDisabled();
+    expect(document.querySelectorAll("#lifecycle")).toHaveLength(1);
   });
 
   it("exposes deterministic loading and empty coverage through the prototype controls", async () => {
@@ -186,6 +189,58 @@ describe("TeamsPageClient", () => {
     expect(
       screen.getAllByRole("button", { name: teamsCopy.bonus.mathTrigger })
     ).toHaveLength(2);
+  });
+
+  it("resets the staged mock bonus action when the same team fixture changes", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: bonusAvailableLabel,
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Platform", level: 2 })
+    ).toBeInTheDocument();
+
+    const bonusSection = document.getElementById("bonus");
+    expect(bonusSection).not.toBeNull();
+
+    await user.click(
+      within(bonusSection!).getByRole("button", {
+        name: teamsCopy.bonus.action.claimCta,
+      })
+    );
+
+    expect(
+      within(bonusSection!).getByRole("button", {
+        name: teamsCopy.bonus.action.stagedCta,
+      })
+    ).toBeDisabled();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: operatorWorkspaceLabel,
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Platform", level: 2 })
+    ).toBeInTheDocument();
+    expect(
+      within(bonusSection!).queryByRole("button", {
+        name: teamsCopy.bonus.action.stagedCta,
+      })
+    ).not.toBeInTheDocument();
+    expect(
+      within(bonusSection!).getByRole("button", {
+        name: teamsCopy.bonus.action.noneCta,
+      })
+    ).toBeDisabled();
+    expect(within(bonusSection!).getByText(teamsCopy.bonus.action.noneBody)).toBeInTheDocument();
   });
 
   it("covers claimed and pending-finalization bonus states in the operator scenario", async () => {
