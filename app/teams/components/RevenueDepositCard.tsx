@@ -438,12 +438,12 @@ function getUnavailableBody(
   team: TeamRecord,
   viewer: TeamsViewerContext | null
 ): string {
-  if (!viewer?.canDepositRevenue) {
-    return teamsCopy.revenue.unavailable.viewerBody;
-  }
-
   if (team.readOnlyReason) {
     return teamsCopy.revenue.unavailable.readOnlyBody;
+  }
+
+  if (!viewer?.canDepositRevenue) {
+    return teamsCopy.revenue.unavailable.viewerBody;
   }
 
   return teamsCopy.revenue.unavailable.optionsBody;

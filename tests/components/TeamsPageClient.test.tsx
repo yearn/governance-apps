@@ -108,7 +108,7 @@ describe("TeamsPageClient", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("switches to the retired workspace scenario and keeps the read-only state visible", async () => {
+  it("switches to the retired workspace scenario and keeps the read-only deposit blocker visible", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(<TeamsPageClient />);
@@ -124,6 +124,12 @@ describe("TeamsPageClient", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Read-only after retirement")).toBeInTheDocument();
     expect(screen.getAllByText("Retired").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(teamsCopy.revenue.unavailable.readOnlyBody)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(teamsCopy.revenue.unavailable.viewerBody)
+    ).not.toBeInTheDocument();
   });
 
   it("renders the revenue preview, validation, and success state for the revenue scenario", async () => {
