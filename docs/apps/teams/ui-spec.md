@@ -1,6 +1,6 @@
 # Team Finances UI Spec
 
-Status: WP0 route, naming, and shell baseline approved
+Status: WP4 funding claim and return prototype approved
 Applies to: `/teams` route, `teams-beta.dao-ops.com` beta host, and gated
 production host `teams.yearn.fi`
 App key / slug: `teams`
@@ -103,10 +103,12 @@ Sections / tabs:
 
 ## 4.3 Prototype state coverage
 
-For the approved WP2 prototype, the route must keep explicit state coverage for:
+For the approved WP4 prototype, the route must keep explicit state coverage for:
 
 - populated directory with multiple teams
 - selected workspace overview with current-period and lifetime cards
+- funding approvals table with claim and return selection state
+- claim and return validation plus success feedback
 - loading state
 - empty state
 
@@ -154,6 +156,9 @@ Statuses to visualize:
 - not claimable this period
 - fully used
 
+The accepted WP4 prototype implements this as a mock approvals table plus a separate
+claim form that can be pointed at a selected approval row.
+
 ## 5.3 Return Funding
 
 This should be described as a return flow, not as an owner-only reverse claim flow.
@@ -162,6 +167,9 @@ Expose:
 - token amount input
 - refund estimate in USD
 - note that refund accounting uses historical average claim price
+
+The accepted WP4 prototype keeps this as a distinct mock return card rather than
+blending it into the claim flow.
 
 ## 5.4 Bonus
 

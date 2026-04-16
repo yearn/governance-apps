@@ -37,9 +37,10 @@ The default `/teams` landing state is the team directory. It introduces the app 
 the `Team Finances` label and gives users a scannable path into a selected team
 workspace.
 
-The current accepted prototype covers the directory table plus the overview workspace.
+The current accepted prototype covers the directory table, the overview workspace,
+and the mock-backed funding approvals table with separate claim and return flows.
 It includes explicit loading and empty coverage so UAT can validate state handling
-before revenue, funding, bonus, lifecycle depth, and admin interactions ship.
+before revenue, bonus, lifecycle depth, admin interactions, and onchain writes ship.
 
 The approved top-level shell sections are:
 
