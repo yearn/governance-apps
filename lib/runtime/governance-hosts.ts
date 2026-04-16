@@ -1,6 +1,7 @@
 export const GOVERNANCE_APP_PATHS = {
   styfi: "/styfi",
   veyfi: "/veyfi",
+  teams: "/teams",
   yeth: "/yeth",
   ybc: "/ybc",
 } as const;
@@ -11,6 +12,7 @@ export type GovernanceAppPath = (typeof GOVERNANCE_APP_PATHS)[GovernanceApp];
 export const GOVERNANCE_APP_PROD_HOSTS: Record<GovernanceApp, string> = {
   styfi: "styfi.yearn.fi",
   veyfi: "veyfi.yearn.fi",
+  teams: "teams.yearn.fi",
   yeth: "yeth.yearn.fi",
   ybc: "ybc.yearn.fi",
 };
@@ -18,6 +20,7 @@ export const GOVERNANCE_APP_PROD_HOSTS: Record<GovernanceApp, string> = {
 export const GOVERNANCE_APP_PREPROD_HOSTS: Record<GovernanceApp, string> = {
   styfi: "styfi-beta.dao-ops.com",
   veyfi: "veyfi-beta.dao-ops.com",
+  teams: "teams-beta.dao-ops.com",
   yeth: "yeth-beta.dao-ops.com",
   ybc: "ybc-beta.dao-ops.com",
 };

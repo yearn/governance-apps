@@ -8,6 +8,8 @@ const expectedRuntimeEnv: Record<string, string> = {
   NEXT_PUBLIC_USE_MOCKS: '"false"',
   NEXT_PUBLIC_E2E: '"false"',
   NEXT_PUBLIC_ENABLE_DEBUG_UI: '"false"',
+  NEXT_PUBLIC_ENABLE_TEAMS:
+    "${{ vars.NEXT_PUBLIC_ENABLE_TEAMS || secrets.NEXT_PUBLIC_ENABLE_TEAMS || 'false' }}",
   NEXT_PUBLIC_ENABLE_YBC:
     "${{ vars.NEXT_PUBLIC_ENABLE_YBC || secrets.NEXT_PUBLIC_ENABLE_YBC || 'false' }}",
   NEXT_PUBLIC_ENABLE_YETH:
@@ -96,6 +98,7 @@ describe("preprod worker routes", () => {
     for (const host of [
       "styfi-beta.dao-ops.com",
       "veyfi-beta.dao-ops.com",
+      "teams-beta.dao-ops.com",
       "yeth-beta.dao-ops.com",
       "ybc-beta.dao-ops.com",
     ]) {

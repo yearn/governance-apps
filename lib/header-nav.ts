@@ -3,6 +3,7 @@ import { resolveHostPrefix } from "@/lib/runtime/host-routing";
 const APP_NAV = {
   styfi: { label: "stYFI", path: "/styfi" },
   veyfi: { label: "veYFI", path: "/veyfi" },
+  teams: { label: "Team Finances", path: "/teams" },
   yeth: { label: "yETH", path: "/yeth" },
   ybc: { label: "Yearn Builder's Collective", path: "/ybc" },
 } as const;
@@ -13,6 +14,7 @@ function isAppKey(value: string | null): value is AppKey {
   return (
     value === "styfi" ||
     value === "veyfi" ||
+    value === "teams" ||
     value === "yeth" ||
     value === "ybc"
   );
@@ -32,6 +34,9 @@ function resolveAppKey(
   if (normalizedPathname.startsWith(APP_NAV.veyfi.path)) {
     return "veyfi";
   }
+  if (normalizedPathname.startsWith(APP_NAV.teams.path)) {
+    return "teams";
+  }
   if (normalizedPathname.startsWith(APP_NAV.yeth.path)) {
     return "yeth";
   }
@@ -45,6 +50,7 @@ function resolveAppKey(
   const hostPrefix = hostname ? resolveHostPrefix(hostname) : null;
   if (hostPrefix === APP_NAV.styfi.path) return "styfi";
   if (hostPrefix === APP_NAV.veyfi.path) return "veyfi";
+  if (hostPrefix === APP_NAV.teams.path) return "teams";
   if (hostPrefix === APP_NAV.yeth.path) return "yeth";
   if (hostPrefix === APP_NAV.ybc.path) return "ybc";
 

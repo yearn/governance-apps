@@ -35,10 +35,11 @@
 ## Production Feature Gates
 
 - `NEXT_PUBLIC_RUNTIME_MODE=production` enables production gating behavior.
+- `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Team Finances in production runtime.
 - `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC in production runtime.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH in production runtime.
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/debug/ui` in production runtime.
-- If unset in production, YBC routes/host mapping, yETH routes/host mapping, and debug UI are intentionally unavailable.
+- If unset in production, Team Finances routes/host mapping, YBC routes/host mapping, yETH routes/host mapping, and debug UI are intentionally unavailable.
 
 ## Public RPC (Non-Mock Mode)
 

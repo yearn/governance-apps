@@ -53,6 +53,7 @@ jobs:
           NEXT_PUBLIC_USE_MOCKS: "false"
           NEXT_PUBLIC_E2E: "false"
           NEXT_PUBLIC_ENABLE_DEBUG_UI: "false"
+          NEXT_PUBLIC_ENABLE_TEAMS: ${{ vars.NEXT_PUBLIC_ENABLE_TEAMS || secrets.NEXT_PUBLIC_ENABLE_TEAMS || 'false' }}
           NEXT_PUBLIC_ENABLE_YBC: ${{ vars.NEXT_PUBLIC_ENABLE_YBC || secrets.NEXT_PUBLIC_ENABLE_YBC || 'false' }}
           NEXT_PUBLIC_ENABLE_YETH: ${{ vars.NEXT_PUBLIC_ENABLE_YETH || secrets.NEXT_PUBLIC_ENABLE_YETH || 'false' }}
           NEXT_PUBLIC_WC_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WC_PROJECT_ID || vars.NEXT_PUBLIC_WC_PROJECT_ID }}
@@ -69,6 +70,7 @@ jobs:
           NEXT_PUBLIC_USE_MOCKS: "false"
           NEXT_PUBLIC_E2E: "false"
           NEXT_PUBLIC_ENABLE_DEBUG_UI: "false"
+          NEXT_PUBLIC_ENABLE_TEAMS: ${{ vars.NEXT_PUBLIC_ENABLE_TEAMS || secrets.NEXT_PUBLIC_ENABLE_TEAMS || 'false' }}
           NEXT_PUBLIC_ENABLE_YBC: ${{ vars.NEXT_PUBLIC_ENABLE_YBC || secrets.NEXT_PUBLIC_ENABLE_YBC || 'false' }}
           NEXT_PUBLIC_ENABLE_YETH: ${{ vars.NEXT_PUBLIC_ENABLE_YETH || secrets.NEXT_PUBLIC_ENABLE_YETH || 'false' }}
           NEXT_PUBLIC_WC_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WC_PROJECT_ID || vars.NEXT_PUBLIC_WC_PROJECT_ID }}
@@ -85,6 +87,7 @@ jobs:
           NEXT_PUBLIC_USE_MOCKS: "false"
           NEXT_PUBLIC_E2E: "false"
           NEXT_PUBLIC_ENABLE_DEBUG_UI: "false"
+          NEXT_PUBLIC_ENABLE_TEAMS: ${{ vars.NEXT_PUBLIC_ENABLE_TEAMS || secrets.NEXT_PUBLIC_ENABLE_TEAMS || 'false' }}
           NEXT_PUBLIC_ENABLE_YBC: ${{ vars.NEXT_PUBLIC_ENABLE_YBC || secrets.NEXT_PUBLIC_ENABLE_YBC || 'false' }}
           NEXT_PUBLIC_ENABLE_YETH: ${{ vars.NEXT_PUBLIC_ENABLE_YETH || secrets.NEXT_PUBLIC_ENABLE_YETH || 'false' }}
           NEXT_PUBLIC_WC_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_WC_PROJECT_ID || vars.NEXT_PUBLIC_WC_PROJECT_ID }}
