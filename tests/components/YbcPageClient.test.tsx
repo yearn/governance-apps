@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import {
+  YbcPageClient,
   YbcPageContent,
   YbcPageErrorState,
   YbcPageLoadingState,
@@ -111,5 +112,123 @@ describe("YbcPageClient", () => {
     expect(screen.getByText(ybcCopy.members.states.emptyTitle)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.members.states.emptyBody)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("renders the proposal board with visible thresholds and timeline states", async () => {
+    render(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
+
+    await screen.findByRole("heading", {
+      name: ybcCopy.proposalBoard.title,
+      level: 2,
+    });
+
+    expect(
+      screen.getByRole("heading", {
+        name: ybcCopy.proposalBoard.title,
+        level: 2,
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.thresholdTitle)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.terminalTitle)).toBeInTheDocument();
+
+    const proposal = screen.getByRole("article", {
+      name: /YBC-4/i,
+    });
+    expect(within(proposal).getByText("Expired")).toBeInTheDocument();
+    expect(
+      within(proposal).getByText(/start a new proposal instead/i)
+    ).toBeInTheDocument();
+  });
+
+  it("renders an explicit empty-board scenario", async () => {
+    render(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
+
+    await screen.findByRole("button", {
+      name: /Empty proposal board/i,
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Empty proposal board/i,
+      })
+    );
+
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.emptyTitle)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.emptyBody)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.proposalBoard.emptyHint)).toBeInTheDocument();
+  });
+
+  it("supports mock propose, retract, vote, and execute actions", async () => {
+    render(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
+
+    await screen.findByRole("button", {
+      name: ybcCopy.proposalBoard.proposeAdditionCta,
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: ybcCopy.proposalBoard.proposeAdditionCta,
+      })
+    );
+
+    const createdProposal = screen.getByRole("article", { name: /YBC-9/i });
+    expect(
+      within(createdProposal).getByText(/Add member proposal/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByRole("article", { name: /YBC-8/i })).getByRole("button", {
+        name: /Retract proposal/i,
+      })
+    );
+    expect(
+      within(screen.getByRole("article", { name: /YBC-8/i })).getByText("Retracted")
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByRole("article", { name: /YBC-7/i })).getByRole("button", {
+        name: /Vote yea/i,
+      })
+    );
+    expect(
+      within(screen.getByRole("article", { name: /YBC-7/i })).getByText(
+        /Mock yea vote recorded/i
+      )
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByRole("article", { name: /YBC-6/i })).getByRole("button", {
+        name: /Execute proposal/i,
+      })
+    );
+    expect(
+      within(screen.getByRole("article", { name: /YBC-6/i })).getByText("Executed")
+    ).toBeInTheDocument();
+  });
+
+  it("can seed the empty-board scenario with a new mock proposal", async () => {
+    render(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
+
+    await screen.findByRole("button", {
+      name: /Empty proposal board/i,
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Empty proposal board/i,
+      })
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: ybcCopy.proposalBoard.proposeAdditionCta,
+      })
+    );
+
+    expect(
+      screen.getByRole("article", {
+        name: /YBC-1/i,
+      })
+    ).toBeInTheDocument();
   });
 });

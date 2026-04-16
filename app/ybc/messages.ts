@@ -10,15 +10,40 @@ export const ybcCopy = {
     title: "Yearn Builder's Collective",
     eyebrow: "YBC governance workspace",
     description:
-      "Track collective influence and member maturity with a mock-first overview of internal weight, delegated weight, and roster health.",
+      "Track collective influence, member maturity, and proposal lifecycle with a mock-first workspace for delegated weight, thresholds, and execution timing.",
     productionGate: "Production gated",
     loadingTitle: "Loading collective influence",
     loadingBody:
-      "Seeding the YBC overview and member roster from the mock state machine.",
+      "Seeding the YBC overview, member roster, and proposal board from the mock state machine.",
     errorTitle: "Unable to load collective influence",
     errorBody:
-      "The YBC mock state could not be loaded. Retry to restore the overview and roster prototype.",
+      "The YBC mock state could not be loaded. Retry to restore the overview, member roster, and proposal board prototype.",
     retryCta: "Retry",
+  },
+  proposalBoard: {
+    title: "Proposal Board",
+    eyebrow: "Proposal lifecycle",
+    mockBadge: "Mock interactions",
+    description:
+      "Inspect every proposal phase with explicit UTC timing, visible vote thresholds, and scoped mock actions for propose, retract, vote, and execute.",
+    emptyTitle: "No active proposal history in this perspective",
+    emptyBody:
+      "This mock perspective keeps the board intentionally empty so the route can exercise its no-proposal state without implying hidden history.",
+    emptyHint:
+      "Use the mock propose controls above or switch perspectives to inspect a populated board.",
+    perspectiveLabel: "Mock perspective",
+    thresholdTitle: "Threshold guide",
+    viewerTitle: "Current viewer",
+    terminalTitle: "Expired proposals",
+    terminalBody:
+      "Expired proposals stay visible as terminal history. The UI does not offer a revive path; members must start a fresh proposal instead.",
+    proposeAdditionCta: "Mock propose addition",
+    proposeExpulsionCta: "Mock propose expulsion",
+    summary: {
+      active: "Active",
+      awaitingExecution: "Awaiting execution",
+      terminal: "Terminal",
+    },
   },
   sections: [
     {
@@ -126,7 +151,7 @@ export const ybcCopy = {
   shell: {
     title: "Accepted shell map",
     body:
-      "WP2 fills the overview and member roster while the approved proposal, rewards, and admin sections remain visible as mapped shells for later work packages.",
+      "WP2 and WP3 fill the overview, member roster, and proposal board while the approved rewards and admin sections remain visible as mapped shells for later work packages.",
     footerLabel: "Later work package",
   },
 } as const;

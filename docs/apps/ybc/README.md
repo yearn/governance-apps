@@ -8,7 +8,6 @@ Recommended display label: `Yearn Builder's Collective`
 
 ## Product summary
 
-
 A governance and membership workspace for the Yearn Builder's Collective.
 
 This surface is broader than a simple vote page. It covers:
@@ -20,7 +19,6 @@ This surface is broader than a simple vote page. It covers:
 - execution timing
 - reward visibility
 - operator/admin controls for membership governance
-
 
 ## Naming stance
 
@@ -48,17 +46,21 @@ approval are complete.
 
 ## Current prototype state
 
-The current mock-first route implements the WP2 overview and member roster prototype:
+The current mock-backed route integrates the accepted WP2 and WP3 prototypes:
 
 - the five-section YBC shell map remains live on the route
 - the hero separates internal member influence from delegated public influence
 - unknown connected non-member wallets remain on the observer path
 - observer and member perspectives render distinct weight summaries
 - the members table keeps raw stake, effective weight, target weight, and maturity separate
-- loading and empty roster states are implemented for the prototype state machine
+- loading and empty roster states are implemented for the overview state machine
+- the proposal board shows explicit phases, UTC timeline rows, and threshold targets
+- mock propose, retract, vote, and execute interactions are available
+- an explicit empty-board perspective covers the no-proposal state
+- expired proposals remain visible as terminal history
 
-Proposal actions, reward handoff, and operator controls remain visible as mapped shell
-sections until later work packages implement their interactive depth.
+Reward handoff and operator controls remain visible as mapped shell sections until
+later work packages implement their interactive depth.
 
 ## Included docs
 
