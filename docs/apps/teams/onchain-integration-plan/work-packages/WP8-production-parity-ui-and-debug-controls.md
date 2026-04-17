@@ -28,6 +28,7 @@ all mock-only controls live behind the floating debug panel.
 
 - `app/teams/messages.ts`
 - `app/teams/components/MockControls.tsx`
+- `docs/shared/debug-runtime-contract.md`
 - `tests/components/TeamsPageClient.test.tsx`
 - `tests/e2e/smoke/teams-shell.spec.ts`
 - `docs/apps/teams/README.md`
@@ -69,6 +70,7 @@ Scope:
 Constraints:
 - stay inside this package only
 - follow existing `governance-apps` patterns
+- follow `docs/shared/debug-runtime-contract.md` for placement and behavior of Teams debug controls
 - do not jump ahead into later milestones
 - update tests and docs if behavior changes
 

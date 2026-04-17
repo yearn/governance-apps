@@ -28,6 +28,7 @@ mock-only controls live behind the floating debug panel.
 
 - `app/ybc/messages.ts`
 - `app/ybc/components/MockControls.tsx`
+- `docs/shared/debug-runtime-contract.md`
 - `tests/components/YbcPageClient.test.tsx`
 - `tests/e2e/smoke/ybc-shell.spec.ts`
 - `docs/apps/ybc/README.md`
@@ -70,6 +71,7 @@ Scope:
 Constraints:
 - stay inside this package only
 - follow existing `governance-apps` patterns
+- follow `docs/shared/debug-runtime-contract.md` for placement and behavior of YBC debug controls
 - do not jump ahead into later milestones
 - update tests and docs if behavior changes
 

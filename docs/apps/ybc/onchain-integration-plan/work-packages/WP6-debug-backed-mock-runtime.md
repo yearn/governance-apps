@@ -44,6 +44,7 @@ mutated in place through the shared debug panel and E2E bridge.
 
 - `app/ybc/YbcPageClient.tsx`
 - `app/ybc/components/MockControls.tsx`
+- `docs/shared/debug-runtime-contract.md`
 - `components/DebugControls.tsx`
 - `lib/clients/ybc/mock.ts`
 - `lib/hooks/useYbc.ts`
@@ -107,6 +108,7 @@ Scope:
 Constraints:
 - stay inside this package only
 - follow existing `governance-apps` patterns
+- follow `docs/shared/debug-runtime-contract.md` for the shared debug-panel and test-bridge seam
 - do not jump ahead into later milestones
 - update tests and docs if behavior changes
 
