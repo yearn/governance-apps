@@ -39,10 +39,10 @@ workspace.
 
 The current accepted prototype covers the directory table, the overview workspace,
 the mock revenue deposit flow, the mock-backed funding approvals table with
-separate claim and return flows, the bonus summary with period drilldown, and the
-ownership/lifecycle card. It keeps explicit loading and empty coverage across the
-route so UAT can validate state handling before admin interactions and onchain
-writes ship.
+separate claim and return flows, the bonus summary with period drilldown, the
+ownership/lifecycle card, and an operator/admin-only console for registry,
+bucket, funding, and bonus oversight. It keeps explicit loading and empty coverage
+across the route so UAT can validate state handling before onchain writes ship.
 
 The bonus surface keeps the main card action-oriented by showing claimable YFI first,
 exposing a mock `Claim Bonus` CTA when the workspace is eligible, and moving profit
@@ -53,6 +53,10 @@ The ownership/lifecycle card keeps owner, pending owner, retirement, migration, 
 successor state visible without introducing ownership write actions yet. Bonus and
 ownership/lifecycle anchors stay stable across selected, loading, empty, and no-team
 workspace states so the route shell sections remain linkable.
+The admin console stays hidden from default user workspaces and unlocks only in the
+mock `Operator/admin view` scenario, where it groups registry state, bucket usage,
+whitelisted revenue tokens, funding queue health, and bonus finalization readiness
+into a separate ops surface.
 
 The approved top-level shell sections are:
 

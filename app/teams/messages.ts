@@ -1,12 +1,16 @@
 import type { BadgeProps } from "@/components/ui/Badge";
 import type {
+  BucketStatus,
   BonusPeriodStatus,
   FundingApprovalStatus,
+  PeriodFinalizationStatus,
+  RevenueTokenAdminStatus,
   TeamBonusStatus,
   TeamLifecycleStatus,
   TeamFundingSummaryState,
   TeamMigrationReadiness,
   TeamReadOnlyReason,
+  TeamsRegistryStatus,
   TeamsViewerRole,
 } from "@/lib/clients/teams";
 
@@ -25,9 +29,9 @@ export const teamsCopy = {
   },
   page: {
     title: "Team Finances",
-    eyebrow: "Interactive mock finance and lifecycle flows",
+    eyebrow: "Interactive mock finance, lifecycle, and ops flows",
     description:
-      "Mock-first workspace for scanning registered teams, opening a selected workspace, and validating revenue deposit, funding claim and return flows, bonus availability, and ownership/lifecycle state without turning protocol math into the default view.",
+      "Mock-first workspace for scanning registered teams, opening a selected workspace, and validating revenue deposit, funding claim and return flows, bonus availability, ownership/lifecycle state, and operator/admin oversight without turning protocol math into the default view.",
     productionGate: "Production gated",
   },
   navigation: [
@@ -63,6 +67,10 @@ export const teamsCopy = {
       id: "states",
       label: "States",
     },
+    {
+      id: "admin",
+      label: "Admin",
+    },
   ],
   stats: {
     currentPeriod: "Current period",
@@ -75,19 +83,21 @@ export const teamsCopy = {
     title: "Prototype controls",
     heading: "Prototype States",
     description:
-      "Switch between approved viewer scenarios and force explicit loading or empty coverage while validating revenue, funding, bonus, and lifecycle states.",
+      "Switch between approved viewer scenarios and force explicit loading or empty coverage while validating revenue, funding, bonus, lifecycle, and admin states.",
     cardTitle: "Prototype States",
     cardBody:
-      "Switch between approved viewer scenarios and force explicit loading or empty coverage while validating revenue, funding, bonus, and lifecycle states.",
+      "Switch between approved viewer scenarios and force explicit loading or empty coverage while validating revenue, funding, bonus, lifecycle, and admin states.",
     scenarioLabel: "Scenarios",
     surfaceLabel: "Surface state",
+    adminHint:
+      "The admin console unlocks only in the Operator/admin view mock persona.",
     scenarioNames: {
       "directory-observer": "Directory mix",
       "team-owner-funding": "Owner workspace",
       "bonus-available": "Single-team snapshot",
       "finance-operator-revenue": "Operator workspace",
       "retired-read-only": "Retired workspace",
-      "operator-admin": "Two-team snapshot",
+      "operator-admin": "Operator/admin view",
     },
     surfaceModes: {
       scenario: "Scenario",
@@ -525,6 +535,194 @@ export const teamsCopy = {
       period: (period: number) => `Period #${period}`,
       approval: (approvalId: string) => `Approval ${approvalId}`,
       returnedBy: "Returned by",
+    },
+  },
+  admin: {
+    eyebrow: "Admin console",
+    mockBadge: "Mock persona gated",
+    title: "Admin Console",
+    description:
+      "Operator/admin-only view for registry state, revenue token and bucket coverage, funding queue health, and bonus finalization readiness.",
+    loadingTitle: "Loading admin console",
+    loadingBody:
+      "Preparing registry coverage, bucket usage, funding queue, and bonus finalization detail.",
+    emptyTitle: "No admin console in this surface state",
+    emptyBody:
+      "Return to the scenario view to inspect the operator/admin information architecture.",
+    accessCard: {
+      title: "Admin visibility is persona-gated",
+      body:
+        "This section stays out of the default team workspace. Switch to the Operator/admin view mock persona to inspect registry, revenue ops, funding ops, and bonus ops.",
+      viewerLabel: "Current viewer",
+      accessLabel: "Admin controls",
+      lockedValue: "Locked",
+      hint: "The operator/admin scenario is the approved WP6 review surface.",
+    },
+    summary: {
+      title: "Admin summary",
+      viewer: "Viewer",
+      currentPeriod: "Current period",
+      registryStatus: "Registry",
+      finalizationStatus: "Period finalization",
+    },
+    registry: {
+      title: "Registry",
+      description:
+        "Keep team status, retirement timing, successor context, and migration readiness readable from one place.",
+      metrics: {
+        active: "Active teams",
+        retiring: "Retiring teams",
+        retired: "Retired teams",
+      },
+      headers: {
+        team: "Team",
+        owner: "Owner",
+        status: "Status",
+        retirement: "Retirement",
+        migration: "Migration",
+        workspace: "Workspace",
+      },
+      retirement: {
+        active: "No retirement scheduled",
+        period: (period: number) => `Period #${period}`,
+        retired: "Historical team",
+      },
+      workspace: {
+        full: "Full workspace",
+        readOnlyPrefix: "Read-only",
+        successor: (teamId: string) => `Successor: ${teamId}`,
+        noSuccessor: "No successor set",
+      },
+    },
+    revenue: {
+      title: "Revenue Ops",
+      description:
+        "Show bucket headroom and whitelisted token wiring without expanding into low-level setter coverage.",
+      directCredit: "Direct credit",
+      bucketUsage: "Bucket usage",
+      ofBudget: "of budget used",
+      bucketLabels: {
+        rewards: "Rewards bucket",
+        treasury: "Treasury bucket",
+        recovery: "Recovery bucket",
+      },
+      bucketMetrics: {
+        budget: "Budget",
+        used: "Used",
+        remaining: "Remaining",
+      },
+      tokenTitle: "Whitelisted revenue tokens",
+      tokenHeaders: {
+        token: "Token",
+        status: "Status",
+        oracle: "Oracle",
+        converter: "Converter",
+      },
+    },
+    fundingOps: {
+      title: "Funding Ops",
+      description:
+        "Track approval queue health, late-liquid exposure, and which approvals need operator follow-up.",
+      metrics: {
+        approvals: "Approvals visible",
+        attention: "Operator attention",
+        lateLiquid: "Late-liquid approvals",
+      },
+      headers: {
+        approval: "Approval",
+        team: "Team",
+        status: "Status",
+        attention: "Operator attention",
+      },
+    },
+    bonusOps: {
+      title: "Bonus Ops",
+      description:
+        "Keep bonus period review separate from the user claim surface and summarize what still needs finalization.",
+      metrics: {
+        periods: "Periods visible",
+        finalization: "Needs finalization",
+        history: "Claimed history",
+      },
+      headers: {
+        team: "Team",
+        period: "Period",
+        status: "Status",
+        finalization: "Finalization",
+      },
+      currentPeriod: (period: number) => `Period #${period}`,
+    },
+    registryStatuses: {
+      active: {
+        label: "Active",
+        variant: "success",
+      },
+      paused: {
+        label: "Paused",
+        variant: "warning",
+      },
+      deprecated: {
+        label: "Deprecated",
+        variant: "neutral",
+      },
+    } satisfies Record<TeamsRegistryStatus, StatusCopy>,
+    finalizationStatuses: {
+      open: {
+        label: "Open",
+        variant: "neutral",
+      },
+      ready: {
+        label: "Ready to finalize",
+        variant: "warning",
+      },
+      finalized: {
+        label: "Finalized",
+        variant: "success",
+      },
+    } satisfies Record<PeriodFinalizationStatus, StatusCopy>,
+    bucketStatuses: {
+      healthy: {
+        label: "Healthy",
+        variant: "success",
+      },
+      watch: {
+        label: "Watch",
+        variant: "warning",
+      },
+      "limit-reached": {
+        label: "Limit reached",
+        variant: "error",
+      },
+    } satisfies Record<BucketStatus, StatusCopy>,
+    tokenStatuses: {
+      active: {
+        label: "Active",
+        variant: "success",
+      },
+      paused: {
+        label: "Paused",
+        variant: "warning",
+      },
+    } satisfies Record<RevenueTokenAdminStatus, StatusCopy>,
+    operatorAttention: {
+      clear: {
+        label: "Clear",
+        variant: "neutral",
+      },
+      required: {
+        label: "Required",
+        variant: "warning",
+      },
+    },
+    finalizationState: {
+      complete: {
+        label: "Reviewed",
+        variant: "neutral",
+      },
+      required: {
+        label: "Finalize",
+        variant: "warning",
+      },
     },
   },
   viewerRoles: {
