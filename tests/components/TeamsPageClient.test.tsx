@@ -227,6 +227,55 @@ describe("TeamsPageClient", () => {
     expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(5);
   });
 
+  it("keeps explicit admin loading and empty coverage in the operator/admin scenario", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: twoTeamSnapshotLabel,
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: teamsCopy.admin.registry.title,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "#admin");
+
+    await user.click(screen.getByRole("button", { name: "Loading" }));
+
+    const loadingAdminSection = document.getElementById("admin");
+    expect(loadingAdminSection).not.toBeNull();
+    expect(
+      within(loadingAdminSection!).getByRole("heading", {
+        name: teamsCopy.admin.title,
+        level: 2,
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(loadingAdminSection!).getByText(teamsCopy.admin.loadingTitle)
+    ).toBeInTheDocument();
+    expect(
+      within(loadingAdminSection!).getByText(teamsCopy.admin.loadingBody)
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Empty" }));
+
+    const emptyAdminSection = document.getElementById("admin");
+    expect(emptyAdminSection).not.toBeNull();
+    expect(
+      within(emptyAdminSection!).getByText(teamsCopy.admin.emptyTitle)
+    ).toBeInTheDocument();
+    expect(
+      within(emptyAdminSection!).getByText(teamsCopy.admin.emptyBody)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "#admin");
+  });
+
   it("resets workspace selection to the scenario default when switching scenarios", async () => {
     const user = userEvent.setup();
 

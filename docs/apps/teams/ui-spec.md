@@ -112,6 +112,7 @@ For the approved interactive mock prototype, the route must keep explicit state 
 - claim and return validation plus success feedback
 - bonus summary with period drilldown and hidden math detail
 - ownership and lifecycle state with owner, pending owner, retirement, and migration visibility
+- operator/admin console loading and empty states once the admin scenario is active
 - loading state
 - empty state
 
@@ -123,6 +124,7 @@ The prototype controls should apply coherently across the whole route:
 - bonus math stays out of the default view until the period drilldown or tooltip is opened
 - bonus and ownership/lifecycle section anchors remain present across selected, loading, empty, and no-team states
 - admin navigation and the admin console appear only in the operator/admin mock perspective
+- when the operator/admin mock perspective is active, loading and empty controls keep the admin section mounted with explicit state copy
 
 ## 5. Must-show interactions
 

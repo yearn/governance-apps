@@ -40,6 +40,14 @@ export function AdminConsole({
     return (
       <Card className="space-y-6" aria-busy="true">
         <AdminConsoleHeader />
+        <div className="rounded-box border border-border bg-app px-5 py-6">
+          <h3 className="text-lg font-bold text-text-primary">
+            {teamsCopy.admin.loadingTitle}
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
+            {teamsCopy.admin.loadingBody}
+          </p>
+        </div>
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
           <div className="space-y-4">
             {Array.from({ length: 4 }, (_, index) => (
