@@ -1,6 +1,6 @@
 # Team Finances UI Spec
 
-Status: WP4 funding claim and return prototype approved
+Status: WP6 admin console prototype in progress
 Applies to: `/teams` route, `teams-beta.dao-ops.com` beta host, and gated
 production host `teams.yearn.fi`
 App key / slug: `teams`
@@ -122,6 +122,7 @@ The prototype controls should apply coherently across the whole route:
 - switching scenarios also reset any staged mock bonus action to the target fixture default
 - bonus math stays out of the default view until the period drilldown or tooltip is opened
 - bonus and ownership/lifecycle section anchors remain present across selected, loading, empty, and no-team states
+- admin navigation and the admin console appear only in the operator/admin mock perspective
 
 ## 5. Must-show interactions
 
@@ -211,6 +212,16 @@ Show:
 ## 6. Admin console
 
 Admin is a separate surface within the app, not the default landing state.
+
+For the accepted WP6 prototype, the admin console unlocks only in the
+`Operator/admin view` mock scenario and remains hidden from the default team-owner,
+observer, and contributor workspaces. The unlocked view should keep four groups
+distinct:
+
+- registry state with lifecycle, retirement, migration, and workspace-readiness context
+- revenue ops with bucket usage and whitelisted token wiring
+- funding ops with approval queue summaries and operator-attention markers
+- bonus ops with finalization readiness and historical period visibility
 
 Approved admin groups:
 
