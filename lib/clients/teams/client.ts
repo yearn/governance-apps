@@ -1,4 +1,5 @@
 import type {
+  BasisPoints,
   DecimalString,
   FundingApproval,
   FundingApprovalStatus,
@@ -14,6 +15,7 @@ import type {
   TeamsMockScenarioId,
   TeamsAddress,
   TeamsViewerRole,
+  UnixTimestampSeconds,
   UsdDecimalString,
 } from "./types";
 
@@ -70,9 +72,9 @@ export function formatTeamsUsd(
   });
 }
 
-export function formatTeamsTokenAmount(
+export function formatTeamsDecimal(
   value: DecimalString,
-  maximumFractionDigits = 4
+  maximumFractionDigits = 2
 ): string {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return "0";
@@ -82,11 +84,45 @@ export function formatTeamsTokenAmount(
   });
 }
 
+export function formatTeamsTokenAmount(
+  value: DecimalString,
+  symbol?: string,
+  maximumFractionDigits = symbol ? 2 : 4
+): string {
+  const amount = formatTeamsDecimal(value, maximumFractionDigits);
+  return symbol ? `${amount} ${symbol}` : amount;
+}
+
 export function formatTeamsAmount(
   value: DecimalString,
   maximumFractionDigits = 4
 ): string {
-  return formatTeamsTokenAmount(value, maximumFractionDigits);
+  return formatTeamsDecimal(value, maximumFractionDigits);
+}
+
+export function formatTeamsPercentFromBps(
+  value: BasisPoints,
+  maximumFractionDigits = 0
+): string {
+  const numeric = value / 10_000;
+  if (!Number.isFinite(numeric)) return "0%";
+
+  return numeric.toLocaleString("en-US", {
+    style: "percent",
+    maximumFractionDigits,
+  });
+}
+
+const TEAMS_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+export function formatTeamsDate(value: UnixTimestampSeconds | null | undefined) {
+  if (typeof value !== "number") return null;
+  return TEAMS_DATE_FORMATTER.format(value * 1000);
 }
 
 export function estimateRevenueCreditUsd(

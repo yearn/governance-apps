@@ -160,10 +160,12 @@ export function TeamsPageClient() {
                   <p className="text-sm font-bold uppercase text-text-tertiary">
                     {teamsCopy.controls.title}
                   </p>
-                  <h2 className="text-2xl font-bold">{teamsCopy.controls.heading}</h2>
+                  <h2 className="text-2xl font-bold">
+                    {teamsCopy.controls.heading ?? teamsCopy.controls.cardTitle}
+                  </h2>
                 </div>
                 <p className="text-sm leading-6 text-text-secondary">
-                  {teamsCopy.controls.description}
+                  {teamsCopy.controls.description ?? teamsCopy.controls.cardBody}
                 </p>
               </div>
 

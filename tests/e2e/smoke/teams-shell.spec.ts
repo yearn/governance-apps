@@ -11,6 +11,14 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Open Platform workspace" })
   ).toBeVisible();
+  await expect(
+    page.locator("#bonus").getByRole("heading", { name: "Bonus", level: 3 })
+  ).toBeVisible();
+  await expect(
+    page
+      .locator("#lifecycle")
+      .getByRole("heading", { name: "Ownership & Lifecycle", level: 3 })
+  ).toBeVisible();
 
   const sectionNav = page.getByRole("navigation", {
     name: "Team Finances sections",
@@ -27,7 +35,24 @@ test("renders the Team Finances route shell", async ({ page }) => {
     "href",
     "#revenue"
   );
+  await expect(sectionNav.getByRole("link", { name: "Funding" })).toHaveAttribute(
+    "href",
+    "#funding"
+  );
+  await expect(sectionNav.getByRole("link", { name: "Bonus" })).toHaveAttribute(
+    "href",
+    "#bonus"
+  );
+  await expect(
+    sectionNav.getByRole("link", { name: "Ownership & Lifecycle" })
+  ).toHaveAttribute("href", "#lifecycle");
   await expect(
     page.getByRole("heading", { name: "Revenue Deposit", level: 2 })
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Open Platform workspace" }).click();
+  await expect(page.getByRole("heading", { name: "Bonus", level: 3 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Ownership & Lifecycle", level: 3 })
   ).toBeVisible();
 });

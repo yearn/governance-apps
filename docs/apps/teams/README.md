@@ -38,10 +38,21 @@ the `Team Finances` label and gives users a scannable path into a selected team
 workspace.
 
 The current accepted prototype covers the directory table, the overview workspace,
-the mock revenue deposit flow, and the mock-backed funding approvals table with
-separate claim and return flows. It includes explicit loading and empty coverage so
-UAT can validate state handling before bonus, lifecycle depth, admin interactions,
-and onchain writes ship.
+the mock revenue deposit flow, the mock-backed funding approvals table with
+separate claim and return flows, the bonus summary with period drilldown, and the
+ownership/lifecycle card. It keeps explicit loading and empty coverage across the
+route so UAT can validate state handling before admin interactions and onchain
+writes ship.
+
+The bonus surface keeps the main card action-oriented by showing claimable YFI first,
+exposing a mock `Claim Bonus` CTA when the workspace is eligible, and moving profit
+and pricing inputs into period detail and tooltip states. Scenario switches reset any
+staged mock bonus action back to the target fixture so the prototype controls stay
+deterministic.
+The ownership/lifecycle card keeps owner, pending owner, retirement, migration, and
+successor state visible without introducing ownership write actions yet. Bonus and
+ownership/lifecycle anchors stay stable across selected, loading, empty, and no-team
+workspace states so the route shell sections remain linkable.
 
 The approved top-level shell sections are:
 

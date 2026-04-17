@@ -103,12 +103,15 @@ Sections / tabs:
 
 ## 4.3 Prototype state coverage
 
-For the approved WP4 prototype, the route must keep explicit state coverage for:
+For the approved interactive mock prototype, the route must keep explicit state coverage for:
 
 - populated directory with multiple teams
 - selected workspace overview with current-period and lifetime cards
+- revenue deposit preview, validation, and recent history
 - funding approvals table with claim and return selection state
 - claim and return validation plus success feedback
+- bonus summary with period drilldown and hidden math detail
+- ownership and lifecycle state with owner, pending owner, retirement, and migration visibility
 - loading state
 - empty state
 
@@ -116,6 +119,9 @@ The prototype controls should apply coherently across the whole route:
 
 - loading and empty controls blank the stat strip as well as the directory/workspace panes
 - switching scenarios reverts the workspace to that scenario's declared selected team
+- switching scenarios also reset any staged mock bonus action to the target fixture default
+- bonus math stays out of the default view until the period drilldown or tooltip is opened
+- bonus and ownership/lifecycle section anchors remain present across selected, loading, empty, and no-team states
 
 ## 5. Must-show interactions
 
@@ -181,6 +187,10 @@ Keep the default presentation simple:
 - period count included
 - primary CTA
 - short detail rows
+
+For the WP5 prototype, the primary CTA is a mock `Claim Bonus` action. It should be
+visibly available in claimable states, visibly blocked in non-claimable states, and
+must not imply that a live write has been submitted yet.
 
 Hide the heavier math in expandable details or tooltip copy:
 - team profit
