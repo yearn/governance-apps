@@ -42,6 +42,8 @@ We expose a typed control surface for E2E tests. It is only injected when `NEXT_
 - Initialization: `components/TestBridgeListener.tsx` rendered inside `state/protocol.tsx`.
 - Guard: `if (process.env.NEXT_PUBLIC_E2E === "true")`.
 - All state mutations invalidate React Query for deterministic UI updates.
+- For the Teams and YBC `M2A` alignment work, `shared / WP0` owns this shared seam and
+  the domain runtime packages add their adapters against that contract.
 
 #### Usage from Playwright (example)
 

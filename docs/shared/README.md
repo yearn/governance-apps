@@ -20,9 +20,14 @@ Shared docs define requirements and architecture that apply across multiple apps
 - [`rpc-reliance-reduction-roadmap.md`](rpc-reliance-reduction-roadmap.md)
 - [`testing.md`](testing.md)
 - [`mock-toggles.md`](mock-toggles.md)
+- [`debug-runtime-contract.md`](debug-runtime-contract.md)
 - [`runtime-modes.md`](runtime-modes.md)
 - [`security-hardening.md`](security-hardening.md)
 - [`security-hardening-backlog.md`](security-hardening-backlog.md)
+
+## Shared Work Packages
+
+- [`work-packages/WP0-debug-runtime-shared-seam.md`](work-packages/WP0-debug-runtime-shared-seam.md)
 
 ## Data Schemas
 

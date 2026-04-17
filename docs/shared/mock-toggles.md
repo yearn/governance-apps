@@ -113,3 +113,6 @@ values under the current view.
   panel and `window.__TEST__` rather than relying on route-local scenario UI.
 - When a new mock-heavy domain is added, `DebugControls` time travel and `Reset App`
   must invalidate and reset that domain's store as part of the same package.
+- For the Teams and YBC `M2A` alignment work, shared seam ownership for
+  `DebugControls` and `window.__TEST__` sits in `shared / WP0`; the domain runtime
+  packages consume that seam rather than redefining it.

@@ -35,6 +35,7 @@ mutated in place through the shared debug panel and E2E bridge.
 
 ## Dependencies
 
+- `shared / WP0`
 - WP1
 - WP2
 - WP3
@@ -46,11 +47,8 @@ mutated in place through the shared debug panel and E2E bridge.
 
 - `app/teams/TeamsPageClient.tsx`
 - `app/teams/components/MockControls.tsx`
-- `docs/shared/debug-runtime-contract.md`
-- `components/DebugControls.tsx`
 - `lib/clients/teams/mock.ts`
 - `lib/hooks/useTeams.ts`
-- `lib/test-bridge.ts`
 - `tests/components/TeamsPageClient.test.tsx`
 - `tests/e2e/*teams*`
 
@@ -67,10 +65,12 @@ mutated in place through the shared debug panel and E2E bridge.
   revenue state, funding state, bonus state, and admin visibility inputs
 - any named debug presets are implemented as convenience bootstraps into the mutable
   store rather than as the primary or only QA path
-- shared `DebugControls` time travel invalidates Teams queries and updates Teams state
-  coherently
-- shared `Reset App` resets the Teams mock store alongside the existing mock-backed
-  domains
+- Teams exposes the Teams-specific reset, time-travel, and bridge adapters required by
+  `shared / WP0` instead of redefining the shared shell or bridge contract
+- when consumed through the shared seam, `DebugControls` time travel invalidates Teams
+  queries and updates Teams state coherently
+- when consumed through the shared seam, `Reset App` resets the Teams mock store
+  alongside the existing mock-backed domains
 - the E2E bridge exposes Teams state seeding APIs so browser tests avoid visible debug
   clicking and route-local state controls, with granular setters for Teams state rather
   than scenario-only loading
@@ -108,7 +108,8 @@ Scope:
 Constraints:
 - stay inside this package only
 - follow existing `governance-apps` patterns
-- follow `docs/shared/debug-runtime-contract.md` for the shared debug-panel and test-bridge seam
+- depend on `shared / WP0` and follow `docs/shared/debug-runtime-contract.md` for the
+  shared debug-panel and test-bridge seam
 - do not jump ahead into later milestones
 - update tests and docs if behavior changes
 
@@ -121,7 +122,9 @@ Definition of done:
   current route instead of swapping canned views
 - app-specific debug controls expose granular Teams setters rather than only preset or
   surface-mode selectors
-- shared `DebugControls` time travel and `Reset App` include Teams store integration
+- Teams runtime plugs into the `shared / WP0` seam so shared `DebugControls` time
+  travel and `Reset App` include Teams store integration without redesigning the shared
+  shell
 - the E2E bridge exposes granular Teams state setters
 
 
@@ -143,6 +146,8 @@ Block if:
 - debug controls still operate by swapping named canned views instead of mutating live
   route state
 - `DebugControls` time travel or `Reset App` omit the Teams store
+- the package redefines the shared shell or bridge contract instead of consuming
+  `shared / WP0`
 - shared repo patterns are ignored without justification
 
 
@@ -158,5 +163,5 @@ branch only after:
 During integration:
 - keep the merge focused
 - avoid broad conflict-driven refactors
-- record any shared debug-menu, reset/time-travel, or test-bridge merge-order notes for
-  YBC
+- assume `shared / WP0` landed first and record any Teams-specific adapter notes for
+  later YBC comparison only

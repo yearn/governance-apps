@@ -3,6 +3,11 @@
 Purpose: freeze the shared debug-panel and E2E bridge contract for mature mock-backed
 routes so parallel work packages do not invent incompatible seams.
 
+Ownership for `M2A`:
+
+- `shared / WP0` owns `components/DebugControls.tsx` and `lib/test-bridge.ts`
+- `teams / WP7` and `ybc / WP6` consume that seam instead of redefining it
+
 Applies to:
 
 - `components/DebugControls.tsx`
@@ -21,12 +26,12 @@ Applies to:
 ## Shared debug panel shape
 
 - `DebugControls` remains the shared shell
-- global controls stay at the top:
-  - time travel
-  - reset app
+- time travel controls stay at the top
 - app-specific controls mount inside the shared shell as route/domain sections
+- `Reset App` stays in the footer below app-specific sections
 - Teams and YBC should each expose their own `MockControls` section instead of adding
   route-local hero cards or scenario bars
+- changing that top/middle/footer structure is shared-shell work owned by `shared / WP0`
 
 ## Time travel and reset requirements
 
@@ -40,7 +45,10 @@ When a new mature mock-backed domain joins the debug runtime:
 
 For Teams and YBC specifically:
 
-- `DebugControls` must invalidate `teamsKeys.all` and `ybcKeys.all`
+- `DebugControls` must invalidate the Teams root query key entry point
+  (`teamsKeys.all` at the time this contract was written)
+- `shared / WP0` must establish the YBC root invalidation seam consumed by
+  `DebugControls` and the test bridge before `ybc / WP6` depends on it
 - `Reset App` must reset the Teams and YBC mock stores alongside Styfi, veYFI, and yETH
 
 ## E2E bridge rules
@@ -88,8 +96,9 @@ Exact names may evolve, but the contract intent should remain:
 
 ## Package ownership guidance
 
-When two runtime packages run in parallel:
+For `M2A`:
 
-- one package should own the shared seam edits in `DebugControls` and `lib/test-bridge.ts`
-- the other package should implement against the agreed contract instead of redefining it
+- `shared / WP0` owns the shared seam edits in `DebugControls` and `lib/test-bridge.ts`
+- `teams / WP7` and `ybc / WP6` should treat that seam as an input dependency, not a
+  place to redesign the shared shell
 - any expansion of the shared seam should preserve the naming and mutation model above

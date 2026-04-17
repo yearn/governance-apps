@@ -34,6 +34,7 @@ mutated in place through the shared debug panel and E2E bridge.
 
 ## Dependencies
 
+- `shared / WP0`
 - WP1
 - WP2
 - WP3
@@ -44,11 +45,8 @@ mutated in place through the shared debug panel and E2E bridge.
 
 - `app/ybc/YbcPageClient.tsx`
 - `app/ybc/components/MockControls.tsx`
-- `docs/shared/debug-runtime-contract.md`
-- `components/DebugControls.tsx`
 - `lib/clients/ybc/mock.ts`
 - `lib/hooks/useYbc.ts`
-- `lib/test-bridge.ts`
 - `tests/components/YbcPageClient.test.tsx`
 - `tests/e2e/*ybc*`
 
@@ -67,10 +65,12 @@ mutated in place through the shared debug panel and E2E bridge.
   store rather than as the primary or only QA path
 - propose, retract, vote, and execute mock interactions run against the shared YBC
   store
-- shared `DebugControls` time travel invalidates YBC queries and updates YBC state
-  coherently
-- shared `Reset App` resets the YBC mock store alongside the existing mock-backed
-  domains
+- YBC exposes the YBC-specific reset, time-travel, invalidation, and bridge adapters
+  required by `shared / WP0` instead of redefining the shared shell or bridge contract
+- when consumed through the shared seam, `DebugControls` time travel invalidates YBC
+  queries and updates YBC state coherently
+- when consumed through the shared seam, `Reset App` resets the YBC mock store
+  alongside the existing mock-backed domains
 - the E2E bridge exposes YBC state seeding APIs so browser tests avoid visible debug
   clicking and route-local scenario controls, with granular setters for YBC state rather
   than scenario-only loading
@@ -108,7 +108,8 @@ Scope:
 Constraints:
 - stay inside this package only
 - follow existing `governance-apps` patterns
-- follow `docs/shared/debug-runtime-contract.md` for the shared debug-panel and test-bridge seam
+- depend on `shared / WP0` and follow `docs/shared/debug-runtime-contract.md` for the
+  shared debug-panel and test-bridge seam
 - do not jump ahead into later milestones
 - update tests and docs if behavior changes
 
@@ -121,7 +122,8 @@ Definition of done:
   current route instead of swapping canned views
 - app-specific debug controls expose granular YBC setters rather than only preset or
   board-mode selectors
-- shared `DebugControls` time travel and `Reset App` include YBC store integration
+- YBC runtime plugs into the `shared / WP0` seam so shared `DebugControls` time travel
+  and `Reset App` include YBC store integration without redesigning the shared shell
 - the E2E bridge exposes granular YBC state setters
 
 
@@ -143,6 +145,8 @@ Block if:
 - debug controls still operate by swapping named canned views instead of mutating live
   route state
 - `DebugControls` time travel or `Reset App` omit the YBC store
+- the package redefines the shared shell or bridge contract instead of consuming
+  `shared / WP0`
 - shared repo patterns are ignored without justification
 
 
@@ -158,5 +162,5 @@ branch only after:
 During integration:
 - keep the merge focused
 - avoid broad conflict-driven refactors
-- record any shared debug-menu, reset/time-travel, or test-bridge merge-order notes for
-  Teams
+- assume `shared / WP0` landed first and record any YBC-specific adapter notes for
+  later Teams comparison only

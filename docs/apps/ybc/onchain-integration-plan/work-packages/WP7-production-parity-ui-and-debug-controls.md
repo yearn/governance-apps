@@ -22,6 +22,7 @@ mock-only controls live behind the floating debug panel.
 
 ## Dependencies
 
+- `shared / WP0`
 - WP6
 
 ## Suggested files
@@ -71,7 +72,8 @@ Scope:
 Constraints:
 - stay inside this package only
 - follow existing `governance-apps` patterns
-- follow `docs/shared/debug-runtime-contract.md` for placement and behavior of YBC debug controls
+- depend on `shared / WP0` and follow `docs/shared/debug-runtime-contract.md` for
+  placement and behavior of YBC debug controls
 - do not jump ahead into later milestones
 - update tests and docs if behavior changes
 

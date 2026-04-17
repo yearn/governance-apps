@@ -165,15 +165,17 @@ YBC:
 
 ---
 
-## M2A — Debug-runtime alignment (parallel)
-
+## M2A — Debug-runtime alignment
 Recommended package split:
-- `teams / WP7` and `ybc / WP6`: debug-backed runtime, store, and E2E bridge work
+- `shared / WP0`: own `components/DebugControls.tsx`, `lib/test-bridge.ts`, the shared
+  reset/time-travel contract, and the initial YBC root invalidation seam
+- `teams / WP7` and `ybc / WP6`: debug-backed runtime, store, and domain-specific E2E
+  bridge work against the shared seam
 - `teams / WP8` and `ybc / WP7`: production-parity copy, control placement, and residual cleanup
 
-Recommended parallelism:
-- run the two runtime packages in parallel, but coordinate shared `DebugControls` and
-  `window.__TEST__` edits
+Recommended order:
+- land `shared / WP0` first
+- after `shared / WP0` lands, run the two runtime packages in parallel
 - after each track lands its runtime package, run the two cleanup packages in parallel
 - do not start `M3` on either track until both `M2A` cleanup packages are accepted
 
@@ -184,8 +186,8 @@ Teams:
   canned views
 - remove mock / prototype wording from the default route where production wording is intended
 - preserve loading, empty, retired, bonus-ready, funding-ready, and operator/admin QA states through debug setters and test APIs, with presets only as optional convenience bootstraps
-- wire Teams into shared `DebugControls` so time travel and `Reset App` invalidate and
-  reset Teams state correctly
+- consume the shared seam from `shared / WP0` so time travel and `Reset App` invalidate
+  and reset Teams state correctly without redefining shared shell behavior
 
 YBC:
 - move YBC state seeding and prototype controls into the floating debug panel
@@ -194,14 +196,14 @@ YBC:
   canned views
 - remove mock / prototype wording from the default route where production wording is intended
 - preserve observer, member, operator, empty-board, rewards, and proposal-lifecycle QA states through debug setters and test APIs, with presets only as optional convenience bootstraps
-- wire YBC into shared `DebugControls` so time travel and `Reset App` invalidate and
-  reset YBC state correctly
+- consume the shared seam from `shared / WP0` so time travel and `Reset App` invalidate
+  and reset YBC state correctly without redefining shared shell behavior
 
 ### Exit gate
 - default route copy reads production-ready on both tracks
 - app-specific debug controls cover all accepted M1 / M2 QA states
-- shared `DebugControls` time travel and `Reset App` operate correctly for Teams and
-  YBC stores
+- `shared / WP0` plus the Teams and YBC runtime packages make shared `DebugControls`
+  time travel and `Reset App` operate correctly for Teams and YBC stores
 - no page-local prototype or scenario chrome remains on the shipped route surfaces
 
 ---
