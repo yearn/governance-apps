@@ -37,5 +37,11 @@ test("renders the YBC overview and members prototype", async ({ page }) => {
   await expect(page.getByRole("columnheader", { name: "Target weight" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Proposal Board", level: 2 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Rewards Handoff", level: 2 })).toBeVisible();
+  await expect(
+    page.getByText("Connect a member wallet to view YBC reward periods")
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open shared rewards" })
+  ).toBeDisabled();
   await expect(page.getByRole("heading", { name: "Scoped Operator Panel", level: 2 })).toBeVisible();
 });

@@ -38,6 +38,12 @@ Implement the rewards visibility surface and the handoff to the shared claim rou
 
 UAT-Y5: rewards handoff accepted.
 
+## Follow-on dependency
+
+- Add browser-level coverage for shared-claim CTA host rewriting on `ybc-beta.dao-ops.com`
+  and `ybc.yearn.fi` before subdomain rollout. WP4 covers the rewriting logic in component
+  tests today, but the local Playwright harness still runs on `localhost`.
+
 ## Prompts
 
 
