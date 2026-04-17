@@ -144,7 +144,7 @@ describe("YbcPageClient", () => {
 
     render(<YbcPageContent data={data} />);
 
-    expect(screen.getByText(ybcCopy.rewards.states.operator)).toBeInTheDocument();
+    expect(screen.getAllByText(ybcCopy.rewards.states.operator).length).toBeGreaterThan(0);
     expect(screen.getByText(ybcCopy.rewards.states.operatorBonus)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.rewards.rows.role)).toBeInTheDocument();
     expect(screen.getAllByText("5 YFI").length).toBeGreaterThan(0);

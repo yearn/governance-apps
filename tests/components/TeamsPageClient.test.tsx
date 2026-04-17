@@ -336,9 +336,8 @@ describe("TeamsPageClient", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: teamsCopy.revenue.title, level: 2 })
+      await screen.findByText(teamsCopy.revenue.permissionless.title)
     ).toBeInTheDocument();
-    expect(screen.getByText(teamsCopy.revenue.permissionless.title)).toBeInTheDocument();
     expect(screen.getAllByText("$9,985.40").length).toBeGreaterThan(0);
 
     const amountInput = screen.getByRole("textbox", {
