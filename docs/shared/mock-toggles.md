@@ -66,6 +66,12 @@
 
 When running with mocks enabled, a **"🛠️ Debug"** button appears at the bottom center of the screen.
 
+Default app surfaces should stay production-like even when mocks are enabled. Route-local
+hero cards, scenario switchers, and obvious prototype-control chrome are transitional
+only; app-specific mock controls belong inside this floating debug panel or the E2E
+bridge. Scenario fixtures are still valid as hidden seed presets, but they should not
+be the primary user-facing interaction model for mature mock-backed routes.
+
 ### Features
 
 1.  **Time Travel:**
@@ -98,3 +104,5 @@ When running with mocks enabled, a **"🛠️ Debug"** button appears at the bot
 
 - Domain allowances should be read from account state in mock mode (avoid `useTokenAllowance`).
 - Error shaping is normalized in `lib/tx/errors.ts`; keep new mock errors aligned with that map.
+- New mock-heavy domains should expose app-specific debug setters through the floating
+  panel and `window.__TEST__` rather than relying on route-local scenario UI.

@@ -1,4 +1,4 @@
-# WP9 — Fork testing, UAT, and rollout notes
+# WP11 — Fork testing, UAT, and rollout notes
 
 ## Objective
 
@@ -18,8 +18,8 @@ Document and validate fork testing, UAT checkpoints, and rollout guidance for Te
 
 ## Dependencies
 
-- WP7
-- WP8
+- WP9
+- WP10
 
 ## Suggested files
 
@@ -40,9 +40,9 @@ UAT-T8: preprod readiness reviewed.
 ## Prompts
 
 
-### Implementer prompt for WP9
+### Implementer prompt for WP11
 
-You are implementing `teams` `WP9` — **Fork testing, UAT, and rollout notes**.
+You are implementing `teams` `WP11` — **Fork testing, UAT, and rollout notes**.
 
 Objective:
 Document and validate fork testing, UAT checkpoints, and rollout guidance for Team Finances.
@@ -67,9 +67,9 @@ Definition of done:
 
 
 
-### Reviewer prompt for WP9
+### Reviewer prompt for WP11
 
-Review this PR only against `teams` `WP9` — **Fork testing, UAT, and rollout notes**.
+Review this PR only against `teams` `WP11` — **Fork testing, UAT, and rollout notes**.
 
 Check:
 - scope matches the package and does not bleed into later WPs
@@ -85,9 +85,9 @@ Block if:
 
 
 
-### Integrator prompt for WP9
+### Integrator prompt for WP11
 
-Integrate `teams` `WP9` — **Fork testing, UAT, and rollout notes** into the `agent/integration` branch only after:
+Integrate `teams` `WP11` — **Fork testing, UAT, and rollout notes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

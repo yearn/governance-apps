@@ -8,10 +8,11 @@ targets the new YBC surface.
 1. mock data shapes and route shell
 2. static hero / roster / proposal UX
 3. interactive mock proposal flows
-4. onchain reads
-5. onchain writes
-6. fork validation
-7. controlled rollout
+4. debug-backed production-parity mock runtime
+5. onchain reads
+6. onchain writes
+7. fork validation
+8. controlled rollout
 
 ## Included
 

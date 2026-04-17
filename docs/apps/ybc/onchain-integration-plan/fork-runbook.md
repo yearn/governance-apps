@@ -1,6 +1,6 @@
 # YBC Fork Runbook
 
-Use this runbook once mock UX is accepted and onchain work begins.
+Use this runbook once mock UX, debug-runtime alignment, and onchain work begin.
 
 ## 1. Start mainnet fork
 

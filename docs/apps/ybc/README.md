@@ -63,6 +63,14 @@ The current mock-backed route integrates the accepted WP2, WP3, WP4, and WP5 pro
 - the operator/admin perspective now exposes a scoped panel for add/remove member affordances,
   operator visibility, hook visibility, threshold visibility, and reward sync status
 
+## Planned alignment follow-on
+
+Before YBC starts fork-backed reads, the current scenario-driven prototype shell is
+scheduled to move onto the same debug-backed model used by `/styfi`, `/veyfi`, and
+`/yeth`. That follow-on phase removes visible scenario chrome from the default route,
+keeps the default copy production-like, and moves state seeding into the floating
+debug panel and E2E bridge.
+
 ## Included docs
 
 - `docs/apps/ybc/ui-spec.md`

@@ -103,6 +103,11 @@ Sections / tabs:
 
 ## 4.3 Prototype state coverage
 
+The route-local prototype controls described in this section are transitional. The
+follow-on M2A alignment work replaces them with app-specific controls inside the shared
+floating debug panel so the default `/teams` route can mimic production copy and
+navigation.
+
 For the approved interactive mock prototype, the route must keep explicit state coverage for:
 
 - populated directory with multiple teams
@@ -249,6 +254,10 @@ Approved admin groups:
 - price source visibility
 
 ## 7. Mock-first scenario set
+
+These scenarios remain the seed contract for the mock data model, but the follow-on
+debug-runtime alignment work will expose them as debug presets instead of page-local
+hero controls.
 
 Required mock scenarios:
 

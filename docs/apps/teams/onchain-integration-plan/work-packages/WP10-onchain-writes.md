@@ -1,4 +1,4 @@
-# WP8 — Onchain writes
+# WP10 — Onchain writes
 
 ## Objective
 
@@ -18,7 +18,7 @@ Add write preparation and execution for in-scope Team Finances actions.
 
 ## Dependencies
 
-- WP7
+- WP9
 
 ## Suggested files
 
@@ -40,9 +40,9 @@ UAT-T7: fork-backed write paths validated.
 ## Prompts
 
 
-### Implementer prompt for WP8
+### Implementer prompt for WP10
 
-You are implementing `teams` `WP8` — **Onchain writes**.
+You are implementing `teams` `WP10` — **Onchain writes**.
 
 Objective:
 Add write preparation and execution for in-scope Team Finances actions.
@@ -67,9 +67,9 @@ Definition of done:
 
 
 
-### Reviewer prompt for WP8
+### Reviewer prompt for WP10
 
-Review this PR only against `teams` `WP8` — **Onchain writes**.
+Review this PR only against `teams` `WP10` — **Onchain writes**.
 
 Check:
 - scope matches the package and does not bleed into later WPs
@@ -85,9 +85,9 @@ Block if:
 
 
 
-### Integrator prompt for WP8
+### Integrator prompt for WP10
 
-Integrate `teams` `WP8` — **Onchain writes** into the `agent/integration` branch only after:
+Integrate `teams` `WP10` — **Onchain writes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

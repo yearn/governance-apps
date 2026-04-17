@@ -58,6 +58,14 @@ mock `Operator/admin view` scenario, where it groups registry state, bucket usag
 whitelisted revenue tokens, funding queue health, and bonus finalization readiness
 into a separate ops surface.
 
+## Planned alignment follow-on
+
+Before Teams starts fork-backed reads, the current scenario-driven prototype shell is
+scheduled to move onto the same debug-backed model used by `/styfi`, `/veyfi`, and
+`/yeth`. That follow-on phase removes visible prototype controls from the default
+route, keeps the default copy production-like, and moves state seeding into the
+floating debug panel and E2E bridge.
+
 The approved top-level shell sections are:
 
 1. Team directory

@@ -195,6 +195,9 @@ type YbcAdminRecord = {
 };
 ```
 
+The follow-on debug-runtime alignment work uses this scenario set as seed presets
+behind the debug panel and E2E bridge rather than as visible route-local controls.
+
 ## Field Rules
 
 - All timestamps are Unix seconds.

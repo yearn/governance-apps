@@ -1,4 +1,4 @@
-# WP7 — Onchain writes
+# WP9 — Onchain writes
 
 ## Objective
 
@@ -19,7 +19,7 @@ Add write preparation and execution for in-scope YBC actions.
 
 ## Dependencies
 
-- WP6
+- WP8
 
 ## Suggested files
 
@@ -41,9 +41,9 @@ UAT-Y8: fork-backed write paths validated.
 ## Prompts
 
 
-### Implementer prompt for WP7
+### Implementer prompt for WP9
 
-You are implementing `ybc` `WP7` — **Onchain writes**.
+You are implementing `ybc` `WP9` — **Onchain writes**.
 
 Objective:
 Add write preparation and execution for in-scope YBC actions.
@@ -69,9 +69,9 @@ Definition of done:
 
 
 
-### Reviewer prompt for WP7
+### Reviewer prompt for WP9
 
-Review this PR only against `ybc` `WP7` — **Onchain writes**.
+Review this PR only against `ybc` `WP9` — **Onchain writes**.
 
 Check:
 - scope matches the package and does not bleed into later WPs
@@ -87,9 +87,9 @@ Block if:
 
 
 
-### Integrator prompt for WP7
+### Integrator prompt for WP9
 
-Integrate `ybc` `WP7` — **Onchain writes** into the `agent/integration` branch only after:
+Integrate `ybc` `WP9` — **Onchain writes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

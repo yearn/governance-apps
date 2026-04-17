@@ -1,4 +1,4 @@
-# WP8 — Fork testing, UAT, and rollout notes
+# WP10 — Fork testing, UAT, and rollout notes
 
 ## Objective
 
@@ -18,8 +18,8 @@ Document and validate fork testing, UAT checkpoints, and rollout guidance for YB
 
 ## Dependencies
 
-- WP6
-- WP7
+- WP8
+- WP9
 
 ## Suggested files
 
@@ -40,9 +40,9 @@ UAT-Y9: preprod readiness reviewed.
 ## Prompts
 
 
-### Implementer prompt for WP8
+### Implementer prompt for WP10
 
-You are implementing `ybc` `WP8` — **Fork testing, UAT, and rollout notes**.
+You are implementing `ybc` `WP10` — **Fork testing, UAT, and rollout notes**.
 
 Objective:
 Document and validate fork testing, UAT checkpoints, and rollout guidance for YBC.
@@ -67,9 +67,9 @@ Definition of done:
 
 
 
-### Reviewer prompt for WP8
+### Reviewer prompt for WP10
 
-Review this PR only against `ybc` `WP8` — **Fork testing, UAT, and rollout notes**.
+Review this PR only against `ybc` `WP10` — **Fork testing, UAT, and rollout notes**.
 
 Check:
 - scope matches the package and does not bleed into later WPs
@@ -85,9 +85,9 @@ Block if:
 
 
 
-### Integrator prompt for WP8
+### Integrator prompt for WP10
 
-Integrate `ybc` `WP8` — **Fork testing, UAT, and rollout notes** into the `agent/integration` branch only after:
+Integrate `ybc` `WP10` — **Fork testing, UAT, and rollout notes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

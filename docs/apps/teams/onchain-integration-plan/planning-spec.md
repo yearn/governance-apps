@@ -27,7 +27,10 @@ Out of scope for MVP:
 ## 3. Data strategy
 
 ### Mock phase
-Use `docs/apps/teams/mock-data-schema-v1.md` and the example JSON as the source of truth.
+Use `docs/apps/teams/mock-data-schema-v1.md` and the example JSON as the source of
+truth for seed fixtures and debug presets. After M2, route-local scenario chrome
+should be retired in favor of a debug-backed mock store that preserves the production
+route shape.
 
 ### Onchain phase
 Plan for:
@@ -55,6 +58,7 @@ app/teams/
   TeamsPageClient.tsx
   messages.ts
   components/
+    MockControls.tsx
     TeamsDirectory.tsx
     TeamWorkspace.tsx
     TeamOverviewCard.tsx
@@ -82,6 +86,9 @@ Static mock-backed surface accepted.
 
 ### M2
 Interactive mock flows accepted.
+
+### M2A
+Debug-backed production-parity mock runtime accepted.
 
 ### M3
 Onchain reads work on fork.

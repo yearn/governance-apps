@@ -1,13 +1,14 @@
-# WP6 — Onchain reads
+# WP9 — Onchain reads
 
 ## Objective
 
-Add the read model for YBC after the mock UX and data contracts are accepted.
+Add the read model for Teams after the debug-backed mock runtime and production-parity
+cleanup are accepted.
 
 ## Scope
 
-- define minimal ABIs for YBC reads
-- implement a `lib/clients/ybc/onchain.ts` client
+- define minimal ABIs for teams-related reads
+- implement a `lib/clients/teams/onchain.ts` client
 - wire read hooks and query keys
 - keep disconnected and loading behavior coherent
 
@@ -18,43 +19,40 @@ Add the read model for YBC after the mock UX and data contracts are accepted.
 
 ## Dependencies
 
-- WP1
-- WP2
-- WP3
-- WP4
-- WP5
+- WP8
 
 ## Suggested files
 
-- `lib/abis/*Ybc*.ts`
-- `lib/clients/ybc/onchain.ts`
-- `lib/hooks/useYbc.ts`
-- `tests/unit/lib/clients/*ybc*`
+- `lib/abis/*Teams*.ts`
+- `lib/clients/teams/onchain.ts`
+- `lib/hooks/useTeams.ts`
+- `tests/unit/lib/clients/*teams*`
 
 ## Acceptance criteria
 
-- hero, members, proposals, and rewards read from fork-backed chain context
-- weight maturity is derived correctly in the read model
+- directory and workspace reads load from fork-backed chain context
+- query invalidation and refetch behavior are sane
 - no mock-only assumptions leak into onchain mode
 - read failures fall back safely
 
 ## UAT checkpoint
 
-UAT-Y7: fork-backed read model validated.
+UAT-T6: fork-backed read model validated.
 
 ## Prompts
 
 
-### Implementer prompt for WP6
+### Implementer prompt for WP9
 
-You are implementing `ybc` `WP6` — **Onchain reads**.
+You are implementing `teams` `WP9` — **Onchain reads**.
 
 Objective:
-Add the read model for YBC after the mock UX and data contracts are accepted.
+Add the read model for Teams after the debug-backed mock runtime and
+production-parity cleanup are accepted.
 
 Scope:
-- define minimal ABIs for YBC reads
-- implement a `lib/clients/ybc/onchain.ts` client
+- define minimal ABIs for teams-related reads
+- implement a `lib/clients/teams/onchain.ts` client
 - wire read hooks and query keys
 - keep disconnected and loading behavior coherent
 
@@ -65,16 +63,16 @@ Constraints:
 - update tests and docs if behavior changes
 
 Definition of done:
-- hero, members, proposals, and rewards read from fork-backed chain context
-- weight maturity is derived correctly in the read model
+- directory and workspace reads load from fork-backed chain context
+- query invalidation and refetch behavior are sane
 - no mock-only assumptions leak into onchain mode
 - read failures fall back safely
 
 
 
-### Reviewer prompt for WP6
+### Reviewer prompt for WP9
 
-Review this PR only against `ybc` `WP6` — **Onchain reads**.
+Review this PR only against `teams` `WP9` — **Onchain reads**.
 
 Check:
 - scope matches the package and does not bleed into later WPs
@@ -90,9 +88,9 @@ Block if:
 
 
 
-### Integrator prompt for WP6
+### Integrator prompt for WP9
 
-Integrate `ybc` `WP6` — **Onchain reads** into the `agent/integration` branch only after:
+Integrate `teams` `WP9` — **Onchain reads** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

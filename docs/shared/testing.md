@@ -29,6 +29,7 @@ We intentionally avoid a large pyramid of brittle component tests. Instead we us
 - No DOM snapshots (`toMatchSnapshot` is banned).
 - No MetaMask automation in E2E. Use MockConnector only.
 - No UI debug clicking in E2E. Use the Test Bridge to set state.
+- No page-local scenario switchers as the primary QA path for mature mock-backed routes.
 - No locale testing in E2E. Use strict decimals with a `.` separator.
 
 ## Infrastructure Seams (Required for E2E Stability)
@@ -70,6 +71,8 @@ Amounts passed to the bridge must be human-readable strings without commas (e.g.
 All bridge methods are `async` and should be awaited.
 Scenario presets are applied to the default E2E address unless a test overrides state via `setBalance`.
 Prefer calling `reset()` at the start of each E2E test to avoid leaked state.
+New domains with substantial mock state should add app-specific bridge methods instead of
+requiring visible route-local scenario controls for QA.
 
 Available scenarios:
 
@@ -129,6 +132,7 @@ Do:
 - Verify hooks call clients and invalidate queries.
 - Test complex disconnected UI logic with plain props.
 - Use the Test Bridge to set E2E state.
+- Keep default route chrome production-like and place mock-only controls behind debug APIs.
 
 Do not:
 

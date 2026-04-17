@@ -4,7 +4,9 @@ Purpose: a stable mock data contract for design, prototypes, and mock-backed imp
 
 `mock-data.example.json` is a scenario set. Each scenario contains one complete
 `TeamsMockDataV1` payload so later prototypes can swap user context without changing
-the field contract.
+the field contract. The follow-on debug-runtime alignment work uses these scenarios as
+seed presets behind the debug panel and E2E bridge rather than as visible route-local
+controls.
 
 The TypeScript mirror for this contract lives in `lib/clients/teams/types.ts`.
 Update this document, that type mirror, and `examples/mock-data.example.json` together.

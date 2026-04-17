@@ -51,7 +51,8 @@ product copy.
 2. One work package = one reviewable PR.
 3. Merge accepted work through the long-lived `agent/integration` branch.
 4. Do not create every future worktree up front.
-5. Only start fork / onchain work once mock UX and data contracts are accepted.
+5. Only start fork / onchain work once mock UX, data contracts, and debug-runtime
+   alignment are accepted.
 6. Tag `agent/integration` when a milestone is accepted, for example `integration/m0`.
 
 ## Shared dependency tree
@@ -164,6 +165,37 @@ YBC:
 
 ---
 
+## M2A — Debug-runtime alignment (parallel)
+
+Recommended package split:
+- `teams / WP7` and `ybc / WP6`: debug-backed runtime, store, and E2E bridge work
+- `teams / WP8` and `ybc / WP7`: production-parity copy, control placement, and residual cleanup
+
+Recommended parallelism:
+- run the two runtime packages in parallel, but coordinate shared `DebugControls` and
+  `window.__TEST__` edits
+- after each track lands its runtime package, run the two cleanup packages in parallel
+- do not start `M3` on either track until both `M2A` cleanup packages are accepted
+
+Teams:
+- move Teams state seeding and prototype controls into the floating debug panel
+- replace route-local scenario chrome with a mutable debug-backed store
+- remove mock / prototype wording from the default route where production wording is intended
+- preserve loading, empty, retired, bonus-ready, funding-ready, and operator/admin QA states through debug presets and test APIs
+
+YBC:
+- move YBC state seeding and prototype controls into the floating debug panel
+- replace route-local scenario chrome with a mutable debug-backed store
+- remove mock / prototype wording from the default route where production wording is intended
+- preserve observer, member, operator, empty-board, rewards, and proposal-lifecycle QA states through debug presets and test APIs
+
+### Exit gate
+- default route copy reads production-ready on both tracks
+- app-specific debug controls cover all accepted M1 / M2 QA states
+- no page-local prototype or scenario chrome remains on the shipped route surfaces
+
+---
+
 ## M3 — Onchain reads on fork (parallel)
 
 Teams:
@@ -264,6 +296,7 @@ git tag -a integration/m0 -m "Complete M0 integration"
 Create later, only when needed:
 - `teams / m1 / wp1`
 - `ybc / m1 / wp1`
+- any `m2a` debug-runtime alignment worktrees
 - any `m3+` fork/onchain worktrees
 - any production rollout worktrees
 - admin-console worktrees before base user surfaces are accepted
@@ -277,6 +310,7 @@ Create later, only when needed:
 - UAT-T3: Funding claim statuses accepted
 - UAT-T4: Bonus tooltip / period presentation accepted
 - UAT-T5: Admin information architecture accepted
+- UAT-T5A: Teams production-parity surface and debug controls accepted
 - UAT-T6: Fork-backed reads validated
 - UAT-T7: Fork-backed writes validated
 - UAT-T8: Preprod validated
@@ -289,6 +323,7 @@ Create later, only when needed:
 - UAT-Y4: Weight maturity visualization accepted
 - UAT-Y5: Rewards CTA / claim handoff accepted
 - UAT-Y6: Admin/operator panel accepted
+- UAT-Y6A: YBC production-parity surface and debug controls accepted
 - UAT-Y7: Fork-backed reads validated
 - UAT-Y8: Fork-backed writes validated
 - UAT-Y9: Preprod validated
