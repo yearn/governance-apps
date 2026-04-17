@@ -180,18 +180,28 @@ Recommended parallelism:
 Teams:
 - move Teams state seeding and prototype controls into the floating debug panel
 - replace route-local scenario chrome with a mutable debug-backed store
+- require granular Teams debug setters that mutate live route state rather than swapping
+  canned views
 - remove mock / prototype wording from the default route where production wording is intended
-- preserve loading, empty, retired, bonus-ready, funding-ready, and operator/admin QA states through debug presets and test APIs
+- preserve loading, empty, retired, bonus-ready, funding-ready, and operator/admin QA states through debug setters and test APIs, with presets only as optional convenience bootstraps
+- wire Teams into shared `DebugControls` so time travel and `Reset App` invalidate and
+  reset Teams state correctly
 
 YBC:
 - move YBC state seeding and prototype controls into the floating debug panel
 - replace route-local scenario chrome with a mutable debug-backed store
+- require granular YBC debug setters that mutate live route state rather than swapping
+  canned views
 - remove mock / prototype wording from the default route where production wording is intended
-- preserve observer, member, operator, empty-board, rewards, and proposal-lifecycle QA states through debug presets and test APIs
+- preserve observer, member, operator, empty-board, rewards, and proposal-lifecycle QA states through debug setters and test APIs, with presets only as optional convenience bootstraps
+- wire YBC into shared `DebugControls` so time travel and `Reset App` invalidate and
+  reset YBC state correctly
 
 ### Exit gate
 - default route copy reads production-ready on both tracks
 - app-specific debug controls cover all accepted M1 / M2 QA states
+- shared `DebugControls` time travel and `Reset App` operate correctly for Teams and
+  YBC stores
 - no page-local prototype or scenario chrome remains on the shipped route surfaces
 
 ---

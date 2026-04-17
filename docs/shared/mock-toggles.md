@@ -72,6 +72,11 @@ only; app-specific mock controls belong inside this floating debug panel or the 
 bridge. Scenario fixtures are still valid as hidden seed presets, but they should not
 be the primary user-facing interaction model for mature mock-backed routes.
 
+For mature mock-backed routes, debug controls should mutate underlying domain state in
+place. Presets may bootstrap the state, but QA should be able to keep navigating the
+normal route while changing persona, time, loading/empty coverage, and domain-specific
+values under the current view.
+
 ### Features
 
 1.  **Time Travel:**
@@ -106,3 +111,5 @@ be the primary user-facing interaction model for mature mock-backed routes.
 - Error shaping is normalized in `lib/tx/errors.ts`; keep new mock errors aligned with that map.
 - New mock-heavy domains should expose app-specific debug setters through the floating
   panel and `window.__TEST__` rather than relying on route-local scenario UI.
+- When a new mock-heavy domain is added, `DebugControls` time travel and `Reset App`
+  must invalidate and reset that domain's store as part of the same package.

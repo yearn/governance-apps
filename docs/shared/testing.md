@@ -133,6 +133,8 @@ Do:
 - Test complex disconnected UI logic with plain props.
 - Use the Test Bridge to set E2E state.
 - Keep default route chrome production-like and place mock-only controls behind debug APIs.
+- Prefer granular bridge setters that mutate live route state over scenario-only loading
+  once a route has matured past initial prototype mode.
 
 Do not:
 

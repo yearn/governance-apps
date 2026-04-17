@@ -3,14 +3,27 @@
 ## Objective
 
 Move Teams off route-local scenario switching and onto a mutable mock runtime that is
-seeded and controlled through the shared debug panel and E2E bridge.
+mutated in place through the shared debug panel and E2E bridge.
 
 ## Scope
 
 - replace route-local scenario orchestration with a shared Teams mock store
-- seed the store from named presets while keeping the default route production-shaped
-- expose app-specific debug controls for persona, active team, surface mode, and key
-  revenue / funding / bonus / admin seeds
+- allow named presets only as optional bootstraps into the shared store, not as the
+  primary QA model
+- expose granular app-specific debug controls that mutate live Teams state in place
+  while normal route navigation stays unchanged
+- support at minimum in-place setters for:
+  - viewer persona
+  - selected team / directory-only state
+  - loading and empty coverage
+  - current period / mock time
+  - team lifecycle and read-only status
+  - revenue preview, submission success, and deposit history state
+  - funding approval amounts, claimability, used/remaining balances, and late-liquid
+    status
+  - bonus claimability, claimed/finalization state, and admin visibility inputs
+- wire Teams into shared debug runtime behavior so `DebugControls` time travel and
+  `Reset App` mutate, invalidate, and reset the Teams store correctly
 - extend the test bridge so E2E and manual QA can reach Teams states without clicking
   visible prototype controls
 
@@ -33,6 +46,7 @@ seeded and controlled through the shared debug panel and E2E bridge.
 
 - `app/teams/TeamsPageClient.tsx`
 - `app/teams/components/MockControls.tsx`
+- `components/DebugControls.tsx`
 - `lib/clients/teams/mock.ts`
 - `lib/hooks/useTeams.ts`
 - `lib/test-bridge.ts`
@@ -45,14 +59,20 @@ seeded and controlled through the shared debug panel and E2E bridge.
   prototype-state card to reach accepted UX flows
 - the Teams mock runtime is mutable and shared across the route instead of swapping
   whole scenario payloads in and out
-- app-specific debug controls can seed at minimum:
-  - viewer persona
-  - active team / no-team directory state
-  - loading and empty coverage
-  - revenue-ready, funding-ready, bonus-ready, retired/read-only, and operator/admin
-    seeds
+- route navigation stays production-like while debug actions mutate state underneath the
+  current route instead of swapping the user into canned views
+- app-specific debug controls expose granular Teams setters for persona, team
+  selection, loading/empty coverage, current period/time, lifecycle/read-only status,
+  revenue state, funding state, bonus state, and admin visibility inputs
+- any named debug presets are implemented as convenience bootstraps into the mutable
+  store rather than as the primary or only QA path
+- shared `DebugControls` time travel invalidates Teams queries and updates Teams state
+  coherently
+- shared `Reset App` resets the Teams mock store alongside the existing mock-backed
+  domains
 - the E2E bridge exposes Teams state seeding APIs so browser tests avoid visible debug
-  clicking and route-local state controls
+  clicking and route-local state controls, with granular setters for Teams state rather
+  than scenario-only loading
 
 ## UAT checkpoint
 
@@ -68,13 +88,19 @@ You are implementing `teams` `WP7` — **Debug-backed mock runtime**.
 
 Objective:
 Move Teams off route-local scenario switching and onto a mutable mock runtime that is
-seeded and controlled through the shared debug panel and E2E bridge.
+mutated in place through the shared debug panel and E2E bridge.
 
 Scope:
 - replace route-local scenario orchestration with a shared Teams mock store
-- seed the store from named presets while keeping the default route production-shaped
-- expose app-specific debug controls for persona, active team, surface mode, and key
-  revenue / funding / bonus / admin seeds
+- allow named presets only as optional bootstraps into the shared store, not as the
+  primary QA model
+- expose granular app-specific debug controls that mutate live Teams state in place
+  while normal route navigation stays unchanged
+- support at minimum in-place setters for persona, selected team, loading/empty,
+  current period/time, lifecycle/read-only, revenue state, funding state, bonus state,
+  and admin visibility inputs
+- wire Teams into shared debug runtime behavior so `DebugControls` time travel and
+  `Reset App` mutate, invalidate, and reset the Teams store correctly
 - extend the test bridge so E2E and manual QA can reach Teams states without clicking
   visible prototype controls
 
@@ -89,8 +115,12 @@ Definition of done:
   prototype-state card to reach accepted UX flows
 - the Teams mock runtime is mutable and shared across the route instead of swapping
   whole scenario payloads in and out
-- app-specific debug controls can seed the previously accepted Teams review states
-- the E2E bridge exposes Teams state seeding APIs
+- route navigation stays production-like while debug actions mutate state underneath the
+  current route instead of swapping canned views
+- app-specific debug controls expose granular Teams setters rather than only preset or
+  surface-mode selectors
+- shared `DebugControls` time travel and `Reset App` include Teams store integration
+- the E2E bridge exposes granular Teams state setters
 
 
 
@@ -107,7 +137,10 @@ Check:
 
 Block if:
 - the implementation leaves route-local scenario chrome as the primary Teams QA path
-- critical Teams review states cannot be reached through debug or test APIs
+- critical Teams review states cannot be reached through granular debug or test APIs
+- debug controls still operate by swapping named canned views instead of mutating live
+  route state
+- `DebugControls` time travel or `Reset App` omit the Teams store
 - shared repo patterns are ignored without justification
 
 
@@ -123,4 +156,5 @@ branch only after:
 During integration:
 - keep the merge focused
 - avoid broad conflict-driven refactors
-- record any shared debug-menu or test-bridge merge-order notes for YBC
+- record any shared debug-menu, reset/time-travel, or test-bridge merge-order notes for
+  YBC
