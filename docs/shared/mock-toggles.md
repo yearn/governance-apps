@@ -83,7 +83,7 @@ values under the current view.
 
     - `+1 Day` / `+7 Days`
     - Advances the internal mock clock. Use this to fast-forward through 14-day cooldowns to test unlocking and streaming logic.
-    - Triggers an immediate refetch of account and domain queries (`styfi`, `veyfi`, `yeth`); identity values update from the shared stYFI account query.
+    - Triggers an immediate refetch of account and domain queries (`styfi`, `veyfi`, `yeth`) and also reserves `teamsKeys.all` plus `ybcKeys.all` as the `M2A` shared-root invalidation seam; identity values update from the shared stYFI account query.
 
 2.  **Balance Injection:**
 
@@ -116,3 +116,6 @@ values under the current view.
 - For the Teams and YBC `M2A` alignment work, shared seam ownership for
   `DebugControls` and `window.__TEST__` sits in `shared / WP0`; the domain runtime
   packages consume that seam rather than redefining it.
+- For that `M2A` seam specifically, domain controls should plug into
+  `DebugControlsSection[]` and the `TeamsTestBridgeAdapter` / `YbcTestBridgeAdapter`
+  types instead of extending the shared shell ad hoc.

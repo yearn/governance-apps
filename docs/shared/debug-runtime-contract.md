@@ -33,6 +33,18 @@ Applies to:
   route-local hero cards or scenario bars
 - changing that top/middle/footer structure is shared-shell work owned by `shared / WP0`
 
+### Current `M2A` seam
+
+- `components/DebugControls.tsx` exposes `DebugControlsSection` entries for domain-owned
+  middle-panel sections
+- each section may provide:
+  - `queryKeys` to invalidate on shared time travel
+  - `onTimeTravel(days)` for domain-local clock sync
+  - `onReset()` for store reset and persistence cleanup
+- shared time travel invalidates `styfi`, `veyfi`, `yeth`, `teamsKeys.all`, and
+  `ybcKeys.all`
+- the initial YBC root invalidation seam is `ybcKeys.all` from `lib/hooks/useYbc.ts`
+
 ## Time travel and reset requirements
 
 When a new mature mock-backed domain joins the debug runtime:
@@ -58,6 +70,18 @@ For Teams and YBC specifically:
 - keep methods async and invalidate queries after mutation
 - route-level scenarios may still exist as hidden bootstraps, but they are not the
   primary bridge interface for mature routes
+
+### Current `M2A` bridge seam
+
+- `lib/test-bridge.ts` defines `TeamsTestBridgeAdapter` and `YbcTestBridgeAdapter`
+- `components/TestBridgeListener.tsx` accepts optional `teams` and `ybc` adapters and
+  passes them into `createTestBridge`
+- shared `reset()` fans out to `resetTeams()` / `resetYbc()` when present
+- shared `setNow(timestamp)` fans out to adapter `onSetNow(timestamp)` hooks before
+  invalidating queries
+- domain-prefixed adapter methods invalidate `teamsKeys.all` or `ybcKeys.all`
+  automatically after mutation, so downstream packages should attach behavior through
+  the adapter rather than replacing the bridge
 
 ## Recommended naming pattern
 
@@ -102,3 +126,5 @@ For `M2A`:
 - `teams / WP7` and `ybc / WP6` should treat that seam as an input dependency, not a
   place to redesign the shared shell
 - any expansion of the shared seam should preserve the naming and mutation model above
+- merge order remains: land `shared / WP0` first, then let `teams / WP7` and
+  `ybc / WP6` plug their runtime adapters into the established seam
