@@ -15,6 +15,7 @@ import {
   useYbcState,
 } from "@/lib/hooks/useYbc";
 import { MembersTable, MembersTableSkeleton } from "./components/MembersTable";
+import { OperatorPanel } from "./components/OperatorPanel";
 import { ProposalBoard } from "./components/ProposalBoard";
 import { RewardsCard } from "./components/RewardsCard";
 import { YbcHero, YbcHeroSkeleton } from "./components/YbcHero";
@@ -26,12 +27,15 @@ const sectionStatusVariant = {
   Conditional: "warning",
 } as const;
 
-const shellSections = copy.sections.filter(
-  (section) =>
-    section.id !== "overview" &&
-    section.id !== "members" &&
-    section.id !== "proposals" &&
-    section.id !== "rewards"
+const nonShellSectionIds = new Set<(typeof copy.sections)[number]["id"]>([
+  "overview",
+  "members",
+  "proposals",
+  "rewards",
+  "admin",
+]);
+const shellSections: (typeof copy.sections)[number][] = copy.sections.filter(
+  (section) => !nonShellSectionIds.has(section.id)
 );
 
 type YbcPageClientProps = {
@@ -147,6 +151,9 @@ export function YbcPageContent({
           {shellSections.map((section) => (
             <SectionShellCard key={section.id} {...section} />
           ))}
+        </div>
+        <div className="pt-6">
+          <OperatorPanel id="admin" data={data} createProposal={createProposal} />
         </div>
       </section>
     </div>

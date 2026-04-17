@@ -197,7 +197,84 @@ export const ybcCopy = {
   shell: {
     title: "Accepted shell map",
     body:
-      "WP2, WP3, and WP4 now fill the overview, member roster, proposal board, and rewards handoff while the approved admin section remains visible as a mapped shell for later work packages.",
+      "WP2, WP3, WP4, and WP5 now fill the overview, member roster, proposal board, rewards handoff, and scoped operator panel on the route shell.",
     footerLabel: "Later work package",
+  },
+  operatorPanel: {
+    eyebrow: "Scoped operator access",
+    mockBadge: "Mock MVP scope",
+    description:
+      "Expose only add/remove member controls, current operator visibility, governance hook wiring, and reward sync status. Generic arbitrary-call tooling stays out of scope.",
+    accessCard: {
+      title: "Operator access required",
+      body:
+        "The admin section stays visible in the route map, but only the Operator/admin mock perspective unlocks scoped membership controls and governance wiring details.",
+      viewerLabel: "Current viewer",
+      controlsLabel: "Scoped member controls",
+      lockedValue: "Locked",
+      hint:
+        "Switch to the Operator/admin view in the mock perspective controls to inspect the full panel.",
+    },
+    operationsTitle: "Scoped member overrides",
+    operationsBody:
+      "These actions reuse the proposal flow for membership changes instead of introducing separate admin write machinery in mock scope.",
+    operations: {
+      addMember: {
+        title: "Add member",
+        body: "Seed the add-member proposal flow directly from the operator panel.",
+        cta: "Start add member flow",
+      },
+      removeMember: {
+        title: "Remove member",
+        body: "Seed the remove-member proposal flow without expanding into broader admin tooling.",
+        cta: "Start remove member flow",
+      },
+    },
+    operationEnabled: "Enabled",
+    operationDisabled: "Unavailable",
+    operatorsTitle: "Operators and management",
+    operatorsBody:
+      "Inspect the current operator set and management visibility without expanding into broader admin tooling.",
+    roles: {
+      operator: "Operator",
+      management: "Management",
+      you: "You",
+    },
+    viewerTitle: "Current operator viewer",
+    viewer: {
+      wallet: "Wallet",
+      accessRole: "Access role",
+      observerWallet: "No connected wallet",
+      roles: {
+        observer: "Observer",
+        member: "Member",
+        operator: "Operator",
+      },
+    },
+    thresholdsTitle: "Membership thresholds",
+    thresholds: {
+      addition: "Add member",
+      expulsion: "Remove member",
+    },
+    hooksTitle: "Governance hooks",
+    hooks: {
+      membershipHook: "Membership hook",
+      rewardsDistributor: "Rewards distributor",
+      bonusRecipient: "Bonus recipient",
+    },
+    rewardStatusTitle: "Reward wiring",
+    rewardStatusBody:
+      "Keep distributor funding and bonus recipient visibility in scope for MVP review.",
+    rewardStatus: {
+      funded: "Distributor funded",
+      unfunded: "Funding needed",
+      lastSynced: "Last synced UTC",
+    },
+    guardrailsTitle: "MVP guardrails",
+    guardrails: [
+      "Add member and remove member proposal entry points only",
+      "Visible operator set, thresholds, hooks, and reward status",
+      "No generic arbitrary-call builder in this prototype",
+    ],
   },
 } as const;

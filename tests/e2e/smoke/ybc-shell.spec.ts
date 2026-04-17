@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("renders the YBC overview and members prototype", async ({ page }) => {
+test("renders the YBC overview and operator panel states", async ({ page }) => {
   await page.goto("/ybc");
 
   await expect(
@@ -44,4 +44,11 @@ test("renders the YBC overview and members prototype", async ({ page }) => {
     page.getByRole("button", { name: "Open shared rewards" })
   ).toBeDisabled();
   await expect(page.getByRole("heading", { name: "Scoped Operator Panel", level: 2 })).toBeVisible();
+  await expect(page.getByText("Operator access required")).toBeVisible();
+
+  await page.getByRole("button", { name: "Operator/admin view" }).click();
+
+  await expect(page.getByText("Operators and management")).toBeVisible();
+  await expect(page.getByText("Governance hooks")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start add member flow" })).toBeVisible();
 });
