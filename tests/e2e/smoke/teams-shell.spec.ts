@@ -46,6 +46,7 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await expect(
     sectionNav.getByRole("link", { name: "Ownership & Lifecycle" })
   ).toHaveAttribute("href", "#lifecycle");
+  await expect(sectionNav.getByRole("link", { name: "Admin" })).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Revenue Deposit", level: 2 })
   ).toBeVisible();
@@ -54,5 +55,14 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Bonus", level: 3 })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Ownership & Lifecycle", level: 3 })
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Operator/admin view" }).click();
+  await expect(sectionNav.getByRole("link", { name: "Admin" })).toHaveAttribute(
+    "href",
+    "#admin"
+  );
+  await expect(
+    page.locator("#admin").getByRole("heading", { name: "Admin Console", level: 2 })
   ).toBeVisible();
 });

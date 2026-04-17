@@ -62,6 +62,8 @@ describe("TeamsPageClient", () => {
       "href",
       "#revenue"
     );
+    expect(screen.queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.controls.adminHint)).toBeInTheDocument();
 
     expect(screen.getByText("Retiring")).toBeInTheDocument();
     expect(screen.getByText("Retired")).toBeInTheDocument();
@@ -102,6 +104,100 @@ describe("TeamsPageClient", () => {
       })
     ).toBeDisabled();
     expect(document.querySelectorAll("#lifecycle")).toHaveLength(1);
+  });
+
+  it("renders the admin console only in the operator/admin scenario", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    expect(
+      screen.queryByRole("heading", {
+        name: teamsCopy.admin.title,
+        level: 2,
+      })
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: twoTeamSnapshotLabel,
+      })
+    );
+
+    const adminLink = await screen.findByRole("link", { name: "Admin" });
+    expect(adminLink).toHaveAttribute("href", "#admin");
+
+    const adminSection = document.getElementById("admin");
+    expect(adminSection).not.toBeNull();
+    expect(
+      within(adminSection!).getByRole("heading", {
+        name: teamsCopy.admin.title,
+        level: 2,
+      })
+    ).toBeInTheDocument();
+    expect(
+      await within(adminSection!).findByRole("heading", {
+        name: teamsCopy.admin.registry.title,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(adminSection!).getByRole("heading", {
+        name: teamsCopy.admin.revenue.title,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(adminSection!).getByRole("heading", {
+        name: teamsCopy.admin.fundingOps.title,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(adminSection!).getByRole("heading", {
+        name: teamsCopy.admin.bonusOps.title,
+        level: 3,
+      })
+    ).toBeInTheDocument();
+    expect(
+      within(adminSection!).queryByText(teamsCopy.admin.accessCard.title)
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows bucket usage, whitelisted tokens, and queue summaries in the admin scenario", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: twoTeamSnapshotLabel,
+      })
+    );
+
+    const adminSection = document.getElementById("admin");
+    expect(adminSection).not.toBeNull();
+
+    expect(
+      await within(adminSection!).findByText(teamsCopy.admin.summary.title)
+    ).toBeInTheDocument();
+    expect(
+      within(adminSection!).getByText(teamsCopy.admin.revenue.bucketLabels.rewards)
+    ).toBeInTheDocument();
+    expect(
+      within(adminSection!).getByText(teamsCopy.admin.revenue.bucketLabels.recovery)
+    ).toBeInTheDocument();
+    expect(
+      within(adminSection!).getByText("0x7777777777777777777777777777777777777777")
+    ).toBeInTheDocument();
+    expect(within(adminSection!).getByText("approval-security-21")).toBeInTheDocument();
+    expect(within(adminSection!).getByText("platform")).toBeInTheDocument();
+    expect(
+      within(adminSection!).getByText(teamsCopy.admin.operatorAttention.required.label)
+    ).toBeInTheDocument();
+    expect(
+      within(adminSection!).getByText(teamsCopy.admin.finalizationState.required.label)
+    ).toBeInTheDocument();
   });
 
   it("exposes deterministic loading and empty coverage through the prototype controls", async () => {

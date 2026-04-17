@@ -20,6 +20,7 @@ import {
 } from "@/lib/clients/teams";
 import { useTeamsScenario, useTeamsScenarioCatalog } from "@/lib/hooks/useTeams";
 import { RevenueDepositCard } from "./components/RevenueDepositCard";
+import { AdminConsole } from "./components/AdminConsole";
 import { TeamWorkspace } from "./components/TeamWorkspace";
 import { TeamsDirectory } from "./components/TeamsDirectory";
 import { teamsCopy } from "./messages";
@@ -39,12 +40,19 @@ export function TeamsPageClient() {
   const scenarioCatalogQuery = useTeamsScenarioCatalog();
   const scenarioQuery = useTeamsScenario(activeScenarioId);
   const scenario = scenarioQuery.data ?? null;
+  const activeScenarioCatalogEntry = scenarioCatalogQuery.data?.find(
+    (entry) => entry.id === activeScenarioId
+  );
   const renderState =
     surfaceState === "loading" || scenarioQuery.isPending
       ? "loading"
       : surfaceState === "empty"
         ? "empty"
         : "ready";
+  const showAdminSection = activeScenarioCatalogEntry?.hasAdmin ?? false;
+  const navigationSections = showAdminSection
+    ? teamsCopy.navigation
+    : teamsCopy.navigation.filter((section) => section.id !== "admin");
 
   useEffect(() => {
     if (surfaceState !== "scenario") {
@@ -132,7 +140,7 @@ export function TeamsPageClient() {
             </div>
 
             <nav aria-label="Team Finances sections" className="flex flex-wrap gap-2">
-              {teamsCopy.navigation.map((section) => (
+              {navigationSections.map((section) => (
                 <Link
                   key={section.id}
                   href={`#${section.id}`}
@@ -223,6 +231,10 @@ export function TeamsPageClient() {
                 </div>
               </div>
 
+              <p className="text-xs leading-5 text-text-secondary">
+                {teamsCopy.controls.adminHint}
+              </p>
+
               <div className="grid gap-3 text-sm">
                 <RolloutRow
                   label="Beta host"
@@ -275,6 +287,18 @@ export function TeamsPageClient() {
           state={renderState}
         />
       </section>
+
+      {showAdminSection ? (
+        <section id="admin" className="container mx-auto px-4 pb-10 md:px-6 md:pb-14">
+          <AdminConsole
+            admin={renderState === "ready" ? scenarioData?.admin ?? null : null}
+            teams={renderState === "ready" ? scenarioData?.teams ?? [] : []}
+            viewer={renderState === "ready" ? scenarioData?.viewer ?? null : null}
+            currentPeriod={renderState === "ready" ? scenarioData?.currentPeriod ?? null : null}
+            state={renderState}
+          />
+        </section>
+      ) : null}
     </div>
   );
 
