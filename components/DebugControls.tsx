@@ -1,38 +1,76 @@
 "use client";
 
+import type { QueryClient } from "@tanstack/react-query";
 import { useCallback, useState, ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDisconnect } from "wagmi";
 import { Button } from "@/components/ui/Button";
 import { debugAdvanceTime } from "@/lib/mocks/time";
 import { styfiKeys } from "@/lib/hooks/useStyfi";
+import { teamsKeys } from "@/lib/hooks/useTeams";
 import { veyfiKeys } from "@/lib/hooks/useVeyfi";
+import { ybcKeys } from "@/lib/hooks/useYbc";
 import { yethKeys } from "@/lib/hooks/useYeth";
 import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
 import { resetMockVeyfiStore } from "@/lib/clients/veyfi/mock";
 import { resetMockYethStore } from "@/lib/clients/yeth/mock";
 
-export function DebugControls({ children }: { children?: ReactNode }) {
+type DebugQueryKey = readonly unknown[];
+
+export type DebugControlsSection = {
+  id: string;
+  title: string;
+  content: ReactNode;
+  queryKeys?: readonly DebugQueryKey[];
+  onReset?: () => Promise<void> | void;
+  onTimeTravel?: (days: number) => Promise<void> | void;
+};
+
+const SHARED_DEBUG_QUERY_KEYS = [
+  styfiKeys.all,
+  veyfiKeys.all,
+  yethKeys.all,
+  teamsKeys.all,
+  ybcKeys.all,
+] as const satisfies readonly DebugQueryKey[];
+
+async function invalidateDebugQueryKeys(
+  queryClient: QueryClient,
+  queryKeys: readonly DebugQueryKey[]
+) {
+  await Promise.all(
+    queryKeys.map((queryKey) =>
+      queryClient.invalidateQueries({
+        queryKey,
+        refetchType: "all",
+      })
+    )
+  );
+}
+
+export function DebugControls({
+  children,
+  sections = [],
+}: {
+  children?: ReactNode;
+  sections?: readonly DebugControlsSection[];
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
   const { disconnectAsync } = useDisconnect();
 
   const handleTimeTravel = async (days: number) => {
     debugAdvanceTime(days * 24 * 60 * 60);
-    // Invalidate everything to be safe
+    const sectionTasks = sections.flatMap((section) =>
+      section.onTimeTravel ? [section.onTimeTravel(days)] : []
+    );
+
     await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: styfiKeys.all,
-        refetchType: "all",
-      }),
-      queryClient.invalidateQueries({
-        queryKey: veyfiKeys.all,
-        refetchType: "all",
-      }),
-      queryClient.invalidateQueries({
-        queryKey: yethKeys.all,
-        refetchType: "all",
-      }),
+      invalidateDebugQueryKeys(queryClient, [
+        ...SHARED_DEBUG_QUERY_KEYS,
+        ...sections.flatMap((section) => section.queryKeys ?? []),
+      ]),
+      ...sectionTasks,
     ]);
   };
 
@@ -47,6 +85,9 @@ export function DebugControls({ children }: { children?: ReactNode }) {
       resetMockStyfiStore();
       resetMockVeyfiStore();
       resetMockYethStore();
+      await Promise.all(
+        sections.flatMap((section) => (section.onReset ? [section.onReset()] : []))
+      );
       queryClient.clear();
 
       if (typeof window !== "undefined") {
@@ -62,7 +103,9 @@ export function DebugControls({ children }: { children?: ReactNode }) {
         window.location.reload();
       }
     }
-  }, [disconnectAsync, queryClient]);
+  }, [disconnectAsync, queryClient, sections]);
+
+  const hasAppSpecificContent = Boolean(children) || sections.length > 0;
 
   if (!isOpen) {
     return (
@@ -107,12 +150,22 @@ export function DebugControls({ children }: { children?: ReactNode }) {
         </Button>
       </div>
 
-      {children && (
+      {hasAppSpecificContent && (
         <div className="border-t border-border pt-2">
           <h4 className="text-xs font-bold uppercase tracking-wide text-text-tertiary mb-2">
             App Specific
           </h4>
-          {children}
+          <div className="space-y-3">
+            {sections.map((section) => (
+              <section key={section.id} className="space-y-2">
+                <h5 className="text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
+                  {section.title}
+                </h5>
+                {section.content}
+              </section>
+            ))}
+            {children}
+          </div>
         </div>
       )}
 

@@ -26,25 +26,29 @@ vi.mock("@/state/protocol", () => ({
   useProtocol: () => ({ yethUsesMockBackend: currentYethUsesMockBackend }),
 }));
 
-vi.mock("@/lib/hooks/useYeth", () => ({
-  useYethGlobalState: () => ({ data: currentGlobalState }),
-  useYethAccountState: () => ({
-    data: currentAccountState,
-    isLoading: currentAccountLoading,
-  }),
-  useYethClaimAndExit: () => ({
-    write: claimExitWrite,
-    state: { status: "idle" as const },
-  }),
-  useYethClaimAndStay: () => ({
-    write: claimStayWrite,
-    state: { status: "idle" as const },
-  }),
-  useYethRedeemToEth: () => ({
-    write: redeemWrite,
-    state: { status: "idle" as const },
-  }),
-}));
+vi.mock("@/lib/hooks/useYeth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/hooks/useYeth")>();
+  return {
+    ...actual,
+    useYethGlobalState: () => ({ data: currentGlobalState }),
+    useYethAccountState: () => ({
+      data: currentAccountState,
+      isLoading: currentAccountLoading,
+    }),
+    useYethClaimAndExit: () => ({
+      write: claimExitWrite,
+      state: { status: "idle" as const },
+    }),
+    useYethClaimAndStay: () => ({
+      write: claimStayWrite,
+      state: { status: "idle" as const },
+    }),
+    useYethRedeemToEth: () => ({
+      write: redeemWrite,
+      state: { status: "idle" as const },
+    }),
+  };
+});
 
 function buildGlobalState(
   overrides: Partial<YethGlobalState> = {}

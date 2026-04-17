@@ -6,6 +6,8 @@ import type { VeyfiClient } from "@/lib/clients/veyfi/client";
 import type { YethClient, YethDebugPreset } from "@/lib/clients/yeth";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
 import { setFixedNow } from "@/lib/mocks/time";
+import { teamsKeys } from "@/lib/hooks/useTeams";
+import { ybcKeys } from "@/lib/hooks/useYbc";
 import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
 import {
   resetMockVeyfiStore,
@@ -29,28 +31,74 @@ export type TokenSymbol =
   | "upYFI"
   | "coveYFI";
 
-export interface TestBridge {
+type BridgePatch = Record<string, unknown>;
+type BridgeMutation<TArgs extends unknown[] = unknown[]> = (
+  ...args: TArgs
+) => Promise<void> | void;
+
+export interface TeamsTestBridgeMethods {
+  resetTeams?: () => Promise<void>;
+  setTeamsViewerRole?: (role: string) => Promise<void>;
+  setTeamsSelectedTeam?: (teamId: string | null) => Promise<void>;
+  setTeamsLoading?: (value: boolean) => Promise<void>;
+  setTeamsEmpty?: (value: boolean) => Promise<void>;
+  setTeamsCurrentPeriod?: (period: number | null) => Promise<void>;
+  patchTeamsTeam?: (teamId: string, patch: BridgePatch) => Promise<void>;
+  patchTeamsFundingApproval?: (
+    approvalId: string,
+    patch: BridgePatch
+  ) => Promise<void>;
+  patchTeamsBonus?: (patch: BridgePatch) => Promise<void>;
+  patchTeamsAdmin?: (patch: BridgePatch) => Promise<void>;
+}
+
+export interface YbcTestBridgeMethods {
+  resetYbc?: () => Promise<void>;
+  setYbcPerspective?: (perspective: string) => Promise<void>;
+  setYbcLoading?: (value: boolean) => Promise<void>;
+  setYbcEmptyRoster?: (value: boolean) => Promise<void>;
+  setYbcEmptyBoard?: (value: boolean) => Promise<void>;
+  setYbcEpoch?: (epoch: number) => Promise<void>;
+  patchYbcMember?: (memberId: string, patch: BridgePatch) => Promise<void>;
+  patchYbcProposal?: (proposalId: string, patch: BridgePatch) => Promise<void>;
+  patchYbcRewards?: (patch: BridgePatch) => Promise<void>;
+  patchYbcAdmin?: (patch: BridgePatch) => Promise<void>;
+}
+
+type TestBridgeAdapterHooks = {
+  onSetNow?: (timestamp: number) => Promise<void> | void;
+};
+
+export type TeamsTestBridgeAdapter = TeamsTestBridgeMethods &
+  TestBridgeAdapterHooks;
+
+export type YbcTestBridgeAdapter = YbcTestBridgeMethods &
+  TestBridgeAdapterHooks;
+
+type TestStateSnapshot = {
+  balances: Record<TokenSymbol, string>;
+  styfi: {
+    active: string;
+    cooldown: string;
+    withdrawable: string;
+  };
+  veyfi: {
+    legacyBalance: string;
+    migrated: boolean;
+    llyfi: Record<TokenSymbol, { staked: string; cooldown: string }>;
+  };
+  yeth: {
+    snapshotLoss: string;
+    claimableNow: string;
+    recoveryShares: string;
+  };
+  isBlacklisted: boolean;
+};
+
+export interface TestBridge extends TeamsTestBridgeMethods, YbcTestBridgeMethods {
   reset: () => Promise<void>;
   setNow: (timestamp: number) => Promise<void>;
-  getState: (address: Address) => Promise<{
-    balances: Record<TokenSymbol, string>;
-    styfi: {
-      active: string;
-      cooldown: string;
-      withdrawable: string;
-    };
-    veyfi: {
-      legacyBalance: string;
-      migrated: boolean;
-      llyfi: Record<TokenSymbol, { staked: string; cooldown: string }>;
-    };
-    yeth: {
-      snapshotLoss: string;
-      claimableNow: string;
-      recoveryShares: string;
-    };
-    isBlacklisted: boolean;
-  }>;
+  getState: (address: Address) => Promise<TestStateSnapshot>;
   setBalance: (
     address: Address,
     symbol: TokenSymbol,
@@ -74,6 +122,8 @@ type TestBridgeDeps = {
   veyfi: VeyfiClient;
   yeth: YethClient;
   queryClient: QueryClient;
+  teams?: TeamsTestBridgeAdapter;
+  ybc?: YbcTestBridgeAdapter;
 };
 
 const TOKEN_DECIMALS: Record<TokenSymbol, number> = {
@@ -122,11 +172,27 @@ function resolveStyfiMode(symbol: TokenSymbol): StyfiStakeMode | null {
   return null;
 }
 
+function wrapBridgeMutation<TArgs extends unknown[]>(
+  fn: BridgeMutation<TArgs> | undefined,
+  invalidate: () => Promise<void>
+): ((...args: TArgs) => Promise<void>) | undefined {
+  if (!fn) {
+    return undefined;
+  }
+
+  return async (...args: TArgs) => {
+    await fn(...args);
+    await invalidate();
+  };
+}
+
 export function createTestBridge({
   styfi,
   veyfi,
   yeth,
   queryClient,
+  teams,
+  ybc,
 }: TestBridgeDeps): TestBridge {
   const debugSetStyfiBalance = requireDebugMethod(
     styfi.debugSetBalance?.bind(styfi),
@@ -156,11 +222,22 @@ export function createTestBridge({
     yeth.debugSetAccountPreset?.bind(yeth),
     "yeth.debugSetAccountPreset"
   );
+  const invalidateTeams = () =>
+    queryClient.invalidateQueries({
+      queryKey: teamsKeys.all,
+      refetchType: "all",
+    });
+  const invalidateYbc = () =>
+    queryClient.invalidateQueries({
+      queryKey: ybcKeys.all,
+      refetchType: "all",
+    });
 
   const reset = async () => {
     resetMockStyfiStore();
     resetMockVeyfiStore();
     resetMockYethStore();
+    await Promise.all([teams?.resetTeams?.(), ybc?.resetYbc?.()]);
     GLOBAL_WORLD_STATE.reset();
     setFixedNow(null);
     await queryClient.resetQueries();
@@ -168,6 +245,7 @@ export function createTestBridge({
 
   const setNow = async (timestamp: number) => {
     setFixedNow(timestamp);
+    await Promise.all([teams?.onSetNow?.(timestamp), ybc?.onSetNow?.(timestamp)]);
     await queryClient.invalidateQueries({ refetchType: "all" });
   };
 
@@ -324,5 +402,40 @@ export function createTestBridge({
     setScenario,
     setYethPreset,
     seedExternalPortfolio,
+    resetTeams: wrapBridgeMutation(teams?.resetTeams, invalidateTeams),
+    setTeamsViewerRole: wrapBridgeMutation(
+      teams?.setTeamsViewerRole,
+      invalidateTeams
+    ),
+    setTeamsSelectedTeam: wrapBridgeMutation(
+      teams?.setTeamsSelectedTeam,
+      invalidateTeams
+    ),
+    setTeamsLoading: wrapBridgeMutation(teams?.setTeamsLoading, invalidateTeams),
+    setTeamsEmpty: wrapBridgeMutation(teams?.setTeamsEmpty, invalidateTeams),
+    setTeamsCurrentPeriod: wrapBridgeMutation(
+      teams?.setTeamsCurrentPeriod,
+      invalidateTeams
+    ),
+    patchTeamsTeam: wrapBridgeMutation(teams?.patchTeamsTeam, invalidateTeams),
+    patchTeamsFundingApproval: wrapBridgeMutation(
+      teams?.patchTeamsFundingApproval,
+      invalidateTeams
+    ),
+    patchTeamsBonus: wrapBridgeMutation(teams?.patchTeamsBonus, invalidateTeams),
+    patchTeamsAdmin: wrapBridgeMutation(teams?.patchTeamsAdmin, invalidateTeams),
+    resetYbc: wrapBridgeMutation(ybc?.resetYbc, invalidateYbc),
+    setYbcPerspective: wrapBridgeMutation(
+      ybc?.setYbcPerspective,
+      invalidateYbc
+    ),
+    setYbcLoading: wrapBridgeMutation(ybc?.setYbcLoading, invalidateYbc),
+    setYbcEmptyRoster: wrapBridgeMutation(ybc?.setYbcEmptyRoster, invalidateYbc),
+    setYbcEmptyBoard: wrapBridgeMutation(ybc?.setYbcEmptyBoard, invalidateYbc),
+    setYbcEpoch: wrapBridgeMutation(ybc?.setYbcEpoch, invalidateYbc),
+    patchYbcMember: wrapBridgeMutation(ybc?.patchYbcMember, invalidateYbc),
+    patchYbcProposal: wrapBridgeMutation(ybc?.patchYbcProposal, invalidateYbc),
+    patchYbcRewards: wrapBridgeMutation(ybc?.patchYbcRewards, invalidateYbc),
+    patchYbcAdmin: wrapBridgeMutation(ybc?.patchYbcAdmin, invalidateYbc),
   };
 }
