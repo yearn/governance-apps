@@ -61,16 +61,14 @@ export function DebugControls({
 
   const handleTimeTravel = async (days: number) => {
     debugAdvanceTime(days * 24 * 60 * 60);
-    const sectionTasks = sections.flatMap((section) =>
-      section.onTimeTravel ? [section.onTimeTravel(days)] : []
+    await Promise.all(
+      sections.flatMap((section) =>
+        section.onTimeTravel ? [section.onTimeTravel(days)] : []
+      )
     );
-
-    await Promise.all([
-      invalidateDebugQueryKeys(queryClient, [
-        ...SHARED_DEBUG_QUERY_KEYS,
-        ...sections.flatMap((section) => section.queryKeys ?? []),
-      ]),
-      ...sectionTasks,
+    await invalidateDebugQueryKeys(queryClient, [
+      ...SHARED_DEBUG_QUERY_KEYS,
+      ...sections.flatMap((section) => section.queryKeys ?? []),
     ]);
   };
 

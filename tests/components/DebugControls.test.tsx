@@ -46,7 +46,13 @@ describe("DebugControls", () => {
     const invalidateQueries = vi
       .spyOn(queryClient, "invalidateQueries")
       .mockResolvedValue(undefined);
-    const onTimeTravel = vi.fn().mockResolvedValue(undefined);
+    let resolveTimeTravel!: () => void;
+    const onTimeTravel = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveTimeTravel = resolve;
+        })
+    );
     const customQueryKey = ["teams-runtime"] as const;
 
     render(
@@ -77,17 +83,23 @@ describe("DebugControls", () => {
       expect(debugAdvanceTime).toHaveBeenCalledWith(24 * 60 * 60);
     });
     expect(onTimeTravel).toHaveBeenCalledWith(1);
-    expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: teamsKeys.all,
-      refetchType: "all",
-    });
-    expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ybcKeys.all,
-      refetchType: "all",
-    });
-    expect(invalidateQueries).toHaveBeenCalledWith({
-      queryKey: customQueryKey,
-      refetchType: "all",
+    expect(invalidateQueries).not.toHaveBeenCalled();
+
+    resolveTimeTravel();
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: teamsKeys.all,
+        refetchType: "all",
+      });
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ybcKeys.all,
+        refetchType: "all",
+      });
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: customQueryKey,
+        refetchType: "all",
+      });
     });
   });
 });

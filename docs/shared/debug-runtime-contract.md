@@ -39,7 +39,8 @@ Applies to:
   middle-panel sections
 - each section may provide:
   - `queryKeys` to invalidate on shared time travel
-  - `onTimeTravel(days)` for domain-local clock sync
+  - `onTimeTravel(days)` for domain-local clock sync; shared invalidation waits for
+    these hooks to settle before refetching query roots
   - `onReset()` for store reset and persistence cleanup
 - shared time travel invalidates `styfi`, `veyfi`, `yeth`, `teamsKeys.all`, and
   `ybcKeys.all`
