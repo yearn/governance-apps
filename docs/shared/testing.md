@@ -68,6 +68,24 @@ await page.evaluate(async () => {
 - `setScenario(name)`: loads a predefined scenario (resets first).
 - `setYethPreset(address, preset)`: applies yETH mock account state (`claimable`, `recovery_position`, `empty`).
 
+For `M2A`, Teams and YBC adapters extend the shared bridge instead of redefining it:
+
+- `components/TestBridgeListener.tsx` accepts optional `teams` and `ybc` adapters
+- `lib/test-bridge.ts` exports `TeamsTestBridgeAdapter` and `YbcTestBridgeAdapter`
+- shared domain mutation methods invalidate `teamsKeys.all` or `ybcKeys.all`
+  automatically after the adapter mutation runs
+- shared `setNow(timestamp)` also calls adapter `onSetNow(timestamp)` hooks before the
+  global query invalidation
+
+Representative adapter methods already reserved by the shared contract:
+
+- Teams: `resetTeams`, `setTeamsViewerRole`, `setTeamsSelectedTeam`,
+  `setTeamsLoading`, `setTeamsEmpty`, `setTeamsCurrentPeriod`, `patchTeamsTeam`,
+  `patchTeamsFundingApproval`, `patchTeamsBonus`, `patchTeamsAdmin`
+- YBC: `resetYbc`, `setYbcPerspective`, `setYbcLoading`, `setYbcEmptyRoster`,
+  `setYbcEmptyBoard`, `setYbcEpoch`, `patchYbcMember`, `patchYbcProposal`,
+  `patchYbcRewards`, `patchYbcAdmin`
+
 Amounts passed to the bridge must be human-readable strings without commas (e.g. `\"100.5\"`).
 
 All bridge methods are `async` and should be awaited.
@@ -91,6 +109,8 @@ All time logic must come from `lib/mocks/time.ts`:
 - `setFixedNow(ts | null)` freezes or clears time.
 - In mock mode, UI epoch/cooldown timing is driven by local mock time only (not S3/chain canonical sources), so debug time travel remains deterministic.
 - Debug time travel controls are expected to invalidate identity plus domain query keys and refetch active/inactive observers immediately.
+- For `M2A`, the shared debug runtime reserves `teamsKeys.all` and `ybcKeys.all` as
+  the Teams and YBC root invalidation entry points.
 
 Any logic that previously called `Date.now()` must use `nowSeconds()` instead.
 

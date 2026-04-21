@@ -19,6 +19,10 @@ import {
   voteOnYbcMockProposal,
 } from "@/lib/clients/ybc/mock";
 
+export const ybcKeys = {
+  all: ["ybc"] as const,
+};
+
 export type YbcBoardScenarioId = YbcPrototypeScenarioId | "empty-board";
 
 export type YbcScenarioOption = {
