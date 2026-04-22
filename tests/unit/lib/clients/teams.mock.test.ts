@@ -1,13 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
+  advanceMockTeamsTime,
   applyMockTeamsFundingClaim,
   applyMockTeamsFundingReturn,
   createMockTeamsClient,
+  getMockTeamsRuntimeState,
+  patchMockTeamsFundingApproval,
+  resetMockTeamsStore,
   resolveSelectedTeam,
   resolveTeamsFundingUnitPriceUsd,
+  setMockTeamsCurrentPeriod,
+  setMockTeamsPreset,
+  setMockTeamsViewerRole,
 } from "@/lib/clients/teams";
 
 describe("MockTeamsClient", () => {
+  beforeEach(() => {
+    resetMockTeamsStore();
+  });
+
   it("lists the stable scenario catalog order", async () => {
     const client = createMockTeamsClient({ latencyMs: 0 });
 
@@ -121,5 +132,50 @@ describe("MockTeamsClient", () => {
 
     expect(approval).toBeDefined();
     expect(resolveTeamsFundingUnitPriceUsd(approval!)).toBe(1);
+  });
+
+  it("bootstraps runtime presets, role changes, and admin visibility from the shared store", async () => {
+    setMockTeamsPreset("operator-admin");
+    setMockTeamsViewerRole("operator-admin");
+
+    const runtime = getMockTeamsRuntimeState();
+
+    expect(runtime.presetId).toBe("operator-admin");
+    expect(runtime.data.viewer.role).toBe("operator-admin");
+    expect(runtime.data.viewer.canUseAdmin).toBe(true);
+    expect(runtime.data.admin).toBeDefined();
+    expect(runtime.data.selectedTeamId).toBe("security");
+  });
+
+  it("tracks manual periods and shared time travel inside the runtime state", async () => {
+    setMockTeamsCurrentPeriod(6);
+    advanceMockTeamsTime(7);
+
+    expect(getMockTeamsRuntimeState().data.currentPeriod).toBe(7);
+
+    resetMockTeamsStore();
+    expect(getMockTeamsRuntimeState().data.currentPeriod).toBe(4);
+  });
+
+  it("reconciles funding summary totals when approval patches mutate the shared runtime", async () => {
+    setMockTeamsPreset("team-owner-funding");
+
+    patchMockTeamsFundingApproval("approval-security-22", {
+      claimable: "0",
+      status: "fully-used",
+      refundValueUsd: "0.00",
+    });
+
+    const runtime = getMockTeamsRuntimeState();
+    const security = resolveSelectedTeam(runtime.data, "security");
+
+    expect(security).not.toBeNull();
+    expect(
+      security?.fundingApprovals.find((approval) => approval.id === "approval-security-22")
+    ).toMatchObject({
+      claimable: "0",
+      status: "fully-used",
+    });
+    expect(security?.fundingSummary.claimableUsd).toBe("11000.00");
   });
 });

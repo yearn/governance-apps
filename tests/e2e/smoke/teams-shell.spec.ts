@@ -1,7 +1,14 @@
 import { expect, test } from "@playwright/test";
+import {
+  patchTeamsAdmin,
+  setTeamsSelectedTeam,
+  setTeamsViewerRole,
+  waitForTestBridge,
+} from "../utils";
 
 test("renders the Team Finances route shell", async ({ page }) => {
   await page.goto("/teams");
+  await waitForTestBridge(page);
 
   await expect(
     page.getByRole("heading", { name: "Team Finances", level: 1 })
@@ -10,6 +17,9 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await expect(page.getByText("Production gated")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Open Platform workspace" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /debug/i })
   ).toBeVisible();
   await expect(
     page.locator("#bonus").getByRole("heading", { name: "Bonus", level: 3 })
@@ -57,7 +67,10 @@ test("renders the Team Finances route shell", async ({ page }) => {
     page.getByRole("heading", { name: "Ownership & Lifecycle", level: 3 })
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Operator/admin view" }).click();
+  await setTeamsViewerRole(page, "operator-admin");
+  await patchTeamsAdmin(page, { enabled: true });
+  await setTeamsSelectedTeam(page, "security");
+
   await expect(sectionNav.getByRole("link", { name: "Admin" })).toHaveAttribute(
     "href",
     "#admin"
