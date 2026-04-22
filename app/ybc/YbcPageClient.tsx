@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { YbcMockDataV1, YbcPrototypeScenarioId } from "@/lib/clients/ybc";
@@ -13,23 +12,6 @@ import { ProposalBoard } from "./components/ProposalBoard";
 import { RewardsCard } from "./components/RewardsCard";
 import { YbcHero, YbcHeroSkeleton } from "./components/YbcHero";
 import { ybcCopy as copy } from "./messages";
-
-const sectionStatusVariant = {
-  Default: "brand",
-  Mapped: "neutral",
-  Conditional: "warning",
-} as const;
-
-const nonShellSectionIds = new Set<(typeof copy.sections)[number]["id"]>([
-  "overview",
-  "members",
-  "proposals",
-  "rewards",
-  "admin",
-]);
-const shellSections: (typeof copy.sections)[number][] = copy.sections.filter(
-  (section) => !nonShellSectionIds.has(section.id)
-);
 
 type YbcPageClientProps = {
   scenarioOverride?: YbcPrototypeScenarioId;
@@ -110,14 +92,6 @@ export function YbcPageContent({
       <YbcHero data={data} />
       <MembersTable roster={data.roster} currentAddress={data.me.address} />
       <section className="container mx-auto px-4 pb-16 md:px-6 md:pb-20">
-        <div className="space-y-2 pb-6">
-          <p className="text-sm font-bold uppercase text-text-tertiary">
-            {copy.shell.title}
-          </p>
-          <p className="max-w-3xl text-sm leading-6 text-text-secondary">
-            {copy.shell.body}
-          </p>
-        </div>
         <ProposalBoard
           id="proposals"
           data={data}
@@ -128,11 +102,6 @@ export function YbcPageContent({
         />
         <div className="pt-6">
           <RewardsCard id="rewards" data={data} hostname={hostname} />
-        </div>
-        <div className="grid gap-4 pt-6 md:grid-cols-2">
-          {shellSections.map((section) => (
-            <SectionShellCard key={section.id} {...section} />
-          ))}
         </div>
         <div className="pt-6">
           <OperatorPanel id="admin" data={data} createProposal={createProposal} />
@@ -196,26 +165,5 @@ export function YbcPageErrorState({
         </Card>
       </section>
     </div>
-  );
-}
-
-function SectionShellCard({
-  id,
-  label,
-  status,
-  title,
-  body,
-}: (typeof copy.sections)[number]) {
-  return (
-    <Card id={id} className="flex min-h-[220px] flex-col justify-between gap-8">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">{title}</h2>
-          <Badge variant={sectionStatusVariant[status]}>{status}</Badge>
-        </div>
-        <p className="text-sm leading-6 text-text-secondary">{body}</p>
-      </div>
-      <p className="text-xs font-bold uppercase text-text-tertiary">{label}</p>
-    </Card>
   );
 }

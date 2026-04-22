@@ -16,6 +16,9 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText("/ybc")).toBeVisible();
   await expect(page.getByText("Production gated")).toBeVisible();
+  await expect(page.getByText("Accepted shell map")).toHaveCount(0);
+  await expect(page.getByText("Mock interactions")).toHaveCount(0);
+  await expect(page.getByText("Mock MVP scope")).toHaveCount(0);
   const sectionNav = page.getByRole("navigation", { name: "YBC sections" });
   await expect(sectionNav.getByRole("link", { name: "Overview" })).toHaveAttribute(
     "href",

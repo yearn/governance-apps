@@ -55,6 +55,9 @@ describe("YbcPageClient", () => {
     expect(screen.getByText(ybcCopy.hero.summary.internalLabel)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.hero.summary.delegatedLabel)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.hero.summary.totalLabel)).toBeInTheDocument();
+    expect(screen.queryByText("Accepted shell map")).not.toBeInTheDocument();
+    expect(screen.queryByText("Mock interactions")).not.toBeInTheDocument();
+    expect(screen.queryByText("Mock MVP scope")).not.toBeInTheDocument();
     expect(screen.getAllByText(ybcCopy.hero.perspective.observerTitle).length).toBeGreaterThan(
       0
     );
@@ -212,6 +215,7 @@ describe("YbcPageClient", () => {
     expect(
       screen.queryByText(ybcCopy.operatorPanel.operatorsTitle)
     ).not.toBeInTheDocument();
+    expect(screen.queryByText("Mock MVP scope")).not.toBeInTheDocument();
   });
 
   it("renders the proposal board with visible thresholds and timeline states", async () => {
@@ -228,8 +232,19 @@ describe("YbcPageClient", () => {
         level: 2,
       })
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: ybcCopy.proposalBoard.proposeAdditionCta,
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: ybcCopy.proposalBoard.proposeExpulsionCta,
+      })
+    ).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.proposalBoard.thresholdTitle)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.proposalBoard.terminalTitle)).toBeInTheDocument();
+    expect(screen.queryByText("Mock interactions")).not.toBeInTheDocument();
 
     const proposal = screen.getByRole("article", {
       name: /YBC-4/i,
