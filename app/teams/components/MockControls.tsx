@@ -33,9 +33,14 @@ export function MockControls() {
     content: (
       <div className="space-y-3">
         <div className="rounded-box border border-border bg-app px-3 py-2 text-xs">
-          <p className="font-bold text-text-primary">
-            {resolvePresetLabel(runtime?.presetId)}
-          </p>
+          <div className="space-y-1">
+            <p className="font-bold uppercase tracking-wide text-text-tertiary">
+              {teamsCopy.controls.presetLabel}
+            </p>
+            <p className="font-bold text-text-primary">
+              {resolvePresetLabel(runtime?.presetId)}
+            </p>
+          </div>
           <div className="mt-2 grid grid-cols-2 gap-2 text-text-secondary">
             <RuntimeSummaryItem
               label={teamsCopy.controls.viewerLabel}

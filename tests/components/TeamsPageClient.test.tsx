@@ -95,6 +95,7 @@ describe("TeamsPageClient", () => {
 
     expect(screen.getByText("App Specific")).toBeInTheDocument();
     expect(screen.getByText("Teams")).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.controls.presetLabel)).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: teamsCopy.controls.scenarioNames["operator-admin"],

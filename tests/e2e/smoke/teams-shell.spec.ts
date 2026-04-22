@@ -18,6 +18,11 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await expect(page.getByText("/teams")).toBeVisible();
   await expect(page.getByText("Production gated")).toBeVisible();
   await expect(
+    page.getByText(
+      "Directory-first finance and operations workspace for reviewing registered teams, opening a selected workspace, and tracking revenue, funding, bonus, ownership, and admin readiness in one place."
+    )
+  ).toBeVisible();
+  await expect(
     page.getByRole("button", { name: "Open Platform workspace" })
   ).toBeVisible();
   await expect(
