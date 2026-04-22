@@ -26,6 +26,12 @@ import type {
 const DAY_SECONDS = 86_400;
 const DEFAULT_EPOCH_DURATION_SECONDS = 7 * DAY_SECONDS;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
+const TERMINAL_PROPOSAL_PHASES = new Set<YbcProposalPhase>([
+  "executed",
+  "expired",
+  "failed",
+  "retracted",
+]);
 const ZERO_WEIGHT = {
   rawStaked: "0",
   effectiveWeight: "0",
@@ -189,17 +195,44 @@ function getThresholdMet(proposal: YbcProposalRecord) {
   return total > 0 && Math.round((yea / total) * 10_000) >= proposal.thresholdBps;
 }
 
+function getTerminalProposalDisabledReason(phase: YbcProposalPhase) {
+  switch (phase) {
+    case "executed":
+      return "Executed proposals are terminal.";
+    case "expired":
+      return "Expired proposals are terminal; start a new proposal.";
+    case "failed":
+      return "Failed proposals are terminal; start a new proposal.";
+    case "retracted":
+      return "Retracted proposals are terminal.";
+    default:
+      return "No further mock actions are available.";
+  }
+}
+
+function normalizeTerminalProposal(proposal: YbcProposalRecord): YbcProposalRecord {
+  return {
+    ...proposal,
+    outcome:
+      proposal.phase === "expired" || proposal.phase === "executed"
+        ? "passed"
+        : "failed",
+    actions: {
+      canRetract: false,
+      canVote: false,
+      canExecute: false,
+      nextAction: "none",
+      disabledReason: getTerminalProposalDisabledReason(proposal.phase),
+    },
+  };
+}
+
 function syncProposal(
   proposal: YbcProposalRecord,
   data: Pick<YbcMockDataV1, "me" | "asOf">
 ): YbcProposalRecord {
-  if (
-    proposal.phase === "executed" ||
-    proposal.phase === "expired" ||
-    proposal.phase === "failed" ||
-    proposal.phase === "retracted"
-  ) {
-    return proposal;
+  if (TERMINAL_PROPOSAL_PHASES.has(proposal.phase)) {
+    return normalizeTerminalProposal(proposal);
   }
 
   const isMemberViewer = data.me.isMember;
@@ -935,17 +968,44 @@ export function seedYbcRewardsState(mode: "empty" | "member" | "operator") {
 }
 
 export function setYbcOperatorAccess(value: boolean) {
-  return withBaseData((data) => ({
-    ...data,
-    me: {
-      ...data.me,
-      isOperator: value,
-    },
-    admin: {
-      ...(data.admin ?? getDefaultAdminRecord()),
-      isOperator: value,
-    },
-  }));
+  return withBaseData((data) => {
+    const admin = cloneValue(data.admin ?? getDefaultAdminRecord());
+    if (!data.me.address) {
+      return {
+        ...data,
+        admin,
+      };
+    }
+
+    const viewerAddress = data.me.address.toLowerCase();
+    const preservedOperators = admin.operators.filter(
+      (operator) => operator.address.toLowerCase() !== viewerAddress
+    );
+    const viewerOperator =
+      admin.operators.find(
+        (operator) => operator.address.toLowerCase() === viewerAddress
+      ) ??
+      getDefaultAdminRecord().operators.find(
+        (operator) => operator.address.toLowerCase() === viewerAddress
+      ) ?? {
+        address: data.me.address,
+        ens:
+          data.roster.members.find(
+            (member) => member.address.toLowerCase() === viewerAddress
+          )?.ens ?? null,
+        role: "operator" as const,
+      };
+
+    return {
+      ...data,
+      admin: {
+        ...admin,
+        operators: value
+          ? [viewerOperator, ...preservedOperators]
+          : preservedOperators,
+      },
+    };
+  });
 }
 
 export function setYbcHooksVisible(value: boolean) {

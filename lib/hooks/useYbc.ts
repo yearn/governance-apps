@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useAccount } from "wagmi";
 import type { YbcProposalPhase, YbcProposalType, YbcPrototypeScenarioId } from "@/lib/clients/ybc";
 import { createMockYbcClient } from "@/lib/clients/ybc";
@@ -67,12 +67,14 @@ export function useYbcState(options: UseYbcStateOptions = {}) {
   );
   const [error, setError] = useState<Error | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const lastBootstrappedScenarioId = useRef<YbcPrototypeScenarioId | null>(null);
 
   const defaultScenarioId: YbcPrototypeScenarioId =
     options.scenarioOverride ??
     (isConnected
       ? mockYbcClient.resolveDefaultScenario(address ?? null)
       : "observer");
+  const bootstrapScenarioId = options.scenarioOverride ?? defaultScenarioId;
 
   useEffect(() => {
     if (options.bootstrap === false) {
@@ -93,11 +95,17 @@ export function useYbcState(options: UseYbcStateOptions = {}) {
           return;
         }
 
-        if (options.scenarioOverride) {
-          resetYbcMockStore({ scenarioId: options.scenarioOverride });
-        } else if (!isYbcMockStoreInitialized()) {
-          ensureYbcMockStoreInitialized(defaultScenarioId);
+        if (
+          !isYbcMockStoreInitialized() ||
+          lastBootstrappedScenarioId.current === null ||
+          lastBootstrappedScenarioId.current !== bootstrapScenarioId
+        ) {
+          resetYbcMockStore({ scenarioId: bootstrapScenarioId });
+        } else {
+          ensureYbcMockStoreInitialized(bootstrapScenarioId);
         }
+
+        lastBootstrappedScenarioId.current = bootstrapScenarioId;
       } catch (nextError) {
         if (isCancelled) {
           return;
@@ -122,10 +130,9 @@ export function useYbcState(options: UseYbcStateOptions = {}) {
       isCancelled = true;
     };
   }, [
-    defaultScenarioId,
+    bootstrapScenarioId,
     options.bootstrap,
     options.latencyMs,
-    options.scenarioOverride,
   ]);
 
   return {
@@ -141,7 +148,8 @@ export function useYbcState(options: UseYbcStateOptions = {}) {
     patchRewards: patchYbcRewards,
     refetch: async () => {
       await sleep(options.latencyMs ?? 350);
-      resetYbcMockStore({ scenarioId: defaultScenarioId });
+      resetYbcMockStore({ scenarioId: bootstrapScenarioId });
+      lastBootstrappedScenarioId.current = bootstrapScenarioId;
     },
     resetRuntime: resetYbcMockStore,
     retractProposal: retractYbcProposal,
