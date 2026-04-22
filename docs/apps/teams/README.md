@@ -37,34 +37,35 @@ The default `/teams` landing state is the team directory. It introduces the app 
 the `Team Finances` label and gives users a scannable path into a selected team
 workspace.
 
-The current accepted prototype covers the directory table, the overview workspace,
-the mock revenue deposit flow, the mock-backed funding approvals table with
+The current accepted route covers the directory table, the overview workspace,
+the revenue deposit flow, the debug-backed funding approvals table with
 separate claim and return flows, the bonus summary with period drilldown, the
 ownership/lifecycle card, and an operator/admin-only console for registry,
 bucket, funding, and bonus oversight. It keeps explicit loading and empty coverage
 across the route so UAT can validate state handling before onchain writes ship.
 
 The bonus surface keeps the main card action-oriented by showing claimable YFI first,
-exposing a mock `Claim Bonus` CTA when the workspace is eligible, and moving profit
-and pricing inputs into period detail and tooltip states. Scenario switches reset any
-staged mock bonus action back to the target fixture so the prototype controls stay
-deterministic.
+exposing a staged `Claim Bonus` CTA when the workspace is eligible, and moving profit
+and pricing inputs into period detail and tooltip states. Runtime preset changes reset
+any staged bonus action back to the active fixture so review flows stay deterministic.
 The ownership/lifecycle card keeps owner, pending owner, retirement, migration, and
 successor state visible without introducing ownership write actions yet. Bonus and
 ownership/lifecycle anchors stay stable across selected, loading, empty, and no-team
 workspace states so the route shell sections remain linkable.
 The admin console stays hidden from default user workspaces and unlocks only in the
-mock `Operator/admin view` scenario, where it groups registry state, bucket usage,
-whitelisted revenue tokens, funding queue health, and bonus finalization readiness
-into a separate ops surface.
+debug-backed operator/admin runtime, where it groups registry state, bucket usage,
+whitelisted revenue tokens, funding queue health, and bonus finalization readiness into
+a separate ops surface.
 
-## Planned alignment follow-on
+## Debug runtime alignment
 
-Before Teams starts fork-backed reads, the current scenario-driven prototype shell is
-scheduled to move onto the same debug-backed model used by `/styfi`, `/veyfi`, and
-`/yeth`. That follow-on phase removes visible prototype controls from the default
-route, keeps the default copy production-like, and moves state seeding into the
-floating debug panel and E2E bridge.
+Teams now follows the same debug-backed model used by `/styfi`, `/veyfi`, and `/yeth`.
+The default route keeps production-like copy, while review-state bootstrapping and
+granular runtime setters live in the floating debug panel and the shared E2E bridge.
+
+Named presets remain available as convenience bootstraps, but the runtime mutates in
+place for persona, selection, loading/empty coverage, current period, lifecycle,
+revenue, funding, bonus, and admin visibility changes.
 
 The approved top-level shell sections are:
 
