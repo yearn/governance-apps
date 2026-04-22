@@ -32,6 +32,39 @@ export function MockControls() {
     title: "Teams",
     content: (
       <div className="space-y-3">
+        <div className="rounded-box border border-border bg-app px-3 py-2 text-xs">
+          <div className="space-y-1">
+            <p className="font-bold uppercase tracking-wide text-text-tertiary">
+              {teamsCopy.controls.presetLabel}
+            </p>
+            <p className="font-bold text-text-primary">
+              {resolvePresetLabel(runtime?.presetId)}
+            </p>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-text-secondary">
+            <RuntimeSummaryItem
+              label={teamsCopy.controls.viewerLabel}
+              value={
+                data?.viewer.role
+                  ? teamsCopy.viewerRoles[data.viewer.role]
+                  : teamsCopy.viewerRoles.observer
+              }
+            />
+            <RuntimeSummaryItem
+              label={teamsCopy.controls.surfaceLabel}
+              value={resolveSurfaceLabel(runtime)}
+            />
+            <RuntimeSummaryItem
+              label={teamsCopy.controls.workspaceLabel}
+              value={selectedTeam?.name ?? teamsCopy.controls.directoryOnly}
+            />
+            <RuntimeSummaryItem
+              label={teamsCopy.controls.currentPeriodLabel}
+              value={data?.currentPeriod ? `#${data.currentPeriod}` : "--"}
+            />
+          </div>
+        </div>
+
         <ControlGroup label={teamsCopy.controls.scenarioLabel}>
           {(scenarioCatalogQuery.data ?? []).map((scenario) => (
             <Button
@@ -76,7 +109,7 @@ export function MockControls() {
               await actions.setEmpty(false);
             }}
           >
-            Live
+            {teamsCopy.controls.surfaceNames.live}
           </Button>
           <Button
             size="sm"
@@ -86,7 +119,7 @@ export function MockControls() {
               await actions.setLoading(true);
             }}
           >
-            Loading
+            {teamsCopy.controls.surfaceNames.loading}
           </Button>
           <Button
             size="sm"
@@ -96,11 +129,11 @@ export function MockControls() {
               await actions.setEmpty(true);
             }}
           >
-            Empty
+            {teamsCopy.controls.surfaceNames.empty}
           </Button>
         </ControlGroup>
 
-        <ControlGroup label={teamsCopy.workspace.title}>
+        <ControlGroup label={teamsCopy.controls.workspaceLabel}>
           <Button
             size="sm"
             variant={selectedTeamId === null ? "primary" : "secondary"}
@@ -108,7 +141,7 @@ export function MockControls() {
               void actions.setSelectedTeam(null);
             }}
           >
-            Directory only
+            {teamsCopy.controls.directoryOnly}
           </Button>
           {(data?.teams ?? []).map((team) => (
             <Button
@@ -124,7 +157,7 @@ export function MockControls() {
           ))}
         </ControlGroup>
 
-        <ControlGroup label={teamsCopy.stats.currentPeriod}>
+        <ControlGroup label={teamsCopy.controls.currentPeriodLabel}>
           <Button
             size="sm"
             variant="secondary"
@@ -413,4 +446,50 @@ function ControlGroup({
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
+}
+
+function RuntimeSummaryItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <p className="font-bold uppercase tracking-wide text-text-tertiary">{label}</p>
+      <p className="text-text-primary">{value}</p>
+    </div>
+  );
+}
+
+function resolvePresetLabel(presetId: string | null | undefined) {
+  if (!presetId) {
+    return teamsCopy.controls.customRuntime;
+  }
+
+  return (
+    teamsCopy.controls.scenarioNames[
+      presetId as keyof typeof teamsCopy.controls.scenarioNames
+    ] ?? teamsCopy.controls.customRuntime
+  );
+}
+
+function resolveSurfaceLabel(
+  runtime:
+    | {
+        isLoading?: boolean;
+        isEmpty?: boolean;
+      }
+    | null
+) {
+  if (runtime?.isLoading) {
+    return teamsCopy.controls.surfaceNames.loading;
+  }
+
+  if (runtime?.isEmpty) {
+    return teamsCopy.controls.surfaceNames.empty;
+  }
+
+  return teamsCopy.controls.surfaceNames.live;
 }

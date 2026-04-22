@@ -31,7 +31,7 @@ describe("TeamsPageClient", () => {
     resetMockTeamsStore();
   });
 
-  it("renders the Team Finances shell, keeps prototype controls off-route, and opens a workspace", async () => {
+  it("renders the Team Finances shell, keeps debug presets off-route, and opens a workspace", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(<TeamsPageClient />);
@@ -44,6 +44,7 @@ describe("TeamsPageClient", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.app.routeKey)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.page.productionGate)).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.page.description)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
         name: teamsCopy.controls.scenarioNames["operator-admin"],
@@ -94,6 +95,7 @@ describe("TeamsPageClient", () => {
 
     expect(screen.getByText("App Specific")).toBeInTheDocument();
     expect(screen.getByText("Teams")).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.controls.presetLabel)).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
         name: teamsCopy.controls.scenarioNames["operator-admin"],
@@ -101,6 +103,55 @@ describe("TeamsPageClient", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Directory only" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "No tokens" })).toBeInTheDocument();
+  });
+
+  it("mutates route coverage through the shared debug panel", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await user.click(await screen.findByRole("button", { name: /debug/i }));
+    await user.click(
+      await screen.findByRole("button", {
+        name: teamsCopy.controls.scenarioNames["operator-admin"],
+      })
+    );
+
+    expect(await screen.findByRole("link", { name: "Admin" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Security", level: 2 })
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: teamsCopy.controls.surfaceNames.loading,
+      })
+    );
+
+    expect(await screen.findByText(teamsCopy.directory.loadingTitle)).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.workspace.loadingTitle)).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: teamsCopy.controls.surfaceNames.empty,
+      })
+    );
+
+    expect(await screen.findByText(teamsCopy.directory.emptyTitle)).toBeInTheDocument();
+    expect(screen.getByText(teamsCopy.admin.emptyTitle)).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: teamsCopy.controls.surfaceNames.live,
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Security", level: 2 })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: teamsCopy.admin.title, level: 2 })
+    ).toBeInTheDocument();
   });
 
   it("renders the admin console only when the runtime exposes operator/admin access", async () => {

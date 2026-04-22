@@ -99,6 +99,18 @@ export async function setTeamsSelectedTeam(page: Page, teamId: string | null) {
   }, teamId);
 }
 
+export async function setTeamsLoading(page: Page, value: boolean) {
+  await page.evaluate(async (nextValue) => {
+    await window.__TEST__?.setTeamsLoading?.(nextValue);
+  }, value);
+}
+
+export async function setTeamsEmpty(page: Page, value: boolean) {
+  await page.evaluate(async (nextValue) => {
+    await window.__TEST__?.setTeamsEmpty?.(nextValue);
+  }, value);
+}
+
 export async function patchTeamsAdmin(page: Page, patch: Record<string, unknown>) {
   await page.evaluate(async (nextPatch) => {
     await window.__TEST__?.patchTeamsAdmin?.(nextPatch);

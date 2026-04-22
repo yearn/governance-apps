@@ -12,7 +12,7 @@ export const viewport: Viewport = {
 const baseMetadata: Metadata = {
   title: "Team Finances | Yearn Finance",
   description:
-    "Mock-first directory, workspace overview, and revenue deposit preview for registered protocol teams.",
+    "Directory-first finance and operations workspace for registered protocol teams.",
   applicationName: "Team Finances",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -40,7 +40,7 @@ const baseMetadata: Metadata = {
   openGraph: {
     title: "Team Finances | Yearn Finance",
     description:
-      "Mock-first directory, workspace overview, and revenue deposit preview for registered protocol teams.",
+      "Directory-first finance and operations workspace for registered protocol teams.",
     url: "https://teams.yearn.fi",
     siteName: "Yearn Finance",
     locale: "en_US",
@@ -50,7 +50,7 @@ const baseMetadata: Metadata = {
     card: "summary",
     title: "Team Finances | Yearn Finance",
     description:
-      "Mock-first directory, workspace overview, and revenue deposit preview for registered protocol teams.",
+      "Directory-first finance and operations workspace for registered protocol teams.",
   },
 };
 
