@@ -64,7 +64,9 @@ The default route keeps production-like copy, while review-state bootstrapping a
 granular runtime setters live in the floating debug panel and the shared E2E bridge.
 Shared `DebugControls` time travel and bridge-driven `setNow()` mutations now resolve
 against the same Teams clock, so current-period changes stay consistent after resets
-and preset bootstraps.
+and preset bootstraps. Shared bridge resets also clear fixed mock time before the
+Teams runtime rebuilds, so a later `setNow()` call cannot inherit a stale anchor from
+the previous mocked timestamp.
 
 Named presets remain available as convenience bootstraps, but the runtime mutates in
 place for persona, selection, loading/empty coverage, current period, lifecycle,

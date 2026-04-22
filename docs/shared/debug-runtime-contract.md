@@ -77,7 +77,8 @@ For Teams and YBC specifically:
 - `lib/test-bridge.ts` defines `TeamsTestBridgeAdapter` and `YbcTestBridgeAdapter`
 - `components/TestBridgeListener.tsx` accepts optional `teams` and `ybc` adapters and
   passes them into `createTestBridge`
-- shared `reset()` fans out to `resetTeams()` / `resetYbc()` when present
+- shared `reset()` clears fixed mock time before it fans out to `resetTeams()` /
+  `resetYbc()`, so adapters that snapshot `nowSeconds()` rebuild from cleared time
 - shared `setNow(timestamp)` fans out to adapter `onSetNow(timestamp)` hooks before
   invalidating queries
 - domain-prefixed adapter methods invalidate `teamsKeys.all` or `ybcKeys.all`
