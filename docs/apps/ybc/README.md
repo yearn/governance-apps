@@ -44,12 +44,14 @@ The beta host is `ybc-beta.dao-ops.com`. The production host is `ybc.yearn.fi`, 
 production exposure remains gated until live contract wiring and explicit production
 approval are complete.
 
-## Current prototype state
+## Debug runtime alignment
 
-The current mock-backed route integrates the accepted WP2, WP3, WP4, WP5, and WP6
-runtime work:
+The current mock-backed route integrates the accepted WP2, WP3, WP4, WP5, WP6, and
+WP7 runtime work:
 
 - the five-section YBC shell map remains live on the route
+- the default `/ybc` surface keeps production-like copy and navigation while QA-only
+  state seeding lives in the floating debug panel and the shared E2E bridge
 - the hero separates internal member influence from delegated public influence
 - unknown connected non-member wallets remain on the observer path
 - the default `/ybc` runtime reseeds from the active wallet on connect, disconnect,
@@ -58,7 +60,8 @@ runtime work:
 - the members table keeps raw stake, effective weight, target weight, and maturity separate
 - loading and empty roster states are implemented for the overview state machine
 - the proposal board shows explicit phases, UTC timeline rows, and threshold targets
-- mock propose, retract, vote, and execute interactions are available
+- proposal propose, retract, vote, and execute interactions remain available on the
+  route without mock-specific badge copy
 - empty-board, empty-roster, loading, and operator coverage now seed through the shared
   debug panel instead of visible route-local controls
 - terminal proposal debug setters keep executed, expired, failed, and retracted history

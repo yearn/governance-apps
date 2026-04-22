@@ -52,7 +52,6 @@ export function OperatorPanel({
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="brand">{copy.operatorPanel.eyebrow}</Badge>
-          <Badge variant="warning">{copy.operatorPanel.mockBadge}</Badge>
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold">

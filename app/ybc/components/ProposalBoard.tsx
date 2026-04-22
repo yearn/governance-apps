@@ -35,7 +35,6 @@ export function ProposalBoard({
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="brand">{copy.proposalBoard.eyebrow}</Badge>
-          <Badge variant="warning">{copy.proposalBoard.mockBadge}</Badge>
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold">{copy.proposalBoard.title}</h2>

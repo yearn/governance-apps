@@ -196,7 +196,7 @@ function getDisabledReason(proposal: YbcProposalRecord): string {
     return "Expired proposals are terminal. Start a new proposal instead.";
   }
 
-  return proposal.actions.disabledReason ?? "No further mock actions are available.";
+  return proposal.actions.disabledReason ?? "No further actions are available.";
 }
 
 function getNextActionLabel(proposal: YbcProposalRecord): string {

@@ -10,35 +10,33 @@ export const ybcCopy = {
     title: "Yearn Builder's Collective",
     eyebrow: "YBC governance workspace",
     description:
-      "Track collective influence, member maturity, and proposal lifecycle with a mock-first workspace for delegated weight, thresholds, and execution timing.",
+      "Track collective influence, member maturity, and proposal lifecycle with delegated weight, visible thresholds, and execution timing in one governance workspace.",
     productionGate: "Production gated",
     loadingTitle: "Loading collective influence",
     loadingBody:
-      "Seeding the YBC overview, member roster, and proposal board from the mock state machine.",
+      "Loading the YBC overview, member roster, and proposal board.",
     errorTitle: "Unable to load collective influence",
     errorBody:
-      "The YBC mock state could not be loaded. Retry to restore the overview, member roster, and proposal board prototype.",
+      "YBC data could not be loaded. Retry to restore the overview, member roster, and proposal board.",
     retryCta: "Retry",
   },
   proposalBoard: {
     title: "Proposal Board",
     eyebrow: "Proposal lifecycle",
-    mockBadge: "Mock interactions",
     description:
-      "Inspect every proposal phase with explicit UTC timing, visible vote thresholds, and scoped mock actions for propose, retract, vote, and execute.",
+      "Inspect every proposal phase with explicit UTC timing, visible vote thresholds, and scoped actions for proposing, retracting, voting, and executing membership changes.",
     emptyTitle: "No active proposal history in this perspective",
     emptyBody:
-      "This mock perspective keeps the board intentionally empty so the route can exercise its no-proposal state without implying hidden history.",
+      "There are no active or historical proposals in this view right now.",
     emptyHint:
-      "Use the mock propose controls above or seed a populated board from the debug panel.",
-    perspectiveLabel: "Mock perspective",
+      "New member proposals and their history will appear here as they move through discussion, voting, and execution.",
     thresholdTitle: "Threshold guide",
     viewerTitle: "Current viewer",
     terminalTitle: "Expired proposals",
     terminalBody:
       "Expired proposals stay visible as terminal history. The UI does not offer a revive path; members must start a fresh proposal instead.",
-    proposeAdditionCta: "Mock propose addition",
-    proposeExpulsionCta: "Mock propose expulsion",
+    proposeAdditionCta: "Propose add member",
+    proposeExpulsionCta: "Propose remove member",
     summary: {
       active: "Active",
       awaitingExecution: "Awaiting execution",
@@ -88,7 +86,7 @@ export const ybcCopy = {
         "Observer wallets can inspect the reward section, but only member wallets with YBC rewards unlock the shared-claim handoff.",
       emptyUnseededTitle: "No YBC reward periods seeded",
       emptyUnseededBody:
-        "This prototype state has no reward periods yet. Seed a YBC member reward state from the debug panel to inspect the shared-claim handoff.",
+        "Reward periods will appear here once YBC distributions are finalized for this view.",
     },
   },
   sections: [
@@ -191,42 +189,34 @@ export const ybcCopy = {
       maturesOn: "Full weight on",
       emptyTitle: "No members seeded",
       emptyBody:
-        "This prototype state has no member records yet. Seed a YBC member state from the debug panel to inspect maturity and weight splits.",
+        "Member records will appear here once the collective has active roster data.",
     },
-  },
-  shell: {
-    title: "Accepted shell map",
-    body:
-      "WP2, WP3, WP4, and WP5 now fill the overview, member roster, proposal board, rewards handoff, and scoped operator panel on the route shell.",
-    footerLabel: "Later work package",
   },
   operatorPanel: {
     eyebrow: "Scoped operator access",
-    mockBadge: "Mock MVP scope",
     description:
       "Expose only add/remove member controls, current operator visibility, governance hook wiring, and reward sync status. Generic arbitrary-call tooling stays out of scope.",
     accessCard: {
       title: "Operator access required",
       body:
-        "The admin section stays visible in the route map, but only the Operator/admin mock perspective unlocks scoped membership controls and governance wiring details.",
+        "The admin section stays visible in the route map, but only operator access unlocks scoped membership controls and governance wiring details.",
       viewerLabel: "Current viewer",
       controlsLabel: "Scoped member controls",
       lockedValue: "Locked",
-      hint:
-        "Seed the Operator view from the debug panel to inspect the full panel.",
+      hint: "Operator access is required to inspect the full panel.",
     },
     operationsTitle: "Scoped member overrides",
     operationsBody:
-      "These actions reuse the proposal flow for membership changes instead of introducing separate admin write machinery in mock scope.",
+      "These actions reuse the proposal flow for membership changes instead of introducing separate admin write machinery.",
     operations: {
       addMember: {
         title: "Add member",
-        body: "Seed the add-member proposal flow directly from the operator panel.",
+        body: "Open the add-member proposal flow directly from the operator panel.",
         cta: "Start add member flow",
       },
       removeMember: {
         title: "Remove member",
-        body: "Seed the remove-member proposal flow without expanding into broader admin tooling.",
+        body: "Open the remove-member proposal flow without expanding into broader admin tooling.",
         cta: "Start remove member flow",
       },
     },
@@ -274,7 +264,7 @@ export const ybcCopy = {
     guardrails: [
       "Add member and remove member proposal entry points only",
       "Visible operator set, thresholds, hooks, and reward status",
-      "No generic arbitrary-call builder in this prototype",
+      "No generic arbitrary-call builder in this scope",
     ],
   },
 } as const;
