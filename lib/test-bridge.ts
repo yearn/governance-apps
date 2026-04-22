@@ -234,12 +234,12 @@ export function createTestBridge({
     });
 
   const reset = async () => {
+    setFixedNow(null);
     resetMockStyfiStore();
     resetMockVeyfiStore();
     resetMockYethStore();
     await Promise.all([teams?.resetTeams?.(), ybc?.resetYbc?.()]);
     GLOBAL_WORLD_STATE.reset();
-    setFixedNow(null);
     await queryClient.resetQueries();
   };
 
