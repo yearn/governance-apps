@@ -4,6 +4,7 @@ import type { TestBridge, TokenSymbol } from "@/lib/test-bridge";
 
 type ScenarioName = Parameters<TestBridge["setScenario"]>[0];
 type YethPreset = Parameters<TestBridge["setYethPreset"]>[1];
+type YbcPerspective = Parameters<NonNullable<TestBridge["setYbcPerspective"]>>[0];
 
 export const E2E_ADDRESS =
   "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266" as Address;
@@ -79,6 +80,18 @@ export async function setNow(page: Page, timestamp: number) {
   await page.evaluate(async (ts) => {
     await window.__TEST__?.setNow(ts);
   }, timestamp);
+}
+
+export async function setYbcPerspective(page: Page, perspective: YbcPerspective) {
+  await page.evaluate(async (value) => {
+    await window.__TEST__?.setYbcPerspective?.(value);
+  }, perspective);
+}
+
+export async function setYbcEmptyBoard(page: Page, value: boolean) {
+  await page.evaluate(async (nextValue) => {
+    await window.__TEST__?.setYbcEmptyBoard?.(nextValue);
+  }, value);
 }
 
 export async function getState(page: Page, address: Address = E2E_ADDRESS) {

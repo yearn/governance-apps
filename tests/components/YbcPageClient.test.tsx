@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import {
   YbcPageClient,
@@ -11,6 +11,8 @@ import {
   createMockYbcClient,
   type YbcPrototypeScenarioId,
 } from "@/lib/clients/ybc";
+import { resetYbcMockStore } from "@/lib/clients/ybc/store";
+import { renderWithProviders } from "@/tests/test-utils";
 
 async function getScenarioData(scenarioId: YbcPrototypeScenarioId) {
   const client = createMockYbcClient({ latencyMs: 0 });
@@ -19,6 +21,10 @@ async function getScenarioData(scenarioId: YbcPrototypeScenarioId) {
 }
 
 describe("YbcPageClient", () => {
+  beforeEach(() => {
+    resetYbcMockStore({ scenarioId: "observer" });
+  });
+
   it("renders the loading state while the mock overview is resolving", () => {
     render(<YbcPageLoadingState />);
 
@@ -209,7 +215,7 @@ describe("YbcPageClient", () => {
   });
 
   it("renders the proposal board with visible thresholds and timeline states", async () => {
-    render(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
+    renderWithProviders(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
 
     await screen.findByRole("heading", {
       name: ybcCopy.proposalBoard.title,
@@ -234,18 +240,15 @@ describe("YbcPageClient", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders an explicit empty-board scenario", async () => {
-    render(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
+  it("moves empty-board coverage into the debug panel", async () => {
+    renderWithProviders(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
 
     await screen.findByRole("button", {
-      name: /Empty proposal board/i,
+      name: /debug/i,
     });
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Empty proposal board/i,
-      })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /debug/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Empty board" }));
 
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
     expect(screen.getByText(ybcCopy.proposalBoard.emptyTitle)).toBeInTheDocument();
@@ -254,7 +257,7 @@ describe("YbcPageClient", () => {
   });
 
   it("supports mock propose, retract, vote, and execute actions", async () => {
-    render(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
+    renderWithProviders(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
 
     await screen.findByRole("button", {
       name: ybcCopy.proposalBoard.proposeAdditionCta,
@@ -301,8 +304,15 @@ describe("YbcPageClient", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders scoped operator controls for the operator/admin perspective", async () => {
-    render(<YbcPageClient scenarioOverride="operator-admin" latencyMs={0} />);
+  it("moves operator coverage into the debug panel", async () => {
+    renderWithProviders(<YbcPageClient scenarioOverride="observer" latencyMs={0} />);
+
+    await screen.findByRole("button", {
+      name: /debug/i,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /debug/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Operator" })[0]);
 
     await screen.findByText(ybcCopy.operatorPanel.operationsTitle);
 
@@ -334,17 +344,14 @@ describe("YbcPageClient", () => {
   });
 
   it("can seed the empty-board scenario with a new mock proposal", async () => {
-    render(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
+    renderWithProviders(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
 
     await screen.findByRole("button", {
-      name: /Empty proposal board/i,
+      name: /debug/i,
     });
 
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Empty proposal board/i,
-      })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /debug/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Empty board" }));
     fireEvent.click(
       screen.getByRole("button", {
         name: ybcCopy.proposalBoard.proposeAdditionCta,
