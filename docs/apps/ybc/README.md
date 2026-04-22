@@ -52,6 +52,8 @@ runtime work:
 - the five-section YBC shell map remains live on the route
 - the hero separates internal member influence from delegated public influence
 - unknown connected non-member wallets remain on the observer path
+- the default `/ybc` runtime reseeds from the active wallet on connect, disconnect,
+  and account changes unless an explicit debug preset is applied
 - observer and member perspectives render distinct weight summaries
 - the members table keeps raw stake, effective weight, target weight, and maturity separate
 - loading and empty roster states are implemented for the overview state machine
@@ -59,11 +61,14 @@ runtime work:
 - mock propose, retract, vote, and execute interactions are available
 - empty-board, empty-roster, loading, and operator coverage now seed through the shared
   debug panel instead of visible route-local controls
-- expired proposals remain visible as terminal history
+- terminal proposal debug setters keep executed, expired, failed, and retracted history
+  actionless so the route never implies those states can be revived
 - the rewards section shows YBC-attributed rewards while routing claims to the shared reward surface
 - observer, empty, member, and operator perspectives keep the reward handoff visible without implying a separate YBC claim stack
 - the operator/admin perspective now exposes a scoped panel for add/remove member affordances,
   operator visibility, hook visibility, threshold visibility, and reward sync status
+- the operator access debug toggle mutates the viewer's operator membership rather than
+  relying on display-only booleans, so access can be turned on and off consistently
 - the floating debug panel mutates a shared YBC mock store in place and the E2E bridge
   exposes domain-prefixed setters for YBC state seeding without visible debug clicking
 
