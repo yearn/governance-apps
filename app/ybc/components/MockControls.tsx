@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DebugControls } from "@/components/DebugControls";
 import { Button } from "@/components/ui/Button";
 import { useYbcState } from "@/lib/hooks/useYbc";
@@ -39,38 +39,16 @@ export function MockControls() {
   } = useYbcState({ bootstrap: false, latencyMs: 0 });
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [selectedProposalId, setSelectedProposalId] = useState("");
-
-  useEffect(() => {
-    if (!selectedMemberId && data.roster.members[0]) {
-      setSelectedMemberId(data.roster.members[0].address);
-    }
-  }, [data.roster.members, selectedMemberId]);
-
-  useEffect(() => {
-    if (!selectedProposalId && data.proposals.items[0]) {
-      setSelectedProposalId(data.proposals.items[0].id);
-    }
-  }, [data.proposals.items, selectedProposalId]);
-
-  useEffect(() => {
-    if (
-      selectedMemberId &&
-      !data.roster.members.some(
-        (member) => member.address.toLowerCase() === selectedMemberId.toLowerCase()
-      )
-    ) {
-      setSelectedMemberId(data.roster.members[0]?.address ?? "");
-    }
-  }, [data.roster.members, selectedMemberId]);
-
-  useEffect(() => {
-    if (
-      selectedProposalId &&
-      !data.proposals.items.some((proposal) => proposal.id === selectedProposalId)
-    ) {
-      setSelectedProposalId(data.proposals.items[0]?.id ?? "");
-    }
-  }, [data.proposals.items, selectedProposalId]);
+  const resolvedSelectedMemberId = data.roster.members.some(
+    (member) => member.address.toLowerCase() === selectedMemberId.toLowerCase()
+  )
+    ? selectedMemberId
+    : data.roster.members[0]?.address ?? "";
+  const resolvedSelectedProposalId = data.proposals.items.some(
+    (proposal) => proposal.id === selectedProposalId
+  )
+    ? selectedProposalId
+    : data.proposals.items[0]?.id ?? "";
 
   return (
     <DebugControls
@@ -179,7 +157,7 @@ export function MockControls() {
                 <select
                   aria-label="Selected YBC member"
                   className={CONTROL_INPUT_CLASS_NAME}
-                  value={selectedMemberId}
+                  value={resolvedSelectedMemberId}
                   onChange={(event) => setSelectedMemberId(event.target.value)}
                 >
                   {data.roster.members.map((member) => (
@@ -193,11 +171,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedMemberId
-                        ? setMemberStatus(selectedMemberId, "active")
+                      resolvedSelectedMemberId
+                        ? setMemberStatus(resolvedSelectedMemberId, "active")
                         : undefined
                     }
-                    disabled={!selectedMemberId}
+                    disabled={!resolvedSelectedMemberId}
                   >
                     Active
                   </Button>
@@ -205,11 +183,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedMemberId
-                        ? setMemberStatus(selectedMemberId, "ramping")
+                      resolvedSelectedMemberId
+                        ? setMemberStatus(resolvedSelectedMemberId, "ramping")
                         : undefined
                     }
-                    disabled={!selectedMemberId}
+                    disabled={!resolvedSelectedMemberId}
                   >
                     Ramping
                   </Button>
@@ -217,11 +195,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedMemberId
-                        ? setMemberStatus(selectedMemberId, "pending-removal")
+                      resolvedSelectedMemberId
+                        ? setMemberStatus(resolvedSelectedMemberId, "pending-removal")
                         : undefined
                     }
-                    disabled={!selectedMemberId}
+                    disabled={!resolvedSelectedMemberId}
                   >
                     Pending removal
                   </Button>
@@ -229,11 +207,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedMemberId
-                        ? setMemberStatus(selectedMemberId, "removed")
+                      resolvedSelectedMemberId
+                        ? setMemberStatus(resolvedSelectedMemberId, "removed")
                         : undefined
                     }
-                    disabled={!selectedMemberId}
+                    disabled={!resolvedSelectedMemberId}
                   >
                     Removed
                   </Button>
@@ -243,11 +221,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedMemberId
-                        ? setMemberMaturity(selectedMemberId, 2_500)
+                      resolvedSelectedMemberId
+                        ? setMemberMaturity(resolvedSelectedMemberId, 2_500)
                         : undefined
                     }
-                    disabled={!selectedMemberId}
+                    disabled={!resolvedSelectedMemberId}
                   >
                     25%
                   </Button>
@@ -255,11 +233,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedMemberId
-                        ? setMemberMaturity(selectedMemberId, 5_000)
+                      resolvedSelectedMemberId
+                        ? setMemberMaturity(resolvedSelectedMemberId, 5_000)
                         : undefined
                     }
-                    disabled={!selectedMemberId}
+                    disabled={!resolvedSelectedMemberId}
                   >
                     50%
                   </Button>
@@ -267,11 +245,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedMemberId
-                        ? setMemberMaturity(selectedMemberId, 10_000)
+                      resolvedSelectedMemberId
+                        ? setMemberMaturity(resolvedSelectedMemberId, 10_000)
                         : undefined
                     }
-                    disabled={!selectedMemberId}
+                    disabled={!resolvedSelectedMemberId}
                   >
                     100%
                   </Button>
@@ -285,7 +263,7 @@ export function MockControls() {
                 <select
                   aria-label="Selected YBC proposal"
                   className={CONTROL_INPUT_CLASS_NAME}
-                  value={selectedProposalId}
+                  value={resolvedSelectedProposalId}
                   onChange={(event) => setSelectedProposalId(event.target.value)}
                 >
                   {data.proposals.items.map((proposal) => (
@@ -299,11 +277,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedProposalId
-                        ? setProposalPhase(selectedProposalId, "discussion")
+                      resolvedSelectedProposalId
+                        ? setProposalPhase(resolvedSelectedProposalId, "discussion")
                         : undefined
                     }
-                    disabled={!selectedProposalId}
+                    disabled={!resolvedSelectedProposalId}
                   >
                     Discussion
                   </Button>
@@ -311,11 +289,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedProposalId
-                        ? setProposalPhase(selectedProposalId, "voting")
+                      resolvedSelectedProposalId
+                        ? setProposalPhase(resolvedSelectedProposalId, "voting")
                         : undefined
                     }
-                    disabled={!selectedProposalId}
+                    disabled={!resolvedSelectedProposalId}
                   >
                     Voting
                   </Button>
@@ -323,11 +301,14 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedProposalId
-                        ? setProposalPhase(selectedProposalId, "awaiting-execution")
+                      resolvedSelectedProposalId
+                        ? setProposalPhase(
+                            resolvedSelectedProposalId,
+                            "awaiting-execution"
+                          )
                         : undefined
                     }
-                    disabled={!selectedProposalId}
+                    disabled={!resolvedSelectedProposalId}
                   >
                     Awaiting
                   </Button>
@@ -335,11 +316,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedProposalId
-                        ? setProposalPhase(selectedProposalId, "executed")
+                      resolvedSelectedProposalId
+                        ? setProposalPhase(resolvedSelectedProposalId, "executed")
                         : undefined
                     }
-                    disabled={!selectedProposalId}
+                    disabled={!resolvedSelectedProposalId}
                   >
                     Executed
                   </Button>
@@ -347,11 +328,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedProposalId
-                        ? setProposalPhase(selectedProposalId, "expired")
+                      resolvedSelectedProposalId
+                        ? setProposalPhase(resolvedSelectedProposalId, "expired")
                         : undefined
                     }
-                    disabled={!selectedProposalId}
+                    disabled={!resolvedSelectedProposalId}
                   >
                     Expired
                   </Button>
@@ -359,11 +340,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedProposalId
-                        ? setProposalPhase(selectedProposalId, "retracted")
+                      resolvedSelectedProposalId
+                        ? setProposalPhase(resolvedSelectedProposalId, "retracted")
                         : undefined
                     }
-                    disabled={!selectedProposalId}
+                    disabled={!resolvedSelectedProposalId}
                   >
                     Retracted
                   </Button>
@@ -373,11 +354,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedProposalId
-                        ? setProposalVoteState(selectedProposalId, "clear")
+                      resolvedSelectedProposalId
+                        ? setProposalVoteState(resolvedSelectedProposalId, "clear")
                         : undefined
                     }
-                    disabled={!selectedProposalId}
+                    disabled={!resolvedSelectedProposalId}
                   >
                     Clear votes
                   </Button>
@@ -385,11 +366,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedProposalId
-                        ? setProposalVoteState(selectedProposalId, "passing")
+                      resolvedSelectedProposalId
+                        ? setProposalVoteState(resolvedSelectedProposalId, "passing")
                         : undefined
                     }
-                    disabled={!selectedProposalId}
+                    disabled={!resolvedSelectedProposalId}
                   >
                     Passing
                   </Button>
@@ -397,11 +378,11 @@ export function MockControls() {
                     size="sm"
                     variant="secondary"
                     onClick={() =>
-                      selectedProposalId
-                        ? setProposalVoteState(selectedProposalId, "failing")
+                      resolvedSelectedProposalId
+                        ? setProposalVoteState(resolvedSelectedProposalId, "failing")
                         : undefined
                     }
-                    disabled={!selectedProposalId}
+                    disabled={!resolvedSelectedProposalId}
                   >
                     Failing
                   </Button>

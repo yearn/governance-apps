@@ -21,7 +21,6 @@ import type {
   YbcProposalPhase,
   YbcProposalRecord,
   YbcProposalType,
-  YbcScenarioId,
 } from "./types";
 
 const DAY_SECONDS = 86_400;
