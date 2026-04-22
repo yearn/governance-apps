@@ -20,11 +20,26 @@ import { usePublicClient, useWalletClient } from "wagmi";
 import type { PublicClient } from "viem";
 import { mainnet } from "wagmi/chains";
 import { TestBridgeListener } from "@/components/TestBridgeListener";
+import type { TeamsTestBridgeAdapter } from "@/lib/test-bridge";
 import { useGlobalData } from "@/lib/hooks/useGlobalData";
 import { useYethGlobalData } from "@/lib/hooks/useYethGlobalData";
 import type { GlobalData } from "@/lib/schemas/global";
 import type { YethGlobalData } from "@/lib/schemas/yeth-global";
 import { assertProductionRuntimeInvariants } from "@/lib/runtime/invariants";
+import {
+  patchMockTeamsAdmin,
+  patchMockTeamsBonus,
+  patchMockTeamsFundingApproval,
+  patchMockTeamsTeam,
+  resetMockTeamsStore,
+  setMockTeamsCurrentPeriod,
+  setMockTeamsEmpty,
+  setMockTeamsLoading,
+  setMockTeamsNow,
+  setMockTeamsSelectedTeam,
+  setMockTeamsViewerRole,
+} from "@/lib/clients/teams/mock";
+import type { TeamsViewerRole } from "@/lib/clients/teams/types";
 
 assertProductionRuntimeInvariants("state/protocol");
 
@@ -96,6 +111,45 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
     };
   }, [preferMocks, publicClient, globalData, yethGlobalData, mockClients]);
 
+  const teams = useMemo<TeamsTestBridgeAdapter>(
+    () => ({
+      async onSetNow(timestamp) {
+        setMockTeamsNow(timestamp);
+      },
+      async patchTeamsAdmin(patch) {
+        patchMockTeamsAdmin(patch);
+      },
+      async patchTeamsBonus(patch) {
+        patchMockTeamsBonus(patch);
+      },
+      async patchTeamsFundingApproval(approvalId, patch) {
+        patchMockTeamsFundingApproval(approvalId, patch);
+      },
+      async patchTeamsTeam(teamId, patch) {
+        patchMockTeamsTeam(teamId, patch);
+      },
+      async resetTeams() {
+        resetMockTeamsStore();
+      },
+      async setTeamsCurrentPeriod(period) {
+        setMockTeamsCurrentPeriod(period);
+      },
+      async setTeamsEmpty(value) {
+        setMockTeamsEmpty(value);
+      },
+      async setTeamsLoading(value) {
+        setMockTeamsLoading(value);
+      },
+      async setTeamsSelectedTeam(teamId) {
+        setMockTeamsSelectedTeam(teamId);
+      },
+      async setTeamsViewerRole(role) {
+        setMockTeamsViewerRole(role as TeamsViewerRole);
+      },
+    }),
+    []
+  );
+
   return (
     <ProtocolContext.Provider value={value}>
       {children}
@@ -103,6 +157,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         styfi={value.styfi}
         veyfi={value.veyfi}
         yeth={value.yeth}
+        teams={teams}
         enabled={process.env.NEXT_PUBLIC_E2E === "true"}
       />
     </ProtocolContext.Provider>
