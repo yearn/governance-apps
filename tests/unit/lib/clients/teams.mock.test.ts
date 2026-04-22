@@ -10,9 +10,13 @@ import {
   resolveSelectedTeam,
   resolveTeamsFundingUnitPriceUsd,
   setMockTeamsCurrentPeriod,
+  setMockTeamsNow,
   setMockTeamsPreset,
   setMockTeamsViewerRole,
 } from "@/lib/clients/teams";
+import { setFixedNow } from "@/lib/mocks/time";
+
+const SECONDS_PER_DAY = 24 * 60 * 60;
 
 describe("MockTeamsClient", () => {
   beforeEach(() => {
@@ -155,6 +159,43 @@ describe("MockTeamsClient", () => {
 
     resetMockTeamsStore();
     expect(getMockTeamsRuntimeState().data.currentPeriod).toBe(4);
+  });
+
+  it("advances the displayed period on the first setNow call after reset", () => {
+    const start = 1_725_000_000;
+
+    setFixedNow(start);
+    resetMockTeamsStore();
+    setMockTeamsNow(start + 14 * SECONDS_PER_DAY);
+
+    const runtime = getMockTeamsRuntimeState();
+
+    expect(runtime.timeTravelDays).toBe(14);
+    expect(runtime.data.currentPeriod).toBe(6);
+  });
+
+  it("keeps the Teams clock aligned when shared time travel is followed by setNow", () => {
+    const start = 1_725_000_000;
+
+    setFixedNow(start);
+    resetMockTeamsStore();
+
+    const sharedTimeTravelTarget = start + 7 * SECONDS_PER_DAY;
+    setFixedNow(sharedTimeTravelTarget);
+    setMockTeamsNow(sharedTimeTravelTarget);
+
+    let runtime = getMockTeamsRuntimeState();
+    expect(runtime.currentTimeSeconds).toBe(sharedTimeTravelTarget);
+    expect(runtime.timeTravelDays).toBe(7);
+    expect(runtime.data.currentPeriod).toBe(5);
+
+    const laterBridgeTarget = start + 21 * SECONDS_PER_DAY;
+    setMockTeamsNow(laterBridgeTarget);
+
+    runtime = getMockTeamsRuntimeState();
+    expect(runtime.currentTimeSeconds).toBe(laterBridgeTarget);
+    expect(runtime.timeTravelDays).toBe(21);
+    expect(runtime.data.currentPeriod).toBe(7);
   });
 
   it("reconciles funding summary totals when approval patches mutate the shared runtime", async () => {

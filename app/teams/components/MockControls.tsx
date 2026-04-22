@@ -7,9 +7,10 @@ import {
   type DebugControlsSection,
 } from "@/components/DebugControls";
 import {
-  advanceMockTeamsTime,
   resetMockTeamsStore,
+  setMockTeamsNow,
 } from "@/lib/clients/teams/mock";
+import { nowSeconds } from "@/lib/mocks/time";
 import {
   useTeamsDebugActions,
   useTeamsScenarioCatalog,
@@ -389,8 +390,8 @@ export function MockControls() {
     onReset() {
       resetMockTeamsStore();
     },
-    onTimeTravel(days) {
-      advanceMockTeamsTime(days);
+    onTimeTravel() {
+      setMockTeamsNow(nowSeconds());
     },
   };
 

@@ -62,6 +62,9 @@ a separate ops surface.
 Teams now follows the same debug-backed model used by `/styfi`, `/veyfi`, and `/yeth`.
 The default route keeps production-like copy, while review-state bootstrapping and
 granular runtime setters live in the floating debug panel and the shared E2E bridge.
+Shared `DebugControls` time travel and bridge-driven `setNow()` mutations now resolve
+against the same Teams clock, so current-period changes stay consistent after resets
+and preset bootstraps.
 
 Named presets remain available as convenience bootstraps, but the runtime mutates in
 place for persona, selection, loading/empty coverage, current period, lifecycle,

@@ -31,8 +31,9 @@ export type TeamsMockRuntimeState = {
   data: TeamsMockDataV1;
   isLoading: boolean;
   isEmpty: boolean;
-  currentTimeSeconds: number | null;
+  currentTimeSeconds: number;
   periodBase: number;
+  periodAnchorTimeSeconds: number;
   timeTravelDays: number;
 };
 
@@ -48,6 +49,7 @@ export type TeamsBonusDebugState =
   | "claimed"
   | "none";
 
+const SECONDS_PER_DAY = 24 * 60 * 60;
 const DEFAULT_SCENARIO_ID: TeamsMockScenarioId = "directory-observer";
 const TEAMS_VIEWER_SCENARIOS: Record<TeamsViewerRole, TeamsMockScenarioId> = {
   observer: "directory-observer",
@@ -193,6 +195,9 @@ function finalizeMockTeamsData(data: TeamsMockDataV1): TeamsMockDataV1 {
 }
 
 function syncCurrentPeriod(state: TeamsMockRuntimeState) {
+  state.timeTravelDays = Math.trunc(
+    (state.currentTimeSeconds - state.periodAnchorTimeSeconds) / SECONDS_PER_DAY
+  );
   state.data.currentPeriod = Math.max(
     1,
     state.periodBase + Math.floor(state.timeTravelDays / 7)
@@ -209,14 +214,16 @@ function finalizeMockTeamsRuntimeState(
 
 function createDefaultMockTeamsRuntimeState(): TeamsMockRuntimeState {
   const data = cloneScenarioData(DEFAULT_SCENARIO_ID);
+  const currentTimeSeconds = nowSeconds();
 
   return finalizeMockTeamsRuntimeState({
     presetId: DEFAULT_SCENARIO_ID,
     data,
     isLoading: false,
     isEmpty: false,
-    currentTimeSeconds: null,
+    currentTimeSeconds,
     periodBase: data.currentPeriod,
+    periodAnchorTimeSeconds: currentTimeSeconds,
     timeTravelDays: 0,
   });
 }
@@ -363,14 +370,16 @@ export function getMockTeamsRuntimeState(): TeamsMockRuntimeState {
 export function setMockTeamsPreset(id: TeamsMockScenarioId) {
   updateMockTeamsRuntimeState(() => {
     const data = cloneScenarioData(id);
+    const currentTimeSeconds = nowSeconds();
 
     return {
       presetId: id,
       data,
       isLoading: false,
       isEmpty: false,
-      currentTimeSeconds: null,
+      currentTimeSeconds,
       periodBase: data.currentPeriod,
+      periodAnchorTimeSeconds: currentTimeSeconds,
       timeTravelDays: 0,
     };
   });
@@ -382,22 +391,13 @@ export function resetMockTeamsStore() {
 
 export function advanceMockTeamsTime(days: number) {
   updateMockTeamsRuntimeState((current) => {
-    current.timeTravelDays += days;
-    current.currentTimeSeconds =
-      (current.currentTimeSeconds ?? nowSeconds()) + days * 24 * 60 * 60;
+    current.currentTimeSeconds += days * SECONDS_PER_DAY;
     return current;
   });
 }
 
 export function setMockTeamsNow(timestamp: number) {
   updateMockTeamsRuntimeState((current) => {
-    if (current.currentTimeSeconds !== null) {
-      const deltaDays = Math.trunc(
-        (timestamp - current.currentTimeSeconds) / (24 * 60 * 60)
-      );
-      current.timeTravelDays += deltaDays;
-    }
-
     current.currentTimeSeconds = timestamp;
     return current;
   });
@@ -453,6 +453,7 @@ export function setMockTeamsCurrentPeriod(period: number | null) {
       1,
       period ?? cloneScenarioData(current.presetId).currentPeriod
     );
+    current.periodAnchorTimeSeconds = current.currentTimeSeconds;
     current.timeTravelDays = 0;
     return current;
   });
