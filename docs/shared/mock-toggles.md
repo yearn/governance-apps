@@ -76,6 +76,9 @@ For mature mock-backed routes, debug controls should mutate underlying domain st
 place. Presets may bootstrap the state, but QA should be able to keep navigating the
 normal route while changing persona, time, loading/empty coverage, and domain-specific
 values under the current view.
+For `teams` and `ybc`, that also means the default route should avoid visible `mock` /
+`prototype` badges or route-shell implementation notes; those review states belong in
+the floating panel or the shared E2E bridge.
 
 ### Features
 

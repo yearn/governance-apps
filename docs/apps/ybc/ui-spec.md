@@ -162,7 +162,7 @@ Each card should show:
 - phase
 - next available action
 
-Actions to model in mock flows:
+Actions to support before onchain writes land:
 - propose addition
 - propose expulsion
 - retract
@@ -174,6 +174,9 @@ The route-local scenario controls used during the initial prototype phase are re
 YBC now seeds observer, member, operator, loading, empty-roster, empty-board, proposal,
 rewards, and admin coverage through the shared floating debug panel and the shared E2E
 bridge so the default `/ybc` route can keep production-like copy and navigation.
+That production-like posture should avoid visible `mock` / `prototype` badges or
+route-shell implementation notes on the default surface; review-only state switching
+belongs in the panel and bridge instead.
 When no explicit debug preset is applied, the default runtime should follow the active
 wallet on connect, disconnect, and account changes so `/ybc` keeps the same production-
 like observer/member split a real connected route would show.
@@ -194,7 +197,7 @@ Expose only in-scope operator/admin affordances:
 
 Do **not** build a generic arbitrary-call transaction builder in MVP.
 
-## 10. Mock-first scenario set
+## 10. Debug-backed seed scenarios
 
 These scenarios remain the seed contract for the mock data model, but the debug-backed
 runtime now exposes them as hidden debug presets and granular bridge setters instead of
