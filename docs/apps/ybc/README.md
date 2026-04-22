@@ -46,7 +46,8 @@ approval are complete.
 
 ## Current prototype state
 
-The current mock-backed route integrates the accepted WP2, WP3, WP4, and WP5 prototypes:
+The current mock-backed route integrates the accepted WP2, WP3, WP4, WP5, and WP6
+runtime work:
 
 - the five-section YBC shell map remains live on the route
 - the hero separates internal member influence from delegated public influence
@@ -56,20 +57,15 @@ The current mock-backed route integrates the accepted WP2, WP3, WP4, and WP5 pro
 - loading and empty roster states are implemented for the overview state machine
 - the proposal board shows explicit phases, UTC timeline rows, and threshold targets
 - mock propose, retract, vote, and execute interactions are available
-- an explicit empty-board perspective covers the no-proposal state
+- empty-board, empty-roster, loading, and operator coverage now seed through the shared
+  debug panel instead of visible route-local controls
 - expired proposals remain visible as terminal history
 - the rewards section shows YBC-attributed rewards while routing claims to the shared reward surface
 - observer, empty, member, and operator perspectives keep the reward handoff visible without implying a separate YBC claim stack
 - the operator/admin perspective now exposes a scoped panel for add/remove member affordances,
   operator visibility, hook visibility, threshold visibility, and reward sync status
-
-## Planned alignment follow-on
-
-Before YBC starts fork-backed reads, the current scenario-driven prototype shell is
-scheduled to move onto the same debug-backed model used by `/styfi`, `/veyfi`, and
-`/yeth`. That follow-on phase removes visible scenario chrome from the default route,
-keeps the default copy production-like, and moves state seeding into the floating
-debug panel and E2E bridge.
+- the floating debug panel mutates a shared YBC mock store in place and the E2E bridge
+  exposes domain-prefixed setters for YBC state seeding without visible debug clicking
 
 ## Included docs
 

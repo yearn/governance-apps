@@ -170,10 +170,10 @@ Actions to model in mock flows:
 - vote nay
 - execute
 
-The route-local scenario controls used during the initial prototype phase are
-transitional. The follow-on M2A alignment work replaces them with app-specific controls
-inside the shared floating debug panel so the default `/ybc` route can mimic
-production copy and navigation.
+The route-local scenario controls used during the initial prototype phase are retired.
+YBC now seeds observer, member, operator, loading, empty-roster, empty-board, proposal,
+rewards, and admin coverage through the shared floating debug panel and the shared E2E
+bridge so the default `/ybc` route can keep production-like copy and navigation.
 
 ## 9. Admin scope for MVP
 
@@ -190,9 +190,9 @@ Do **not** build a generic arbitrary-call transaction builder in MVP.
 
 ## 10. Mock-first scenario set
 
-These scenarios remain the seed contract for the mock data model, but the follow-on
-debug-runtime alignment work will expose them as debug presets instead of page-local
-UI controls.
+These scenarios remain the seed contract for the mock data model, but the debug-backed
+runtime now exposes them as hidden debug presets and granular bridge setters instead of
+page-local UI controls.
 
 Required mock scenarios:
 
