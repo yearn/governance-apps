@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import {
   patchTeamsAdmin,
+  setTeamsEmpty,
+  setTeamsLoading,
   setTeamsSelectedTeam,
   setTeamsViewerRole,
   waitForTestBridge,
@@ -78,4 +80,27 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await expect(
     page.locator("#admin").getByRole("heading", { name: "Admin Console", level: 2 })
   ).toBeVisible();
+});
+
+test("keeps loading and empty coverage reachable through the shared Teams runtime", async ({
+  page,
+}) => {
+  await page.goto("/teams");
+  await waitForTestBridge(page);
+
+  await setTeamsLoading(page, true);
+
+  await expect(page.getByText("Loading team directory")).toBeVisible();
+  await expect(page.getByText("Loading workspace overview")).toBeVisible();
+  await expect(page.getByText("Loading revenue deposit flow")).toBeVisible();
+
+  await setTeamsLoading(page, false);
+  await setTeamsViewerRole(page, "operator-admin");
+  await patchTeamsAdmin(page, { enabled: true });
+  await setTeamsEmpty(page, true);
+
+  await expect(page.getByText("No teams available")).toBeVisible();
+  await expect(page.getByText("No workspace available")).toBeVisible();
+  await expect(page.getByText("No revenue workspace available")).toBeVisible();
+  await expect(page.locator("#admin").getByText("No admin console available")).toBeVisible();
 });

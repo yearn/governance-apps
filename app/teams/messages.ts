@@ -29,9 +29,9 @@ export const teamsCopy = {
   },
   page: {
     title: "Team Finances",
-    eyebrow: "Team finance, lifecycle, and ops workspace",
+    eyebrow: "Registered team finance and operations",
     description:
-      "Directory-first workspace for reviewing registered teams, opening a selected workspace, and tracking revenue deposits, funding actions, bonus availability, ownership state, and operator oversight without turning protocol math into the default view.",
+      "Directory-first finance and operations workspace for reviewing registered teams, opening a selected workspace, and tracking revenue, funding, bonus, ownership, and admin readiness in one place.",
     productionGate: "Production gated",
   },
   navigation: [
@@ -76,17 +76,20 @@ export const teamsCopy = {
     viewerRole: "Viewer",
   },
   controls: {
-    title: "Debug controls",
-    heading: "Runtime presets",
     description:
       "Bootstrap known review states, then adjust the live Teams runtime in place without changing the default route chrome.",
-    cardTitle: "Runtime presets",
-    cardBody:
-      "Bootstrap known review states, then adjust the live Teams runtime in place without changing the default route chrome.",
+    presetLabel: "Preset",
+    viewerLabel: "Viewer",
+    workspaceLabel: "Workspace",
+    currentPeriodLabel: "Current period",
     scenarioLabel: "Presets",
+    directoryOnly: "Directory only",
     surfaceLabel: "Route state",
-    adminHint:
-      "Admin visibility stays tied to the selected viewer permissions.",
+    surfaceNames: {
+      live: "Live",
+      loading: "Loading",
+      empty: "Empty",
+    },
     scenarioNames: {
       "directory-observer": "Directory mix",
       "team-owner-funding": "Owner workspace",
@@ -95,16 +98,12 @@ export const teamsCopy = {
       "retired-read-only": "Retired workspace",
       "operator-admin": "Operator/admin view",
     },
-    surfaceModes: {
-      scenario: "Scenario",
-      loading: "Loading",
-      empty: "Empty",
-    },
+    customRuntime: "Custom runtime",
   },
   directory: {
     title: "Team Directory",
     description:
-      "The default landing layer stays directory-first. Open a workspace when you want a selected team view.",
+      "Start from the directory to compare current-period team performance, then open a workspace for more detailed actions.",
     loadingTitle: "Loading team directory",
     loadingBody: "Fetching the current teams snapshot.",
     emptyTitle: "No teams available",
@@ -126,7 +125,7 @@ export const teamsCopy = {
   workspace: {
     title: "Workspace Overview",
     description:
-      "Shows the selected team only. Current period and lifetime values stay separate so the reporting window never gets flattened into one total.",
+      "Shows the selected team only. Current-period and lifetime reporting stay separate so the active window remains easy to compare with longer-term history.",
     loadingTitle: "Loading workspace overview",
     loadingBody: "Preparing the selected team workspace.",
     emptyTitle: "No team selected",
