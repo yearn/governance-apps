@@ -30,7 +30,7 @@ export const ybcCopy = {
     emptyBody:
       "This mock perspective keeps the board intentionally empty so the route can exercise its no-proposal state without implying hidden history.",
     emptyHint:
-      "Use the mock propose controls above or switch perspectives to inspect a populated board.",
+      "Use the mock propose controls above or seed a populated board from the debug panel.",
     perspectiveLabel: "Mock perspective",
     thresholdTitle: "Threshold guide",
     viewerTitle: "Current viewer",
@@ -88,7 +88,7 @@ export const ybcCopy = {
         "Observer wallets can inspect the reward section, but only member wallets with YBC rewards unlock the shared-claim handoff.",
       emptyUnseededTitle: "No YBC reward periods seeded",
       emptyUnseededBody:
-        "This prototype state has no reward periods yet. Load a seeded YBC member scenario to inspect the shared-claim handoff.",
+        "This prototype state has no reward periods yet. Seed a YBC member reward state from the debug panel to inspect the shared-claim handoff.",
     },
   },
   sections: [
@@ -191,7 +191,7 @@ export const ybcCopy = {
       maturesOn: "Full weight on",
       emptyTitle: "No members seeded",
       emptyBody:
-        "This prototype state has no member records yet. Load a seeded YBC mock state to inspect maturity and weight splits.",
+        "This prototype state has no member records yet. Seed a YBC member state from the debug panel to inspect maturity and weight splits.",
     },
   },
   shell: {
@@ -213,7 +213,7 @@ export const ybcCopy = {
       controlsLabel: "Scoped member controls",
       lockedValue: "Locked",
       hint:
-        "Switch to the Operator/admin view in the mock perspective controls to inspect the full panel.",
+        "Seed the Operator view from the debug panel to inspect the full panel.",
     },
     operationsTitle: "Scoped member overrides",
     operationsBody:

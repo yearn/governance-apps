@@ -25,6 +25,7 @@ import { useYethGlobalData } from "@/lib/hooks/useYethGlobalData";
 import type { GlobalData } from "@/lib/schemas/global";
 import type { YethGlobalData } from "@/lib/schemas/yeth-global";
 import { assertProductionRuntimeInvariants } from "@/lib/runtime/invariants";
+import { createYbcTestBridgeAdapter } from "@/lib/clients/ybc/store";
 
 assertProductionRuntimeInvariants("state/protocol");
 
@@ -34,6 +35,7 @@ type ProtocolContextValue = {
   yeth: YethClient;
   isMock: boolean;
   usesMockBackend: boolean;
+  ybcUsesMockBackend: boolean;
   yethUsesMockBackend: boolean;
   publicClient: PublicClient | null;
   globalData: GlobalData | null;
@@ -76,6 +78,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         yeth: mockClients.yeth,
         isMock: true,
         usesMockBackend: true,
+        ybcUsesMockBackend: true,
         yethUsesMockBackend: true,
         publicClient: null,
         globalData: null,
@@ -89,6 +92,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
       yeth: new OnchainYethClient(publicClient, yethGlobalData ?? null),
       isMock: false,
       usesMockBackend: false,
+      ybcUsesMockBackend: true,
       yethUsesMockBackend: false,
       publicClient,
       globalData: globalData ?? null,
@@ -103,6 +107,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         styfi={value.styfi}
         veyfi={value.veyfi}
         yeth={value.yeth}
+        ybc={createYbcTestBridgeAdapter()}
         enabled={process.env.NEXT_PUBLIC_E2E === "true"}
       />
     </ProtocolContext.Provider>
