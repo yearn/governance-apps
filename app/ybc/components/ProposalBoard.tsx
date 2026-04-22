@@ -5,10 +5,6 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { YbcMockDataV1, YbcProposalType } from "@/lib/clients/ybc";
 import type { YbcVoteChoice } from "@/lib/clients/ybc/mock";
-import type {
-  YbcBoardScenarioId,
-  YbcScenarioOption,
-} from "@/lib/hooks/useYbc";
 import { formatAddress, formatPercent } from "@/lib/format";
 import { ProposalCard } from "./ProposalCard";
 import { ybcCopy as copy } from "../messages";
@@ -16,9 +12,6 @@ import { ybcCopy as copy } from "../messages";
 type ProposalBoardProps = {
   data: YbcMockDataV1;
   id?: string;
-  scenarioId?: YbcBoardScenarioId;
-  scenarios?: readonly YbcScenarioOption[];
-  setScenarioId?: (scenarioId: YbcBoardScenarioId) => void;
   createProposal?: (type: YbcProposalType) => void;
   executeProposal?: (proposalId: string) => void;
   retractProposal?: (proposalId: string) => void;
@@ -28,9 +21,6 @@ type ProposalBoardProps = {
 export function ProposalBoard({
   data,
   id,
-  scenarioId,
-  scenarios,
-  setScenarioId,
   createProposal,
   executeProposal,
   retractProposal,
@@ -39,8 +29,6 @@ export function ProposalBoard({
   const additionThresholdBps = getThresholdBps(data, "addition");
   const expulsionThresholdBps = getThresholdBps(data, "expulsion");
   const accountLabels = getAccountLabels(data);
-  const showPerspectiveControls =
-    !!setScenarioId && (scenarios?.length ?? 0) > 0;
 
   return (
     <Card id={id} className="space-y-6">
@@ -59,38 +47,7 @@ export function ProposalBoard({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-6">
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-            {showPerspectiveControls ? (
-              <div className="space-y-3">
-                <p className="text-xs font-bold uppercase text-text-tertiary">
-                  {copy.proposalBoard.perspectiveLabel}
-                </p>
-                <div
-                  className="flex flex-wrap gap-2"
-                  role="group"
-                  aria-label={copy.proposalBoard.perspectiveLabel}
-                >
-                  {scenarios?.map((scenario) => (
-                    <button
-                      key={scenario.id}
-                      type="button"
-                      aria-pressed={scenario.id === scenarioId}
-                      onClick={() => setScenarioId(scenario.id)}
-                      className={
-                        scenario.id === scenarioId
-                          ? "rounded-box border border-yearn-blue bg-yearn-blue/10 px-3 py-2 text-sm font-bold text-yearn-blue"
-                          : "rounded-box border border-border bg-app px-3 py-2 text-sm font-bold text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
-                      }
-                    >
-                      {scenario.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div />
-            )}
-
+          <div className="flex flex-wrap items-start justify-end gap-2">
             <div className="grid gap-2 sm:grid-cols-2">
               <Button
                 size="sm"

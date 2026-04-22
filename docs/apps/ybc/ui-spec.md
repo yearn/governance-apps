@@ -170,10 +170,16 @@ Actions to model in mock flows:
 - vote nay
 - execute
 
-The route-local scenario controls used during the initial prototype phase are
-transitional. The follow-on M2A alignment work replaces them with app-specific controls
-inside the shared floating debug panel so the default `/ybc` route can mimic
-production copy and navigation.
+The route-local scenario controls used during the initial prototype phase are retired.
+YBC now seeds observer, member, operator, loading, empty-roster, empty-board, proposal,
+rewards, and admin coverage through the shared floating debug panel and the shared E2E
+bridge so the default `/ybc` route can keep production-like copy and navigation.
+When no explicit debug preset is applied, the default runtime should follow the active
+wallet on connect, disconnect, and account changes so `/ybc` keeps the same production-
+like observer/member split a real connected route would show.
+Debug setters that force terminal proposal phases must leave those proposals terminal:
+executed, expired, failed, and retracted cards should expose no vote, retract, or
+execute affordances after the phase flip.
 
 ## 9. Admin scope for MVP
 
@@ -190,9 +196,12 @@ Do **not** build a generic arbitrary-call transaction builder in MVP.
 
 ## 10. Mock-first scenario set
 
-These scenarios remain the seed contract for the mock data model, but the follow-on
-debug-runtime alignment work will expose them as debug presets instead of page-local
-UI controls.
+These scenarios remain the seed contract for the mock data model, but the debug-backed
+runtime now exposes them as hidden debug presets and granular bridge setters instead of
+page-local UI controls.
+Admin access toggles in that runtime should mutate the viewer's effective operator
+membership, not only local booleans, so operator coverage can be turned on and off
+symmetrically during QA.
 
 Required mock scenarios:
 

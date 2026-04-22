@@ -3,18 +3,11 @@
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import type {
-  YbcMockDataV1,
-  YbcProposalType,
-  YbcPrototypeScenarioId,
-  YbcVoteChoice,
-} from "@/lib/clients/ybc";
-import {
-  type YbcBoardScenarioId,
-  type YbcScenarioOption,
-  useYbcState,
-} from "@/lib/hooks/useYbc";
+import type { YbcMockDataV1, YbcPrototypeScenarioId } from "@/lib/clients/ybc";
+import { useYbcState } from "@/lib/hooks/useYbc";
+import { useProtocol } from "@/state/protocol";
 import { MembersTable, MembersTableSkeleton } from "./components/MembersTable";
+import { MockControls } from "./components/MockControls";
 import { OperatorPanel } from "./components/OperatorPanel";
 import { ProposalBoard } from "./components/ProposalBoard";
 import { RewardsCard } from "./components/RewardsCard";
@@ -47,12 +40,9 @@ type YbcPageClientProps = {
 type YbcPageContentProps = {
   data: YbcMockDataV1;
   hostname?: string | null;
-  scenarioId?: YbcBoardScenarioId;
-  scenarios?: readonly YbcScenarioOption[];
-  setScenarioId?: (scenarioId: YbcBoardScenarioId) => void;
-  createProposal?: (type: YbcProposalType) => void;
+  createProposal?: (type: "addition" | "expulsion") => void;
   retractProposal?: (proposalId: string) => void;
-  voteOnProposal?: (proposalId: string, choice: YbcVoteChoice) => void;
+  voteOnProposal?: (proposalId: string, choice: "yea" | "nay") => void;
   executeProposal?: (proposalId: string) => void;
 };
 
@@ -61,6 +51,7 @@ export function YbcPageClient({
   latencyMs,
   hostname,
 }: YbcPageClientProps = {}) {
+  const { ybcUsesMockBackend } = useProtocol();
   const {
     createProposal,
     data,
@@ -70,9 +61,6 @@ export function YbcPageClient({
     isLoading,
     refetch,
     retractProposal,
-    scenarioId,
-    scenarios,
-    setScenarioId,
     voteOnProposal,
   } = useYbcState({
     scenarioOverride,
@@ -95,26 +83,23 @@ export function YbcPageClient({
   }
 
   return (
-    <YbcPageContent
-      data={data}
-      hostname={hostname}
-      scenarioId={scenarioId}
-      scenarios={scenarios}
-      setScenarioId={setScenarioId}
-      createProposal={createProposal}
-      retractProposal={retractProposal}
-      voteOnProposal={voteOnProposal}
-      executeProposal={executeProposal}
-    />
+    <>
+      <YbcPageContent
+        data={data}
+        hostname={hostname}
+        createProposal={createProposal}
+        retractProposal={retractProposal}
+        voteOnProposal={voteOnProposal}
+        executeProposal={executeProposal}
+      />
+      {ybcUsesMockBackend ? <MockControls /> : null}
+    </>
   );
 }
 
 export function YbcPageContent({
   data,
   hostname,
-  scenarioId,
-  scenarios,
-  setScenarioId,
   createProposal,
   retractProposal,
   voteOnProposal,
@@ -136,9 +121,6 @@ export function YbcPageContent({
         <ProposalBoard
           id="proposals"
           data={data}
-          scenarioId={scenarioId}
-          scenarios={scenarios}
-          setScenarioId={setScenarioId}
           createProposal={createProposal}
           retractProposal={retractProposal}
           voteOnProposal={voteOnProposal}

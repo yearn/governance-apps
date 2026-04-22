@@ -40,6 +40,7 @@ import {
   setMockTeamsViewerRole,
 } from "@/lib/clients/teams/mock";
 import type { TeamsViewerRole } from "@/lib/clients/teams/types";
+import { createYbcTestBridgeAdapter } from "@/lib/clients/ybc/store";
 
 assertProductionRuntimeInvariants("state/protocol");
 
@@ -49,6 +50,7 @@ type ProtocolContextValue = {
   yeth: YethClient;
   isMock: boolean;
   usesMockBackend: boolean;
+  ybcUsesMockBackend: boolean;
   yethUsesMockBackend: boolean;
   publicClient: PublicClient | null;
   globalData: GlobalData | null;
@@ -91,6 +93,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         yeth: mockClients.yeth,
         isMock: true,
         usesMockBackend: true,
+        ybcUsesMockBackend: true,
         yethUsesMockBackend: true,
         publicClient: null,
         globalData: null,
@@ -104,6 +107,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
       yeth: new OnchainYethClient(publicClient, yethGlobalData ?? null),
       isMock: false,
       usesMockBackend: false,
+      ybcUsesMockBackend: true,
       yethUsesMockBackend: false,
       publicClient,
       globalData: globalData ?? null,
@@ -158,6 +162,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         veyfi={value.veyfi}
         yeth={value.yeth}
         teams={teams}
+        ybc={createYbcTestBridgeAdapter()}
         enabled={process.env.NEXT_PUBLIC_E2E === "true"}
       />
     </ProtocolContext.Provider>

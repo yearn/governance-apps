@@ -56,7 +56,7 @@ function getScenarioOrThrow(scenarioId: YbcScenarioId): YbcMockScenario {
   return scenario;
 }
 
-function createEmptyState(): YbcPageState {
+export function createEmptyYbcMockData(): YbcMockDataV1 {
   const data = cloneYbcMockScenarioData("observer");
 
   data.hero.memberCount = 0;
@@ -77,6 +77,12 @@ function createEmptyState(): YbcPageState {
   data.rewards.claimable = "0";
   data.rewards.accruing = "0";
   data.rewards.periods = [];
+
+  return data;
+}
+
+function createEmptyState(): YbcPageState {
+  const data = createEmptyYbcMockData();
 
   return {
     scenarioId: "empty",

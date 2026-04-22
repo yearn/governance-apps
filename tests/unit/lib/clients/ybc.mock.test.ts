@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { Address } from "viem";
 import {
   cloneYbcMockScenarioData,
@@ -10,6 +10,21 @@ import {
   retractYbcMockProposal,
   voteOnYbcMockProposal,
 } from "@/lib/clients/ybc";
+import {
+  getYbcMockSnapshot,
+  resetYbcMockStore,
+  seedYbcPerspective,
+  setYbcEmptyBoard,
+  setYbcMemberMaturity,
+  setYbcOperatorAccess,
+  setYbcProposalPhase,
+  setYbcProposalVoteState,
+  syncYbcMockStoreToNow,
+} from "@/lib/clients/ybc/store";
+
+beforeEach(() => {
+  resetYbcMockStore({ scenarioId: "observer" });
+});
 
 describe("MockYbcClient", () => {
   it("defaults to the observer scenario when no address is present", () => {
@@ -161,5 +176,105 @@ describe("YBC mock proposal helpers", () => {
     expect(empty.hero.activeProposalCount).toBe(0);
     expect(empty.hero.awaitingExecutionCount).toBe(0);
     expect(empty.me.canPropose).toBe(true);
+  });
+});
+
+describe("YBC shared mock runtime", () => {
+  it("boots perspective presets into the shared store without route-local scenario state", () => {
+    seedYbcPerspective("member");
+
+    expect(getYbcMockSnapshot().scenarioId).toBe("member-matured");
+    expect(getYbcMockSnapshot().data.me.isMember).toBe(true);
+    expect(getYbcMockSnapshot().data.me.canVote).toBe(true);
+  });
+
+  it("keeps empty-board coverage as a flag over the live store", () => {
+    resetYbcMockStore({ scenarioId: "member-ramping" });
+    setYbcEmptyBoard(true);
+
+    expect(getYbcMockSnapshot().emptyBoard).toBe(true);
+    expect(getYbcMockSnapshot().data.proposals.items).toEqual([]);
+    expect(getYbcMockSnapshot().data.me.canPropose).toBe(true);
+  });
+
+  it("syncs proposal lifecycle and maturity against mock time travel", () => {
+    resetYbcMockStore({ scenarioId: "member-ramping" });
+
+    setYbcProposalPhase("YBC-8", "discussion");
+    setYbcProposalVoteState("YBC-8", "passing");
+    setYbcMemberMaturity(
+      "0x1111111111111111111111111111111111111111",
+      7_500
+    );
+    syncYbcMockStoreToNow(1_777_500_000);
+
+    const proposal = getYbcMockSnapshot().data.proposals.items.find(
+      (item) => item.id === "YBC-8"
+    );
+    const member = getYbcMockSnapshot().data.roster.members.find(
+      (item) =>
+        item.address.toLowerCase() ===
+        "0x1111111111111111111111111111111111111111"
+    );
+
+    expect(proposal?.phase).toBe("expired");
+    expect(member?.status).toBe("active");
+    expect(member?.weight.maturityBps).toBe(10_000);
+  });
+
+  it("keeps terminal proposal phases terminal when forced through debug setters", () => {
+    resetYbcMockStore({ scenarioId: "member-ramping" });
+
+    setYbcProposalPhase("YBC-8", "expired");
+
+    const proposal = getYbcMockSnapshot().data.proposals.items.find(
+      (item) => item.id === "YBC-8"
+    );
+
+    expect(proposal).toEqual(
+      expect.objectContaining({
+        phase: "expired",
+        outcome: "passed",
+      })
+    );
+    expect(proposal?.actions).toEqual(
+      expect.objectContaining({
+        canRetract: false,
+        canVote: false,
+        canExecute: false,
+        nextAction: "none",
+      })
+    );
+    expect(proposal?.actions.disabledReason).toMatch(/terminal/i);
+  });
+
+  it("toggles operator access by mutating the viewer operator membership", () => {
+    resetYbcMockStore({ scenarioId: "operator-admin" });
+
+    setYbcOperatorAccess(false);
+
+    let snapshot = getYbcMockSnapshot();
+    expect(snapshot.data.me.isOperator).toBe(false);
+    expect(snapshot.data.admin?.isOperator).toBe(false);
+    expect(
+      snapshot.data.admin?.operators.some(
+        (operator) =>
+          operator.address.toLowerCase() ===
+          snapshot.data.me.address?.toLowerCase()
+      )
+    ).toBe(false);
+
+    setYbcOperatorAccess(true);
+
+    snapshot = getYbcMockSnapshot();
+    expect(snapshot.data.me.isOperator).toBe(true);
+    expect(snapshot.data.admin?.isOperator).toBe(true);
+    expect(
+      snapshot.data.admin?.operators.some(
+        (operator) =>
+          operator.address.toLowerCase() ===
+          snapshot.data.me.address?.toLowerCase()
+      )
+    ).toBe(true);
   });
 });

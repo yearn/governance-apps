@@ -9,6 +9,7 @@ type TeamsViewerRole = NonNullable<TestBridge["setTeamsViewerRole"]> extends (
 ) => Promise<void>
   ? TRole
   : never;
+type YbcPerspective = Parameters<NonNullable<TestBridge["setYbcPerspective"]>>[0];
 
 export const E2E_ADDRESS =
   "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266" as Address;
@@ -102,6 +103,18 @@ export async function patchTeamsAdmin(page: Page, patch: Record<string, unknown>
   await page.evaluate(async (nextPatch) => {
     await window.__TEST__?.patchTeamsAdmin?.(nextPatch);
   }, patch);
+}
+
+export async function setYbcPerspective(page: Page, perspective: YbcPerspective) {
+  await page.evaluate(async (value) => {
+    await window.__TEST__?.setYbcPerspective?.(value);
+  }, perspective);
+}
+
+export async function setYbcEmptyBoard(page: Page, value: boolean) {
+  await page.evaluate(async (nextValue) => {
+    await window.__TEST__?.setYbcEmptyBoard?.(nextValue);
+  }, value);
 }
 
 export async function getState(page: Page, address: Address = E2E_ADDRESS) {
