@@ -20,9 +20,13 @@ vi.mock("wagmi", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/mocks/time", () => ({
-  debugAdvanceTime,
-}));
+vi.mock("@/lib/mocks/time", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/mocks/time")>();
+  return {
+    ...actual,
+    debugAdvanceTime,
+  };
+});
 
 vi.mock("@/lib/clients/styfi/mock", () => ({
   resetMockStyfiStore: vi.fn(),
