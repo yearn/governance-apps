@@ -4,6 +4,11 @@ import type { TestBridge, TokenSymbol } from "@/lib/test-bridge";
 
 type ScenarioName = Parameters<TestBridge["setScenario"]>[0];
 type YethPreset = Parameters<TestBridge["setYethPreset"]>[1];
+type TeamsViewerRole = NonNullable<TestBridge["setTeamsViewerRole"]> extends (
+  role: infer TRole
+) => Promise<void>
+  ? TRole
+  : never;
 
 export const E2E_ADDRESS =
   "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266" as Address;
@@ -79,6 +84,24 @@ export async function setNow(page: Page, timestamp: number) {
   await page.evaluate(async (ts) => {
     await window.__TEST__?.setNow(ts);
   }, timestamp);
+}
+
+export async function setTeamsViewerRole(page: Page, role: TeamsViewerRole) {
+  await page.evaluate(async (nextRole) => {
+    await window.__TEST__?.setTeamsViewerRole?.(nextRole);
+  }, role);
+}
+
+export async function setTeamsSelectedTeam(page: Page, teamId: string | null) {
+  await page.evaluate(async (nextTeamId) => {
+    await window.__TEST__?.setTeamsSelectedTeam?.(nextTeamId);
+  }, teamId);
+}
+
+export async function patchTeamsAdmin(page: Page, patch: Record<string, unknown>) {
+  await page.evaluate(async (nextPatch) => {
+    await window.__TEST__?.patchTeamsAdmin?.(nextPatch);
+  }, patch);
 }
 
 export async function getState(page: Page, address: Address = E2E_ADDRESS) {

@@ -1,5 +1,11 @@
 import { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  getMockTeamsRuntimeState,
+  resetMockTeamsStore,
+  setMockTeamsNow,
+} from "@/lib/clients/teams";
+import { setFixedNow } from "@/lib/mocks/time";
 import { teamsKeys } from "@/lib/hooks/useTeams";
 import { ybcKeys } from "@/lib/hooks/useYbc";
 import {
@@ -7,6 +13,8 @@ import {
   type TeamsTestBridgeAdapter,
   type YbcTestBridgeAdapter,
 } from "@/lib/test-bridge";
+
+const SECONDS_PER_DAY = 24 * 60 * 60;
 
 function createBridgeClients() {
   return {
@@ -28,7 +36,9 @@ function createBridgeClients() {
 
 describe("createTestBridge", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    setFixedNow(null);
+    resetMockTeamsStore();
   });
 
   it("wraps Teams and YBC bridge methods with domain-root invalidation", async () => {
@@ -104,5 +114,51 @@ describe("createTestBridge", () => {
     expect(teams.resetTeams).toHaveBeenCalled();
     expect(ybc.resetYbc).toHaveBeenCalled();
     expect(resetQueries).toHaveBeenCalled();
+  });
+
+  it("clears the shared clock before rebuilding Teams state on reset", async () => {
+    const start = 1_725_000_000;
+
+    vi.spyOn(Date, "now").mockReturnValue(start * 1000);
+
+    setFixedNow(start);
+    resetMockTeamsStore();
+
+    const queryClient = new QueryClient();
+    vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+    vi.spyOn(queryClient, "resetQueries").mockResolvedValue(undefined);
+    const clients = createBridgeClients();
+    const teams: TeamsTestBridgeAdapter = {
+      resetTeams: vi.fn(async () => {
+        resetMockTeamsStore();
+      }),
+      onSetNow: vi.fn(async (timestamp: number) => {
+        setMockTeamsNow(timestamp);
+      }),
+    };
+    const bridge = createTestBridge({
+      styfi: clients.styfi as never,
+      veyfi: clients.veyfi as never,
+      yeth: clients.yeth as never,
+      queryClient,
+      teams,
+    });
+
+    await bridge.setNow(start + 14 * SECONDS_PER_DAY);
+    expect(getMockTeamsRuntimeState().data.currentPeriod).toBe(6);
+
+    await bridge.reset();
+
+    let runtime = getMockTeamsRuntimeState();
+    expect(runtime.data.currentPeriod).toBe(4);
+    expect(runtime.periodAnchorTimeSeconds).toBe(start);
+
+    await bridge.setNow(start + 7 * SECONDS_PER_DAY);
+
+    runtime = getMockTeamsRuntimeState();
+    expect(runtime.currentTimeSeconds).toBe(start + 7 * SECONDS_PER_DAY);
+    expect(runtime.periodAnchorTimeSeconds).toBe(start);
+    expect(runtime.timeTravelDays).toBe(7);
+    expect(runtime.data.currentPeriod).toBe(5);
   });
 });

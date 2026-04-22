@@ -29,9 +29,9 @@ export const teamsCopy = {
   },
   page: {
     title: "Team Finances",
-    eyebrow: "Interactive mock finance, lifecycle, and ops flows",
+    eyebrow: "Team finance, lifecycle, and ops workspace",
     description:
-      "Mock-first workspace for scanning registered teams, opening a selected workspace, and validating revenue deposit, funding claim and return flows, bonus availability, ownership/lifecycle state, and operator/admin oversight without turning protocol math into the default view.",
+      "Directory-first workspace for reviewing registered teams, opening a selected workspace, and tracking revenue deposits, funding actions, bonus availability, ownership state, and operator oversight without turning protocol math into the default view.",
     productionGate: "Production gated",
   },
   navigation: [
@@ -64,10 +64,6 @@ export const teamsCopy = {
       body: "Keep owner, pending owner, retirement, and migration state readable at a glance before write flows land.",
     },
     {
-      id: "states",
-      label: "States",
-    },
-    {
       id: "admin",
       label: "Admin",
     },
@@ -80,17 +76,17 @@ export const teamsCopy = {
     viewerRole: "Viewer",
   },
   controls: {
-    title: "Prototype controls",
-    heading: "Prototype States",
+    title: "Debug controls",
+    heading: "Runtime presets",
     description:
-      "Switch between approved viewer scenarios and force explicit loading or empty coverage while validating revenue, funding, bonus, lifecycle, and admin states.",
-    cardTitle: "Prototype States",
+      "Bootstrap known review states, then adjust the live Teams runtime in place without changing the default route chrome.",
+    cardTitle: "Runtime presets",
     cardBody:
-      "Switch between approved viewer scenarios and force explicit loading or empty coverage while validating revenue, funding, bonus, lifecycle, and admin states.",
-    scenarioLabel: "Scenarios",
-    surfaceLabel: "Surface state",
+      "Bootstrap known review states, then adjust the live Teams runtime in place without changing the default route chrome.",
+    scenarioLabel: "Presets",
+    surfaceLabel: "Route state",
     adminHint:
-      "The admin console unlocks only in the Operator/admin view mock persona.",
+      "Admin visibility stays tied to the selected viewer permissions.",
     scenarioNames: {
       "directory-observer": "Directory mix",
       "team-owner-funding": "Owner workspace",
@@ -110,11 +106,11 @@ export const teamsCopy = {
     description:
       "The default landing layer stays directory-first. Open a workspace when you want a selected team view.",
     loadingTitle: "Loading team directory",
-    loadingBody: "Fetching the mock directory scenario.",
-    emptyTitle: "No teams in this mock slice",
+    loadingBody: "Fetching the current teams snapshot.",
+    emptyTitle: "No teams available",
     emptyBody:
-      "Use a populated scenario to inspect multiple teams and open a workspace state.",
-    emptyHint: "Empty state coverage is explicit for WP2.",
+      "No teams are available in this view yet.",
+    emptyHint: "No teams are available right now.",
     headers: {
       team: "Team",
       owner: "Owner",
@@ -137,8 +133,7 @@ export const teamsCopy = {
     emptyBody:
       "Open a team from the directory to inspect current-period and lifetime overview cards.",
     noTeamsTitle: "No workspace available",
-    noTeamsBody:
-      "A team workspace appears here when the current scenario includes at least one team.",
+    noTeamsBody: "A team workspace appears here once a team is available and selected.",
     cards: {
       current: "Current Budget Period",
       lifetime: "Lifetime",
@@ -164,7 +159,7 @@ export const teamsCopy = {
     placeholders: {
       loading: "Preparing bonus totals and period detail for the selected workspace.",
       empty:
-        "Load a populated scenario to inspect claimable bonus state, period drilldown, and mock claim actions.",
+        "A bonus summary appears here once a team workspace is available.",
       unselected:
         "Open a team from the directory to inspect claimable bonus, the primary claim action, and period-level detail.",
     },
@@ -192,16 +187,16 @@ export const teamsCopy = {
     action: {
       title: "Primary action",
       claimCta: "Claim Bonus",
-      stagedCta: "Mock claim staged",
+      stagedCta: "Claim staged",
       pendingCta: "Waiting for finalization",
       claimedCta: "Already claimed",
       noneCta: "No bonus to claim",
       claimBody:
-        "Stage the mock bonus claim from the default view, then keep the period drilldown available for audit detail.",
+        "Stage the claim action from the default view, then keep the period drilldown available for audit detail.",
       stagedBody:
-        "The mock claim is staged for review only. This prototype keeps the fixture unchanged so the bonus breakdown stays visible until live writes land later.",
+        "The claim is staged for review only. The bonus breakdown stays visible so the finalized periods remain easy to audit.",
       permissionBody:
-        "This bonus is claimable, but the mock action stays limited to the eligible team-owner view.",
+        "This bonus is claimable, but the action stays limited to the eligible team-owner view.",
       pendingBody:
         "The primary action stays blocked until the included period finishes finalization and moves into the claimable total.",
       claimedBody:
@@ -218,7 +213,7 @@ export const teamsCopy = {
         `No YFI is claimable yet. ${pendingPeriods.toLocaleString("en-US")} ${pendingPeriods === 1 ? "period is" : "periods are"} still waiting for finalization.`,
       claimed:
         "The latest finalized bonus period has already been claimed, so the default view stays read-only.",
-      none: "No bonus periods are included in this mock slice yet.",
+      none: "No bonus periods are included yet.",
       noneWithHistory:
         "Included periods have no claimable YFI, so the default view stays focused on the historical state.",
     },
@@ -271,7 +266,7 @@ export const teamsCopy = {
     placeholders: {
       loading: "Preparing owner, retirement, migration, and successor state for the selected workspace.",
       empty:
-        "Load a populated scenario to inspect ownership handoff, retirement, and migration coverage.",
+        "Ownership and lifecycle details appear here once a team workspace is available.",
       unselected:
         "Open a team from the directory to inspect owner, pending owner, retirement, and migration readiness.",
     },
@@ -332,8 +327,7 @@ export const teamsCopy = {
     loadingBody:
       "Preparing supported tokens, the conversion preview, and recent deposit history.",
     emptyTitle: "No revenue workspace available",
-    emptyBody:
-      "A revenue deposit flow appears here when the current scenario includes a team workspace.",
+    emptyBody: "A revenue deposit flow appears here once a team workspace is available.",
     noTeamTitle: "No team selected",
     noTeamBody:
       "Open a team from the directory to preview permissionless deposits and recent revenue history.",
@@ -344,18 +338,18 @@ export const teamsCopy = {
     unavailable: {
       title: "Deposits unavailable in this workspace",
       viewerBody:
-        "This mock viewer cannot submit deposits, but recent history stays visible for review.",
+        "This viewer cannot submit deposits, but recent history stays visible for review.",
       readOnlyBody:
-        "This team is read-only in the current scenario, so new deposits stay disabled.",
+        "This team is read-only, so new deposits stay disabled.",
       optionsBody:
-        "This scenario exposes no supported revenue tokens for new deposits.",
+        "No supported revenue tokens are available for new deposits in this workspace.",
     },
     form: {
       tokenLabel: "Supported tokens",
       amountLabel: "Deposit amount",
       amountHint:
         "Credited USD can differ from the nominal token amount because conversion and pricing apply before accounting.",
-      submit: "Record mock deposit",
+      submit: "Record deposit",
       amountError: "Enter an amount greater than 0.",
     },
     tokenBadges: {
@@ -368,16 +362,15 @@ export const teamsCopy = {
       path: "Deposit path",
       credit: "Estimated accountant credit",
       direct: "Direct accountant credit",
-      quote: "Mock quote",
+      quote: "Quoted credit",
       convertedPrefix: "Auto-converts to",
     },
     history: {
       title: "Recent deposit history",
       description:
-        "Recent deposits stay visible beside the next mock submission so UAT can compare the quoted credit against recorded entries.",
+        "Recent deposits stay visible beside the next submission so teams can compare the quoted credit against recorded entries.",
       emptyTitle: "No deposits recorded yet",
-      emptyBody:
-        "This selected team has no mock revenue deposit history in the current scenario.",
+      emptyBody: "This selected team has no revenue deposit history yet.",
       headers: {
         period: "Period",
         deposit: "Deposit",
@@ -390,7 +383,7 @@ export const teamsCopy = {
       permissionlessDepositor: "Permissionless depositor",
     },
     success: {
-      title: "Mock deposit recorded",
+      title: "Deposit recorded",
       body:
         "The credited USD estimate and recent deposit history have been updated for this session.",
       currentPeriodPrefix: "Current period",
@@ -400,7 +393,7 @@ export const teamsCopy = {
     title: "Funding Approvals",
     description:
       "Keep current-period claimability, late-liquid handling, and return accounting visible from the same selected team workspace.",
-    emptyTitle: "No funding approvals in this scenario",
+    emptyTitle: "No funding approvals available",
     emptyBody:
       "This selected team does not have any funding approvals yet, so claim and return flows stay inactive.",
     summary: {
@@ -473,7 +466,7 @@ export const teamsCopy = {
       title: "Claim Funding",
       description:
         "Select a claimable approval, set a recipient, and simulate the owner claim flow.",
-      disabledPermission: "This viewer cannot claim funding in the current scenario.",
+      disabledPermission: "This viewer cannot claim funding in the current view.",
       disabledNoApproval: "Select a claimable approval from the table.",
       selectedApproval: "Selected approval",
       selectedState: "Claim status",
@@ -486,7 +479,7 @@ export const teamsCopy = {
         streamBacked: (days: number) =>
           `This approval remains stream-backed for ${days} days after claim.`,
         lateLiquid:
-          "This approval is late-liquid. Claimed funds arrive immediately in the prototype.",
+          "This approval is late-liquid. Claimed funds arrive immediately in this flow.",
         future: "This approval is visible but not claimable in the current period.",
         spent: "This approval has no remaining claimable balance.",
       },
@@ -508,7 +501,7 @@ export const teamsCopy = {
       title: "Return Funding",
       description:
         "Represent funding returns separately from claims. Refund value uses the historical average claim price.",
-      disabledPermission: "This viewer cannot return funding in the current scenario.",
+      disabledPermission: "This viewer cannot return funding in the current view.",
       disabledNoApproval: "Select a refundable approval from the table.",
       selectedApproval: "Selected approval",
       averagePrice: "Historical average claim price",
@@ -531,7 +524,7 @@ export const teamsCopy = {
     },
     history: {
       title: "Return history",
-      empty: "No funding returns recorded in this scenario yet.",
+      empty: "No funding returns have been recorded yet.",
       period: (period: number) => `Period #${period}`,
       approval: (approvalId: string) => `Approval ${approvalId}`,
       returnedBy: "Returned by",
@@ -539,24 +532,24 @@ export const teamsCopy = {
   },
   admin: {
     eyebrow: "Admin console",
-    mockBadge: "Mock persona gated",
+    mockBadge: "Access controlled",
     title: "Admin Console",
     description:
       "Operator/admin-only view for registry state, revenue token and bucket coverage, funding queue health, and bonus finalization readiness.",
     loadingTitle: "Loading admin console",
     loadingBody:
       "Preparing registry coverage, bucket usage, funding queue, and bonus finalization detail.",
-    emptyTitle: "No admin console in this surface state",
+    emptyTitle: "No admin console available",
     emptyBody:
-      "Return to the scenario view to inspect the operator/admin information architecture.",
+      "Admin coverage appears here once the current view exposes operator controls.",
     accessCard: {
-      title: "Admin visibility is persona-gated",
+      title: "Admin visibility is role-gated",
       body:
-        "This section stays out of the default team workspace. Switch to the Operator/admin view mock persona to inspect registry, revenue ops, funding ops, and bonus ops.",
+        "This section stays out of the default team workspace. Switch to an operator/admin viewer to inspect registry, revenue ops, funding ops, and bonus ops.",
       viewerLabel: "Current viewer",
       accessLabel: "Admin controls",
       lockedValue: "Locked",
-      hint: "The operator/admin scenario is the approved WP6 review surface.",
+      hint: "Operator controls unlock when the current viewer has admin access.",
     },
     summary: {
       title: "Admin summary",

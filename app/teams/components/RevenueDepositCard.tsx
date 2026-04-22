@@ -32,6 +32,7 @@ type RevenueDepositCardProps = {
   team: TeamRecord | null;
   viewer: TeamsViewerContext | null;
   currentPeriod: number | null;
+  onUpdateTeam: (team: TeamRecord) => void;
   state: "ready" | "loading" | "empty";
 };
 
@@ -43,6 +44,7 @@ export function RevenueDepositCard({
   team,
   viewer,
   currentPeriod,
+  onUpdateTeam,
   state,
 }: RevenueDepositCardProps) {
   const initialOption = team?.revenueOptions[0] ?? null;
@@ -51,9 +53,6 @@ export function RevenueDepositCard({
   );
   const [amount, setAmount] = useState(() => initialOption?.previewAmount ?? "");
   const [amountError, setAmountError] = useState<string | undefined>(undefined);
-  const [history, setHistory] = useState<LocalRevenueHistoryEntry[]>(() =>
-    (team?.revenueHistory ?? []).map((entry) => ({ ...entry }))
-  );
   const [successEntry, setSuccessEntry] = useState<LocalRevenueHistoryEntry | null>(null);
 
   if (state === "loading") {
@@ -122,6 +121,10 @@ export function RevenueDepositCard({
     Boolean(viewer?.canDepositRevenue) &&
     activeTeam.readOnlyReason === null &&
     activeTeam.revenueOptions.length > 0;
+  const renderedHistory: LocalRevenueHistoryEntry[] = activeTeam.revenueHistory.map((entry) => ({
+    ...entry,
+    depositorLabel: successEntry?.id === entry.id ? successEntry.depositorLabel : undefined,
+  }));
 
   function handleSelectToken(tokenAddress: string) {
     const nextOption =
@@ -166,7 +169,10 @@ export function RevenueDepositCard({
         : teamsCopy.revenue.history.permissionlessDepositor,
     };
 
-    setHistory((currentHistory) => [entry, ...currentHistory]);
+    onUpdateTeam({
+      ...activeTeam,
+      revenueHistory: [entry, ...activeTeam.revenueHistory],
+    });
     setSuccessEntry(entry);
     setAmountError(undefined);
   }
@@ -333,7 +339,7 @@ export function RevenueDepositCard({
               </p>
             </div>
 
-            {history.length === 0 ? (
+            {renderedHistory.length === 0 ? (
               <div className="rounded-box border border-dashed border-border bg-surface-secondary px-4 py-5">
                 <p className="text-sm font-bold text-text-primary">
                   {teamsCopy.revenue.history.emptyTitle}
@@ -359,7 +365,7 @@ export function RevenueDepositCard({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {history.map((entry) => (
+                  {renderedHistory.map((entry) => (
                     <TableRow key={entry.id}>
                       <TableCell className="font-medium text-text-primary">
                         #{entry.period}
