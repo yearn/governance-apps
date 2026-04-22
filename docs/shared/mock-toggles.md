@@ -77,6 +77,10 @@ place. Presets may bootstrap the state, but QA should be able to keep navigating
 normal route while changing persona, time, loading/empty coverage, and domain-specific
 values under the current view.
 
+For Teams specifically, the shared panel now owns preset bootstrapping, viewer/admin
+access, loading/empty coverage, workspace selection, current period, lifecycle,
+read-only access, revenue, funding, and bonus state changes.
+
 ### Features
 
 1.  **Time Travel:**

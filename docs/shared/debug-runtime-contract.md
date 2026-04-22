@@ -45,6 +45,9 @@ Applies to:
 - shared time travel invalidates `styfi`, `veyfi`, `yeth`, `teamsKeys.all`, and
   `ybcKeys.all`
 - the initial YBC root invalidation seam is `ybcKeys.all` from `lib/hooks/useYbc.ts`
+- the Teams section is expected to cover preset bootstrapping, viewer/admin access,
+  loading/empty coverage, workspace selection, current period, lifecycle/read-only,
+  revenue, funding, and bonus state mutation without adding route-local QA chrome
 
 ## Time travel and reset requirements
 
