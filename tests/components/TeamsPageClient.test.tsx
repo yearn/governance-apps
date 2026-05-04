@@ -1,6 +1,6 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TeamsPageClient } from "@/app/teams/TeamsPageClient";
 import { teamsCopy } from "@/app/teams/messages";
 import {
@@ -23,6 +23,47 @@ async function syncTeamsRuntime(
       queryKey: teamsKeys.all,
       refetchType: "all",
     });
+  });
+}
+
+function installHashScrollMock() {
+  const scrollIntoView = vi.fn();
+  const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: scrollIntoView,
+  });
+  window.requestAnimationFrame = ((callback: FrameRequestCallback) =>
+    window.setTimeout(() => callback(performance.now()), 0)) as typeof window.requestAnimationFrame;
+
+  return {
+    scrollIntoView,
+    restore: () => {
+      if (originalScrollIntoView) {
+        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+          configurable: true,
+          value: originalScrollIntoView,
+        });
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+      }
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+    },
+  };
+}
+
+async function dispatchTeamsHash(hash: string, scrollIntoView: ReturnType<typeof vi.fn>) {
+  scrollIntoView.mockClear();
+
+  act(() => {
+    window.history.replaceState(null, "", `/teams#${hash}`);
+    window.dispatchEvent(new Event("hashchange"));
+  });
+
+  await waitFor(() => {
+    expect(scrollIntoView).toHaveBeenCalled();
   });
 }
 
@@ -91,9 +132,9 @@ describe("TeamsPageClient", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.bonus.noPeriods)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", {
+      screen.getAllByRole("button", {
         name: teamsCopy.bonus.action.noneCta,
-      })
+      })[0]
     ).toBeDisabled();
     expect(document.querySelectorAll("#lifecycle")).toHaveLength(1);
     expect(
@@ -219,6 +260,99 @@ describe("TeamsPageClient", () => {
         level: 3,
       })
     ).toBeInTheDocument();
+  });
+
+  it("preserves section hash links after removing workspace tabs", async () => {
+    const hashScroll = installHashScrollMock();
+    setMockTeamsPreset("finance-operator-revenue");
+
+    try {
+      window.history.replaceState(null, "", "/teams#directory");
+      renderWithProviders(<TeamsPageClient />);
+
+      const directoryTab = await screen.findByRole("tab", { name: /Directory/i });
+      expect(directoryTab).toHaveAttribute("aria-selected", "true");
+      expect(document.getElementById("directory")).not.toBeNull();
+      await screen.findByRole("button", { name: "Open Platform workspace" });
+
+      await dispatchTeamsHash("revenue", hashScroll.scrollIntoView);
+      expect(screen.getByRole("tab", { name: /Workspace/i })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      );
+      expect(document.getElementById("revenue")).not.toBeNull();
+      expect(
+        within(document.getElementById("revenue")!).getByRole("heading", {
+          name: teamsCopy.revenue.history.auditTitle,
+        })
+      ).toBeInTheDocument();
+
+      await dispatchTeamsHash("funding", hashScroll.scrollIntoView);
+      expect(document.getElementById("funding")).not.toBeNull();
+      expect(
+        within(document.getElementById("funding")!).getByRole("heading", {
+          name: teamsCopy.funding.title,
+        })
+      ).toBeInTheDocument();
+
+      await dispatchTeamsHash("bonus", hashScroll.scrollIntoView);
+      expect(document.getElementById("bonus")).not.toBeNull();
+      expect(
+        within(document.getElementById("bonus")!).getByRole("heading", {
+          name: teamsCopy.bonus.title,
+        })
+      ).toBeInTheDocument();
+
+      await dispatchTeamsHash("lifecycle", hashScroll.scrollIntoView);
+      expect(document.getElementById("lifecycle")).not.toBeNull();
+      expect(
+        within(document.getElementById("lifecycle")!).getByRole("heading", {
+          name: teamsCopy.lifecycle.title,
+        })
+      ).toBeInTheDocument();
+    } finally {
+      hashScroll.restore();
+    }
+  });
+
+  it("keeps the Teams admin hash role-gated", async () => {
+    window.history.replaceState(null, "", "/teams#admin");
+
+    renderWithProviders(<TeamsPageClient />);
+
+    expect(await screen.findByRole("tab", { name: /Directory/i })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    expect(screen.queryByRole("tab", { name: /Admin/i })).not.toBeInTheDocument();
+    expect(document.getElementById("admin")).toBeNull();
+  });
+
+  it("opens the Teams admin hash for operator/admin viewers", async () => {
+    const hashScroll = installHashScrollMock();
+    setMockTeamsPreset("operator-admin");
+    window.history.replaceState(null, "", "/teams#admin");
+
+    try {
+      renderWithProviders(<TeamsPageClient />);
+
+      expect(await screen.findByRole("tab", { name: /Admin/i })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      );
+      expect(document.getElementById("admin")).not.toBeNull();
+      expect(
+        within(document.getElementById("admin")!).getByRole("heading", {
+          name: teamsCopy.admin.title,
+          level: 2,
+        })
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(hashScroll.scrollIntoView).toHaveBeenCalled();
+      });
+    } finally {
+      hashScroll.restore();
+    }
   });
 
   it("exposes deterministic loading and empty coverage through the shared runtime", async () => {
@@ -442,8 +576,8 @@ describe("TeamsPageClient", () => {
     expect(
       await screen.findByRole("heading", { name: "Research", level: 2 })
     ).toBeInTheDocument();
-    expect(screen.getByText(teamsCopy.revenue.history.emptyTitle)).toBeInTheDocument();
-    expect(screen.getByText(teamsCopy.revenue.history.emptyBody)).toBeInTheDocument();
+    expect(screen.getAllByText(teamsCopy.revenue.history.emptyTitle).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(teamsCopy.revenue.history.emptyBody).length).toBeGreaterThan(0);
   });
 
   it("renders funding approval states and the separate claim and return flows for the owner preset", async () => {
