@@ -17,16 +17,15 @@ import { teamsCopy } from "./messages";
 
 const EMPTY_STATS_VALUE = "--";
 type TeamsTopTab = "directory" | "workspace" | "admin";
-export type TeamWorkspaceTab = "overview" | "revenue" | "funding" | "bonus" | "lifecycle";
 
-const WORKSPACE_HASH_TO_TAB: Record<string, TeamWorkspaceTab> = {
-  workspace: "overview",
-  overview: "overview",
-  revenue: "revenue",
-  funding: "funding",
-  bonus: "bonus",
-  lifecycle: "lifecycle",
-};
+const WORKSPACE_HASHES = new Set([
+  "workspace",
+  "overview",
+  "revenue",
+  "funding",
+  "bonus",
+  "lifecycle",
+]);
 
 function getTeamsTopTabId(tabId: string) {
   return `teams-section-tab-${tabId}`;
@@ -35,8 +34,6 @@ function getTeamsTopTabId(tabId: string) {
 export function TeamsPageClient() {
   const { replaceTeam, setSelectedTeam } = useTeamsDebugActions();
   const [activeTopTab, setActiveTopTab] = useState<TeamsTopTab>("directory");
-  const [activeWorkspaceTab, setActiveWorkspaceTab] =
-    useState<TeamWorkspaceTab>("overview");
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const runtimeQuery = useTeamsState();
   const runtime = runtimeQuery.data ?? null;
@@ -106,9 +103,8 @@ export function TeamsPageClient() {
         return;
       }
 
-      if (hash in WORKSPACE_HASH_TO_TAB) {
+      if (WORKSPACE_HASHES.has(hash)) {
         setActiveTopTab("workspace");
-        setActiveWorkspaceTab(WORKSPACE_HASH_TO_TAB[hash]);
         setPendingScrollId(hash);
         return;
       }
@@ -145,7 +141,7 @@ export function TeamsPageClient() {
       }
       setPendingScrollId(null);
     });
-  }, [resolvedActiveTopTab, activeWorkspaceTab, pendingScrollId, showAdminSection]);
+  }, [resolvedActiveTopTab, pendingScrollId, showAdminSection]);
 
   const topTabs = [
     {
@@ -220,7 +216,6 @@ export function TeamsPageClient() {
             onSelectTeam={(teamId) => {
               void setSelectedTeam(teamId);
               setActiveTopTab("workspace");
-              setActiveWorkspaceTab("overview");
               replaceHash("workspace");
             }}
             state={renderState}
@@ -234,11 +229,9 @@ export function TeamsPageClient() {
           hidden={resolvedActiveTopTab !== "workspace"}
         >
           <TeamWorkspace
-            activeTab={activeWorkspaceTab}
             team={renderState === "ready" ? selectedTeam : null}
             viewer={renderState === "ready" ? data?.viewer ?? null : null}
             currentPeriod={renderState === "ready" ? data?.currentPeriod ?? null : null}
-            onTabChange={handleWorkspaceTabChange}
             onUpdateTeam={handleTeamUpdate}
             revenueCardKey={revenueCardKey}
             state={renderState}
@@ -273,15 +266,7 @@ export function TeamsPageClient() {
 
   function handleTopTabChange(tabId: TeamsTopTab) {
     setActiveTopTab(tabId);
-    if (tabId === "workspace") {
-      setActiveWorkspaceTab("overview");
-    }
     replaceHash(tabId);
-  }
-
-  function handleWorkspaceTabChange(tabId: TeamWorkspaceTab) {
-    setActiveWorkspaceTab(tabId);
-    replaceHash(tabId === "overview" ? "workspace" : tabId);
   }
 }
 

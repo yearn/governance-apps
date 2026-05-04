@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { formatAddress } from "@/lib/format";
 import {
@@ -312,9 +312,15 @@ export function FundingApprovalsTable({
           />
 
           {!viewer?.canClaimFunding ? (
-            <MessageBox tone="neutral">{teamsCopy.funding.claimForm.disabledPermission}</MessageBox>
+            <DisabledAction
+              body={teamsCopy.funding.claimForm.disabledPermission}
+              cta={teamsCopy.funding.claimForm.disabledPermissionCta}
+            />
           ) : !selectedClaimApproval ? (
-            <MessageBox tone="neutral">{teamsCopy.funding.claimForm.disabledNoApproval}</MessageBox>
+            <DisabledAction
+              body={teamsCopy.funding.claimForm.disabledNoApproval}
+              cta={teamsCopy.funding.claimForm.disabledNoApprovalCta}
+            />
           ) : (
             <>
               <SelectionSummary
@@ -394,13 +400,15 @@ export function FundingApprovalsTable({
           />
 
           {!viewer?.canReturnFunding ? (
-            <MessageBox tone="neutral">
-              {teamsCopy.funding.returnForm.disabledPermission}
-            </MessageBox>
+            <DisabledAction
+              body={teamsCopy.funding.returnForm.disabledPermission}
+              cta={teamsCopy.funding.returnForm.disabledPermissionCta}
+            />
           ) : !selectedReturnApproval ? (
-            <MessageBox tone="neutral">
-              {teamsCopy.funding.returnForm.disabledNoApproval}
-            </MessageBox>
+            <DisabledAction
+              body={teamsCopy.funding.returnForm.disabledNoApproval}
+              cta={teamsCopy.funding.returnForm.disabledNoApprovalCta}
+            />
           ) : (
             <>
               <SelectionSummary
@@ -472,14 +480,20 @@ export function FundingApprovalsTable({
                     className="rounded-box border border-border bg-app px-4 py-3"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-number text-sm font-bold text-text-primary">
-                        {formatApprovalAmount(entry.amount, entry.symbol)}
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+                          {teamsCopy.funding.history.record}
+                        </p>
+                        <p className="font-number text-sm font-bold break-all text-text-primary">
+                          {entry.id}
+                        </p>
+                      </div>
                       <p className="font-number text-sm font-bold text-text-primary">
                         {formatTeamsUsd(entry.refundValueUsd)}
                       </p>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
+                      <span>{formatApprovalAmount(entry.amount, entry.symbol)}</span>
                       <span>{teamsCopy.funding.history.period(entry.period)}</span>
                       <span>{teamsCopy.funding.history.approval(entry.approvalId)}</span>
                       <span>
@@ -625,6 +639,21 @@ function FundingMetric({
         {label}
       </p>
       <p className="mt-1 font-number text-base font-bold text-text-primary">{value}</p>
+    </div>
+  );
+}
+
+function DisabledAction({ body, cta }: { body: string; cta: string }) {
+  const descriptionId = useId();
+
+  return (
+    <div className="space-y-3">
+      <div id={descriptionId}>
+        <MessageBox tone="neutral">{body}</MessageBox>
+      </div>
+      <Button disabled className="w-full" aria-describedby={descriptionId}>
+        {cta}
+      </Button>
     </div>
   );
 }

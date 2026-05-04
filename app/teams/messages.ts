@@ -74,7 +74,7 @@ export const teamsCopy = {
   directory: {
     title: "Team Directory",
     description:
-      "Compare current-period performance and open one team workspace.",
+      "Scan current-period performance in cards, or switch to the audit table for dense review.",
     loadingTitle: "Loading team directory",
     loadingBody: "Fetching the current teams snapshot.",
     emptyTitle: "No teams available",
@@ -96,7 +96,7 @@ export const teamsCopy = {
   workspace: {
     title: "Workspace Overview",
     description:
-      "Current-period and lifetime reporting for the selected team.",
+      "Current-period and lifetime reporting for the selected team, followed by action and ledger sections.",
     loadingTitle: "Loading workspace overview",
     loadingBody: "Preparing the selected team workspace.",
     emptyTitle: "No team selected",
@@ -114,6 +114,7 @@ export const teamsCopy = {
     },
     fields: {
       teamId: "Team ID",
+      contract: "Contract",
       owner: "Owner",
       pendingOwner: "Pending owner",
       migration: "Migration readiness",
@@ -127,6 +128,49 @@ export const teamsCopy = {
       funding: "Funding",
       bonus: "Bonus",
       lifecycle: "Lifecycle",
+    },
+    actionDeck: {
+      title: "Action deck",
+      description:
+        "Deposit permissionless revenue, then review outbound funding and bonus actions without losing the audit ledgers below.",
+      outflowsTitle: "Outflows & Yield command",
+      outflowsBody:
+        "Funding approvals and finalized YFI bonus stay beside each other, but each panel keeps its source and action meaning separate.",
+      fundingTitle: "Funding approvals",
+      fundingSource: "Source: team funding approvals",
+      fundingBody:
+        "Claims spend approved funding balances. Returns account for previously used funding against the historical claim price.",
+      fundingClaimSource: "Claim source",
+      fundingReturnSource: "Return accounting",
+      fundingClaimableCount: "Claimable approvals",
+      fundingReturnableCount: "Returnable approvals",
+      fundingClaimableValue: "Stable claimable value",
+      fundingRefundableValue: "Refundable value",
+      fundingClaimBody: (approvalId: string, amount: string, periodLabel: string) =>
+        `${approvalId} has ${amount} available from ${periodLabel}.`,
+      fundingReturnBody: (approvalId: string, amount: string) =>
+        `${approvalId} has ${amount} of used balance available for return accounting.`,
+      fundingNoClaimable:
+        "No funding approval is claimable from this workspace right now.",
+      fundingNoReturnable:
+        "No used funding balance is available for return accounting right now.",
+      fundingCta: "Open funding claim and return flows",
+      fundingClaimCta: "Open funding claim flow",
+      fundingReturnCta: "Open funding return flow",
+      bonusTitle: "YFI bonus",
+      bonusSource: "Source: finalized team bonus output",
+      bonusBody:
+        "Bonus yield is calculated from finalized period profit and remains separate from funding approvals.",
+      bonusStatus: "Bonus state",
+      bonusClaimable: "Claimable now",
+      bonusPeriods: "Periods included",
+      bonusPending: "Awaiting finalization",
+      bonusCta: "Open bonus claim",
+    },
+    outflows: {
+      title: "Outflows & Yield",
+      description:
+        "Funding approvals and YFI bonus actions are surfaced together as outbound work, while preserving their separate protocol meanings and ledgers.",
     },
   },
   bonus: {
@@ -165,6 +209,7 @@ export const teamsCopy = {
       title: "Primary action",
       claimCta: "Claim Bonus",
       stagedCta: "Claim staged",
+      permissionCta: "Team owner required",
       pendingCta: "Waiting for finalization",
       claimedCta: "Already claimed",
       noneCta: "No bonus to claim",
@@ -314,6 +359,7 @@ export const teamsCopy = {
     },
     unavailable: {
       title: "Deposits unavailable in this workspace",
+      disabledCta: "Deposit unavailable",
       viewerBody:
         "This viewer cannot submit deposits, but recent history stays visible for review.",
       readOnlyBody:
@@ -346,9 +392,13 @@ export const teamsCopy = {
       title: "Recent deposit history",
       description:
         "Recent deposits stay visible beside the next submission so teams can compare the quoted credit against recorded entries.",
+      auditTitle: "Revenue audit ledger",
+      auditDescription:
+        "Deposit records stay reachable from the stable revenue anchor with visible record identifiers for audit review.",
       emptyTitle: "No deposits recorded yet",
       emptyBody: "This selected team has no revenue deposit history yet.",
       headers: {
+        record: "Record ID",
         period: "Period",
         deposit: "Deposit",
         credit: "Credited USD",
@@ -444,7 +494,9 @@ export const teamsCopy = {
       description:
         "Select a claimable approval, set a recipient, and simulate the owner claim flow.",
       disabledPermission: "This viewer cannot claim funding in the current view.",
+      disabledPermissionCta: "Claim unavailable",
       disabledNoApproval: "Select a claimable approval from the table.",
+      disabledNoApprovalCta: "Select approval to claim",
       selectedApproval: "Selected approval",
       selectedState: "Claim status",
       recipient: "Recipient",
@@ -479,7 +531,9 @@ export const teamsCopy = {
       description:
         "Represent funding returns separately from claims. Refund value uses the historical average claim price.",
       disabledPermission: "This viewer cannot return funding in the current view.",
+      disabledPermissionCta: "Return unavailable",
       disabledNoApproval: "Select a refundable approval from the table.",
+      disabledNoApprovalCta: "Select approval to return",
       selectedApproval: "Selected approval",
       averagePrice: "Historical average claim price",
       amount: "Amount to return",
@@ -502,6 +556,7 @@ export const teamsCopy = {
     history: {
       title: "Return history",
       empty: "No funding returns have been recorded yet.",
+      record: "Return record",
       period: (period: number) => `Period #${period}`,
       approval: (approvalId: string) => `Approval ${approvalId}`,
       returnedBy: "Returned by",

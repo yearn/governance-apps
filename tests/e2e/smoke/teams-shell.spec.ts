@@ -30,6 +30,11 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Open Platform workspace" })
   ).toBeVisible();
+  await expect(page.getByRole("table")).toHaveCount(0);
+  await page.getByRole("button", { name: /Audit/i }).click();
+  await expect(
+    page.getByRole("columnheader", { name: "Owner" })
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: /debug/i })
   ).toBeVisible();
@@ -40,9 +45,7 @@ test("renders the Team Finances route shell", async ({ page }) => {
 
   await page.getByRole("button", { name: "Open Platform workspace" }).click();
   await expect(page.getByRole("heading", { name: "Platform", level: 2 })).toBeVisible();
-  await page.getByRole("tab", { name: "Bonus" }).click();
   await expect(page.getByRole("heading", { name: "Bonus", level: 3 })).toBeVisible();
-  await page.getByRole("tab", { name: "Lifecycle" }).click();
   await expect(
     page.getByRole("heading", { name: "Ownership & Lifecycle", level: 3 })
   ).toBeVisible();
@@ -68,7 +71,6 @@ test("keeps loading and empty coverage reachable through the shared Teams runtim
   await expect(page.getByText("Loading team directory")).toBeVisible();
   await page.getByRole("tab", { name: /Workspace/i }).click();
   await expect(page.getByText("Loading workspace overview")).toBeVisible();
-  await page.getByRole("tab", { name: "Revenue" }).click();
   await expect(page.getByText("Loading revenue deposit flow")).toBeVisible();
 
   await setTeamsLoading(page, false);
@@ -80,7 +82,6 @@ test("keeps loading and empty coverage reachable through the shared Teams runtim
   await expect(page.getByText("No teams available")).toBeVisible();
   await page.getByRole("tab", { name: /Workspace/i }).click();
   await expect(page.getByText("No workspace available")).toBeVisible();
-  await page.getByRole("tab", { name: "Revenue" }).click();
   await expect(page.getByText("No revenue workspace available")).toBeVisible();
   await page.getByRole("tab", { name: /Admin/i }).click();
   await expect(page.locator("#admin").getByText("No admin console available")).toBeVisible();

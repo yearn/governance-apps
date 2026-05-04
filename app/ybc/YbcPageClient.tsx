@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Tabs } from "@/components/ui/Tabs";
 import type { YbcMockDataV1, YbcPrototypeScenarioId } from "@/lib/clients/ybc";
 import { useYbcState } from "@/lib/hooks/useYbc";
 import { useProtocol } from "@/state/protocol";
@@ -30,15 +29,12 @@ type YbcPageContentProps = {
   executeProposal?: (proposalId: string) => void;
 };
 
-type YbcBodyTab = "members" | "proposals" | "rewards" | "admin";
-
-function getYbcTabId(tabId: string) {
-  return `ybc-section-tab-${tabId}`;
-}
-
-function getYbcPanelId(tabId: string) {
-  return `ybc-section-panel-${tabId}`;
-}
+const SECTION_HASHES = new Set(["overview", "members", "proposals", "rewards", "admin"]);
+const PRIORITY_PROPOSAL_PHASES = new Set([
+  "discussion",
+  "voting",
+  "awaiting-execution",
+]);
 
 export function YbcPageClient({
   scenarioOverride,
@@ -99,132 +95,53 @@ export function YbcPageContent({
   voteOnProposal,
   executeProposal,
 }: YbcPageContentProps) {
-  const showOperatorTab = Boolean(data.admin && data.me.isOperator);
-  const [activeTab, setActiveTab] = useState<YbcBodyTab>("members");
-  const resolvedActiveTab =
-    activeTab === "admin" && !showOperatorTab ? "members" : activeTab;
+  const showOperatorSection = Boolean(data.admin && data.me.isOperator);
+  const hasPriorityProposals = data.proposals.items.some((proposal) =>
+    PRIORITY_PROPOSAL_PHASES.has(proposal.phase)
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const activateHashTab = (tab: YbcBodyTab) => {
-      window.requestAnimationFrame(() => {
-        setActiveTab(tab);
-        scrollToHashTarget(tab);
-      });
-    };
-
     const applyHash = () => {
       const hash = window.location.hash.replace(/^#/, "");
-      if (hash === "overview") {
+      if (!SECTION_HASHES.has(hash)) return;
+      if (hash === "admin" && !showOperatorSection) return;
+
+      window.requestAnimationFrame(() => {
         scrollToHashTarget(hash);
-        return;
-      }
-
-      if (hash === "members" || hash === "proposals" || hash === "rewards") {
-        activateHashTab(hash);
-        return;
-      }
-
-      if (hash === "admin" && showOperatorTab) {
-        activateHashTab("admin");
-      }
+      });
     };
 
     applyHash();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
-  }, [showOperatorTab]);
+  }, [showOperatorSection]);
 
-  const tabs = [
-    {
-      id: "members",
-      label: copy.sections.members,
-      badge: data.roster.members.length.toLocaleString("en-US"),
-    },
-    {
-      id: "proposals",
-      label: copy.sections.proposals,
-      badge: data.proposals.summary.activeCount.toLocaleString("en-US"),
-    },
-    {
-      id: "rewards",
-      label: copy.sections.rewards,
-    },
-    ...(showOperatorTab
-      ? [
-          {
-            id: "admin",
-            label: copy.sections.admin,
-          },
-        ]
-      : []),
-  ];
+  const membersSection = (
+    <MembersTable roster={data.roster} currentAddress={data.me.address} />
+  );
+  const proposalsSection = (
+    <ProposalBoard
+      id="proposals"
+      data={data}
+      createProposal={createProposal}
+      retractProposal={retractProposal}
+      voteOnProposal={voteOnProposal}
+      executeProposal={executeProposal}
+    />
+  );
 
   return (
     <div className="bg-app text-text-primary">
       <YbcHero data={data} />
-      <main className="container mx-auto space-y-6 px-4 py-8 md:px-6 md:py-10">
-        <Tabs
-          aria-label="YBC sections"
-          activeTab={resolvedActiveTab}
-          getPanelId={getYbcPanelId}
-          getTabId={getYbcTabId}
-          onChange={(tabId) => {
-            const nextTab = tabId as YbcBodyTab;
-            setActiveTab(nextTab);
-            replaceHash(nextTab);
-          }}
-          tabs={tabs}
-          variant="line"
-          className="overflow-x-auto"
-        />
+      <main className="container mx-auto space-y-8 px-4 py-8 md:px-6 md:py-10">
+        {hasPriorityProposals ? proposalsSection : membersSection}
+        {hasPriorityProposals ? membersSection : proposalsSection}
+        <RewardsCard id="rewards" data={data} hostname={hostname} />
 
-        <section
-          id={getYbcPanelId("members")}
-          role="tabpanel"
-          aria-labelledby={getYbcTabId("members")}
-          hidden={resolvedActiveTab !== "members"}
-        >
-          <div id="members">
-            <MembersTable roster={data.roster} currentAddress={data.me.address} />
-          </div>
-        </section>
-
-        <section
-          id={getYbcPanelId("proposals")}
-          role="tabpanel"
-          aria-labelledby={getYbcTabId("proposals")}
-          hidden={resolvedActiveTab !== "proposals"}
-        >
-          <ProposalBoard
-            id="proposals"
-            data={data}
-            createProposal={createProposal}
-            retractProposal={retractProposal}
-            voteOnProposal={voteOnProposal}
-            executeProposal={executeProposal}
-          />
-        </section>
-
-        <section
-          id={getYbcPanelId("rewards")}
-          role="tabpanel"
-          aria-labelledby={getYbcTabId("rewards")}
-          hidden={resolvedActiveTab !== "rewards"}
-        >
-          <RewardsCard id="rewards" data={data} hostname={hostname} />
-        </section>
-
-        {showOperatorTab ? (
-          <section
-            id={getYbcPanelId("admin")}
-            role="tabpanel"
-            aria-labelledby={getYbcTabId("admin")}
-            hidden={resolvedActiveTab !== "admin"}
-          >
-            <OperatorPanel id="admin" data={data} createProposal={createProposal} />
-          </section>
+        {showOperatorSection ? (
+          <OperatorPanel id="admin" data={data} createProposal={createProposal} />
         ) : null}
       </main>
     </div>
@@ -248,11 +165,6 @@ export function YbcPageLoadingState() {
       <MembersTableSkeleton />
     </div>
   );
-}
-
-function replaceHash(id: string) {
-  if (typeof window === "undefined") return;
-  window.history.replaceState(null, "", `#${id}`);
 }
 
 function scrollToHashTarget(id: string) {

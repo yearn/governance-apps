@@ -46,7 +46,10 @@ export function OperatorPanel({
   const hasOperatorAccess = Boolean(admin?.isOperator && data.me.isOperator);
 
   return (
-    <Card id={id} className="space-y-6">
+    <section
+      id={id}
+      className="space-y-6 rounded-box border border-yearn-blue/30 bg-yearn-blue/[0.04] p-6"
+    >
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="brand">{copy.operatorPanel.eyebrow}</Badge>
@@ -70,7 +73,7 @@ export function OperatorPanel({
       ) : (
         <LockedOperatorPanel data={data} />
       )}
-    </Card>
+    </section>
   );
 }
 
@@ -157,7 +160,9 @@ function UnlockedOperatorPanel({
                           }
                           disabled={!operation.enabled || !createProposal}
                         >
-                          {operationCopy.cta}
+                          {operation.enabled && createProposal
+                            ? operationCopy.cta
+                            : copy.operatorPanel.operationDisabled}
                         </Button>
                       </div>
                     </div>

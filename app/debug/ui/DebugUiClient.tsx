@@ -11,6 +11,8 @@ import { CrossAppNudge } from "@/components/domain/CrossAppNudge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Tabs } from "@/components/ui/Tabs";
+import { TimelineStepper } from "@/components/ui/TimelineStepper";
+import { ViewToggle, type ViewToggleValue } from "@/components/ui/ViewToggle";
 import { Badge } from "@/components/ui/Badge";
 import {
   Table,
@@ -88,6 +90,7 @@ const DEBUG_CROSS_APP_NUDGE_VARIANTS: DebugCrossAppNudgeVariant[] = [
 
 export function DebugUiClient() {
   const [activeTab, setActiveTab] = useState("tab1");
+  const [viewMode, setViewMode] = useState<ViewToggleValue>("visual");
   const [inputValue, setInputValue] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -206,6 +209,13 @@ export function DebugUiClient() {
                 error="Insufficient balance"
               />
             </Card>
+            <Card variant="flat" className="space-y-3 md:col-span-2">
+              <h3 className="font-bold">Flat Card Variant</h3>
+              <p className="text-sm leading-6 text-text-secondary">
+                Secondary surface with transparent border and no shadow for dense command
+                center sections.
+              </p>
+            </Card>
           </div>
         </section>
 
@@ -278,7 +288,7 @@ export function DebugUiClient() {
         {/* Tabs */}
         <section className="space-y-4">
           <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
-            Tabs
+            Navigation Controls
           </h2>
           <Tabs
             activeTab={activeTab}
@@ -292,6 +302,46 @@ export function DebugUiClient() {
           <div className="p-4 bg-surface rounded-lg border border-border text-sm">
             Active content: <span className="font-bold">{activeTab}</span>
           </div>
+          <ViewToggle
+            aria-label="Debug view mode"
+            value={viewMode}
+            onChange={setViewMode}
+          />
+          <div className="p-4 bg-surface rounded-lg border border-border text-sm">
+            Active view: <span className="font-bold">{viewMode}</span>
+          </div>
+        </section>
+
+        {/* Timeline */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-bold border-b border-neutral-300 pb-2">
+            Timeline Stepper
+          </h2>
+          <Card>
+            <TimelineStepper
+              aria-label="Proposal phase demo"
+              steps={[
+                {
+                  id: "discussion",
+                  label: "Discussion",
+                  description: "Proposal is open for review.",
+                  status: "complete",
+                },
+                {
+                  id: "voting",
+                  label: "Voting",
+                  description: "Members can cast yea or nay votes.",
+                  status: "current",
+                },
+                {
+                  id: "execution",
+                  label: "Execution",
+                  description: "Passed proposals can be executed.",
+                  status: "upcoming",
+                },
+              ]}
+            />
+          </Card>
         </section>
 
         {/* Tables */}

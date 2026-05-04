@@ -32,16 +32,17 @@ surface grows.
 ## Route shell baseline
 
 The shared-host route is `/ybc`. The accepted shell keeps the overview visible first,
-then puts heavier governance surfaces behind tabs so the route does not read as one
-long flat dashboard.
+then renders the governance command-center sections on one page. When discussion,
+voting, or awaiting-execution proposals exist, the proposal feed appears above the
+roster so actionable governance work is not buried.
 
 Default structure:
 
 1. Overview summary
-2. Members tab
-3. Proposals tab
-4. Rewards tab
-5. Operator tab, shown only for operator/admin perspectives
+2. Priority proposal feed when proposals are actionable
+3. Visual member roster, with audit table available through a view toggle
+4. Rewards handoff
+5. Operator panel, shown only for operator/admin perspectives
 
 The beta host is `ybc-beta.dao-ops.com`. The production host is `ybc.yearn.fi`, but
 production exposure remains gated until live contract wiring and explicit production
@@ -53,7 +54,7 @@ The current mock-backed route integrates the accepted WP2, WP3, WP4, WP5, WP6, a
 WP7 runtime work:
 
 - the overview stays visible while members, proposals, rewards, and operator tooling
-  are reached through focused tabs
+  render as stable command-center sections
 - the default `/ybc` surface keeps production-like copy and navigation while QA-only
   state seeding lives in the floating debug panel and the shared E2E bridge
 - the hero separates internal member influence from delegated public influence
@@ -61,7 +62,8 @@ WP7 runtime work:
 - the default `/ybc` runtime reseeds from the active wallet on connect, disconnect,
   and account changes unless an explicit debug preset is applied
 - observer and member perspectives render distinct weight summaries
-- the members table keeps raw stake, effective weight, target weight, and maturity separate
+- the visual member roster and audit table keep raw stake, effective weight, target
+  weight, and maturity separate
 - loading and empty roster states are implemented for the overview state machine
 - the proposal board shows explicit phases, UTC timeline rows, and threshold targets
 - proposal propose, retract, vote, and execute interactions remain available on the
@@ -72,7 +74,7 @@ WP7 runtime work:
   actionless so the route never implies those states can be revived
 - the rewards section shows YBC-attributed rewards while routing claims to the shared reward surface
 - observer, empty, member, and operator perspectives keep the reward handoff visible without implying a separate YBC claim stack
-- the operator/admin perspective now exposes a scoped operator tab for add/remove
+- the operator/admin perspective now exposes a scoped operator panel for add/remove
   member affordances, operator visibility, hook visibility, threshold visibility, and
   reward sync status
 - the operator access debug toggle mutates the viewer's operator membership rather than

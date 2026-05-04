@@ -29,9 +29,10 @@ export function ProposalBoard({
   const additionThresholdBps = getThresholdBps(data, "addition");
   const expulsionThresholdBps = getThresholdBps(data, "expulsion");
   const accountLabels = getAccountLabels(data);
+  const canCreateProposal = data.me.canPropose && Boolean(createProposal);
 
   return (
-    <Card id={id} className="space-y-6">
+    <section id={id} className="space-y-6">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="brand">{copy.proposalBoard.eyebrow}</Badge>
@@ -51,18 +52,27 @@ export function ProposalBoard({
               <Button
                 size="sm"
                 onClick={() => createProposal?.("addition")}
-                disabled={!data.me.canPropose || !createProposal}
+                disabled={!canCreateProposal}
               >
-                {copy.proposalBoard.proposeAdditionCta}
+                {canCreateProposal
+                  ? copy.proposalBoard.proposeAdditionCta
+                  : copy.proposalBoard.proposeAdditionDisabledCta}
               </Button>
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={() => createProposal?.("expulsion")}
-                disabled={!data.me.canPropose || !createProposal}
+                disabled={!canCreateProposal}
               >
-                {copy.proposalBoard.proposeExpulsionCta}
+                {canCreateProposal
+                  ? copy.proposalBoard.proposeExpulsionCta
+                  : copy.proposalBoard.proposeExpulsionDisabledCta}
               </Button>
+              {!canCreateProposal ? (
+                <p className="sm:col-span-2 rounded-box border border-border bg-app px-3 py-2 text-sm leading-6 text-text-secondary">
+                  {copy.proposalBoard.proposeDisabledBody}
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -192,7 +202,7 @@ export function ProposalBoard({
           </Card>
         </div>
       </div>
-    </Card>
+    </section>
   );
 }
 

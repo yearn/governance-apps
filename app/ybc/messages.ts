@@ -37,6 +37,10 @@ export const ybcCopy = {
       "Expired proposals stay visible as terminal history. The UI does not offer a revive path; members must start a fresh proposal instead.",
     proposeAdditionCta: "Propose add member",
     proposeExpulsionCta: "Propose remove member",
+    proposeAdditionDisabledCta: "Add proposal unavailable",
+    proposeExpulsionDisabledCta: "Remove proposal unavailable",
+    proposeDisabledBody:
+      "Proposal creation is blocked for this viewer or runtime, so add/remove membership actions stay unavailable.",
     summary: {
       active: "Active",
       awaitingExecution: "Awaiting execution",
@@ -61,6 +65,7 @@ export const ybcCopy = {
     handoffTitle: "Claim path",
     handoffBody:
       "YBC shows rewards sourced from member weight and operator bonuses, but claiming remains on the shared stYFI rewards surface.",
+    disabledClaimCta: "Shared rewards unavailable",
     rows: {
       role: "Role",
       pendingRewards: "Pending rewards",

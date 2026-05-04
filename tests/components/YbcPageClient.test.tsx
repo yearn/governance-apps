@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import {
   YbcPageClient,
   YbcPageContent,
@@ -18,6 +18,47 @@ async function getScenarioData(scenarioId: YbcPrototypeScenarioId) {
   const client = createMockYbcClient({ latencyMs: 0 });
   const state = await client.getPageState({ scenarioId });
   return state.data;
+}
+
+function installHashScrollMock() {
+  const scrollIntoView = vi.fn();
+  const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: scrollIntoView,
+  });
+  window.requestAnimationFrame = ((callback: FrameRequestCallback) =>
+    window.setTimeout(() => callback(performance.now()), 0)) as typeof window.requestAnimationFrame;
+
+  return {
+    scrollIntoView,
+    restore: () => {
+      if (originalScrollIntoView) {
+        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+          configurable: true,
+          value: originalScrollIntoView,
+        });
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+      }
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+    },
+  };
+}
+
+async function dispatchYbcHash(hash: string, scrollIntoView: ReturnType<typeof vi.fn>) {
+  scrollIntoView.mockClear();
+
+  act(() => {
+    window.history.replaceState(null, "", `/ybc#${hash}`);
+    window.dispatchEvent(new Event("hashchange"));
+  });
+
+  await waitFor(() => {
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
 }
 
 describe("YbcPageClient", () => {
@@ -64,22 +105,16 @@ describe("YbcPageClient", () => {
     );
     expect(screen.queryByText(ybcCopy.members.states.you)).not.toBeInTheDocument();
 
-    expect(screen.getByRole("tab", { name: /Members/i })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
-    expect(screen.getByRole("tab", { name: /Proposals/i })).toHaveAttribute(
-      "aria-selected",
-      "false"
-    );
-    expect(screen.queryByRole("tab", { name: /Operator/i })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", {
+      screen.getByRole("heading", {
         name: ybcCopy.proposalBoard.title,
         level: 2,
       })
-    ).not.toBeInTheDocument();
+    ).toBeInTheDocument();
+    expect(screen.queryByText(ybcCopy.operatorPanel.operatorsTitle)).not.toBeInTheDocument();
 
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Audit/i }));
     const table = screen.getByRole("table");
     expect(
       within(table).getByRole("columnheader", {
@@ -113,7 +148,7 @@ describe("YbcPageClient", () => {
     expect(screen.getAllByText(ybcCopy.hero.perspective.memberTitle).length).toBeGreaterThan(
       0
     );
-    expect(screen.getByText("250 weight")).toBeInTheDocument();
+    expect(screen.getAllByText("250 weight").length).toBeGreaterThan(0);
     expect(screen.getAllByText("500 weight").length).toBeGreaterThan(0);
     expect(screen.getByText(ybcCopy.members.states.you)).toBeInTheDocument();
     expect(screen.getAllByText("50%").length).toBeGreaterThan(0);
@@ -125,7 +160,6 @@ describe("YbcPageClient", () => {
       <YbcPageContent data={data} hostname="app.dao-ops.com" />
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: /Rewards/i }));
     expect(
       screen.getByRole("heading", {
         name: ybcCopy.rewards.title,
@@ -160,7 +194,6 @@ describe("YbcPageClient", () => {
 
     render(<YbcPageContent data={data} />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /Rewards/i }));
     expect(screen.getAllByText(ybcCopy.rewards.states.operator).length).toBeGreaterThan(0);
     expect(screen.getByText(ybcCopy.rewards.states.operatorBonus)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.rewards.rows.role)).toBeInTheDocument();
@@ -172,7 +205,6 @@ describe("YbcPageClient", () => {
 
     render(<YbcPageContent data={data} />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /Rewards/i }));
     expect(
       screen.getByText(ybcCopy.rewards.states.emptyObserverTitle)
     ).toBeInTheDocument();
@@ -182,7 +214,7 @@ describe("YbcPageClient", () => {
     expect(screen.getByText(data.rewards.claim.disabledReason ?? "")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: data.rewards.claim.ctaLabel,
+        name: ybcCopy.rewards.disabledClaimCta,
       })
     ).toBeDisabled();
   });
@@ -202,7 +234,6 @@ describe("YbcPageClient", () => {
 
     render(<YbcPageContent data={data} />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /Rewards/i }));
     expect(
       screen.getByText(ybcCopy.rewards.states.emptyUnseededTitle)
     ).toBeInTheDocument();
@@ -216,17 +247,95 @@ describe("YbcPageClient", () => {
 
     render(<YbcPageContent data={data} />);
 
-    expect(screen.queryByRole("tab", { name: /Operator/i })).not.toBeInTheDocument();
     expect(
       screen.queryByText(ybcCopy.operatorPanel.operatorsTitle)
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Mock MVP scope")).not.toBeInTheDocument();
   });
 
+  it("preserves YBC member, proposal, and reward hash links", async () => {
+    const hashScroll = installHashScrollMock();
+    const data = await getScenarioData("observer");
+
+    try {
+      window.history.replaceState(null, "", "/ybc#members");
+      render(<YbcPageContent data={data} />);
+
+      expect(document.getElementById("members")).not.toBeNull();
+      expect(
+        screen.getByRole("heading", {
+          name: ybcCopy.members.title,
+          level: 2,
+        })
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(hashScroll.scrollIntoView).toHaveBeenCalled();
+      });
+
+      await dispatchYbcHash("proposals", hashScroll.scrollIntoView);
+      expect(document.getElementById("proposals")).not.toBeNull();
+      expect(
+        screen.getByRole("heading", {
+          name: ybcCopy.proposalBoard.title,
+          level: 2,
+        })
+      ).toBeInTheDocument();
+
+      await dispatchYbcHash("rewards", hashScroll.scrollIntoView);
+      expect(document.getElementById("rewards")).not.toBeNull();
+      expect(
+        screen.getByRole("heading", {
+          name: ybcCopy.rewards.title,
+          level: 2,
+        })
+      ).toBeInTheDocument();
+    } finally {
+      hashScroll.restore();
+    }
+  });
+
+  it("keeps the YBC admin hash scoped to operator viewers", async () => {
+    const hashScroll = installHashScrollMock();
+    const observerData = await getScenarioData("observer");
+
+    try {
+      window.history.replaceState(null, "", "/ybc#admin");
+      render(<YbcPageContent data={observerData} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { name: ybcCopy.members.title })).toBeInTheDocument();
+      });
+      expect(document.getElementById("admin")).toBeNull();
+      expect(screen.queryByText(ybcCopy.operatorPanel.operatorsTitle)).not.toBeInTheDocument();
+      expect(hashScroll.scrollIntoView).not.toHaveBeenCalled();
+    } finally {
+      hashScroll.restore();
+    }
+  });
+
+  it("opens the YBC admin hash for operator viewers", async () => {
+    const hashScroll = installHashScrollMock();
+    const operatorData = await getScenarioData("operator-admin");
+
+    try {
+      window.history.replaceState(null, "", "/ybc#admin");
+      render(<YbcPageContent data={operatorData} />);
+
+      expect(document.getElementById("admin")).not.toBeNull();
+      expect(
+        await screen.findByText(ybcCopy.operatorPanel.operatorsTitle)
+      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(hashScroll.scrollIntoView).toHaveBeenCalled();
+      });
+    } finally {
+      hashScroll.restore();
+    }
+  });
+
   it("renders the proposal board with visible thresholds and timeline states", async () => {
     renderWithProviders(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
 
-    fireEvent.click(await screen.findByRole("tab", { name: /Proposals/i }));
     await screen.findByRole("heading", {
       name: ybcCopy.proposalBoard.title,
       level: 2,
@@ -250,6 +359,7 @@ describe("YbcPageClient", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.proposalBoard.thresholdTitle)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.proposalBoard.terminalTitle)).toBeInTheDocument();
+    expect(screen.getAllByText("Threshold marker").length).toBeGreaterThan(0);
     expect(screen.queryByText("Mock interactions")).not.toBeInTheDocument();
 
     const proposal = screen.getByRole("article", {
@@ -270,7 +380,6 @@ describe("YbcPageClient", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /debug/i }));
     fireEvent.click(screen.getByRole("button", { name: "Empty board" }));
-    fireEvent.click(screen.getByRole("tab", { name: /Proposals/i }));
 
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
     expect(screen.getByText(ybcCopy.proposalBoard.emptyTitle)).toBeInTheDocument();
@@ -281,7 +390,6 @@ describe("YbcPageClient", () => {
   it("supports mock propose, retract, vote, and execute actions", async () => {
     renderWithProviders(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
 
-    fireEvent.click(await screen.findByRole("tab", { name: /Proposals/i }));
     await screen.findByRole("button", {
       name: ybcCopy.proposalBoard.proposeAdditionCta,
     });
@@ -337,7 +445,6 @@ describe("YbcPageClient", () => {
     fireEvent.click(screen.getByRole("button", { name: /debug/i }));
     fireEvent.click(screen.getAllByRole("button", { name: "Operator" })[0]);
 
-    fireEvent.click(await screen.findByRole("tab", { name: /Operator/i }));
     await screen.findByText(ybcCopy.operatorPanel.operationsTitle);
 
     expect(
@@ -360,7 +467,6 @@ describe("YbcPageClient", () => {
       })
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: /Proposals/i }));
     expect(
       screen.getByRole("article", {
         name: /YBC-9/i,
@@ -377,7 +483,6 @@ describe("YbcPageClient", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /debug/i }));
     fireEvent.click(screen.getByRole("button", { name: "Empty board" }));
-    fireEvent.click(screen.getByRole("tab", { name: /Proposals/i }));
     fireEvent.click(
       screen.getByRole("button", {
         name: ybcCopy.proposalBoard.proposeAdditionCta,

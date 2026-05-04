@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -20,6 +20,7 @@ type BonusCardProps = {
 
 export function BonusCard({ bonus, canClaimBonus }: BonusCardProps) {
   const [isMockClaimStaged, setIsMockClaimStaged] = useState(false);
+  const actionDescriptionId = useId();
   const status = teamsCopy.bonus.statuses[bonus.status];
   const pendingPeriods = bonus.periods.filter(
     (period) => period.status === "pending-finalization"
@@ -75,13 +76,16 @@ export function BonusCard({ bonus, canClaimBonus }: BonusCardProps) {
           <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
             {teamsCopy.bonus.action.title}
           </p>
-          <p className="text-sm leading-6 text-text-primary">{action.body}</p>
+          <p id={actionDescriptionId} className="text-sm leading-6 text-text-primary">
+            {action.body}
+          </p>
         </div>
 
         <Button
           size="sm"
           variant={action.variant}
           disabled={action.disabled}
+          aria-describedby={action.disabled ? actionDescriptionId : undefined}
           onClick={() => {
             if (!action.canStageMockClaim) return;
             setIsMockClaimStaged(true);
@@ -275,7 +279,7 @@ function getBonusAction(
 
   if (bonus.status === "claimable") {
     return {
-      label: teamsCopy.bonus.action.claimCta,
+      label: teamsCopy.bonus.action.permissionCta,
       body: teamsCopy.bonus.action.permissionBody,
       disabled: true,
       variant: "secondary" as const,
