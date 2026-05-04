@@ -64,13 +64,13 @@ Recommended initial structure:
 
 ## 4. Information architecture
 
-Sections:
+Default structure:
 
-1. Overview
-2. Members
-3. Proposals
-4. Rewards
-5. Admin (conditional)
+1. Overview summary
+2. Members tab
+3. Proposals tab
+4. Rewards tab
+5. Operator tab, shown only for operator/admin perspectives
 
 Default landing state: Overview.
 
@@ -79,13 +79,17 @@ WP0 approved shell map:
 - Overview summarizes member count, internal member weight, public delegated weight,
   total governance influence, current epoch, active proposals, and proposals awaiting
   execution.
+- Members, proposals, rewards, and operator controls are not all rendered at once.
+  Users enter the deeper surface through line tabs below the overview.
 - Members keeps raw stake, effective voting weight, target weight, maturity progress,
   and source mix visible as separate values.
 - Proposals maps addition and expulsion proposals through discussion, voting, awaiting
   execution, executed, and expired terminal states.
 - Rewards shows YBC-related rewards and hands claim actions to the shared claim surface.
-- Admin is conditional and limited to scoped membership, operator, hooks, threshold, and
-  reward status controls.
+- Operator is conditional and limited to scoped membership, operator, hooks, threshold,
+  and reward status controls.
+- Deep links such as `#members`, `#proposals`, `#rewards`, and `#admin` should activate
+  the matching tab before scrolling.
 
 ## 5. Core UX rules
 
@@ -184,7 +188,7 @@ Debug setters that force terminal proposal phases must leave those proposals ter
 executed, expired, failed, and retracted cards should expose no vote, retract, or
 execute affordances after the phase flip.
 
-## 9. Admin scope for MVP
+## 9. Operator Scope For MVP
 
 Expose only in-scope operator/admin affordances:
 

@@ -27,11 +27,11 @@ type MembersTableProps = {
 
 export function MembersTable({ roster, currentAddress }: MembersTableProps) {
   return (
-    <section id="members" className="container mx-auto space-y-6 px-4 py-10 md:px-6 md:py-14">
+    <section id="members" className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <p className="text-sm font-bold uppercase text-text-tertiary">
-            {copy.sections[1].label}
+            {copy.sections.members}
           </p>
           <h2 className="text-3xl font-bold">{copy.members.title}</h2>
           <p className="max-w-3xl text-sm leading-6 text-text-secondary md:text-base">

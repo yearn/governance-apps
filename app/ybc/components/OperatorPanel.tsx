@@ -25,8 +25,6 @@ const OPERATION_TO_PROPOSAL_TYPE: Record<YbcAdminOperationId, YbcProposalType> =
   "remove-member": "expulsion",
 };
 
-const adminSection = copy.sections.find((section) => section.id === "admin");
-
 type OperatorPanelProps = {
   data: YbcMockDataV1;
   id?: string;
@@ -55,7 +53,7 @@ export function OperatorPanel({
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold">
-            {adminSection?.title ?? "Scoped Operator Panel"}
+            {copy.operatorPanel.title}
           </h2>
           <p className="max-w-3xl text-sm leading-6 text-text-secondary">
             {copy.operatorPanel.description}

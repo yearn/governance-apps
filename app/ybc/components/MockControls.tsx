@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { DebugControls } from "@/components/DebugControls";
 import { Button } from "@/components/ui/Button";
@@ -73,10 +74,7 @@ export function MockControls() {
                 </p>
               </div>
 
-              <section className="space-y-2">
-                <p className="font-bold uppercase tracking-wide text-text-tertiary">
-                  Perspective
-                </p>
+              <ControlGroup label="Perspective" defaultOpen>
                 <div className="grid grid-cols-3 gap-2">
                   <ToggleButton
                     active={runtime.scenarioId === "observer"}
@@ -100,12 +98,9 @@ export function MockControls() {
                     Operator
                   </ToggleButton>
                 </div>
-              </section>
+              </ControlGroup>
 
-              <section className="space-y-2 border-t border-border pt-2">
-                <p className="font-bold uppercase tracking-wide text-text-tertiary">
-                  Coverage
-                </p>
+              <ControlGroup label="Coverage" defaultOpen>
                 <div className="grid grid-cols-3 gap-2">
                   <ToggleButton
                     active={runtime.loading}
@@ -126,12 +121,9 @@ export function MockControls() {
                     Empty board
                   </ToggleButton>
                 </div>
-              </section>
+              </ControlGroup>
 
-              <section className="space-y-2 border-t border-border pt-2">
-                <p className="font-bold uppercase tracking-wide text-text-tertiary">
-                  Epoch
-                </p>
+              <ControlGroup label="Epoch">
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
@@ -148,12 +140,9 @@ export function MockControls() {
                     Epoch +1
                   </Button>
                 </div>
-              </section>
+              </ControlGroup>
 
-              <section className="space-y-2 border-t border-border pt-2">
-                <p className="font-bold uppercase tracking-wide text-text-tertiary">
-                  Member
-                </p>
+              <ControlGroup label="Member">
                 <select
                   aria-label="Selected YBC member"
                   className={CONTROL_INPUT_CLASS_NAME}
@@ -254,12 +243,9 @@ export function MockControls() {
                     100%
                   </Button>
                 </div>
-              </section>
+              </ControlGroup>
 
-              <section className="space-y-2 border-t border-border pt-2">
-                <p className="font-bold uppercase tracking-wide text-text-tertiary">
-                  Proposal
-                </p>
+              <ControlGroup label="Proposal">
                 <select
                   aria-label="Selected YBC proposal"
                   className={CONTROL_INPUT_CLASS_NAME}
@@ -387,12 +373,9 @@ export function MockControls() {
                     Failing
                   </Button>
                 </div>
-              </section>
+              </ControlGroup>
 
-              <section className="space-y-2 border-t border-border pt-2">
-                <p className="font-bold uppercase tracking-wide text-text-tertiary">
-                  Rewards
-                </p>
+              <ControlGroup label="Rewards">
                 <div className="grid grid-cols-3 gap-2">
                   <Button
                     size="sm"
@@ -416,12 +399,9 @@ export function MockControls() {
                     Operator
                   </Button>
                 </div>
-              </section>
+              </ControlGroup>
 
-              <section className="space-y-2 border-t border-border pt-2">
-                <p className="font-bold uppercase tracking-wide text-text-tertiary">
-                  Admin
-                </p>
+              <ControlGroup label="Admin">
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
@@ -466,12 +446,34 @@ export function MockControls() {
                     67% / 75%
                   </Button>
                 </div>
-              </section>
+              </ControlGroup>
             </div>
           ),
         },
       ]}
     />
+  );
+}
+
+function ControlGroup({
+  children,
+  defaultOpen = false,
+  label,
+}: {
+  children: ReactNode;
+  defaultOpen?: boolean;
+  label: string;
+}) {
+  return (
+    <details
+      className="rounded-box border border-border bg-surface px-3 py-2"
+      open={defaultOpen}
+    >
+      <summary className="cursor-pointer font-bold uppercase tracking-wide text-text-tertiary">
+        {label}
+      </summary>
+      <div className="mt-2 space-y-2">{children}</div>
+    </details>
   );
 }
 

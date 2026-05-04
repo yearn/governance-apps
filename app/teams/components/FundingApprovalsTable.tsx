@@ -135,7 +135,7 @@ export function FundingApprovalsTable({
 
   if (team.fundingApprovals.length === 0) {
     return (
-      <Card id="funding" className="space-y-4">
+      <Card className="space-y-4">
         <FundingSectionHeader
           title={teamsCopy.funding.emptyTitle}
           description={teamsCopy.funding.emptyBody}
@@ -145,7 +145,7 @@ export function FundingApprovalsTable({
   }
 
   return (
-    <div id="funding" className="space-y-4">
+    <div className="space-y-4">
       <Card className="space-y-5">
         <FundingSectionHeader
           title={teamsCopy.funding.title}

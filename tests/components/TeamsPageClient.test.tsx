@@ -28,6 +28,7 @@ async function syncTeamsRuntime(
 
 describe("TeamsPageClient", () => {
   beforeEach(() => {
+    window.history.replaceState(null, "", "/");
     resetMockTeamsStore();
   });
 
@@ -45,6 +46,14 @@ describe("TeamsPageClient", () => {
     expect(screen.getByText(teamsCopy.app.routeKey)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.page.productionGate)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.page.description)).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Directory/i })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    expect(screen.getByRole("tab", { name: /Workspace/i })).toHaveAttribute(
+      "aria-selected",
+      "false"
+    );
     expect(
       screen.queryByRole("button", {
         name: teamsCopy.controls.scenarioNames["operator-admin"],
@@ -55,7 +64,7 @@ describe("TeamsPageClient", () => {
     const openPlatformButton = await screen.findByRole("button", {
       name: "Open Platform workspace",
     });
-    expect(screen.queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Admin/i })).not.toBeInTheDocument();
     expect(screen.getByText("Retiring")).toBeInTheDocument();
     expect(screen.getByText("Retired")).toBeInTheDocument();
 
@@ -76,6 +85,8 @@ describe("TeamsPageClient", () => {
         level: 3,
       })
     ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.bonus }));
     expect(screen.getByText(teamsCopy.bonus.noPeriods)).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
@@ -102,6 +113,7 @@ describe("TeamsPageClient", () => {
       })
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Directory only" })).toBeInTheDocument();
+    await user.click(screen.getByText(teamsCopy.revenue.title, { selector: "summary" }));
     expect(screen.getByRole("button", { name: "No tokens" })).toBeInTheDocument();
   });
 
@@ -117,10 +129,9 @@ describe("TeamsPageClient", () => {
       })
     );
 
-    expect(await screen.findByRole("link", { name: "Admin" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Security", level: 2 })
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: /Admin/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Workspace/i }));
+    expect(screen.getByRole("heading", { name: "Security", level: 2 })).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", {
@@ -129,6 +140,7 @@ describe("TeamsPageClient", () => {
     );
 
     expect(await screen.findByText(teamsCopy.directory.loadingTitle)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Workspace/i }));
     expect(screen.getByText(teamsCopy.workspace.loadingTitle)).toBeInTheDocument();
 
     await user.click(
@@ -137,7 +149,9 @@ describe("TeamsPageClient", () => {
       })
     );
 
+    await user.click(screen.getByRole("tab", { name: /Directory/i }));
     expect(await screen.findByText(teamsCopy.directory.emptyTitle)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Admin/i }));
     expect(screen.getByText(teamsCopy.admin.emptyTitle)).toBeInTheDocument();
 
     await user.click(
@@ -146,9 +160,11 @@ describe("TeamsPageClient", () => {
       })
     );
 
+    await user.click(screen.getByRole("tab", { name: /Workspace/i }));
     expect(
       await screen.findByRole("heading", { name: "Security", level: 2 })
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Admin/i }));
     expect(
       screen.getByRole("heading", { name: teamsCopy.admin.title, level: 2 })
     ).toBeInTheDocument();
@@ -159,8 +175,8 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
-    const adminLink = await screen.findByRole("link", { name: "Admin" });
-    expect(adminLink).toHaveAttribute("href", "#admin");
+    const adminTab = await screen.findByRole("tab", { name: /Admin/i });
+    await userEvent.click(adminTab);
 
     const adminSection = document.getElementById("admin");
     expect(adminSection).not.toBeNull();
@@ -201,7 +217,9 @@ describe("TeamsPageClient", () => {
     const { queryClient } = renderWithProviders(<TeamsPageClient />);
 
     expect(await screen.findByText(teamsCopy.directory.loadingTitle)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: /Workspace/i }));
     expect(screen.getByText(teamsCopy.workspace.loadingTitle)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.revenue }));
     expect(screen.getByText(teamsCopy.revenue.loadingTitle)).toBeInTheDocument();
     expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(5);
 
@@ -210,10 +228,15 @@ describe("TeamsPageClient", () => {
       setMockTeamsEmpty(true);
     });
 
+    await userEvent.click(screen.getByRole("tab", { name: /Directory/i }));
     expect(await screen.findByText(teamsCopy.directory.emptyTitle)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: /Workspace/i }));
     expect(screen.getByText(teamsCopy.workspace.noTeamsTitle)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.revenue }));
     expect(screen.getByText(teamsCopy.revenue.emptyTitle)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.bonus }));
     expect(screen.getByText(teamsCopy.bonus.placeholders.empty)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.lifecycle }));
     expect(screen.getByText(teamsCopy.lifecycle.placeholders.empty)).toBeInTheDocument();
   });
 
@@ -223,6 +246,7 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
+    await userEvent.click(await screen.findByRole("tab", { name: /Admin/i }));
     expect(await screen.findByText(teamsCopy.admin.emptyTitle)).toBeInTheDocument();
     const adminSection = document.getElementById("admin");
     expect(adminSection).not.toBeNull();
@@ -248,6 +272,7 @@ describe("TeamsPageClient", () => {
       setMockTeamsPreset("operator-admin");
     });
 
+    await user.click(screen.getByRole("tab", { name: /Workspace/i }));
     expect(
       await screen.findByRole("heading", { name: "Security", level: 2 })
     ).toBeInTheDocument();
@@ -261,9 +286,11 @@ describe("TeamsPageClient", () => {
     setMockTeamsPreset("bonus-available");
     const { queryClient } = renderWithProviders(<TeamsPageClient />);
 
+    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
     expect(
       await screen.findByRole("heading", { name: "Platform", level: 2 })
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.bonus }));
     const bonusCard = document.getElementById("bonus");
     const lifecycleCard = document.getElementById("lifecycle");
     expect(bonusCard).not.toBeNull();
@@ -292,9 +319,11 @@ describe("TeamsPageClient", () => {
       setMockTeamsPreset("finance-operator-revenue");
     });
 
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.overview }));
     expect(
       await screen.findByRole("heading", { name: "Platform", level: 2 })
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.bonus }));
     expect(
       within(bonusCard!).queryByRole("button", {
         name: teamsCopy.bonus.action.stagedCta,
@@ -313,9 +342,11 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
+    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
     expect(
       await screen.findByRole("heading", { name: "Security", level: 2 })
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.bonus }));
     const bonusSection = document.getElementById("bonus");
     expect(bonusSection).not.toBeNull();
     expect(
@@ -325,6 +356,7 @@ describe("TeamsPageClient", () => {
     ).toBeDisabled();
     expect(within(bonusSection!).getByText(teamsCopy.bonus.action.claimedBody)).toBeInTheDocument();
 
+    await user.click(screen.getByRole("tab", { name: /Directory/i }));
     await user.click(
       screen.getByRole("button", {
         name: "Open Research workspace",
@@ -334,6 +366,7 @@ describe("TeamsPageClient", () => {
     expect(
       await screen.findByRole("heading", { name: "Research", level: 2 })
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.bonus }));
     expect(
       within(bonusSection!).getByRole("button", {
         name: teamsCopy.bonus.action.pendingCta,
@@ -347,9 +380,11 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
+    await userEvent.click(await screen.findByRole("tab", { name: /Workspace/i }));
     expect(
       await screen.findByRole("heading", { name: "Grants Archive", level: 2 })
     ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.revenue }));
     expect(screen.getAllByText("Read-only after retirement").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Retired").length).toBeGreaterThan(0);
     expect(screen.getByText(teamsCopy.revenue.unavailable.readOnlyBody)).toBeInTheDocument();
@@ -361,6 +396,8 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
+    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.revenue }));
     expect(
       await screen.findByText(teamsCopy.revenue.permissionless.title)
     ).toBeInTheDocument();
@@ -401,6 +438,7 @@ describe("TeamsPageClient", () => {
     expect(
       await screen.findByRole("heading", { name: "Research", level: 2 })
     ).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.revenue }));
     expect(screen.getByText(teamsCopy.revenue.history.emptyTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.revenue.history.emptyBody)).toBeInTheDocument();
   });
@@ -410,6 +448,9 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
+    await userEvent.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await screen.findByRole("heading", { name: "Security", level: 2 });
+    await userEvent.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.funding }));
     expect(
       await screen.findByRole("heading", {
         name: teamsCopy.funding.title,
@@ -439,6 +480,8 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
+    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.funding }));
     await user.click(
       await screen.findByRole("button", {
         name: "Use approval-security-23 in claim flow",
@@ -484,6 +527,8 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
+    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await user.click(screen.getByRole("tab", { name: teamsCopy.workspace.tabs.funding }));
     const returnAmountInput = await screen.findByLabelText(
       teamsCopy.funding.returnForm.amount
     );

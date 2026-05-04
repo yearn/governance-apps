@@ -48,7 +48,7 @@ test("stake, cooldown, and withdraw via bridge controls", async ({ page }) => {
     { addr: E2E_ADDRESS, prev: activeBefore }
   );
 
-  await page.getByRole("button", { name: /Unstake/i }).click();
+  await page.getByRole("tab", { name: /Unstake/i }).click();
   const cooldownInput = page.getByPlaceholder("0.00").first();
   await cooldownInput.fill("10");
   await page.getByRole("button", { name: /Start new cooldown/i }).click();

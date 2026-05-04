@@ -27,7 +27,7 @@ test("migrate legacy veYFI and redeem sdYFI", async ({ page }) => {
   await rowToggle.click();
 
   const rowContainer = rowToggle.locator("..");
-  await rowContainer.getByRole("button", { name: /^Trade$/i }).click();
+  await rowContainer.getByRole("tab", { name: /^Trade$/i }).click();
 
   const before = await getState(page);
   const yfiBefore = Number(before?.balances.YFI ?? "0");

@@ -10,7 +10,7 @@ export const ybcCopy = {
     title: "Yearn Builder's Collective",
     eyebrow: "YBC governance workspace",
     description:
-      "Track collective influence, member maturity, and proposal lifecycle with delegated weight, visible thresholds, and execution timing in one governance workspace.",
+      "Track collective influence, member weight, proposals, and rewards handoff.",
     productionGate: "Production gated",
     loadingTitle: "Loading collective influence",
     loadingBody:
@@ -89,43 +89,13 @@ export const ybcCopy = {
         "Reward periods will appear here once YBC distributions are finalized for this view.",
     },
   },
-  sections: [
-    {
-      id: "overview",
-      label: "Overview",
-      status: "Default",
-      title: "Collective Influence",
-      body: "Summarizes member count, internal member weight, public delegated weight, total influence, current epoch, active proposals, and execution queue.",
-    },
-    {
-      id: "members",
-      label: "Members",
-      status: "Mapped",
-      title: "Members and Weight",
-      body: "Keeps raw staked YFI, effective voting weight, target weight, maturity progress, and source mix visible as separate values.",
-    },
-    {
-      id: "proposals",
-      label: "Proposals",
-      status: "Mapped",
-      title: "Proposal Board",
-      body: "Tracks addition and expulsion proposals through discussion, voting, awaiting execution, executed, and expired terminal states.",
-    },
-    {
-      id: "rewards",
-      label: "Rewards",
-      status: "Mapped",
-      title: "Rewards Handoff",
-      body: "Shows YBC-related rewards here while sending claim actions through the shared reward surface.",
-    },
-    {
-      id: "admin",
-      label: "Admin",
-      status: "Conditional",
-      title: "Scoped Operator Panel",
-      body: "Limits MVP operations to add member, remove member, operator visibility, hooks visibility, threshold visibility, and reward status.",
-    },
-  ],
+  sections: {
+    overview: "Overview",
+    members: "Members",
+    proposals: "Proposals",
+    rewards: "Rewards",
+    admin: "Operator",
+  },
   hero: {
     summary: {
       internalLabel: "Internal influence",
@@ -163,7 +133,7 @@ export const ybcCopy = {
   members: {
     title: "Members and weight",
     description:
-      "Each row keeps raw stake, effective weight, target weight, maturity progress, and source mix visible as separate values.",
+      "Raw stake, effective weight, target weight, maturity, and source mix.",
     totals: {
       rawStaked: "Raw staked",
       effectiveWeight: "Effective weight",
@@ -193,13 +163,14 @@ export const ybcCopy = {
     },
   },
   operatorPanel: {
+    title: "Scoped Operator Panel",
     eyebrow: "Scoped operator access",
     description:
       "Expose only add/remove member controls, current operator visibility, governance hook wiring, and reward sync status. Generic arbitrary-call tooling stays out of scope.",
     accessCard: {
       title: "Operator access required",
       body:
-        "The admin section stays visible in the route map, but only operator access unlocks scoped membership controls and governance wiring details.",
+        "Operator access unlocks scoped membership controls and governance wiring details.",
       viewerLabel: "Current viewer",
       controlsLabel: "Scoped member controls",
       lockedValue: "Locked",

@@ -31,6 +31,9 @@ Applies to:
 - `Reset App` stays in the footer below app-specific sections
 - Teams and YBC should each expose their own `MockControls` section instead of adding
   route-local hero cards or scenario bars
+- the shell must stay viewport-bounded, scrollable, and readable on small screens
+- long domain control sets should use collapsible groups or equivalent progressive
+  disclosure inside the shared shell
 - changing that top/middle/footer structure is shared-shell work owned by `shared / WP0`
 
 ### Current `M2A` seam

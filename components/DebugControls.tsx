@@ -117,10 +117,10 @@ export function DebugControls({
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 w-64 -translate-x-1/2 space-y-3 rounded-lg border border-border bg-surface p-4 shadow-xl animate-in slide-in-from-bottom-5">
-      <div className="flex items-center justify-between border-b border-border pb-2">
+    <div className="fixed bottom-3 left-1/2 z-50 flex max-h-[min(82vh,44rem)] w-[min(calc(100vw-1.5rem),42rem)] -translate-x-1/2 flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-xl animate-in slide-in-from-bottom-5 sm:bottom-4">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h4 className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          Time Travel
+          Debug Controls
         </h4>
         <button
           onClick={() => setIsOpen(false)}
@@ -131,43 +131,54 @@ export function DebugControls({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => handleTimeTravel(1)}
-        >
-          +1 Day
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => handleTimeTravel(7)}
-        >
-          +7 Days
-        </Button>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-3">
+        <section className="space-y-2">
+          <h5 className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+            Time Travel
+          </h5>
+          <div className="grid grid-cols-2 gap-2 sm:max-w-sm">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleTimeTravel(1)}
+            >
+              +1 Day
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => handleTimeTravel(7)}
+            >
+              +7 Days
+            </Button>
+          </div>
+        </section>
+
+        {hasAppSpecificContent && (
+          <div className="space-y-3 border-t border-border pt-3">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+              App Specific
+            </h4>
+            <div className="space-y-2">
+              {sections.map((section) => (
+                <details
+                  key={section.id}
+                  className="rounded-box border border-border bg-app/50 px-3 py-2"
+                  open={sections.length === 1}
+                >
+                  <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
+                    {section.title}
+                  </summary>
+                  <div className="pt-3">{section.content}</div>
+                </details>
+              ))}
+              {children}
+            </div>
+          </div>
+        )}
       </div>
 
-      {hasAppSpecificContent && (
-        <div className="border-t border-border pt-2">
-          <h4 className="text-xs font-bold uppercase tracking-wide text-text-tertiary mb-2">
-            App Specific
-          </h4>
-          <div className="space-y-3">
-            {sections.map((section) => (
-              <section key={section.id} className="space-y-2">
-                <h5 className="text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
-                  {section.title}
-                </h5>
-                {section.content}
-              </section>
-            ))}
-            {children}
-          </div>
-        </div>
-      )}
-
-      <div className="border-t border-border pt-2">
+      <div className="border-t border-border px-4 py-3">
         <Button
           size="sm"
           variant="ghost"

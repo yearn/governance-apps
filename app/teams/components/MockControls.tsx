@@ -65,7 +65,7 @@ export function MockControls() {
           </div>
         </div>
 
-        <ControlGroup label={teamsCopy.controls.scenarioLabel}>
+        <ControlGroup label={teamsCopy.controls.scenarioLabel} defaultOpen>
           {(scenarioCatalogQuery.data ?? []).map((scenario) => (
             <Button
               key={scenario.id}
@@ -80,7 +80,7 @@ export function MockControls() {
           ))}
         </ControlGroup>
 
-        <ControlGroup label={teamsCopy.stats.viewerRole}>
+        <ControlGroup label={teamsCopy.stats.viewerRole} defaultOpen>
           {(
             Object.entries(teamsCopy.viewerRoles) as [
               keyof typeof teamsCopy.viewerRoles,
@@ -100,7 +100,7 @@ export function MockControls() {
           ))}
         </ControlGroup>
 
-        <ControlGroup label={teamsCopy.controls.surfaceLabel}>
+        <ControlGroup label={teamsCopy.controls.surfaceLabel} defaultOpen>
           <Button
             size="sm"
             variant={!runtime?.isLoading && !runtime?.isEmpty ? "primary" : "secondary"}
@@ -133,7 +133,7 @@ export function MockControls() {
           </Button>
         </ControlGroup>
 
-        <ControlGroup label={teamsCopy.controls.workspaceLabel}>
+        <ControlGroup label={teamsCopy.controls.workspaceLabel} defaultOpen>
           <Button
             size="sm"
             variant={selectedTeamId === null ? "primary" : "secondary"}
@@ -434,17 +434,22 @@ export function MockControls() {
 function ControlGroup({
   label,
   children,
+  defaultOpen = false,
 }: {
   label: string;
   children: ReactNode;
+  defaultOpen?: boolean;
 }) {
   return (
-    <div className="space-y-2">
-      <p className="text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
+    <details
+      className="rounded-box border border-border bg-surface px-3 py-2"
+      open={defaultOpen}
+    >
+      <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
         {label}
-      </p>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
+      </summary>
+      <div className="mt-2 flex flex-wrap gap-2">{children}</div>
+    </details>
   );
 }
 
