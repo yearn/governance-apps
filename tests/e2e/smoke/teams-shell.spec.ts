@@ -19,57 +19,30 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await expect(page.getByText("Production gated")).toBeVisible();
   await expect(
     page.getByText(
-      "Directory-first finance and operations workspace for reviewing registered teams, opening a selected workspace, and tracking revenue, funding, bonus, ownership, and admin readiness in one place."
+      "Compare registered teams, open one workspace, then act on revenue, funding, bonus, and lifecycle state."
     )
   ).toBeVisible();
+  await expect(page.getByRole("tab", { name: /Directory/i })).toHaveAttribute(
+    "aria-selected",
+    "true"
+  );
+  await expect(page.getByRole("tab", { name: /Workspace/i })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Open Platform workspace" })
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: /debug/i })
   ).toBeVisible();
-  await expect(
-    page.locator("#bonus").getByRole("heading", { name: "Bonus", level: 3 })
-  ).toBeVisible();
-  await expect(
-    page
-      .locator("#lifecycle")
-      .getByRole("heading", { name: "Ownership & Lifecycle", level: 3 })
-  ).toBeVisible();
-
-  const sectionNav = page.getByRole("navigation", {
-    name: "Team Finances sections",
-  });
-  await expect(sectionNav.getByRole("link", { name: "Directory" })).toHaveAttribute(
-    "href",
-    "#directory"
-  );
-  await expect(sectionNav.getByRole("link", { name: "Workspace" })).toHaveAttribute(
-    "href",
-    "#workspace"
-  );
-  await expect(sectionNav.getByRole("link", { name: "Revenue" })).toHaveAttribute(
-    "href",
-    "#revenue"
-  );
-  await expect(sectionNav.getByRole("link", { name: "Funding" })).toHaveAttribute(
-    "href",
-    "#funding"
-  );
-  await expect(sectionNav.getByRole("link", { name: "Bonus" })).toHaveAttribute(
-    "href",
-    "#bonus"
-  );
-  await expect(
-    sectionNav.getByRole("link", { name: "Ownership & Lifecycle" })
-  ).toHaveAttribute("href", "#lifecycle");
-  await expect(sectionNav.getByRole("link", { name: "Admin" })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: /Admin/i })).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Revenue Deposit", level: 2 })
-  ).toBeVisible();
+  ).toHaveCount(0);
 
   await page.getByRole("button", { name: "Open Platform workspace" }).click();
+  await expect(page.getByRole("heading", { name: "Platform", level: 2 })).toBeVisible();
+  await page.getByRole("tab", { name: "Bonus" }).click();
   await expect(page.getByRole("heading", { name: "Bonus", level: 3 })).toBeVisible();
+  await page.getByRole("tab", { name: "Lifecycle" }).click();
   await expect(
     page.getByRole("heading", { name: "Ownership & Lifecycle", level: 3 })
   ).toBeVisible();
@@ -78,10 +51,7 @@ test("renders the Team Finances route shell", async ({ page }) => {
   await patchTeamsAdmin(page, { enabled: true });
   await setTeamsSelectedTeam(page, "security");
 
-  await expect(sectionNav.getByRole("link", { name: "Admin" })).toHaveAttribute(
-    "href",
-    "#admin"
-  );
+  await page.getByRole("tab", { name: /Admin/i }).click();
   await expect(
     page.locator("#admin").getByRole("heading", { name: "Admin Console", level: 2 })
   ).toBeVisible();
@@ -96,7 +66,9 @@ test("keeps loading and empty coverage reachable through the shared Teams runtim
   await setTeamsLoading(page, true);
 
   await expect(page.getByText("Loading team directory")).toBeVisible();
+  await page.getByRole("tab", { name: /Workspace/i }).click();
   await expect(page.getByText("Loading workspace overview")).toBeVisible();
+  await page.getByRole("tab", { name: "Revenue" }).click();
   await expect(page.getByText("Loading revenue deposit flow")).toBeVisible();
 
   await setTeamsLoading(page, false);
@@ -104,8 +76,12 @@ test("keeps loading and empty coverage reachable through the shared Teams runtim
   await patchTeamsAdmin(page, { enabled: true });
   await setTeamsEmpty(page, true);
 
+  await page.getByRole("tab", { name: /Directory/i }).click();
   await expect(page.getByText("No teams available")).toBeVisible();
+  await page.getByRole("tab", { name: /Workspace/i }).click();
   await expect(page.getByText("No workspace available")).toBeVisible();
+  await page.getByRole("tab", { name: "Revenue" }).click();
   await expect(page.getByText("No revenue workspace available")).toBeVisible();
+  await page.getByRole("tab", { name: /Admin/i }).click();
   await expect(page.locator("#admin").getByText("No admin console available")).toBeVisible();
 });

@@ -20,7 +20,7 @@ test("disables redeem when caps are exhausted", async ({ page }) => {
   await rowToggle.click();
 
   const rowContainer = rowToggle.locator("..");
-  await rowContainer.getByRole("button", { name: /^Trade$/i }).click();
+  await rowContainer.getByRole("tab", { name: /^Trade$/i }).click();
 
   const tradeInput = page.getByPlaceholder("0.00").first();
   await tradeInput.fill("1");

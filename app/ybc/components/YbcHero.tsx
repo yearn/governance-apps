@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -44,18 +43,6 @@ export function YbcHero({ data }: YbcHeroProps) {
               </p>
             </div>
           </div>
-
-          <nav aria-label="YBC sections" className="flex flex-wrap gap-2">
-            {copy.sections.map((section) => (
-              <Link
-                key={section.id}
-                href={`#${section.id}`}
-                className="rounded-box border border-border bg-app px-3 py-2 text-sm font-bold text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
-              >
-                {section.label}
-              </Link>
-            ))}
-          </nav>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
             <InfluenceCard

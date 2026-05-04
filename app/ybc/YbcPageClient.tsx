@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Tabs } from "@/components/ui/Tabs";
 import type { YbcMockDataV1, YbcPrototypeScenarioId } from "@/lib/clients/ybc";
 import { useYbcState } from "@/lib/hooks/useYbc";
 import { useProtocol } from "@/state/protocol";
@@ -27,6 +29,16 @@ type YbcPageContentProps = {
   voteOnProposal?: (proposalId: string, choice: "yea" | "nay") => void;
   executeProposal?: (proposalId: string) => void;
 };
+
+type YbcBodyTab = "members" | "proposals" | "rewards" | "admin";
+
+function getYbcTabId(tabId: string) {
+  return `ybc-section-tab-${tabId}`;
+}
+
+function getYbcPanelId(tabId: string) {
+  return `ybc-section-panel-${tabId}`;
+}
 
 export function YbcPageClient({
   scenarioOverride,
@@ -87,26 +99,134 @@ export function YbcPageContent({
   voteOnProposal,
   executeProposal,
 }: YbcPageContentProps) {
+  const showOperatorTab = Boolean(data.admin && data.me.isOperator);
+  const [activeTab, setActiveTab] = useState<YbcBodyTab>("members");
+  const resolvedActiveTab =
+    activeTab === "admin" && !showOperatorTab ? "members" : activeTab;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const activateHashTab = (tab: YbcBodyTab) => {
+      window.requestAnimationFrame(() => {
+        setActiveTab(tab);
+        scrollToHashTarget(tab);
+      });
+    };
+
+    const applyHash = () => {
+      const hash = window.location.hash.replace(/^#/, "");
+      if (hash === "overview") {
+        scrollToHashTarget(hash);
+        return;
+      }
+
+      if (hash === "members" || hash === "proposals" || hash === "rewards") {
+        activateHashTab(hash);
+        return;
+      }
+
+      if (hash === "admin" && showOperatorTab) {
+        activateHashTab("admin");
+      }
+    };
+
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, [showOperatorTab]);
+
+  const tabs = [
+    {
+      id: "members",
+      label: copy.sections.members,
+      badge: data.roster.members.length.toLocaleString("en-US"),
+    },
+    {
+      id: "proposals",
+      label: copy.sections.proposals,
+      badge: data.proposals.summary.activeCount.toLocaleString("en-US"),
+    },
+    {
+      id: "rewards",
+      label: copy.sections.rewards,
+    },
+    ...(showOperatorTab
+      ? [
+          {
+            id: "admin",
+            label: copy.sections.admin,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <div className="bg-app text-text-primary">
       <YbcHero data={data} />
-      <MembersTable roster={data.roster} currentAddress={data.me.address} />
-      <section className="container mx-auto px-4 pb-16 md:px-6 md:pb-20">
-        <ProposalBoard
-          id="proposals"
-          data={data}
-          createProposal={createProposal}
-          retractProposal={retractProposal}
-          voteOnProposal={voteOnProposal}
-          executeProposal={executeProposal}
+      <main className="container mx-auto space-y-6 px-4 py-8 md:px-6 md:py-10">
+        <Tabs
+          aria-label="YBC sections"
+          activeTab={resolvedActiveTab}
+          getPanelId={getYbcPanelId}
+          getTabId={getYbcTabId}
+          onChange={(tabId) => {
+            const nextTab = tabId as YbcBodyTab;
+            setActiveTab(nextTab);
+            replaceHash(nextTab);
+          }}
+          tabs={tabs}
+          variant="line"
+          className="overflow-x-auto"
         />
-        <div className="pt-6">
+
+        <section
+          id={getYbcPanelId("members")}
+          role="tabpanel"
+          aria-labelledby={getYbcTabId("members")}
+          hidden={resolvedActiveTab !== "members"}
+        >
+          <div id="members">
+            <MembersTable roster={data.roster} currentAddress={data.me.address} />
+          </div>
+        </section>
+
+        <section
+          id={getYbcPanelId("proposals")}
+          role="tabpanel"
+          aria-labelledby={getYbcTabId("proposals")}
+          hidden={resolvedActiveTab !== "proposals"}
+        >
+          <ProposalBoard
+            id="proposals"
+            data={data}
+            createProposal={createProposal}
+            retractProposal={retractProposal}
+            voteOnProposal={voteOnProposal}
+            executeProposal={executeProposal}
+          />
+        </section>
+
+        <section
+          id={getYbcPanelId("rewards")}
+          role="tabpanel"
+          aria-labelledby={getYbcTabId("rewards")}
+          hidden={resolvedActiveTab !== "rewards"}
+        >
           <RewardsCard id="rewards" data={data} hostname={hostname} />
-        </div>
-        <div className="pt-6">
-          <OperatorPanel id="admin" data={data} createProposal={createProposal} />
-        </div>
-      </section>
+        </section>
+
+        {showOperatorTab ? (
+          <section
+            id={getYbcPanelId("admin")}
+            role="tabpanel"
+            aria-labelledby={getYbcTabId("admin")}
+            hidden={resolvedActiveTab !== "admin"}
+          >
+            <OperatorPanel id="admin" data={data} createProposal={createProposal} />
+          </section>
+        ) : null}
+      </main>
     </div>
   );
 }
@@ -128,6 +248,22 @@ export function YbcPageLoadingState() {
       <MembersTableSkeleton />
     </div>
   );
+}
+
+function replaceHash(id: string) {
+  if (typeof window === "undefined") return;
+  window.history.replaceState(null, "", `#${id}`);
+}
+
+function scrollToHashTarget(id: string) {
+  if (typeof window === "undefined") return;
+
+  window.requestAnimationFrame(() => {
+    const target = document.getElementById(id);
+    if (typeof target?.scrollIntoView === "function") {
+      target.scrollIntoView({ block: "start" });
+    }
+  });
 }
 
 export function YbcPageErrorState({

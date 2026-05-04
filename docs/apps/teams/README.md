@@ -35,16 +35,14 @@ surface grows.
 
 The default `/teams` landing state is the team directory. It introduces the app through
 the `Team Finances` label and gives users a scannable path into a selected team
-workspace.
+workspace without rendering every operational surface at once.
 
 The current accepted route keeps production-facing copy on the default shell and covers:
 
-- the directory table and selected-team workspace overview
-- revenue deposit preview, validation, success feedback, and recent history
-- funding approvals with separate claim and return flows
-- bonus summary with period drilldown and staged claim coverage
-- ownership/lifecycle state and an operator/admin-only console for registry, revenue
-  ops, funding ops, and bonus ops
+- a top-level `Directory` tab for comparing teams
+- a top-level `Workspace` tab for one selected team
+- nested workspace tabs for `Overview`, `Revenue`, `Funding`, `Bonus`, and `Lifecycle`
+- a top-level `Admin` tab only when the viewer has operator/admin access
 
 Loading, empty, and operator/admin coverage now seed through the floating debug panel
 and the shared E2E bridge instead of visible route-local controls. The bonus surface
@@ -68,15 +66,19 @@ Named presets remain available as convenience bootstraps, but the runtime mutate
 place for viewer role, workspace selection, loading/empty coverage, current period,
 lifecycle, read-only access, revenue, funding, bonus, and admin visibility changes.
 
-The approved top-level shell sections are:
+The approved top-level shell tabs are:
 
-1. Team directory
-2. Team workspace overview
-3. Revenue
-4. Funding
-5. Bonus
-6. Ownership & lifecycle
-7. Admin, shown only for operator/admin contexts
+1. Directory
+2. Workspace
+3. Admin, shown only for operator/admin contexts
+
+The workspace tab owns the deeper operational hierarchy:
+
+1. Overview
+2. Revenue
+3. Funding
+4. Bonus
+5. Lifecycle
 
 The route remains path-first on shared hosts. `teams-beta.dao-ops.com` is the beta
 review target for mock/dummy data. `teams.yearn.fi` is reserved for production and

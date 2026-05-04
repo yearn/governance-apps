@@ -31,43 +31,14 @@ export const teamsCopy = {
     title: "Team Finances",
     eyebrow: "Registered team finance and operations",
     description:
-      "Directory-first finance and operations workspace for reviewing registered teams, opening a selected workspace, and tracking revenue, funding, bonus, ownership, and admin readiness in one place.",
+      "Compare registered teams, open one workspace, then act on revenue, funding, bonus, and lifecycle state.",
     productionGate: "Production gated",
   },
-  navigation: [
-    {
-      id: "directory",
-      label: "Directory",
-    },
-    {
-      id: "workspace",
-      label: "Workspace",
-    },
-    {
-      id: "revenue",
-      label: "Revenue",
-    },
-    {
-      id: "funding",
-      label: "Funding",
-    },
-    {
-      id: "bonus",
-      label: "Bonus",
-      title: "Bonus",
-      body: "Keep claimable YFI simple in the main view, then open period detail only when you need the pricing inputs behind it.",
-    },
-    {
-      id: "lifecycle",
-      label: "Ownership & Lifecycle",
-      title: "Ownership & Lifecycle",
-      body: "Keep owner, pending owner, retirement, and migration state readable at a glance before write flows land.",
-    },
-    {
-      id: "admin",
-      label: "Admin",
-    },
-  ],
+  navigation: {
+    directory: "Directory",
+    workspace: "Workspace",
+    admin: "Admin",
+  },
   stats: {
     currentPeriod: "Current period",
     activeTeams: "Active",
@@ -103,7 +74,7 @@ export const teamsCopy = {
   directory: {
     title: "Team Directory",
     description:
-      "Start from the directory to compare current-period team performance, then open a workspace for more detailed actions.",
+      "Compare current-period performance and open one team workspace.",
     loadingTitle: "Loading team directory",
     loadingBody: "Fetching the current teams snapshot.",
     emptyTitle: "No teams available",
@@ -125,7 +96,7 @@ export const teamsCopy = {
   workspace: {
     title: "Workspace Overview",
     description:
-      "Shows the selected team only. Current-period and lifetime reporting stay separate so the active window remains easy to compare with longer-term history.",
+      "Current-period and lifetime reporting for the selected team.",
     loadingTitle: "Loading workspace overview",
     loadingBody: "Preparing the selected team workspace.",
     emptyTitle: "No team selected",
@@ -149,6 +120,13 @@ export const teamsCopy = {
       successor: "Successor",
       retirement: "Retirement",
       viewer: "Viewer permissions",
+    },
+    tabs: {
+      overview: "Overview",
+      revenue: "Revenue",
+      funding: "Funding",
+      bonus: "Bonus",
+      lifecycle: "Lifecycle",
     },
   },
   bonus: {

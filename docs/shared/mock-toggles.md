@@ -84,6 +84,10 @@ For Teams specifically, the shared panel now owns preset bootstrapping, viewer/a
 access, loading/empty coverage, workspace selection, current period, lifecycle,
 read-only access, revenue, funding, and bonus state changes.
 
+The panel is viewport-bounded and scrollable. Long Teams and YBC control sets should
+prefer collapsible groups so QA can reach granular controls without the floating panel
+clipping or covering the route.
+
 ### Features
 
 1.  **Time Travel:**

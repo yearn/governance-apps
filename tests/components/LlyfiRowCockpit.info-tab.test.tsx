@@ -59,7 +59,7 @@ describe("LlyfiRowCockpit info tab", () => {
 
     expect(screen.getByText("Stake panel")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Info" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Info" }));
 
     expect(screen.getByText("sdYFI Token")).toBeInTheDocument();
     expect(screen.getByText("Depositor Contract")).toBeInTheDocument();

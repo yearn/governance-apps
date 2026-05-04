@@ -64,17 +64,27 @@ Approved initial route structure:
 ## 4. Information architecture
 
 The default landing state is the directory layer. A user opens a team workspace from
-the directory, then uses the workspace sections for more focused operational tasks.
+the directory, then uses the workspace tabs for more focused operational tasks.
 
-Approved top-level shell sections:
+Approved top-level shell tabs:
 
-1. Team directory
-2. Team workspace overview
-3. Revenue
-4. Funding
-5. Bonus
-6. Ownership & lifecycle
-7. Admin, shown only for operator/admin contexts
+1. Directory
+2. Workspace
+3. Admin, shown only for operator/admin contexts
+
+Approved workspace tabs:
+
+1. Overview
+2. Revenue
+3. Funding
+4. Bonus
+5. Lifecycle
+
+The default route should not render every workspace task simultaneously. The directory
+is the scanning layer, the workspace overview is the team landing layer, and revenue,
+funding, bonus, and lifecycle sit one level deeper behind tabs. Existing deep links
+such as `#revenue`, `#funding`, `#bonus`, `#lifecycle`, and `#admin` should activate
+the matching tab before scrolling.
 
 ## 4.1 Directory layer
 
@@ -92,14 +102,15 @@ Landing directory should show:
 
 ## 4.2 Team workspace
 
-Sections / tabs:
+Tabs:
 
 1. Overview
 2. Revenue
 3. Funding
 4. Bonus
 5. Ownership & Lifecycle
-6. Admin (conditional)
+Admin is intentionally not nested inside the workspace. It remains a top-level tab so
+operator/admin review does not compete with team-owner tasks.
 
 ## 4.3 Debug-backed route coverage
 
@@ -129,6 +140,9 @@ The debug-backed controls should apply coherently across the whole route:
 - bonus and ownership/lifecycle section anchors remain present across selected, loading, empty, and no-team states
 - admin navigation and the admin console appear only in the operator/admin runtime
 - when operator/admin access is active, loading and empty controls keep the admin section mounted with explicit state copy
+- the floating debug panel must be viewport-bounded and scrollable, with long Teams
+  control groups hidden behind disclosures so UAT controls do not clip or dominate the
+  product route
 
 ## 5. Must-show interactions
 

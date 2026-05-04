@@ -18,7 +18,7 @@ describe("Tabs", () => {
       />
     );
 
-    const tradeTab = screen.getByRole("button", { name: /trade/i });
+    const tradeTab = screen.getByRole("tab", { name: /trade/i });
     expect(tradeTab).toBeDisabled();
 
     fireEvent.click(tradeTab);
@@ -43,7 +43,7 @@ describe("Tabs", () => {
       />
     );
 
-    const tradeTab = screen.getByRole("button", { name: /trade/i });
+    const tradeTab = screen.getByRole("tab", { name: /trade/i });
     fireEvent.mouseEnter(tradeTab);
     expect(
       await screen.findByText("Available once redemption requirements are met.")
