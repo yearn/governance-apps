@@ -1,6 +1,6 @@
 # Team Finances UI Spec
 
-Status: WP8 production-parity UI and debug controls accepted
+Status: UX command-center overhaul in implementation
 Applies to: `/teams` route, `teams-beta.dao-ops.com` beta host, and gated
 production host `teams.yearn.fi`
 App key / slug: `teams`
@@ -63,32 +63,24 @@ Approved initial route structure:
 
 ## 4. Information architecture
 
-The default landing state is the directory layer. A user opens a team workspace from
-the directory, then uses the workspace tabs for more focused operational tasks.
+The default landing state is a command-center directory. It prioritizes quick scanning
+and team-level action selection through visual cards, while preserving a dense audit
+table behind an explicit view toggle. A user opens a team workspace from the directory.
 
-Approved top-level shell tabs:
+Approved top-level structure:
 
-1. Directory
-2. Workspace
-3. Admin, shown only for operator/admin contexts
+1. Directory command center with card grid by default and audit table as a secondary view.
+2. Selected team workspace rendered as a single flattened command center.
+3. Admin, shown only for operator/admin contexts and kept outside the team workspace.
 
-Approved workspace tabs:
-
-1. Overview
-2. Revenue
-3. Funding
-4. Bonus
-5. Lifecycle
-
-The default route should not render every workspace task simultaneously. The directory
-is the scanning layer, the workspace overview is the team landing layer, and revenue,
-funding, bonus, and lifecycle sit one level deeper behind tabs. Existing deep links
-such as `#revenue`, `#funding`, `#bonus`, `#lifecycle`, and `#admin` should activate
-the matching tab before scrolling.
+The selected workspace no longer hides core workflows behind workspace tabs. It renders
+an overview header, an action deck, and the full ledger/audit sections as scroll targets
+on one page. Existing deep links such as `#revenue`, `#funding`, `#bonus`, `#lifecycle`,
+and `#admin` must scroll to the matching section and keep that section reachable.
 
 ## 4.1 Directory layer
 
-Landing directory should show:
+Landing directory cards should show:
 
 - team name
 - address
@@ -97,20 +89,26 @@ Landing directory should show:
 - current-period revenue
 - current-period cost
 - current-period profit / loss
-- quick action: open workspace
-- quick action: deposit revenue
+- primary action: open workspace
+- secondary context: whether revenue, funding, bonus, or lifecycle work needs attention
+
+The directory audit view must keep the existing dense table-style data reachable for
+reviewers, operators, and test automation.
 
 ## 4.2 Team workspace
 
-Tabs:
+The workspace should render:
 
-1. Overview
-2. Revenue
-3. Funding
-4. Bonus
-5. Ownership & Lifecycle
-Admin is intentionally not nested inside the workspace. It remains a top-level tab so
-operator/admin review does not compete with team-owner tasks.
+1. Overview header with current-period and lifetime context.
+2. Action deck that makes the next useful actions obvious.
+3. Revenue section, including the permissionless deposit flow and revenue ledger.
+4. Outflows & Yield section that groups funding and bonus actions without blending their
+   protocol meanings.
+5. Lifecycle section with ownership, retirement, and migration visibility.
+6. Audit ledgers for revenue, funding, bonus, and lifecycle, each reachable by stable ids.
+
+Admin is intentionally not nested inside the workspace. It remains a separate
+operator/admin surface so privileged review does not compete with team-owner tasks.
 
 ## 4.3 Debug-backed route coverage
 
@@ -145,6 +143,9 @@ The debug-backed controls should apply coherently across the whole route:
   product route
 
 ## 5. Must-show interactions
+
+All blocked action CTAs must explain the blocked state in the button text and in
+persistent accessible copy next to the action. Tooltip-only explanations are not enough.
 
 ## 5.1 Deposit Revenue
 
@@ -187,6 +188,9 @@ The accepted WP4 prototype implements this as a mock approvals table plus a sepa
 claim form that can be pointed at a selected approval row. Each row keeps the token
 symbol and total approved amount visible next to used and claimable balances so the
 remaining budget can be compared at a glance.
+
+Funding approval context must stay visible near claim actions, especially when a claim
+is blocked or no longer stream-backed.
 
 ## 5.3 Return Funding
 

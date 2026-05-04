@@ -1,6 +1,6 @@
 # YBC UI Spec
 
-Status: planning baseline
+Status: UX command-center overhaul in implementation
 Applies to: `/ybc` route, `ybc-beta.dao-ops.com` beta host, and gated production
 host `ybc.yearn.fi`
 Recommended app key: `ybc`
@@ -66,30 +66,35 @@ Recommended initial structure:
 
 Default structure:
 
-1. Overview summary
-2. Members tab
-3. Proposals tab
-4. Rewards tab
-5. Operator tab, shown only for operator/admin perspectives
+1. Overview summary.
+2. Action-prioritized proposal feed when proposals are in discussion, voting, or awaiting execution.
+3. Visual member roster by default, with dense audit table as a secondary view.
+4. Rewards handoff.
+5. Operator panel, shown only for operator/admin perspectives.
 
-Default landing state: Overview.
+Default landing state: command-center overview.
 
-WP0 approved shell map:
+The route should render the core command-center sections on one page instead of forcing
+members, proposals, rewards, and operator controls behind line tabs. When there are
+discussion, voting, or awaiting-execution proposals, the proposal feed renders above
+the member roster so actionable governance work is not buried.
+
+Approved shell map:
 
 - Overview summarizes member count, internal member weight, public delegated weight,
   total governance influence, current epoch, active proposals, and proposals awaiting
   execution.
-- Members, proposals, rewards, and operator controls are not all rendered at once.
-  Users enter the deeper surface through line tabs below the overview.
 - Members keeps raw stake, effective voting weight, target weight, maturity progress,
-  and source mix visible as separate values.
+  and source mix visible as separate values in both visual and audit views.
 - Proposals maps addition and expulsion proposals through discussion, voting, awaiting
   execution, executed, and expired terminal states.
+- Proposal cards show a phase timeline, threshold marker, and prominent vote or execute
+  actions when available.
 - Rewards shows YBC-related rewards and hands claim actions to the shared claim surface.
 - Operator is conditional and limited to scoped membership, operator, hooks, threshold,
   and reward status controls.
-- Deep links such as `#members`, `#proposals`, `#rewards`, and `#admin` should activate
-  the matching tab before scrolling.
+- Deep links such as `#overview`, `#members`, `#proposals`, `#rewards`, and `#admin`
+  should scroll to the matching section.
 
 ## 5. Core UX rules
 
@@ -111,6 +116,9 @@ Every proposal should clearly show:
 - execution window
 - expired state
 
+The proposal timeline should use a reusable stepper so phase status is consistent
+across proposal cards and testable as a shared primitive.
+
 ## 5.3 Make thresholds visible
 
 Do not hide thresholds in docs text only.
@@ -120,6 +128,15 @@ Show:
 - expulsion threshold
 - current yea / total
 - clear passing / failing state
+
+Threshold visualization should include a marker or goal line so the user can see how
+close the proposal is to passing before reading the numeric values.
+
+## 5.3.1 Disabled and blocked actions
+
+All blocked proposal, reward, or operator CTAs must explain the blocked state in the
+button text and in persistent accessible copy next to the action. Tooltip-only
+explanations are not enough.
 
 ## 5.4 Keep rewards simple
 
@@ -141,6 +158,9 @@ Recommended hero stats:
 - proposals awaiting execution
 
 ## 7. Members table
+
+The default roster view is visual cards. The dense table remains available through a
+view toggle for audit, reviewer, and operator workflows.
 
 Columns:
 - member
