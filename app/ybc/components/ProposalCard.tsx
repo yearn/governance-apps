@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { TimelineStepper, type TimelineStep } from "@/components/ui/TimelineStepper";
 import type { YbcProposalRecord } from "@/lib/clients/ybc";
 import {
   getYbcProposalThresholdState,
@@ -45,13 +45,6 @@ const badgeVariantByPhase = {
   expired: "error",
   failed: "error",
   retracted: "neutral",
-} as const;
-
-const badgeVariantByStatus = {
-  complete: "success",
-  current: "brand",
-  upcoming: "neutral",
-  closed: "warning",
 } as const;
 
 export function ProposalCard({
@@ -122,11 +115,10 @@ export function ProposalCard({
                   </p>
                 </div>
               </div>
-              <ProgressBar
-                value={threshold.currentBps}
-                max={10_000}
-                variant={threshold.thresholdMet ? "success" : "warning"}
-                className="mt-4 h-3"
+              <ThresholdVoteBar
+                currentBps={threshold.currentBps}
+                thresholdBps={threshold.thresholdBps}
+                thresholdMet={threshold.thresholdMet}
               />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-secondary">
                 <span>{formatAmount(proposal.votes.yea)} yea weight</span>
@@ -140,25 +132,37 @@ export function ProposalCard({
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-3">
               {proposal.actions.canRetract && onRetract ? (
-                <Button size="sm" variant="secondary" onClick={onRetract}>
+                <Button className="w-full" variant="secondary" onClick={onRetract}>
                   Retract proposal
                 </Button>
               ) : null}
               {proposal.actions.canVote && onVote ? (
-                <>
-                  <Button size="sm" onClick={() => onVote("yea")}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button className="w-full" size="lg" onClick={() => onVote("yea")}>
                     Vote yea
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => onVote("nay")}>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    variant="secondary"
+                    onClick={() => onVote("nay")}
+                  >
                     Vote nay
                   </Button>
-                </>
+                </div>
               ) : null}
               {proposal.actions.canExecute && onExecute ? (
-                <Button size="sm" onClick={onExecute}>
+                <Button className="w-full" size="lg" onClick={onExecute}>
                   Execute proposal
+                </Button>
+              ) : null}
+              {!proposal.actions.canRetract &&
+              !proposal.actions.canVote &&
+              !proposal.actions.canExecute ? (
+                <Button className="w-full" disabled>
+                  {getDisabledActionLabel(proposal)}
                 </Button>
               ) : null}
             </div>
@@ -168,22 +172,11 @@ export function ProposalCard({
             <p className="text-xs font-bold uppercase text-text-tertiary">
               Proposal timeline (UTC)
             </p>
-            <div className="mt-4 space-y-3">
-              {timelineRows.map((row) => (
-                <div
-                  key={row.label}
-                  className="grid gap-2 rounded-box border border-border px-3 py-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-bold text-text-primary">{row.label}</p>
-                    <Badge variant={badgeVariantByStatus[row.status]}>
-                      {row.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-text-secondary">{row.value}</p>
-                </div>
-              ))}
-            </div>
+            <TimelineStepper
+              aria-label={`${proposal.id} proposal phase timeline`}
+              steps={timelineRows}
+              className="mt-4"
+            />
           </div>
         </div>
       </div>
@@ -212,45 +205,101 @@ function getNextActionLabel(proposal: YbcProposalRecord): string {
   return "Waiting for the next phase";
 }
 
+function getDisabledActionLabel(proposal: YbcProposalRecord): string {
+  if (proposal.phase === "expired") return "Proposal expired";
+  if (proposal.phase === "executed") return "Already executed";
+  if (proposal.phase === "failed") return "Proposal failed";
+  if (proposal.phase === "retracted") return "Proposal retracted";
+
+  return "Action unavailable";
+}
+
 function getTimelineRows(
   proposal: YbcProposalRecord
-): Array<{ label: string; value: string; status: TimelineStatus }> {
+): TimelineStep[] {
   return [
     {
+      id: "discussion",
       label: "Discussion opens",
-      value: formatTimestamp(proposal.timing.discussionStartsAt),
+      description: formatTimestamp(proposal.timing.discussionStartsAt),
       status: proposal.phase === "discussion" ? "current" : "complete",
     },
     {
+      id: "voting-opens",
       label: "Voting opens",
-      value: formatTimestamp(proposal.timing.votingStartsAt),
-      status: getVotingOpenStatus(proposal),
+      description: formatTimestamp(proposal.timing.votingStartsAt),
+      status: normalizeTimelineStatus(getVotingOpenStatus(proposal)),
     },
     {
+      id: "voting-closes",
       label: "Voting closes",
-      value: formatTimestamp(proposal.timing.votingEndsAt),
-      status: getVotingCloseStatus(proposal),
+      description: formatTimestamp(proposal.timing.votingEndsAt),
+      status: normalizeTimelineStatus(getVotingCloseStatus(proposal)),
     },
     {
+      id: "execution-opens",
       label: "Execution opens",
-      value: formatTimestamp(proposal.timing.executionOpensAt),
-      status: getExecutionStatus(proposal),
+      description: formatTimestamp(proposal.timing.executionOpensAt),
+      status: normalizeTimelineStatus(getExecutionStatus(proposal)),
     },
     {
+      id: "expires",
       label: proposal.phase === "expired" ? "Expired at" : "Execution expires",
-      value: formatTimestamp(proposal.timing.expiresAt),
-      status: getExpiryStatus(proposal),
+      description: formatTimestamp(proposal.timing.expiresAt),
+      status: normalizeTimelineStatus(getExpiryStatus(proposal)),
     },
     ...(proposal.timing.executedAt
       ? [
           {
+            id: "executed",
             label: "Executed at",
-            value: formatTimestamp(proposal.timing.executedAt),
+            description: formatTimestamp(proposal.timing.executedAt),
             status: "complete" as const,
           },
         ]
       : []),
   ];
+}
+
+function normalizeTimelineStatus(status: TimelineStatus): TimelineStep["status"] {
+  return status === "closed" ? "blocked" : status;
+}
+
+function ThresholdVoteBar({
+  currentBps,
+  thresholdBps,
+  thresholdMet,
+}: {
+  currentBps: number;
+  thresholdBps: number;
+  thresholdMet: boolean;
+}) {
+  const currentPercent = Math.min(Math.max(currentBps / 100, 0), 100);
+  const thresholdPercent = Math.min(Math.max(thresholdBps / 100, 0), 100);
+
+  return (
+    <div className="mt-4 space-y-2">
+      <div
+        className="relative h-4 overflow-hidden rounded-full bg-surface-secondary"
+        aria-label={`Current support ${currentPercent.toFixed(0)} percent, threshold ${thresholdPercent.toFixed(0)} percent`}
+      >
+        <div
+          className={thresholdMet ? "h-full rounded-full bg-green-600" : "h-full rounded-full bg-amber-500"}
+          style={{ width: `${currentPercent}%` }}
+        />
+        <div
+          className="absolute inset-y-[-0.25rem] w-0.5 bg-text-primary"
+          style={{ left: `${thresholdPercent}%` }}
+          aria-hidden="true"
+        />
+      </div>
+      <div className="flex items-center justify-between gap-3 text-xs text-text-tertiary">
+        <span>0%</span>
+        <span>Threshold marker</span>
+        <span>100%</span>
+      </div>
+    </div>
+  );
 }
 
 function getVotingOpenStatus(proposal: YbcProposalRecord): TimelineStatus {

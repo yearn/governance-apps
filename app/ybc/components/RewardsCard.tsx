@@ -126,7 +126,7 @@ export function RewardsCard({ data, id, hostname }: RewardsCardProps) {
               ) : null}
               {data.rewards.claim.disabledReason ? (
                 <button type="button" disabled className={ctaClassName}>
-                  {data.rewards.claim.ctaLabel}
+                  {copy.rewards.disabledClaimCta}
                 </button>
               ) : (
                 <Link href={claimHref} className={ctaClassName}>
