@@ -275,7 +275,7 @@ function getBonusAction(
 
   if (bonus.status === "claimable") {
     return {
-      label: teamsCopy.bonus.action.claimCta,
+      label: teamsCopy.bonus.action.permissionCta,
       body: teamsCopy.bonus.action.permissionBody,
       disabled: true,
       variant: "secondary" as const,

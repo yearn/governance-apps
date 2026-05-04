@@ -74,7 +74,7 @@ export const teamsCopy = {
   directory: {
     title: "Team Directory",
     description:
-      "Compare current-period performance and open one team workspace.",
+      "Scan current-period performance in cards, or switch to the audit table for dense review.",
     loadingTitle: "Loading team directory",
     loadingBody: "Fetching the current teams snapshot.",
     emptyTitle: "No teams available",
@@ -96,7 +96,7 @@ export const teamsCopy = {
   workspace: {
     title: "Workspace Overview",
     description:
-      "Current-period and lifetime reporting for the selected team.",
+      "Current-period and lifetime reporting for the selected team, followed by action and ledger sections.",
     loadingTitle: "Loading workspace overview",
     loadingBody: "Preparing the selected team workspace.",
     emptyTitle: "No team selected",
@@ -127,6 +127,32 @@ export const teamsCopy = {
       funding: "Funding",
       bonus: "Bonus",
       lifecycle: "Lifecycle",
+    },
+    actionDeck: {
+      title: "Action deck",
+      description:
+        "Start from the next operational task, then keep the ledgers below available for audit.",
+      revenueTitle: "Deposit Revenue",
+      revenueBody:
+        "Permissionless inflows stay visible for contributors and team owners.",
+      revenueCta: "Go to revenue",
+      fundingTitle: "Claim Funding",
+      fundingBody:
+        "Claimable approvals and return accounting stay beside the funding ledger.",
+      fundingCta: "Go to funding",
+      bonusTitle: "Claim Bonus",
+      bonusBody:
+        "Finalized YFI bonus state stays separate from funding approvals.",
+      bonusCta: "Go to bonus",
+      lifecycleTitle: "Review Lifecycle",
+      lifecycleBody:
+        "Ownership, retirement, and successor state remain readable before admin work.",
+      lifecycleCta: "Go to lifecycle",
+    },
+    outflows: {
+      title: "Outflows & Yield",
+      description:
+        "Funding approvals and YFI bonus actions are surfaced together as outbound work, while preserving their separate protocol meanings and ledgers.",
     },
   },
   bonus: {
@@ -165,6 +191,7 @@ export const teamsCopy = {
       title: "Primary action",
       claimCta: "Claim Bonus",
       stagedCta: "Claim staged",
+      permissionCta: "Team owner required",
       pendingCta: "Waiting for finalization",
       claimedCta: "Already claimed",
       noneCta: "No bonus to claim",
@@ -314,6 +341,7 @@ export const teamsCopy = {
     },
     unavailable: {
       title: "Deposits unavailable in this workspace",
+      disabledCta: "Deposit unavailable",
       viewerBody:
         "This viewer cannot submit deposits, but recent history stays visible for review.",
       readOnlyBody:
@@ -444,7 +472,9 @@ export const teamsCopy = {
       description:
         "Select a claimable approval, set a recipient, and simulate the owner claim flow.",
       disabledPermission: "This viewer cannot claim funding in the current view.",
+      disabledPermissionCta: "Claim unavailable",
       disabledNoApproval: "Select a claimable approval from the table.",
+      disabledNoApprovalCta: "Select approval to claim",
       selectedApproval: "Selected approval",
       selectedState: "Claim status",
       recipient: "Recipient",
@@ -479,7 +509,9 @@ export const teamsCopy = {
       description:
         "Represent funding returns separately from claims. Refund value uses the historical average claim price.",
       disabledPermission: "This viewer cannot return funding in the current view.",
+      disabledPermissionCta: "Return unavailable",
       disabledNoApproval: "Select a refundable approval from the table.",
+      disabledNoApprovalCta: "Select approval to return",
       selectedApproval: "Selected approval",
       averagePrice: "Historical average claim price",
       amount: "Amount to return",

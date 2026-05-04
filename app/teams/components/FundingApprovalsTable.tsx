@@ -312,9 +312,15 @@ export function FundingApprovalsTable({
           />
 
           {!viewer?.canClaimFunding ? (
-            <MessageBox tone="neutral">{teamsCopy.funding.claimForm.disabledPermission}</MessageBox>
+            <DisabledAction
+              body={teamsCopy.funding.claimForm.disabledPermission}
+              cta={teamsCopy.funding.claimForm.disabledPermissionCta}
+            />
           ) : !selectedClaimApproval ? (
-            <MessageBox tone="neutral">{teamsCopy.funding.claimForm.disabledNoApproval}</MessageBox>
+            <DisabledAction
+              body={teamsCopy.funding.claimForm.disabledNoApproval}
+              cta={teamsCopy.funding.claimForm.disabledNoApprovalCta}
+            />
           ) : (
             <>
               <SelectionSummary
@@ -394,13 +400,15 @@ export function FundingApprovalsTable({
           />
 
           {!viewer?.canReturnFunding ? (
-            <MessageBox tone="neutral">
-              {teamsCopy.funding.returnForm.disabledPermission}
-            </MessageBox>
+            <DisabledAction
+              body={teamsCopy.funding.returnForm.disabledPermission}
+              cta={teamsCopy.funding.returnForm.disabledPermissionCta}
+            />
           ) : !selectedReturnApproval ? (
-            <MessageBox tone="neutral">
-              {teamsCopy.funding.returnForm.disabledNoApproval}
-            </MessageBox>
+            <DisabledAction
+              body={teamsCopy.funding.returnForm.disabledNoApproval}
+              cta={teamsCopy.funding.returnForm.disabledNoApprovalCta}
+            />
           ) : (
             <>
               <SelectionSummary
@@ -625,6 +633,17 @@ function FundingMetric({
         {label}
       </p>
       <p className="mt-1 font-number text-base font-bold text-text-primary">{value}</p>
+    </div>
+  );
+}
+
+function DisabledAction({ body, cta }: { body: string; cta: string }) {
+  return (
+    <div className="space-y-3">
+      <MessageBox tone="neutral">{body}</MessageBox>
+      <Button disabled className="w-full">
+        {cta}
+      </Button>
     </div>
   );
 }

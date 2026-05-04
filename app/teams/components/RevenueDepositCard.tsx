@@ -278,9 +278,14 @@ export function RevenueDepositCard({
               </div>
             </>
           ) : (
-            <Banner variant="warning" title={teamsCopy.revenue.unavailable.title}>
-              <p>{getUnavailableBody(activeTeam, viewer)}</p>
-            </Banner>
+            <div className="space-y-3">
+              <Banner variant="warning" title={teamsCopy.revenue.unavailable.title}>
+                <p>{getUnavailableBody(activeTeam, viewer)}</p>
+              </Banner>
+              <Button type="button" disabled>
+                {teamsCopy.revenue.unavailable.disabledCta}
+              </Button>
+            </div>
           )}
         </div>
 

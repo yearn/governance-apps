@@ -35,13 +35,15 @@ surface grows.
 
 The default `/teams` landing state is the team directory. It introduces the app through
 the `Team Finances` label and gives users a scannable path into a selected team
-workspace without rendering every operational surface at once.
+workspace. The directory defaults to visual team cards and keeps the dense audit table
+available through a view toggle.
 
 The current accepted route keeps production-facing copy on the default shell and covers:
 
 - a top-level `Directory` tab for comparing teams
 - a top-level `Workspace` tab for one selected team
-- nested workspace tabs for `Overview`, `Revenue`, `Funding`, `Bonus`, and `Lifecycle`
+- a flattened selected-team command center with `Overview`, `Revenue`, `Funding`,
+  `Bonus`, and `Lifecycle` sections as stable scroll targets
 - a top-level `Admin` tab only when the viewer has operator/admin access
 
 Loading, empty, and operator/admin coverage now seed through the floating debug panel
@@ -72,13 +74,9 @@ The approved top-level shell tabs are:
 2. Workspace
 3. Admin, shown only for operator/admin contexts
 
-The workspace tab owns the deeper operational hierarchy:
-
-1. Overview
-2. Revenue
-3. Funding
-4. Bonus
-5. Lifecycle
+The workspace tab renders the deeper operational sections on one page so deep links
+such as `#revenue`, `#funding`, `#bonus`, and `#lifecycle` scroll directly to their
+audit and action areas.
 
 The route remains path-first on shared hosts. `teams-beta.dao-ops.com` is the beta
 review target for mock/dummy data. `teams.yearn.fi` is reserved for production and
