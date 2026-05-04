@@ -1,5 +1,6 @@
+import { useId } from "react";
 import { Badge } from "@/components/ui/Badge";
-import { getButtonClassName } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { formatAddress } from "@/lib/format";
@@ -7,6 +8,7 @@ import {
   formatTeamsTokenAmount,
   formatTeamsUsd,
   getFinancialNetState,
+  type FundingApproval,
   isTeamsFundingApprovalClaimable,
   isTeamsFundingApprovalReturnable,
   type TeamRecord,
@@ -14,7 +16,7 @@ import {
 } from "@/lib/clients/teams";
 import { BonusCard } from "./BonusCard";
 import { FundingApprovalsTable } from "./FundingApprovalsTable";
-import { RevenueDepositCard } from "./RevenueDepositCard";
+import { RevenueDepositCard, RevenueHistoryLedger } from "./RevenueDepositCard";
 import { TeamLifecycleCard } from "./TeamLifecycleCard";
 import { TeamOverviewCard } from "./TeamOverviewCard";
 import { teamsCopy } from "../messages";
@@ -210,17 +212,23 @@ export function TeamWorkspace({
         </div>
       </section>
 
-      <ActionDeck team={readyTeam} viewer={viewer} currentPeriod={currentPeriod} />
+      <ActionDeck
+        team={readyTeam}
+        viewer={viewer}
+        currentPeriod={currentPeriod}
+        onUpdateTeam={onUpdateTeam}
+        revenueCardKey={revenueCardKey}
+        state={state}
+      />
 
       <section id="revenue" className="scroll-mt-24">
-        <RevenueDepositCard
-          key={revenueCardKey}
-          team={readyTeam}
-          viewer={viewer}
-          currentPeriod={currentPeriod}
-          onUpdateTeam={onUpdateTeam}
-          state={state}
-        />
+        <Card className="space-y-4">
+          <RevenueHistoryLedger
+            history={readyTeam.revenueHistory}
+            title={teamsCopy.revenue.history.auditTitle}
+            description={teamsCopy.revenue.history.auditDescription}
+          />
+        </Card>
       </section>
 
       <section id="funding" className="scroll-mt-24 space-y-4">
@@ -282,7 +290,11 @@ function WorkspaceSummaryCard({ team }: { team: TeamRecord }) {
         />
         <SummaryRow
           label={teamsCopy.workspace.fields.teamId}
-          value={team.address ? formatAddress(team.address) : team.id}
+          value={team.id}
+        />
+        <SummaryRow
+          label={teamsCopy.workspace.fields.contract}
+          value={formatAddress(team.address)}
         />
       </dl>
       <div className="rounded-box border border-border bg-app px-4 py-4">
@@ -301,16 +313,17 @@ function ActionDeck({
   team,
   viewer,
   currentPeriod,
+  onUpdateTeam,
+  revenueCardKey,
+  state,
 }: {
   team: TeamRecord;
   viewer: TeamsViewerContext | null;
   currentPeriod: number | null;
+  onUpdateTeam: (team: TeamRecord) => void;
+  revenueCardKey: string;
+  state: "ready" | "loading" | "empty";
 }) {
-  const claimableCount = team.fundingApprovals.filter(isTeamsFundingApprovalClaimable).length;
-  const returnableCount = team.fundingApprovals.filter(isTeamsFundingApprovalReturnable).length;
-  const bonusAmount = formatTeamsTokenAmount(team.bonus.totalClaimable, team.bonus.tokenSymbol);
-  const canDeposit = Boolean(viewer?.canDepositRevenue) && !team.readOnlyReason;
-
   return (
     <section aria-labelledby="teams-action-deck-title" className="space-y-4">
       <div className="space-y-1">
@@ -324,34 +337,19 @@ function ActionDeck({
           {teamsCopy.workspace.actionDeck.description}
         </p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <ActionDeckCard
-          title={teamsCopy.workspace.actionDeck.revenueTitle}
-          body={teamsCopy.workspace.actionDeck.revenueBody}
-          metric={canDeposit ? "Open" : teamsCopy.revenue.unavailable.disabledCta}
-          href="#revenue"
-          cta={teamsCopy.workspace.actionDeck.revenueCta}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+        <RevenueDepositCard
+          key={revenueCardKey}
+          team={team}
+          viewer={viewer}
+          currentPeriod={currentPeriod}
+          onUpdateTeam={onUpdateTeam}
+          state={state}
         />
-        <ActionDeckCard
-          title={teamsCopy.workspace.actionDeck.fundingTitle}
-          body={teamsCopy.workspace.actionDeck.fundingBody}
-          metric={`${claimableCount.toLocaleString("en-US")} claimable / ${returnableCount.toLocaleString("en-US")} returnable`}
-          href="#funding"
-          cta={teamsCopy.workspace.actionDeck.fundingCta}
-        />
-        <ActionDeckCard
-          title={teamsCopy.workspace.actionDeck.bonusTitle}
-          body={teamsCopy.workspace.actionDeck.bonusBody}
-          metric={bonusAmount}
-          href="#bonus"
-          cta={teamsCopy.workspace.actionDeck.bonusCta}
-        />
-        <ActionDeckCard
-          title={teamsCopy.workspace.actionDeck.lifecycleTitle}
-          body={teamsCopy.workspace.actionDeck.lifecycleBody}
-          metric={currentPeriod === null ? "--" : `Period #${currentPeriod}`}
-          href="#lifecycle"
-          cta={teamsCopy.workspace.actionDeck.lifecycleCta}
+        <OutflowsCommandPanel
+          team={team}
+          viewer={viewer}
+          currentPeriod={currentPeriod}
         />
       </div>
     </section>
@@ -365,44 +363,368 @@ function ActionDeckSkeleton() {
         <Skeleton className="h-4 w-28" />
         <Skeleton className="h-8 w-full max-w-xl" />
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }, (_, index) => (
-          <Card key={index} variant="flat" className="space-y-4">
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </Card>
-        ))}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+        <Card className="space-y-5">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-56 w-full" />
+        </Card>
+        <Card className="space-y-5">
+          <Skeleton className="h-7 w-56" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </Card>
       </div>
     </section>
   );
 }
 
-function ActionDeckCard({
-  title,
-  body,
-  metric,
-  href,
-  cta,
+function OutflowsCommandPanel({
+  team,
+  viewer,
+  currentPeriod,
 }: {
-  title: string;
-  body: string;
-  metric: string;
-  href: string;
-  cta: string;
+  team: TeamRecord;
+  viewer: TeamsViewerContext | null;
+  currentPeriod: number | null;
 }) {
+  const claimableApprovals = team.fundingApprovals.filter(isTeamsFundingApprovalClaimable);
+  const returnableApprovals = team.fundingApprovals.filter(isTeamsFundingApprovalReturnable);
+  const firstClaimableApproval = claimableApprovals[0] ?? null;
+  const firstReturnableApproval = returnableApprovals[0] ?? null;
+  const fundingState = teamsCopy.funding.summaryStates[team.fundingSummary.state];
+  const bonusStatus = teamsCopy.bonus.statuses[team.bonus.status];
+  const bonusAction = getBonusCommandAction(team, viewer);
+
   return (
-    <Card variant="flat" className="flex min-h-[17rem] flex-col gap-4">
+    <Card className="space-y-6">
       <div className="space-y-2">
-        <h4 className="text-lg font-bold text-text-primary">{title}</h4>
-        <p className="text-sm leading-6 text-text-secondary">{body}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+          {teamsCopy.workspace.actionDeck.outflowsTitle}
+        </p>
+        <h4 className="text-xl font-bold text-text-primary">
+          {teamsCopy.workspace.actionDeck.outflowsTitle}
+        </h4>
+        <p className="text-sm leading-6 text-text-secondary">
+          {teamsCopy.workspace.actionDeck.outflowsBody}
+        </p>
       </div>
-      <p className="mt-auto font-number text-2xl font-bold text-text-primary">{metric}</p>
-      <a href={href} className={getButtonClassName({ variant: "secondary", className: "w-full" })}>
-        {cta}
-      </a>
+
+      <div className="space-y-4 rounded-box border border-border bg-app p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h5 className="text-lg font-bold text-text-primary">
+              {teamsCopy.workspace.actionDeck.fundingTitle}
+            </h5>
+            <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+              {teamsCopy.workspace.actionDeck.fundingSource}
+            </p>
+          </div>
+          <Badge variant={team.fundingSummary.state === "fully-used" ? "neutral" : "success"}>
+            {fundingState}
+          </Badge>
+        </div>
+        <p className="text-sm leading-6 text-text-secondary">
+          {teamsCopy.workspace.actionDeck.fundingBody}
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CommandMetric
+            label={teamsCopy.workspace.actionDeck.fundingClaimableCount}
+            value={claimableApprovals.length.toLocaleString("en-US")}
+          />
+          <CommandMetric
+            label={teamsCopy.workspace.actionDeck.fundingReturnableCount}
+            value={returnableApprovals.length.toLocaleString("en-US")}
+          />
+          <CommandMetric
+            label={teamsCopy.workspace.actionDeck.fundingClaimableValue}
+            value={formatTeamsUsd(team.fundingSummary.claimableUsd)}
+          />
+          <CommandMetric
+            label={teamsCopy.workspace.actionDeck.fundingRefundableValue}
+            value={formatTeamsUsd(team.fundingSummary.refundableUsd)}
+          />
+        </div>
+
+        <div className="grid gap-3">
+          <FundingCommandSource
+            title={teamsCopy.workspace.actionDeck.fundingClaimSource}
+            approval={firstClaimableApproval}
+            body={getFundingClaimCommandBody(firstClaimableApproval, currentPeriod)}
+            blockedBody={
+              !viewer?.canClaimFunding
+                ? teamsCopy.funding.claimForm.disabledPermission
+                : teamsCopy.workspace.actionDeck.fundingNoClaimable
+            }
+            canAct={Boolean(viewer?.canClaimFunding && firstClaimableApproval)}
+            cta={teamsCopy.workspace.actionDeck.fundingClaimCta}
+            disabledCta={
+              !viewer?.canClaimFunding
+                ? teamsCopy.funding.claimForm.disabledPermissionCta
+                : teamsCopy.funding.claimForm.disabledNoApprovalCta
+            }
+            href="#funding"
+          />
+          <FundingCommandSource
+            title={teamsCopy.workspace.actionDeck.fundingReturnSource}
+            approval={firstReturnableApproval}
+            body={getFundingReturnCommandBody(firstReturnableApproval)}
+            blockedBody={
+              !viewer?.canReturnFunding
+                ? teamsCopy.funding.returnForm.disabledPermission
+                : teamsCopy.workspace.actionDeck.fundingNoReturnable
+            }
+            canAct={Boolean(viewer?.canReturnFunding && firstReturnableApproval)}
+            cta={teamsCopy.workspace.actionDeck.fundingReturnCta}
+            disabledCta={
+              !viewer?.canReturnFunding
+                ? teamsCopy.funding.returnForm.disabledPermissionCta
+                : teamsCopy.funding.returnForm.disabledNoApprovalCta
+            }
+            href="#funding"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-box border border-border bg-app p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h5 className="text-lg font-bold text-text-primary">
+              {teamsCopy.workspace.actionDeck.bonusTitle}
+            </h5>
+            <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+              {teamsCopy.workspace.actionDeck.bonusSource}
+            </p>
+          </div>
+          <Badge variant={bonusStatus.variant}>{bonusStatus.label}</Badge>
+        </div>
+        <p className="text-sm leading-6 text-text-secondary">
+          {teamsCopy.workspace.actionDeck.bonusBody}
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CommandMetric
+            label={teamsCopy.workspace.actionDeck.bonusClaimable}
+            value={formatTeamsTokenAmount(team.bonus.totalClaimable, team.bonus.tokenSymbol)}
+          />
+          <CommandMetric
+            label={teamsCopy.workspace.actionDeck.bonusPeriods}
+            value={team.bonus.includedPeriodCount.toLocaleString("en-US")}
+          />
+          <CommandMetric
+            label={teamsCopy.workspace.actionDeck.bonusPending}
+            value={getPendingBonusPeriodCount(team).toLocaleString("en-US")}
+          />
+          <CommandMetric
+            label={teamsCopy.workspace.actionDeck.bonusStatus}
+            value={bonusStatus.label}
+          />
+        </div>
+
+        <CommandAction
+          canAct={bonusAction.canAct}
+          href="#bonus"
+          cta={bonusAction.cta}
+          body={bonusAction.body}
+          enabledVariant="primary"
+        />
+      </div>
     </Card>
   );
+}
+
+function FundingCommandSource({
+  title,
+  approval,
+  body,
+  blockedBody,
+  canAct,
+  cta,
+  disabledCta,
+  href,
+}: {
+  title: string;
+  approval: FundingApproval | null;
+  body: string;
+  blockedBody: string;
+  canAct: boolean;
+  cta: string;
+  disabledCta: string;
+  href: string;
+}) {
+  return (
+    <div className="rounded-box border border-border bg-surface-secondary px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+          {title}
+        </p>
+        {approval ? (
+          <Badge variant={teamsCopy.funding.statuses[approval.status].variant}>
+            {teamsCopy.funding.statuses[approval.status].label}
+          </Badge>
+        ) : null}
+      </div>
+      <CommandAction
+        canAct={canAct}
+        href={href}
+        cta={canAct ? cta : disabledCta}
+        body={canAct ? body : blockedBody}
+      />
+    </div>
+  );
+}
+
+function CommandMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-box border border-border bg-surface px-4 py-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+        {label}
+      </p>
+      <p className="mt-1 font-number text-base font-bold text-text-primary">{value}</p>
+    </div>
+  );
+}
+
+function CommandAction({
+  canAct,
+  href,
+  cta,
+  body,
+  enabledVariant = "secondary",
+}: {
+  canAct: boolean;
+  href: string;
+  cta: string;
+  body: string;
+  enabledVariant?: "primary" | "secondary";
+}) {
+  const reactId = useId().replace(/:/g, "");
+  const descriptionId = `teams-command-action-${reactId}-description`;
+
+  return (
+    <div className="mt-3 space-y-3">
+      <p id={descriptionId} className="text-sm leading-6 text-text-secondary">
+        {body}
+      </p>
+      {canAct ? (
+        <a
+          href={href}
+          aria-describedby={descriptionId}
+          className={getButtonClassName({
+            variant: enabledVariant,
+            className: "w-full",
+          })}
+        >
+          {cta}
+        </a>
+      ) : (
+        <Button
+          type="button"
+          disabled
+          aria-describedby={descriptionId}
+          className="w-full"
+        >
+          {cta}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function getFundingClaimCommandBody(
+  approval: FundingApproval | null,
+  currentPeriod: number | null
+) {
+  if (!approval) {
+    return teamsCopy.workspace.actionDeck.fundingNoClaimable;
+  }
+
+  return teamsCopy.workspace.actionDeck.fundingClaimBody(
+    approval.id,
+    formatTeamsTokenAmount(approval.claimable, approval.symbol),
+    getFundingPeriodLabel(approval, currentPeriod)
+  );
+}
+
+function getFundingReturnCommandBody(approval: FundingApproval | null) {
+  if (!approval) {
+    return teamsCopy.workspace.actionDeck.fundingNoReturnable;
+  }
+
+  return teamsCopy.workspace.actionDeck.fundingReturnBody(
+    approval.id,
+    formatTeamsTokenAmount(approval.used, approval.symbol)
+  );
+}
+
+function getFundingPeriodLabel(approval: FundingApproval, currentPeriod: number | null) {
+  if (currentPeriod === null) {
+    return `period #${approval.approvedPeriod}`;
+  }
+
+  if (approval.approvedPeriod === currentPeriod) {
+    return `current period #${approval.approvedPeriod}`;
+  }
+
+  if (approval.approvedPeriod < currentPeriod) {
+    return `late-claim period #${approval.approvedPeriod}`;
+  }
+
+  return `future period #${approval.approvedPeriod}`;
+}
+
+function getBonusCommandAction(
+  team: TeamRecord,
+  viewer: TeamsViewerContext | null
+) {
+  const hasClaimableBonus =
+    team.bonus.status === "claimable" && Number(team.bonus.totalClaimable) > 0;
+
+  if (hasClaimableBonus && viewer?.canClaimBonus) {
+    return {
+      canAct: true,
+      cta: teamsCopy.workspace.actionDeck.bonusCta,
+      body: teamsCopy.bonus.action.claimBody,
+    };
+  }
+
+  if (hasClaimableBonus) {
+    return {
+      canAct: false,
+      cta: teamsCopy.bonus.action.permissionCta,
+      body: teamsCopy.bonus.action.permissionBody,
+    };
+  }
+
+  if (team.bonus.status === "pending-finalization") {
+    return {
+      canAct: false,
+      cta: teamsCopy.bonus.action.pendingCta,
+      body: teamsCopy.bonus.action.pendingBody,
+    };
+  }
+
+  if (team.bonus.status === "claimed") {
+    return {
+      canAct: false,
+      cta: teamsCopy.bonus.action.claimedCta,
+      body: teamsCopy.bonus.action.claimedBody,
+    };
+  }
+
+  return {
+    canAct: false,
+    cta: teamsCopy.bonus.action.noneCta,
+    body: teamsCopy.bonus.action.noneBody,
+  };
+}
+
+function getPendingBonusPeriodCount(team: TeamRecord) {
+  return team.bonus.periods.filter(
+    (period) => period.status === "pending-finalization"
+  ).length;
 }
 
 function OutflowsHeader() {

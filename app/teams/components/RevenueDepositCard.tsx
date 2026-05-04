@@ -36,7 +36,7 @@ type RevenueDepositCardProps = {
   state: "ready" | "loading" | "empty";
 };
 
-type LocalRevenueHistoryEntry = RevenueHistoryEntry & {
+type DisplayRevenueHistoryEntry = RevenueHistoryEntry & {
   depositorLabel?: string;
 };
 
@@ -53,7 +53,7 @@ export function RevenueDepositCard({
   );
   const [amount, setAmount] = useState(() => initialOption?.previewAmount ?? "");
   const [amountError, setAmountError] = useState<string | undefined>(undefined);
-  const [successEntry, setSuccessEntry] = useState<LocalRevenueHistoryEntry | null>(null);
+  const [successEntry, setSuccessEntry] = useState<DisplayRevenueHistoryEntry | null>(null);
 
   if (state === "loading") {
     return (
@@ -121,7 +121,9 @@ export function RevenueDepositCard({
     Boolean(viewer?.canDepositRevenue) &&
     activeTeam.readOnlyReason === null &&
     activeTeam.revenueOptions.length > 0;
-  const renderedHistory: LocalRevenueHistoryEntry[] = activeTeam.revenueHistory.map((entry) => ({
+  const unavailableDescriptionId = "teams-revenue-unavailable-description";
+  const unavailableBody = getUnavailableBody(activeTeam, viewer);
+  const renderedHistory: DisplayRevenueHistoryEntry[] = activeTeam.revenueHistory.map((entry) => ({
     ...entry,
     depositorLabel: successEntry?.id === entry.id ? successEntry.depositorLabel : undefined,
   }));
@@ -155,7 +157,7 @@ export function RevenueDepositCard({
     }
 
     const recordedAt = nowSeconds();
-    const entry: LocalRevenueHistoryEntry = {
+    const entry: DisplayRevenueHistoryEntry = {
       id: `mock-${activeTeam.id}-${recordedAt}`,
       period: currentPeriod ?? 0,
       symbol: selectedOption.symbol,
@@ -280,9 +282,13 @@ export function RevenueDepositCard({
           ) : (
             <div className="space-y-3">
               <Banner variant="warning" title={teamsCopy.revenue.unavailable.title}>
-                <p>{getUnavailableBody(activeTeam, viewer)}</p>
+                <p id={unavailableDescriptionId}>{unavailableBody}</p>
               </Banner>
-              <Button type="button" disabled>
+              <Button
+                type="button"
+                disabled
+                aria-describedby={unavailableDescriptionId}
+              >
                 {teamsCopy.revenue.unavailable.disabledCta}
               </Button>
             </div>
@@ -334,73 +340,94 @@ export function RevenueDepositCard({
             ) : null}
           </div>
 
-          <div className="space-y-3 rounded-box border border-border bg-app p-4">
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-text-primary">
-                {teamsCopy.revenue.history.title}
-              </h3>
-              <p className="text-sm leading-6 text-text-secondary">
-                {teamsCopy.revenue.history.description}
-              </p>
-            </div>
-
-            {renderedHistory.length === 0 ? (
-              <div className="rounded-box border border-dashed border-border bg-surface-secondary px-4 py-5">
-                <p className="text-sm font-bold text-text-primary">
-                  {teamsCopy.revenue.history.emptyTitle}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-text-secondary">
-                  {teamsCopy.revenue.history.emptyBody}
-                </p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{teamsCopy.revenue.history.headers.period}</TableHead>
-                    <TableHead>{teamsCopy.revenue.history.headers.deposit}</TableHead>
-                    <TableHead className="text-right">
-                      {teamsCopy.revenue.history.headers.credit}
-                    </TableHead>
-                    <TableHead>{teamsCopy.revenue.history.headers.path}</TableHead>
-                    <TableHead>{teamsCopy.revenue.history.headers.depositor}</TableHead>
-                    <TableHead className="text-right">
-                      {teamsCopy.revenue.history.headers.recorded}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {renderedHistory.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell className="font-medium text-text-primary">
-                        #{entry.period}
-                      </TableCell>
-                      <TableCell className="font-number text-text-primary">
-                        {formatTeamsTokenAmount(entry.amount)} {entry.symbol}
-                      </TableCell>
-                      <TableCell className="text-right font-number text-text-primary">
-                        {formatTeamsUsd(entry.creditedUsd, 2)}
-                      </TableCell>
-                      <TableCell className="text-text-secondary">
-                        {entry.convertedToSymbol
-                          ? `${entry.symbol} -> ${entry.convertedToSymbol}`
-                          : teamsCopy.revenue.history.direct}
-                      </TableCell>
-                      <TableCell className="text-text-secondary">
-                        {entry.depositorLabel ?? formatAddress(entry.depositedBy)}
-                      </TableCell>
-                      <TableCell className="text-right text-text-secondary">
-                        {formatRecordedAt(entry.createdAt)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </div>
+          <RevenueHistoryLedger
+            history={renderedHistory}
+            className="rounded-box border border-border bg-app p-4"
+          />
         </div>
       </div>
     </Card>
+  );
+}
+
+export function RevenueHistoryLedger({
+  history,
+  title = teamsCopy.revenue.history.title,
+  description = teamsCopy.revenue.history.description,
+  className,
+}: {
+  history: RevenueHistoryEntry[];
+  title?: string;
+  description?: string;
+  className?: string;
+}) {
+  const renderedHistory = history as DisplayRevenueHistoryEntry[];
+
+  return (
+    <div className={cn("space-y-3", className)}>
+      <div className="space-y-1">
+        <h3 className="text-lg font-bold text-text-primary">{title}</h3>
+        <p className="text-sm leading-6 text-text-secondary">{description}</p>
+      </div>
+
+      {renderedHistory.length === 0 ? (
+        <div className="rounded-box border border-dashed border-border bg-surface-secondary px-4 py-5">
+          <p className="text-sm font-bold text-text-primary">
+            {teamsCopy.revenue.history.emptyTitle}
+          </p>
+          <p className="mt-1 text-sm leading-6 text-text-secondary">
+            {teamsCopy.revenue.history.emptyBody}
+          </p>
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{teamsCopy.revenue.history.headers.record}</TableHead>
+              <TableHead>{teamsCopy.revenue.history.headers.period}</TableHead>
+              <TableHead>{teamsCopy.revenue.history.headers.deposit}</TableHead>
+              <TableHead className="text-right">
+                {teamsCopy.revenue.history.headers.credit}
+              </TableHead>
+              <TableHead>{teamsCopy.revenue.history.headers.path}</TableHead>
+              <TableHead>{teamsCopy.revenue.history.headers.depositor}</TableHead>
+              <TableHead className="text-right">
+                {teamsCopy.revenue.history.headers.recorded}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {renderedHistory.map((entry) => (
+              <TableRow key={entry.id}>
+                <TableCell className="font-number text-xs font-bold break-all text-text-primary">
+                  {entry.id}
+                </TableCell>
+                <TableCell className="font-medium text-text-primary">
+                  #{entry.period}
+                </TableCell>
+                <TableCell className="font-number text-text-primary">
+                  {formatTeamsTokenAmount(entry.amount)} {entry.symbol}
+                </TableCell>
+                <TableCell className="text-right font-number text-text-primary">
+                  {formatTeamsUsd(entry.creditedUsd, 2)}
+                </TableCell>
+                <TableCell className="text-text-secondary">
+                  {entry.convertedToSymbol
+                    ? `${entry.symbol} -> ${entry.convertedToSymbol}`
+                    : teamsCopy.revenue.history.direct}
+                </TableCell>
+                <TableCell className="text-text-secondary">
+                  {entry.depositorLabel ?? formatAddress(entry.depositedBy)}
+                </TableCell>
+                <TableCell className="text-right text-text-secondary">
+                  {formatRecordedAt(entry.createdAt)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { formatAddress } from "@/lib/format";
 import {
@@ -480,14 +480,20 @@ export function FundingApprovalsTable({
                     className="rounded-box border border-border bg-app px-4 py-3"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-number text-sm font-bold text-text-primary">
-                        {formatApprovalAmount(entry.amount, entry.symbol)}
-                      </p>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+                          {teamsCopy.funding.history.record}
+                        </p>
+                        <p className="font-number text-sm font-bold break-all text-text-primary">
+                          {entry.id}
+                        </p>
+                      </div>
                       <p className="font-number text-sm font-bold text-text-primary">
                         {formatTeamsUsd(entry.refundValueUsd)}
                       </p>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
+                      <span>{formatApprovalAmount(entry.amount, entry.symbol)}</span>
                       <span>{teamsCopy.funding.history.period(entry.period)}</span>
                       <span>{teamsCopy.funding.history.approval(entry.approvalId)}</span>
                       <span>
@@ -638,10 +644,14 @@ function FundingMetric({
 }
 
 function DisabledAction({ body, cta }: { body: string; cta: string }) {
+  const descriptionId = useId();
+
   return (
     <div className="space-y-3">
-      <MessageBox tone="neutral">{body}</MessageBox>
-      <Button disabled className="w-full">
+      <div id={descriptionId}>
+        <MessageBox tone="neutral">{body}</MessageBox>
+      </div>
+      <Button disabled className="w-full" aria-describedby={descriptionId}>
         {cta}
       </Button>
     </div>
