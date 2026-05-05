@@ -270,9 +270,15 @@ export function RewardsCard({
 
             <div className="flex flex-col items-start gap-1.5">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-neutral-900 text-lg">
+                <a
+                  href={data.rewardToken.vaultUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`${data.rewardToken.symbol} Yearn vault`}
+                  className="text-lg font-bold text-neutral-900 transition-colors hover:text-neutral-700 hover:underline hover:decoration-dotted hover:underline-offset-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2"
+                >
                   {data.rewardToken.symbol}
-                </span>
+                </a>
                 {rewardApy && (
                   <Badge
                     variant="success"

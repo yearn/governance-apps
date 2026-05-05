@@ -16,7 +16,7 @@ If the file is missing or invalid, the UI renders skeletons and waits for wallet
 
 - **Base units only:** Token amounts are **strings** in base units (wei).
 - **APR in BPS:** APR values are integer basis points under `aprBps` (e.g., 6800 = 68.00%).
-- **Reward APY in BPS:** `global.rewards.apyBps` is an integer basis points value for yvUSDC APY.
+- **Reward APY in BPS:** `global.rewards.apyBps` is an integer basis points value for yvUSDC-1 APY.
 - **Schema version:** `meta.version` must be `>= 2`.
 - **Clock sync (non-mock mode):** `meta.timestamp` is used to align the canonical epoch clock before a wallet connects.
 - **Mock-mode note:** when `NEXT_PUBLIC_USE_MOCKS=true`, epoch/cooldown timing uses local mock time and does not depend on `meta.timestamp`.

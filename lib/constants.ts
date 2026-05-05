@@ -51,9 +51,11 @@ export const SPENDER_STYFIX = STYFIX_ADDRESS;
 // --- Reward Configuration ---
 export const REWARD_TOKEN_CONFIG = {
   address: deployment.REWARD as Address,
-  symbol: "yvUSDC",
+  symbol: "yvUSDC-1",
   name: "Yearn yvUSDC-1 Vault",
   decimals: 18,
+  vaultUrl:
+    "https://yearn.fi/vaults/1/0xBe53A109B494E5c9f97b9Cd39Fe969BE68BF6204",
 } as const;
 
 // --- VeYFI / LLYFI Domain ---

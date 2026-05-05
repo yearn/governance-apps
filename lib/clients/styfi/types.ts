@@ -81,5 +81,6 @@ export type StyfiAccountState = {
     symbol: string;
     name: string;
     decimals: number;
+    vaultUrl: string;
   };
 };

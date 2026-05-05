@@ -128,7 +128,7 @@ Always visible and owns all write interactions.
     - **Current APR** (or **Next Epoch APR** when `epoch == 0`) with tooltip aligned to the label.
     - When `epoch == 0`, use `styfi.projected.aprBps` for the displayed value.
     - **Reward Token** label with tooltip: "Rewards are paid in {symbol}, which earns its own yield automatically."
-    - Show reward token symbol and an APY badge (success variant) when available.
+    - Show reward token symbol (`yvUSDC-1`) as a subtle external link to the Yearn vault, plus an APY badge (success variant) when available.
     - Optional sublabel: "Auto-compounding vault".
   - **Bottom (Payout Zone):**
     - **Available to claim** label.
