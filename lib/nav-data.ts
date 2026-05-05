@@ -7,7 +7,11 @@ import { LogoGithub } from "@/components/icons/LogoGithub";
 import { LogoYearn } from "@/components/icons/LogoYearn";
 import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
 import { LogoYearnMark } from "@/components/icons/LogoYearnMark";
-import { isTeamsEnabled, isYbcEnabled, isYethEnabled } from "@/lib/runtime/features";
+import {
+  isTeamsEnabled,
+  isYbcEnabled,
+  isYethEnabled,
+} from "@/lib/runtime/features";
 
 const BASE_YEARN_ASSET_URI = "https://assets.yearn.fi";
 const NEUTRAL_IMAGE_CLASS =
@@ -44,7 +48,7 @@ export const PRODUCTS: NavItem[] = [
   },
   {
     name: "Curation",
-    href: "https://app.morpho.org/ethereum/earn?v2=false&curators=yearn",
+    href: "https://curation.yearn.fi/",
     description: "Lending Market Curation",
     icon: createElement(LogoCuration, {
       className: "size-11",
