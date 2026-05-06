@@ -19,6 +19,7 @@ Shared docs define requirements and architecture that apply across multiple apps
 - [`master-task-list.md`](master-task-list.md)
 - [`rpc-reliance-reduction-roadmap.md`](rpc-reliance-reduction-roadmap.md)
 - [`testing.md`](testing.md)
+- [`cloudflare-worker-size.md`](cloudflare-worker-size.md)
 - [`mock-toggles.md`](mock-toggles.md)
 - [`debug-runtime-contract.md`](debug-runtime-contract.md)
 - [`runtime-modes.md`](runtime-modes.md)

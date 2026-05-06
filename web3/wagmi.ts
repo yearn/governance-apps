@@ -6,9 +6,7 @@ import {
   metaMaskWallet,
   rabbyWallet,
   rainbowWallet,
-  readyWallet,
   safeWallet,
-  trustWallet,
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, mock } from "wagmi";
@@ -113,13 +111,7 @@ export const wagmiConfig = isE2E
         },
         {
           groupName: "Other",
-          wallets: [
-            safeWallet,
-            rabbyWallet,
-            ledgerWallet,
-            readyWallet,
-            trustWallet,
-          ],
+          wallets: [safeWallet, rabbyWallet, ledgerWallet],
         },
       ],
       // Using the fork definition for Chain ID 1

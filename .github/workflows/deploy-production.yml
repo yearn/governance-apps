@@ -73,6 +73,9 @@ jobs:
           NEXT_PUBLIC_RPC_URLS: ${{ secrets.NEXT_PUBLIC_RPC_URLS || vars.NEXT_PUBLIC_RPC_URLS }}
         run: npm run worker:build
 
+      - name: Validate Worker Size
+        run: npm run validate:worker-size -- wrangler.jsonc
+
       - name: Deploy To Cloudflare Production
         env:
           NODE_ENV: production
