@@ -23,7 +23,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 ## Environment Variables
 
 - `NEXT_PUBLIC_RUNTIME_MODE`: Runtime mode selector (`development`, `preview`, `production`).
-- `NEXT_PUBLIC_WC_PROJECT_ID`: WalletConnect project ID.
+- `NEXT_PUBLIC_WC_PROJECT_ID`: WalletConnect project ID retained for RainbowKit-compatible wallet configuration.
 - `NEXT_PUBLIC_RPC_URLS`: Comma-separated RPC URLs used to seed wagmi transports (`https://` required on HTTPS sites). Required in production; optional in non-production.
 - `NEXT_PUBLIC_USE_MOCKS`: Set to `true` to use mock clients instead of on-chain reads/writes.
 - `NEXT_PUBLIC_E2E`: Enables deterministic E2E wallet behavior and mock identity wiring.

@@ -19,9 +19,15 @@ only when the target Cloudflare plan and rollout decision explicitly allow it.
 
 ## Immediate Reduction
 
-The default RainbowKit wallet list intentionally excludes Ready and Trust
-Wallet. They are lower-priority connectors for the current governance app
-audience and add bundle pressure through the shared wallet dependency graph.
+The default RainbowKit wallet list is intentionally limited to injected
+wallets, MetaMask, Safe, and Rabby. Coinbase Wallet, Rainbow Wallet,
+WalletConnect, Ledger, Ready, and Trust are excluded from the production list
+because their SDK graph is traced into the OpenNext server function and pushes
+the compressed Worker over the 3 MiB free-plan cap.
+
+Reintroduce any excluded connector only with a fresh `npm run worker:build` and
+`npm run validate:worker-size -- wrangler.preprod.jsonc` measurement, leaving
+enough margin below the hard limit for build variance.
 
 ## Deferred Improvements
 
