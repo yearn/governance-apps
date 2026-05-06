@@ -33,7 +33,6 @@ describe("validate-prod-env", () => {
       NEXT_PUBLIC_E2E: "false",
       NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
-      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
       NEXT_PUBLIC_RPC_URLS: "https://rpc.example.invalid",
     });
 
@@ -49,7 +48,6 @@ describe("validate-prod-env", () => {
       NEXT_PUBLIC_E2E: "false",
       NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
-      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
       NEXT_PUBLIC_RPC_URLS: "https://rpc.example.invalid",
     });
 
@@ -65,7 +63,6 @@ describe("validate-prod-env", () => {
       NEXT_PUBLIC_E2E: "false",
       NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
-      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
       NEXT_PUBLIC_RPC_URLS: "   ,   ",
     });
 
@@ -82,7 +79,6 @@ describe("validate-prod-env", () => {
       NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK: "true",
       NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
-      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
       NEXT_PUBLIC_RPC_URLS: "https://rpc.example.invalid",
     });
 
@@ -101,7 +97,6 @@ describe("validate-prod-env", () => {
       NEXT_PUBLIC_ENABLE_YETH: "true",
       NEXT_PUBLIC_WC_PROJECT_ID: "placeholder",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
-      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
       NEXT_PUBLIC_RPC_URLS: "https://rpc.example.invalid",
       NEXT_PUBLIC_YETH_GLOBAL_DATA_URL: "",
     });
@@ -121,7 +116,6 @@ describe("validate-prod-env", () => {
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://example.invalid/global-data.json",
       NEXT_PUBLIC_YETH_GLOBAL_DATA_URL:
         "https://example.invalid/yeth-global-data.json",
-      NEXT_PUBLIC_MOTD_URL: "https://example.invalid/motd.json",
       NEXT_PUBLIC_RPC_URLS: "https://rpc.example.invalid",
     });
 

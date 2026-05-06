@@ -50,19 +50,10 @@ These apply across `/styfi` and `/veyfi`.
 
 5. Read policy (hybrid):
 
-   - Global (non-account) stats **MUST** load from the S3 JSON (`NEXT_PUBLIC_GLOBAL_DATA_URL`) and **MAY** load before connect.
+   - Global (non-account) stats **MUST** load from the R2/static JSON (`NEXT_PUBLIC_GLOBAL_DATA_URL`) and **MAY** load before connect.
    - Account-specific reads **MUST** remain gated on a connected address and **MUST** use the wallet-backed RPC (EIP‑1193).
    - `NEXT_PUBLIC_RPC_URLS` seeds wagmi transports and is **required in production**.
    - In non-production, `NEXT_PUBLIC_RPC_URLS` may be omitted and wagmi falls back to viem mainnet defaults.
-
----
-
-## 2.1.1. Remote Stats Message (MOTD)
-
-1. The app **MAY** load a per-app stats bar message from a small S3 JSON blob (`NEXT_PUBLIC_MOTD_URL`).
-2. The message **MUST NOT** block render and **MUST** be ignored if the JSON is missing, invalid, or unreachable.
-3. If a `label` is missing, the UI **MUST** default to `State`.
-4. If `value` is missing/empty, the message **MUST NOT** render.
 
 ---
 
@@ -147,9 +138,9 @@ All interactive flows use a **global transaction state machine**.
 2. The frontend **MUST NOT** call on-chain `epoch()` for UI timing; compute epoch start/end from a **canonical clock** vs `GENESIS` using shared helper logic.
 3. Canonical clock sources (priority order):
    - **Connected wallet:** latest block timestamp (chain time).
-   - **Pre-connect:** S3 `meta.timestamp` (snapshot time) with a local offset.
+   - **Pre-connect:** global-data `meta.timestamp` (snapshot time) with a local offset.
    - **Fallback:** local system time.
-   - **Mock-mode exception (`NEXT_PUBLIC_USE_MOCKS=true`):** use local mock clock only and bypass chain/S3 sources so debug time travel is deterministic.
+   - **Mock-mode exception (`NEXT_PUBLIC_USE_MOCKS=true`):** use local mock clock only and bypass chain/global-data sources so debug time travel is deterministic.
 4. Countdown displays use locally derived epoch end timestamps from `EpochInfo` helpers based on the canonical clock.
 
 ---
@@ -527,7 +518,7 @@ UI requirements:
   - Sell (Redeem): Max = `min(WalletBalance, CapacityRemaining * Rate)`.
   - Buy (Mint): Max = `Inventory / Rate`.
 - **LLYFI Ledger (Table):**
-  - MUST render before wallet connect using S3 global data.
+  - MUST render before wallet connect using R2/static global data.
   - **Locker Status** MUST display `global.veyfi.tokens[].redemption.capacity` (YFI locked).
   - **Effective APR** MUST use `llyfi[].current.aprBps` (or `projected.aprBps` when `epoch == 0`), which already includes boost + ratio.
   - **Base APR** shown in veYFI/LLYFI APR breakdowns MUST be back-calculated from the canonical effective APR using the displayed boost multiplier and staked ratio; it MUST NOT read directly from `styfi.current.aprBps`, because intra-epoch stYFI stake changes can make that value drift from veYFI/LLYFI base APR.

@@ -20,8 +20,6 @@ const expectedRuntimeEnv: Record<string, string> = {
     "${{ vars.NEXT_PUBLIC_GLOBAL_DATA_URL || secrets.NEXT_PUBLIC_GLOBAL_DATA_URL }}",
   NEXT_PUBLIC_YETH_GLOBAL_DATA_URL:
     "${{ secrets.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL || vars.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL }}",
-  NEXT_PUBLIC_MOTD_URL:
-    "${{ vars.NEXT_PUBLIC_MOTD_URL || secrets.NEXT_PUBLIC_MOTD_URL }}",
   NEXT_PUBLIC_RPC_URLS:
     "${{ secrets.NEXT_PUBLIC_RPC_URLS || vars.NEXT_PUBLIC_RPC_URLS }}",
 };

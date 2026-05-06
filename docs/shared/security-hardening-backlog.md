@@ -117,7 +117,7 @@ Acceptance criteria:
 
 ### 5.2 Update docs
 - [x] Document new env flags, release invariants, dependency policy, and yETH gating.
-- [x] Document accepted risk: unsigned off-chain global/MOTD data.
+- [x] Document accepted risk: unsigned off-chain global data.
 
 Acceptance criteria:
 - Operational docs reflect production hardening behavior.

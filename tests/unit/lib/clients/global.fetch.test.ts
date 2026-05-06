@@ -67,16 +67,13 @@ describe("fetchGlobalData", () => {
     await expect(fetchGlobalData()).resolves.toBeNull();
   });
 
-  it("uses direct fetch on server runtime", async () => {
+  it("uses the configured direct data URL", async () => {
     process.env.NEXT_PUBLIC_GLOBAL_DATA_URL = "https://example.invalid/stats.json";
     const fetchMock = vi
       .fn()
       .mockImplementation(async (input: string | URL | Request) => {
         const url = typeof input === "string" ? input : input.toString();
-        if (
-          url === process.env.NEXT_PUBLIC_GLOBAL_DATA_URL ||
-          url === "/api/global-data"
-        ) {
+        if (url === process.env.NEXT_PUBLIC_GLOBAL_DATA_URL) {
           return jsonResponse(createPayload("1700000000"));
         }
         return jsonResponse({ error: "unexpected URL" }, 404);
@@ -87,17 +84,20 @@ describe("fetchGlobalData", () => {
     const data = await fetchGlobalData();
 
     expect(data?.meta.timestamp).toBe(1700000000);
-    expect(fetchMock).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/stats.json", {
+      cache: "no-store",
+    });
   });
 
-  it("uses proxy source in browser and avoids cross-origin direct fetches", async () => {
+  it("uses the configured direct data URL in browser runtime", async () => {
     process.env.NEXT_PUBLIC_GLOBAL_DATA_URL = "https://example.invalid/stats.json";
     vi.stubGlobal("window", {} as Window);
     const fetchMock = vi
       .fn()
       .mockImplementation(async (input: string | URL | Request) => {
         const url = typeof input === "string" ? input : input.toString();
-        if (url === "/api/global-data") {
+        if (url === process.env.NEXT_PUBLIC_GLOBAL_DATA_URL) {
           return jsonResponse(createPayload("1700000001"));
         }
         return jsonResponse({ error: "unexpected URL" }, 404);
@@ -109,6 +109,8 @@ describe("fetchGlobalData", () => {
 
     expect(data?.meta.timestamp).toBe(1700000001);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("/api/global-data", { cache: "no-store" });
+    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/stats.json", {
+      cache: "no-store",
+    });
   });
 });

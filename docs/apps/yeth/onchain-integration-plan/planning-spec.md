@@ -23,7 +23,7 @@ This MVP intentionally prioritizes **simplicity** and a **small onchain read sur
 ### In scope
 - Onchain reads for:
   - account: claimable amount and Recovery Vault shares
-- S3-backed global reads for disconnected-wallet rendering via dedicated yETH feed:
+- R2-backed global reads for disconnected-wallet rendering via dedicated yETH feed:
   - claim deadline
   - vault metrics
   - snapshot metadata (`generatedAt`, `blockNumber`)
@@ -82,12 +82,12 @@ Avoid adding yETH constants to `lib/constants.ts` unless you want them app-wide.
 For this MVP, it is acceptable for `OnchainYethClient` to import `./deployment.json`
 directly from the yETH client folder.
 
-### 3.3 Separate yETH global data feed (S3)
+### 3.3 Separate yETH global data feed (R2)
 
 Create a dedicated yETH JSON feed (same storage location family as existing global data):
 
 - env: `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`
-- proxy route: `/api/yeth-global-data` (recommended to mirror existing proxy pattern)
+- fetcher: direct read from `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`; the data origin must allow browser CORS for app hosts.
 - schema: versioned yETH-only payload (see `docs/apps/yeth/onchain-integration-plan/yeth-global-data-schema-v1.md`)
 
 Rationale:
@@ -187,7 +187,7 @@ The page should render:
 
 Minimal reads:
 
-**From yETH S3 feed (`NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`)**
+**From yETH R2/static JSON feed (`NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`)**
 - `claim.closesAt`
 - `yieldVault.tvlEth`
 - `recoveryVault.pps`
@@ -211,8 +211,8 @@ Minimal reads:
 - no required account reads
 
 Read-path requirements:
-- `getGlobalState()` must succeed with wallet disconnected from yETH S3 feed.
-- If yETH S3 feed is unavailable/invalid, return safe fallback global state and keep route alive.
+- `getGlobalState()` must succeed with wallet disconnected from the yETH R2/static JSON feed.
+- If the yETH R2/static JSON feed is unavailable/invalid, return safe fallback global state and keep route alive.
 - Optional: when chain read client is available, deadline may be live-overlaid for freshness.
 
 ### 6.2 Writes

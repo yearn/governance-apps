@@ -27,9 +27,8 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - `NEXT_PUBLIC_RPC_URLS`: Comma-separated RPC URLs used to seed wagmi transports (`https://` required on HTTPS sites). Required in production; optional in non-production.
 - `NEXT_PUBLIC_USE_MOCKS`: Set to `true` to use mock clients instead of on-chain reads/writes.
 - `NEXT_PUBLIC_E2E`: Enables deterministic E2E wallet behavior and mock identity wiring.
-- `NEXT_PUBLIC_GLOBAL_DATA_URL`: URL for global stats JSON payload.
-- `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`: URL for yETH global stats JSON payload.
-- `NEXT_PUBLIC_MOTD_URL`: URL for MOTD JSON payload used in stats bars.
+- `NEXT_PUBLIC_GLOBAL_DATA_URL`: URL for the stYFI / veYFI global stats JSON payload.
+- `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`: URL for the yETH global stats JSON payload.
 - `NEXT_PUBLIC_ENABLE_YBC`: Enables YBC routes/host in production runtime.
 - `NEXT_PUBLIC_ENABLE_YETH`: Enables yETH routes/host in production runtime.
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI`: Enables `/debug/ui` in production runtime.

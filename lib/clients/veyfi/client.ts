@@ -11,7 +11,7 @@ export interface VeyfiClient {
   getNudgeState(address: `0x${string}`): Promise<VeyfiNudgeState>;
   getGlobalStats(): Promise<VeyfiGlobalStats>;
   /**
-   * Optional: force an on-chain stats fetch, bypassing S3.
+   * Optional: force an on-chain stats fetch, bypassing the global data feed.
    */
   getGlobalStatsFromChain?: () => Promise<VeyfiGlobalStats>;
   prepareMigrateVeYfi(): Promise<PreparedTransaction>;

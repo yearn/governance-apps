@@ -14,13 +14,13 @@
 - Env: `NEXT_PUBLIC_USE_MOCKS=true`
 - **Default:** Disabled in repo; enable for local UI-only testing.
 - **Effect:** Uses `MockStyfiClient`, `MockVeyfiClient`, and `MockYethClient` instead of on-chain calls.
-- **Clock behavior in mock mode:** Epoch and cooldown UI timing uses the local mock clock (`nowSeconds`) instead of chain/S3 canonical clock sources.
+- **Clock behavior in mock mode:** Epoch and cooldown UI timing uses the local mock clock (`nowSeconds`) instead of chain/global-data canonical clock sources.
 - **Manual UAT tip:** For wallet-connect UX testing in mock mode, set `NEXT_PUBLIC_E2E=false`. If `NEXT_PUBLIC_E2E=true`, the app uses a fixed mock connector address and behaves as connected.
 
 ## Clock Source by Mode
 
-- **Non-mock mode:** Epoch clock source priority remains chain timestamp (when connected) -> S3 `meta.timestamp` (pre-connect) -> local fallback.
-- **Mock mode (`NEXT_PUBLIC_USE_MOCKS=true`):** Epoch clock intentionally bypasses chain/S3 and uses local mock time only. This keeps debug time travel deterministic and isolated from production data feeds.
+- **Non-mock mode:** Epoch clock source priority remains chain timestamp (when connected) -> global-data `meta.timestamp` (pre-connect) -> local fallback.
+- **Mock mode (`NEXT_PUBLIC_USE_MOCKS=true`):** Epoch clock intentionally bypasses chain/global-data and uses local mock time only. This keeps debug time travel deterministic and isolated from production data feeds.
 
 ## yETH Mock Backend
 
@@ -45,9 +45,9 @@
 
 ## Global Data (Non-Mock Mode)
 
-- Env: `NEXT_PUBLIC_GLOBAL_DATA_URL` (S3 or similar).
+- Env: `NEXT_PUBLIC_GLOBAL_DATA_URL` (R2 or similar static JSON storage).
 - Used to hydrate global, non-account stats before a wallet connects.
-- The client reads via `/api/global-data` proxy to avoid CORS issues.
+- The client reads the configured URL directly; the data origin must allow browser CORS for app hosts.
 - If missing, the UI renders skeletons for global stats until a wallet connects.
 
 ## Public RPC (Required in Production)

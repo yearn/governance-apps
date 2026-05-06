@@ -20,7 +20,7 @@ This runbook describes the single-service operational mode for safe validation i
 - `ADMIN_CHAT_ID` (optional prod-only destination for operational warnings such as throttling and scan-budget stall alerts)
 - `ADMIN_TOKEN` (required if using `/admin/*` endpoints)
 - `MANUAL_RUN_TOKEN` (only used when `MANUAL_RUN_ENABLED=true`)
-- `GLOBAL_DATA_URL` (optional S3/global JSON URL used to enrich YFI-denominated alerts with USD values via `global.yfi.priceCts`)
+- `GLOBAL_DATA_URL` (optional R2/static global JSON URL used to enrich YFI-denominated alerts with USD values via `global.yfi.priceCts`)
 
 ### Vars (or secrets)
 

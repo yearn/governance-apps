@@ -20,9 +20,9 @@ Arguments:
 
 Examples:
   npm run check:veyfi-apr
-  npm run check:veyfi-apr -- https://styfi.s3.fr-par.scw.cloud/mainnet/stats.json
+  npm run check:veyfi-apr -- https://data.dao-ops.com/prod/stats.json
   npm run check:veyfi-apr -- ./stats.json --boost-epochs 95 --current-epoch 2
-  curl -fsSL https://styfi.s3.fr-par.scw.cloud/mainnet/stats.json | npm run check:veyfi-apr -- -
+  curl -fsSL https://data.dao-ops.com/prod/stats.json | npm run check:veyfi-apr -- -
 `);
 }
 

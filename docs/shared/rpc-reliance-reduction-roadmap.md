@@ -37,7 +37,7 @@ This roadmap prioritizes reducing unnecessary browser RPC load and burst behavio
 2. Identity and domain account hooks overlap and can duplicate expensive reads.
 3. `/styfi` currently reads veYFI account state for external-position UX, which is high fanout.
 4. Nudge queries can perform additional account-like reads every 30s.
-5. Connected sessions prefer on-chain stats polling even when S3/global data exists.
+5. Connected sessions prefer on-chain stats polling even when global data exists.
 
 ## 4. Guiding Principles
 
@@ -84,7 +84,7 @@ This is the only phase that should be started immediately.
 - [x] `RPC-004` Restrict account/nudge polling to relevant routes and connected states only.
 - [ ] `RPC-005` Cache blacklist probe capability result per session/chain/contract.
 - [ ] `RPC-006` Make expensive simulation-like reads on-demand (or lower cadence) unless visible.
-- [ ] `RPC-007` Use S3-first stats by default; use short-lived post-write chain refresh override instead of always-on connected polling.
+- [ ] `RPC-007` Use global-data-first stats by default; use short-lived post-write chain refresh override instead of always-on connected polling.
 - [ ] `RPC-008` Add minimal telemetry counters required for go/no-go decisions (request volume, error rate, latency).
 
 ### P1 Completion Notes (Current)
@@ -227,10 +227,10 @@ These can be started by a new agent immediately, in order.
   - Read volume reduction confirmed.
   - UI copy/loading states remain coherent.
 
-### `RPC-007` S3-first stats policy
+### `RPC-007` Global-data-first stats policy
 
 - Scope:
-  - Prefer global/S3 stats for steady-state display.
+  - Prefer global-data stats for steady-state display.
   - Keep short-lived on-chain overrides after writes for freshness.
 - Acceptance:
   - Connected steady-state stats polling load decreases.

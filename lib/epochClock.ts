@@ -4,7 +4,7 @@ import { nowSeconds } from "@/lib/mocks/time";
 import { getEpochInfo } from "@/lib/format";
 import { GENESIS, EPOCH_LENGTH } from "@/lib/constants";
 
-export type EpochClockSource = "chain" | "s3" | "local";
+export type EpochClockSource = "chain" | "global-data" | "local";
 
 export type EpochClockBase = {
   source: EpochClockSource;
@@ -70,12 +70,12 @@ export async function resolveEpochClockBase({
     }
   }
 
-  const s3Timestamp = parseUnixSeconds(globalData?.meta?.timestamp);
-  if (s3Timestamp !== null) {
+  const globalDataTimestamp = parseUnixSeconds(globalData?.meta?.timestamp);
+  if (globalDataTimestamp !== null) {
     return {
-      source: "s3",
-      sourceTimestamp: s3Timestamp,
-      offsetSeconds: s3Timestamp - localNow,
+      source: "global-data",
+      sourceTimestamp: globalDataTimestamp,
+      offsetSeconds: globalDataTimestamp - localNow,
     };
   }
 

@@ -11,7 +11,6 @@ import {
   useStyfiStats,
 } from "@/lib/hooks/useStyfi";
 import { useVeyfiAccount, useVeyfiStats } from "@/lib/hooks/useVeyfi";
-import { useMotd } from "@/lib/hooks/useMotd";
 import { StyfiCockpit } from "./components/StyfiCockpit";
 import { AccountSummary } from "./components/AccountSummary";
 import type { StyfiAsset } from "./components/types";
@@ -94,7 +93,6 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
   const { data: account, isLoading: isAccountLoading } = useStyfiAccount();
   const { data: veyfiAccount, isLoading: isVeyfiLoading } = useVeyfiAccount();
   const { data: veyfiStats } = useVeyfiStats();
-  const { data: motd } = useMotd();
   const { globalData } = useProtocol();
   const { epochInfo } = useEpochClock({ tickMs: 60_000 });
   const [selectedAsset, setSelectedAsset] = useState<StyfiAsset>();
@@ -180,11 +178,6 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
   const aprLabel = showProjectedApy
     ? copy.page.stats.aprEpoch1.label
     : copy.page.stats.apr.label;
-  const motdValue = motd?.styfi?.value?.trim();
-  const motdLabel = motd?.styfi?.label?.trim() || "State";
-  const motdItem = motdValue
-    ? { label: motdLabel, value: motdValue }
-    : null;
   const activeAsset = selectedAsset ?? "stYFIx";
   const balances = account ? deriveBalances(account) : null;
   const externalPositions = deriveExternalPositions(
@@ -279,7 +272,6 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
             label: aprLabel,
             value: formattedApy,
           },
-          ...(motdItem ? [motdItem] : []),
         ]}
       />
 

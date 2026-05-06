@@ -41,7 +41,7 @@ It specifically addresses:
 ## 3. Page Structure
 
 1. **Global Header** (standard Yearn header)
-2. **Protocol Stats Bar** (Total Supply, Staked, APR, optional State). Show **"Epoch 1 APR"** when current epoch == 0 from the canonical clock. **Staked** should use `styfi.staked` (excludes cooldown balances; `styfi.unstaking` is the cooldown amount). The **State** item is sourced from the MOTD JSON (`NEXT_PUBLIC_MOTD_URL`) and is omitted if missing/invalid.
+2. **Protocol Stats Bar** (Total Supply, Staked, APR). Show **"Epoch 1 APR"** when current epoch == 0 from the canonical clock. **Staked** should use `styfi.staked` (excludes cooldown balances; `styfi.unstaking` is the cooldown amount).
 3. **AccountSummary** (Hero for new users, positions list for returning users)
 4. **Cockpit** (StakeManageCard + Rewards)
 5. **Contracts Footer** (`<details>` disclosure with Etherscan links for YFI, stYFI, stYFIx, Reward Claimer, and reward token)

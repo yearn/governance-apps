@@ -17,14 +17,14 @@ import {
 const CLOCK_REFRESH_MS = 60_000;
 
 function computeInitialBase(
-  s3Timestamp: number | null,
+  globalDataTimestamp: number | null,
   localNowSeconds: number
 ): EpochClockBase {
-  if (s3Timestamp !== null) {
+  if (globalDataTimestamp !== null) {
     return {
-      source: "s3",
-      sourceTimestamp: s3Timestamp,
-      offsetSeconds: s3Timestamp - localNowSeconds,
+      source: "global-data",
+      sourceTimestamp: globalDataTimestamp,
+      offsetSeconds: globalDataTimestamp - localNowSeconds,
     };
   }
   return {
@@ -48,18 +48,22 @@ export function useEpochClock({ tickMs = 1000 }: { tickMs?: number } = {}) {
   const usesMockBackend = protocol?.usesMockBackend ?? false;
   const publicClient = protocol?.publicClient ?? null;
   const globalData = protocol?.globalData ?? null;
-  const s3Timestamp = useMemo(
+  const globalDataTimestamp = useMemo(
     () =>
       usesMockBackend ? null : parseUnixSeconds(globalData?.meta?.timestamp),
     [usesMockBackend, globalData?.meta?.timestamp]
   );
   const initialBase = useMemo(() => {
     const localNow = nowSeconds();
-    return computeInitialBase(s3Timestamp, localNow);
-  }, [s3Timestamp]);
+    return computeInitialBase(globalDataTimestamp, localNow);
+  }, [globalDataTimestamp]);
 
   const { data: resolvedBase = initialBase } = useQuery({
-    queryKey: ["epoch-clock-base", publicClient?.chain?.id ?? null, s3Timestamp],
+    queryKey: [
+      "epoch-clock-base",
+      publicClient?.chain?.id ?? null,
+      globalDataTimestamp,
+    ],
     queryFn: () => resolveEpochClockBase({ publicClient, globalData }),
     enabled: !usesMockBackend,
     staleTime: CLOCK_REFRESH_MS,

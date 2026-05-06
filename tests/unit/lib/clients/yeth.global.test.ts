@@ -47,7 +47,7 @@ describe("fetchYethGlobalData", () => {
     await expect(fetchYethGlobalData()).resolves.toBeNull();
   });
 
-  it("uses direct fetch only on the server runtime", async () => {
+  it("uses the configured direct data URL", async () => {
     process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL =
       "https://example.invalid/yeth-global.json";
 
@@ -74,7 +74,7 @@ describe("fetchYethGlobalData", () => {
     );
   });
 
-  it("uses proxy source in browser and avoids cross-origin direct fetches", async () => {
+  it("uses the configured direct data URL in browser runtime", async () => {
     process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL =
       "https://example.invalid/yeth-global.json";
     vi.stubGlobal("window", {} as Window);
@@ -83,7 +83,7 @@ describe("fetchYethGlobalData", () => {
       .fn()
       .mockImplementation(async (input: string | URL | Request) => {
         const url = typeof input === "string" ? input : input.toString();
-        if (url === "/api/yeth-global-data") {
+        if (url === process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL) {
           return jsonResponse(createPayload(200));
         }
         return jsonResponse({ error: "unexpected URL" }, 404);
@@ -96,12 +96,12 @@ describe("fetchYethGlobalData", () => {
 
     expect(data?.generatedAt).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("/api/yeth-global-data", {
+    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/yeth-global.json", {
       cache: "no-store",
     });
   });
 
-  it("returns null in browser when proxy source is invalid and direct is cross-origin", async () => {
+  it("returns null when the configured direct data URL is invalid", async () => {
     process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL =
       "https://example.invalid/yeth-global.json";
     vi.stubGlobal("window", {} as Window);
@@ -111,7 +111,7 @@ describe("fetchYethGlobalData", () => {
       .fn()
       .mockImplementation(async (input: string | URL | Request) => {
         const url = typeof input === "string" ? input : input.toString();
-        if (url === "/api/yeth-global-data") {
+        if (url === process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL) {
           return jsonResponse({ version: 99 }, 200);
         }
         return jsonResponse({ error: "unexpected URL" }, 404);

@@ -10,7 +10,7 @@ This plan intentionally **reduces scope** to ship an initial production-ready on
 - **No `opensAt` / pre-window state.** Claims are treated as **open** until the onchain `deadline`.
 - **No snapshots.** We do not ship or host `snapshot.json` data in this app.
 - **No log/event lookups.** We do not attempt to classify "ineligible" vs "claimed/exited" or compute historical amounts.
-- **Dedicated yETH global data feed.** `/yeth` uses its own versioned S3 JSON (`yeth-global.json`) for disconnected-wallet global rendering.
+- **Dedicated yETH global data feed.** `/yeth` uses its own versioned R2/static JSON (`yeth-global.json`) for disconnected-wallet global rendering.
 - **Static trust text for MVP.** `yieldSources`, `risks`, and governance links remain app constants unless explicit operational need emerges.
 - Account UX is based on only two signals:
   1) `claimable(address) > 0` (show claim UI)
@@ -30,6 +30,6 @@ Unzip at the **repo root**. It will add:
 
 1. Complete **WP0** first (deployment config + yETH global feed contract).
 2. Then run **WP1** (UI + type simplification) so the app no longer assumes `opensAt`.
-3. Implement **WP2/WP3** (S3-backed global reads + onchain account reads/writes) in parallel.
+3. Implement **WP2/WP3** (R2-backed global reads + onchain account reads/writes) in parallel.
 4. Merge with **WP4** (protocol wiring).
 5. Validate with **WP5** (mainnet fork runbook).

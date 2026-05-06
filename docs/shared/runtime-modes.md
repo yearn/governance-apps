@@ -39,13 +39,12 @@ Before deploying production:
 3. `NEXT_PUBLIC_E2E=false`
 4. `NEXT_PUBLIC_WC_PROJECT_ID` is set
 5. `NEXT_PUBLIC_GLOBAL_DATA_URL` is set
-6. `NEXT_PUBLIC_MOTD_URL` is set
-7. `NEXT_PUBLIC_ENABLE_TEAMS` is set to `true` only after production approval
-8. `NEXT_PUBLIC_ENABLE_YBC` is set to `true` only after production approval
-9. If `NEXT_PUBLIC_ENABLE_YETH=true`, `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` is set
-10. `NEXT_PUBLIC_RPC_URLS` is set (comma-separated list, at least one URL)
-11. `NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK=false`
-12. Run `npm run validate:prod-env`
+6. `NEXT_PUBLIC_ENABLE_TEAMS` is set to `true` only after production approval
+7. `NEXT_PUBLIC_ENABLE_YBC` is set to `true` only after production approval
+8. If `NEXT_PUBLIC_ENABLE_YETH=true`, `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` is set
+9. `NEXT_PUBLIC_RPC_URLS` is set (comma-separated list, at least one URL)
+10. `NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK=false`
+11. Run `npm run validate:prod-env`
 
 ## Preview checklist
 

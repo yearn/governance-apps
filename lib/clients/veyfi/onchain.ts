@@ -630,7 +630,7 @@ export class OnchainVeyfiClient implements VeyfiClient {
       try {
         return await this.overlayInventoryFromChain(base);
       } catch (e) {
-        console.warn("Failed to overlay live inventory, using S3 data", e);
+        console.warn("Failed to overlay live inventory, using global data", e);
         return base;
       }
     }

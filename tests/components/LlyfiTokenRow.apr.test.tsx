@@ -124,10 +124,10 @@ describe("LlyfiTokenRow APR calculations", () => {
     expect(screen.getByText("60% Boosted Base")).toBeInTheDocument();
   });
 
-  it("uses S3 staked ratio to back-calculate base APR when effective APR is canonical", () => {
+  it("uses global-data staked ratio to back-calculate base APR when effective APR is canonical", () => {
     mockUseProtocol.mockReturnValue({
       globalData: buildGlobalData({
-        // S3 ratio = 100%; token live ratio = 50%.
+        // Global-data ratio = 100%; token live ratio = 50%.
         staked: "100000000000000000000",
         aprBps: 8000,
         baseAprBps: 1000,

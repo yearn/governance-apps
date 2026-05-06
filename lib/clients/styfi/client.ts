@@ -16,7 +16,7 @@ export interface StyfiClient {
   getEpochInfo(): Promise<EpochInfo>;
   getStats(): Promise<StyfiGlobalStats>;
   /**
-   * Optional: force an on-chain stats fetch, bypassing S3.
+   * Optional: force an on-chain stats fetch, bypassing the global data feed.
    */
   getStatsFromChain?: () => Promise<StyfiGlobalStats>;
 

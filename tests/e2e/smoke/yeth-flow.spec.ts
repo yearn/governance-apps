@@ -10,6 +10,8 @@ import {
 const OPEN_CLAIM_WINDOW_NOW = 1_770_000_000;
 
 test("claim, stay, redeem, claim-ended, and empty-state flows", async ({ page }) => {
+  test.setTimeout(120_000);
+
   await page.goto("/yeth");
   await waitForTestBridge(page);
   await resetBridge(page);

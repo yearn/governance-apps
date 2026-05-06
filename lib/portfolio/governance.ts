@@ -33,13 +33,13 @@ export function resolveStyfiBaseAprBps({
   isEpochZero: boolean;
   fallbackAprBps?: number | null;
 }): number | null {
-  const s3AprBps = globalData?.styfi
+  const globalDataAprBps = globalData?.styfi
     ? toFiniteNumber(
         isEpochZero ? globalData.styfi.projected.aprBps : globalData.styfi.current.aprBps
       )
     : null;
 
-  return s3AprBps ?? toFiniteNumber(fallbackAprBps);
+  return globalDataAprBps ?? toFiniteNumber(fallbackAprBps);
 }
 
 export function resolveStyfixAprBps({
@@ -51,14 +51,14 @@ export function resolveStyfixAprBps({
   isEpochZero: boolean;
   fallbackAprBps?: number | null;
 }): number | null {
-  const s3AprBps = globalData?.styfix
+  const globalDataAprBps = globalData?.styfix
     ? toFiniteNumber(
         isEpochZero ? globalData.styfix.projected.aprBps : globalData.styfix.current.aprBps
       )
     : null;
 
   return (
-    s3AprBps ??
+    globalDataAprBps ??
     resolveStyfiBaseAprBps({
       globalData,
       isEpochZero,
@@ -76,11 +76,11 @@ export function getLlyfiBackingYfi({
   fallbackCapacity: bigint;
   globalData?: GlobalData | null;
 }): bigint {
-  const s3Capacity = globalData?.global?.veyfi?.tokens?.find(
+  const globalDataCapacity = globalData?.global?.veyfi?.tokens?.find(
     (entry) => normalizeLlyfiSymbol(entry.symbol) === symbol
   )?.redemption.capacity;
 
-  return toBigInt(s3Capacity, fallbackCapacity);
+  return toBigInt(globalDataCapacity, fallbackCapacity);
 }
 
 export function deriveLlyfiAprMetrics({
@@ -113,20 +113,24 @@ export function deriveLlyfiAprMetrics({
     fallbackCapacity: depositorCapacity,
     globalData,
   });
-  const s3Llyfi = globalData?.llyfi?.find(
+  const globalDataLlyfi = globalData?.llyfi?.find(
     (entry) => normalizeLlyfiSymbol(entry.symbol) === symbol
   );
-  const s3Staked = s3Llyfi
-    ? toBigInt(s3Llyfi.staked) + toBigInt(s3Llyfi.unstaking)
+  const globalDataStaked = globalDataLlyfi
+    ? toBigInt(globalDataLlyfi.staked) + toBigInt(globalDataLlyfi.unstaking)
     : null;
-  const stakedForRatio = s3Staked ?? depositorTotalSupply;
+  const stakedForRatio = globalDataStaked ?? depositorTotalSupply;
   const utilizationRatio =
     backingYfi > 0n
       ? Number((stakedForRatio * UTILIZATION_SCALE) / backingYfi) / Number(UTILIZATION_SCALE)
       : 0;
   const utilizationRatioForApr = Math.max(MIN_UTILIZATION, utilizationRatio);
-  const s3EffectiveAprBps = s3Llyfi
-    ? toFiniteNumber(isEpochZero ? s3Llyfi.projected.aprBps : s3Llyfi.current.aprBps)
+  const globalDataEffectiveAprBps = globalDataLlyfi
+    ? toFiniteNumber(
+        isEpochZero
+          ? globalDataLlyfi.projected.aprBps
+          : globalDataLlyfi.current.aprBps
+      )
     : null;
   const fallbackBaseAprBpsValue = resolveStyfiBaseAprBps({
     globalData,
@@ -136,15 +140,18 @@ export function deriveLlyfiAprMetrics({
   const fallbackBaseApr =
     fallbackBaseAprBpsValue === null ? null : fallbackBaseAprBpsValue / 10000;
   const derivedBaseApr = deriveBaseAprFromEffective({
-    effectiveApr: s3EffectiveAprBps === null ? null : s3EffectiveAprBps / 10000,
+    effectiveApr:
+      globalDataEffectiveAprBps === null
+        ? null
+        : globalDataEffectiveAprBps / 10000,
     utilizationRatio,
     boostMultiplier,
   });
   const baseApr = derivedBaseApr ?? fallbackBaseApr;
   const boostedBaseApr = baseApr === null ? null : baseApr * boostMultiplier;
   const effectiveApr =
-    s3EffectiveAprBps !== null
-      ? s3EffectiveAprBps / 10000
+    globalDataEffectiveAprBps !== null
+      ? globalDataEffectiveAprBps / 10000
       : boostedBaseApr === null
         ? null
         : boostedBaseApr / utilizationRatioForApr;

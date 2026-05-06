@@ -1,6 +1,6 @@
-# Global Data Schema (S3 JSON)
+# Global Data Schema (R2 JSON)
 
-This document defines the **required** JSON schema served from S3 (or similar) and consumed by the frontend before a wallet connects. It powers global stats, inventory, and preview APR data without requiring any RPC.
+This document defines the **required** JSON schema served from Cloudflare R2 (or similar static JSON storage) and consumed directly by the frontend before a wallet connects. It powers global stats, inventory, and preview APR data without requiring any RPC.
 
 ## Source
 

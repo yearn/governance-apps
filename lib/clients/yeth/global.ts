@@ -4,7 +4,6 @@ import {
 } from "@/lib/schemas/yeth-global";
 
 const YETH_GLOBAL_DATA_URL = process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL;
-const YETH_GLOBAL_DATA_PROXY = "/api/yeth-global-data";
 let lastValidYethGlobalData: YethGlobalData | null = null;
 
 async function fetchAndValidate(url: string, label: string) {
@@ -32,35 +31,8 @@ async function fetchAndValidate(url: string, label: string) {
   }
 }
 
-function canAttemptDirectBrowserFetch(url: string): boolean {
-  if (typeof window === "undefined") return true;
-  try {
-    return new URL(url).origin === window.location.origin;
-  } catch {
-    return false;
-  }
-}
-
 export async function fetchYethGlobalData(): Promise<YethGlobalData | null> {
   if (!YETH_GLOBAL_DATA_URL) return null;
-
-  if (typeof window !== "undefined") {
-    const proxyData = await fetchAndValidate(YETH_GLOBAL_DATA_PROXY, "proxy");
-    if (proxyData) {
-      lastValidYethGlobalData = proxyData;
-      return proxyData;
-    }
-
-    if (canAttemptDirectBrowserFetch(YETH_GLOBAL_DATA_URL)) {
-      const directData = await fetchAndValidate(YETH_GLOBAL_DATA_URL, "direct");
-      if (directData) {
-        lastValidYethGlobalData = directData;
-        return directData;
-      }
-    }
-
-    return lastValidYethGlobalData;
-  }
 
   const directData = await fetchAndValidate(YETH_GLOBAL_DATA_URL, "direct");
   if (directData) {

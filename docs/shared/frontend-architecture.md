@@ -210,7 +210,7 @@ Under `/lib/hooks/useStyfi.ts`:
 
    - Source: `StyfiClient.getStats`
    - Returns: `totalSupply`, `totalStaked`.
-   - Global data is fetched via `/api/global-data` proxy in the browser to avoid CORS.
+   - Global data is fetched directly from `NEXT_PUBLIC_GLOBAL_DATA_URL`; the data origin must allow browser CORS for app hosts.
 
 3. `useStyfiApy()`
 
@@ -220,17 +220,11 @@ Under `/lib/hooks/useStyfi.ts`:
 4. `useEpoch()`
 
    - **Shared hook** (not `/styfi`-specific).
-   - Source (non-mock): canonical epoch clock (latest block timestamp when connected, else S3 `meta.timestamp`, else local time).
+   - Source (non-mock): canonical epoch clock (latest block timestamp when connected, else global-data `meta.timestamp`, else local time).
    - Source (mock mode): local mock clock only (`nowSeconds`) to support deterministic time travel for QA.
    - Returns: `currentEpoch`, `epochStart`, `epochEnd`.
 
-5. `useMotd()`
-
-   - **Shared hook** for optional stats-bar messaging.
-   - Source: S3 JSON (`NEXT_PUBLIC_MOTD_URL`) via `/api/motd` proxy in the browser.
-   - Returns: per-app label/value; missing or invalid data is ignored.
-
-6. Transaction flows use:
+5. Transaction flows use:
    - `prepareStake`, `prepareStartCooldown`, `prepareWithdraw`, `prepareClaimRewards`
    - `useTx()` from `/lib/tx/useTx.ts`
 
@@ -238,7 +232,7 @@ Under `/lib/hooks/useStyfi.ts`:
 
 Each card/component uses **only the hooks it needs**:
 
-- `StyfiPageClient` → `useStyfiStats`, `useStyfiApy`, `useMotd` (for StatsBar).
+- `StyfiPageClient` → `useStyfiStats`, `useStyfiApy`.
 - `AccountSummary` → `useStyfiAccount`.
 - `RewardsCard` → `useStyfiAccount`, `useStyfiApy`, `useRewardTokenInfo`.
 - `StakeTab` → `useStyfiAccount` (wallet balance) + `prepareStake`.
@@ -342,11 +336,6 @@ Under `/lib/hooks/useVeyfi.ts`:
 4.  `useLlyfiTokens()`
     - Selector on `useVeyfiAccount`.
     - Used by: `LlyfiTokenTable`.
-
-5.  `useMotd()`
-
-    - Shared hook for optional stats-bar messaging.
-    - Used by: `VeyfiStatsBar`.
 
 ### 9.4 State Management
 

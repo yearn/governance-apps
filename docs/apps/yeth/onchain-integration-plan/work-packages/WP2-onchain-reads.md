@@ -1,8 +1,8 @@
-# WP2 — yETH Reads (S3-backed Global + Onchain Account)
+# WP2 — yETH Reads (R2-backed Global + Onchain Account)
 
 ## Objective
 Implement yETH read paths with minimal surface area:
-- global state from dedicated yETH S3 feed
+- global state from dedicated yETH R2/static JSON feed
 - account state from chain
 
 ## Scope

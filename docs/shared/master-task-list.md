@@ -28,7 +28,7 @@ Use this with:
 - [x] stYFI/stYFIx staking, cooldown, withdrawal, rewards UX
 - [x] veYFI migration + LLYFI stake/unstake/trade UX
 - [x] On-chain clients for stYFI and veYFI
-- [x] Global data + MOTD S3 integration
+- [x] R2-backed global data integration
 
 ### 2.2 Remaining
 

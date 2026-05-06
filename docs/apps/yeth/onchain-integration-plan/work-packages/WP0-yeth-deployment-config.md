@@ -3,7 +3,7 @@
 ## Objective
 Establish yETH-specific configuration boundaries:
 - deployment addresses in repo (`lib/clients/yeth/deployment.json`)
-- a separate yETH global S3 feed contract (`yeth-global.json`) with a versioned schema
+- a separate yETH global R2/static JSON feed contract (`yeth-global.json`) with a versioned schema
 
 ## Scope
 - Add `lib/clients/yeth/deployment.json` with the provided content.
@@ -11,7 +11,7 @@ Establish yETH-specific configuration boundaries:
 - Define yETH global feed schema + env key:
   - `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`
   - versioned payload contract for external producer (v1)
-- Add yETH global-data fetch/proxy plumbing (or document exact implementation plan if done in WP2).
+- Add yETH global-data fetch plumbing (or document exact implementation plan if done in WP2).
 
 ## Deliverables
 - `lib/clients/yeth/deployment.json`
@@ -21,7 +21,7 @@ Establish yETH-specific configuration boundaries:
   - `docs/apps/yeth/onchain-integration-plan/yeth-global-data-schema-v1.md`
 - `lib/schemas/yeth-global.ts` (recommended)
 - `lib/clients/yeth/global.ts` or equivalent fetcher (recommended)
-- `/api/yeth-global-data` proxy route (recommended)
+- direct fetch from `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`
 
 ## Dependencies
 None.

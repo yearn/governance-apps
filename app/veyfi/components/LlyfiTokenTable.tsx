@@ -16,10 +16,10 @@ export function LlyfiTokenTable() {
   const aprLabel = isEpochZero
     ? copy.manage.columns.aprEpoch1
     : copy.manage.columns.apr;
-  const isS3Ready =
+  const isGlobalDataReady =
     usesMockBackend || (!!globalData?.global?.veyfi && !!globalData?.llyfi);
 
-  if (!isS3Ready || tokens.length === 0) {
+  if (!isGlobalDataReady || tokens.length === 0) {
     return (
       <div id="llyfi-ledger" className="space-y-4">
         <h3 className="text-xl font-bold text-neutral-900 px-1">

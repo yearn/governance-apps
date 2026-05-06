@@ -61,7 +61,6 @@ Production invariants (enforced when runtime mode resolves to `production`):
 - `NEXT_PUBLIC_E2E` must be `false`
 - `NEXT_PUBLIC_WC_PROJECT_ID` is required
 - `NEXT_PUBLIC_GLOBAL_DATA_URL` is required
-- `NEXT_PUBLIC_MOTD_URL` is required
 - `NEXT_PUBLIC_RPC_URLS` is required and must include at least one URL
 
 Feature gating in production:
@@ -157,15 +156,15 @@ Security rationale:
 - This repository intentionally keeps the `middleware.ts` convention for now so routing and header logic stay centralized in the current deployment path.
 - The warning is expected and currently treated as non-blocking.
 
-## 7. Accepted Risk: Unsigned Off-Chain Global/MOTD Data
+## 7. Accepted Risk: Unsigned Off-Chain Global Data
 
 Current accepted risk:
 
-- Global stats (`NEXT_PUBLIC_GLOBAL_DATA_URL`) and MOTD (`NEXT_PUBLIC_MOTD_URL`) are schema-validated but not cryptographically signed.
+- Global stats (`NEXT_PUBLIC_GLOBAL_DATA_URL`) are schema-validated but not cryptographically signed.
 
 Current impact boundary:
 
-- These payloads drive display and UX text only.
+- These payloads drive display-only global stats and inventory previews.
 - Transaction arguments and signing flows are sourced from wallet-connected chain reads and explicit user actions, not from remote JSON.
 
 Mitigations in place:

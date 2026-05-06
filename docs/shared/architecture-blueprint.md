@@ -48,7 +48,7 @@ Core principles:
 - **Domain-first**: Domain clients: `StyfiClient`, `VeyfiClient`, and `YethClient`.
 - **Separation of concerns**: UI never touches viem/wagmi directly except read helpers; all writes go via `useTx`.
 - **Mock-capable**: Deterministic mocks are available for local dev (`NEXT_PUBLIC_USE_MOCKS=true`).
-- **Hybrid data**: Global, non-account stats load from S3 JSON; account-specific data upgrades to wallet RPC after connect.
+- **Hybrid data**: Global, non-account stats load from R2/static JSON; account-specific data upgrades to wallet RPC after connect.
 - **Simplicity**: No auto-approvals, no magic.
 - **Predictable state flow**: domain reads → domain UI → `prepare*` → `useTx`.
 
@@ -257,45 +257,28 @@ A single top-level provider binds domain clients to the UI.
 - **Mock clients** (`NEXT_PUBLIC_USE_MOCKS=true`)
 
 On-chain clients are implemented for stYFI, veYFI, and yETH (when mocks are disabled).  
-When mocks are disabled, global data loads from S3 (`NEXT_PUBLIC_GLOBAL_DATA_URL` for stYFI/veYFI and `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` for yETH), and the public client is derived from the connected wallet (EIP‑1193). This means the app can render global stats before connection and upgrade to live reads after a wallet connects.
+When mocks are disabled, global data loads from R2/static JSON (`NEXT_PUBLIC_GLOBAL_DATA_URL` for stYFI/veYFI and `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` for yETH), and the public client is derived from the connected wallet (EIP-1193). This means the app can render global stats before connection and upgrade to live reads after a wallet connects.
 
 **Read/Write policy:**
 
-- **Global reads** come from S3 JSON before connect and can switch to on-chain stats after connect for fresher totals.
+- **Global reads** come from R2/static JSON before connect and can switch to on-chain stats after connect for fresher totals.
 - **Account reads** use the wallet-backed public client after connect.
 - **Writes** always go through wallet signing via `useTx`.
-- **Epoch clock (non-mock mode)** uses latest block timestamp when connected, otherwise S3 `meta.timestamp` (with a local offset), with local time as a final fallback.
-- **Epoch clock (mock mode)** uses local mock time only and intentionally bypasses chain/S3 sources to keep debug time travel deterministic.
+- **Epoch clock (non-mock mode)** uses latest block timestamp when connected, otherwise global-data `meta.timestamp` (with a local offset), with local time as a final fallback.
+- **Epoch clock (mock mode)** uses local mock time only and intentionally bypasses chain/global-data sources to keep debug time travel deterministic.
 
 ---
 
-## 6.1 Global Data (S3)
+## 6.1 Global Data (R2)
 
-Global, non-account data is fetched from a static JSON blob (S3 or similar):
+Global, non-account data is fetched from a static JSON blob (Cloudflare R2 or similar):
 
 - Source: `NEXT_PUBLIC_GLOBAL_DATA_URL`
 - Validation: Zod schema in `lib/schemas/global.ts`
-- Fetcher: `lib/clients/global.ts` (returns `null` on failure). Uses a same-origin proxy route (`/api/global-data`) in the browser to avoid CORS issues.
+- Fetcher: `lib/clients/global.ts` (returns `null` when unconfigured and rejects invalid configured payloads). The browser reads the configured URL directly, so the data origin must allow CORS for app hosts.
 - Hook: `lib/hooks/useGlobalData.ts` (React Query cache, 60s staleness)
 
 This enables **first paint** of stats and inventory without a wallet connection and avoids hard dependency on public RPCs. Once a wallet is connected, stats hooks may prefer on-chain reads to reflect recent transactions immediately.
-
----
-
-## 6.2 MOTD (S3)
-
-Per-app status text for the stats bar is fetched from a lightweight, versioned JSON blob:
-
-- Source: `NEXT_PUBLIC_MOTD_URL`
-- Validation: Zod schema in `lib/schemas/motd.ts`
-- Fetcher: `lib/clients/motd.ts` (returns `null` on failure). Uses a same-origin proxy route (`/api/motd`) in the browser to avoid CORS issues.
-- Hook: `lib/hooks/useMotd.ts` (React Query cache, 60s staleness)
-
-**Render rules:**
-
-- If `value` is missing/empty -> the message is not rendered.
-- If `label` is missing/empty -> default to `State`.
-- Messages are per-app and do not affect protocol behavior.
 
 ---
 
@@ -502,7 +485,7 @@ The application now supports full on-chain integration via `OnchainStyfiClient` 
 ### Configuration:
 
 - Controlled via `NEXT_PUBLIC_USE_MOCKS=false`.
-- Global data is configured via `NEXT_PUBLIC_GLOBAL_DATA_URL` (S3 or similar).
+- Global data is configured via `NEXT_PUBLIC_GLOBAL_DATA_URL` (R2 or similar static JSON storage).
 - `NEXT_PUBLIC_RPC_URLS` is required in production and seeds wagmi transports.
 - In non-production, if `NEXT_PUBLIC_RPC_URLS` is unset, wagmi falls back to viem mainnet defaults.
 - Fork testing is handled by pointing `NEXT_PUBLIC_RPC_URLS` at the fork endpoint while keeping Chain ID 1.

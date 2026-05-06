@@ -32,4 +32,3 @@ Shared docs define requirements and architecture that apply across multiple apps
 ## Data Schemas
 
 - [`schemas/global-data-schema.md`](schemas/global-data-schema.md)
-- [`schemas/motd-schema.md`](schemas/motd-schema.md)
