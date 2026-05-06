@@ -63,7 +63,6 @@ export const PERMISSIONS_POLICY_HEADER = [
   "microphone=()",
   "payment=()",
   "usb=()",
-  "browsing-topics=()",
 ].join(", ");
 
 export const CROSS_ORIGIN_OPENER_POLICY_HEADER = "same-origin-allow-popups";

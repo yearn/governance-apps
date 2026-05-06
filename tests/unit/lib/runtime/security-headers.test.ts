@@ -91,6 +91,7 @@ describe("security header policy", () => {
     const policy = buildPermissionsPolicy();
     expect(policy).toBe(PERMISSIONS_POLICY_HEADER);
     expect(policy).not.toContain(";");
+    expect(policy).not.toContain("browsing-topics");
   });
 
   it("resolves additional connect-src origins from env URLs", () => {

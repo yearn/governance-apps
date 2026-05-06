@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/schemas/zod";
 
 const zBaseUnit = z.string().regex(/^(0|[1-9]\d*)$/);
 

@@ -8,9 +8,9 @@ const APP_NAV = {
   ybc: { label: "Yearn Builder's Collective", path: "/ybc" },
 } as const;
 
-type AppKey = keyof typeof APP_NAV;
+export type HeaderAppKey = keyof typeof APP_NAV;
 
-function isAppKey(value: string | null): value is AppKey {
+function isAppKey(value: string | null): value is HeaderAppKey {
   return (
     value === "styfi" ||
     value === "veyfi" ||
@@ -20,11 +20,11 @@ function isAppKey(value: string | null): value is AppKey {
   );
 }
 
-function resolveAppKey(
+export function resolveHeaderAppKey(
   pathname: string | null,
   segment: string | null,
   hostname: string | null | undefined
-): AppKey | null {
+): HeaderAppKey | null {
   const normalizedSegment = segment?.toLowerCase() ?? null;
   if (isAppKey(normalizedSegment)) {
     return normalizedSegment;
@@ -62,7 +62,7 @@ export function resolveHeaderPrimaryNav(
   segment: string | null,
   hostname?: string | null
 ) {
-  const appKey = resolveAppKey(pathname, segment, hostname);
+  const appKey = resolveHeaderAppKey(pathname, segment, hostname);
   if (!appKey) {
     return {
       label: "",

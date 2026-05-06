@@ -8,7 +8,7 @@ let lastValidYethGlobalData: YethGlobalData | null = null;
 
 async function fetchAndValidate(url: string, label: string) {
   try {
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch(url);
     if (!response.ok) {
       console.warn(`yETH global data fetch failed (${label}):`, response.status);
       return null;

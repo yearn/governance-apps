@@ -7,6 +7,7 @@ import {
   useMemo,
   ReactNode,
 } from "react";
+import { usePathname, useSelectedLayoutSegments } from "next/navigation";
 import { StyfiClient } from "@/lib/clients/styfi";
 import { VeyfiClient } from "@/lib/clients/veyfi";
 import { YethClient } from "@/lib/clients/yeth";
@@ -26,6 +27,8 @@ import { useYethGlobalData } from "@/lib/hooks/useYethGlobalData";
 import type { GlobalData } from "@/lib/schemas/global";
 import type { YethGlobalData } from "@/lib/schemas/yeth-global";
 import { assertProductionRuntimeInvariants } from "@/lib/runtime/invariants";
+import { resolveHeaderAppKey } from "@/lib/header-nav";
+import { useHostname } from "@/lib/hooks/useHostname";
 import {
   patchMockTeamsAdmin,
   patchMockTeamsBonus,
@@ -63,6 +66,13 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
   const preferMocks =
     process.env.NEXT_PUBLIC_USE_MOCKS === "true" ||
     process.env.NEXT_PUBLIC_E2E === "true";
+  const pathname = usePathname();
+  const segments = useSelectedLayoutSegments();
+  const hostname = useHostname();
+  const appKey = resolveHeaderAppKey(pathname, segments?.[0] ?? null, hostname);
+  const shouldLoadStatsData =
+    !preferMocks && (appKey === "styfi" || appKey === "veyfi");
+  const shouldLoadYethData = !preferMocks && appKey === "yeth";
 
   const mockClients = useMemo(
     () => ({
@@ -73,8 +83,8 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const { data: globalData } = useGlobalData();
-  const { data: yethGlobalData } = useYethGlobalData(!preferMocks);
+  const { data: globalData } = useGlobalData(shouldLoadStatsData);
+  const { data: yethGlobalData } = useYethGlobalData(shouldLoadYethData);
   const { data: walletClient } = useWalletClient();
   const rpcPublicClient = usePublicClient({ chainId: mainnet.id });
   const walletChainId = walletClient?.chain?.id;

@@ -22,10 +22,16 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
       tokenSymbol,
       error,
       disabled,
+      id,
+      name,
       ...props
     },
     ref
   ) => {
+    const generatedId = React.useId();
+    const inputId = id ?? `amount-${generatedId.replace(/:/g, "")}`;
+    const inputName = name ?? inputId;
+
     return (
       <div className="w-full">
         <div
@@ -40,6 +46,8 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
         >
           <input
             ref={ref}
+            id={inputId}
+            name={inputName}
             type="text"
             inputMode="decimal"
             placeholder="0.00"

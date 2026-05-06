@@ -4,7 +4,7 @@ const GLOBAL_DATA_URL = process.env.NEXT_PUBLIC_GLOBAL_DATA_URL;
 
 async function fetchAndValidate(url: string, label: string) {
   try {
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch(url);
     if (!response.ok) {
       console.warn(`Global data fetch failed (${label}):`, response.status);
       return null;

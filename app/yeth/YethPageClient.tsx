@@ -299,8 +299,13 @@ export function YethPageClient() {
             <p className="text-sm text-text-secondary leading-relaxed">
               {copy.riskModal.body}
             </p>
-            <label className="flex items-start gap-3 text-sm text-text-primary">
+            <label
+              htmlFor="yeth-risk-acceptance"
+              className="flex items-start gap-3 text-sm text-text-primary"
+            >
               <input
+                id="yeth-risk-acceptance"
+                name="yeth-risk-acceptance"
                 type="checkbox"
                 className="mt-0.5 h-4 w-4 rounded border-border"
                 checked={riskAccepted}

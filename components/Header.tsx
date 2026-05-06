@@ -8,7 +8,7 @@ import { useEpochClock } from "@/lib/hooks/useEpochClock";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useGlobalData } from "@/lib/hooks/useGlobalData";
 import { useProtocol } from "@/state/protocol";
-import { resolveHeaderPrimaryNav } from "@/lib/header-nav";
+import { resolveHeaderAppKey, resolveHeaderPrimaryNav } from "@/lib/header-nav";
 import { useEffect, useState } from "react";
 import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
 import { HeaderNavMenu } from "@/components/header/HeaderNavMenu";
@@ -18,17 +18,24 @@ import { useHostname } from "@/lib/hooks/useHostname";
 export function Header() {
   const pathname = usePathname();
   const segments = useSelectedLayoutSegments();
-  const segment = segments[0] ?? null;
+  const segment = segments?.[0] ?? null;
   const hostname = useHostname();
   const clock = useEpochClock({ tickMs: 1000 });
-  const { isLoading: isGlobalLoading } = useGlobalData();
+  const preferMocks =
+    process.env.NEXT_PUBLIC_USE_MOCKS === "true" ||
+    process.env.NEXT_PUBLIC_E2E === "true";
+  const appKey = resolveHeaderAppKey(pathname, segment, hostname);
+  const shouldShowEpochPill = appKey === "styfi" || appKey === "veyfi";
+  const { isLoading: isGlobalLoading } = useGlobalData(
+    shouldShowEpochPill && !preferMocks
+  );
   const { publicClient } = useProtocol();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Resolve current app name (stYFI, veYFI, etc)
   const primaryNav = resolveHeaderPrimaryNav(pathname, segment, hostname);
-  const isYethApp = primaryNav.label === "yETH";
-  const showEpochPill = !isYethApp && (!!publicClient || !isGlobalLoading);
+  const showEpochPill =
+    shouldShowEpochPill && (!!publicClient || !isGlobalLoading);
 
   return (
     <>
@@ -49,7 +56,7 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
-            {!isYethApp ? (
+            {shouldShowEpochPill ? (
               <div className="hidden sm:block">
                 {showEpochPill ? (
                   <EpochCountdownBadge epoch={clock.epochInfo} now={clock.now} />

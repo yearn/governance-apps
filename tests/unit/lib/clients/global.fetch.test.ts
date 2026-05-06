@@ -85,9 +85,7 @@ describe("fetchGlobalData", () => {
 
     expect(data?.meta.timestamp).toBe(1700000000);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/stats.json", {
-      cache: "no-store",
-    });
+    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/stats.json");
   });
 
   it("uses the configured direct data URL in browser runtime", async () => {
@@ -109,8 +107,6 @@ describe("fetchGlobalData", () => {
 
     expect(data?.meta.timestamp).toBe(1700000001);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/stats.json", {
-      cache: "no-store",
-    });
+    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/stats.json");
   });
 });

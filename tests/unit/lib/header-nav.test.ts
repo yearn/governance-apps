@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveHeaderPrimaryNav } from "@/lib/header-nav";
+import {
+  resolveHeaderAppKey,
+  resolveHeaderPrimaryNav,
+} from "@/lib/header-nav";
 
 describe("resolveHeaderPrimaryNav", () => {
   it("resolves branded stYFI host routes to root nav href", () => {
@@ -105,5 +108,29 @@ describe("resolveHeaderPrimaryNav", () => {
       label: "",
       path: "/",
     });
+  });
+});
+
+describe("resolveHeaderAppKey", () => {
+  it("resolves preprod product subdomains for route-scoped data loading", () => {
+    expect(resolveHeaderAppKey("/", null, "styfi-beta.dao-ops.com")).toBe(
+      "styfi"
+    );
+    expect(resolveHeaderAppKey("/", null, "veyfi-beta.dao-ops.com")).toBe(
+      "veyfi"
+    );
+    expect(resolveHeaderAppKey("/", null, "yeth-beta.dao-ops.com")).toBe(
+      "yeth"
+    );
+  });
+
+  it("resolves product path prefixes for shared hosts", () => {
+    expect(resolveHeaderAppKey("/styfi", null, "app.dao-ops.com")).toBe(
+      "styfi"
+    );
+    expect(resolveHeaderAppKey("/veyfi", null, "app.dao-ops.com")).toBe(
+      "veyfi"
+    );
+    expect(resolveHeaderAppKey("/yeth", null, "app.dao-ops.com")).toBe("yeth");
   });
 });

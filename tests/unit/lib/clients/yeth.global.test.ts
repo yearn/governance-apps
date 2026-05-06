@@ -69,8 +69,7 @@ describe("fetchYethGlobalData", () => {
     expect(data?.generatedAt).toBe(100);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://example.invalid/yeth-global.json",
-      { cache: "no-store" }
+      "https://example.invalid/yeth-global.json"
     );
   });
 
@@ -96,9 +95,9 @@ describe("fetchYethGlobalData", () => {
 
     expect(data?.generatedAt).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/yeth-global.json", {
-      cache: "no-store",
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.invalid/yeth-global.json"
+    );
   });
 
   it("returns null when the configured direct data URL is invalid", async () => {
