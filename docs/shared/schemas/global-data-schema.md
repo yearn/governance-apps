@@ -1,12 +1,12 @@
 # Global Data Schema (R2 JSON)
 
-This document defines the **required** JSON schema served from Cloudflare R2 (or similar static JSON storage) and consumed directly by the frontend before a wallet connects. It powers global stats, inventory, and preview APR data without requiring any RPC.
+This document defines the **required** JSON schema served from Cloudflare R2 (or similar static JSON storage) and consumed before a wallet connects. Browser runtime loads it through the same-origin `/api/global-data` proxy; server/runtime code may fetch the configured upstream directly. It powers global stats, inventory, and preview APR data without requiring any RPC.
 
 ## Source
 
 - Env: `NEXT_PUBLIC_GLOBAL_DATA_URL`
 - Validation: `lib/schemas/global.ts`
-- Fetcher: `lib/clients/global.ts`
+- Fetcher: `lib/clients/global.ts` via `/api/global-data` in browser runtime
 
 If the file is missing or invalid, the UI renders skeletons and waits for wallet-based reads.
 

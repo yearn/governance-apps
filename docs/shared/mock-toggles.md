@@ -47,7 +47,7 @@
 
 - Env: `NEXT_PUBLIC_GLOBAL_DATA_URL` (R2 or similar static JSON storage).
 - Used to hydrate global, non-account stats before a wallet connects.
-- The client reads the configured URL directly; the data origin must allow browser CORS for app hosts.
+- Server/runtime reads the configured URL directly; browser runtime reads `/api/global-data` so the payload is delivered same-origin.
 - If missing, the UI renders skeletons for global stats until a wallet connects.
 
 ## Public RPC (Required in Production)

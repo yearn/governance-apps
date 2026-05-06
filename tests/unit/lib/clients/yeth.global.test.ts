@@ -73,7 +73,7 @@ describe("fetchYethGlobalData", () => {
     );
   });
 
-  it("uses the configured direct data URL in browser runtime", async () => {
+  it("uses the same-origin proxy URL in browser runtime", async () => {
     process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL =
       "https://example.invalid/yeth-global.json";
     vi.stubGlobal("window", {} as Window);
@@ -82,7 +82,7 @@ describe("fetchYethGlobalData", () => {
       .fn()
       .mockImplementation(async (input: string | URL | Request) => {
         const url = typeof input === "string" ? input : input.toString();
-        if (url === process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL) {
+        if (url === "/api/yeth-global-data") {
           return jsonResponse(createPayload(200));
         }
         return jsonResponse({ error: "unexpected URL" }, 404);
@@ -95,12 +95,10 @@ describe("fetchYethGlobalData", () => {
 
     expect(data?.generatedAt).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://example.invalid/yeth-global.json"
-    );
+    expect(fetchMock).toHaveBeenCalledWith("/api/yeth-global-data");
   });
 
-  it("returns null when the configured direct data URL is invalid", async () => {
+  it("returns null when the same-origin proxy data is invalid", async () => {
     process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL =
       "https://example.invalid/yeth-global.json";
     vi.stubGlobal("window", {} as Window);
@@ -110,7 +108,7 @@ describe("fetchYethGlobalData", () => {
       .fn()
       .mockImplementation(async (input: string | URL | Request) => {
         const url = typeof input === "string" ? input : input.toString();
-        if (url === process.env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL) {
+        if (url === "/api/yeth-global-data") {
           return jsonResponse({ version: 99 }, 200);
         }
         return jsonResponse({ error: "unexpected URL" }, 404);

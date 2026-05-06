@@ -257,7 +257,7 @@ A single top-level provider binds domain clients to the UI.
 - **Mock clients** (`NEXT_PUBLIC_USE_MOCKS=true`)
 
 On-chain clients are implemented for stYFI, veYFI, and yETH (when mocks are disabled).  
-When mocks are disabled, global data loads from R2/static JSON (`NEXT_PUBLIC_GLOBAL_DATA_URL` for stYFI/veYFI and `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` for yETH), and the public client is derived from the connected wallet (EIP-1193). This means the app can render global stats before connection and upgrade to live reads after a wallet connects.
+When mocks are disabled, server/runtime global data loads from R2/static JSON (`NEXT_PUBLIC_GLOBAL_DATA_URL` for stYFI/veYFI and `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` for yETH), while browser runtime reads the same payloads through same-origin API proxies. The public client is derived from the connected wallet (EIP-1193). This means the app can render global stats before connection and upgrade to live reads after a wallet connects.
 
 **Read/Write policy:**
 
@@ -275,7 +275,7 @@ Global, non-account data is fetched from a static JSON blob (Cloudflare R2 or si
 
 - Source: `NEXT_PUBLIC_GLOBAL_DATA_URL`
 - Validation: Zod schema in `lib/schemas/global.ts`
-- Fetcher: `lib/clients/global.ts` (returns `null` when unconfigured and rejects invalid configured payloads). The browser reads the configured URL directly, so the data origin must allow CORS for app hosts.
+- Fetcher: `lib/clients/global.ts` (returns `null` when unconfigured server-side and rejects invalid configured payloads). Browser runtime reads `/api/global-data`, which fetches the configured upstream URL server-side and returns JSON same-origin.
 - Hook: `lib/hooks/useGlobalData.ts` (React Query cache, 60s staleness)
 
 This enables **first paint** of stats and inventory without a wallet connection and avoids hard dependency on public RPCs. Once a wallet is connected, stats hooks may prefer on-chain reads to reflect recent transactions immediately.

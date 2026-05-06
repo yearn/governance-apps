@@ -21,7 +21,7 @@ Establish yETH-specific configuration boundaries:
   - `docs/apps/yeth/onchain-integration-plan/yeth-global-data-schema-v1.md`
 - `lib/schemas/yeth-global.ts` (recommended)
 - `lib/clients/yeth/global.ts` or equivalent fetcher (recommended)
-- direct fetch from `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`
+- server/runtime direct fetch from `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` with browser same-origin proxy loading through `/api/yeth-global-data`
 
 ## Dependencies
 None.

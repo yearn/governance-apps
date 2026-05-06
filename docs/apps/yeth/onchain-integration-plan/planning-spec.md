@@ -87,7 +87,7 @@ directly from the yETH client folder.
 Create a dedicated yETH JSON feed (same storage location family as existing global data):
 
 - env: `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`
-- fetcher: direct read from `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`; the data origin must allow browser CORS for app hosts.
+- fetcher: server/runtime direct read from `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`; browser runtime reads the same payload through `/api/yeth-global-data`.
 - schema: versioned yETH-only payload (see `docs/apps/yeth/onchain-integration-plan/yeth-global-data-schema-v1.md`)
 
 Rationale:

@@ -88,14 +88,14 @@ describe("fetchGlobalData", () => {
     expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/stats.json");
   });
 
-  it("uses the configured direct data URL in browser runtime", async () => {
+  it("uses the same-origin proxy URL in browser runtime", async () => {
     process.env.NEXT_PUBLIC_GLOBAL_DATA_URL = "https://example.invalid/stats.json";
     vi.stubGlobal("window", {} as Window);
     const fetchMock = vi
       .fn()
       .mockImplementation(async (input: string | URL | Request) => {
         const url = typeof input === "string" ? input : input.toString();
-        if (url === process.env.NEXT_PUBLIC_GLOBAL_DATA_URL) {
+        if (url === "/api/global-data") {
           return jsonResponse(createPayload("1700000001"));
         }
         return jsonResponse({ error: "unexpected URL" }, 404);
@@ -107,6 +107,6 @@ describe("fetchGlobalData", () => {
 
     expect(data?.meta.timestamp).toBe(1700000001);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("https://example.invalid/stats.json");
+    expect(fetchMock).toHaveBeenCalledWith("/api/global-data");
   });
 });

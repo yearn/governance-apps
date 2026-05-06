@@ -210,7 +210,7 @@ Under `/lib/hooks/useStyfi.ts`:
 
    - Source: `StyfiClient.getStats`
    - Returns: `totalSupply`, `totalStaked`.
-   - Global data is fetched directly from `NEXT_PUBLIC_GLOBAL_DATA_URL`; the data origin must allow browser CORS for app hosts.
+   - Server/runtime global data is fetched directly from `NEXT_PUBLIC_GLOBAL_DATA_URL`; browser runtime reads the same payload through `/api/global-data`.
 
 3. `useStyfiApy()`
 

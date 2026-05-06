@@ -1,6 +1,11 @@
 import { GlobalDataSchema, type GlobalData } from "@/lib/schemas/global";
 
 const GLOBAL_DATA_URL = process.env.NEXT_PUBLIC_GLOBAL_DATA_URL;
+const GLOBAL_DATA_PROXY_URL = "/api/global-data";
+
+function isBrowserRuntime() {
+  return typeof window !== "undefined";
+}
 
 async function fetchAndValidate(url: string, label: string) {
   try {
@@ -26,9 +31,13 @@ async function fetchAndValidate(url: string, label: string) {
 }
 
 export async function fetchGlobalData(): Promise<GlobalData | null> {
-  if (!GLOBAL_DATA_URL) return null;
+  const url = isBrowserRuntime() ? GLOBAL_DATA_PROXY_URL : GLOBAL_DATA_URL;
+  if (!url) return null;
 
-  const data = await fetchAndValidate(GLOBAL_DATA_URL, "direct");
+  const data = await fetchAndValidate(
+    url,
+    isBrowserRuntime() ? "same-origin proxy" : "direct"
+  );
   if (data) return data;
 
   throw new Error("No valid global data payload from configured source");
