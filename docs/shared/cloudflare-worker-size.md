@@ -50,3 +50,71 @@ route, keeping host routing in middleware and avoiding any UX change to first
 paint or canonical metadata that product still requires. Static conversion must
 also handle client hooks that force CSR bailouts, such as `useSearchParams()`,
 with explicit Suspense boundaries before it is safe to ship.
+
+## Future Deployment Directions
+
+The current deployment is a single Next.js/OpenNext application bundled into
+one Cloudflare Worker. That is the simplest operating model, but every route,
+shared provider, mock surface, and wallet dependency competes for the same
+3 MiB compressed Worker budget on the Free plan.
+
+Do not switch architecture only to recover a few KiB. Treat these options as
+milestone-level work after the active app surfaces stabilize, or earlier only
+if the Worker size check blocks a required release.
+
+### Per-App Workers In One Repository
+
+Keep one GitHub repository, but split deployable app entry points by product
+surface, for example `styfi`, `veyfi`, `yeth`, `teams`, and `ybc`. Shared UI,
+formatting, ABI, and protocol code can remain in common packages or shared
+repo directories, while each app builds and deploys to its own Cloudflare
+Worker and custom domain.
+
+This gives each app its own Worker size budget and allows per-app rollout and
+rollback. It also makes production bundles match exposed product surfaces more
+directly than runtime feature flags do. The tradeoff is operational and code
+organization cost: separate Wrangler configs, separate CI deploy jobs, clearer
+shared package boundaries, and more care when changing shared providers or
+layout primitives.
+
+Prefer this path when two or more additional apps are stable enough that route
+growth, wallet/runtime code, or app-specific mocks make the single Worker hard
+to keep under budget.
+
+### OpenNext Multi-Worker Split
+
+OpenNext supports an advanced multi-worker setup that can split a single
+Next/OpenNext application across multiple Workers. This preserves the single
+Next app shape more than per-app entry points do, but it cannot use the
+standard `@opennextjs/cloudflare deploy` command and has preview/skew
+protection limitations.
+
+Use this only if we need to keep one logical Next application while splitting
+runtime bundle pressure. It is an operations-heavy path and should follow a
+prototype that proves deployment, rollback, local development, and route
+versioning are acceptable.
+
+### Static SPA With Small API Workers
+
+A Vite/static SPA direction would move most UI code into static browser assets
+and keep Cloudflare Workers limited to small API, proxy, security, or data
+routes. This can greatly reduce Worker bundle pressure because app UI,
+RainbowKit, wagmi hooks, and route components are no longer part of the Worker
+script budget.
+
+The tradeoff is that this is closer to an app migration than a deployment
+tweak. We would give up much of the current Next.js App Router/OpenNext model:
+server route conventions, metadata behavior, middleware assumptions, route
+handlers, and some SSR/static-generation semantics would need replacements.
+Consider this only if the product is intentionally becoming a client-rendered
+application with thin edge APIs, or if Worker size becomes a recurring blocker
+even after per-app splitting.
+
+### Recommendation
+
+Finish and validate the active `/teams` and `/ybc` surfaces first unless Worker
+size blocks deployment. After those surfaces stabilize, revisit a per-app
+Worker split as the most conservative long-term scaling path. Keep OpenNext
+multi-worker and Vite/static SPA as fallback options for different constraints:
+single-app operational continuity for the former, minimal Worker scripts and
+client-first delivery for the latter.
