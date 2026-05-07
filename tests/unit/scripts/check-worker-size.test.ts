@@ -21,7 +21,7 @@ describe("check-worker-size", () => {
       evaluateWorkerSize({
         gzipKiB: 3087.38,
         limitKiB: 3072,
-        warnKiB: 3000,
+        warnKiB: 2900,
       })
     ).toMatchObject({ status: "fail" });
   });
@@ -29,9 +29,9 @@ describe("check-worker-size", () => {
   it("warns above the warning threshold while staying under the limit", () => {
     expect(
       evaluateWorkerSize({
-        gzipKiB: 3030,
+        gzipKiB: 2930,
         limitKiB: 3072,
-        warnKiB: 3000,
+        warnKiB: 2900,
       })
     ).toMatchObject({ status: "warn" });
   });
@@ -39,9 +39,9 @@ describe("check-worker-size", () => {
   it("passes when the gzip size is below the warning threshold", () => {
     expect(
       evaluateWorkerSize({
-        gzipKiB: 2900,
+        gzipKiB: 2890,
         limitKiB: 3072,
-        warnKiB: 3000,
+        warnKiB: 2900,
       })
     ).toMatchObject({ status: "pass" });
   });

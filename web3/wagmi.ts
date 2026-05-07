@@ -5,6 +5,7 @@ import {
   metaMaskWallet,
   rabbyWallet,
   safeWallet,
+  walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, mock } from "wagmi";
 import { mainnet } from "wagmi/chains";
@@ -99,8 +100,14 @@ export const wagmiConfig = isE2E
       wallets: [
         {
           groupName: "Wallets",
-          // Keep heavyweight wallet SDKs out of the OpenNext Worker bundle.
-          wallets: [injectedWallet, metaMaskWallet, safeWallet, rabbyWallet],
+          // Keep the explicit wallet list small enough for the OpenNext Worker bundle.
+          wallets: [
+            injectedWallet,
+            metaMaskWallet,
+            safeWallet,
+            rabbyWallet,
+            walletConnectWallet,
+          ],
         },
       ],
       // Using the fork definition for Chain ID 1

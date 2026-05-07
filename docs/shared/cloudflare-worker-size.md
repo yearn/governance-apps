@@ -13,17 +13,19 @@ npm run validate:worker-size -- wrangler.preprod.jsonc
 ```
 
 The default hard budget is `3072 KiB`, matching the 3 MiB Cloudflare free-plan
-limit. `WORKER_SIZE_WARN_KIB` defaults to `3000` so CI still surfaces when the
+limit. `WORKER_SIZE_WARN_KIB` defaults to `2900` so CI still surfaces when the
 bundle is deployable but close to the limit. Override `WORKER_SIZE_LIMIT_KIB`
 only when the target Cloudflare plan and rollout decision explicitly allow it.
 
 ## Immediate Reduction
 
 The default RainbowKit wallet list is intentionally limited to injected
-wallets, MetaMask, Safe, and Rabby. Coinbase Wallet, Rainbow Wallet,
-WalletConnect, Ledger, Ready, and Trust are excluded from the production list
-because their SDK graph is traced into the OpenNext server function and pushes
-the compressed Worker over the 3 MiB free-plan cap.
+wallets, MetaMask, Safe, Rabby, and WalletConnect. Coinbase Wallet, Rainbow
+Wallet, Ledger, Ready, and Trust are excluded from the production list because
+their SDK graph is traced into the OpenNext server function and pushes the
+compressed Worker over the 3 MiB free-plan cap when reintroduced together.
+The explicit Ledger tile remains excluded; Ledger Live can still be reached
+through WalletConnect-compatible flows.
 
 Reintroduce any excluded connector only with a fresh `npm run worker:build` and
 `npm run validate:worker-size -- wrangler.preprod.jsonc` measurement, leaving

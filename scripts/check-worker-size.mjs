@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = process.cwd();
 const DEFAULT_CONFIG = "wrangler.preprod.jsonc";
 const DEFAULT_LIMIT_KIB = 3072;
-const DEFAULT_WARN_KIB = 3000;
+const DEFAULT_WARN_KIB = 2900;
 
 export function parseWorkerUploadSize(output) {
   const match = output.match(
