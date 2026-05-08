@@ -12,7 +12,6 @@ const baseMetadata: Metadata = {
   description:
     "Manage legacy veYFI locks, migrate to the new system, and manage Liquid Lockers (LLYFI).",
   applicationName: "veYFI",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/favicons/favicon.svg", type: "image/svg+xml", sizes: "any" },

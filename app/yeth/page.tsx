@@ -16,7 +16,6 @@ const baseMetadata: Metadata = {
   description:
     "Recovery interface for yETH. Claim recovered ETH now, or stay in the Recovery Vault with ongoing risk.",
   applicationName: "yETH Recovery",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/favicons/favicon.svg", type: "image/svg+xml", sizes: "any" },

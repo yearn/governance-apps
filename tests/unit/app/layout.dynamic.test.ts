@@ -8,13 +8,16 @@ describe("root layout rendering mode", () => {
     const source = readFileSync(layoutPath, "utf8");
 
     expect(source).not.toContain('export const dynamic = "force-dynamic";');
+    expect(source).not.toContain('from "next/headers"');
   });
 
-  it("does not depend on request headers in app head", () => {
-    const headPath = path.join(process.cwd(), "app", "head.tsx");
-    const source = readFileSync(headPath, "utf8");
+  it("renders credentialed global head assets from the root layout", () => {
+    const layoutPath = path.join(process.cwd(), "app", "layout.tsx");
+    const source = readFileSync(layoutPath, "utf8");
 
-    expect(source).not.toContain('from "next/headers"');
     expect(source).toContain("<ThemeScript />");
+    expect(source).toContain('rel="manifest"');
+    expect(source).toContain('href="/manifest.webmanifest"');
+    expect(source).toContain('crossOrigin="use-credentials"');
   });
 });

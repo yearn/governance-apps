@@ -14,7 +14,6 @@ const baseMetadata: Metadata = {
   description:
     "Directory-first finance and operations workspace for registered protocol teams.",
   applicationName: "Team Finances",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/favicons/favicon.svg", type: "image/svg+xml", sizes: "any" },

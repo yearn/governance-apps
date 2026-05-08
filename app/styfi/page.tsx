@@ -12,7 +12,6 @@ const baseMetadata: Metadata = {
   description:
     "Stake YFI to earn yield and participate in Yearn Governance. Manage stYFI and stYFIx positions.",
   applicationName: "stYFI",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/favicons/favicon.svg", type: "image/svg+xml", sizes: "any" },

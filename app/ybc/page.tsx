@@ -14,7 +14,6 @@ const baseMetadata: Metadata = {
   description:
     "Governance and membership workspace for the Yearn Builder's Collective.",
   applicationName: "Yearn Builder's Collective",
-  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/favicons/favicon.svg", type: "image/svg+xml", sizes: "any" },
