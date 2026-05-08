@@ -26,7 +26,7 @@
     "agent:bootstrap": "./scripts/agent-worktree.sh"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "1.15.1",
+    "@opennextjs/cloudflare": "1.19.8",
     "@rainbow-me/rainbowkit": "2.2.10",
     "@tanstack/react-query": "5.90.10",
     "clsx": "2.1.1",
@@ -51,12 +51,12 @@
     "@types/react-dom": "19.2.3",
     "baseline-browser-mapping": "2.9.19",
     "eslint": "9.39.1",
-    "eslint-config-next": "16.0.3",
+    "eslint-config-next": "16.2.6",
     "jsdom": "27.4.0",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "vitest": "2.1.9",
-    "wrangler": "4.60.0"
+    "wrangler": "4.90.0"
   },
   "engines": {
     "node": "22.x"

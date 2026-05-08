@@ -58,5 +58,6 @@ declare module "next/dist/lib/metadata/types/metadata-interface.js" {
 
 declare module "next/dist/build/segment-config/app/app-segment-config.js" {
   export type AppSegmentConfig = UnknownRecord;
+  export type InstantConfigForTypeCheckInternal = UnknownRecord;
   export type PrefetchForTypeCheckInternal = UnknownRecord;
 }
