@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -10,6 +10,57 @@ const SCRIPT_PATH = path.resolve(
 );
 
 const createdDirs: string[] = [];
+const runningNpmVersion = spawnSync("npm", ["--version"], {
+  encoding: "utf8",
+}).stdout.trim();
+const exactNpmPackageManager = `npm@${runningNpmVersion}`;
+
+const allowlistedInstallScriptLockPackages = {
+  "node_modules/@opennextjs/aws/node_modules/esbuild": {
+    version: "0.25.4",
+    hasInstallScript: true,
+  },
+  "node_modules/bufferutil": {
+    version: "4.0.9",
+    hasInstallScript: true,
+  },
+  "node_modules/esbuild": {
+    version: "0.21.5",
+    hasInstallScript: true,
+  },
+  "node_modules/fsevents": {
+    version: "2.3.3",
+    hasInstallScript: true,
+  },
+  "node_modules/keccak": {
+    version: "3.0.4",
+    hasInstallScript: true,
+  },
+  "node_modules/playwright/node_modules/fsevents": {
+    version: "2.3.2",
+    hasInstallScript: true,
+  },
+  "node_modules/sharp": {
+    version: "0.34.5",
+    hasInstallScript: true,
+  },
+  "node_modules/unrs-resolver": {
+    version: "1.11.1",
+    hasInstallScript: true,
+  },
+  "node_modules/utf-8-validate": {
+    version: "5.0.10",
+    hasInstallScript: true,
+  },
+  "node_modules/workerd": {
+    version: "1.20260507.1",
+    hasInstallScript: true,
+  },
+  "node_modules/wrangler/node_modules/esbuild": {
+    version: "0.27.3",
+    hasInstallScript: true,
+  },
+};
 
 function createTempRepo(options?: {
   packageManager?: string;
@@ -18,14 +69,20 @@ function createTempRepo(options?: {
   optionalDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   overrides?: Record<string, unknown>;
+  lockPackages?: Record<string, unknown>;
 }) {
   const {
-    packageManager = "npm@11.3.0",
+    packageManager = exactNpmPackageManager,
     dependencies = { foo: "1.0.0" },
     devDependencies = { bar: "2.0.0" },
     optionalDependencies = {},
     peerDependencies = {},
     overrides = {},
+    lockPackages = {
+      "node_modules/foo": { version: "1.0.0" },
+      "node_modules/bar": { version: "2.0.0", dev: true },
+      ...allowlistedInstallScriptLockPackages,
+    },
   } = options ?? {};
   const dir = mkdtempSync(path.join(tmpdir(), "dep-policy-"));
   createdDirs.push(dir);
@@ -55,7 +112,7 @@ function createTempRepo(options?: {
       {
         name: "tmp",
         lockfileVersion: 3,
-        packages: {},
+        packages: lockPackages,
       },
       null,
       2
@@ -63,6 +120,21 @@ function createTempRepo(options?: {
   );
 
   return dir;
+}
+
+function futureDate(daysFromNow: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + daysFromNow);
+  return date.toISOString().slice(0, 10);
+}
+
+function writeReleaseAgeOverrides(cwd: string, overrides: unknown[]) {
+  const githubDir = path.join(cwd, ".github");
+  mkdirSync(githubDir, { recursive: true });
+  writeFileSync(
+    path.join(githubDir, "npm-release-age-overrides.json"),
+    JSON.stringify({ overrides }, null, 2)
+  );
 }
 
 function runValidator(cwd: string) {
@@ -81,7 +153,7 @@ afterEach(() => {
 
 describe("validate-dependency-policy", () => {
   it("passes when packageManager pins an exact npm version", () => {
-    const cwd = createTempRepo({ packageManager: "npm@11.3.0" });
+    const cwd = createTempRepo({ packageManager: exactNpmPackageManager });
     const result = runValidator(cwd);
 
     expect(result.status).toBe(0);
@@ -181,5 +253,59 @@ describe("validate-dependency-policy", () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("Dependency policy validation passed.");
+  });
+
+  it("fails when a locked package declares an unreviewed install script", () => {
+    const cwd = createTempRepo({
+      lockPackages: {
+        "node_modules/foo": { version: "1.0.0" },
+        "node_modules/bar": { version: "2.0.0", dev: true },
+        ...allowlistedInstallScriptLockPackages,
+        "node_modules/surprise-build": {
+          version: "1.2.3",
+          hasInstallScript: true,
+        },
+      },
+    });
+    const result = runValidator(cwd);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain(
+      "surprise-build@1.2.3 declares an install script"
+    );
+  });
+
+  it("passes with a non-expired release-age override for a locked package", () => {
+    const cwd = createTempRepo();
+    writeReleaseAgeOverrides(cwd, [
+      {
+        package: "foo",
+        version: "1.0.0",
+        expires: futureDate(7),
+        reason: "Urgent security advisory validation",
+        reference: "https://github.com/example/advisory",
+      },
+    ]);
+    const result = runValidator(cwd);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Dependency policy validation passed.");
+  });
+
+  it("fails when a release-age override is expired", () => {
+    const cwd = createTempRepo();
+    writeReleaseAgeOverrides(cwd, [
+      {
+        package: "foo",
+        version: "1.0.0",
+        expires: futureDate(-1),
+        reason: "Urgent security advisory validation",
+        reference: "https://github.com/example/advisory",
+      },
+    ]);
+    const result = runValidator(cwd);
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("expired on");
   });
 });
