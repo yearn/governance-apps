@@ -22,8 +22,11 @@ Operational playbook:
 - Direct dependencies and devDependencies are pinned to exact versions in `/package.json`.
 - Dependency versions must be exact semver specifiers (`x.y.z`, with optional prerelease/build metadata).
 - Non-deterministic specifiers (tags like `latest`, ranges, git URLs, and protocol aliases) are rejected.
-- `packageManager` is pinned to an exact npm version.
+- `packageManager` is pinned to an exact npm version and CI installs that exact npm version before dependency installation.
 - `package-lock.json` is required and must use `lockfileVersion >= 3`.
+- GitHub Actions are pinned to full commit SHAs with same-line version comments so Dependabot can update the SHA and human-readable version together.
+- Packages that declare npm lifecycle install scripts are rejected unless the exact lockfile path and version are allowlisted in `/scripts/validate-dependency-policy.mjs`.
+- Dependabot version updates are enabled for GitHub Actions and npm with a 7-day cooldown.
 
 ### 2.2 Local Install Policy
 
@@ -31,19 +34,62 @@ Operational playbook:
 
 - `save-exact=true`
 - `engine-strict=true`
+- `min-release-age=7`
 - `audit=false`
 - `fund=false`
+
+`ignore-scripts=true` is intentionally not set globally. This app depends on reviewed native/binary packages such as `esbuild`, `sharp`, `workerd`, and `wrangler`, where install scripts perform platform binary selection or validation. New install scripts must be reviewed and allowlisted by exact lockfile path and version instead.
 
 ### 2.3 CI Enforcement
 
 CI workflow `/.github/workflows/security-and-quality.yml` enforces:
 
-- `npm ci` (no floating installs)
 - `npm run validate:deps`
+- configured npm release-age policy
+- `npm ci` (no floating installs)
 - `npm run validate:prod-env`
 - `npm run typecheck`
 - `npm run lint`
 - `npm test`
+
+Deployment workflows apply the same dependency policy before building or deploying workers.
+
+### 2.4 Release-Age Override Path
+
+The default policy rejects package versions published less than 7 days ago. For an urgent security fix that cannot wait for the age window:
+
+1. Manually verify the advisory, upstream release, changelog, and package provenance.
+2. Update the dependency and lockfile with the age gate disabled only for the local command:
+
+```bash
+env npm_config_min_release_age=0 npm install <package>@<version> --save-exact
+```
+
+Use `--save-dev` as well when the override is for a development dependency.
+
+3. Add `.github/npm-release-age-overrides.json` in the same PR:
+
+```json
+{
+  "overrides": [
+    {
+      "package": "<package>",
+      "version": "<version>",
+      "expires": "YYYY-MM-DD",
+      "reason": "Urgent fix for <advisory or incident>",
+      "reference": "https://..."
+    }
+  ]
+}
+```
+
+Rules:
+
+- `expires` must be within 14 days and is checked in UTC.
+- The override must reference a package/version present in `package-lock.json`.
+- CI disables the npm release-age gate only while a non-expired override exists.
+- npm does not currently provide per-package release-age exclusions, so this override disables the age gate for the install run; reviewers must treat the lockfile diff as part of the exception review.
+- Remove the override once the package version is older than 7 days or the emergency is resolved.
 
 ## 3. Production Runtime Invariants
 
