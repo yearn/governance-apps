@@ -12,19 +12,27 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
 
-      - name: Install Dependencies
-        run: npm ci
+      - name: Setup npm
+        env:
+          npm_config_min_release_age: "0"
+        run: npm install --global npm@11.14.0
 
       - name: Validate Dependency Policy
         run: npm run validate:deps
+
+      - name: Configure npm Install Policy
+        run: node ./scripts/configure-npm-install-policy.mjs >> "$GITHUB_ENV"
+
+      - name: Install Dependencies
+        run: npm ci
 
       - name: Validate Production Env Invariants
         env:
