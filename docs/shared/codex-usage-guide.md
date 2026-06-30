@@ -1,16 +1,22 @@
 # Codex Delivery Guide for Teams + YBC
 
-This guide is for running the new Teams and YBC work in controlled parallel tracks.
+This guide is for running Teams and YBC production work in controlled parallel tracks.
+The current production path is feed-first: `governance-apps` defines and consumes the
+feed contract, while `gov-apps-stats` produces `teams.json` and `ybc.json`.
 
 ## 1. Pick the work package first
 
 Before creating a worktree, decide:
 
-- track: `teams` or `ybc`
-- milestone: `m0`, `m1`, `m2`, ...
+- repo: `governance-apps` or `gov-apps-stats`
+- track: `shared`, `teams`, or `ybc`
+- milestone: `m3a`, `m3b`, `m3c`, `m4`, ...
 - work package: `wp0`, `wp1`, ...
 
 Do **not** create every future worktree up front.
+
+Use shared WP2 in the `gov-apps-stats` repo. Do not implement producer code in a
+`governance-apps` worktree.
 
 ## 2. Create a focused worktree
 
@@ -63,9 +69,12 @@ For the current package, read in order:
 
 1. `AGENTS.md`
 2. `docs/shared/teams-ybc-delivery-roadmap.md`
-3. the app README (`docs/apps/teams/README.md` or `docs/apps/ybc/README.md`)
-4. the work package doc under `onchain-integration-plan/work-packages/`
-5. the role prompt you are using
+3. `docs/shared/teams-ybc-production-plan.md`
+4. for producer work, `docs/shared/gov-apps-stats-teams-ybc-feed-brief.md`
+5. the app README (`docs/apps/teams/README.md` or `docs/apps/ybc/README.md`)
+6. the work package doc under `onchain-integration-plan/work-packages/` or
+   `docs/shared/work-packages/`
+7. the role prompt you are using
 
 ## 4. Implement in small scope
 
@@ -73,6 +82,8 @@ For implementers:
 - stay inside the stated work package
 - do not consume later milestone scope
 - use the existing repo patterns before inventing new abstractions
+- do not let browser code own historical Teams/YBC log indexing
+- do not change feed schema shape without updating the consumer contract docs
 
 ## 5. Run the minimum validation
 
@@ -129,8 +140,25 @@ Recommended promotion path:
 ### Implementer
 Builds the scoped package.
 
+For `gov-apps-stats`, the implementer owns producer indexing and staging publication only.
+For `governance-apps`, the implementer owns schemas, validation, frontend reads, writes,
+or rollout depending on the package.
+
 ### Reviewer
 Checks correctness, scope, tests, accessibility, and consistency.
 
+For producer work, also check event reducer determinism, cursor safety, snapshot block
+consistency, and atomic publication.
+
 ### Integrator
 Owns merge order, conflict resolution, milestone assembly, and release readiness notes.
+
+## 11. Cross-repo handoff order
+
+1. Complete shared WP1 in `governance-apps`.
+2. Start shared WP2 in `gov-apps-stats` using the producer brief.
+3. Publish staging `teams.json` and `ybc.json`.
+4. Complete shared WP3 in `governance-apps` to validate staging feeds.
+5. Start Teams WP9 and YBC WP8 for feed-backed reads.
+6. Start Teams WP10 and YBC WP9 for launch-scope writes.
+7. Finish Teams WP11 and YBC WP10 for fork/preprod/rollout.

@@ -3,7 +3,8 @@
 App name / slug: `teams`
 Route key: `/teams`
 Beta host: `teams-beta.dao-ops.com`
-Production host: `teams.yearn.fi` (gated until live contract wiring and production approval)
+Production host: `teams.yearn.fi` (gated until feed-backed reads, launch writes, fork
+smoke, and production approval)
 Display label: `Team Finances`
 
 ## Product summary
@@ -78,10 +79,17 @@ The workspace tab renders the deeper operational sections on one page so deep li
 such as `#revenue`, `#funding`, `#bonus`, and `#lifecycle` scroll directly to their
 audit and action areas.
 
+## Live data path
+
+The production Teams route should consume a dedicated `teams.json` feed from
+`gov-apps-stats`, configured by `NEXT_PUBLIC_TEAMS_DATA_URL`. The feed owns historical
+team, revenue, funding, bonus, and accounting state. The frontend owns presentation,
+wallet-specific overlays, and launch-scope writes through the shared transaction flow.
+
 The route remains path-first on shared hosts. `teams-beta.dao-ops.com` is the beta
-review target for mock/dummy data. `teams.yearn.fi` is reserved for production and
-must remain gated until live contract wiring is complete and production approval is
-recorded.
+review target. `teams.yearn.fi` is reserved for production and must remain gated until
+the feed-backed read model, launch writes, fork smoke, preprod smoke, and production
+approval are complete.
 
 ## Included docs
 
@@ -90,3 +98,5 @@ recorded.
 - `docs/apps/teams/mock-data-schema-v1.md`
 - `docs/apps/teams/examples/mock-data.example.json`
 - `docs/apps/teams/onchain-integration-plan/README.md`
+- `docs/apps/teams/onchain-integration-plan/teams-feed-schema-v1.md`
+- `docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json`

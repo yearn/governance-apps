@@ -6,7 +6,7 @@
 - route key: `/ybc`
 - display label: `Yearn Builder's Collective`
 - initial beta exposure: `ybc-beta.dao-ops.com` with mock / dummy data
-- production host: `ybc.yearn.fi` (gated until live contract wiring and production approval)
+- production host: `ybc.yearn.fi` (gated until feed-backed reads, launch writes, fork smoke, and production approval)
 
 ## 2. MVP scope
 
@@ -32,11 +32,21 @@ truth for seed fixtures and debug presets. After M2, route-local scenario chrome
 should be retired in favor of a debug-backed mock store that preserves the production
 route shape.
 
-### Onchain phase
-Plan for:
-- read-only hero, members, proposals, and weights first
-- wallet-specific proposal and vote writes only after read model is stable
-- shared reward claiming left to the existing reward path
+### Feed-backed production phase
+
+Production reads must use the `ybc.json` feed documented in `ybc-feed-schema-v1.md`.
+The feed is produced by `gov-apps-stats` and owns historical member, proposal, vote,
+weight, and reward display state.
+
+Frontend live overlays may add:
+
+- connected wallet member status
+- connected wallet voted status per proposal
+- proposal/write eligibility
+- post-transaction invalidation while the next feed snapshot is pending
+
+Wallet-specific proposal and vote writes only start after the feed-backed read model is
+stable. Shared reward claiming remains in the existing reward path.
 
 ## 4. Suggested route and file layout
 
@@ -76,16 +86,25 @@ Interactive mock proposal flows accepted.
 ### M2A
 Debug-backed production-parity mock runtime accepted.
 
-### M3
-Onchain reads work on fork.
+### M3A
+Shared data contract and `gov-apps-stats` producer handoff accepted.
+
+### M3B
+Staging `ybc.json` feed is produced by `gov-apps-stats`.
+
+### M3C
+Staging feed is validated by `governance-apps`.
 
 ### M4
-Onchain writes work on fork.
+Feed-backed reads work in the app.
 
 ### M5
-UAT and preprod accepted.
+Launch-scope writes work on fork.
 
 ### M6
+UAT and preprod accepted.
+
+### M7
 Controlled production rollout approved.
 
 ## 6. Risks
@@ -94,15 +113,20 @@ Controlled production rollout approved.
 - collapsing raw stake and effective weight
 - accidentally implying generic arbitrary execution is in MVP
 - duplicating rewards UX that belongs in the shared claim path
+- letting producer and consumer schemas drift across repos
+- treating proposal status as only timestamp-derived instead of reading contract status
 
 ## 7. Launch stance
 
 Recommended launch order:
-1. mock / dummy data beta host
-2. live-contract wiring accepted
-3. production green light recorded
-4. production exposure on `ybc.yearn.fi` after release checklist approval
+1. shared feed contract accepted
+2. staging `ybc.json` produced by `gov-apps-stats`
+3. staging feed validated by the frontend consumer
+4. feed-backed reads accepted
+5. launch writes accepted on fork
+6. production green light recorded
+7. production exposure on `ybc.yearn.fi` after release checklist approval
 
-Production exposure must stay feature-gated until steps 2 and 3 are complete. Shared-host
-path routing on `/ybc` and beta-host routing on `ybc-beta.dao-ops.com` are the validation
-targets before production.
+Production exposure must stay feature-gated until steps 3 through 6 are complete.
+Shared-host path routing on `/ybc` and beta-host routing on `ybc-beta.dao-ops.com` are
+the validation targets before production.

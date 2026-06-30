@@ -33,7 +33,7 @@ Establish the YBC route baseline, naming stance, and top-level shell for mock-fi
 - display label `Yearn Builder's Collective` is explicit in docs
 - beta host `ybc-beta.dao-ops.com` is explicit in docs
 - production host `ybc.yearn.fi` is explicit in docs
-- production remains gated until live contract wiring and production approval
+- production remains gated until feed-backed reads, launch writes, fork smoke, and production approval
 - shell and section map are approved
 - no ambiguity remains about naming or rollout posture
 
@@ -69,7 +69,7 @@ Definition of done:
 - display label `Yearn Builder's Collective` is explicit in docs
 - beta host `ybc-beta.dao-ops.com` is explicit in docs
 - production host `ybc.yearn.fi` is explicit in docs
-- production remains gated until live contract wiring and production approval
+- production remains gated until feed-backed reads, launch writes, fork smoke, and production approval
 - shell and section map are approved
 - no ambiguity remains about naming or rollout posture
 

@@ -1,8 +1,9 @@
-# WP9 — Onchain writes
+# WP9 — Launch-scope writes
 
 ## Objective
 
-Add write preparation and execution for in-scope YBC actions.
+Add write preparation and execution for the launch-scope YBC election actions after
+feed-backed reads are stable.
 
 ## Scope
 
@@ -10,16 +11,18 @@ Add write preparation and execution for in-scope YBC actions.
 - prepare and execute retract
 - prepare and execute vote yea / nay
 - prepare and execute execute-proposal
-- prepare scoped operator add/remove member flows if included
+- invalidate feed and live wallet overlays after successful transactions
 
 ## Non-goals
 
 - generic arbitrary-call UI
 - full governance tooling outside the scoped flows
+- direct operator add/remove member controls for launch
+- duplicate reward claim execution
 
 ## Dependencies
 
-- WP8
+- WP8 feed-backed reads
 
 ## Suggested files
 
@@ -33,6 +36,7 @@ Add write preparation and execution for in-scope YBC actions.
 - proposal lifecycle writes keep state consistent after mutation
 - success and failure states are coherent
 - wrong-network behavior is blocked cleanly
+- write CTAs only appear when the feed and live wallet overlay support the action
 
 ## UAT checkpoint
 
@@ -43,17 +47,18 @@ UAT-Y8: fork-backed write paths validated.
 
 ### Implementer prompt for WP9
 
-You are implementing `ybc` `WP9` — **Onchain writes**.
+You are implementing `ybc` `WP9` — **Launch-scope writes**.
 
 Objective:
-Add write preparation and execution for in-scope YBC actions.
+Add write preparation and execution for the launch-scope YBC election actions after
+feed-backed reads are stable.
 
 Scope:
 - prepare and execute propose addition / expulsion
 - prepare and execute retract
 - prepare and execute vote yea / nay
 - prepare and execute execute-proposal
-- prepare scoped operator add/remove member flows if included
+- invalidate feed and live wallet overlays after successful transactions
 
 Constraints:
 - stay inside this package only
@@ -66,12 +71,13 @@ Definition of done:
 - proposal lifecycle writes keep state consistent after mutation
 - success and failure states are coherent
 - wrong-network behavior is blocked cleanly
+- write CTAs only appear when the feed and live wallet overlay support the action
 
 
 
 ### Reviewer prompt for WP9
 
-Review this PR only against `ybc` `WP9` — **Onchain writes**.
+Review this PR only against `ybc` `WP9` — **Launch-scope writes**.
 
 Check:
 - scope matches the package and does not bleed into later WPs
@@ -84,12 +90,13 @@ Block if:
 - the implementation introduces out-of-scope product behavior
 - critical route states are missing
 - shared repo patterns are ignored without justification
+- writes bypass the shared transaction pipeline
 
 
 
 ### Integrator prompt for WP9
 
-Integrate `ybc` `WP9` — **Onchain writes** into the `agent/integration` branch only after:
+Integrate `ybc` `WP9` — **Launch-scope writes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

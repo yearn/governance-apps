@@ -6,7 +6,7 @@ You are implementing work for `teams` inside `governance-apps`.
 
 - stay inside the selected work package
 - follow existing patterns from `/styfi`, `/veyfi`, and `/yeth`
-- keep the implementation mock-first unless the selected WP explicitly covers onchain work
+- keep the implementation mock-first unless the selected WP explicitly covers feed, onchain, write, or rollout work
 - keep the default route production-like; put app-specific mock state controls in the shared debug panel and test bridge rather than route-local prototype chrome
 - reuse shared UI primitives and the shared transaction pipeline
 

@@ -33,7 +33,7 @@ Establish the Team Finances route baseline, naming stance, and top-level shell f
 - display label `Team Finances` is explicit in docs
 - beta host `teams-beta.dao-ops.com` is explicit in docs
 - production host `teams.yearn.fi` is explicit in docs
-- production remains gated until live contract wiring and production approval
+- production remains gated until feed-backed reads, launch writes, fork smoke, and production approval
 - shell and section map are approved
 - no ambiguity remains about naming or rollout posture
 
@@ -69,7 +69,7 @@ Definition of done:
 - display label `Team Finances` is explicit in docs
 - beta host `teams-beta.dao-ops.com` is explicit in docs
 - production host `teams.yearn.fi` is explicit in docs
-- production remains gated until live contract wiring and production approval
+- production remains gated until feed-backed reads, launch writes, fork smoke, and production approval
 - shell and section map are approved
 - no ambiguity remains about naming or rollout posture
 
