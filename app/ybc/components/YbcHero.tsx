@@ -140,11 +140,7 @@ export function YbcHero({ data }: YbcHeroProps) {
             </div>
             <ProgressBar value={maturityPercent} className="h-2.5 bg-surface-secondary" />
             <p className="text-sm text-text-secondary">
-              {data.me.weight.maturesAt
-                ? `${copy.members.states.maturesOn} ${DATE_FORMATTER.format(
-                    data.me.weight.maturesAt * 1000
-                  )}`
-                : copy.members.states.fullyMatured}
+              {getMaturityLabel(data.me.weight)}
             </p>
           </div>
         </Card>
@@ -261,4 +257,16 @@ function formatAmount(amount: string) {
   return parsed.toLocaleString("en-US", {
     maximumFractionDigits: amount.includes(".") ? 2 : 0,
   });
+}
+
+function getMaturityLabel(weight: YbcMockDataV1["me"]["weight"]) {
+  if (weight.maturesAt) {
+    return `${copy.members.states.maturesOn} ${DATE_FORMATTER.format(
+      weight.maturesAt * 1000
+    )}`;
+  }
+
+  return weight.maturityBps >= 10_000
+    ? copy.members.states.fullyMatured
+    : copy.members.states.ramping;
 }

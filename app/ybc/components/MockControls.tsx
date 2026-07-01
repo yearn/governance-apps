@@ -19,6 +19,14 @@ const CONTROL_INPUT_CLASS_NAME =
   "h-8 w-full rounded-box border border-border bg-app px-2 text-xs text-text-primary";
 
 export function MockControls() {
+  const ybcState = useYbcState({ bootstrap: false, latencyMs: 0 });
+  const [selectedMemberId, setSelectedMemberId] = useState("");
+  const [selectedProposalId, setSelectedProposalId] = useState("");
+
+  if (ybcState.backend !== "mock") {
+    return null;
+  }
+
   const {
     data,
     resetRuntime,
@@ -37,9 +45,7 @@ export function MockControls() {
     setProposalVoteState,
     setThresholdProfile,
     syncToNow,
-  } = useYbcState({ bootstrap: false, latencyMs: 0 });
-  const [selectedMemberId, setSelectedMemberId] = useState("");
-  const [selectedProposalId, setSelectedProposalId] = useState("");
+  } = ybcState;
   const resolvedSelectedMemberId = data.roster.members.some(
     (member) => member.address.toLowerCase() === selectedMemberId.toLowerCase()
   )

@@ -108,9 +108,12 @@ Production invariants (enforced when runtime mode resolves to `production`):
 - `NEXT_PUBLIC_WC_PROJECT_ID` is required
 - `NEXT_PUBLIC_GLOBAL_DATA_URL` is required
 - `NEXT_PUBLIC_RPC_URLS` is required and must include at least one URL
+- `NEXT_PUBLIC_YBC_DATA_URL` is required when `NEXT_PUBLIC_ENABLE_YBC=true`
 
 Feature gating in production:
 
+- `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Teams route/host.
+- `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC route/host.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH route/host.
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/debug/ui`.
 - `yeth.yearn.fi` host routing always rewrites to `/yeth`; when yETH is disabled, the route gate returns 404 instead of falling through to launcher content.

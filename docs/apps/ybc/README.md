@@ -47,11 +47,16 @@ Default structure:
 
 ## Live data path
 
-The production YBC route should consume a dedicated `ybc.json` feed from
-`gov-apps-stats`, configured by `NEXT_PUBLIC_YBC_DATA_URL`. The feed owns historical
-member, proposal, vote, weight, and reward display state. The frontend owns
-presentation, wallet-specific overlays, and launch-scope election writes through the
-shared transaction flow.
+The production YBC route consumes a dedicated `ybc.json` feed from `gov-apps-stats`,
+configured by `NEXT_PUBLIC_YBC_DATA_URL`. The feed owns historical member, proposal,
+vote, weight, and reward display state. The frontend owns presentation and
+wallet-specific overlays.
+
+Feed-backed reads are wired for the non-mock runtime through a same-origin
+`/api/ybc-data` proxy, a typed v1 schema, and a mapper into the accepted YBC page data
+contract. Launch writes are intentionally still disabled in feed mode until the
+fork-smoke package validates the shared transaction flow. Local/debug runs keep the
+mock store and floating debug controls.
 
 The beta host is `ybc-beta.dao-ops.com`. The production host is `ybc.yearn.fi`, but
 production exposure remains gated until the feed-backed read model, launch writes, fork

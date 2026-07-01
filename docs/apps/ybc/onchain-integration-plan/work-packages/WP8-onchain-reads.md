@@ -47,6 +47,21 @@ mocks available only for local/debug fallback.
 
 UAT-Y7: feed-backed read model validated.
 
+## Implementation notes
+
+- The non-mock YBC runtime now reads `NEXT_PUBLIC_YBC_DATA_URL` through the
+  `/api/ybc-data` same-origin proxy and validates the payload with
+  `lib/schemas/ybc-feed.ts`.
+- `lib/clients/ybc/onchain.ts` maps the feed into the accepted YBC page data shape for
+  hero, member roster, proposal board, rewards, and operator metadata.
+- Feed mode keeps proposal write handlers disabled with explicit disabled reasons until
+  WP9 and the fork-smoke runbook validate launch-scope writes.
+- Local and E2E mock mode still uses the debug-backed mock store; the floating mock
+  controls narrow to `backend: "mock"` and are not mounted in feed mode.
+- The current production feed has not yet exercised live proposal, vote, or reward-claim
+  event rows; keep schema and mapper fixtures for those paths until onchain activity
+  exists.
+
 ## Prompts
 
 

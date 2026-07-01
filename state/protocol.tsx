@@ -117,7 +117,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
       yeth: new OnchainYethClient(publicClient, yethGlobalData ?? null),
       isMock: false,
       usesMockBackend: false,
-      ybcUsesMockBackend: true,
+      ybcUsesMockBackend: false,
       yethUsesMockBackend: false,
       publicClient,
       globalData: globalData ?? null,

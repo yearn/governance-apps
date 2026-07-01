@@ -50,6 +50,13 @@
 - Server/runtime reads the configured URL directly; browser runtime reads `/api/global-data` so the payload is delivered same-origin.
 - If missing, the UI renders skeletons for global stats until a wallet connects.
 
+## YBC Data (Non-Mock Mode)
+
+- Env: `NEXT_PUBLIC_YBC_DATA_URL` (`ybc.json` from `gov-apps-stats`).
+- Required when `NEXT_PUBLIC_ENABLE_YBC=true` in production.
+- Server/runtime reads the configured URL directly; browser runtime reads `/api/ybc-data` so the payload is delivered same-origin.
+- Launch-scope writes stay disabled in feed mode until the YBC write package and fork smoke are accepted.
+
 ## Public RPC (Required in Production)
 
 - Env: `NEXT_PUBLIC_RPC_URLS` (comma-separated, HTTPS when served over HTTPS).

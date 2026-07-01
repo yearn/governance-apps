@@ -177,11 +177,7 @@ function MemberRow({
               {formatPercent(member.weight.maturityBps / 10_000, 0)}
             </span>
             <span className="text-xs text-text-secondary">
-              {member.weight.maturesAt
-                ? `${copy.members.states.maturesOn} ${DATE_FORMATTER.format(
-                    member.weight.maturesAt * 1000
-                  )}`
-                : copy.members.states.fullyMatured}
+              {getMaturityLabel(member)}
             </span>
           </div>
           <ProgressBar value={maturityPercent} className="h-2.5 bg-surface-secondary" />
@@ -371,11 +367,15 @@ function getSourceMix(member: YbcMemberRecord) {
 }
 
 function getMaturityLabel(member: YbcMemberRecord) {
-  return member.weight.maturesAt
-    ? `${copy.members.states.maturesOn} ${DATE_FORMATTER.format(
+  if (member.weight.maturesAt) {
+    return `${copy.members.states.maturesOn} ${DATE_FORMATTER.format(
         member.weight.maturesAt * 1000
-      )}`
-    : copy.members.states.fullyMatured;
+      )}`;
+  }
+
+  return member.weight.maturityBps >= 10_000
+    ? copy.members.states.fullyMatured
+    : copy.members.states.ramping;
 }
 
 function formatAmount(amount: string) {

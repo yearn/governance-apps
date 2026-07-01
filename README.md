@@ -29,6 +29,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - `NEXT_PUBLIC_E2E`: Enables deterministic E2E wallet behavior and mock identity wiring.
 - `NEXT_PUBLIC_GLOBAL_DATA_URL`: URL for the stYFI / veYFI global stats JSON payload.
 - `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`: URL for the yETH global stats JSON payload.
+- `NEXT_PUBLIC_YBC_DATA_URL`: URL for the YBC feed JSON payload.
 - `NEXT_PUBLIC_ENABLE_YBC`: Enables YBC routes/host in production runtime.
 - `NEXT_PUBLIC_ENABLE_YETH`: Enables yETH routes/host in production runtime.
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI`: Enables `/debug/ui` in production runtime.

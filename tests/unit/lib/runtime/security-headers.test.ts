@@ -99,12 +99,14 @@ describe("security header policy", () => {
       NEXT_PUBLIC_RPC_URLS: "http://127.0.0.1:8545, https://rpc.example/path",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://cdn.example/stats.json",
       NEXT_PUBLIC_YETH_GLOBAL_DATA_URL: "https://cdn.example/yeth.json",
+      NEXT_PUBLIC_YBC_DATA_URL: "https://ybc-data.example/prod/ybc.json",
     });
 
     expect(origins).toEqual([
       "http://127.0.0.1:8545",
       "https://rpc.example",
       "https://cdn.example",
+      "https://ybc-data.example",
     ]);
   });
 });
