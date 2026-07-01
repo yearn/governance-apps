@@ -81,10 +81,16 @@ audit and action areas.
 
 ## Live data path
 
-The production Teams route should consume a dedicated `teams.json` feed from
-`gov-apps-stats`, configured by `NEXT_PUBLIC_TEAMS_DATA_URL`. The feed owns historical
-team, revenue, funding, bonus, and accounting state. The frontend owns presentation,
-wallet-specific overlays, and launch-scope writes through the shared transaction flow.
+The production Teams route consumes a dedicated `teams.json` feed from `gov-apps-stats`,
+configured by `NEXT_PUBLIC_TEAMS_DATA_URL`. The feed owns historical team, revenue,
+funding, bonus, and accounting state. The frontend owns presentation and wallet-specific
+overlays.
+
+Feed-backed reads are wired for the non-mock runtime through a same-origin
+`/api/teams-data` proxy, a typed v1 schema, and a mapper into the accepted Teams page
+data contract. Launch writes are intentionally still disabled in feed mode until the
+write package and fork-smoke runbook validate the shared transaction flow. Local/debug
+runs keep the mock store and floating debug controls.
 
 The route remains path-first on shared hosts. `teams-beta.dao-ops.com` is the beta
 review target. `teams.yearn.fi` is reserved for production and must remain gated until

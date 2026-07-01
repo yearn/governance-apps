@@ -50,6 +50,13 @@
 - Server/runtime reads the configured URL directly; browser runtime reads `/api/global-data` so the payload is delivered same-origin.
 - If missing, the UI renders skeletons for global stats until a wallet connects.
 
+## Teams Data (Non-Mock Mode)
+
+- Env: `NEXT_PUBLIC_TEAMS_DATA_URL` (`teams.json` from `gov-apps-stats`).
+- Required when `NEXT_PUBLIC_ENABLE_TEAMS=true` in production.
+- Server/runtime reads the configured URL directly; browser runtime reads `/api/teams-data` so the payload is delivered same-origin.
+- Launch-scope writes stay disabled in feed mode until the Teams write package and fork smoke are accepted.
+
 ## YBC Data (Non-Mock Mode)
 
 - Env: `NEXT_PUBLIC_YBC_DATA_URL` (`ybc.json` from `gov-apps-stats`).

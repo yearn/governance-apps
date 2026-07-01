@@ -53,6 +53,7 @@ type ProtocolContextValue = {
   yeth: YethClient;
   isMock: boolean;
   usesMockBackend: boolean;
+  teamsUsesMockBackend: boolean;
   ybcUsesMockBackend: boolean;
   yethUsesMockBackend: boolean;
   publicClient: PublicClient | null;
@@ -103,6 +104,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         yeth: mockClients.yeth,
         isMock: true,
         usesMockBackend: true,
+        teamsUsesMockBackend: true,
         ybcUsesMockBackend: true,
         yethUsesMockBackend: true,
         publicClient: null,
@@ -117,6 +119,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
       yeth: new OnchainYethClient(publicClient, yethGlobalData ?? null),
       isMock: false,
       usesMockBackend: false,
+      teamsUsesMockBackend: false,
       ybcUsesMockBackend: false,
       yethUsesMockBackend: false,
       publicClient,

@@ -27,6 +27,10 @@ export function MockControls() {
   const selectedTeamId = data?.selectedTeamId ?? null;
   const selectedTeam = data?.teams.find((team) => team.id === selectedTeamId) ?? null;
 
+  if (runtime?.backend === "feed") {
+    return null;
+  }
+
   const section: DebugControlsSection = {
     id: "teams",
     title: "Teams",

@@ -84,14 +84,13 @@ Use this with:
 - [x] debug-runtime alignment documented for Teams and YBC
 - [x] finalized `styfi` deployment manifest identified as source of truth
 - [x] consumer-owned `teams.json` and `ybc.json` feed contracts documented
+- [x] live `teams.json` payload validated from `governance-apps`
 - [x] live `ybc.json` payload validated from `governance-apps`
+- [x] production Teams reads wired to the feed-backed client
 - [x] production YBC reads wired to the feed-backed client
 
 ### 5.2 Remaining
 
-- [ ] Implement `teams.json` in `gov-apps-stats`
-- [ ] Validate `teams.json` payload from `governance-apps`
-- [ ] Replace production Teams reads with `teams.json` feed-backed client
 - [ ] Wire Teams launch writes through shared `useTx`
 - [ ] Wire YBC launch writes through shared `useTx`
 - [ ] Run targeted fork smoke and preprod smoke for both apps
@@ -101,9 +100,9 @@ Use this with:
 
 - [ ] Start shared WP2 in `gov-apps-stats`
 - [ ] Import Teams/YBC deployment block heights from `styfi/deployment.json`
-- [ ] Publish staging `teams.json`
+- [x] Publish live `teams.json`
 - [x] Publish live `ybc.json`
-- [ ] Hand `teams.json` URL back to `governance-apps` for shared WP3 validation
+- [x] Hand `teams.json` URL back to `governance-apps` for shared WP3 validation
 
 ## 7. Previous Immediate Milestone (yETH Controlled Testing)
 

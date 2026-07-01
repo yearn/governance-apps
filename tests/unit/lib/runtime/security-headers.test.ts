@@ -98,6 +98,7 @@ describe("security header policy", () => {
     const origins = resolveAdditionalConnectSrc({
       NEXT_PUBLIC_RPC_URLS: "http://127.0.0.1:8545, https://rpc.example/path",
       NEXT_PUBLIC_GLOBAL_DATA_URL: "https://cdn.example/stats.json",
+      NEXT_PUBLIC_TEAMS_DATA_URL: "https://teams-data.example/prod/teams.json",
       NEXT_PUBLIC_YETH_GLOBAL_DATA_URL: "https://cdn.example/yeth.json",
       NEXT_PUBLIC_YBC_DATA_URL: "https://ybc-data.example/prod/ybc.json",
     });
@@ -106,6 +107,7 @@ describe("security header policy", () => {
       "http://127.0.0.1:8545",
       "https://rpc.example",
       "https://cdn.example",
+      "https://teams-data.example",
       "https://ybc-data.example",
     ]);
   });

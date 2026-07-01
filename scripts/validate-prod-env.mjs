@@ -78,6 +78,10 @@ if (isEnabled(process.env.NEXT_PUBLIC_ENABLE_YBC)) {
   requiredVars.push("NEXT_PUBLIC_YBC_DATA_URL");
 }
 
+if (isEnabled(process.env.NEXT_PUBLIC_ENABLE_TEAMS)) {
+  requiredVars.push("NEXT_PUBLIC_TEAMS_DATA_URL");
+}
+
 for (const name of requiredVars) {
   if (!process.env[name] || !process.env[name]?.trim()) {
     errors.push(`${name} is required in production.`);

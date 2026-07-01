@@ -34,18 +34,23 @@ function getTeamsTopTabId(tabId: string) {
 export function TeamsPageClient() {
   const { replaceTeam, setSelectedTeam } = useTeamsDebugActions();
   const [activeTopTab, setActiveTopTab] = useState<TeamsTopTab>("directory");
+  const [feedSelectedTeamId, setFeedSelectedTeamId] = useState<string | null>(null);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const runtimeQuery = useTeamsState();
   const runtime = runtimeQuery.data ?? null;
   const data = runtime?.data ?? null;
+  const isMockRuntime = runtime?.backend !== "feed";
   const renderState =
     runtimeQuery.isPending || runtime?.isLoading
       ? "loading"
       : runtime?.isEmpty
         ? "empty"
         : "ready";
-  const selectedTeamId = data?.selectedTeamId ?? null;
-  const selectedTeam = resolveSelectedTeam(data);
+  const selectedTeamId =
+    runtime?.backend === "feed"
+      ? feedSelectedTeamId ?? data?.selectedTeamId ?? null
+      : data?.selectedTeamId ?? null;
+  const selectedTeam = resolveSelectedTeam(data, selectedTeamId);
   const showAdminSection = Boolean(data?.viewer.canUseAdmin);
   const resolvedActiveTopTab =
     activeTopTab === "admin" && !showAdminSection ? "directory" : activeTopTab;
@@ -132,6 +137,12 @@ export function TeamsPageClient() {
   }, [showAdminSection]);
 
   useEffect(() => {
+    if (runtime?.backend !== "feed" || !feedSelectedTeamId || !data) return;
+    if (data.teams.some((team) => team.id === feedSelectedTeamId)) return;
+    setFeedSelectedTeamId(data.selectedTeamId);
+  }, [data, feedSelectedTeamId, runtime?.backend]);
+
+  useEffect(() => {
     if (!pendingScrollId) return;
 
     window.requestAnimationFrame(() => {
@@ -214,7 +225,11 @@ export function TeamsPageClient() {
             teams={renderState === "ready" ? data?.teams ?? [] : []}
             selectedTeamId={selectedTeamId}
             onSelectTeam={(teamId) => {
-              void setSelectedTeam(teamId);
+              if (isMockRuntime) {
+                void setSelectedTeam(teamId);
+              } else {
+                setFeedSelectedTeamId(teamId);
+              }
               setActiveTopTab("workspace");
               replaceHash("workspace");
             }}
@@ -256,12 +271,14 @@ export function TeamsPageClient() {
         ) : null}
       </main>
 
-      <MockControls />
+      {isMockRuntime ? <MockControls /> : null}
     </div>
   );
 
   function handleTeamUpdate(nextTeam: TeamRecord) {
-    void replaceTeam(nextTeam);
+    if (isMockRuntime) {
+      void replaceTeam(nextTeam);
+    }
   }
 
   function handleTopTabChange(tabId: TeamsTopTab) {

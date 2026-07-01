@@ -1,6 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAccount } from "wagmi";
+import { mapTeamsFeedToRuntimeState } from "@/lib/clients/teams";
 import { createMockTeamsClient } from "@/lib/clients/teams/mock";
 import {
   patchMockTeamsAdmin,
@@ -33,6 +36,8 @@ import type {
   TeamsMockScenarioId,
   TeamsViewerRole,
 } from "@/lib/clients/teams/types";
+import { useTeamsData } from "@/lib/hooks/useTeamsData";
+import { useOptionalProtocol } from "@/state/protocol";
 
 const teamsClient = createMockTeamsClient({ latencyMs: 250 });
 
@@ -41,6 +46,10 @@ export const teamsKeys = {
   pageState: () => [...teamsKeys.all, "page-state"] as const,
   scenarioCatalog: () => [...teamsKeys.all, "scenario-catalog"] as const,
   scenario: (id: TeamsMockScenarioId) => [...teamsKeys.all, "scenario", id] as const,
+};
+
+type TeamsRuntimeState = Awaited<ReturnType<typeof teamsClient.getPageState>> & {
+  backend: "mock" | "feed";
 };
 
 async function invalidateTeamsQueries(
@@ -69,11 +78,46 @@ export function useTeamsScenario(id: TeamsMockScenarioId) {
 }
 
 export function useTeamsState() {
-  return useQuery({
+  const { address } = useAccount();
+  const protocol = useOptionalProtocol();
+  const usesMockBackend = protocol?.teamsUsesMockBackend ?? true;
+  const teamsFeed = useTeamsData(!usesMockBackend);
+  const mockQuery = useQuery({
     queryKey: teamsKeys.pageState(),
-    queryFn: () => teamsClient.getPageState(),
+    queryFn: async (): Promise<TeamsRuntimeState> => ({
+      ...(await teamsClient.getPageState()),
+      backend: "mock",
+    }),
     staleTime: Infinity,
+    enabled: usesMockBackend,
   });
+  const feedRuntime = useMemo<TeamsRuntimeState | null>(() => {
+    if (usesMockBackend || !teamsFeed.data) return null;
+    return {
+      ...mapTeamsFeedToRuntimeState(teamsFeed.data, address ?? null),
+      backend: "feed",
+    };
+  }, [address, teamsFeed.data, usesMockBackend]);
+
+  if (usesMockBackend) return mockQuery;
+
+  const feedError =
+    teamsFeed.error instanceof Error
+      ? teamsFeed.error
+      : teamsFeed.isError
+        ? new Error("Unknown Teams feed error")
+        : !teamsFeed.isLoading && !feedRuntime
+          ? new Error("No valid Teams feed payload is available.")
+          : null;
+
+  return {
+    ...teamsFeed,
+    data: feedRuntime,
+    error: feedError,
+    isError: feedError !== null,
+    isPending: teamsFeed.isLoading || (!feedRuntime && !feedError),
+    isLoading: teamsFeed.isLoading || (!feedRuntime && !feedError),
+  };
 }
 
 export function useTeamsDebugActions() {

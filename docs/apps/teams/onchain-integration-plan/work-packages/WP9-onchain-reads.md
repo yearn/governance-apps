@@ -47,6 +47,22 @@ mocks available only for local/debug fallback.
 
 UAT-T6: feed-backed read model validated.
 
+## Implementation notes
+
+- The non-mock Teams runtime now reads `NEXT_PUBLIC_TEAMS_DATA_URL` through the
+  `/api/teams-data` same-origin proxy and validates the payload with
+  `lib/schemas/teams-feed.ts`.
+- `lib/clients/teams/onchain.ts` maps the feed into the accepted Teams page data shape
+  for directory, workspace, revenue history, funding approvals, bonus state, lifecycle,
+  and admin metadata.
+- Feed mode keeps revenue, funding, and bonus write permissions disabled until WP10 and
+  the fork-smoke runbook validate launch-scope writes.
+- Workspace selection is local UI state in feed mode; local and E2E mock mode still use
+  the debug-backed mock store and floating controls.
+- The current production feed has not yet exercised live revenue, funding, return, or
+  bonus-claim event rows; keep schema and mapper fixtures for those paths until onchain
+  activity exists.
+
 ## Prompts
 
 
