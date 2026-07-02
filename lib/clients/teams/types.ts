@@ -145,6 +145,7 @@ export type FundingApproval = {
   approvedPeriod: PeriodNumber;
   symbol: string;
   tokenAddress: TeamsAddress;
+  decimals?: number;
   totalApproved: DecimalString;
   used: DecimalString;
   claimable: DecimalString;

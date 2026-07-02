@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { parseUnits, type Address } from "viem";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { Badge } from "@/components/ui/Badge";
 import { Banner } from "@/components/ui/Banner";
@@ -26,6 +27,9 @@ import {
 } from "@/lib/clients/teams";
 import { nowSeconds } from "@/lib/mocks/time";
 import { formatAddress } from "@/lib/format";
+import type { TxState } from "@/lib/tx/types";
+import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
+import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
 import { teamsCopy } from "../messages";
 
 type RevenueDepositCardProps = {
@@ -33,19 +37,30 @@ type RevenueDepositCardProps = {
   viewer: TeamsViewerContext | null;
   currentPeriod: number | null;
   onUpdateTeam: (team: TeamRecord) => void;
+  onDepositRevenue?: (
+    team: TeamRecord,
+    tokenAddress: string,
+    amount: string,
+    decimals: number
+  ) => Promise<void>;
   state: "ready" | "loading" | "empty";
+  txState?: TxState;
 };
 
 type DisplayRevenueHistoryEntry = RevenueHistoryEntry & {
   depositorLabel?: string;
 };
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 export function RevenueDepositCard({
   team,
   viewer,
   currentPeriod,
   onUpdateTeam,
+  onDepositRevenue,
   state,
+  txState,
 }: RevenueDepositCardProps) {
   const initialOption = team?.revenueOptions[0] ?? null;
   const [selectedTokenAddress, setSelectedTokenAddress] = useState<string | null>(
@@ -54,6 +69,27 @@ export function RevenueDepositCard({
   const [amount, setAmount] = useState(() => initialOption?.previewAmount ?? "");
   const [amountError, setAmountError] = useState<string | undefined>(undefined);
   const [successEntry, setSuccessEntry] = useState<DisplayRevenueHistoryEntry | null>(null);
+  const selectedOption =
+    team?.revenueOptions.find(
+      (option) => option.tokenAddress === selectedTokenAddress
+    ) ??
+    team?.revenueOptions[0] ??
+    null;
+  const amountRaw = selectedOption
+    ? tryParseTokenAmount(amount, selectedOption.decimals)
+    : null;
+  const allowance = useTokenAllowance(
+    (selectedOption?.tokenAddress ?? ZERO_ADDRESS) as Address,
+    (team?.address ?? ZERO_ADDRESS) as Address
+  );
+  const approval = useTokenApprove();
+  const liveMode = Boolean(onDepositRevenue);
+  const needsApproval =
+    liveMode &&
+    Boolean(selectedOption) &&
+    amountRaw !== null &&
+    (allowance.data ?? 0n) < amountRaw;
+  const isTxPending = approval.isLoading || isTeamsTxPending(txState);
 
   if (state === "loading") {
     return (
@@ -108,13 +144,6 @@ export function RevenueDepositCard({
   }
 
   const activeTeam = team;
-  const selectedOption =
-    activeTeam.revenueOptions.find(
-      (option) => option.tokenAddress === selectedTokenAddress
-    ) ??
-    activeTeam.revenueOptions[0] ??
-    null;
-
   const estimatedCreditUsd =
     selectedOption && amount ? estimateRevenueCreditUsd(selectedOption, amount) : null;
   const canDeposit =
@@ -139,11 +168,11 @@ export function RevenueDepositCard({
     setSuccessEntry(null);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!selectedOption) return;
 
     const parsedAmount = Number(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || amountRaw === null) {
       setAmountError(teamsCopy.revenue.form.amountError);
       setSuccessEntry(null);
       return;
@@ -170,6 +199,32 @@ export function RevenueDepositCard({
         ? formatAddress(viewer.address)
         : teamsCopy.revenue.history.permissionlessDepositor,
     };
+
+    if (liveMode && onDepositRevenue) {
+      if (needsApproval) {
+        await approval.write(
+          selectedOption.tokenAddress as Address,
+          activeTeam.address as Address,
+          amountRaw,
+          {
+            invalidate: async () => {
+              await allowance.refetch();
+            },
+          }
+        );
+        return;
+      }
+
+      await onDepositRevenue(
+        activeTeam,
+        selectedOption.tokenAddress,
+        amount,
+        selectedOption.decimals
+      );
+      setSuccessEntry(entry);
+      setAmountError(undefined);
+      return;
+    }
 
     onUpdateTeam({
       ...activeTeam,
@@ -274,9 +329,23 @@ export function RevenueDepositCard({
                 <p className="text-sm leading-6 text-text-secondary">
                   {teamsCopy.revenue.form.amountHint}
                 </p>
-                <Button type="button" onClick={handleSubmit}>
-                  {teamsCopy.revenue.form.submit}
+                <Button
+                  type="button"
+                  onClick={() => {
+                    void handleSubmit();
+                  }}
+                  disabled={isTxPending}
+                  isLoading={isTxPending}
+                >
+                  {needsApproval
+                    ? teamsCopy.revenue.form.approve
+                    : teamsCopy.revenue.form.submit}
                 </Button>
+                {txState?.status === "error" && txState.errorMessage ? (
+                  <p className="text-sm font-medium text-red-600" role="alert">
+                    {txState.errorMessage}
+                  </p>
+                ) : null}
               </div>
             </>
           ) : (
@@ -491,6 +560,23 @@ function normalizeDecimal(value: string): string {
   if (!value.includes(".")) return value;
 
   return value.replace(/\.?0+$/, "");
+}
+
+function tryParseTokenAmount(value: string, decimals: number) {
+  try {
+    const amount = parseUnits(value, decimals);
+    return amount > 0n ? amount : null;
+  } catch {
+    return null;
+  }
+}
+
+function isTeamsTxPending(state?: TxState) {
+  return (
+    state?.status === "signing" ||
+    state?.status === "submitted" ||
+    state?.status === "mining"
+  );
 }
 
 function formatRecordedAt(timestamp: number): string {

@@ -1,13 +1,15 @@
 // lib/hooks/useTokenAllowance.ts
 "use client";
 
-import { Address, erc20Abi } from "viem";
+import { erc20Abi, type Address } from "viem";
 import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { useProtocol } from "@/state/protocol";
 import { readMockStyfiAllowance } from "@/lib/clients/styfi/mock";
 import { readMockVeyfiAllowance } from "@/lib/clients/veyfi/mock";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 /**
  * On-chain allowance reader.
@@ -20,6 +22,7 @@ export function useTokenAllowance(token: Address, spender: Address) {
   const address =
     wagmiAddress ?? (isE2E && usesMockBackend ? E2E_MOCK_ADDRESS : undefined);
   const chainId = publicClient?.chain?.id ?? null;
+  const hasAllowanceTarget = isNonZeroAddress(token) && isNonZeroAddress(spender);
 
   const result = useQuery({
     queryKey: ["allowance", address, token, spender, chainId],
@@ -33,14 +36,14 @@ export function useTokenAllowance(token: Address, spender: Address) {
       });
     },
     enabled:
-      !usesMockBackend && !!address && !!token && !!spender && !!publicClient,
+      !usesMockBackend && !!address && hasAllowanceTarget && !!publicClient,
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
 
   if (usesMockBackend) {
     let mockVal = 0n;
-    if (address) {
+    if (address && hasAllowanceTarget) {
       // Try Styfi Store first (YFI -> stYFI)
       const styfiVal = readMockStyfiAllowance(address, token, spender);
       if (styfiVal > 0n) {
@@ -59,4 +62,8 @@ export function useTokenAllowance(token: Address, spender: Address) {
   }
 
   return result;
+}
+
+function isNonZeroAddress(address: Address) {
+  return address.toLowerCase() !== ZERO_ADDRESS;
 }

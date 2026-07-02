@@ -28,7 +28,7 @@ describe("Teams feed mapper", () => {
     );
   });
 
-  it("overlays the connected team owner perspective without enabling writes", () => {
+  it("overlays the connected team owner perspective with client-derived write readiness", () => {
     const data = mapTeamsFeedToPageData(
       parseFeed(feedExample),
       "0x2222222222222222222222222222222222222222"
@@ -36,8 +36,23 @@ describe("Teams feed mapper", () => {
 
     expect(data.viewer.role).toBe("team-owner");
     expect(data.viewer.teamId).toBe("example-team");
+    expect(data.viewer.canDepositRevenue).toBe(true);
+    expect(data.viewer.canClaimFunding).toBe(true);
+    expect(data.viewer.canReturnFunding).toBe(false);
+    expect(data.viewer.canClaimBonus).toBe(true);
+  });
+
+  it("blocks client-derived write readiness on the wrong network", () => {
+    const data = mapTeamsFeedToPageData(
+      parseFeed(feedExample),
+      "0x2222222222222222222222222222222222222222",
+      { walletChainId: 137 }
+    );
+
+    expect(data.viewer.role).toBe("team-owner");
     expect(data.viewer.canDepositRevenue).toBe(false);
     expect(data.viewer.canClaimFunding).toBe(false);
+    expect(data.viewer.canReturnFunding).toBe(false);
     expect(data.viewer.canClaimBonus).toBe(false);
   });
 

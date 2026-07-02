@@ -162,15 +162,15 @@ Completed feed/read handoff:
 3. Live `teams.json` and `ybc.json` published.
 4. Shared WP3 validated from `governance-apps`.
 5. Teams WP9 and YBC WP8 feed-backed reads completed.
+6. `agent/data` merged into `agent/integration`.
+7. Teams WP10 and YBC WP9 launch-scope writes completed.
 
 Current handoff order from here:
 
-1. Merge `agent/data` into `agent/integration`.
-2. Start Teams WP10 and YBC WP9 for launch-scope writes.
-3. Keep `NEXT_PUBLIC_USE_MOCKS=false` for fork/preprod work; use live or saved feed
+1. Keep `NEXT_PUBLIC_USE_MOCKS=false` for fork/preprod work; use live or saved feed
    JSON plus fixture/intercepted JSON for rare states.
-4. Finish Teams WP11 and YBC WP10 for targeted fork smoke, preprod smoke, rollout notes,
+2. Finish Teams WP11 and YBC WP10 for targeted fork smoke, preprod smoke, rollout notes,
    and rollback checks.
-5. Enable `NEXT_PUBLIC_ENABLE_TEAMS` / `NEXT_PUBLIC_ENABLE_YBC` only after approval.
+3. Enable `NEXT_PUBLIC_ENABLE_TEAMS` / `NEXT_PUBLIC_ENABLE_YBC` only after approval.
 
 Do not add per-app mock/live switches or separate Teams/YBC write flags for this launch.

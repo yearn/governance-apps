@@ -14,6 +14,7 @@ import {
   type TeamRecord,
   type TeamsViewerContext,
 } from "@/lib/clients/teams";
+import type { TxState } from "@/lib/tx/types";
 import { BonusCard } from "./BonusCard";
 import { FundingApprovalsTable } from "./FundingApprovalsTable";
 import { RevenueDepositCard, RevenueHistoryLedger } from "./RevenueDepositCard";
@@ -28,6 +29,29 @@ type TeamWorkspaceProps = {
   onUpdateTeam: (team: TeamRecord) => void;
   revenueCardKey: string;
   state: "ready" | "loading" | "empty";
+  liveWrites?: TeamsLiveWriteHandlers;
+};
+
+export type TeamsLiveWriteHandlers = {
+  depositRevenue: (
+    team: TeamRecord,
+    tokenAddress: string,
+    amount: string,
+    decimals: number
+  ) => Promise<void>;
+  claimFunding: (
+    team: TeamRecord,
+    approval: FundingApproval,
+    amount: string,
+    recipient: string
+  ) => Promise<void>;
+  returnFunding: (
+    team: TeamRecord,
+    approval: FundingApproval,
+    amount: string
+  ) => Promise<void>;
+  claimBonus: (team: TeamRecord, recipient: string) => Promise<void>;
+  state: TxState;
 };
 
 export function TeamWorkspace({
@@ -37,6 +61,7 @@ export function TeamWorkspace({
   onUpdateTeam,
   revenueCardKey,
   state,
+  liveWrites,
 }: TeamWorkspaceProps) {
   const workspaceState =
     state === "loading"
@@ -219,6 +244,7 @@ export function TeamWorkspace({
         onUpdateTeam={onUpdateTeam}
         revenueCardKey={revenueCardKey}
         state={state}
+        liveWrites={liveWrites}
       />
 
       <section id="revenue" className="scroll-mt-24">
@@ -239,6 +265,9 @@ export function TeamWorkspace({
             viewer={viewer}
             currentPeriod={currentPeriod}
             onUpdateTeam={onUpdateTeam}
+            onClaimFunding={liveWrites?.claimFunding}
+            onReturnFunding={liveWrites?.returnFunding}
+            txState={liveWrites?.state}
           />
         ) : null}
       </section>
@@ -248,6 +277,13 @@ export function TeamWorkspace({
           key={getBonusCardKey(readyTeam, viewer)}
           bonus={readyTeam.bonus}
           canClaimBonus={viewer?.canClaimBonus ?? false}
+          viewerAddress={viewer?.address ?? null}
+          onClaimBonus={
+            liveWrites
+              ? (recipient) => liveWrites.claimBonus(readyTeam, recipient)
+              : undefined
+          }
+          txState={liveWrites?.state}
         />
       </section>
 
@@ -316,6 +352,7 @@ function ActionDeck({
   onUpdateTeam,
   revenueCardKey,
   state,
+  liveWrites,
 }: {
   team: TeamRecord;
   viewer: TeamsViewerContext | null;
@@ -323,6 +360,7 @@ function ActionDeck({
   onUpdateTeam: (team: TeamRecord) => void;
   revenueCardKey: string;
   state: "ready" | "loading" | "empty";
+  liveWrites?: TeamsLiveWriteHandlers;
 }) {
   return (
     <section aria-labelledby="teams-action-deck-title" className="space-y-4">
@@ -345,6 +383,8 @@ function ActionDeck({
           currentPeriod={currentPeriod}
           onUpdateTeam={onUpdateTeam}
           state={state}
+          onDepositRevenue={liveWrites?.depositRevenue}
+          txState={liveWrites?.state}
         />
         <OutflowsCommandPanel
           team={team}

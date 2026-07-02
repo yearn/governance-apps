@@ -12,15 +12,14 @@ new production fact is that `../styfi` `master` now contains finalized deployed 
 addresses and contract sources.
 
 The old roadmap was "mock first, then discover contracts." That is complete enough to
-retire. As of 2026-07-02, `teams.json` and `ybc.json` are live and both frontend read
-models are feed-backed. The roadmap from here is now:
+retire. As of 2026-07-02, `teams.json` and `ybc.json` are live, both frontend read
+models are feed-backed, and both launch-write packages are wired through `useTx`. The
+roadmap from here is now:
 
-1. merge the data/read lane into `agent/integration`;
-2. wire limited production write flows;
-3. run targeted fork smoke with live or saved feed JSON;
-4. run preprod/beta smoke;
-5. release each accepted app behind its production route flag;
-6. monitor feed freshness and write reports while iterating in production.
+1. run targeted fork smoke with live or saved feed JSON;
+2. run preprod/beta smoke;
+3. release each accepted app behind its production route flag;
+4. monitor feed freshness and write reports while iterating in production.
 
 The detailed production plan is:
 

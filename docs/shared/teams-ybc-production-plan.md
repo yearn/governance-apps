@@ -14,15 +14,14 @@ The old blocking assumption was that the contract deployment manifest still need
 assembled. That is no longer true. `../styfi` `master` now contains the deployment
 manifest and finalized contract sources needed to define the app data contracts.
 
-The feed contract, producer implementation, live feed validation, and feed-backed read
-wiring are now complete for both apps. The remaining production path is:
+The feed contract, producer implementation, live feed validation, feed-backed read
+wiring, and launch-scope write wiring are now complete for both apps. The remaining
+production path is:
 
-1. merge the accepted data/read work from `agent/data` into `agent/integration`;
-2. wire the limited write surface through the shared transaction pipeline;
-3. smoke test launch writes on a mainnet fork using live or saved feed JSON;
-4. smoke test route, wallet, feed, and host behavior on preprod/beta;
-5. enable each app's production route flag after approval;
-6. monitor feed freshness and early write reports, then iterate in production.
+1. smoke test launch writes on a mainnet fork using live or saved feed JSON;
+2. smoke test route, wallet, feed, and host behavior on preprod/beta;
+3. enable each app's production route flag after approval;
+4. monitor feed freshness and early write reports, then iterate in production.
 
 No per-app mock/live split or separate write-only feature flag is planned for this
 controlled launch. `NEXT_PUBLIC_USE_MOCKS` remains a global local/debug toggle. In
@@ -192,21 +191,21 @@ can stay in v1 for compatibility, but it is not the consumer authority for write
 
 ## 7. Recommended sequencing
 
-1. Merge `agent/data` into the long-lived `agent/integration` lane.
-2. Run Teams WP10 and YBC WP9 in parallel for launch-scope writes.
-3. Keep writes on the shared `useTx` path with simulation, wrong-network blocking, and
+1. The `agent/data` merge, Teams WP10, and YBC WP9 are complete in
+   `agent/integration`.
+2. Keep writes on the shared `useTx` path with simulation, wrong-network blocking, and
    query invalidation.
-4. Run Teams WP11 and YBC WP10 for targeted fork smoke, preprod smoke, release notes,
+3. Run Teams WP11 and YBC WP10 for targeted fork smoke, preprod smoke, release notes,
    and rollback checks.
-5. Use live or saved production feed JSON for normal fork smoke; use deterministic
+4. Use live or saved production feed JSON for normal fork smoke; use deterministic
    fixture JSON or route interception only for states not present in live feeds.
-6. Release each app behind its production route flag after approval. Do not add separate
+5. Release each app behind its production route flag after approval. Do not add separate
    Teams/YBC write flags unless the launch scope changes materially.
-7. Monitor feed freshness and early write reports, then fix issues in production.
+6. Monitor feed freshness and early write reports, then fix issues in production.
 
-If only one implementer is available, do Teams WP10 first, then YBC WP9, then the fork
-and preprod packages. Teams has the higher write/data-model risk; YBC has the cleaner
-write surface once the proposal feed is correct.
+If only one implementer is available for the remaining work, run Teams WP11 first and
+then YBC WP10. Teams has the higher write/data-model risk; YBC has the cleaner write
+surface once the proposal feed is correct.
 
 ## 8. Sub-agent usage
 

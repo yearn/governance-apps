@@ -1,7 +1,13 @@
-import { formatUnits } from "viem";
+import { formatUnits, isAddress, type Address } from "viem";
+import { BonusDistributorAbi } from "@/lib/abis/BonusDistributor";
+import { TeamAbi } from "@/lib/abis/Team";
+import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
+import type { PreparedTransaction } from "@/lib/tx/types";
 import {
   createTeamsScenarioCatalog,
   deriveTeamsFundingSummary,
+  isTeamsFundingApprovalClaimable,
+  isTeamsFundingApprovalReturnable,
   type TeamsClient,
   type TeamsScenarioCatalogEntry,
 } from "./client";
@@ -47,10 +53,15 @@ const ZERO_FINANCIALS: TeamFinancials = {
   profitUsd: "0.00",
   lossUsd: "0.00",
 };
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 const READ_ONLY_PRESET_ID: TeamsMockScenarioId = "directory-observer";
 const WRITE_DISABLED_PREVIEW_AMOUNT = "1000";
 const USD_DECIMALS = 6;
+
+type TeamsMapOptions = {
+  walletChainId?: number | null;
+};
 
 export class OnchainTeamsClient implements TeamsClient {
   constructor(
@@ -80,13 +91,131 @@ export class OnchainTeamsClient implements TeamsClient {
   async getPageState(): Promise<TeamsMockRuntimeState> {
     return mapTeamsFeedToRuntimeState(this.feed, this.account);
   }
+
+  async prepareRevenueDeposit(
+    team: Address,
+    token: Address,
+    amount: bigint
+  ): Promise<PreparedTransaction> {
+    assertValidTeamsAddress(team, "team");
+    assertValidTeamsAddress(token, "token");
+    assertPositiveAmount(amount);
+
+    return async () => {
+      const { getAccount, simulateThenWrite, wagmiConfig } =
+        await getTeamsWriteRuntime();
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const request = {
+        address: team,
+        abi: TeamAbi,
+        functionName: "deposit_revenue",
+        args: [token, amount] as const,
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateThenWrite(request, request, "Teams revenue deposit");
+    };
+  }
+
+  async prepareFundingClaim(
+    team: Address,
+    approvalIdx: bigint,
+    amount: bigint,
+    recipient: Address
+  ): Promise<PreparedTransaction> {
+    assertValidTeamsAddress(team, "team");
+    assertValidTeamsAddress(recipient, "recipient");
+    assertPositiveAmount(amount);
+
+    return async () => {
+      const { getAccount, simulateThenWrite, wagmiConfig } =
+        await getTeamsWriteRuntime();
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const request = {
+        address: team,
+        abi: TeamAbi,
+        functionName: "claim_funding",
+        args: [approvalIdx, amount, recipient] as const,
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateThenWrite(request, request, "Teams funding claim");
+    };
+  }
+
+  async prepareFundingReturn(
+    team: Address,
+    approvalIdx: bigint,
+    amount: bigint
+  ): Promise<PreparedTransaction> {
+    assertValidTeamsAddress(team, "team");
+    assertPositiveAmount(amount);
+
+    return async () => {
+      const { getAccount, simulateThenWrite, wagmiConfig } =
+        await getTeamsWriteRuntime();
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const request = {
+        address: team,
+        abi: TeamAbi,
+        functionName: "return_funding",
+        args: [approvalIdx, amount] as const,
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateThenWrite(request, request, "Teams funding return");
+    };
+  }
+
+  async prepareBonusClaim(
+    team: Address,
+    recipient: Address
+  ): Promise<PreparedTransaction> {
+    assertValidTeamsAddress(team, "team");
+    assertValidTeamsAddress(recipient, "recipient");
+
+    return async () => {
+      const { getAccount, simulateThenWrite, wagmiConfig } =
+        await getTeamsWriteRuntime();
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const request = {
+        address: this.feed.deployment.bonusDistributor as Address,
+        abi: BonusDistributorAbi,
+        functionName: "claim",
+        args: [team, recipient] as const,
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateThenWrite(request, request, "Teams bonus claim");
+    };
+  }
+}
+
+async function getTeamsWriteRuntime() {
+  const [{ getAccount }, { simulateThenWrite }, { wagmiConfig }] =
+    await Promise.all([
+      import("wagmi/actions"),
+      import("@/lib/tx/simulateWrite"),
+      import("@/web3/wagmi"),
+    ]);
+
+  return {
+    getAccount,
+    simulateThenWrite,
+    wagmiConfig,
+  };
 }
 
 export function mapTeamsFeedToRuntimeState(
   feed: TeamsFeed,
-  account: string | null = null
+  account: string | null = null,
+  options: TeamsMapOptions = {}
 ): TeamsMockRuntimeState {
-  const data = mapTeamsFeedToPageData(feed, account);
+  const data = mapTeamsFeedToPageData(feed, account, options);
 
   return {
     presetId: READ_ONLY_PRESET_ID,
@@ -102,12 +231,13 @@ export function mapTeamsFeedToRuntimeState(
 
 export function mapTeamsFeedToPageData(
   feed: TeamsFeed,
-  account: string | null = null
+  account: string | null = null,
+  options: TeamsMapOptions = {}
 ): TeamsMockDataV1 {
   const teamIds = resolveTeamIds(feed.teams);
   const teams = feed.teams.map((team) => mapTeam(feed, team, teamIds));
   const selectedTeamId = resolveSelectedTeamId(feed, teams, account);
-  const viewer = mapViewer(feed, teams, selectedTeamId, account);
+  const viewer = mapViewer(feed, teams, selectedTeamId, account, options);
   const currentGlobalPeriod = feed.accountant.globalByPeriod.find(
     (entry) => entry.period === feed.periods.current
   );
@@ -179,9 +309,14 @@ function mapViewer(
   feed: TeamsFeed,
   teams: TeamRecord[],
   selectedTeamId: TeamId | null,
-  account: string | null
+  account: string | null,
+  options: TeamsMapOptions
 ): TeamsViewerContext {
   const normalizedAccount = account ? normalizeAddress(account) : null;
+  const selectedTeam =
+    selectedTeamId === null
+      ? null
+      : teams.find((team) => team.id === selectedTeamId) ?? null;
   const ownedTeam =
     normalizedAccount === null
       ? null
@@ -193,19 +328,42 @@ function mapViewer(
     normalizeAddress(feed.revenueRecipient.operator) === normalizedAccount;
   const role: TeamsViewerRole = isOperator
     ? "operator-admin"
-    : ownedTeam
+      : ownedTeam
       ? "team-owner"
       : "observer";
   const teamId = ownedTeam?.id ?? selectedTeamId;
+  const isMainnetAccount =
+    normalizedAccount !== null &&
+    (options.walletChainId === undefined ||
+      options.walletChainId === MAINNET_CHAIN_ID);
+  const selectedTeamIsOwner =
+    selectedTeam !== null &&
+    normalizedAccount !== null &&
+    normalizeAddress(selectedTeam.owner) === normalizedAccount;
+  const selectedTeamCanReceiveRevenue =
+    selectedTeam !== null &&
+    selectedTeam.readOnlyReason === null &&
+    selectedTeam.status === "active" &&
+    selectedTeam.revenueOptions.length > 0 &&
+    !feed.revenueRecipient.killed;
+  const selectedTeamHasClaimableFunding =
+    selectedTeam?.fundingApprovals.some(isTeamsFundingApprovalClaimable) ?? false;
+  const selectedTeamHasReturnableFunding =
+    selectedTeam?.fundingApprovals.some(isTeamsFundingApprovalReturnable) ?? false;
+  const selectedTeamHasClaimableBonus =
+    selectedTeam?.bonus.status === "claimable" &&
+    parseDisplayAmount(selectedTeam.bonus.totalClaimable) > 0;
 
   return {
     role,
     address: account,
     teamId: role === "observer" ? null : teamId,
-    canDepositRevenue: false,
-    canClaimFunding: false,
-    canReturnFunding: false,
-    canClaimBonus: false,
+    canDepositRevenue: isMainnetAccount && selectedTeamCanReceiveRevenue,
+    canClaimFunding:
+      isMainnetAccount && selectedTeamIsOwner && selectedTeamHasClaimableFunding,
+    canReturnFunding: isMainnetAccount && selectedTeamHasReturnableFunding,
+    canClaimBonus:
+      isMainnetAccount && selectedTeamIsOwner && selectedTeamHasClaimableBonus,
     canUseAdmin: isOperator,
   };
 }
@@ -272,6 +430,7 @@ function mapFundingApproval(
     approvedPeriod: approval.period,
     symbol: token?.symbol ?? "UNKNOWN",
     tokenAddress: approval.token,
+    decimals: token?.decimals ?? 18,
     totalApproved: fromTokenUnits(approval.amount, token?.decimals ?? 18, 4),
     used: fromTokenUnits(approval.used, token?.decimals ?? 18, 4),
     claimable: fromTokenUnits(approval.claimable, token?.decimals ?? 18, 4),
@@ -621,4 +780,16 @@ function normalizeAddress(address: string) {
 
 function sameAddress(left: string, right: string) {
   return normalizeAddress(left) === normalizeAddress(right);
+}
+
+function assertValidTeamsAddress(address: Address, label: string) {
+  if (!isAddress(address) || normalizeAddress(address) === ZERO_ADDRESS) {
+    throw new Error(`Invalid Teams ${label} address.`);
+  }
+}
+
+function assertPositiveAmount(amount: bigint) {
+  if (amount <= 0n) {
+    throw new Error("Teams write amount must be greater than zero.");
+  }
 }

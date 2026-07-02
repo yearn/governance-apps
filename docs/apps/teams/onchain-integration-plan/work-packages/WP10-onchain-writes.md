@@ -5,6 +5,21 @@
 Add write preparation and execution for the launch-scope Team Finances actions after
 feed-backed reads are stable.
 
+## Status
+
+Implemented in `agent/integration`; pending targeted fork smoke and UAT-T7 acceptance
+before production exposure.
+
+Implementation notes:
+
+- `Team.deposit_revenue`, `Team.claim_funding`, `Team.return_funding`, and
+  `BonusDistributor.claim` writes are prepared in the Teams domain client and executed
+  through the shared transaction pipeline.
+- Feed-mode UI derives action readiness from raw feed state, connected wallet, current
+  chain, allowances, and simulation path rather than trusting `team.availableActions`.
+- Successful writes invalidate Teams feed queries; fork smoke must validate transaction
+  effects separately from the next R2 feed snapshot.
+
 ## Scope
 
 - prepare and execute revenue deposit through `Team.deposit_revenue`

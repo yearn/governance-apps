@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { parseUnits, type Address } from "viem";
 import { cn } from "@/lib/cn";
 import { formatAddress } from "@/lib/format";
 import {
@@ -19,6 +20,9 @@ import { AmountInput } from "@/components/ui/AmountInput";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import type { TxState } from "@/lib/tx/types";
+import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
+import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
 import {
   Table,
   TableBody,
@@ -34,10 +38,22 @@ type FundingApprovalsTableProps = {
   viewer: TeamsViewerContext | null;
   currentPeriod: number;
   onUpdateTeam: (team: TeamRecord) => void;
+  onClaimFunding?: (
+    team: TeamRecord,
+    approval: FundingApproval,
+    amount: string,
+    recipient: string
+  ) => Promise<void>;
+  onReturnFunding?: (
+    team: TeamRecord,
+    approval: FundingApproval,
+    amount: string
+  ) => Promise<void>;
+  txState?: TxState;
 };
 
 type FormFeedback = {
-  tone: "success" | "neutral";
+  tone: "success" | "neutral" | "error";
   message: string;
 } | null;
 
@@ -52,12 +68,16 @@ const EMPTY_CLAIM_ERRORS: ClaimErrors = {
 };
 
 const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export function FundingApprovalsTable({
   team,
   viewer,
   currentPeriod,
   onUpdateTeam,
+  onClaimFunding,
+  onReturnFunding,
+  txState,
 }: FundingApprovalsTableProps) {
   const claimableApprovals = useMemo(
     () => team.fundingApprovals.filter(isTeamsFundingApprovalClaimable),
@@ -90,6 +110,21 @@ export function FundingApprovalsTable({
     team.fundingApprovals.find((approval) => approval.id === selectedClaimApprovalId) ?? null;
   const selectedReturnApproval =
     team.fundingApprovals.find((approval) => approval.id === selectedReturnApprovalId) ?? null;
+  const returnAmountRaw = selectedReturnApproval
+    ? tryParseTokenAmount(returnAmount, selectedReturnApproval.decimals ?? 18)
+    : null;
+  const returnAllowance = useTokenAllowance(
+    (selectedReturnApproval?.tokenAddress ?? ZERO_ADDRESS) as Address,
+    team.address as Address
+  );
+  const returnApproval = useTokenApprove();
+  const liveClaimMode = Boolean(onClaimFunding);
+  const liveReturnMode = Boolean(onReturnFunding);
+  const returnNeedsApproval =
+    liveReturnMode &&
+    returnAmountRaw !== null &&
+    (returnAllowance.data ?? 0n) < returnAmountRaw;
+  const isTxPending = returnApproval.isLoading || isTeamsTxPending(txState);
   const previousClaimApprovalIdRef = useRef<string | null>(selectedClaimApprovalId);
 
   useEffect(() => {
@@ -386,9 +421,21 @@ export function FundingApprovalsTable({
                 </MessageBox>
               ) : null}
 
-              <Button onClick={handleClaim} className="w-full">
+              <Button
+                onClick={() => {
+                  void handleClaim();
+                }}
+                className="w-full"
+                disabled={isTxPending}
+                isLoading={isTxPending}
+              >
                 {teamsCopy.funding.claimForm.submit}
               </Button>
+              {txState?.status === "error" && txState.errorMessage ? (
+                <MessageBox tone="error" role="alert">
+                  {txState.errorMessage}
+                </MessageBox>
+              ) : null}
             </>
           )}
         </Card>
@@ -457,9 +504,23 @@ export function FundingApprovalsTable({
                 </MessageBox>
               ) : null}
 
-              <Button onClick={handleReturn} className="w-full">
-                {teamsCopy.funding.returnForm.submit}
+              <Button
+                onClick={() => {
+                  void handleReturn();
+                }}
+                className="w-full"
+                disabled={isTxPending}
+                isLoading={isTxPending}
+              >
+                {returnNeedsApproval
+                  ? teamsCopy.funding.returnForm.approve
+                  : teamsCopy.funding.returnForm.submit}
               </Button>
+              {txState?.status === "error" && txState.errorMessage ? (
+                <MessageBox tone="error" role="alert">
+                  {txState.errorMessage}
+                </MessageBox>
+              ) : null}
             </>
           )}
 
@@ -510,7 +571,7 @@ export function FundingApprovalsTable({
     </div>
   );
 
-  function handleClaim() {
+  async function handleClaim() {
     setClaimFeedback(null);
 
     if (!selectedClaimApproval || !viewer?.canClaimFunding) {
@@ -545,6 +606,22 @@ export function FundingApprovalsTable({
       return;
     }
 
+    if (liveClaimMode && onClaimFunding) {
+      await onClaimFunding(team, selectedClaimApproval, claimAmount, recipient);
+      setClaimFeedback({
+        tone: "success",
+        message: teamsCopy.funding.claimForm.success(
+          formatTeamsAmount(claimAmount),
+          selectedClaimApproval.symbol,
+          selectedClaimApproval.id,
+          formatAddress(recipient)
+        ),
+      });
+      setClaimAmount("");
+      setClaimErrors(EMPTY_CLAIM_ERRORS);
+      return;
+    }
+
     const nextTeam = applyMockTeamsFundingClaim(
       team,
       {
@@ -569,7 +646,7 @@ export function FundingApprovalsTable({
     setClaimErrors(EMPTY_CLAIM_ERRORS);
   }
 
-  function handleReturn() {
+  async function handleReturn() {
     setReturnFeedback(null);
 
     if (!selectedReturnApproval || !viewer?.canReturnFunding || !viewer.address) {
@@ -584,8 +661,38 @@ export function FundingApprovalsTable({
       teamsCopy.funding.returnForm.errors.amountExceeds
     );
 
-    if (amountError) {
+    if (amountError || returnAmountRaw === null) {
       setReturnAmountError(amountError);
+      return;
+    }
+
+    if (liveReturnMode && onReturnFunding) {
+      if (returnNeedsApproval) {
+        await returnApproval.write(
+          selectedReturnApproval.tokenAddress as Address,
+          team.address as Address,
+          returnAmountRaw,
+          {
+            invalidate: async () => {
+              await returnAllowance.refetch();
+            },
+          }
+        );
+        return;
+      }
+
+      await onReturnFunding(team, selectedReturnApproval, returnAmount);
+      setReturnFeedback({
+        tone: "success",
+        message: teamsCopy.funding.returnForm.success(
+          formatTeamsAmount(returnAmount),
+          selectedReturnApproval.symbol,
+          selectedReturnApproval.id,
+          formatReturnEstimate(selectedReturnApproval, returnAmount)
+        ),
+      });
+      setReturnAmount("");
+      setReturnAmountError(null);
       return;
     }
 
@@ -717,8 +824,8 @@ function MessageBox({
   role,
 }: {
   children: string;
-  tone: "success" | "neutral";
-  role?: "status";
+  tone: "success" | "neutral" | "error";
+  role?: "status" | "alert";
 }) {
   return (
     <div
@@ -727,6 +834,8 @@ function MessageBox({
         "rounded-box border px-4 py-3 text-sm",
         tone === "success"
           ? "border-green-200 bg-green-50 text-green-900"
+          : tone === "error"
+            ? "border-red-200 bg-red-50 text-red-900"
           : "border-border bg-app text-text-secondary"
       )}
     >
@@ -853,4 +962,21 @@ function formatReturnEstimate(approval: FundingApproval, amount: string) {
   }
 
   return formatTeamsUsd((numericAmount * averagePrice).toFixed(2), 2);
+}
+
+function tryParseTokenAmount(value: string, decimals: number) {
+  try {
+    const amount = parseUnits(value, decimals);
+    return amount > 0n ? amount : null;
+  } catch {
+    return null;
+  }
+}
+
+function isTeamsTxPending(state?: TxState) {
+  return (
+    state?.status === "signing" ||
+    state?.status === "submitted" ||
+    state?.status === "mining"
+  );
 }

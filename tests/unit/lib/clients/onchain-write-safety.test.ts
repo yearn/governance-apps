@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Address } from "viem";
 import { getAccount, simulateContract, writeContract } from "wagmi/actions";
 import { OnchainStyfiClient } from "@/lib/clients/styfi/onchain";
+import { OnchainTeamsClient } from "@/lib/clients/teams/onchain";
 import { OnchainVeyfiClient } from "@/lib/clients/veyfi/onchain";
 import { OnchainYbcClient } from "@/lib/clients/ybc/onchain";
 import { LIQUID_LOCKERS, STYFI_ADDRESS } from "@/lib/constants";
+import teamsFeedExample from "@/docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json";
 import feedExample from "@/docs/apps/ybc/onchain-integration-plan/examples/ybc-feed.example.json";
+import { TeamsFeedSchema } from "@/lib/schemas/teams-feed";
 import { YbcFeedSchema } from "@/lib/schemas/ybc-feed";
 import { MAINNET_CHAIN_ID } from "@/lib/tx/network";
 
@@ -104,6 +108,43 @@ describe("On-chain write safety", () => {
         address: feedExample.deployment.ybcElection,
         functionName: "vote_yea",
         args: [0n],
+        chainId: MAINNET_CHAIN_ID,
+        account: USER,
+      })
+    );
+    expect(writeContract).toHaveBeenCalledWith(expect.anything(), request);
+  });
+
+  it("pre-simulates Teams revenue deposits on mainnet", async () => {
+    const feed = TeamsFeedSchema.parse(teamsFeedExample);
+    const team = feed.teams[0]!;
+    const revenueToken = Object.values(feed.tokens).find(
+      (token) => token.kind === "revenue"
+    )!;
+    const request = {
+      address: team.address,
+      functionName: "dummy",
+    };
+
+    vi.mocked(simulateContract).mockResolvedValue({
+      request,
+      result: 0n,
+    } as unknown as Awaited<ReturnType<typeof simulateContract>>);
+
+    const client = new OnchainTeamsClient(feed, USER);
+    const prepare = await client.prepareRevenueDeposit(
+      team.address as Address,
+      revenueToken.address as Address,
+      1n
+    );
+    await prepare();
+
+    expect(simulateContract).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        address: team.address,
+        functionName: "deposit_revenue",
+        args: [revenueToken.address, 1n],
         chainId: MAINNET_CHAIN_ID,
         account: USER,
       })

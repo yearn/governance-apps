@@ -36,6 +36,32 @@ vi.mock("@/lib/hooks/useTeams", () => ({
   }),
 }));
 
+vi.mock("@/lib/hooks/useTeamsWrites", () => ({
+  useTeamsWrites: () => ({
+    claimBonus: vi.fn(),
+    claimFunding: vi.fn(),
+    depositRevenue: vi.fn(),
+    returnFunding: vi.fn(),
+    state: { status: "idle" },
+  }),
+}));
+
+vi.mock("@/lib/hooks/useTokenAllowance", () => ({
+  useTokenAllowance: () => ({
+    data: 0n,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}));
+
+vi.mock("@/lib/hooks/useTokenApprove", () => ({
+  useTokenApprove: () => ({
+    isLoading: false,
+    state: { status: "idle" },
+    write: vi.fn(),
+  }),
+}));
+
 describe("TeamsPageClient feed mode", () => {
   beforeEach(() => {
     const feed = TeamsFeedSchema.parse(feedExample);

@@ -11,21 +11,39 @@ import {
   formatTeamsUsd,
   type TeamBonusState,
 } from "@/lib/clients/teams";
+import type { TxState } from "@/lib/tx/types";
 import { teamsCopy } from "../messages";
 
 type BonusCardProps = {
   bonus: TeamBonusState;
   canClaimBonus: boolean;
+  viewerAddress?: string | null;
+  onClaimBonus?: (recipient: string) => Promise<void>;
+  txState?: TxState;
 };
 
-export function BonusCard({ bonus, canClaimBonus }: BonusCardProps) {
+export function BonusCard({
+  bonus,
+  canClaimBonus,
+  viewerAddress,
+  onClaimBonus,
+  txState,
+}: BonusCardProps) {
   const [isMockClaimStaged, setIsMockClaimStaged] = useState(false);
   const actionDescriptionId = useId();
   const status = teamsCopy.bonus.statuses[bonus.status];
   const pendingPeriods = bonus.periods.filter(
     (period) => period.status === "pending-finalization"
   ).length;
-  const action = getBonusAction(bonus, canClaimBonus, isMockClaimStaged);
+  const isTxPending = isTeamsTxPending(txState);
+  const action = getBonusAction({
+    bonus,
+    canClaimBonus,
+    hasLiveClaim: Boolean(onClaimBonus),
+    hasRecipient: Boolean(viewerAddress),
+    isMockClaimStaged,
+    isTxPending,
+  });
 
   return (
     <Card className="space-y-5">
@@ -85,8 +103,14 @@ export function BonusCard({ bonus, canClaimBonus }: BonusCardProps) {
           size="sm"
           variant={action.variant}
           disabled={action.disabled}
+          isLoading={action.isLoading}
           aria-describedby={action.disabled ? actionDescriptionId : undefined}
           onClick={() => {
+            if (action.canSubmitLiveClaim && onClaimBonus && viewerAddress) {
+              void onClaimBonus(viewerAddress);
+              return;
+            }
+
             if (!action.canStageMockClaim) return;
             setIsMockClaimStaged(true);
           }}
@@ -94,6 +118,15 @@ export function BonusCard({ bonus, canClaimBonus }: BonusCardProps) {
           {action.label}
         </Button>
       </div>
+
+      {txState?.status === "error" && txState.errorMessage ? (
+        <div
+          role="alert"
+          className="rounded-box border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900"
+        >
+          {txState.errorMessage}
+        </div>
+      ) : null}
 
       <details className="group rounded-box border border-border bg-app">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-text-primary transition-colors hover:text-yearn-blue">
@@ -252,28 +285,44 @@ function getBonusSummary(bonus: TeamBonusState, pendingPeriods: number) {
     : teamsCopy.bonus.summaries.none;
 }
 
-function getBonusAction(
-  bonus: TeamBonusState,
-  canClaimBonus: boolean,
-  isMockClaimStaged: boolean
-) {
+function getBonusAction({
+  bonus,
+  canClaimBonus,
+  hasLiveClaim,
+  hasRecipient,
+  isMockClaimStaged,
+  isTxPending,
+}: {
+  bonus: TeamBonusState;
+  canClaimBonus: boolean;
+  hasLiveClaim: boolean;
+  hasRecipient: boolean;
+  isMockClaimStaged: boolean;
+  isTxPending: boolean;
+}) {
   if (isMockClaimStaged) {
     return {
       label: teamsCopy.bonus.action.stagedCta,
       body: teamsCopy.bonus.action.stagedBody,
       disabled: true,
+      isLoading: false,
       variant: "secondary" as const,
       canStageMockClaim: false,
+      canSubmitLiveClaim: false,
     };
   }
 
   if (bonus.status === "claimable" && canClaimBonus) {
     return {
       label: teamsCopy.bonus.action.claimCta,
-      body: teamsCopy.bonus.action.claimBody,
-      disabled: false,
+      body: hasLiveClaim
+        ? teamsCopy.bonus.action.liveClaimBody
+        : teamsCopy.bonus.action.claimBody,
+      disabled: isTxPending || (hasLiveClaim && !hasRecipient),
+      isLoading: isTxPending,
       variant: "primary" as const,
-      canStageMockClaim: true,
+      canStageMockClaim: !hasLiveClaim,
+      canSubmitLiveClaim: hasLiveClaim && hasRecipient,
     };
   }
 
@@ -282,8 +331,10 @@ function getBonusAction(
       label: teamsCopy.bonus.action.permissionCta,
       body: teamsCopy.bonus.action.permissionBody,
       disabled: true,
+      isLoading: false,
       variant: "secondary" as const,
       canStageMockClaim: false,
+      canSubmitLiveClaim: false,
     };
   }
 
@@ -292,8 +343,10 @@ function getBonusAction(
       label: teamsCopy.bonus.action.pendingCta,
       body: teamsCopy.bonus.action.pendingBody,
       disabled: true,
+      isLoading: false,
       variant: "secondary" as const,
       canStageMockClaim: false,
+      canSubmitLiveClaim: false,
     };
   }
 
@@ -302,8 +355,10 @@ function getBonusAction(
       label: teamsCopy.bonus.action.claimedCta,
       body: teamsCopy.bonus.action.claimedBody,
       disabled: true,
+      isLoading: false,
       variant: "secondary" as const,
       canStageMockClaim: false,
+      canSubmitLiveClaim: false,
     };
   }
 
@@ -311,7 +366,17 @@ function getBonusAction(
     label: teamsCopy.bonus.action.noneCta,
     body: teamsCopy.bonus.action.noneBody,
     disabled: true,
+    isLoading: false,
     variant: "secondary" as const,
     canStageMockClaim: false,
+    canSubmitLiveClaim: false,
   };
+}
+
+function isTeamsTxPending(state?: TxState) {
+  return (
+    state?.status === "signing" ||
+    state?.status === "submitted" ||
+    state?.status === "mining"
+  );
 }

@@ -215,6 +215,8 @@ export const teamsCopy = {
       noneCta: "No bonus to claim",
       claimBody:
         "Stage the claim action from the default view, then keep the period drilldown available for audit detail.",
+      liveClaimBody:
+        "Claim the finalized bonus from the default view, with the period drilldown still available for audit detail.",
       stagedBody:
         "The claim is staged for review only. The bonus breakdown stays visible so the finalized periods remain easy to audit.",
       permissionBody:
@@ -372,7 +374,8 @@ export const teamsCopy = {
       amountLabel: "Deposit amount",
       amountHint:
         "Credited USD can differ from the nominal token amount because conversion and pricing apply before accounting.",
-      submit: "Record deposit",
+      submit: "Deposit revenue",
+      approve: "Approve token",
       amountError: "Enter an amount greater than 0.",
     },
     tokenBadges: {
@@ -503,7 +506,7 @@ export const teamsCopy = {
       recipientPlaceholder: "0x0000000000000000000000000000000000000000",
       amount: "Amount to claim",
       maxLabel: "Claimable",
-      submit: "Simulate claim",
+      submit: "Claim funding",
       helpers: {
         streamBacked: (days: number) =>
           `This approval remains stream-backed for ${days} days after claim.`,
@@ -540,7 +543,8 @@ export const teamsCopy = {
       maxLabel: "Used balance",
       estimate: "Estimated refund value",
       note: "Refund accounting uses the historical average claim price for this approval.",
-      submit: "Simulate return",
+      submit: "Return funding",
+      approve: "Approve token",
       success: (
         amount: string,
         symbol: string,

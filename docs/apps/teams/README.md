@@ -88,9 +88,10 @@ overlays.
 
 Feed-backed reads are wired for the non-mock runtime through a same-origin
 `/api/teams-data` proxy, a typed v1 schema, and a mapper into the accepted Teams page
-data contract. Launch writes are intentionally still disabled in feed mode until the
-write package and fork-smoke runbook validate the shared transaction flow. Local/debug
-runs keep the mock store and floating debug controls.
+data contract. Launch-scope writes are wired through the shared transaction flow for
+feed mode and remain gated from production exposure until targeted fork smoke,
+preprod smoke, and release approval are complete. Local/debug runs keep the mock store
+and floating debug controls.
 
 The feed-level `team.availableActions` block is compatibility-only. Production write
 CTA availability must be derived in the frontend from raw feed facts, connected wallet

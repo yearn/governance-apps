@@ -36,20 +36,17 @@ import type {
   TeamsMockScenarioId,
   TeamsViewerRole,
 } from "@/lib/clients/teams/types";
+import type { TeamsFeed } from "@/lib/schemas/teams-feed";
 import { useTeamsData } from "@/lib/hooks/useTeamsData";
+import { teamsKeys } from "@/lib/hooks/teamsKeys";
 import { useOptionalProtocol } from "@/state/protocol";
 
 const teamsClient = createMockTeamsClient({ latencyMs: 250 });
-
-export const teamsKeys = {
-  all: ["teams"] as const,
-  pageState: () => [...teamsKeys.all, "page-state"] as const,
-  scenarioCatalog: () => [...teamsKeys.all, "scenario-catalog"] as const,
-  scenario: (id: TeamsMockScenarioId) => [...teamsKeys.all, "scenario", id] as const,
-};
+export { teamsKeys } from "@/lib/hooks/teamsKeys";
 
 type TeamsRuntimeState = Awaited<ReturnType<typeof teamsClient.getPageState>> & {
   backend: "mock" | "feed";
+  feed: TeamsFeed | null;
 };
 
 async function invalidateTeamsQueries(
@@ -78,7 +75,7 @@ export function useTeamsScenario(id: TeamsMockScenarioId) {
 }
 
 export function useTeamsState() {
-  const { address } = useAccount();
+  const { address, chainId } = useAccount();
   const protocol = useOptionalProtocol();
   const usesMockBackend = protocol?.teamsUsesMockBackend ?? true;
   const teamsFeed = useTeamsData(!usesMockBackend);
@@ -87,6 +84,7 @@ export function useTeamsState() {
     queryFn: async (): Promise<TeamsRuntimeState> => ({
       ...(await teamsClient.getPageState()),
       backend: "mock",
+      feed: null,
     }),
     staleTime: Infinity,
     enabled: usesMockBackend,
@@ -94,10 +92,13 @@ export function useTeamsState() {
   const feedRuntime = useMemo<TeamsRuntimeState | null>(() => {
     if (usesMockBackend || !teamsFeed.data) return null;
     return {
-      ...mapTeamsFeedToRuntimeState(teamsFeed.data, address ?? null),
+      ...mapTeamsFeedToRuntimeState(teamsFeed.data, address ?? null, {
+        walletChainId: chainId,
+      }),
       backend: "feed",
+      feed: teamsFeed.data,
     };
-  }, [address, teamsFeed.data, usesMockBackend]);
+  }, [address, chainId, teamsFeed.data, usesMockBackend]);
 
   if (usesMockBackend) return mockQuery;
 

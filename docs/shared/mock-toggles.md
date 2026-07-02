@@ -61,7 +61,8 @@
 - Env: `NEXT_PUBLIC_TEAMS_DATA_URL` (`teams.json` from `gov-apps-stats`).
 - Required when `NEXT_PUBLIC_ENABLE_TEAMS=true` in production.
 - Server/runtime reads the configured URL directly; browser runtime reads `/api/teams-data` so the payload is delivered same-origin.
-- Launch-scope writes stay disabled in feed mode until the Teams write package and fork smoke are accepted.
+- Launch-scope writes are wired in feed mode after Teams WP10. Production exposure
+  remains gated until Teams WP11 fork/preprod smoke and release approval are accepted.
 - For fork smoke, use live or saved `teams.json` as the read source. Use fixture JSON or
   test route interception for rare states absent from the live feed; do not switch the
   production app into Teams-only mock mode.
@@ -71,7 +72,8 @@
 - Env: `NEXT_PUBLIC_YBC_DATA_URL` (`ybc.json` from `gov-apps-stats`).
 - Required when `NEXT_PUBLIC_ENABLE_YBC=true` in production.
 - Server/runtime reads the configured URL directly; browser runtime reads `/api/ybc-data` so the payload is delivered same-origin.
-- Launch-scope writes stay disabled in feed mode until the YBC write package and fork smoke are accepted.
+- Launch-scope writes are wired in feed mode after YBC WP9. Production exposure
+  remains gated until YBC WP10 fork/preprod smoke and release approval are accepted.
 - For fork smoke, use live or saved `ybc.json` as the read source. Use fixture JSON or
   test route interception for rare states absent from the live feed; do not switch the
   production app into YBC-only mock mode.

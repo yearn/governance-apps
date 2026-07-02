@@ -92,12 +92,12 @@ Use this with:
   production write eligibility is client-derived
 - [x] Teams/YBC launch switch model documented: global mocks only, app route flags expose
   accepted read/write surfaces, no separate write flags for launch
+- [x] `agent/data` merged into `agent/integration`
+- [x] Teams launch writes wired through shared `useTx`
+- [x] YBC launch writes wired through shared `useTx`
 
 ### 5.2 Remaining
 
-- [ ] Merge `agent/data` into `agent/integration`
-- [ ] Wire Teams launch writes through shared `useTx`
-- [ ] Wire YBC launch writes through shared `useTx`
 - [ ] Run targeted fork smoke with live/saved feed JSON and fixture coverage for absent
   states
 - [ ] Run preprod/beta route, host, wallet, and feed smoke
@@ -105,9 +105,9 @@ Use this with:
 
 ## 6. Immediate Next Milestone (Teams/YBC Launch Writes and Smoke)
 
-- [ ] Merge `agent/data` into the integration lane
-- [ ] Implement Teams WP10 launch writes
-- [ ] Implement YBC WP9 launch writes
+- [x] Merge `agent/data` into the integration lane
+- [x] Implement Teams WP10 launch writes
+- [x] Implement YBC WP9 launch writes
 - [ ] Execute Teams WP11 targeted fork/preprod package
 - [ ] Execute YBC WP10 targeted fork/preprod package
 - [ ] Record production flag, host exposure, rollback, and monitoring notes

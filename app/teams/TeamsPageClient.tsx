@@ -9,6 +9,7 @@ import {
   type TeamRecord,
 } from "@/lib/clients/teams";
 import { useTeamsDebugActions, useTeamsState } from "@/lib/hooks/useTeams";
+import { useTeamsWrites } from "@/lib/hooks/useTeamsWrites";
 import { AdminConsole } from "./components/AdminConsole";
 import { MockControls } from "./components/MockControls";
 import { TeamWorkspace } from "./components/TeamWorkspace";
@@ -38,6 +39,7 @@ export function TeamsPageClient() {
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const runtimeQuery = useTeamsState();
   const runtime = runtimeQuery.data ?? null;
+  const teamsWrites = useTeamsWrites(runtime?.backend === "feed" ? runtime.feed : null);
   const data = runtime?.data ?? null;
   const isMockRuntime = runtime?.backend !== "feed";
   const renderState =
@@ -250,6 +252,7 @@ export function TeamsPageClient() {
             onUpdateTeam={handleTeamUpdate}
             revenueCardKey={revenueCardKey}
             state={renderState}
+            liveWrites={runtime?.backend === "feed" ? teamsWrites : undefined}
           />
         </section>
 
