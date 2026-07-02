@@ -3,7 +3,8 @@
 App name / slug: `ybc`
 Route key: `/ybc`
 Beta host: `ybc-beta.dao-ops.com`
-Production host: `ybc.yearn.fi` (gated until live contract wiring and production approval)
+Production host: `ybc.yearn.fi` (gated until feed-backed reads, launch writes, fork
+smoke, and production approval)
 Recommended display label: `Yearn Builder's Collective`
 
 ## Product summary
@@ -44,9 +45,22 @@ Default structure:
 4. Rewards handoff
 5. Operator panel, shown only for operator/admin perspectives
 
+## Live data path
+
+The production YBC route consumes a dedicated `ybc.json` feed from `gov-apps-stats`,
+configured by `NEXT_PUBLIC_YBC_DATA_URL`. The feed owns historical member, proposal,
+vote, weight, and reward display state. The frontend owns presentation and
+wallet-specific overlays.
+
+Feed-backed reads are wired for the non-mock runtime through a same-origin
+`/api/ybc-data` proxy, a typed v1 schema, and a mapper into the accepted YBC page data
+contract. Launch writes are intentionally still disabled in feed mode until the
+fork-smoke package validates the shared transaction flow. Local/debug runs keep the
+mock store and floating debug controls.
+
 The beta host is `ybc-beta.dao-ops.com`. The production host is `ybc.yearn.fi`, but
-production exposure remains gated until live contract wiring and explicit production
-approval are complete.
+production exposure remains gated until the feed-backed read model, launch writes, fork
+smoke, preprod smoke, and explicit production approval are complete.
 
 ## Debug runtime alignment
 
@@ -89,3 +103,5 @@ WP7 runtime work:
 - `docs/apps/ybc/mock-data-schema-v1.md`
 - `docs/apps/ybc/examples/mock-data.example.json`
 - `docs/apps/ybc/onchain-integration-plan/README.md`
+- `docs/apps/ybc/onchain-integration-plan/ybc-feed-schema-v1.md`
+- `docs/apps/ybc/onchain-integration-plan/examples/ybc-feed.example.json`

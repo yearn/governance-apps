@@ -108,11 +108,18 @@ Production invariants (enforced when runtime mode resolves to `production`):
 - `NEXT_PUBLIC_WC_PROJECT_ID` is required
 - `NEXT_PUBLIC_GLOBAL_DATA_URL` is required
 - `NEXT_PUBLIC_RPC_URLS` is required and must include at least one URL
+- `NEXT_PUBLIC_TEAMS_DATA_URL` is required when `NEXT_PUBLIC_ENABLE_TEAMS=true`
+- `NEXT_PUBLIC_YBC_DATA_URL` is required when `NEXT_PUBLIC_ENABLE_YBC=true`
 
 Feature gating in production:
 
+- `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Teams route/host.
+- `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC route/host.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH route/host.
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/debug/ui`.
+- Teams/YBC production flags are whole-app exposure gates for this launch. Do not add
+  separate write-only flags or per-app mock/live switches unless the rollout model
+  changes materially. `NEXT_PUBLIC_USE_MOCKS` must stay globally disabled in production.
 - `yeth.yearn.fi` host routing always rewrites to `/yeth`; when yETH is disabled, the route gate returns 404 instead of falling through to launcher content.
 
 Host-derived metadata origin safety:

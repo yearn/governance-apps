@@ -7,7 +7,7 @@ Use:
 - app name / slug: `teams`
 - route key: `/teams`
 - beta host: `teams-beta.dao-ops.com`
-- production host: `teams.yearn.fi` (gated until live contract wiring and production approval)
+- production host: `teams.yearn.fi` (gated until feed-backed reads, launch writes, fork smoke, and production approval)
 - display label: `Team Finances`
 
 ## Why not rename the app key

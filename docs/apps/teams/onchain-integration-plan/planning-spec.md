@@ -6,7 +6,7 @@
 - route key: `/teams`
 - display label: `Team Finances`
 - initial beta exposure: `teams-beta.dao-ops.com` with mock / dummy data
-- production host: `teams.yearn.fi` (gated until live contract wiring and production approval)
+- production host: `teams.yearn.fi` (gated until feed-backed reads, launch writes, fork smoke, and production approval)
 
 ## 2. MVP scope
 
@@ -32,11 +32,28 @@ truth for seed fixtures and debug presets. After M2, route-local scenario chrome
 should be retired in favor of a debug-backed mock store that preserves the production
 route shape.
 
-### Onchain phase
-Plan for:
-- read-only team directory and workspace data first
-- wallet-specific writes only after read model is stable
-- historical price rendering supplied by indexer / feed, not inferred ad hoc in UI
+### Feed-backed production phase
+
+Production reads must use the `teams.json` feed documented in
+`teams-feed-schema-v1.md`. The feed is produced by `gov-apps-stats` and owns historical
+team, revenue, funding, bonus, and accounting state.
+
+Frontend live overlays may add:
+
+- connected wallet owner status
+- token balances and allowances
+- client-derived write eligibility from raw feed state, wallet state, current chain, and
+  simulation
+- write simulation status
+- post-transaction invalidation while the next feed snapshot is pending
+
+Wallet-specific writes only start after the feed-backed read model is stable. Historical
+price and accounting rendering must be supplied by the feed or Teams domain client, not
+inferred ad hoc in page components.
+
+The feed-level `team.availableActions` block is a compatibility hint, not an
+authorization source. Production CTAs must not trust it; WP10 must derive write readiness
+from the accepted feed facts and live wallet context.
 
 ## 4. Approved route shell and file layout
 
@@ -90,16 +107,25 @@ Interactive mock flows accepted.
 ### M2A
 Debug-backed production-parity mock runtime accepted.
 
-### M3
-Onchain reads work on fork.
+### M3A
+Shared data contract and `gov-apps-stats` producer handoff accepted.
+
+### M3B
+Staging `teams.json` feed is produced by `gov-apps-stats`.
+
+### M3C
+Staging feed is validated by `governance-apps`.
 
 ### M4
-Onchain writes work on fork.
+Feed-backed reads work in the app.
 
 ### M5
-UAT and preprod accepted.
+Launch-scope writes work on fork.
 
 ### M6
+UAT and preprod accepted.
+
+### M7
 Controlled production rollout approved.
 
 ## 6. Risks
@@ -107,12 +133,17 @@ Controlled production rollout approved.
 - over-scoping the surface into a full back-office system too early
 - confusing funding-claim timing and vesting edge cases
 - overwhelming the default user experience with admin detail
-- coupling the UI too tightly to historical pricing logic not yet owned by the frontend
+- coupling the UI too tightly to historical pricing logic not owned by the frontend
+- letting producer and consumer schemas drift across repos
+- treating mock-only states as production evidence after real feeds exist
 
 ## 7. Launch stance
 
 Required launch order:
-1. mock / dummy data beta host
-2. live-contract wiring accepted
-3. production green light recorded
-4. production exposure on `teams.yearn.fi` after release checklist approval
+1. shared feed contract accepted
+2. staging `teams.json` produced by `gov-apps-stats`
+3. staging feed validated by the frontend consumer
+4. feed-backed reads accepted
+5. launch writes accepted on fork
+6. production green light recorded
+7. production exposure on `teams.yearn.fi` after release checklist approval

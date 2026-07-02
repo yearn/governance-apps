@@ -1,13 +1,14 @@
 # Master Task List — Governance Apps
 
-Version 2.1 — February 26, 2026  
-Scope: `/styfi`, `/veyfi`, `/yeth`
+Version 2.2 — June 30, 2026
+Scope: `/styfi`, `/veyfi`, `/yeth`, `/teams`, `/ybc`
 
 This is the active delivery roadmap for the repository.  
 Use this with:
 
 - [`../apps/yeth/implementation-status.md`](../apps/yeth/implementation-status.md)
 - [`../apps/yeth/production-readiness-checklist.md`](../apps/yeth/production-readiness-checklist.md)
+- [`teams-ybc-production-plan.md`](teams-ybc-production-plan.md)
 - [`architecture-blueprint.md`](architecture-blueprint.md)
 - [`testing.md`](testing.md)
 
@@ -74,7 +75,52 @@ Use this with:
 - [ ] Ensure docs update is required in PR template for behavior changes
 - [ ] Maintain changelog entries for app-level releases
 
-## 5. Immediate Next Milestone (yETH Controlled Testing)
+## 5. Teams + YBC Production Workstream
+
+### 5.1 Completed
+
+- [x] `/teams` and `/ybc` route keys, labels, beta hosts, and production hosts documented
+- [x] mock-backed Teams and YBC surfaces documented
+- [x] debug-runtime alignment documented for Teams and YBC
+- [x] finalized `styfi` deployment manifest identified as source of truth
+- [x] consumer-owned `teams.json` and `ybc.json` feed contracts documented
+- [x] live `teams.json` payload validated from `governance-apps`
+- [x] live `ybc.json` payload validated from `governance-apps`
+- [x] production Teams reads wired to the feed-backed client
+- [x] production YBC reads wired to the feed-backed client
+- [x] Teams `availableActions` producer feedback documented as compatibility-only;
+  production write eligibility is client-derived
+- [x] Teams/YBC launch switch model documented: global mocks only, app route flags expose
+  accepted read/write surfaces, no separate write flags for launch
+
+### 5.2 Remaining
+
+- [ ] Merge `agent/data` into `agent/integration`
+- [ ] Wire Teams launch writes through shared `useTx`
+- [ ] Wire YBC launch writes through shared `useTx`
+- [ ] Run targeted fork smoke with live/saved feed JSON and fixture coverage for absent
+  states
+- [ ] Run preprod/beta route, host, wallet, and feed smoke
+- [ ] Enable production flags and host exposure after release approval
+
+## 6. Immediate Next Milestone (Teams/YBC Launch Writes and Smoke)
+
+- [ ] Merge `agent/data` into the integration lane
+- [ ] Implement Teams WP10 launch writes
+- [ ] Implement YBC WP9 launch writes
+- [ ] Execute Teams WP11 targeted fork/preprod package
+- [ ] Execute YBC WP10 targeted fork/preprod package
+- [ ] Record production flag, host exposure, rollback, and monitoring notes
+
+Historical data-producer milestones:
+
+- [x] Start shared WP2 in `gov-apps-stats`
+- [x] Import Teams/YBC deployment block heights from `styfi/deployment.json`
+- [x] Publish live `teams.json`
+- [x] Publish live `ybc.json`
+- [x] Hand `teams.json` URL back to `governance-apps` for shared WP3 validation
+
+## 7. Previous Immediate Milestone (yETH Controlled Testing)
 
 - [ ] Merge yETH mock implementation into `master`
 - [ ] Deploy to production worker

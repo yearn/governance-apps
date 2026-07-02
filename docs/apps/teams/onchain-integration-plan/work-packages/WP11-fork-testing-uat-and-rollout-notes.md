@@ -2,11 +2,13 @@
 
 ## Objective
 
-Document and validate fork testing, UAT checkpoints, and rollout guidance for Team Finances.
+Document and validate targeted fork testing, feed freshness checks, UAT checkpoints, and
+rollout guidance for Team Finances.
 
 ## Scope
 
 - finalize the fork runbook
+- verify staging/production `teams.json` freshness checks
 - record UAT checklist and evidence expectations
 - record beta-host, preprod, and production-gate rollout stance
 - document rollback and smoke-test expectations
@@ -18,8 +20,8 @@ Document and validate fork testing, UAT checkpoints, and rollout guidance for Te
 
 ## Dependencies
 
-- WP9
-- WP10
+- WP9 feed-backed reads
+- WP10 launch-scope writes
 
 ## Suggested files
 
@@ -29,6 +31,7 @@ Document and validate fork testing, UAT checkpoints, and rollout guidance for Te
 ## Acceptance criteria
 
 - fork runbook is executable by a new developer
+- feed freshness and rollback checks are documented
 - UAT checklist is explicit
 - rollout posture is documented
 - remaining blockers are captured
@@ -45,10 +48,12 @@ UAT-T8: preprod readiness reviewed.
 You are implementing `teams` `WP11` — **Fork testing, UAT, and rollout notes**.
 
 Objective:
-Document and validate fork testing, UAT checkpoints, and rollout guidance for Team Finances.
+Document and validate targeted fork testing, feed freshness checks, UAT checkpoints, and
+rollout guidance for Team Finances.
 
 Scope:
 - finalize the fork runbook
+- verify staging/production `teams.json` freshness checks
 - record UAT checklist and evidence expectations
 - record beta-host, preprod, and production-gate rollout stance
 - document rollback and smoke-test expectations
@@ -61,6 +66,7 @@ Constraints:
 
 Definition of done:
 - fork runbook is executable by a new developer
+- feed freshness and rollback checks are documented
 - UAT checklist is explicit
 - rollout posture is documented
 - remaining blockers are captured

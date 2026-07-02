@@ -41,8 +41,14 @@ export function resolveAdditionalConnectSrc(
   if (env.NEXT_PUBLIC_GLOBAL_DATA_URL) {
     candidates.push(env.NEXT_PUBLIC_GLOBAL_DATA_URL);
   }
+  if (env.NEXT_PUBLIC_TEAMS_DATA_URL) {
+    candidates.push(env.NEXT_PUBLIC_TEAMS_DATA_URL);
+  }
   if (env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL) {
     candidates.push(env.NEXT_PUBLIC_YETH_GLOBAL_DATA_URL);
+  }
+  if (env.NEXT_PUBLIC_YBC_DATA_URL) {
+    candidates.push(env.NEXT_PUBLIC_YBC_DATA_URL);
   }
 
   const parsed = candidates

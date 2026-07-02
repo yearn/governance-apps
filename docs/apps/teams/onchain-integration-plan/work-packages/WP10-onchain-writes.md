@@ -1,24 +1,30 @@
-# WP10 — Onchain writes
+# WP10 — Launch-scope writes
 
 ## Objective
 
-Add write preparation and execution for in-scope Team Finances actions.
+Add write preparation and execution for the launch-scope Team Finances actions after
+feed-backed reads are stable.
 
 ## Scope
 
-- prepare and execute revenue deposit
-- prepare and execute funding claim
-- prepare and execute funding return
-- prepare and execute bonus claim
+- prepare and execute revenue deposit through `Team.deposit_revenue`
+- prepare and execute funding claim through `Team.claim_funding`
+- prepare and execute funding return through `Team.return_funding`
+- prepare and execute bonus claim through `BonusDistributor.claim`
+- invalidate feed and live wallet overlays after successful transactions
+- derive write CTA availability from raw feed state, connected wallet, current chain,
+  balances/allowances where relevant, and simulation
 
 ## Non-goals
 
 - out-of-scope vest management
 - every possible admin setter
+- generic contract transaction builders
+- trusting `team.availableActions` from `teams.json` as an authorization source
 
 ## Dependencies
 
-- WP9
+- WP9 feed-backed reads
 
 ## Suggested files
 
@@ -32,6 +38,9 @@ Add write preparation and execution for in-scope Team Finances actions.
 - success and failure states are coherent
 - query invalidation keeps the workspace consistent after writes
 - wrong-network behavior is blocked cleanly
+- write CTAs only appear when the feed and live wallet overlay support the action
+- write CTAs do not rely on `team.availableActions`; that feed block remains a
+  compatibility hint only
 
 ## UAT checkpoint
 
@@ -42,21 +51,26 @@ UAT-T7: fork-backed write paths validated.
 
 ### Implementer prompt for WP10
 
-You are implementing `teams` `WP10` — **Onchain writes**.
+You are implementing `teams` `WP10` — **Launch-scope writes**.
 
 Objective:
-Add write preparation and execution for in-scope Team Finances actions.
+Add write preparation and execution for the launch-scope Team Finances actions after
+feed-backed reads are stable.
 
 Scope:
-- prepare and execute revenue deposit
-- prepare and execute funding claim
-- prepare and execute funding return
-- prepare and execute bonus claim
+- prepare and execute revenue deposit through `Team.deposit_revenue`
+- prepare and execute funding claim through `Team.claim_funding`
+- prepare and execute funding return through `Team.return_funding`
+- prepare and execute bonus claim through `BonusDistributor.claim`
+- invalidate feed and live wallet overlays after successful transactions
+- derive write CTA availability from raw feed state, connected wallet, current chain,
+  balances/allowances where relevant, and simulation
 
 Constraints:
 - stay inside this package only
 - follow existing `governance-apps` patterns
 - do not jump ahead into later milestones
+- do not treat `team.availableActions` from `teams.json` as an authorization source
 - update tests and docs if behavior changes
 
 Definition of done:
@@ -64,12 +78,15 @@ Definition of done:
 - success and failure states are coherent
 - query invalidation keeps the workspace consistent after writes
 - wrong-network behavior is blocked cleanly
+- write CTAs only appear when the feed and live wallet overlay support the action
+- write CTAs do not rely on `team.availableActions`; that feed block remains a
+  compatibility hint only
 
 
 
 ### Reviewer prompt for WP10
 
-Review this PR only against `teams` `WP10` — **Onchain writes**.
+Review this PR only against `teams` `WP10` — **Launch-scope writes**.
 
 Check:
 - scope matches the package and does not bleed into later WPs
@@ -82,12 +99,13 @@ Block if:
 - the implementation introduces out-of-scope product behavior
 - critical route states are missing
 - shared repo patterns are ignored without justification
+- writes bypass the shared transaction pipeline
 
 
 
 ### Integrator prompt for WP10
 
-Integrate `teams` `WP10` — **Onchain writes** into the `agent/integration` branch only after:
+Integrate `teams` `WP10` — **Launch-scope writes** into the `agent/integration` branch only after:
 - acceptance criteria are met
 - reviewer blockers are resolved
 - test baseline is green

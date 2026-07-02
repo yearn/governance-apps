@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useAccount } from "wagmi";
-import type { YbcProposalPhase, YbcProposalType, YbcPrototypeScenarioId } from "@/lib/clients/ybc";
-import { createMockYbcClient } from "@/lib/clients/ybc";
+import type {
+  YbcMockDataV1,
+  YbcProposalPhase,
+  YbcProposalType,
+  YbcPrototypeScenarioId,
+} from "@/lib/clients/ybc";
+import { createMockYbcClient, mapYbcFeedToPageState } from "@/lib/clients/ybc";
+import { useYbcData } from "@/lib/hooks/useYbcData";
+import { useOptionalProtocol } from "@/state/protocol";
 import {
   createYbcProposal,
   ensureYbcMockStoreInitialized,
@@ -46,6 +53,60 @@ type UseYbcStateOptions = {
   latencyMs?: number;
 };
 
+type YbcMockControls = {
+  createProposal: typeof createYbcProposal;
+  executeProposal: typeof executeYbcProposal;
+  patchAdmin: typeof patchYbcAdmin;
+  patchMember: typeof patchYbcMember;
+  patchProposal: typeof patchYbcProposal;
+  patchRewards: typeof patchYbcRewards;
+  resetRuntime: typeof resetYbcMockStore;
+  retractProposal: typeof retractYbcProposal;
+  seedPerspective: typeof seedYbcPerspective;
+  seedRewardsState: typeof seedYbcRewardsState;
+  setEmptyBoard: typeof setYbcEmptyBoard;
+  setEmptyRoster: typeof setYbcEmptyRoster;
+  setEpoch: typeof setYbcEpoch;
+  setHooksVisible: typeof setYbcHooksVisible;
+  setLoading: typeof setYbcLoading;
+  setMemberMaturity: typeof setYbcMemberMaturity;
+  setMemberStatus: typeof setYbcMemberStatus;
+  setOperatorAccess: typeof setYbcOperatorAccess;
+  setProposalPhase: typeof setYbcProposalPhase;
+  setProposalVoteState: typeof setYbcProposalVoteState;
+  setThresholdProfile: typeof setYbcThresholdProfile;
+  syncToNow: typeof syncYbcMockStoreToNow;
+  voteOnProposal: typeof voteOnYbcProposal;
+};
+
+type DisabledYbcMockControls = {
+  [Key in keyof YbcMockControls]: undefined;
+};
+
+type UseYbcStateBase = {
+  error: Error | null;
+  isError: boolean;
+  isLoading: boolean;
+  refetch: () => Promise<void>;
+  runtime: YbcRuntimeSnapshot;
+};
+
+export type UseYbcMockStateResult = UseYbcStateBase &
+  YbcMockControls & {
+    backend: "mock";
+    data: YbcMockDataV1;
+  };
+
+export type UseYbcFeedStateResult = UseYbcStateBase &
+  DisabledYbcMockControls & {
+    backend: "feed";
+    data: YbcMockDataV1 | null;
+  };
+
+export type UseYbcStateResult =
+  | UseYbcMockStateResult
+  | UseYbcFeedStateResult;
+
 const mockYbcClient = createMockYbcClient({ latencyMs: 0 });
 
 function sleep(latencyMs: number) {
@@ -58,8 +119,13 @@ function sleep(latencyMs: number) {
   });
 }
 
-export function useYbcState(options: UseYbcStateOptions = {}) {
+export function useYbcState(
+  options: UseYbcStateOptions = {}
+): UseYbcStateResult {
   const { address, isConnected } = useAccount();
+  const protocol = useOptionalProtocol();
+  const usesMockBackend = protocol?.ybcUsesMockBackend ?? true;
+  const ybcFeed = useYbcData(!usesMockBackend);
   const runtime = useSyncExternalStore(
     subscribeYbcMockStore,
     getYbcMockSnapshot,
@@ -75,8 +141,36 @@ export function useYbcState(options: UseYbcStateOptions = {}) {
       ? mockYbcClient.resolveDefaultScenario(address ?? null)
       : "observer");
   const bootstrapScenarioId = options.scenarioOverride ?? defaultScenarioId;
+  const feedPageState = useMemo(() => {
+    if (usesMockBackend || !ybcFeed.data) {
+      return null;
+    }
+
+    return mapYbcFeedToPageState(ybcFeed.data, address ?? null);
+  }, [address, usesMockBackend, ybcFeed.data]);
+  const feedError = useMemo(() => {
+    if (usesMockBackend) return null;
+    if (ybcFeed.error instanceof Error) return ybcFeed.error;
+    if (ybcFeed.isError) return new Error("Unknown YBC feed error");
+    if (!ybcFeed.isLoading && !feedPageState) {
+      return new Error("No valid YBC feed payload is available.");
+    }
+    return null;
+  }, [
+    feedPageState,
+    usesMockBackend,
+    ybcFeed.error,
+    ybcFeed.isError,
+    ybcFeed.isLoading,
+  ]);
 
   useEffect(() => {
+    if (!usesMockBackend) {
+      setIsBootstrapping(false);
+      setYbcLoading(false);
+      return;
+    }
+
     if (options.bootstrap === false) {
       setIsBootstrapping(false);
       return;
@@ -133,9 +227,48 @@ export function useYbcState(options: UseYbcStateOptions = {}) {
     bootstrapScenarioId,
     options.bootstrap,
     options.latencyMs,
+    usesMockBackend,
   ]);
 
+  if (!usesMockBackend) {
+    return {
+      backend: "feed",
+      createProposal: undefined,
+      data: feedPageState?.data ?? null,
+      error: feedError,
+      executeProposal: undefined,
+      isError: feedError !== null,
+      isLoading: ybcFeed.isLoading || (!feedPageState && !feedError),
+      patchAdmin: undefined,
+      patchMember: undefined,
+      patchProposal: undefined,
+      patchRewards: undefined,
+      refetch: async () => {
+        await ybcFeed.refetch();
+      },
+      resetRuntime: undefined,
+      retractProposal: undefined,
+      runtime,
+      seedPerspective: undefined,
+      seedRewardsState: undefined,
+      setEmptyBoard: undefined,
+      setEmptyRoster: undefined,
+      setEpoch: undefined,
+      setHooksVisible: undefined,
+      setLoading: undefined,
+      setMemberMaturity: undefined,
+      setMemberStatus: undefined,
+      setOperatorAccess: undefined,
+      setProposalPhase: undefined,
+      setProposalVoteState: undefined,
+      setThresholdProfile: undefined,
+      syncToNow: undefined,
+      voteOnProposal: undefined,
+    };
+  }
+
   return {
+    backend: "mock",
     createProposal: createYbcProposal,
     data: runtime.data,
     error,

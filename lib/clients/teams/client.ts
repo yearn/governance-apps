@@ -31,6 +31,16 @@ export type TeamsScenarioCatalogEntry = {
 export interface TeamsClient {
   listScenarioCatalog(): Promise<TeamsScenarioCatalogEntry[]>;
   getScenario(id: TeamsMockScenarioId): Promise<TeamsMockScenario>;
+  getPageState(): Promise<{
+    presetId: TeamsMockScenarioId;
+    data: TeamsMockDataV1;
+    isLoading: boolean;
+    isEmpty: boolean;
+    currentTimeSeconds: number;
+    periodBase: number;
+    periodAnchorTimeSeconds: number;
+    timeTravelDays: number;
+  }>;
 }
 
 export function createTeamsScenarioCatalog(

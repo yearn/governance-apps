@@ -1,351 +1,273 @@
 # Teams + YBC Delivery Roadmap
 
-Status: proposed delivery plan
-Scope: new `/teams` app surface and new `/ybc` app surface
-Primary goal: ship mock-first design-quality surfaces quickly, then mature them into
-fork-backed, contract-backed flows with controlled rollout.
+Status: active production roadmap
+Scope: `/teams` and `/ybc`
+Primary goal: move the accepted mock-backed surfaces to production using finalized
+deployed contracts, `gov-apps-stats` feeds, limited fork smoke, and controlled rollout.
 
-## Naming decision
+## 1. Current state
 
-### Canonical app names and slugs
+Teams and YBC already have mock-backed frontend surfaces and debug/runtime planning. The
+new production fact is that `../styfi` `master` now contains finalized deployed contract
+addresses and contract sources.
 
-- Teams app name / slug: `teams`
-- YBC app name / slug: `ybc`
+The old roadmap was "mock first, then discover contracts." That is complete enough to
+retire. As of 2026-07-02, `teams.json` and `ybc.json` are live and both frontend read
+models are feed-backed. The roadmap from here is now:
 
-### Recommended display labels
+1. merge the data/read lane into `agent/integration`;
+2. wire limited production write flows;
+3. run targeted fork smoke with live or saved feed JSON;
+4. run preprod/beta smoke;
+5. release each accepted app behind its production route flag;
+6. monitor feed freshness and write reports while iterating in production.
 
-- `/teams` route / host label: **Team Finances**
-- `/ybc` route / host label: **Yearn Builder's Collective**
+The detailed production plan is:
 
-### Beta publication hosts
+- [`teams-ybc-production-plan.md`](teams-ybc-production-plan.md)
 
-- Teams beta host: `teams-beta.dao-ops.com`
-- YBC beta host: `ybc-beta.dao-ops.com`
+The producer handoff brief is:
 
-These beta hosts may publish mock / dummy data for review. Production exposure remains
-blocked until live contract wiring is complete and the production green light is explicit.
+- [`gov-apps-stats-teams-ybc-feed-brief.md`](gov-apps-stats-teams-ybc-feed-brief.md)
 
-### Production hosts
+## 2. Canonical app names and hosts
 
-- Teams production host: `teams.yearn.fi`
-- YBC production host: `ybc.yearn.fi`
+| App | Route | Display label | Beta host | Production host |
+| --- | --- | --- | --- | --- |
+| Teams | `/teams` | `Team Finances` | `teams-beta.dao-ops.com` | `teams.yearn.fi` |
+| YBC | `/ybc` | `Yearn Builder's Collective` | `ybc-beta.dao-ops.com` | `ybc.yearn.fi` |
 
-These hostnames are fixed, but they must not go live until the work is delivered, live
-contracts are wired, and production launch is approved.
+Production host exposure remains feature-gated until read feeds, launch writes, fork
+smoke, preprod smoke, and production approval are complete.
 
-App menu / navigation placement is intentionally out of scope for M0 and should be
-handled separately during production readiness.
+## 3. Delivery principles
 
-### Why this split is preferred
+1. Feed contract before producer implementation.
+2. Producer implementation before frontend read wiring.
+3. Frontend read model before frontend writes.
+4. Writes go through the shared `useTx` pipeline.
+5. Browser code does not own historical log indexing.
+6. One work package equals one reviewable PR.
+7. Merge accepted work through `agent/integration`.
+8. Release Teams and YBC independently if one track is ready before the other.
+9. Do not add per-app mock/live switches for launch; `NEXT_PUBLIC_USE_MOCKS` is global.
+10. Do not add separate Teams/YBC write flags for launch; each app production flag
+    exposes the accepted read and launch-write surface together.
 
-`teams` is the best **stable app key** because the contract system is team-centric, not purely
-ledger-centric. The surface covers team directory, revenue, funding, bonus, ownership, and admin
-lifecycle—not just accounting, not just budgeting, and not just P&L.
+## 4. Milestones from here
 
-Use the short key for routing and future hostnames, then use the richer label in header copy and
-product copy.
-
-## Delivery principles
-
-1. Mock-first before onchain.
-2. One work package = one reviewable PR.
-3. Merge accepted work through the long-lived `agent/integration` branch.
-4. Do not create every future worktree up front.
-5. Only start fork / onchain work once mock UX, data contracts, and debug-runtime
-   alignment are accepted.
-6. Tag `agent/integration` when a milestone is accepted, for example `integration/m0`.
-
-## Shared dependency tree
-
-### Shared foundation
-
-These should be decided once before both tracks move far:
-
-- canonical app names / slugs, route keys, and display labels
-- beta-host rollout policy for mock / dummy data
-- production hostnames and rollout gate after live contract wiring
-- dedicated mock data schemas for both tracks
-- iconography / copy tone alignment
-- beta host, production host, and runtime gate behavior
-- any shared UI primitives needed by both tracks
-
-### Teams-specific dependencies
-
-- final app name / slug and route key decision (`teams`)
-- mock data contract for:
-  - team directory
-  - team workspace
-  - funding approvals
-  - bonus periods
-  - admin budget buckets
-- deposit conversion preview rules
-- funding status wording and vesting edge-case wording
-
-### YBC-specific dependencies
-
-- final app name / slug and route key decision (`ybc`)
-- mock data contract for:
-  - governance influence hero
-  - members roster
-  - proposal timeline
-  - thresholds / status states
-- weight maturity visualization
-- exact stance on rewards CTA linking out to shared claim surface
-
-## Milestones
-
-## M0 — Planning + data contracts
+### M3A — Data contract and producer handoff
 
 Shared:
-- finalize naming
-- finalize route / beta-host / production-host stance
-- define mock schemas and example payloads
-- create planning docs, work packages, prompts, and worktree scripts
+
+- define `teams.json` schema v1;
+- define `ybc.json` schema v1;
+- document required events, view calls, deployment addresses, and open producer inputs;
+- hand off to `gov-apps-stats`.
+
+Exit gate:
+
+- shared WP1 accepted;
+- producer brief is specific enough for implementation;
+- unresolved inputs are explicit.
+
+### M3B — `gov-apps-stats` producer implementation
+
+Producer repo:
+
+- import Teams/YBC deployment manifest;
+- import deployment block heights from `styfi/deployment.json`;
+- implement deterministic event reducers and snapshot view calls;
+- publish staging `teams.json` and `ybc.json`;
+- add producer tests and cursor safety.
+
+Exit gate:
+
+- shared WP2 accepted in `gov-apps-stats`;
+- staging URLs available;
+- producer notes include deployment block heights, confirmation depth, payload size, and
+  known gaps.
+
+### M3C — Consumer validation
+
+Governance apps:
+
+- fetch staging feeds;
+- validate schema shape and deployment metadata;
+- verify semantic completeness for launch UI;
+- update schemas/examples if real payloads require compatible amendments.
+
+Exit gate:
+
+- shared WP3 accepted;
+- Teams WP9 and YBC WP8 can start without feed ambiguity.
+
+### M4 — Feed-backed reads
 
 Teams:
-- finalize IA and state model
-- approve key mock scenarios
+
+- replace mock-only production reads with `teams.json` feed client;
+- keep mocks as development/debug fallback;
+- add live wallet overlays for owner, balances, allowances, and write readiness;
+- treat feed-level `team.availableActions` as a compatibility hint only; CTA readiness
+  is derived client side from raw feed facts, wallet state, current chain, and
+  simulation.
 
 YBC:
-- finalize IA and state model
-- approve key mock scenarios
 
-### Exit gate
-- product/ops agree on the surfaces and names
-- mock schemas accepted
-- work packages approved
+- replace mock-only production reads with `ybc.json` feed client;
+- keep mocks as development/debug fallback;
+- add live wallet overlays for member status, voted status, and write readiness.
 
----
+Exit gate:
 
-## M1 — Static concept surfaces (parallel)
+- Teams WP9 accepted;
+- YBC WP8 accepted;
+- production mode does not depend on mock-only clients.
+
+### M5 — Launch-scope writes
 
 Teams:
-- route shell
-- team directory
-- team workspace overview
-- mock-only cards / tables / empty states
-- beta-host review target: `teams-beta.dao-ops.com`
-- production host target remains gated: `teams.yearn.fi`
+
+- deposit revenue;
+- claim funding;
+- return funding;
+- claim bonus;
+- derive CTA visibility and disabled states in the client instead of trusting
+  `team.availableActions`.
 
 YBC:
-- route shell
-- hero stats
-- members roster
-- proposal cards with timeline / thresholds
-- mock-only cards / tables / empty states
-- beta-host review target: `ybc-beta.dao-ops.com`
-- production host target remains gated: `ybc.yearn.fi`
 
-### Exit gate
-- design review passed
-- copy review passed
-- layout responsive and accessible
+- propose addition;
+- propose expulsion;
+- retract own proposal;
+- vote yea/nay;
+- execute passed proposal.
 
----
+Exit gate:
 
-## M2 — Interactive mock flows (parallel)
+- Teams WP10 accepted;
+- YBC WP9 accepted;
+- wrong-network and failed simulation behavior are clean.
+
+### M6 — Fork smoke, UAT, and preprod
 
 Teams:
-- deposit revenue interaction
-- funding claim / return flows
-- bonus tooltip and period drilldown
-- admin info architecture
+
+- run targeted fork smoke for directory, workspace, revenue, funding, return, and bonus;
+- read from live or saved `teams.json` during fork smoke; use fixture/intercepted JSON
+  only for states absent from the live feed;
+- run preprod route smoke;
+- triage launch blockers vs post-launch issues.
 
 YBC:
-- proposal actions mock flow
-- timeline states
-- vote progress / threshold states
-- rewards CTA / cross-app claim handoff
-- operator panel structure
 
-### Exit gate
-- product acceptance on mock flows
-- no missing states
-- local mock QA completed
+- run targeted fork smoke for roster, proposals, voting, execution, and reward handoff;
+- read from live or saved `ybc.json` during fork smoke; use fixture/intercepted JSON
+  only for proposal/member states absent from the live feed;
+- run preprod route smoke;
+- triage launch blockers vs post-launch issues.
 
----
+Exit gate:
 
-## M2A — Debug-runtime alignment
-Recommended package split:
-- `shared / WP0`: own `components/DebugControls.tsx`, `lib/test-bridge.ts`, the shared
-  reset/time-travel contract, and the initial YBC root invalidation seam
-- `teams / WP7` and `ybc / WP6`: debug-backed runtime, store, and domain-specific E2E
-  bridge work against the shared seam
-- `teams / WP8` and `ybc / WP7`: production-parity copy, control placement, and residual cleanup
+- Teams WP11 accepted;
+- YBC WP10 accepted;
+- release checklist and rollback notes are complete.
+
+### M7 — Controlled production rollout
 
 Recommended order:
-- land `shared / WP0` first
-- after `shared / WP0` lands, run the two runtime packages in parallel
-- after each track lands its runtime package, run the two cleanup packages in parallel
-- do not start `M3` on either track until both `M2A` cleanup packages are accepted
 
-Teams:
-- move Teams state seeding and prototype controls into the floating debug panel
-- replace route-local scenario chrome with a mutable debug-backed store
-- require granular Teams debug setters that mutate live route state rather than swapping
-  canned views
-- remove mock / prototype wording from the default route where production wording is intended
-- preserve loading, empty, retired, bonus-ready, funding-ready, and operator/admin QA states through debug setters and test APIs, with presets only as optional convenience bootstraps
-- consume the shared seam from `shared / WP0` so time travel and `Reset App` invalidate
-  and reset Teams state correctly without redefining shared shell behavior
+1. set production feed URLs and RPC env;
+2. enable each app's production flag only after read, write, fork, and preprod approval;
+3. expose the production host after approval;
+4. monitor feed freshness and write reports.
 
-YBC:
-- move YBC state seeding and prototype controls into the floating debug panel
-- replace route-local scenario chrome with a mutable debug-backed store
-- require granular YBC debug setters that mutate live route state rather than swapping
-  canned views
-- remove mock / prototype wording from the default route where production wording is intended
-- preserve observer, member, operator, empty-board, rewards, and proposal-lifecycle QA states through debug setters and test APIs, with presets only as optional convenience bootstraps
-- consume the shared seam from `shared / WP0` so time travel and `Reset App` invalidate
-  and reset YBC state correctly without redefining shared shell behavior
+Exit gate:
 
-### Exit gate
-- default route copy reads production-ready on both tracks
-- app-specific debug controls cover all accepted M1 / M2 QA states
-- `shared / WP0` plus the Teams and YBC runtime packages make shared `DebugControls`
-  time travel and `Reset App` operate correctly for Teams and YBC stores
-- no page-local prototype or scenario chrome remains on the shipped route surfaces
+- production feature flags recorded;
+- no separate Teams/YBC write flags required for this controlled launch;
+- rollback path tested;
+- monitoring and smoke steps documented.
 
----
+## 5. Worktree creation order
 
-## M3 — Onchain reads on fork (parallel)
-
-Teams:
-- read-only team directory / workspace
-- current period, lifetime stats, funding approvals, claimability, bonus state
-
-YBC:
-- read-only hero, members, proposal status, threshold config, weight maturity, rewards view
-
-### Exit gate
-- fork-backed reads work reliably
-- disconnected and connected states behave correctly
-- query invalidation and refresh behavior verified
-
----
-
-## M4 — Onchain writes on fork (parallel)
-
-Teams:
-- deposit revenue
-- claim funding
-- return funding
-- claim bonus
-- selected admin actions in scope
-
-YBC:
-- propose addition / expulsion
-- retract
-- vote yea / nay
-- execute
-- selected operator actions in scope
-
-### Exit gate
-- write paths simulate before submit
-- fork evidence captured
-- tx success and failure paths reviewed
-
----
-
-## M5 — UAT + preprod (parallel)
-
-Teams:
-- internal UAT with representative team-owner and admin scenarios
-- beta/preprod exposure on `teams-beta.dao-ops.com`
-- production host readiness for `teams.yearn.fi`
-
-YBC:
-- internal UAT with observer/member/operator scenarios
-- beta/preprod exposure on `ybc-beta.dao-ops.com`
-- production host readiness for `ybc.yearn.fi`
-
-### Exit gate
-- UAT sign-off
-- preprod smoke checklist green
-- open bugs triaged to launch blockers vs post-launch
-
----
-
-## M6 — Controlled production rollout
-
-Recommended order:
-1. live-contract wiring accepted
-2. production green light recorded
-3. limited internal / governance audience
-4. production exposure on `teams.yearn.fi` and `ybc.yearn.fi` only after release checklist approval
-
-### Exit gate
-- release checklist complete
-- docs current
-- rollback path tested
-- monitoring and smoke steps documented
-
-## Integration and worktree creation order
-
-Create the integration lane first from the `bootstrap` checkout:
+Use the existing long-lived integration lane:
 
 ```fish
+cd /Users/hydra/Developer/yearn/governance-apps
 ./scripts/agent-worktree.sh create integration --no-install
 ```
 
-This creates branch `agent/integration` and worktree `../governance-apps.agent.integration`.
+For governance-apps work packages, create package worktrees from
+`../governance-apps.agent.integration` and base them on `agent/integration`.
 
-Create work package worktrees from the integration worktree and base them on `agent/integration`:
-
-```fish
-cd ../governance-apps.agent.integration
-./scripts/workpkg-worktree.sh create --track teams --milestone m0 --wp wp0 --base agent/integration --no-install
-./scripts/workpkg-worktree.sh create --track ybc --milestone m0 --wp wp0 --base agent/integration --no-install
-```
-
-Merge only reviewed work package branches back into `agent/integration`. Tag the integration
-commit after a milestone is accepted, for example:
+Example:
 
 ```fish
-git tag -a integration/m0 -m "Complete M0 integration"
+cd /Users/hydra/Developer/yearn/governance-apps.agent.integration
+./scripts/workpkg-worktree.sh create --track teams --milestone m4 --wp wp9 --base agent/integration --no-install
+./scripts/workpkg-worktree.sh create --track ybc --milestone m4 --wp wp8 --base agent/integration --no-install
 ```
 
-Create later, only when needed:
-- `teams / m1 / wp1`
-- `ybc / m1 / wp1`
-- any `m2a` debug-runtime alignment worktrees
-- any `m3+` fork/onchain worktrees
-- any production rollout worktrees
-- admin-console worktrees before base user surfaces are accepted
+For `gov-apps-stats`, start a separate Codex thread or worktree rooted in that repo and
+use shared WP2 plus the producer brief as the task source. Do not implement producer code
+inside a governance-apps worktree.
 
-## UAT checkpoints
+## 6. Sub-agent roles
+
+### Consumer planner
+
+Owns shared WP1 in `governance-apps.agent.data`.
+
+### Producer implementer
+
+Owns shared WP2 in `gov-apps-stats`.
+
+### Producer reviewer
+
+Reviews event indexing, cursor safety, R2 publication, schema compliance, and tests.
+
+### Consumer verifier
+
+Owns shared WP3 in `governance-apps`.
+
+### Frontend implementer
+
+Owns one app work package at a time, such as Teams WP9 or YBC WP8.
+
+### Frontend reviewer
+
+Reviews scope, state coverage, docs, tests, accessibility, and transaction behavior.
+
+### Integrator
+
+Merges accepted work into `agent/integration`, resolves merge-order issues, and records
+release notes.
+
+## 7. UAT checkpoints
 
 ### Teams
 
-- UAT-T1: Team directory and overview accepted
-- UAT-T2: Deposit conversion preview accepted
-- UAT-T3: Funding claim statuses accepted
-- UAT-T4: Bonus tooltip / period presentation accepted
-- UAT-T5: Admin information architecture accepted
-- UAT-T5A: Teams production-parity surface and debug controls accepted
-- UAT-T6: Fork-backed reads validated
-- UAT-T7: Fork-backed writes validated
-- UAT-T8: Preprod validated
+- UAT-T6: feed-backed read model validated.
+- UAT-T7: fork-backed write paths validated.
+- UAT-T8: preprod readiness reviewed.
+- UAT-T9: production flag and rollback plan accepted.
 
 ### YBC
 
-- UAT-Y1: Hero and members roster accepted
-- UAT-Y2: Proposal timeline accepted
-- UAT-Y3: Threshold visualization accepted
-- UAT-Y4: Weight maturity visualization accepted
-- UAT-Y5: Rewards CTA / claim handoff accepted
-- UAT-Y6: Admin/operator panel accepted
-- UAT-Y6A: YBC production-parity surface and debug controls accepted
-- UAT-Y7: Fork-backed reads validated
-- UAT-Y8: Fork-backed writes validated
-- UAT-Y9: Preprod validated
+- UAT-Y7: feed-backed read model validated.
+- UAT-Y8: fork-backed write paths validated.
+- UAT-Y9: preprod readiness reviewed.
+- UAT-Y10: production flag and rollback plan accepted.
 
-## Definition of “ready to merge”
+## 8. Definition of ready to merge
 
 A work package is ready to merge only when:
-- scope is complete
-- acceptance criteria are met
-- tests updated
-- docs updated
-- reviewer notes resolved
-- integration notes added if merge order matters
+
+- scope is complete;
+- acceptance criteria are met;
+- tests are updated where behavior changes;
+- docs are updated;
+- reviewer notes are resolved;
+- integration notes are added if merge order or rollout is affected.
