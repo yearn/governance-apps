@@ -38,7 +38,7 @@ describe("YBC feed mapper", () => {
     expect(pageState.data.me.canVote).toBe(true);
   });
 
-  it("keeps feed-backed proposal writes disabled until fork smoke", () => {
+  it("disables voting when the connected member has already voted", () => {
     const pageState = mapYbcFeedToPageState(
       parseFeed(feedExample),
       "0x1111111111111111111111111111111111111111"
@@ -55,7 +55,66 @@ describe("YBC feed mapper", () => {
         nextAction: "none",
       })
     );
-    expect(proposal.actions.disabledReason).toMatch(/fork smoke/i);
+    expect(proposal.actions.disabledReason).toMatch(/already voted/i);
+  });
+
+  it("enables voting for an eligible member without a recorded vote", () => {
+    const pageState = mapYbcFeedToPageState(
+      parseFeed({
+        ...feedExample,
+        votes: [],
+        proposals: [
+          {
+            ...feedExample.proposals[0]!,
+            votes: "0",
+            yea: "0",
+            nay: "0",
+          },
+        ],
+      }),
+      "0x1111111111111111111111111111111111111111"
+    );
+    const proposal = pageState.data.proposals.items[0]!;
+
+    expect(proposal.phase).toBe("voting");
+    expect(proposal.actions).toEqual(
+      expect.objectContaining({
+        canRetract: false,
+        canVote: true,
+        canExecute: false,
+        nextAction: "vote",
+        disabledReason: null,
+      })
+    );
+  });
+
+  it("allows any connected mainnet wallet to execute passed proposals", () => {
+    const pageState = mapYbcFeedToPageState(
+      parseFeed({
+        ...feedExample,
+        votes: [],
+        proposals: [
+          {
+            ...feedExample.proposals[0]!,
+            status: "passed",
+          },
+        ],
+      }),
+      "0x3333333333333333333333333333333333333333"
+    );
+    const proposal = pageState.data.proposals.items[0]!;
+
+    expect(pageState.data.me.isMember).toBe(false);
+    expect(proposal.phase).toBe("awaiting-execution");
+    expect(proposal.actions).toEqual(
+      expect.objectContaining({
+        canRetract: false,
+        canVote: false,
+        canExecute: true,
+        nextAction: "execute",
+        disabledReason: null,
+      })
+    );
   });
 
   it("marks active members with unmatured target weight as ramping", () => {

@@ -3,8 +3,8 @@
 App name / slug: `ybc`
 Route key: `/ybc`
 Beta host: `ybc-beta.dao-ops.com`
-Production host: `ybc.yearn.fi` (gated until feed-backed reads, launch writes, fork
-smoke, and production approval)
+Production host: `ybc.yearn.fi` (gated until fork smoke, preprod smoke, and
+production approval)
 Recommended display label: `Yearn Builder's Collective`
 
 ## Product summary
@@ -54,13 +54,22 @@ wallet-specific overlays.
 
 Feed-backed reads are wired for the non-mock runtime through a same-origin
 `/api/ybc-data` proxy, a typed v1 schema, and a mapper into the accepted YBC page data
-contract. Launch writes are intentionally still disabled in feed mode until the
-fork-smoke package validates the shared transaction flow. Local/debug runs keep the
-mock store and floating debug controls.
+contract. Launch-scope proposal writes are wired in feed mode through the shared
+transaction pipeline for propose addition, propose expulsion, retract, vote yea/nay,
+and execute. Feed rendering stays authoritative after writes; the frontend invalidates
+the feed and wallet overlay, but does not fabricate proposal rows or vote totals before
+`gov-apps-stats` publishes the next indexed snapshot. Local/debug runs keep the mock
+store and floating debug controls.
+
+Wallet-specific action eligibility is derived client side from the feed plus a live
+wallet overlay when RPC is available: membership, operator status, live weight,
+proposal status, and whether the connected wallet has already voted. The feed remains
+safe to render without the overlay, but write CTAs are conservative when the connected
+wallet, chain, phase, or proposal history does not support the action.
 
 The beta host is `ybc-beta.dao-ops.com`. The production host is `ybc.yearn.fi`, but
-production exposure remains gated until the feed-backed read model, launch writes, fork
-smoke, preprod smoke, and explicit production approval are complete.
+production exposure remains gated until fork smoke, preprod smoke, and explicit
+production approval are complete.
 
 ## Debug runtime alignment
 

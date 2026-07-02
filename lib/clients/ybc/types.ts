@@ -17,6 +17,7 @@ export type YbcMemberStatus =
   | "removed";
 
 export type YbcProposalType = "addition" | "expulsion";
+export type YbcVoteChoice = "yea" | "nay";
 
 export type YbcProposalPhase =
   | "discussion"

@@ -5,7 +5,7 @@ Applies to: `/ybc` route, `ybc-beta.dao-ops.com` beta host, and gated production
 host `ybc.yearn.fi`
 Recommended app key: `ybc`
 Recommended display label: `Yearn Builder's Collective`
-Production gate: disabled until feed-backed reads, launch writes, fork smoke, and production approval
+Production gate: disabled until fork smoke, preprod smoke, and production approval
 
 ## 1. Product framing
 

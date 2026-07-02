@@ -7,7 +7,7 @@ Use:
 - app name / slug: `ybc`
 - route key: `/ybc`
 - beta host: `ybc-beta.dao-ops.com`
-- production host: `ybc.yearn.fi` (gated until feed-backed reads, launch writes, fork smoke, and production approval)
+- production host: `ybc.yearn.fi` (gated until fork smoke, preprod smoke, and production approval)
 - display label: `Yearn Builder's Collective`
 
 ## Why

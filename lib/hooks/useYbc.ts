@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { Address, PublicClient } from "viem";
 import { useAccount } from "wagmi";
 import type {
   YbcMockDataV1,
@@ -8,8 +16,14 @@ import type {
   YbcProposalType,
   YbcPrototypeScenarioId,
 } from "@/lib/clients/ybc";
-import { createMockYbcClient, mapYbcFeedToPageState } from "@/lib/clients/ybc";
+import {
+  createMockYbcClient,
+  mapYbcFeedToPageState,
+  readYbcWalletOverlay,
+} from "@/lib/clients/ybc";
+import type { YbcFeed } from "@/lib/schemas/ybc-feed";
 import { useYbcData } from "@/lib/hooks/useYbcData";
+import { ybcKeys } from "@/lib/hooks/ybcKeys";
 import { useOptionalProtocol } from "@/state/protocol";
 import {
   createYbcProposal,
@@ -41,11 +55,9 @@ import {
   voteOnYbcProposal,
   type YbcRuntimeSnapshot,
 } from "@/lib/clients/ybc/store";
-import type { YbcVoteChoice } from "@/lib/clients/ybc/mock";
+import type { YbcVoteChoice } from "@/lib/clients/ybc";
 
-export const ybcKeys = {
-  all: ["ybc"] as const,
-};
+export { ybcKeys } from "@/lib/hooks/ybcKeys";
 
 type UseYbcStateOptions = {
   bootstrap?: boolean;
@@ -95,12 +107,14 @@ export type UseYbcMockStateResult = UseYbcStateBase &
   YbcMockControls & {
     backend: "mock";
     data: YbcMockDataV1;
+    feed: null;
   };
 
 export type UseYbcFeedStateResult = UseYbcStateBase &
   DisabledYbcMockControls & {
     backend: "feed";
     data: YbcMockDataV1 | null;
+    feed: YbcFeed | null;
   };
 
 export type UseYbcStateResult =
@@ -122,10 +136,20 @@ function sleep(latencyMs: number) {
 export function useYbcState(
   options: UseYbcStateOptions = {}
 ): UseYbcStateResult {
-  const { address, isConnected } = useAccount();
+  const { address, chainId, isConnected } = useAccount();
   const protocol = useOptionalProtocol();
   const usesMockBackend = protocol?.ybcUsesMockBackend ?? true;
   const ybcFeed = useYbcData(!usesMockBackend);
+  const walletOverlay = useYbcWalletOverlay({
+    account: address ?? null,
+    enabled:
+      !usesMockBackend &&
+      isConnected &&
+      Boolean(protocol?.publicClient) &&
+      Boolean(ybcFeed.data),
+    feed: ybcFeed.data ?? null,
+    publicClient: protocol?.publicClient ?? null,
+  });
   const runtime = useSyncExternalStore(
     subscribeYbcMockStore,
     getYbcMockSnapshot,
@@ -146,8 +170,11 @@ export function useYbcState(
       return null;
     }
 
-    return mapYbcFeedToPageState(ybcFeed.data, address ?? null);
-  }, [address, usesMockBackend, ybcFeed.data]);
+    return mapYbcFeedToPageState(ybcFeed.data, address ?? null, {
+      walletChainId: chainId,
+      walletOverlay: walletOverlay.data ?? null,
+    });
+  }, [address, chainId, usesMockBackend, walletOverlay.data, ybcFeed.data]);
   const feedError = useMemo(() => {
     if (usesMockBackend) return null;
     if (ybcFeed.error instanceof Error) return ybcFeed.error;
@@ -237,6 +264,7 @@ export function useYbcState(
       data: feedPageState?.data ?? null,
       error: feedError,
       executeProposal: undefined,
+      feed: ybcFeed.data ?? null,
       isError: feedError !== null,
       isLoading: ybcFeed.isLoading || (!feedPageState && !feedError),
       patchAdmin: undefined,
@@ -273,6 +301,7 @@ export function useYbcState(
     data: runtime.data,
     error,
     executeProposal: executeYbcProposal,
+    feed: null,
     isError: error !== null,
     isLoading: isBootstrapping || runtime.loading,
     patchAdmin: patchYbcAdmin,
@@ -303,6 +332,31 @@ export function useYbcState(
     syncToNow: syncYbcMockStoreToNow,
     voteOnProposal: voteOnYbcProposal,
   };
+}
+
+function useYbcWalletOverlay({
+  account,
+  enabled,
+  feed,
+  publicClient,
+}: {
+  account: Address | null;
+  enabled: boolean;
+  feed: YbcFeed | null;
+  publicClient: PublicClient | null;
+}) {
+  return useQuery({
+    queryKey: ybcKeys.walletOverlay(account),
+    queryFn: () => {
+      if (!publicClient || !feed || !account) {
+        throw new Error("YBC wallet overlay is unavailable.");
+      }
+      return readYbcWalletOverlay(publicClient, feed, account);
+    },
+    enabled: enabled && Boolean(publicClient && feed && account),
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+  });
 }
 
 export type { YbcRuntimeSnapshot };

@@ -6,7 +6,7 @@
 - route key: `/ybc`
 - display label: `Yearn Builder's Collective`
 - initial beta exposure: `ybc-beta.dao-ops.com` with mock / dummy data
-- production host: `ybc.yearn.fi` (gated until feed-backed reads, launch writes, fork smoke, and production approval)
+- production host: `ybc.yearn.fi` (gated until fork smoke, preprod smoke, and production approval)
 
 ## 2. MVP scope
 

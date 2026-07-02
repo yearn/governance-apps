@@ -41,6 +41,8 @@ export const ybcCopy = {
     proposeExpulsionDisabledCta: "Remove proposal unavailable",
     proposeDisabledBody:
       "Proposal creation is blocked for this viewer or runtime, so add/remove membership actions stay unavailable.",
+    targetLabel: "Target address",
+    targetInvalid: "Enter a valid Ethereum address before proposing.",
     summary: {
       active: "Active",
       awaitingExecution: "Awaiting execution",

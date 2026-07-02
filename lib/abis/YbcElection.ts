@@ -1,0 +1,61 @@
+export const YbcElectionAbi = [
+  {
+    inputs: [{ name: "_account", type: "address" }],
+    name: "propose_addition",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "_account", type: "address" }],
+    name: "propose_expulsion",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "_idx", type: "uint256" }],
+    name: "retract",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { name: "_account", type: "address" },
+      { name: "_idx", type: "uint256" },
+    ],
+    name: "voted",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "_idx", type: "uint256" }],
+    name: "vote_yea",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "_idx", type: "uint256" }],
+    name: "vote_nay",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "_idx", type: "uint256" }],
+    name: "execute",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "_idx", type: "uint256" }],
+    name: "status",
+    outputs: [{ name: "", type: "uint8" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;

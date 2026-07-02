@@ -5,6 +5,21 @@
 Add write preparation and execution for the launch-scope YBC election actions after
 feed-backed reads are stable.
 
+## Implementation status
+
+Implemented in `agent/integration`; pending targeted fork smoke before production
+exposure.
+
+The frontend now:
+
+- prepares YBC election writes with minimal local ABIs
+- sends writes through the shared `useTx` transaction flow
+- requires explicit target addresses for feed-backed proposal creation
+- derives action eligibility client side from feed data plus a live wallet overlay
+- invalidates the YBC feed and connected-wallet overlay after successful transactions
+- keeps feed snapshots authoritative instead of adding optimistic proposal rows or vote
+  totals before `gov-apps-stats` indexes the write
+
 ## Scope
 
 - prepare and execute propose addition / expulsion
@@ -28,6 +43,8 @@ feed-backed reads are stable.
 
 - `lib/clients/ybc/onchain.ts`
 - `lib/hooks/useYbc.ts`
+- `lib/hooks/useYbcProposalWrites.ts`
+- `lib/hooks/ybcKeys.ts`
 - `tests/integration/hooks/*ybc*`
 
 ## Acceptance criteria
@@ -37,6 +54,20 @@ feed-backed reads are stable.
 - success and failure states are coherent
 - wrong-network behavior is blocked cleanly
 - write CTAs only appear when the feed and live wallet overlay support the action
+
+## Implementation notes
+
+- `execute` is permissionless at the contract level. The UI therefore requires only a
+  connected mainnet wallet for passed proposals, not YBC membership.
+- `vote` requires current membership, live positive weight, no previous vote, and not
+  voting on the connected wallet's own expulsion.
+- `retract` is proposer-only while the proposal is still in the pre-vote discussion
+  window.
+- `propose_addition` and `propose_expulsion` require a valid nonzero target address
+  that is not the YBC contract; final membership validity is still enforced by
+  simulation and the contract.
+- `availableActions`-style backend write booleans are not required for YBC. Eligibility
+  is derived by the frontend from canonical feed fields and live wallet reads.
 
 ## UAT checkpoint
 

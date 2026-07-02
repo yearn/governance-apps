@@ -3,8 +3,15 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import type { YbcMockDataV1, YbcPrototypeScenarioId } from "@/lib/clients/ybc";
+import type {
+  YbcMockDataV1,
+  YbcProposalType,
+  YbcPrototypeScenarioId,
+  YbcVoteChoice,
+} from "@/lib/clients/ybc";
 import { useYbcState } from "@/lib/hooks/useYbc";
+import { useYbcProposalWrites } from "@/lib/hooks/useYbcProposalWrites";
+import type { TxState } from "@/lib/tx/types";
 import { useProtocol } from "@/state/protocol";
 import { MembersTable, MembersTableSkeleton } from "./components/MembersTable";
 import { MockControls } from "./components/MockControls";
@@ -23,10 +30,18 @@ type YbcPageClientProps = {
 type YbcPageContentProps = {
   data: YbcMockDataV1;
   hostname?: string | null;
-  createProposal?: (type: "addition" | "expulsion") => void;
-  retractProposal?: (proposalId: string) => void;
-  voteOnProposal?: (proposalId: string, choice: "yea" | "nay") => void;
-  executeProposal?: (proposalId: string) => void;
+  createProposal?: (
+    type: YbcProposalType,
+    targetAddress?: string
+  ) => void | Promise<void>;
+  retractProposal?: (proposalId: string) => void | Promise<void>;
+  voteOnProposal?: (
+    proposalId: string,
+    choice: YbcVoteChoice
+  ) => void | Promise<void>;
+  executeProposal?: (proposalId: string) => void | Promise<void>;
+  proposalTargetRequired?: boolean;
+  proposalTxState?: TxState;
 };
 
 const SECTION_HASHES = new Set(["overview", "members", "proposals", "rewards", "admin"]);
@@ -42,20 +57,52 @@ export function YbcPageClient({
   hostname,
 }: YbcPageClientProps = {}) {
   const { ybcUsesMockBackend } = useProtocol();
-  const {
-    createProposal,
-    data,
-    error,
-    executeProposal,
-    isError,
-    isLoading,
-    refetch,
-    retractProposal,
-    voteOnProposal,
-  } = useYbcState({
+  const ybcState = useYbcState({
     scenarioOverride,
     latencyMs,
   });
+  const proposalWrites = useYbcProposalWrites(
+    ybcState.backend === "feed" ? ybcState.feed : null
+  );
+  const {
+    data,
+    error,
+    isError,
+    isLoading,
+    refetch,
+  } = ybcState;
+  const createProposal =
+    ybcState.backend === "feed"
+      ? proposalWrites.createProposal
+      : ybcState.createProposal
+        ? (type: YbcProposalType) => {
+            ybcState.createProposal(type);
+          }
+        : undefined;
+  const retractProposal =
+    ybcState.backend === "feed"
+      ? proposalWrites.retractProposal
+      : ybcState.retractProposal
+        ? (proposalId: string) => {
+            ybcState.retractProposal(proposalId);
+          }
+        : undefined;
+  const voteOnProposal =
+    ybcState.backend === "feed"
+      ? proposalWrites.voteOnProposal
+      : ybcState.voteOnProposal
+        ? (proposalId: string, choice: YbcVoteChoice) => {
+            ybcState.voteOnProposal(proposalId, choice);
+          }
+        : undefined;
+  const executeProposal =
+    ybcState.backend === "feed"
+      ? proposalWrites.executeProposal
+      : ybcState.executeProposal
+        ? (proposalId: string) => {
+            ybcState.executeProposal(proposalId);
+          }
+        : undefined;
 
   if (isError) {
     return (
@@ -81,6 +128,10 @@ export function YbcPageClient({
         retractProposal={retractProposal}
         voteOnProposal={voteOnProposal}
         executeProposal={executeProposal}
+        proposalTargetRequired={ybcState.backend === "feed"}
+        proposalTxState={
+          ybcState.backend === "feed" ? proposalWrites.state : undefined
+        }
       />
       {ybcUsesMockBackend ? <MockControls /> : null}
     </>
@@ -94,6 +145,8 @@ export function YbcPageContent({
   retractProposal,
   voteOnProposal,
   executeProposal,
+  proposalTargetRequired = false,
+  proposalTxState,
 }: YbcPageContentProps) {
   const showOperatorSection = Boolean(data.admin && data.me.isOperator);
   const hasPriorityProposals = data.proposals.items.some((proposal) =>
@@ -129,6 +182,8 @@ export function YbcPageContent({
       retractProposal={retractProposal}
       voteOnProposal={voteOnProposal}
       executeProposal={executeProposal}
+      proposalTargetRequired={proposalTargetRequired}
+      proposalTxState={proposalTxState}
     />
   );
 

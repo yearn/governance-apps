@@ -10,7 +10,6 @@ import {
   createYbcMockProposal,
   executeYbcMockProposal,
   retractYbcMockProposal,
-  type YbcVoteChoice,
   voteOnYbcMockProposal,
 } from "./mock";
 import type {
@@ -21,6 +20,7 @@ import type {
   YbcProposalPhase,
   YbcProposalRecord,
   YbcProposalType,
+  YbcVoteChoice,
 } from "./types";
 
 const DAY_SECONDS = 86_400;

@@ -3,6 +3,10 @@
 Use this runbook after the staging `ybc.json` feed is accepted and YBC launch-scope
 writes are wired.
 
+Current implementation status: feed-backed reads and launch-scope proposal writes are
+wired. This runbook is the next validation gate before exposing YBC on production
+hosts.
+
 ## 1. Start mainnet fork
 
 Example:
@@ -41,6 +45,7 @@ Validate at minimum:
 - feed freshness and snapshot block metadata are visible in diagnostics or logs
 - live/saved feed rendering remains coherent before and after fork writes
 - proposal creation path
+- retract path when the connected wallet is the proposer and voting has not opened
 - vote path
 - execution path
 - reward handoff remains a shared claim path

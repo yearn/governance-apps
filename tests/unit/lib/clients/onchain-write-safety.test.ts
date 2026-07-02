@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getAccount, simulateContract, writeContract } from "wagmi/actions";
 import { OnchainStyfiClient } from "@/lib/clients/styfi/onchain";
 import { OnchainVeyfiClient } from "@/lib/clients/veyfi/onchain";
+import { OnchainYbcClient } from "@/lib/clients/ybc/onchain";
 import { LIQUID_LOCKERS, STYFI_ADDRESS } from "@/lib/constants";
+import feedExample from "@/docs/apps/ybc/onchain-integration-plan/examples/ybc-feed.example.json";
+import { YbcFeedSchema } from "@/lib/schemas/ybc-feed";
 import { MAINNET_CHAIN_ID } from "@/lib/tx/network";
 
 vi.mock("wagmi/actions", () => ({
@@ -73,6 +76,34 @@ describe("On-chain write safety", () => {
       expect.anything(),
       expect.objectContaining({
         functionName: "deposit",
+        chainId: MAINNET_CHAIN_ID,
+        account: USER,
+      })
+    );
+    expect(writeContract).toHaveBeenCalledWith(expect.anything(), request);
+  });
+
+  it("pre-simulates YBC proposal votes on mainnet", async () => {
+    const request = {
+      address: feedExample.deployment.ybcElection,
+      functionName: "dummy",
+    };
+
+    vi.mocked(simulateContract).mockResolvedValue({
+      request,
+      result: undefined,
+    } as unknown as Awaited<ReturnType<typeof simulateContract>>);
+
+    const client = new OnchainYbcClient(YbcFeedSchema.parse(feedExample), USER);
+    const prepare = await client.prepareVote(0n, "yea");
+    await prepare();
+
+    expect(simulateContract).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        address: feedExample.deployment.ybcElection,
+        functionName: "vote_yea",
+        args: [0n],
         chainId: MAINNET_CHAIN_ID,
         account: USER,
       })

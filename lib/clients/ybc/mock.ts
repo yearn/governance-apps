@@ -11,9 +11,10 @@ import type {
   YbcProposalRecord,
   YbcProposalType,
   YbcScenarioId,
+  YbcVoteChoice,
 } from "./types";
 
-export type YbcVoteChoice = "yea" | "nay";
+export type { YbcVoteChoice } from "./types";
 
 type YbcProposalSummary = YbcMockDataV1["proposals"]["summary"];
 
@@ -30,6 +31,8 @@ const DEFAULT_THRESHOLD_BPS: Record<YbcProposalType, number> = {
   addition: 5000,
   expulsion: 6000,
 };
+const MOCK_YBC_TX_HASH =
+  "0x5555555555555555555555555555555555555555555555555555555555555555" as const;
 const ADDITION_TARGETS: Address[] = [
   "0xaaaa00000000000000000000000000000000aa01",
   "0xaaaa00000000000000000000000000000000aa02",
@@ -254,6 +257,22 @@ export class MockYbcClient implements YbcClient {
       label: scenario.label,
       data: cloneValue(scenario.data),
     };
+  }
+
+  async preparePropose() {
+    return async () => MOCK_YBC_TX_HASH;
+  }
+
+  async prepareRetract() {
+    return async () => MOCK_YBC_TX_HASH;
+  }
+
+  async prepareVote() {
+    return async () => MOCK_YBC_TX_HASH;
+  }
+
+  async prepareExecute() {
+    return async () => MOCK_YBC_TX_HASH;
   }
 }
 

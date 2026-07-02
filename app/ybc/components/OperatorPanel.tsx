@@ -28,13 +28,13 @@ const OPERATION_TO_PROPOSAL_TYPE: Record<YbcAdminOperationId, YbcProposalType> =
 type OperatorPanelProps = {
   data: YbcMockDataV1;
   id?: string;
-  createProposal?: (type: YbcProposalType) => void;
+  createProposal?: (type: YbcProposalType) => void | Promise<void>;
 };
 
 type UnlockedOperatorPanelProps = {
   admin: NonNullable<YbcMockDataV1["admin"]>;
   data: YbcMockDataV1;
-  createProposal?: (type: YbcProposalType) => void;
+  createProposal?: (type: YbcProposalType) => void | Promise<void>;
 };
 
 export function OperatorPanel({
@@ -156,7 +156,9 @@ function UnlockedOperatorPanel({
                           size="sm"
                           variant={operation.id === "add-member" ? "primary" : "secondary"}
                           onClick={() =>
-                            createProposal?.(OPERATION_TO_PROPOSAL_TYPE[operation.id])
+                            void createProposal?.(
+                              OPERATION_TO_PROPOSAL_TYPE[operation.id]
+                            )
                           }
                           disabled={!operation.enabled || !createProposal}
                         >

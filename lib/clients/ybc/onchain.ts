@@ -1,4 +1,9 @@
-import { formatUnits, type Address } from "viem";
+import { formatUnits, isAddress, type Address, type PublicClient } from "viem";
+import { YbcAbi } from "@/lib/abis/Ybc";
+import { YbcElectionAbi } from "@/lib/abis/YbcElection";
+import { YbcWeightAggregatorAbi } from "@/lib/abis/YbcWeightAggregator";
+import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
+import type { PreparedTransaction } from "@/lib/tx/types";
 import type { YbcClient, YbcPageState } from "./client";
 import type {
   YbcAdminRecord,
@@ -8,7 +13,9 @@ import type {
   YbcProposalOutcome,
   YbcProposalPhase,
   YbcProposalRecord,
+  YbcProposalType,
   YbcScenarioId,
+  YbcVoteChoice,
   YbcWeightRecord,
 } from "./types";
 import type {
@@ -31,6 +38,45 @@ const TERMINAL_PHASES = new Set<YbcProposalPhase>([
   "failed",
   "retracted",
 ]);
+const YBC_PROPOSAL_STATUS = {
+  PROPOSED: 1,
+  RETRACTED: 2,
+  VOTING: 4,
+  PASSED: 8,
+  FAILED: 16,
+  EXECUTED: 32,
+  EXPIRED: 64,
+  INVALID: 128,
+} as const;
+
+type YbcProposalStatusFlag =
+  (typeof YBC_PROPOSAL_STATUS)[keyof typeof YBC_PROPOSAL_STATUS];
+
+export type YbcWalletOverlay = {
+  isMember: boolean | null;
+  isOperator: boolean | null;
+  staked: bigint | null;
+  weight: bigint | null;
+  proposalStatusById: Record<number, YbcProposalStatusFlag | null>;
+  votedByProposalId: Record<number, boolean | null>;
+};
+
+type YbcMapOptions = {
+  walletChainId?: number | null;
+  walletOverlay?: YbcWalletOverlay | null;
+};
+
+type YbcProposalActionContext = {
+  account: Address | null;
+  normalizedAccount: string | null;
+  currentEpoch: number;
+  isActiveMember: boolean;
+  isMainnetAccount: boolean;
+  effectiveWeightRaw: bigint;
+  votedByProposalId: Record<number, boolean | null>;
+  proposalStatusById: Record<number, YbcProposalStatusFlag | null>;
+  feedVotes: YbcFeed["votes"];
+};
 
 export class OnchainYbcClient implements YbcClient {
   constructor(
@@ -51,11 +97,125 @@ export class OnchainYbcClient implements YbcClient {
   async getPageState(): Promise<YbcPageState> {
     return mapYbcFeedToPageState(this.feed, this.account);
   }
+
+  async preparePropose(
+    type: YbcProposalType,
+    target: Address
+  ): Promise<PreparedTransaction> {
+    assertValidYbcProposalTarget(this.feed, target);
+
+    if (type === "addition") {
+      return async () => {
+        const { getAccount, simulateThenWrite, wagmiConfig } =
+          await getYbcWriteRuntime();
+        const account = getAccount(wagmiConfig);
+        const address = assertMainnetAccount(account);
+        const request = {
+          address: this.feed.deployment.ybcElection as Address,
+          abi: YbcElectionAbi,
+          functionName: "propose_addition",
+          args: [target] as const,
+          account: address,
+          chainId: MAINNET_CHAIN_ID,
+        };
+        return simulateThenWrite(request, request, "YBC propose addition");
+      };
+    }
+
+    return async () => {
+      const { getAccount, simulateThenWrite, wagmiConfig } =
+        await getYbcWriteRuntime();
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const request = {
+        address: this.feed.deployment.ybcElection as Address,
+        abi: YbcElectionAbi,
+        functionName: "propose_expulsion",
+        args: [target] as const,
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateThenWrite(request, request, "YBC propose expulsion");
+    };
+  }
+
+  async prepareRetract(proposalId: bigint): Promise<PreparedTransaction> {
+    return async () => {
+      const { getAccount, simulateThenWrite, wagmiConfig } =
+        await getYbcWriteRuntime();
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const request = {
+        address: this.feed.deployment.ybcElection as Address,
+        abi: YbcElectionAbi,
+        functionName: "retract",
+        args: [proposalId] as const,
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateThenWrite(request, request, "YBC retract proposal");
+    };
+  }
+
+  async prepareVote(
+    proposalId: bigint,
+    choice: YbcVoteChoice
+  ): Promise<PreparedTransaction> {
+    return async () => {
+      const { getAccount, simulateThenWrite, wagmiConfig } =
+        await getYbcWriteRuntime();
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const request = {
+        address: this.feed.deployment.ybcElection as Address,
+        abi: YbcElectionAbi,
+        functionName: choice === "yea" ? "vote_yea" : "vote_nay",
+        args: [proposalId] as const,
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateThenWrite(request, request, `YBC vote ${choice}`);
+    };
+  }
+
+  async prepareExecute(proposalId: bigint): Promise<PreparedTransaction> {
+    return async () => {
+      const { getAccount, simulateThenWrite, wagmiConfig } =
+        await getYbcWriteRuntime();
+      const account = getAccount(wagmiConfig);
+      const address = assertMainnetAccount(account);
+      const request = {
+        address: this.feed.deployment.ybcElection as Address,
+        abi: YbcElectionAbi,
+        functionName: "execute",
+        args: [proposalId] as const,
+        account: address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateThenWrite(request, request, "YBC execute proposal");
+    };
+  }
+}
+
+async function getYbcWriteRuntime() {
+  const [{ getAccount }, { simulateThenWrite }, { wagmiConfig }] =
+    await Promise.all([
+      import("wagmi/actions"),
+      import("@/lib/tx/simulateWrite"),
+      import("@/web3/wagmi"),
+    ]);
+
+  return {
+    getAccount,
+    simulateThenWrite,
+    wagmiConfig,
+  };
 }
 
 export function mapYbcFeedToPageState(
   feed: YbcFeed,
-  account: Address | null = null
+  account: Address | null = null,
+  options: YbcMapOptions = {}
 ): YbcPageState {
   const normalizedAccount = account ? normalizeAddress(account) : null;
   const members = feed.members.map((member) => mapMember(feed, member));
@@ -66,12 +226,32 @@ export function mapYbcFeedToPageState(
           (member) => normalizeAddress(member.address) === normalizedAccount
         ) ?? null;
   const currentFeedMember = feedMemberForAddress(feed, account);
-  const isActiveMember = currentMember?.status !== "removed" && currentMember !== null;
+  const feedActiveMember =
+    currentMember?.status !== "removed" && currentMember !== null;
+  const isActiveMember = options.walletOverlay?.isMember ?? feedActiveMember;
+  const isMainnetAccount =
+    normalizedAccount !== null &&
+    (options.walletChainId === undefined ||
+      options.walletChainId === MAINNET_CHAIN_ID);
   const operatorAddresses = new Set(feed.config.operators.map(normalizeAddress));
   const isOperator =
-    normalizedAccount !== null && operatorAddresses.has(normalizedAccount);
+    options.walletOverlay?.isOperator ??
+    (normalizedAccount !== null && operatorAddresses.has(normalizedAccount));
+  const effectiveWeightRaw =
+    options.walletOverlay?.weight ??
+    BigInt(feedMemberForAddress(feed, account)?.effectiveWeight ?? "0");
   const proposals = feed.proposals.map((proposal) =>
-    mapProposal(feed, proposal)
+    mapProposal(feed, proposal, {
+      account,
+      normalizedAccount,
+      currentEpoch: feed.epoch.current,
+      isActiveMember,
+      isMainnetAccount,
+      effectiveWeightRaw,
+      votedByProposalId: options.walletOverlay?.votedByProposalId ?? {},
+      proposalStatusById: options.walletOverlay?.proposalStatusById ?? {},
+      feedVotes: feed.votes,
+    })
   );
   const activeProposalCount = proposals.filter(
     (proposal) => proposal.phase === "discussion" || proposal.phase === "voting"
@@ -82,7 +262,20 @@ export function mapYbcFeedToPageState(
   const terminalCount = proposals.filter((proposal) =>
     TERMINAL_PHASES.has(proposal.phase)
   ).length;
-  const meWeight = currentMember?.weight ?? ZERO_WEIGHT;
+  const meWeight =
+    currentMember && options.walletOverlay?.weight !== undefined
+      ? {
+          ...currentMember.weight,
+          rawStaked:
+            options.walletOverlay.staked === null
+              ? currentMember.weight.rawStaked
+              : fromBaseUnits(options.walletOverlay.staked.toString()),
+          effectiveWeight:
+            options.walletOverlay.weight === null
+              ? currentMember.weight.effectiveWeight
+              : fromBaseUnits(options.walletOverlay.weight.toString()),
+        }
+      : currentMember?.weight ?? ZERO_WEIGHT;
   const pendingRewards = currentMember
     ? currentMember.weight.rawStaked === "0"
       ? "0"
@@ -117,9 +310,9 @@ export function mapYbcFeedToPageState(
       address: account,
       isMember: isActiveMember,
       isOperator,
-      canPropose: isActiveMember,
+      canPropose: isActiveMember && isMainnetAccount,
       canVote:
-        isActiveMember && BigInt(feedMemberForAddress(feed, account)?.effectiveWeight ?? "0") > 0n,
+        isActiveMember && isMainnetAccount && effectiveWeightRaw > 0n,
       weight: meWeight,
       pendingRewards,
     },
@@ -216,8 +409,12 @@ function mapMemberStatus(
   return "active";
 }
 
-function mapProposal(feed: YbcFeed, proposal: YbcFeedProposal): YbcProposalRecord {
-  const phase = mapProposalPhase(proposal);
+function mapProposal(
+  feed: YbcFeed,
+  proposal: YbcFeedProposal,
+  context: YbcProposalActionContext
+): YbcProposalRecord {
+  const phase = mapProposalPhase(proposal, context.proposalStatusById[proposal.id]);
   const outcome = mapProposalOutcome(phase, proposal);
   const createdAt =
     proposal.proposedAt ??
@@ -247,16 +444,19 @@ function mapProposal(feed: YbcFeed, proposal: YbcFeedProposal): YbcProposalRecor
       ...(proposal.executed ? { executedAt: feed.generatedAt } : {}),
     },
     actions: {
-      canRetract: false,
-      canVote: false,
-      canExecute: false,
-      nextAction: "none",
-      disabledReason: getFeedWriteDisabledReason(phase),
+      ...deriveProposalActions(proposal, phase, context),
     },
   };
 }
 
-function mapProposalPhase(proposal: YbcFeedProposal): YbcProposalPhase {
+function mapProposalPhase(
+  proposal: YbcFeedProposal,
+  statusFlag: YbcProposalStatusFlag | null | undefined
+): YbcProposalPhase {
+  if (statusFlag !== null && statusFlag !== undefined) {
+    return mapStatusFlagToProposalPhase(statusFlag);
+  }
+
   if (proposal.executed) return "executed";
   if (proposal.retracted) return "retracted";
 
@@ -276,6 +476,28 @@ function mapProposalPhase(proposal: YbcFeedProposal): YbcProposalPhase {
     case "retracted":
       return "retracted";
     case "unknown":
+      return "failed";
+  }
+}
+
+function mapStatusFlagToProposalPhase(
+  statusFlag: YbcProposalStatusFlag
+): YbcProposalPhase {
+  switch (statusFlag) {
+    case YBC_PROPOSAL_STATUS.PROPOSED:
+      return "discussion";
+    case YBC_PROPOSAL_STATUS.RETRACTED:
+      return "retracted";
+    case YBC_PROPOSAL_STATUS.VOTING:
+      return "voting";
+    case YBC_PROPOSAL_STATUS.PASSED:
+      return "awaiting-execution";
+    case YBC_PROPOSAL_STATUS.EXECUTED:
+      return "executed";
+    case YBC_PROPOSAL_STATUS.EXPIRED:
+      return "expired";
+    case YBC_PROPOSAL_STATUS.FAILED:
+    case YBC_PROPOSAL_STATUS.INVALID:
       return "failed";
   }
 }
@@ -376,15 +598,287 @@ function feedMemberForAddress(
   );
 }
 
-function getFeedWriteDisabledReason(phase: YbcProposalPhase) {
-  if (TERMINAL_PHASES.has(phase)) {
-    return "This proposal is terminal.";
+function deriveProposalActions(
+  proposal: YbcFeedProposal,
+  phase: YbcProposalPhase,
+  context: YbcProposalActionContext
+): YbcProposalRecord["actions"] {
+  if (!context.account || !context.normalizedAccount) {
+    return {
+      canRetract: false,
+      canVote: false,
+      canExecute: false,
+      nextAction: "none",
+      disabledReason: "Connect a wallet to act on this proposal.",
+    };
   }
-  return "YBC writes are disabled until fork smoke validation is complete.";
+
+  if (!context.isMainnetAccount) {
+    return {
+      canRetract: false,
+      canVote: false,
+      canExecute: false,
+      nextAction: "none",
+      disabledReason: "Switch to Ethereum Mainnet to act on this proposal.",
+    };
+  }
+
+  if (TERMINAL_PHASES.has(phase)) {
+    return {
+      canRetract: false,
+      canVote: false,
+      canExecute: false,
+      nextAction: "none",
+      disabledReason: "This proposal is terminal.",
+    };
+  }
+
+  if (phase === "discussion") {
+    const isProposer =
+      normalizeAddress(proposal.proposer) === context.normalizedAccount;
+    const canRetract = isProposer && proposal.epoch > context.currentEpoch;
+
+    return {
+      canRetract,
+      canVote: false,
+      canExecute: false,
+      nextAction: canRetract ? "retract" : "none",
+      disabledReason: canRetract
+        ? null
+        : isProposer
+          ? "The retract window has closed."
+          : "Only the proposer can retract during discussion.",
+    };
+  }
+
+  if (phase === "voting") {
+    const hasVoted = getHasVoted(proposal.id, context);
+    const isOwnExpulsion =
+      !proposal.addition &&
+      normalizeAddress(proposal.account) === context.normalizedAccount;
+
+    if (!context.isActiveMember) {
+      return {
+        canRetract: false,
+        canVote: false,
+        canExecute: false,
+        nextAction: "none",
+        disabledReason: "Only current YBC members can vote.",
+      };
+    }
+
+    if (isOwnExpulsion) {
+      return {
+        canRetract: false,
+        canVote: false,
+        canExecute: false,
+        nextAction: "none",
+        disabledReason: "Members cannot vote on their own expulsion.",
+      };
+    }
+
+    if (hasVoted) {
+      return {
+        canRetract: false,
+        canVote: false,
+        canExecute: false,
+        nextAction: "none",
+        disabledReason: "This wallet has already voted.",
+      };
+    }
+
+    if (context.effectiveWeightRaw <= 0n) {
+      return {
+        canRetract: false,
+        canVote: false,
+        canExecute: false,
+        nextAction: "none",
+        disabledReason: "This wallet has no live voting weight.",
+      };
+    }
+
+    return {
+      canRetract: false,
+      canVote: true,
+      canExecute: false,
+      nextAction: "vote",
+      disabledReason: null,
+    };
+  }
+
+  if (phase === "awaiting-execution") {
+    return {
+      canRetract: false,
+      canVote: false,
+      canExecute: true,
+      nextAction: "execute",
+      disabledReason: null,
+    };
+  }
+
+  return {
+    canRetract: false,
+    canVote: false,
+    canExecute: false,
+    nextAction: "none",
+    disabledReason: "No proposal action is currently available.",
+  };
+}
+
+function getHasVoted(
+  proposalId: number,
+  context: YbcProposalActionContext
+): boolean {
+  const overlayVote = context.votedByProposalId[proposalId];
+  if (overlayVote !== null && overlayVote !== undefined) {
+    return overlayVote;
+  }
+
+  if (!context.normalizedAccount) {
+    return false;
+  }
+
+  return context.feedVotes.some(
+    (vote) =>
+      vote.proposalId === proposalId &&
+      normalizeAddress(vote.voter) === context.normalizedAccount
+  );
 }
 
 function normalizeAddress(address: string) {
   return address.toLowerCase();
+}
+
+export function parseYbcProposalContractId(proposalId: string): bigint {
+  const match = /^YBC-(\d+)$/.exec(proposalId);
+  if (!match) {
+    throw new Error(`Invalid YBC proposal id: ${proposalId}`);
+  }
+  return BigInt(match[1]);
+}
+
+export async function readYbcWalletOverlay(
+  publicClient: PublicClient,
+  feed: YbcFeed,
+  account: Address
+): Promise<YbcWalletOverlay> {
+  const ybc = feed.deployment.ybc as Address;
+  const election = feed.deployment.ybcElection as Address;
+  const weightAggregator = feed.deployment.ybcWeightAggregator as Address;
+
+  const [isMember, isOperator, staked, weight] = await Promise.all([
+    readContractOrNull(publicClient, {
+      address: ybc,
+      abi: YbcAbi,
+      functionName: "members",
+      args: [account] as const,
+    }),
+    readContractOrNull(publicClient, {
+      address: ybc,
+      abi: YbcAbi,
+      functionName: "operators",
+      args: [account] as const,
+    }),
+    readContractOrNull(publicClient, {
+      address: weightAggregator,
+      abi: YbcWeightAggregatorAbi,
+      functionName: "staked",
+      args: [account] as const,
+    }),
+    readContractOrNull(publicClient, {
+      address: weightAggregator,
+      abi: YbcWeightAggregatorAbi,
+      functionName: "weight",
+      args: [account] as const,
+    }),
+  ]);
+  const proposalEntries = await Promise.all(
+    feed.proposals.map(async (proposal) => {
+      const proposalId = BigInt(proposal.id);
+      const [status, voted] = await Promise.all([
+        readContractOrNull(publicClient, {
+          address: election,
+          abi: YbcElectionAbi,
+          functionName: "status",
+          args: [proposalId] as const,
+        }),
+        readContractOrNull(publicClient, {
+          address: election,
+          abi: YbcElectionAbi,
+          functionName: "voted",
+          args: [account, proposalId] as const,
+        }),
+      ]);
+
+      return {
+        proposalId: proposal.id,
+        status: coerceProposalStatus(status),
+        voted: typeof voted === "boolean" ? voted : null,
+      };
+    })
+  );
+
+  return {
+    isMember: typeof isMember === "boolean" ? isMember : null,
+    isOperator: typeof isOperator === "boolean" ? isOperator : null,
+    staked: typeof staked === "bigint" ? staked : null,
+    weight: typeof weight === "bigint" ? weight : null,
+    proposalStatusById: Object.fromEntries(
+      proposalEntries.map((entry) => [entry.proposalId, entry.status])
+    ),
+    votedByProposalId: Object.fromEntries(
+      proposalEntries.map((entry) => [entry.proposalId, entry.voted])
+    ),
+  };
+}
+
+async function readContractOrNull<
+  const TParameters extends Parameters<PublicClient["readContract"]>[0],
+>(
+  publicClient: PublicClient,
+  parameters: TParameters
+): Promise<Awaited<ReturnType<PublicClient["readContract"]>> | null> {
+  try {
+    return await publicClient.readContract(parameters);
+  } catch (error) {
+    console.warn("[ybc] wallet overlay read failed", error);
+    return null;
+  }
+}
+
+function coerceProposalStatus(
+  value: Awaited<ReturnType<PublicClient["readContract"]>> | null
+): YbcProposalStatusFlag | null {
+  const status =
+    typeof value === "bigint"
+      ? Number(value)
+      : typeof value === "number"
+        ? value
+        : null;
+
+  if (status === null) {
+    return null;
+  }
+
+  return Object.values(YBC_PROPOSAL_STATUS).includes(
+    status as YbcProposalStatusFlag
+  )
+    ? (status as YbcProposalStatusFlag)
+    : null;
+}
+
+function assertValidYbcProposalTarget(feed: YbcFeed, target: Address) {
+  if (!isAddress(target)) {
+    throw new Error("Invalid YBC proposal target address.");
+  }
+
+  if (normalizeAddress(target) === ZERO_ADDRESS) {
+    throw new Error("YBC proposal target cannot be the zero address.");
+  }
+
+  if (normalizeAddress(target) === normalizeAddress(feed.deployment.ybc)) {
+    throw new Error("YBC proposal target cannot be the YBC contract.");
+  }
 }
 
 function fromBaseUnits(value: string) {

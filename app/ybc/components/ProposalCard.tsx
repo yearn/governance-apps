@@ -18,6 +18,7 @@ type ProposalCardProps = {
   onRetract?: () => void;
   onVote?: (choice: YbcVoteChoice) => void;
   onExecute?: () => void;
+  transactionPending?: boolean;
 };
 
 type TimelineStatus = "complete" | "current" | "upcoming" | "closed";
@@ -54,6 +55,7 @@ export function ProposalCard({
   onRetract,
   onVote,
   onExecute,
+  transactionPending = false,
 }: ProposalCardProps) {
   const threshold = getYbcProposalThresholdState(proposal);
   const headingId = `${proposal.id}-heading`;
@@ -134,13 +136,25 @@ export function ProposalCard({
 
             <div className="grid gap-3">
               {proposal.actions.canRetract && onRetract ? (
-                <Button className="w-full" variant="secondary" onClick={onRetract}>
+                <Button
+                  className="w-full"
+                  variant="secondary"
+                  onClick={onRetract}
+                  disabled={transactionPending}
+                  isLoading={transactionPending}
+                >
                   Retract proposal
                 </Button>
               ) : null}
               {proposal.actions.canVote && onVote ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Button className="w-full" size="lg" onClick={() => onVote("yea")}>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={() => onVote("yea")}
+                    disabled={transactionPending}
+                    isLoading={transactionPending}
+                  >
                     Vote yea
                   </Button>
                   <Button
@@ -148,13 +162,21 @@ export function ProposalCard({
                     size="lg"
                     variant="secondary"
                     onClick={() => onVote("nay")}
+                    disabled={transactionPending}
+                    isLoading={transactionPending}
                   >
                     Vote nay
                   </Button>
                 </div>
               ) : null}
               {proposal.actions.canExecute && onExecute ? (
-                <Button className="w-full" size="lg" onClick={onExecute}>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={onExecute}
+                  disabled={transactionPending}
+                  isLoading={transactionPending}
+                >
                   Execute proposal
                 </Button>
               ) : null}
