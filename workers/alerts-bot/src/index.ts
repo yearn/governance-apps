@@ -2848,6 +2848,23 @@ function applyStyfiActorAttribution(
   }
 }
 
+function normalizeRpcBatchResponse<T>(
+  response: T | Array<T | null> | null | undefined,
+  expectedLength: number,
+): Array<T | null> {
+  if (Array.isArray(response)) {
+    return Array.from(
+      { length: expectedLength },
+      (_, index) => response[index] ?? null,
+    );
+  }
+
+  return Array.from(
+    { length: expectedLength },
+    (_, index) => (index === 0 ? response ?? null : null),
+  );
+}
+
 async function repairStyfiActors(
   rpc: RpcClient,
   actions: NormalizedAction[],
@@ -2864,10 +2881,18 @@ async function repairStyfiActors(
     return;
   }
 
-  const [txs, receipts] = await Promise.all([
+  const [txResponse, receiptResponse] = await Promise.all([
     rpc.getTransactionByHash(repairableHashes),
     rpc.getTransactionReceipt(repairableHashes),
   ]);
+  const txs = normalizeRpcBatchResponse<RpcTransaction>(
+    txResponse,
+    repairableHashes.length,
+  );
+  const receipts = normalizeRpcBatchResponse<RpcTransactionReceipt>(
+    receiptResponse,
+    repairableHashes.length,
+  );
 
   const txByHash = new Map<string, RpcTransaction | null>();
   const receiptByHash = new Map<string, RpcTransactionReceipt | null>();
@@ -2943,7 +2968,10 @@ async function resolveMissingUsers(
     return;
   }
 
-  const txs = await rpc.getTransactionByHash(missingUserHashes);
+  const txs = normalizeRpcBatchResponse<RpcTransaction>(
+    await rpc.getTransactionByHash(missingUserHashes),
+    missingUserHashes.length,
+  );
   const senderByHash = new Map<string, string>();
 
   missingUserHashes.forEach((hash, index) => {
