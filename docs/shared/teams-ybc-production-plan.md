@@ -55,8 +55,11 @@ flowchart LR
 Historical lists, proposal boards, team rosters, approvals, bonuses, and derived
 financial state belong in `gov-apps-stats`. Browser code should not scan historical logs.
 
-Wallet-specific eligibility and write readiness may still use live chain reads in the
-frontend because those are small, current-state calls tied to the connected account.
+Wallet-specific eligibility and write readiness belong in the frontend because they are
+small, current-state decisions tied to the connected account, current chain, balances,
+allowances, and simulation. Producer fields such as Teams `team.availableActions` may be
+kept as compatibility hints, but production write CTAs must not treat them as
+authoritative permissions.
 
 ## 4. Production scope
 
@@ -139,6 +142,11 @@ Recommended producer internals:
 - atomic R2 object writes;
 - previous-good-object retention for rollback.
 
+Do not add producer complexity for wallet-specific Teams action eligibility. Emit the
+raw facts needed by the UI, such as team status, ownership, current period, claimable
+funding, bonus status, token metadata, and revenue-recipient state. `team.availableActions`
+can stay in v1 for compatibility, but it is not the consumer authority for writes.
+
 ## 6. Work packages from here to production
 
 ### Shared and cross-repo packages
@@ -210,6 +218,8 @@ Minimum validation before production:
 - producer tests for log reducers and view-call aggregation;
 - frontend adapter tests for feed parsing and safe fallbacks;
 - Teams unit tests for period math, funding claimability, and bonus display state;
+- Teams write tests for client-derived CTA eligibility, including a guard that
+  `team.availableActions` is not trusted as authorization;
 - YBC unit tests for epoch math, proposal status, threshold display, and action
   eligibility;
 - targeted fork smoke for the launch write paths;

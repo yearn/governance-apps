@@ -88,6 +88,8 @@ Use this with:
 - [x] live `ybc.json` payload validated from `governance-apps`
 - [x] production Teams reads wired to the feed-backed client
 - [x] production YBC reads wired to the feed-backed client
+- [x] Teams `availableActions` producer feedback documented as compatibility-only;
+  production write eligibility is client-derived
 
 ### 5.2 Remaining
 

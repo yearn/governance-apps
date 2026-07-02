@@ -42,12 +42,18 @@ Frontend live overlays may add:
 
 - connected wallet owner status
 - token balances and allowances
+- client-derived write eligibility from raw feed state, wallet state, current chain, and
+  simulation
 - write simulation status
 - post-transaction invalidation while the next feed snapshot is pending
 
 Wallet-specific writes only start after the feed-backed read model is stable. Historical
 price and accounting rendering must be supplied by the feed or Teams domain client, not
 inferred ad hoc in page components.
+
+The feed-level `team.availableActions` block is a compatibility hint, not an
+authorization source. Production CTAs must not trust it; WP10 must derive write readiness
+from the accepted feed facts and live wallet context.
 
 ## 4. Approved route shell and file layout
 

@@ -104,7 +104,10 @@ Teams:
 
 - replace mock-only production reads with `teams.json` feed client;
 - keep mocks as development/debug fallback;
-- add live wallet overlays for owner, balances, allowances, and write readiness.
+- add live wallet overlays for owner, balances, allowances, and write readiness;
+- treat feed-level `team.availableActions` as a compatibility hint only; CTA readiness
+  is derived client side from raw feed facts, wallet state, current chain, and
+  simulation.
 
 YBC:
 
@@ -125,7 +128,9 @@ Teams:
 - deposit revenue;
 - claim funding;
 - return funding;
-- claim bonus.
+- claim bonus;
+- derive CTA visibility and disabled states in the client instead of trusting
+  `team.availableActions`.
 
 YBC:
 

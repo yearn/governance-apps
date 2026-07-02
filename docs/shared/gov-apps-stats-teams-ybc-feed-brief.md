@@ -199,6 +199,11 @@ Important Teams notes:
   `TeamRegistry.AddTeam`.
 - Funding claimability is period-sensitive and should be refreshed by view call, not
   inferred only from events.
+- `team.availableActions` is a v1 compatibility hint only. It should not be expanded into
+  wallet-specific permission logic in `gov-apps-stats`, and production frontend write
+  CTAs must not trust it as authoritative. Emit raw protocol state instead; the consumer
+  derives wallet/write eligibility from feed state, wallet state, current chain, and
+  simulation.
 
 ## 7. YBC feed requirements
 
@@ -276,6 +281,8 @@ After staging feeds are published, `governance-apps` will verify:
 - known deployed addresses match `styfi/deployment.json`;
 - Teams directory has all registered teams;
 - Teams funding and bonus objects are sufficient for the planned UI;
+- Teams frontend action eligibility is derived from raw feed and wallet state, not from
+  `team.availableActions`;
 - YBC roster and proposal board are sufficient for the planned UI;
 - missing optional fields degrade cleanly;
 - payload size is acceptable for frontend fetch/cache behavior.
@@ -283,7 +290,7 @@ After staging feeds are published, `governance-apps` will verify:
 ## 10. Out of scope for producer v1
 
 - frontend rendering;
-- wallet-specific action eligibility beyond global state;
+- wallet-specific action eligibility and write readiness;
 - browser routing or feature flags;
 - exhaustive admin history unless needed for current display state;
 - every historical token price if not needed for displayed accounting values;

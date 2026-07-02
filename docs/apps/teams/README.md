@@ -92,6 +92,10 @@ data contract. Launch writes are intentionally still disabled in feed mode until
 write package and fork-smoke runbook validate the shared transaction flow. Local/debug
 runs keep the mock store and floating debug controls.
 
+The feed-level `team.availableActions` block is compatibility-only. Production write
+CTA availability must be derived in the frontend from raw feed facts, connected wallet
+state, current chain, and simulation.
+
 The route remains path-first on shared hosts. `teams-beta.dao-ops.com` is the beta
 review target. `teams.yearn.fi` is reserved for production and must remain gated until
 the feed-backed read model, launch writes, fork smoke, preprod smoke, and production

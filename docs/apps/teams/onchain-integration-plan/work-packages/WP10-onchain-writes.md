@@ -12,12 +12,15 @@ feed-backed reads are stable.
 - prepare and execute funding return through `Team.return_funding`
 - prepare and execute bonus claim through `BonusDistributor.claim`
 - invalidate feed and live wallet overlays after successful transactions
+- derive write CTA availability from raw feed state, connected wallet, current chain,
+  balances/allowances where relevant, and simulation
 
 ## Non-goals
 
 - out-of-scope vest management
 - every possible admin setter
 - generic contract transaction builders
+- trusting `team.availableActions` from `teams.json` as an authorization source
 
 ## Dependencies
 
@@ -36,6 +39,8 @@ feed-backed reads are stable.
 - query invalidation keeps the workspace consistent after writes
 - wrong-network behavior is blocked cleanly
 - write CTAs only appear when the feed and live wallet overlay support the action
+- write CTAs do not rely on `team.availableActions`; that feed block remains a
+  compatibility hint only
 
 ## UAT checkpoint
 
@@ -58,11 +63,14 @@ Scope:
 - prepare and execute funding return through `Team.return_funding`
 - prepare and execute bonus claim through `BonusDistributor.claim`
 - invalidate feed and live wallet overlays after successful transactions
+- derive write CTA availability from raw feed state, connected wallet, current chain,
+  balances/allowances where relevant, and simulation
 
 Constraints:
 - stay inside this package only
 - follow existing `governance-apps` patterns
 - do not jump ahead into later milestones
+- do not treat `team.availableActions` from `teams.json` as an authorization source
 - update tests and docs if behavior changes
 
 Definition of done:
@@ -71,6 +79,8 @@ Definition of done:
 - query invalidation keeps the workspace consistent after writes
 - wrong-network behavior is blocked cleanly
 - write CTAs only appear when the feed and live wallet overlay support the action
+- write CTAs do not rely on `team.availableActions`; that feed block remains a
+  compatibility hint only
 
 
 

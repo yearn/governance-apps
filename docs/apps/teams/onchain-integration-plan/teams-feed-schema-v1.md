@@ -102,6 +102,8 @@ type TeamsTeam = {
   claimCursor: {
     nextBonusPeriod: number;
   };
+  // Compatibility hint only. Production consumers must derive connected-wallet action
+  // eligibility from raw feed state, wallet state, and write simulation.
   availableActions: {
     canDepositRevenue: boolean;
     canClaimFunding: boolean;
@@ -261,10 +263,17 @@ type TeamsEventSummary = {
 The feed must be sufficient for the frontend to render a complete read-only Teams app
 without connected-wallet historical indexing.
 
+`availableActions` is retained in v1 for compatibility with the current producer shape,
+but it is not an authoritative permission model. `gov-apps-stats` should not spend extra
+work deriving wallet-specific write eligibility for this field. Production consumers must
+derive CTA availability client side from the raw feed state, connected wallet, current
+chain, balances/allowances where relevant, and write simulation.
+
 The frontend may add live wallet overlays for:
 
 - connected wallet balances and allowances;
 - whether the connected wallet is the current team owner;
+- whether the raw feed state plus wallet state makes a launch write eligible;
 - write simulation and transaction submission;
 - post-write invalidation while waiting for the next feed refresh.
 

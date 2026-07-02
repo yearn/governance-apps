@@ -57,6 +57,9 @@ UAT-T6: feed-backed read model validated.
   and admin metadata.
 - Feed mode keeps revenue, funding, and bonus write permissions disabled until WP10 and
   the fork-smoke runbook validate launch-scope writes.
+- The mapper intentionally does not trust `team.availableActions` from the feed for
+  production permissions. That block is tolerated as a v1 producer compatibility hint;
+  write eligibility belongs to WP10's client-side wallet/write overlay.
 - Workspace selection is local UI state in feed mode; local and E2E mock mode still use
   the debug-backed mock store and floating controls.
 - The current production feed has not yet exercised live revenue, funding, return, or
