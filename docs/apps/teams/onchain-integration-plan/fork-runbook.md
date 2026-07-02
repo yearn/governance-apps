@@ -18,8 +18,17 @@ NEXT_PUBLIC_RUNTIME_MODE=development
 NEXT_PUBLIC_USE_MOCKS=false
 NEXT_PUBLIC_E2E=false
 NEXT_PUBLIC_RPC_URLS=http://127.0.0.1:8545
-NEXT_PUBLIC_TEAMS_DATA_URL=<staging-teams-json-url>
+NEXT_PUBLIC_TEAMS_DATA_URL=<live-or-saved-teams-json-url>
 ```
+
+Use the live production `teams.json` or a saved copy from the same snapshot block for
+normal fork smoke. Do not run a fork-specific `gov-apps-stats` publisher for launch
+testing unless a concrete bug proves it necessary. For states not present in the live
+feed, use deterministic fixture JSON or test-time interception of `/api/teams-data`.
+
+Fork writes will not update the R2 feed. That is expected. Validate transaction
+simulation/submission and fork chain effects separately from "next feed snapshot"
+rendering, which should be covered with fixtures or mocked fetch responses.
 
 ## 2. Goals for fork validation
 
@@ -28,6 +37,7 @@ Validate at minimum:
 - directory reads load from `teams.json`
 - workspace reads load from `teams.json`
 - feed freshness and snapshot block metadata are visible in diagnostics or logs
+- live/saved feed rendering remains coherent before and after fork writes
 - revenue deposit preview and deposit path
 - funding claim path
 - funding return path

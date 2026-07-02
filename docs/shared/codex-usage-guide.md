@@ -155,10 +155,22 @@ Owns merge order, conflict resolution, milestone assembly, and release readiness
 
 ## 11. Cross-repo handoff order
 
-1. Complete shared WP1 in `governance-apps`.
-2. Start shared WP2 in `gov-apps-stats` using the producer brief.
-3. Publish staging `teams.json` and `ybc.json`.
-4. Complete shared WP3 in `governance-apps` to validate staging feeds.
-5. Start Teams WP9 and YBC WP8 for feed-backed reads.
-6. Start Teams WP10 and YBC WP9 for launch-scope writes.
-7. Finish Teams WP11 and YBC WP10 for fork/preprod/rollout.
+Completed feed/read handoff:
+
+1. Shared WP1 completed in `governance-apps`.
+2. Shared WP2 completed in `gov-apps-stats`.
+3. Live `teams.json` and `ybc.json` published.
+4. Shared WP3 validated from `governance-apps`.
+5. Teams WP9 and YBC WP8 feed-backed reads completed.
+
+Current handoff order from here:
+
+1. Merge `agent/data` into `agent/integration`.
+2. Start Teams WP10 and YBC WP9 for launch-scope writes.
+3. Keep `NEXT_PUBLIC_USE_MOCKS=false` for fork/preprod work; use live or saved feed
+   JSON plus fixture/intercepted JSON for rare states.
+4. Finish Teams WP11 and YBC WP10 for targeted fork smoke, preprod smoke, rollout notes,
+   and rollback checks.
+5. Enable `NEXT_PUBLIC_ENABLE_TEAMS` / `NEXT_PUBLIC_ENABLE_YBC` only after approval.
+
+Do not add per-app mock/live switches or separate Teams/YBC write flags for this launch.

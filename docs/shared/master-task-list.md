@@ -90,18 +90,32 @@ Use this with:
 - [x] production YBC reads wired to the feed-backed client
 - [x] Teams `availableActions` producer feedback documented as compatibility-only;
   production write eligibility is client-derived
+- [x] Teams/YBC launch switch model documented: global mocks only, app route flags expose
+  accepted read/write surfaces, no separate write flags for launch
 
 ### 5.2 Remaining
 
+- [ ] Merge `agent/data` into `agent/integration`
 - [ ] Wire Teams launch writes through shared `useTx`
 - [ ] Wire YBC launch writes through shared `useTx`
-- [ ] Run targeted fork smoke and preprod smoke for both apps
+- [ ] Run targeted fork smoke with live/saved feed JSON and fixture coverage for absent
+  states
+- [ ] Run preprod/beta route, host, wallet, and feed smoke
 - [ ] Enable production flags and host exposure after release approval
 
-## 6. Immediate Next Milestone (Teams/YBC Data Producer)
+## 6. Immediate Next Milestone (Teams/YBC Launch Writes and Smoke)
 
-- [ ] Start shared WP2 in `gov-apps-stats`
-- [ ] Import Teams/YBC deployment block heights from `styfi/deployment.json`
+- [ ] Merge `agent/data` into the integration lane
+- [ ] Implement Teams WP10 launch writes
+- [ ] Implement YBC WP9 launch writes
+- [ ] Execute Teams WP11 targeted fork/preprod package
+- [ ] Execute YBC WP10 targeted fork/preprod package
+- [ ] Record production flag, host exposure, rollback, and monitoring notes
+
+Historical data-producer milestones:
+
+- [x] Start shared WP2 in `gov-apps-stats`
+- [x] Import Teams/YBC deployment block heights from `styfi/deployment.json`
 - [x] Publish live `teams.json`
 - [x] Publish live `ybc.json`
 - [x] Hand `teams.json` URL back to `governance-apps` for shared WP3 validation

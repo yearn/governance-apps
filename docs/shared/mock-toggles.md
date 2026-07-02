@@ -13,7 +13,10 @@
 
 - Env: `NEXT_PUBLIC_USE_MOCKS=true`
 - **Default:** Disabled in repo; enable for local UI-only testing.
-- **Effect:** Uses `MockStyfiClient`, `MockVeyfiClient`, and `MockYethClient` instead of on-chain calls.
+- **Effect:** Uses mock/debug backends across app domains instead of on-chain/feed-backed
+  production paths.
+- **Scope:** Global. There are no per-app mock/live switches for launch. Do not run
+  production with live `styfi`/`veyfi`/`yeth` while Teams or YBC use mocked flows.
 - **Clock behavior in mock mode:** Epoch and cooldown UI timing uses the local mock clock (`nowSeconds`) instead of chain/global-data canonical clock sources.
 - **Manual UAT tip:** For wallet-connect UX testing in mock mode, set `NEXT_PUBLIC_E2E=false`. If `NEXT_PUBLIC_E2E=true`, the app uses a fixed mock connector address and behaves as connected.
 
@@ -40,6 +43,9 @@
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH in production runtime.
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/debug/ui` in production runtime.
 - If unset in production, Team Finances routes/host mapping, YBC routes/host mapping, yETH routes/host mapping, and debug UI are intentionally unavailable.
+- For the Teams/YBC launch, there are no separate write flags. Once the relevant app is
+  approved, its production flag exposes feed-backed reads and launch-scope writes
+  together. Disable the app flag to roll back exposure.
 
 ## Public RPC (Non-Mock Mode)
 
@@ -56,6 +62,9 @@
 - Required when `NEXT_PUBLIC_ENABLE_TEAMS=true` in production.
 - Server/runtime reads the configured URL directly; browser runtime reads `/api/teams-data` so the payload is delivered same-origin.
 - Launch-scope writes stay disabled in feed mode until the Teams write package and fork smoke are accepted.
+- For fork smoke, use live or saved `teams.json` as the read source. Use fixture JSON or
+  test route interception for rare states absent from the live feed; do not switch the
+  production app into Teams-only mock mode.
 
 ## YBC Data (Non-Mock Mode)
 
@@ -63,6 +72,9 @@
 - Required when `NEXT_PUBLIC_ENABLE_YBC=true` in production.
 - Server/runtime reads the configured URL directly; browser runtime reads `/api/ybc-data` so the payload is delivered same-origin.
 - Launch-scope writes stay disabled in feed mode until the YBC write package and fork smoke are accepted.
+- For fork smoke, use live or saved `ybc.json` as the read source. Use fixture JSON or
+  test route interception for rare states absent from the live feed; do not switch the
+  production app into YBC-only mock mode.
 
 ## Public RPC (Required in Production)
 

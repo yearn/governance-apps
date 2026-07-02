@@ -30,6 +30,12 @@ In `production` mode:
 - `NEXT_PUBLIC_ENABLE_DEBUG_UI=true` is required to expose `/debug/ui`.
 - `NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK` must remain `false` (UAT/fork-only safety override).
 
+For the Teams/YBC launch, `NEXT_PUBLIC_ENABLE_TEAMS` and `NEXT_PUBLIC_ENABLE_YBC` are
+whole-app exposure gates. There are no separate Teams/YBC write flags and no per-app
+mock/live switches. Production must run with `NEXT_PUBLIC_USE_MOCKS=false`; if a severe
+Teams or YBC issue appears, disable that app's production flag rather than switching it
+to mocked flows.
+
 ## Required production checklist
 
 Before deploying production:
@@ -46,7 +52,8 @@ Before deploying production:
 10. If `NEXT_PUBLIC_ENABLE_YETH=true`, `NEXT_PUBLIC_YETH_GLOBAL_DATA_URL` is set
 11. `NEXT_PUBLIC_RPC_URLS` is set (comma-separated list, at least one URL)
 12. `NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK=false`
-13. Run `npm run validate:prod-env`
+13. No app-specific mock or write-only flags are set for Teams/YBC
+14. Run `npm run validate:prod-env`
 
 ## Preview checklist
 

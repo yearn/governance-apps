@@ -2,6 +2,7 @@
 
 Status: active production plan
 Date: 2026-06-30
+Last updated: 2026-07-02
 Primary repos: `governance-apps`, `gov-apps-stats`, `styfi`
 
 ## 1. Current decision
@@ -13,15 +14,20 @@ The old blocking assumption was that the contract deployment manifest still need
 assembled. That is no longer true. `../styfi` `master` now contains the deployment
 manifest and finalized contract sources needed to define the app data contracts.
 
-The remaining production path is:
+The feed contract, producer implementation, live feed validation, and feed-backed read
+wiring are now complete for both apps. The remaining production path is:
 
-1. define the consumer feed contracts in `governance-apps`;
-2. implement `teams.json` and `ybc.json` in `gov-apps-stats`;
-3. validate staging feeds from the frontend consumer side;
-4. wire feed-backed reads in `governance-apps`;
-5. wire the limited write surface through the shared transaction pipeline;
-6. smoke test on a mainnet fork and preprod host;
-7. enable production flags in a controlled release.
+1. merge the accepted data/read work from `agent/data` into `agent/integration`;
+2. wire the limited write surface through the shared transaction pipeline;
+3. smoke test launch writes on a mainnet fork using live or saved feed JSON;
+4. smoke test route, wallet, feed, and host behavior on preprod/beta;
+5. enable each app's production route flag after approval;
+6. monitor feed freshness and early write reports, then iterate in production.
+
+No per-app mock/live split or separate write-only feature flag is planned for this
+controlled launch. `NEXT_PUBLIC_USE_MOCKS` remains a global local/debug toggle. In
+production, `NEXT_PUBLIC_ENABLE_TEAMS` and `NEXT_PUBLIC_ENABLE_YBC` expose each whole
+app once its read and launch-write path is accepted.
 
 ## 2. Ownership model
 
@@ -60,6 +66,17 @@ small, current-state decisions tied to the connected account, current chain, bal
 allowances, and simulation. Producer fields such as Teams `team.availableActions` may be
 kept as compatibility hints, but production write CTAs must not treat them as
 authoritative permissions.
+
+Operational switches are intentionally simple:
+
+- `NEXT_PUBLIC_USE_MOCKS=true` is global and for local/debug or deterministic E2E use
+  only; it is not allowed in production.
+- There are no per-app mock/live switches for Teams or YBC.
+- Production app flags expose the accepted app surface. For this launch that means
+  feed-backed reads plus launch-scope writes together, not a separate read-only or
+  write-only production mode.
+- State-specific UI coverage for Teams/YBC should use fixtures or test-time interception
+  of `/api/teams-data` and `/api/ybc-data`, not production mock mode.
 
 ## 4. Production scope
 
@@ -175,19 +192,21 @@ can stay in v1 for compatibility, but it is not the consumer authority for write
 
 ## 7. Recommended sequencing
 
-1. Land Shared WP1 in `agent/data`.
-2. Start a `gov-apps-stats` Codex thread/worktree with the Shared WP2 handoff brief.
-3. Publish staging `teams.json` and `ybc.json`.
-4. Validate staging payloads from `governance-apps` as Shared WP3.
-5. Run Teams WP9 and YBC WP8 in parallel once feed shape is accepted.
-6. Run Teams WP10 and YBC WP9 in parallel once reads are stable.
-7. Run Teams WP11 and YBC WP10 after writes are available.
-8. Merge accepted packages through `agent/integration`.
-9. Release behind production flags per app, not as one all-or-nothing switch.
+1. Merge `agent/data` into the long-lived `agent/integration` lane.
+2. Run Teams WP10 and YBC WP9 in parallel for launch-scope writes.
+3. Keep writes on the shared `useTx` path with simulation, wrong-network blocking, and
+   query invalidation.
+4. Run Teams WP11 and YBC WP10 for targeted fork smoke, preprod smoke, release notes,
+   and rollback checks.
+5. Use live or saved production feed JSON for normal fork smoke; use deterministic
+   fixture JSON or route interception only for states not present in live feeds.
+6. Release each app behind its production route flag after approval. Do not add separate
+   Teams/YBC write flags unless the launch scope changes materially.
+7. Monitor feed freshness and early write reports, then fix issues in production.
 
-If only one implementer is available, do the producer work first, then Teams reads, then
-YBC reads, then writes. Teams has the higher data-model risk; YBC has the cleaner write
-surface once the proposal feed is correct.
+If only one implementer is available, do Teams WP10 first, then YBC WP9, then the fork
+and preprod packages. Teams has the higher write/data-model risk; YBC has the cleaner
+write surface once the proposal feed is correct.
 
 ## 8. Sub-agent usage
 
@@ -223,11 +242,14 @@ Minimum validation before production:
 - YBC unit tests for epoch math, proposal status, threshold display, and action
   eligibility;
 - targeted fork smoke for the launch write paths;
+- fixture or route-intercept coverage for Teams/YBC states absent from live feeds;
 - preprod smoke on shared route and beta host;
 - wrong-network and missing-feed fallback checks.
 
 Do not require exhaustive mock-state replay before launch. Keep the old mock states for
 debug and regression coverage, but do not block production on every historical visual state.
+Do not build a forked `gov-apps-stats` feed for launch testing unless a later bug proves
+the saved/live JSON plus fixtures strategy insufficient.
 
 ## 10. Rollout gates
 
@@ -245,7 +267,6 @@ Rollback options:
 
 - disable the app production flag;
 - point env back to previous-good R2 object;
-- hide write CTAs while keeping read-only route available;
 - revert the route mapping if host-level exposure causes issues.
 
 ## 11. Open inputs

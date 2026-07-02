@@ -11,15 +11,16 @@ Teams and YBC already have mock-backed frontend surfaces and debug/runtime plann
 new production fact is that `../styfi` `master` now contains finalized deployed contract
 addresses and contract sources.
 
-The roadmap from here is no longer "mock first, then discover contracts." It is now:
+The old roadmap was "mock first, then discover contracts." That is complete enough to
+retire. As of 2026-07-02, `teams.json` and `ybc.json` are live and both frontend read
+models are feed-backed. The roadmap from here is now:
 
-1. define feed contracts in `governance-apps`;
-2. implement `teams.json` and `ybc.json` in `gov-apps-stats`;
-3. verify the staging feeds as a frontend consumer;
-4. wire feed-backed read clients;
-5. wire limited production write flows;
-6. run fork/preprod smoke;
-7. release behind app-specific production flags.
+1. merge the data/read lane into `agent/integration`;
+2. wire limited production write flows;
+3. run targeted fork smoke with live or saved feed JSON;
+4. run preprod/beta smoke;
+5. release each accepted app behind its production route flag;
+6. monitor feed freshness and write reports while iterating in production.
 
 The detailed production plan is:
 
@@ -49,6 +50,9 @@ smoke, preprod smoke, and production approval are complete.
 6. One work package equals one reviewable PR.
 7. Merge accepted work through `agent/integration`.
 8. Release Teams and YBC independently if one track is ready before the other.
+9. Do not add per-app mock/live switches for launch; `NEXT_PUBLIC_USE_MOCKS` is global.
+10. Do not add separate Teams/YBC write flags for launch; each app production flag
+    exposes the accepted read and launch-write surface together.
 
 ## 4. Milestones from here
 
@@ -151,12 +155,16 @@ Exit gate:
 Teams:
 
 - run targeted fork smoke for directory, workspace, revenue, funding, return, and bonus;
+- read from live or saved `teams.json` during fork smoke; use fixture/intercepted JSON
+  only for states absent from the live feed;
 - run preprod route smoke;
 - triage launch blockers vs post-launch issues.
 
 YBC:
 
 - run targeted fork smoke for roster, proposals, voting, execution, and reward handoff;
+- read from live or saved `ybc.json` during fork smoke; use fixture/intercepted JSON
+  only for proposal/member states absent from the live feed;
 - run preprod route smoke;
 - triage launch blockers vs post-launch issues.
 
@@ -170,15 +178,15 @@ Exit gate:
 
 Recommended order:
 
-1. enable feeds in production environment;
-2. enable read-only route behind production flag;
-3. enable writes per app after smoke;
-4. expose production host after approval;
-5. monitor feed freshness and write reports.
+1. set production feed URLs and RPC env;
+2. enable each app's production flag only after read, write, fork, and preprod approval;
+3. expose the production host after approval;
+4. monitor feed freshness and write reports.
 
 Exit gate:
 
 - production feature flags recorded;
+- no separate Teams/YBC write flags required for this controlled launch;
 - rollback path tested;
 - monitoring and smoke steps documented.
 
