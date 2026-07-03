@@ -7,6 +7,8 @@ Current implementation status: feed-backed reads and launch-scope proposal write
 wired. This runbook is the next validation gate before exposing YBC on production
 hosts.
 
+Shared approach: [`../../../shared/teams-ybc-fork-smoke-plan.md`](../../../shared/teams-ybc-fork-smoke-plan.md).
+
 ## 1. Start mainnet fork
 
 Example:
@@ -49,6 +51,27 @@ Validate at minimum:
 - vote path
 - execution path
 - reward handoff remains a shared claim path
+
+Preferred fast path:
+
+1. Keep the app in non-mock mode with live or saved production `ybc.json`.
+2. Use the deployed production YBC contracts on a mainnet fork; do not redeploy YBC
+   contracts for launch smoke.
+3. Prefer a real current weighted YBC member only if using that wallet is explicitly
+   accepted. Because the fork uses chain id `1`, privileged wallet signatures should be
+   treated carefully even when sent only to a local RPC.
+4. If a privileged member wallet is not used, seed the local test wallet as a YBC member
+   on the fork and test proposal creation from the UI.
+5. Use a tiny local feed fixture or `/api/ybc-data` interception only when a newly created
+   fork proposal needs to appear in the UI for retract, vote, or execute testing.
+6. For voting, use a real weighted member wallet or direct-cast a fork vote from an
+   impersonated weighted member; do not block proposal-creation confidence on hand-built
+   weight storage surgery unless voting itself is the release blocker.
+
+After this baseline passes, UX-only YBC iterations may use mock mode and the mock
+navigator/debug bridge locally. Re-run fork smoke when YBC onchain clients, proposal
+write hooks, transaction plumbing, proposal id parsing, action gating, wallet/chain
+handling, or write-button argument threading changes.
 
 ## 3. Evidence to capture
 

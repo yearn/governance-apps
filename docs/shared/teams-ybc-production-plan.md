@@ -2,7 +2,7 @@
 
 Status: active production plan
 Date: 2026-06-30
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 Primary repos: `governance-apps`, `gov-apps-stats`, `styfi`
 
 ## 1. Current decision
@@ -249,6 +249,22 @@ Do not require exhaustive mock-state replay before launch. Keep the old mock sta
 debug and regression coverage, but do not block production on every historical visual state.
 Do not build a forked `gov-apps-stats` feed for launch testing unless a later bug proves
 the saved/live JSON plus fixtures strategy insufficient.
+
+The repeatable fork-smoke plan is documented in
+[`teams-ybc-fork-smoke-plan.md`](teams-ybc-fork-smoke-plan.md). The accepted operating
+model is:
+
+1. run one baseline fork smoke in non-mock mode against live/saved production feeds and
+   the deployed production contracts;
+2. use minimal fork state setup and narrow feed fixtures only for owner/member/proposal
+   states that live R2 cannot reflect from fork writes;
+3. after that baseline passes, do heavy UX iteration locally in mock mode and with the
+   mock navigator/debug bridge;
+4. skip fresh local fork runs for UX-only changes that stay above the domain/write
+   boundary;
+5. re-run fork smoke before release when onchain clients, write hooks, transaction
+   plumbing, approval handling, amount parsing, action gating, wallet/chain handling, or
+   write-button argument threading changes.
 
 ## 10. Rollout gates
 

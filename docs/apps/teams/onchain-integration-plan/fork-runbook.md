@@ -3,6 +3,8 @@
 Use this runbook after the staging `teams.json` feed is accepted and Teams launch-scope
 writes are wired.
 
+Shared approach: [`../../../shared/teams-ybc-fork-smoke-plan.md`](../../../shared/teams-ybc-fork-smoke-plan.md).
+
 ## 1. Start mainnet fork
 
 Example:
@@ -43,6 +45,24 @@ Validate at minimum:
 - funding return path
 - bonus claim path
 - no generic admin write path is exposed by default
+
+Preferred fast path:
+
+1. Keep the app in non-mock mode with live or saved production `teams.json`.
+2. Use the deployed production contracts on a mainnet fork; do not redeploy Teams
+   contracts for launch smoke.
+3. For owner-gated flows, impersonate the current team owner on the fork, transfer
+   ownership to the local test wallet, and use a tiny local feed fixture or
+   `/api/teams-data` interception so the feed owner matches the fork owner.
+4. Seed only the current-period funding state needed for one claim/return smoke.
+5. Treat bonus claim as required only when a clean claimable launch state exists; otherwise
+   record the deferred reason and do not block unrelated launch-write confidence on
+   synthetic bonus accounting setup.
+
+After this baseline passes, UX-only Teams iterations may use mock mode and the mock
+navigator/debug bridge locally. Re-run fork smoke when Teams onchain clients, write hooks,
+transaction plumbing, amount parsing, approval handling, action gating, or write-button
+argument threading changes.
 
 ## 3. Evidence to capture
 

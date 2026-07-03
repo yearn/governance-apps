@@ -187,6 +187,27 @@ Playwright can also be run directly:
 - `NEXT_PUBLIC_MOCK_TIME_OFFSET_SECONDS` can offset the clock in dev.
 - For manual UI QA of disconnected states while mocks are enabled, use `NEXT_PUBLIC_USE_MOCKS=true` with `NEXT_PUBLIC_E2E=false` (otherwise the mock connector is auto-connected).
 
+## Teams/YBC UX Iteration After Fork Smoke
+
+Once the Teams/YBC baseline fork smoke has passed, local UX iteration should normally use
+mock mode plus the mock navigator/debug bridge. This is acceptable for visual hierarchy,
+copy, tables, cards, tabs, responsive layout, loading states, empty states, and
+state-specific review.
+
+Run the normal local checks before preprod:
+
+- `npm run typecheck -- --incremental false`
+- `npm run lint`
+- `npm run test`
+- `npm run test:e2e`
+- `npm run build`
+
+Re-run Teams/YBC fork smoke when a change touches onchain clients, write hooks,
+transaction plumbing, token approval handling, amount parsing, deployment/feed address
+fields, action gating, wallet or chain handling, or write-button argument threading.
+The repeatable launch runbook is
+[`teams-ybc-fork-smoke-plan.md`](teams-ybc-fork-smoke-plan.md).
+
 ## Common Failure Modes
 
 - Bridge missing: check `NEXT_PUBLIC_E2E=true`.
