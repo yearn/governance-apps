@@ -1,0 +1,630 @@
+{
+  "version": 1,
+  "chainId": 1,
+  "generatedAt": 1783353865,
+  "blockNumber": 25474446,
+  "blockHash": "0xe47d1fd51b4dbaaa53b91a1cdc9b5ece47da57fec5d46a12648debc48b13881d",
+  "deployment": {
+    "budgetGenesis": 1762992000,
+    "deployBlock": 25244861,
+    "teamRegistry": "0x9da431b8a5b5962ebff1d1876ddb0f336a372f29",
+    "teamImplementation": "0xa59b34c87f97bdf95ab3e532fd9b7d1fcd23bf43",
+    "teamAccountant": "0x1c221980aab2e52ccc02180e0c171ca5e5ffdfd6",
+    "revenueRecipient": "0x5b5ab518f532ce260a5d2795e1eec544fc159587",
+    "revenuePriceOracle": "0xc1f9b548afcbe850f2beba8a50e55d86f4abae2e",
+    "fundingDistributor": "0xbcc932e4750c3e465a7e54a06a34f9edf8f6116b",
+    "bonusDistributor": "0xa66002e9ab0babf46882d0e0cd274f46ceb13116",
+    "bonusPriceOracle": "0x7e417e19fe3f72798e1094e8df185378370cb416",
+    "ybcBonusRecipient": "0xf03a919a59f8381be220511ecf788b15fb039e4c",
+    "yfi": "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+    "multicall3": "0xca11bde05977b3631167028862be2a173976ca11",
+    "source": {
+      "repo": "styfi",
+      "ref": "9389a7c71cbff6f2257400c67bc3f21cfc2e565f"
+    }
+  },
+  "periods": {
+    "current": 2,
+    "lengthSeconds": 7257600,
+    "currentStartsAt": 1777507200,
+    "currentEndsAt": 1784764800,
+    "indexed": [
+      0,
+      1,
+      2
+    ]
+  },
+  "tokens": {
+    "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e": {
+      "address": "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+      "symbol": "YFI",
+      "name": "yearn.finance",
+      "decimals": 18,
+      "kind": "bonus",
+      "priceOracle": "0x7e417e19fe3f72798e1094e8df185378370cb416",
+      "converter": null
+    },
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": {
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "symbol": "USDC",
+      "name": "USD Coin",
+      "decimals": 6,
+      "kind": "funding",
+      "priceOracle": "0xc1f9b548afcbe850f2beba8a50e55d86f4abae2e",
+      "converter": "0xc1f9b548afcbe850f2beba8a50e55d86f4abae2e"
+    },
+    "0xbe53a109b494e5c9f97b9cd39fe969be68bf6204": {
+      "address": "0xbe53a109b494e5c9f97b9cd39fe969be68bf6204",
+      "symbol": "yvUSDC-1",
+      "name": "USDC-1 yVault",
+      "decimals": 6,
+      "kind": "funding",
+      "priceOracle": "0xc1f9b548afcbe850f2beba8a50e55d86f4abae2e",
+      "converter": null
+    }
+  },
+  "teams": [
+    {
+      "index": 0,
+      "address": "0x462aa97c4670602f63133e2b08327031c132e5b0",
+      "name": "DAO-ops",
+      "owner": "0x6afd01e79e4b52bbe61ff48d0fde036b73141686",
+      "pendingOwner": null,
+      "status": "active",
+      "retirementPeriod": null,
+      "isRegisteredAtSnapshot": true,
+      "successor": null,
+      "periods": [
+        {
+          "period": 0,
+          "startsAt": 1762992000,
+          "endsAt": 1770249600,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 0,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 1,
+          "startsAt": 1770249600,
+          "endsAt": 1777507200,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 1,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 2,
+          "startsAt": 1777507200,
+          "endsAt": 1784764800,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "5000000",
+            "profitUsd": "0",
+            "lossUsd": "5000000"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [
+            0
+          ],
+          "bonus": {
+            "period": 2,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        }
+      ],
+      "lifetime": {
+        "revenueUsd": "0",
+        "costUsd": "0",
+        "profitUsd": "0",
+        "lossUsd": "0"
+      },
+      "claimCursor": {
+        "nextBonusPeriod": 0
+      },
+      "availableActions": {
+        "canDepositRevenue": true,
+        "canClaimFunding": true,
+        "canReturnFunding": true,
+        "canClaimBonus": false
+      }
+    },
+    {
+      "index": 1,
+      "address": "0x4e32b4efab7f02aba6cbd5f7e328ad9d37fb0f8e",
+      "name": "yAudit",
+      "owner": "0x8973b848775a87a0d5bcf262c555859b87e6f7da",
+      "pendingOwner": null,
+      "status": "active",
+      "retirementPeriod": null,
+      "isRegisteredAtSnapshot": true,
+      "successor": null,
+      "periods": [
+        {
+          "period": 0,
+          "startsAt": 1762992000,
+          "endsAt": 1770249600,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 0,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 1,
+          "startsAt": 1770249600,
+          "endsAt": 1777507200,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 1,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 2,
+          "startsAt": 1777507200,
+          "endsAt": 1784764800,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 2,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        }
+      ],
+      "lifetime": {
+        "revenueUsd": "0",
+        "costUsd": "0",
+        "profitUsd": "0",
+        "lossUsd": "0"
+      },
+      "claimCursor": {
+        "nextBonusPeriod": 0
+      },
+      "availableActions": {
+        "canDepositRevenue": true,
+        "canClaimFunding": false,
+        "canReturnFunding": false,
+        "canClaimBonus": false
+      }
+    },
+    {
+      "index": 2,
+      "address": "0x1ccac40c3e027569598ae600109437cf79e79d02",
+      "name": "Curation",
+      "owner": "0xe5e2baf96198c56380ddd5e992d7d1ada0e989c0",
+      "pendingOwner": null,
+      "status": "active",
+      "retirementPeriod": null,
+      "isRegisteredAtSnapshot": true,
+      "successor": null,
+      "periods": [
+        {
+          "period": 0,
+          "startsAt": 1762992000,
+          "endsAt": 1770249600,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 0,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 1,
+          "startsAt": 1770249600,
+          "endsAt": 1777507200,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 1,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 2,
+          "startsAt": 1777507200,
+          "endsAt": 1784764800,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 2,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        }
+      ],
+      "lifetime": {
+        "revenueUsd": "0",
+        "costUsd": "0",
+        "profitUsd": "0",
+        "lossUsd": "0"
+      },
+      "claimCursor": {
+        "nextBonusPeriod": 0
+      },
+      "availableActions": {
+        "canDepositRevenue": true,
+        "canClaimFunding": false,
+        "canReturnFunding": false,
+        "canClaimBonus": false
+      }
+    },
+    {
+      "index": 3,
+      "address": "0x901e4ee013b842e30f3220c7c2794a80d4baf19a",
+      "name": "yLockers",
+      "owner": "0x4444aaaacdba5580282365e25b16309bd770ce4a",
+      "pendingOwner": null,
+      "status": "active",
+      "retirementPeriod": null,
+      "isRegisteredAtSnapshot": true,
+      "successor": null,
+      "periods": [
+        {
+          "period": 0,
+          "startsAt": 1762992000,
+          "endsAt": 1770249600,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 0,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 1,
+          "startsAt": 1770249600,
+          "endsAt": 1777507200,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 1,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 2,
+          "startsAt": 1777507200,
+          "endsAt": 1784764800,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 2,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        }
+      ],
+      "lifetime": {
+        "revenueUsd": "0",
+        "costUsd": "0",
+        "profitUsd": "0",
+        "lossUsd": "0"
+      },
+      "claimCursor": {
+        "nextBonusPeriod": 0
+      },
+      "availableActions": {
+        "canDepositRevenue": true,
+        "canClaimFunding": false,
+        "canReturnFunding": false,
+        "canClaimBonus": false
+      }
+    },
+    {
+      "index": 4,
+      "address": "0xd7517990fa00e33c14ac75337c1f78d624edf2b1",
+      "name": "Vaults",
+      "owner": "0x74accf0e223197b676c3ce5958a96dac18fe6412",
+      "pendingOwner": null,
+      "status": "active",
+      "retirementPeriod": null,
+      "isRegisteredAtSnapshot": true,
+      "successor": null,
+      "periods": [
+        {
+          "period": 0,
+          "startsAt": 1762992000,
+          "endsAt": 1770249600,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 0,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 1,
+          "startsAt": 1770249600,
+          "endsAt": 1777507200,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 1,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        },
+        {
+          "period": 2,
+          "startsAt": 1777507200,
+          "endsAt": 1784764800,
+          "financials": {
+            "revenueUsd": "0",
+            "costUsd": "0",
+            "profitUsd": "0",
+            "lossUsd": "0"
+          },
+          "revenueDeposits": [],
+          "fundingApprovalIds": [],
+          "bonus": {
+            "period": 2,
+            "status": "unfinalized",
+            "claimableYfi": "0",
+            "ybcAmountYfi": "0",
+            "teamAmountYfi": "0",
+            "parameters": null
+          }
+        }
+      ],
+      "lifetime": {
+        "revenueUsd": "0",
+        "costUsd": "0",
+        "profitUsd": "0",
+        "lossUsd": "0"
+      },
+      "claimCursor": {
+        "nextBonusPeriod": 0
+      },
+      "availableActions": {
+        "canDepositRevenue": true,
+        "canClaimFunding": false,
+        "canReturnFunding": false,
+        "canClaimBonus": false
+      }
+    }
+  ],
+  "fundingApprovals": [
+    {
+      "id": 0,
+      "team": "0x462aa97c4670602f63133e2b08327031c132e5b0",
+      "period": 2,
+      "token": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "amount": "10000000",
+      "used": "5000000",
+      "claimable": "5000000",
+      "durationSeconds": 0,
+      "status": "claimable",
+      "averageCostPriceUsd": "1000000",
+      "claims": [
+        {
+          "id": "claim-fork-0",
+          "approvalId": 0,
+          "team": "0x462aa97c4670602f63133e2b08327031c132e5b0",
+          "period": 2,
+          "token": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "amount": "5000000",
+          "costUsd": "5000000",
+          "vest": null,
+          "recipient": "0x6afd01e79e4b52bbe61ff48d0fde036b73141686",
+          "txHash": "0x69fbe761b06f4a13e30b7b1741759bcf785e148c510d27200753913a49c1e0b6",
+          "blockNumber": 25474447,
+          "logIndex": 2,
+          "timestamp": 1783353865
+        }
+      ],
+      "returns": []
+    }
+  ],
+  "bonus": {
+    "token": "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+    "pendingPeriod": 0,
+    "finalizedPeriods": [],
+    "claims": []
+  },
+  "revenueRecipient": {
+    "address": "0x5b5ab518f532ce260a5d2795e1eec544fc159587",
+    "killed": false,
+    "operator": "0xabcdef0028b6cc3539c2397acab017519f8744c8",
+    "treasury": "0x93a62da5a14c80f265dabc077fcee437b1a0efde",
+    "rewardDistributor": "0xd31911a33a5577be233dc096f6f5a7e496ff5934",
+    "recoveryAuction": null,
+    "tokenSplitBps": [
+      8000,
+      1000,
+      1000
+    ],
+    "lastBalance": "0",
+    "sumBalance": "0",
+    "used": [
+      "0",
+      "0",
+      "0"
+    ]
+  },
+  "accountant": {
+    "globalByPeriod": [
+      {
+        "period": 0,
+        "financials": {
+          "revenueUsd": "0",
+          "costUsd": "0",
+          "profitUsd": "0",
+          "lossUsd": "0"
+        }
+      },
+      {
+        "period": 1,
+        "financials": {
+          "revenueUsd": "0",
+          "costUsd": "0",
+          "profitUsd": "0",
+          "lossUsd": "0"
+        }
+      },
+      {
+        "period": 2,
+        "financials": {
+          "revenueUsd": "0",
+          "costUsd": "0",
+          "profitUsd": "0",
+          "lossUsd": "0"
+        }
+      }
+    ],
+    "lifetime": {
+      "revenueUsd": "0",
+      "costUsd": "0",
+      "profitUsd": "0",
+      "lossUsd": "0"
+    }
+  },
+  "events": {
+    "firstIndexedBlock": 25244861,
+    "lastIndexedBlock": 25474446,
+    "teamCount": 5,
+    "revenueDepositCount": 0,
+    "fundingApprovalCount": 1,
+    "fundingClaimCount": 1,
+    "fundingReturnCount": 0,
+    "bonusClaimCount": 0
+  }
+}

@@ -376,7 +376,9 @@ export const teamsCopy = {
         "Credited USD can differ from the nominal token amount because conversion and pricing apply before accounting.",
       submit: "Deposit revenue",
       approve: "Approve token",
+      balanceLabel: "Balance",
       amountError: "Enter an amount greater than 0.",
+      amountExceedsBalance: "Amount exceeds the connected wallet balance.",
     },
     tokenBadges: {
       convertible: "Auto-converts",
@@ -540,7 +542,8 @@ export const teamsCopy = {
       selectedApproval: "Selected approval",
       averagePrice: "Historical average claim price",
       amount: "Amount to return",
-      maxLabel: "Used balance",
+      maxLabel: "Refundable balance",
+      balanceLabel: "Balance",
       estimate: "Estimated refund value",
       note: "Refund accounting uses the historical average claim price for this approval.",
       submit: "Return funding",
@@ -554,7 +557,8 @@ export const teamsCopy = {
       errors: {
         amountRequired: "Enter an amount to return.",
         amountInvalid: "Enter an amount greater than zero.",
-        amountExceeds: "Return amount exceeds the used balance.",
+        amountExceeds: "Return amount exceeds the remaining refundable balance.",
+        amountExceedsBalance: "Return amount exceeds the connected wallet balance.",
       },
     },
     history: {

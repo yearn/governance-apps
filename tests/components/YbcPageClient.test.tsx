@@ -353,6 +353,10 @@ describe("YbcPageClient", () => {
       })
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("tab", { name: "Add member" })
+    ).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("tab", { name: "Remove member" }));
+    expect(
       screen.getByRole("button", {
         name: ybcCopy.proposalBoard.proposeExpulsionCta,
       })

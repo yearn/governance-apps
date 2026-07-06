@@ -1,0 +1,373 @@
+{
+  "version": 1,
+  "chainId": 1,
+  "generatedAt": 1784764954,
+  "blockNumber": 25474458,
+  "blockHash": "0xbcf8db98819b57aa4fd78e2339714f0a553a495a3a84cfb2dcc76991b43e22c6",
+  "deployment": {
+    "genesis": 1770249600,
+    "deployBlock": 25228044,
+    "ybc": "0xd6afd78c05f0d425f2b46359746dd44991dcb315",
+    "ybcElection": "0xe16608758c11322d407745927d2d033f1bfb206c",
+    "ybcWeightAggregator": "0xadb7228a85fcd24e3cfc8c58e2d4b9f03e1468d9",
+    "ybcRewardDistributor": "0x53100f8979d3655a2e95465f583b0f4a11c8bbe1",
+    "ybcBonusRecipient": "0xf03a919a59f8381be220511ecf788b15fb039e4c",
+    "upstreamWeightAggregator": "0x6973cf85d479b9253e13e71f377e8cd2c2dfecd7",
+    "rewardToken": "0xbe53a109b494e5c9f97b9cd39fe969be68bf6204",
+    "rewardClaimer": "0xa82454009e01ae697012a73cb232d85e61b05e50",
+    "multicall3": "0xca11bde05977b3631167028862be2a173976ca11",
+    "source": {
+      "repo": "styfi",
+      "ref": "9389a7c71cbff6f2257400c67bc3f21cfc2e565f"
+    }
+  },
+  "epoch": {
+    "current": 12,
+    "lengthSeconds": 1209600,
+    "voteLengthSeconds": 604800,
+    "decayLengthSeconds": 86400,
+    "currentStartsAt": 1784764800,
+    "currentEndsAt": 1785974400,
+    "votingStartsAt": 1785369600,
+    "votingEndsAt": 1785974400
+  },
+  "config": {
+    "additionThresholdBps": 5000,
+    "expulsionThresholdBps": 6670,
+    "hooks": "0xadb7228a85fcd24e3cfc8c58e2d4b9f03e1468d9",
+    "operators": [
+      "0x53100f8979d3655a2e95465f583b0f4a11c8bbe1",
+      "0xe16608758c11322d407745927d2d033f1bfb206c",
+      "0x6AFD01e79e4B52bbE61fF48D0fDe036b73141686"
+    ],
+    "rewardClaimers": [
+      "0xa82454009e01ae697012a73cb232d85e61b05e50"
+    ],
+    "rewardDistributorKilled": false,
+    "rewardClaimFrom": "0xa82454009e01ae697012a73cb232d85e61b05e50"
+  },
+  "members": [
+    {
+      "address": "0x1d70e9414b639286665df4794ff5c7ea538b4eac",
+      "status": "removed",
+      "addedAt": 1782813479,
+      "removedAt": 1784764954,
+      "upstreamStaked": "24927730847285641806",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x2b888954421b424c5d3d9ce9bb67c9bd47537d12",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x2c4b08d9e363989fca119dba2b5925fc8d27fd5a",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "9534759745476069676",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x3be1fa9668470f5956ea87f2fc0149cb30999df2",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "13533947348059308955",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x4bc9e55fa4e18f2364c4428ba8eab1997f99ba85",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "19906768455098934550",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x5db9926c93085a92f14a85dabf6ff27b07362cae",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x6f2a8ee9452ba7d336b3fba03cac27f7818aead6",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x70af5a3368606c6557d2b3ce2eec8796b914eaa3",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x80c9ac867b2d36b7e8d74646e074c460a008c0cb",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "4000000000000000000",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x88a3354e5e7a34a7901e1b64557992e85aa1b5eb",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "50404447685460523195",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x8973b848775a87a0d5bcf262c555859b87e6f7da",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x92f612d46cf0bc9a511b4c586eed80e5aca56a25",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x962228a90eac69238c7d1f216d80037e61ea9255",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x9cc96683eee232f52c0968b4f4bc1a0f312c0306",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "283758797320929218292",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x9e752f70c4083f15162996c5e6e2129d994a1a67",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "54618019411538214552",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0xaa3f7a16a534acce783b8f2dc0dadaa5979c5694",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0xaad212afbb37cef736b917e1849c1b9c4a31f918",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0xb6dac0adf0c1ea625e297a2e2dfaf5cea9d0e8d8",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0xe07d9c9cf00f9d6a4fd595a31cbb7bc0953a41a0",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "8429559339590732284",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0xea6c0837fef621e77329f85820f503ca09f2b3a9",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0xf5d3dbda5f41a0e26d71b948e29522398e71cfae",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0xfe45baf0f18c207152a807c1b05926583cfe2e4b",
+      "status": "active",
+      "addedAt": 1782813479,
+      "removedAt": null,
+      "upstreamStaked": "0",
+      "effectiveWeight": "0",
+      "weightMaturityBps": 0,
+      "maturesAt": null,
+      "pendingRewards": "0"
+    },
+    {
+      "address": "0x6AFD01e79e4B52bbE61fF48D0fDe036b73141686",
+      "status": "active",
+      "addedAt": 1783355198,
+      "removedAt": null,
+      "upstreamStaked": "10000000000000000000",
+      "effectiveWeight": "5000000000000000000",
+      "weightMaturityBps": 5000,
+      "maturesAt": 1787184000,
+      "pendingRewards": "0"
+    }
+  ],
+  "proposals": [
+    {
+      "id": 0,
+      "account": "0x9bcE204d401B325450E7Bdb3c83759093eB309fB",
+      "proposer": "0x6AFD01e79e4B52bbE61fF48D0fDe036b73141686",
+      "epoch": 11,
+      "addition": true,
+      "thresholdBps": 5000,
+      "votes": "0",
+      "yea": "0",
+      "nay": "0",
+      "status": "retracted",
+      "retracted": true,
+      "executed": false,
+      "proposedAt": 1783355164,
+      "votingStartsAt": 1784160000,
+      "votingEndsAt": 1784764800,
+      "executableStartsAt": 1784764800,
+      "expiresAt": 1785974400
+    },
+    {
+      "id": 1,
+      "account": "0x1d70E9414B639286665dF4794ff5C7ea538B4Eac",
+      "proposer": "0x6AFD01e79e4B52bbE61fF48D0fDe036b73141686",
+      "epoch": 11,
+      "addition": false,
+      "thresholdBps": 6670,
+      "votes": "2500000000000000000",
+      "yea": "2500000000000000000",
+      "nay": "0",
+      "status": "executed",
+      "retracted": false,
+      "executed": true,
+      "proposedAt": 1783355198,
+      "votingStartsAt": 1784160000,
+      "votingEndsAt": 1784764800,
+      "executableStartsAt": 1784764800,
+      "expiresAt": 1785974400
+    }
+  ],
+  "votes": [
+    {
+      "id": "ybc-1-0xbbeaf18179fca3fdcc16b3123ff912f86f383865f229a5fa607d5cdcf26b32e3-0",
+      "proposalId": 1,
+      "voter": "0x6AFD01e79e4B52bbE61fF48D0fDe036b73141686",
+      "weight": "2500000000000000000",
+      "yea": true,
+      "txHash": "0xbbeaf18179fca3fdcc16b3123ff912f86f383865f229a5fa607d5cdcf26b32e3",
+      "blockNumber": 25474456,
+      "logIndex": 0,
+      "timestamp": 1784163888
+    }
+  ],
+  "rewards": {
+    "token": "0xbe53a109b494e5c9f97b9cd39fe969be68bf6204",
+    "distributor": "0x53100f8979d3655a2e95465f583b0f4a11c8bbe1",
+    "rewardIntegral": "0",
+    "totalPendingRewards": "0",
+    "claims": []
+  },
+  "events": {
+    "firstIndexedBlock": 25228044,
+    "lastIndexedBlock": 25474458,
+    "activeMemberCount": 22,
+    "removedMemberCount": 1,
+    "proposalCount": 2,
+    "voteCount": 1,
+    "rewardClaimCount": 0
+  }
+}

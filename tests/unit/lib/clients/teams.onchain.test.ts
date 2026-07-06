@@ -74,6 +74,60 @@ describe("Teams feed mapper", () => {
     expect(bonusPeriod.ybcSplitBps).toBe(1000);
   });
 
+  it("derives refundable funding value from claimed cost net of returns", () => {
+    const data = mapTeamsFeedToPageData(
+      parseFeed({
+        ...feedExample,
+        fundingApprovals: [
+          {
+            ...feedExample.fundingApprovals[0]!,
+            used: "10000000",
+            claimable: "40000000",
+            claims: [
+              {
+                id: "claim-0",
+                approvalId: 0,
+                team: feedExample.fundingApprovals[0]!.team,
+                period: 2,
+                token: feedExample.fundingApprovals[0]!.token,
+                amount: "10000000",
+                costUsd: "10000000",
+                vest: null,
+                recipient: "0x2222222222222222222222222222222222222222",
+                txHash:
+                  "0x1111111111111111111111111111111111111111111111111111111111111111",
+                blockNumber: 1,
+                logIndex: 0,
+                timestamp: 1,
+              },
+            ],
+            returns: [
+              {
+                id: "return-0",
+                approvalId: 0,
+                team: feedExample.fundingApprovals[0]!.team,
+                period: 2,
+                token: feedExample.fundingApprovals[0]!.token,
+                amount: "2000000",
+                refundUsd: "2000000",
+                sender: "0x2222222222222222222222222222222222222222",
+                txHash:
+                  "0x2222222222222222222222222222222222222222222222222222222222222222",
+                blockNumber: 2,
+                logIndex: 0,
+                timestamp: 2,
+              },
+            ],
+          },
+        ],
+      })
+    );
+    const approval = data.teams[0]!.fundingApprovals[0]!;
+
+    expect(approval.claimedCostUsd).toBe("8");
+    expect(approval.refundValueUsd).toBe("8");
+  });
+
   it("maps operator access and empty feed runtime safely", () => {
     const feed = parseFeed({
       ...feedExample,

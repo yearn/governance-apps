@@ -1,7 +1,7 @@
 # Teams + YBC Fork Smoke Plan
 
 Status: active launch validation plan
-Last updated: 2026-07-03
+Last updated: 2026-07-06
 
 This plan defines the repeatable fork-smoke approach for taking Teams and YBC from
 feed-backed local/preprod validation to controlled production exposure. It intentionally
@@ -112,8 +112,10 @@ YBC:
 2. If not, seed the local test wallet as a YBC member on the fork for proposal-creation
    smoke.
 3. Test propose addition and propose expulsion from the UI.
-4. For voting, either use a real weighted member wallet or direct-cast a vote from an
-   impersonated weighted member on the fork.
+4. For voting, either use a real weighted member wallet or seed the local test wallet with
+   voting weight through the deployed upstream `WeightAggregator` hook path on the fork.
+   The hook path is preferred over storage editing because the UI still submits the real
+   YBC vote transaction from the connected wallet.
 5. Use a tiny YBC fixture or request interception when a newly created fork proposal must
    appear in the UI for retract, vote, or execute testing.
 

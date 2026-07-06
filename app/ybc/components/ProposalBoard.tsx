@@ -5,6 +5,7 @@ import { isAddress } from "viem";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Tabs } from "@/components/ui/Tabs";
 import type {
   YbcMockDataV1,
   YbcProposalType,
@@ -25,6 +26,7 @@ type ProposalBoardProps = {
   executeProposal?: (proposalId: string) => void | Promise<void>;
   proposalTargetRequired?: boolean;
   proposalTxState?: TxState;
+  resetProposalTx?: () => void;
   retractProposal?: (proposalId: string) => void | Promise<void>;
   voteOnProposal?: (
     proposalId: string,
@@ -39,9 +41,11 @@ export function ProposalBoard({
   executeProposal,
   proposalTargetRequired = false,
   proposalTxState,
+  resetProposalTx,
   retractProposal,
   voteOnProposal,
 }: ProposalBoardProps) {
+  const [proposalType, setProposalType] = useState<YbcProposalType>("addition");
   const [targetAddress, setTargetAddress] = useState("");
   const [targetError, setTargetError] = useState<string | null>(null);
   const additionThresholdBps = getThresholdBps(data, "addition");
@@ -53,11 +57,19 @@ export function ProposalBoard({
     proposalTxState?.status === "error" ? proposalTxState.errorMessage : null;
   const canSubmitProposal = canCreateProposal && !transactionPending;
 
-  const submitProposal = (type: YbcProposalType) => {
+  const switchProposalType = (nextType: string) => {
+    if (nextType !== "addition" && nextType !== "expulsion") return;
+    setProposalType(nextType);
+    setTargetAddress("");
+    setTargetError(null);
+    resetProposalTx?.();
+  };
+
+  const submitProposal = () => {
     if (!createProposal) return;
 
     if (!proposalTargetRequired) {
-      void createProposal(type);
+      void createProposal(proposalType);
       return;
     }
 
@@ -68,7 +80,7 @@ export function ProposalBoard({
     }
 
     setTargetError(null);
-    void createProposal(type, trimmedTarget);
+    void createProposal(proposalType, trimmedTarget);
   };
 
   return (
@@ -88,9 +100,18 @@ export function ProposalBoard({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-6">
           <div className="flex flex-wrap items-start justify-end gap-2">
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="w-full max-w-xl space-y-3 rounded-box border border-border bg-app/60 p-4 sm:w-auto sm:min-w-[360px]">
+              <Tabs
+                activeTab={proposalType}
+                onChange={switchProposalType}
+                aria-label="YBC proposal type"
+                tabs={[
+                  { id: "addition", label: "Add member" },
+                  { id: "expulsion", label: "Remove member" },
+                ]}
+              />
               {proposalTargetRequired ? (
-                <div className="sm:col-span-2">
+                <div>
                   <label
                     className="mb-1 block text-xs font-bold uppercase text-text-tertiary"
                     htmlFor="ybc-proposal-target"
@@ -114,34 +135,22 @@ export function ProposalBoard({
                 </div>
               ) : null}
               <Button
+                className="w-full"
                 size="sm"
-                onClick={() => submitProposal("addition")}
+                onClick={submitProposal}
                 disabled={!canSubmitProposal}
                 isLoading={transactionPending}
               >
-                {canCreateProposal
-                  ? copy.proposalBoard.proposeAdditionCta
-                  : copy.proposalBoard.proposeAdditionDisabledCta}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => submitProposal("expulsion")}
-                disabled={!canSubmitProposal}
-                isLoading={transactionPending}
-              >
-                {canCreateProposal
-                  ? copy.proposalBoard.proposeExpulsionCta
-                  : copy.proposalBoard.proposeExpulsionDisabledCta}
+                {getProposalSubmitLabel(proposalType, canCreateProposal)}
               </Button>
               {!canCreateProposal ? (
-                <p className="sm:col-span-2 rounded-box border border-border bg-app px-3 py-2 text-sm leading-6 text-text-secondary">
+                <p className="rounded-box border border-border bg-app px-3 py-2 text-sm leading-6 text-text-secondary">
                   {copy.proposalBoard.proposeDisabledBody}
                 </p>
               ) : null}
               {targetError || transactionError ? (
                 <p
-                  className="sm:col-span-2 rounded-box border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-900"
+                  className="rounded-box border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-900"
                   role="alert"
                 >
                   {targetError ?? transactionError}
@@ -297,6 +306,21 @@ function getThresholdBps(data: YbcMockDataV1, type: YbcProposalType): number {
       ?.thresholdBps ??
     6000
   );
+}
+
+function getProposalSubmitLabel(
+  type: YbcProposalType,
+  canCreateProposal: boolean
+) {
+  if (type === "addition") {
+    return canCreateProposal
+      ? copy.proposalBoard.proposeAdditionCta
+      : copy.proposalBoard.proposeAdditionDisabledCta;
+  }
+
+  return canCreateProposal
+    ? copy.proposalBoard.proposeExpulsionCta
+    : copy.proposalBoard.proposeExpulsionDisabledCta;
 }
 
 function getAccountLabels(data: YbcMockDataV1): Record<string, string> {

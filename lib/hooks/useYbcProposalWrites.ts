@@ -26,6 +26,7 @@ type UseYbcProposalWritesResult = {
     proposalId: string,
     choice: YbcVoteChoice
   ) => Promise<void>;
+  reset: () => void;
   state: TxState;
 };
 
@@ -34,7 +35,7 @@ export function useYbcProposalWrites(
 ): UseYbcProposalWritesResult {
   const { address } = useAccount();
   const queryClient = useQueryClient();
-  const { execute, state } = useTx();
+  const { execute, reset, state } = useTx();
   const client = useMemo(
     () => (feed ? new OnchainYbcClient(feed, address ?? null) : null),
     [address, feed]
@@ -110,6 +111,7 @@ export function useYbcProposalWrites(
   return {
     createProposal,
     executeProposal,
+    reset,
     retractProposal,
     state,
     voteOnProposal,

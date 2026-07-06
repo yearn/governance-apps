@@ -20,9 +20,11 @@ import { AmountInput } from "@/components/ui/AmountInput";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { formatInputAmount, formatTokenAmount } from "@/lib/format";
 import type { TxState } from "@/lib/tx/types";
 import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
+import { useTokenBalance } from "@/lib/hooks/useTokenBalance";
 import {
   Table,
   TableBody,
@@ -110,19 +112,31 @@ export function FundingApprovalsTable({
     team.fundingApprovals.find((approval) => approval.id === selectedClaimApprovalId) ?? null;
   const selectedReturnApproval =
     team.fundingApprovals.find((approval) => approval.id === selectedReturnApprovalId) ?? null;
+  const liveClaimMode = Boolean(onClaimFunding);
+  const liveReturnMode = Boolean(onReturnFunding);
   const returnAmountRaw = selectedReturnApproval
     ? tryParseTokenAmount(returnAmount, selectedReturnApproval.decimals ?? 18)
     : null;
+  const returnTokenBalance = useTokenBalance(
+    (selectedReturnApproval?.tokenAddress ?? ZERO_ADDRESS) as Address,
+    viewer?.address as Address | null | undefined
+  );
+  const returnAvailableBalance = returnTokenBalance.data;
+  const hasReturnAvailableBalance = returnAvailableBalance !== undefined;
+  const returnExceedsAvailableBalance =
+    liveReturnMode &&
+    hasReturnAvailableBalance &&
+    returnAmountRaw !== null &&
+    returnAmountRaw > returnAvailableBalance;
   const returnAllowance = useTokenAllowance(
     (selectedReturnApproval?.tokenAddress ?? ZERO_ADDRESS) as Address,
     team.address as Address
   );
   const returnApproval = useTokenApprove();
-  const liveClaimMode = Boolean(onClaimFunding);
-  const liveReturnMode = Boolean(onReturnFunding);
   const returnNeedsApproval =
     liveReturnMode &&
     returnAmountRaw !== null &&
+    !returnExceedsAvailableBalance &&
     (returnAllowance.data ?? 0n) < returnAmountRaw;
   const isTxPending = returnApproval.isLoading || isTeamsTxPending(txState);
   const previousClaimApprovalIdRef = useRef<string | null>(selectedClaimApprovalId);
@@ -490,9 +504,24 @@ export function FundingApprovalsTable({
                     setReturnAmountError(null);
                   }}
                   tokenSymbol={selectedReturnApproval.symbol}
-                  onMaxClick={() => setReturnAmount(selectedReturnApproval.used)}
-                  maxLabel={`${teamsCopy.funding.returnForm.maxLabel}: ${formatApprovalAmount(selectedReturnApproval.used, selectedReturnApproval.symbol)}`}
-                  error={returnAmountError ?? undefined}
+                  onMaxClick={() =>
+                    setReturnAmount(
+                      getReturnMaxInputAmount(
+                        selectedReturnApproval,
+                        liveReturnMode ? returnAvailableBalance : undefined
+                      )
+                    )
+                  }
+                  maxLabel={getReturnMaxLabel(
+                    selectedReturnApproval,
+                    liveReturnMode ? returnAvailableBalance : undefined
+                  )}
+                  error={
+                    returnAmountError ??
+                    (returnExceedsAvailableBalance
+                      ? teamsCopy.funding.returnForm.errors.amountExceedsBalance
+                      : undefined)
+                  }
                 />
               </div>
 
@@ -509,7 +538,11 @@ export function FundingApprovalsTable({
                   void handleReturn();
                 }}
                 className="w-full"
-                disabled={isTxPending}
+                disabled={
+                  isTxPending ||
+                  returnExceedsAvailableBalance ||
+                  (liveReturnMode && returnTokenBalance.isLoading)
+                }
                 isLoading={isTxPending}
               >
                 {returnNeedsApproval
@@ -593,6 +626,7 @@ export function FundingApprovalsTable({
     const amountError = validateAmount(
       claimAmount,
       selectedClaimApproval.claimable,
+      selectedClaimApproval.decimals ?? 18,
       teamsCopy.funding.claimForm.errors.amountRequired,
       teamsCopy.funding.claimForm.errors.amountInvalid,
       teamsCopy.funding.claimForm.errors.amountExceeds
@@ -655,7 +689,8 @@ export function FundingApprovalsTable({
 
     const amountError = validateAmount(
       returnAmount,
-      selectedReturnApproval.used,
+      getReturnableInputAmount(selectedReturnApproval),
+      selectedReturnApproval.decimals ?? 18,
       teamsCopy.funding.returnForm.errors.amountRequired,
       teamsCopy.funding.returnForm.errors.amountInvalid,
       teamsCopy.funding.returnForm.errors.amountExceeds
@@ -663,6 +698,11 @@ export function FundingApprovalsTable({
 
     if (amountError || returnAmountRaw === null) {
       setReturnAmountError(amountError);
+      return;
+    }
+
+    if (returnExceedsAvailableBalance) {
+      setReturnAmountError(teamsCopy.funding.returnForm.errors.amountExceedsBalance);
       return;
     }
 
@@ -682,6 +722,7 @@ export function FundingApprovalsTable({
       }
 
       await onReturnFunding(team, selectedReturnApproval, returnAmount);
+      await returnTokenBalance.refetch();
       setReturnFeedback({
         tone: "success",
         message: teamsCopy.funding.returnForm.success(
@@ -860,6 +901,87 @@ function formatApprovalAmount(amount: string, symbol: string) {
   return `${formatTeamsAmount(amount)} ${symbol}`;
 }
 
+function getReturnMaxInputAmount(
+  approval: FundingApproval,
+  availableBalance: bigint | undefined
+) {
+  const decimals = approval.decimals ?? 18;
+  const returnableRaw = getReturnableAmountRaw(approval);
+  if (
+    availableBalance === undefined ||
+    returnableRaw === null ||
+    availableBalance >= returnableRaw
+  ) {
+    return getReturnableInputAmount(approval);
+  }
+
+  return formatInputAmount(availableBalance, decimals);
+}
+
+function getReturnMaxLabel(
+  approval: FundingApproval,
+  availableBalance: bigint | undefined
+) {
+  if (availableBalance === undefined) {
+    return `${teamsCopy.funding.returnForm.maxLabel}: ${formatApprovalAmount(
+      getReturnableInputAmount(approval),
+      approval.symbol
+    )}`;
+  }
+
+  return `${teamsCopy.funding.returnForm.balanceLabel}: ${formatTokenAmount(
+    availableBalance,
+    approval.decimals ?? 18
+  )} ${approval.symbol}`;
+}
+
+function getReturnableInputAmount(approval: FundingApproval) {
+  const returnableRaw = getReturnableAmountRaw(approval);
+  return returnableRaw === null
+    ? "0"
+    : formatInputAmount(returnableRaw, approval.decimals ?? 18);
+}
+
+function getReturnableAmountRaw(approval: FundingApproval) {
+  const decimals = approval.decimals ?? 18;
+  const usedRaw = tryParseTokenAmount(approval.used, decimals);
+  const refundableRaw = getRefundableAmountRaw(approval);
+
+  if (usedRaw === null || refundableRaw === null) {
+    return null;
+  }
+
+  return usedRaw < refundableRaw ? usedRaw : refundableRaw;
+}
+
+function getRefundableAmountRaw(approval: FundingApproval) {
+  const unitPriceUsd = resolveTeamsFundingUnitPriceUsd(approval);
+  const refundableUsd = Number(approval.refundValueUsd);
+
+  if (
+    unitPriceUsd === null ||
+    unitPriceUsd <= 0 ||
+    !Number.isFinite(refundableUsd) ||
+    refundableUsd <= 0
+  ) {
+    return null;
+  }
+
+  const decimals = approval.decimals ?? 18;
+  const precision = Math.min(decimals, 12);
+  const factor = 10 ** precision;
+  const amount = Math.floor((refundableUsd / unitPriceUsd) * factor) / factor;
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+
+  return tryParseTokenAmount(
+    amount.toFixed(precision).replace(/\.?0+$/, "") || "0",
+    decimals
+  );
+}
+
 function getApprovalScopeText(approval: FundingApproval, currentPeriod: number) {
   if (approval.status === "late-liquid") {
     return teamsCopy.funding.periodScope.lateLiquid(approval.approvedPeriod);
@@ -919,6 +1041,7 @@ function getClaimHelperText(approval: FundingApproval, currentPeriod: number) {
 function validateAmount(
   rawAmount: string,
   maxAmount: string,
+  decimals: number,
   requiredMessage: string,
   invalidMessage: string,
   exceedsMessage: string
@@ -927,12 +1050,13 @@ function validateAmount(
     return requiredMessage;
   }
 
-  const amount = Number(rawAmount);
-  if (!Number.isFinite(amount) || amount <= 0) {
+  const amount = tryParseTokenAmount(rawAmount, decimals);
+  if (amount === null) {
     return invalidMessage;
   }
 
-  if (amount > Number(maxAmount)) {
+  const max = tryParseTokenAmount(maxAmount, decimals);
+  if (max !== null && amount > max) {
     return exceedsMessage;
   }
 

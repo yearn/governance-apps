@@ -88,7 +88,7 @@ describe("MockTeamsClient", () => {
     expect(updatedTeam.fundingSummary.refundableUsd).toBe("27000.00");
   });
 
-  it("applies a mock funding return, reopens claimable balance, and records history", async () => {
+  it("applies a mock funding return without reopening claimable balance", async () => {
     const client = createMockTeamsClient({ latencyMs: 0 });
     const scenario = await client.getScenario("team-owner-funding");
     const team = resolveSelectedTeam(scenario.data, "security");
@@ -107,13 +107,13 @@ describe("MockTeamsClient", () => {
     );
 
     expect(updatedApproval).toMatchObject({
-      used: "17000",
-      claimable: "33000",
+      used: "18000",
+      claimable: "32000",
       status: "partially-claimed",
       claimedCostUsd: "17000.00",
       refundValueUsd: "17000.00",
     });
-    expect(updatedTeam.fundingSummary.claimableUsd).toBe("44000.00");
+    expect(updatedTeam.fundingSummary.claimableUsd).toBe("43000.00");
     expect(updatedTeam.fundingSummary.refundableUsd).toBe("26000.00");
     expect(updatedTeam.fundingReturns[0]).toMatchObject({
       approvalId: "approval-security-22",
@@ -121,6 +121,30 @@ describe("MockTeamsClient", () => {
       refundValueUsd: "1000.00",
       createdAt: 1776200500,
     });
+  });
+
+  it("rejects a mock funding return above remaining refundable value", async () => {
+    const client = createMockTeamsClient({ latencyMs: 0 });
+    const scenario = await client.getScenario("team-owner-funding");
+    const team = resolveSelectedTeam(scenario.data, "security");
+
+    expect(team).not.toBeNull();
+
+    const partiallyReturnedTeam = applyMockTeamsFundingReturn(team!, {
+      approvalId: "approval-security-22",
+      amount: "17999",
+      returnedBy: "0xaaaa000000000000000000000000000000000002",
+      currentPeriod: scenario.data.currentPeriod,
+    });
+
+    expect(() =>
+      applyMockTeamsFundingReturn(partiallyReturnedTeam, {
+        approvalId: "approval-security-22",
+        amount: "2",
+        returnedBy: "0xaaaa000000000000000000000000000000000002",
+        currentPeriod: scenario.data.currentPeriod,
+      })
+    ).toThrow("Return amount exceeds the refundable value.");
   });
 
   it("reuses the same funding unit price fallback for UI estimates and mock accounting", async () => {

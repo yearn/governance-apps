@@ -42,6 +42,7 @@ type YbcPageContentProps = {
   executeProposal?: (proposalId: string) => void | Promise<void>;
   proposalTargetRequired?: boolean;
   proposalTxState?: TxState;
+  resetProposalTx?: () => void;
 };
 
 const SECTION_HASHES = new Set(["overview", "members", "proposals", "rewards", "admin"]);
@@ -132,6 +133,9 @@ export function YbcPageClient({
         proposalTxState={
           ybcState.backend === "feed" ? proposalWrites.state : undefined
         }
+        resetProposalTx={
+          ybcState.backend === "feed" ? proposalWrites.reset : undefined
+        }
       />
       {ybcUsesMockBackend ? <MockControls /> : null}
     </>
@@ -147,6 +151,7 @@ export function YbcPageContent({
   executeProposal,
   proposalTargetRequired = false,
   proposalTxState,
+  resetProposalTx,
 }: YbcPageContentProps) {
   const showOperatorSection = Boolean(data.admin && data.me.isOperator);
   const hasPriorityProposals = data.proposals.items.some((proposal) =>
@@ -184,6 +189,7 @@ export function YbcPageContent({
       executeProposal={executeProposal}
       proposalTargetRequired={proposalTargetRequired}
       proposalTxState={proposalTxState}
+      resetProposalTx={resetProposalTx}
     />
   );
 

@@ -374,8 +374,6 @@ export function applyMockTeamsFundingReturn(
       throw new Error("Return amount exceeds the refundable value.");
     }
 
-    const nextUsedUnits = usedUnits - amountUnits;
-    const nextClaimableUnits = toScaledInteger(approval.claimable) + amountUnits;
     const nextRefundValueUsdCents = refundableUsdCents - returnValueUsdCents;
     const nextClaimedCostUsdCents = Math.max(
       0,
@@ -384,14 +382,6 @@ export function applyMockTeamsFundingReturn(
 
     return {
       ...approval,
-      used: scaledIntegerToDecimalString(nextUsedUnits),
-      claimable: scaledIntegerToDecimalString(nextClaimableUnits),
-      status: deriveFundingApprovalStatus(
-        approval.approvedPeriod,
-        nextUsedUnits,
-        nextClaimableUnits,
-        currentPeriod
-      ),
       claimedCostUsd: centsToUsdDecimalString(nextClaimedCostUsdCents),
       refundValueUsd: centsToUsdDecimalString(nextRefundValueUsdCents),
     };
@@ -450,14 +440,14 @@ export function resolveTeamsFundingUnitPriceUsd(
     return explicitAverage;
   }
 
+  if (stableFundingSymbols.has(approval.symbol)) {
+    return 1;
+  }
+
   const usedUnits = toScaledInteger(approval.used);
   const claimedCostUsdCents = toUsdCents(approval.claimedCostUsd);
   if (usedUnits > 0 && claimedCostUsdCents > 0) {
     return claimedCostUsdCents / 100 / (usedUnits / DECIMAL_SCALE);
-  }
-
-  if (stableFundingSymbols.has(approval.symbol)) {
-    return 1;
   }
 
   return null;

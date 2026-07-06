@@ -1,9 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import feedExample from "@/docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json";
 import { mapTeamsFeedToRuntimeState } from "@/lib/clients/teams";
 import { TeamsFeedSchema } from "@/lib/schemas/teams-feed";
+import { renderWithProviders } from "@/tests/test-utils";
 
 const { runtimeState } = vi.hoisted(() => ({
   runtimeState: {
@@ -73,7 +74,7 @@ describe("TeamsPageClient feed mode", () => {
     const { TeamsPageClient } = await import("@/app/teams/TeamsPageClient");
     const user = userEvent.setup();
 
-    render(<TeamsPageClient />);
+    renderWithProviders(<TeamsPageClient />, { autoConnect: false });
 
     expect(screen.queryByRole("button", { name: /debug/i })).not.toBeInTheDocument();
     expect(

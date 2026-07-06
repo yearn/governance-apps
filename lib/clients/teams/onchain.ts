@@ -423,6 +423,8 @@ function mapFundingApproval(
     (sum, entry) => sum + BigInt(entry.refundUsd),
     0n
   );
+  const refundableUsd =
+    claimsCostUsd > refundsUsd ? claimsCostUsd - refundsUsd : 0n;
 
   return {
     id: `approval-${approval.id}`,
@@ -437,8 +439,8 @@ function mapFundingApproval(
     streamDurationDays: Math.floor(approval.durationSeconds / 86_400),
     status: mapFundingStatus(feed, approval),
     recipient: approval.claims.at(-1)?.recipient ?? null,
-    claimedCostUsd: fromUsd(claimsCostUsd.toString()),
-    refundValueUsd: fromUsd(refundsUsd.toString()),
+    claimedCostUsd: fromUsd(refundableUsd.toString()),
+    refundValueUsd: fromUsd(refundableUsd.toString()),
     averageClaimPriceUsd: approval.averageCostPriceUsd
       ? fromUsd(approval.averageCostPriceUsd)
       : null,

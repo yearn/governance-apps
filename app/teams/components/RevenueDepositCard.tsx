@@ -26,10 +26,11 @@ import {
   type TeamsViewerContext,
 } from "@/lib/clients/teams";
 import { nowSeconds } from "@/lib/mocks/time";
-import { formatAddress } from "@/lib/format";
+import { formatAddress, formatInputAmount, formatTokenAmount } from "@/lib/format";
 import type { TxState } from "@/lib/tx/types";
 import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
 import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
+import { useTokenBalance } from "@/lib/hooks/useTokenBalance";
 import { teamsCopy } from "../messages";
 
 type RevenueDepositCardProps = {
@@ -66,7 +67,7 @@ export function RevenueDepositCard({
   const [selectedTokenAddress, setSelectedTokenAddress] = useState<string | null>(
     () => initialOption?.tokenAddress ?? null
   );
-  const [amount, setAmount] = useState(() => initialOption?.previewAmount ?? "");
+  const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState<string | undefined>(undefined);
   const [successEntry, setSuccessEntry] = useState<DisplayRevenueHistoryEntry | null>(null);
   const selectedOption =
@@ -83,11 +84,23 @@ export function RevenueDepositCard({
     (team?.address ?? ZERO_ADDRESS) as Address
   );
   const approval = useTokenApprove();
+  const tokenBalance = useTokenBalance(
+    (selectedOption?.tokenAddress ?? ZERO_ADDRESS) as Address,
+    viewer?.address as Address | null | undefined
+  );
   const liveMode = Boolean(onDepositRevenue);
+  const availableBalance = tokenBalance.data;
+  const hasAvailableBalance = availableBalance !== undefined;
+  const exceedsAvailableBalance =
+    liveMode &&
+    hasAvailableBalance &&
+    amountRaw !== null &&
+    amountRaw > availableBalance;
   const needsApproval =
     liveMode &&
     Boolean(selectedOption) &&
     amountRaw !== null &&
+    !exceedsAvailableBalance &&
     (allowance.data ?? 0n) < amountRaw;
   const isTxPending = approval.isLoading || isTeamsTxPending(txState);
 
@@ -158,12 +171,8 @@ export function RevenueDepositCard({
   }));
 
   function handleSelectToken(tokenAddress: string) {
-    const nextOption =
-      activeTeam.revenueOptions.find(
-        (option) => option.tokenAddress === tokenAddress
-      ) ?? null;
     setSelectedTokenAddress(tokenAddress);
-    setAmount(nextOption?.previewAmount ?? "");
+    setAmount("");
     setAmountError(undefined);
     setSuccessEntry(null);
   }
@@ -174,6 +183,12 @@ export function RevenueDepositCard({
     const parsedAmount = Number(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || amountRaw === null) {
       setAmountError(teamsCopy.revenue.form.amountError);
+      setSuccessEntry(null);
+      return;
+    }
+
+    if (exceedsAvailableBalance) {
+      setAmountError(teamsCopy.revenue.form.amountExceedsBalance);
       setSuccessEntry(null);
       return;
     }
@@ -221,6 +236,7 @@ export function RevenueDepositCard({
         amount,
         selectedOption.decimals
       );
+      await tokenBalance.refetch();
       setSuccessEntry(entry);
       setAmountError(undefined);
       return;
@@ -323,7 +339,31 @@ export function RevenueDepositCard({
                     setSuccessEntry(null);
                   }}
                   tokenSymbol={selectedOption?.symbol}
-                  error={amountError}
+                  onMaxClick={
+                    selectedOption && liveMode && hasAvailableBalance
+                      ? () =>
+                          setAmount(
+                            formatInputAmount(
+                              availableBalance,
+                              selectedOption.decimals
+                            )
+                          )
+                      : undefined
+                  }
+                  maxLabel={
+                    selectedOption && liveMode && hasAvailableBalance
+                      ? `${teamsCopy.revenue.form.balanceLabel}: ${formatTokenAmount(
+                          availableBalance,
+                          selectedOption.decimals
+                        )} ${selectedOption.symbol}`
+                      : undefined
+                  }
+                  error={
+                    amountError ??
+                    (exceedsAvailableBalance
+                      ? teamsCopy.revenue.form.amountExceedsBalance
+                      : undefined)
+                  }
                   aria-label={teamsCopy.revenue.form.amountLabel}
                 />
                 <p className="text-sm leading-6 text-text-secondary">
@@ -334,7 +374,11 @@ export function RevenueDepositCard({
                   onClick={() => {
                     void handleSubmit();
                   }}
-                  disabled={isTxPending}
+                  disabled={
+                    isTxPending ||
+                    exceedsAvailableBalance ||
+                    (liveMode && tokenBalance.isLoading)
+                  }
                   isLoading={isTxPending}
                 >
                   {needsApproval
