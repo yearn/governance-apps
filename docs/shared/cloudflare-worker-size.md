@@ -17,6 +17,19 @@ limit. `WORKER_SIZE_WARN_KIB` defaults to `2900` so CI still surfaces when the
 bundle is deployable but close to the limit. Override `WORKER_SIZE_LIMIT_KIB`
 only when the target Cloudflare plan and rollout decision explicitly allow it.
 
+Current measurement after the Teams/YBC launch-flow integration:
+
+- Date: 2026-07-06
+- Build posture: production runtime with `NEXT_PUBLIC_ENABLE_TEAMS=true`,
+  `NEXT_PUBLIC_ENABLE_YBC=true`, and `NEXT_PUBLIC_ENABLE_YETH=true`
+- Command: `npm run validate:worker-size -- wrangler.preprod.jsonc`
+- Result: `14482.04 KiB / gzip: 2898.71 KiB`
+
+This is deployable under the current guard, but it leaves almost no practical margin
+below the `2900 KiB` warning threshold. Do not block the Teams/YBC preprod rollout on
+worker splitting while this guard passes, but treat the next sizeable app/runtime
+addition as a likely trigger for the deferred split work below.
+
 ## Immediate Reduction
 
 The default RainbowKit wallet list is intentionally limited to injected
