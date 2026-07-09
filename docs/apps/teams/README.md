@@ -36,13 +36,14 @@ surface grows.
 
 The default `/teams` landing state is the team directory. It introduces the app through
 the `Team Finances` label and gives users a scannable path into a selected team
-workspace. The directory defaults to visual team cards and keeps the dense audit table
-available through a view toggle.
+details view. The directory defaults to Table and keeps Cards available through a
+saved view toggle. In Table view, selecting a team row or the row action opens the
+same selected-team workspace.
 
 The current accepted route keeps production-facing copy on the default shell and covers:
 
 - a top-level `Directory` tab for comparing teams
-- a top-level `Workspace` tab for one selected team
+- a top-level `Team` tab for one selected team
 - a flattened selected-team command center with `Overview`, `Revenue`, `Funding`,
   `Bonus`, and `Lifecycle` sections as stable scroll targets
 - a top-level `Admin` tab only when the viewer has operator/admin access
@@ -51,8 +52,8 @@ Loading, empty, and operator/admin coverage now seed through the floating debug 
 and the shared E2E bridge instead of visible route-local controls. The bonus surface
 keeps the main card action-oriented by showing claimable YFI first and moving profit
 and pricing inputs into period detail and tooltip states. Bonus and
-ownership/lifecycle anchors remain stable across selected, loading, empty, and no-team
-workspace states so the route shell stays linkable.
+ownership/status anchors remain stable across selected, loading, empty, and no-team
+states so the route shell stays linkable.
 
 ## Debug runtime alignment
 
@@ -66,18 +67,18 @@ Teams runtime rebuilds, so a later `setNow()` call cannot inherit a stale anchor
 the previous mocked timestamp.
 
 Named presets remain available as convenience bootstraps, but the runtime mutates in
-place for viewer role, workspace selection, loading/empty coverage, current period,
+place for viewer role, selected team, loading/empty coverage, current period,
 lifecycle, read-only access, revenue, funding, bonus, and admin visibility changes.
 
 The approved top-level shell tabs are:
 
 1. Directory
-2. Workspace
+2. Team
 3. Admin, shown only for operator/admin contexts
 
-The workspace tab renders the deeper operational sections on one page so deep links
+The Team tab renders the deeper operational sections on one page so deep links
 such as `#revenue`, `#funding`, `#bonus`, and `#lifecycle` scroll directly to their
-audit and action areas.
+ledger and action areas.
 
 Financial reporting has explicit scope controls. The directory defaults to current
 period values, can switch to a selected historical period, and can switch to all-time

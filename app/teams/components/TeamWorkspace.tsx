@@ -417,7 +417,7 @@ function WorkspaceSummaryCard({ team }: { team: TeamRecord }) {
     <Card className="space-y-5">
       <div className="space-y-1">
         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          {teamsCopy.workspace.title}
+          {teamsCopy.workspace.overviewEyebrow}
         </p>
         <h3 className="text-xl font-bold text-text-primary">{teamsCopy.workspace.title}</h3>
         <p className="text-sm leading-6 text-text-secondary">
@@ -476,7 +476,7 @@ function ActionDeck({
     <section aria-labelledby="teams-action-deck-title" className="space-y-4">
       <div className="space-y-1">
         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          {teamsCopy.workspace.actionDeck.title}
+          {teamsCopy.workspace.actionDeck.eyebrow}
         </p>
         <h3 id="teams-action-deck-title" className="text-2xl font-bold text-text-primary">
           {teamsCopy.workspace.actionDeck.title}
@@ -881,7 +881,7 @@ function OutflowsHeader() {
   return (
     <div className="space-y-1">
       <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-        {teamsCopy.workspace.outflows.title}
+        {teamsCopy.workspace.outflows.eyebrow}
       </p>
       <h3 className="text-2xl font-bold text-text-primary">
         {teamsCopy.workspace.outflows.title}

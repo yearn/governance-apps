@@ -169,6 +169,7 @@ describe("TeamsPageClient feed mode", () => {
     const feed = createFeedWithFinancialHistory();
     runtimeState.current = mapTeamsFeedToRuntimeState(feed);
     window.history.replaceState(null, "", "/teams");
+    window.localStorage.clear();
   });
 
   it("renders feed data without mock controls and opens a workspace locally", async () => {
@@ -179,12 +180,12 @@ describe("TeamsPageClient feed mode", () => {
 
     expect(screen.queryByRole("button", { name: /debug/i })).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Open Example Team workspace" })
+      screen.getByRole("button", { name: "Open Example Team details" })
     ).toBeInTheDocument();
     expect(screen.getAllByText("$125").length).toBeGreaterThan(0);
 
     await user.click(
-      screen.getByRole("button", { name: "Open Example Team workspace" })
+      screen.getByRole("button", { name: "Open Example Team details" })
     );
 
     expect(
@@ -207,13 +208,7 @@ describe("TeamsPageClient feed mode", () => {
 
     renderWithProviders(<TeamsPageClient />, { autoConnect: false });
 
-    await screen.findByRole("button", { name: "Open Example Team workspace" });
-
-    await user.click(
-      screen.getByRole("button", {
-        name: /Audit/i,
-      })
-    );
+    await screen.findByRole("button", { name: "Open Example Team details" });
 
     let table = screen.getByRole("table");
     expect(screen.getByText("Current period #2 financials")).toBeInTheDocument();

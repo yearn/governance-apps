@@ -63,13 +63,19 @@ Approved initial route structure:
 
 ## 4. Information architecture
 
-The default landing state is a command-center directory. It prioritizes quick scanning
-and team-level action selection through visual cards, while preserving a dense audit
-table behind an explicit view toggle. A user opens a team workspace from the directory.
+The default landing state is a table-first directory. It prioritizes fast comparison
+across teams, while keeping a Cards view behind an explicit view toggle. The selected
+view is saved in local storage.
+
+Design alignment follows the root `DESIGN.md` product baseline. Teams should feel like
+the same governance app family as `/styfi`, `/veyfi`, and `/yeth`: restrained neutral
+surfaces, 8px cards and controls, compact tabular numbers, persistent blocked-state
+copy, and no decorative dashboard tropes. The command-center layout is domain-specific;
+the visual language is shared.
 
 Approved top-level structure:
 
-1. Directory command center with card grid by default and audit table as a secondary view.
+1. Directory table by default, with Cards available as a saved preference.
 2. Selected team workspace rendered as a single flattened command center.
 3. Admin, shown only for operator/admin contexts and kept outside the team workspace.
 
@@ -93,8 +99,8 @@ Landing directory cards should show:
 - primary action: open workspace
 - secondary context: whether revenue, funding, bonus, or lifecycle work needs attention
 
-The directory audit view must keep the existing dense table-style data reachable for
-reviewers, operators, and test automation.
+The Table view must stay reachable for reviewers, operators, and test automation.
+Table rows and the explicit row action both open the selected-team workspace.
 
 ### Financial scope controls
 
@@ -116,8 +122,8 @@ Rules:
   period-sensitive funding and bonus context.
 - Scope selection must use one tabbed control: current period on the left, historical
   period tabs in the horizontally scrollable middle, and all-time pinned on the right.
-- Visual cards and the audit table must use the same selected scope.
-- Visual cards should also retain compact all-time context so a current-period loss does
+- Cards and Table must use the same selected scope.
+- Cards should also retain compact all-time context so a current-period loss does
   not hide lifetime performance.
 - Historical period tabs should be hidden when no non-current periods are available.
 - Missing values for a selected historical period should render as unavailable, not as
@@ -166,12 +172,12 @@ bridge so the default `/teams` route can keep production-like copy and navigatio
 The accepted debug-backed route must keep explicit state coverage for:
 
 - populated directory with multiple teams
-- selected workspace overview with current-period and lifetime cards
+- selected team overview with current-period and lifetime cards
 - revenue deposit preview, validation, and recent history
 - funding approvals table with claim and return selection state
 - claim and return validation plus success feedback
 - bonus summary with period drilldown and hidden math detail
-- ownership and lifecycle state with owner, pending owner, retirement, and migration visibility
+- ownership and status state with owner, pending owner, retirement, and migration visibility
 - operator/admin console loading and empty states once operator/admin access is active
 - loading state
 - empty state
