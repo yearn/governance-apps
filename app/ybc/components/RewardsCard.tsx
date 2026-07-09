@@ -156,7 +156,7 @@ function RewardPeriodCard({ period }: { period: YbcRewardPeriod }) {
                 : copy.rewards.states.pending}
             </Badge>
           </div>
-          <p className="text-lg font-bold text-text-primary">
+          <p className="font-number text-lg font-bold text-text-primary">
             {`Epoch ${period.epoch.toLocaleString("en-US")}`}
           </p>
         </div>

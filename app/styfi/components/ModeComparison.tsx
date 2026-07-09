@@ -74,7 +74,7 @@ function ModeCard({
       onClick={() => onSelectAsset(asset)}
       aria-pressed={isActive}
       className={cn(
-        "h-full w-full rounded-box border bg-surface p-5 text-left transition-all",
+        "h-full w-full rounded-box border bg-surface p-5 text-left transition-[border-color,box-shadow,transform] duration-150 ease-out",
         "hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2",
         isActive ? activeClasses : "border-neutral-200"
       )}

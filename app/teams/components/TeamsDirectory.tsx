@@ -375,7 +375,7 @@ function FinancialScopeTab({
       aria-controls={controls}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app",
+        "inline-flex min-h-10 shrink-0 items-center justify-center rounded-md px-3 text-sm font-bold transition-[background-color,color,box-shadow] duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app",
         compact ? "min-w-[5.75rem] font-number" : "min-w-[7rem]",
         alignRight && "justify-self-end",
         isActive

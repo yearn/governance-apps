@@ -27,7 +27,7 @@ function ToastContent({ content, cta }: { content: ReactNode; cta?: ToastCTA }) 
             event.stopPropagation();
             cta.onClick();
           }}
-          className="rounded bg-neutral-900/10 px-2 py-1 text-xs font-bold uppercase tracking-wide transition-colors hover:bg-neutral-900/20"
+          className="inline-flex min-h-10 items-center justify-center rounded bg-neutral-900/10 px-3 text-xs font-bold uppercase tracking-wide transition-[background-color] duration-150 ease-out hover:bg-neutral-900/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           {cta.label}
         </button>

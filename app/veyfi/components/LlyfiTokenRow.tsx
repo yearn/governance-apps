@@ -248,7 +248,7 @@ export function LlyfiTokenRow({
         <div className="flex justify-end items-center">
           <div
             className={cn(
-              "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
+              "flex h-8 w-8 items-center justify-center rounded-full transition-[background-color,color,transform] duration-200 ease-out",
               // Collapsed State Hover: Darken bg, scale up, black icon
               !isExpanded &&
                 "text-neutral-400 group-hover:bg-neutral-200 group-hover:text-neutral-900 group-hover:scale-110",

@@ -58,7 +58,7 @@ export function StakeManageCard({ selectedAsset, onSelectAsset }: Props) {
                 type="button"
                 onClick={() => onSelectAsset(asset)}
                 aria-pressed={isActive}
-                className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-all ${
+                className={`min-h-10 rounded-md px-4 py-1.5 text-sm font-semibold transition-[background-color,color,box-shadow] duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app ${
                   isActive
                     ? "bg-surface text-text-primary shadow-sm"
                     : "text-neutral-500 hover:text-neutral-900"
@@ -73,7 +73,7 @@ export function StakeManageCard({ selectedAsset, onSelectAsset }: Props) {
         <button
           type="button"
           onClick={() => setIsCompareOpen(true)}
-          className="text-xs font-semibold text-neutral-500 hover:text-neutral-900 underline decoration-neutral-300 underline-offset-4"
+          className="inline-flex min-h-10 items-center rounded-md px-2 text-xs font-semibold text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition-[color] duration-150 ease-out hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app"
         >
           Compare modes
         </button>

@@ -60,8 +60,10 @@ export function Modal({
         <div className="flex items-center justify-between mb-4">
           {title && <h2 className="text-xl font-bold">{title}</h2>}
           <button
+            type="button"
             onClick={onClose}
-            className="absolute right-4 top-4 p-1 rounded-md text-text-tertiary hover:text-text-primary hover:bg-surface-secondary transition-colors"
+            className="absolute right-3 top-3 inline-flex min-h-10 min-w-10 items-center justify-center rounded-md text-text-tertiary transition-[background-color,color] duration-150 ease-out hover:bg-surface-secondary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            aria-label="Close dialog"
           >
             <IconClose className="w-5 h-5" />
           </button>

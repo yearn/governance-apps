@@ -93,7 +93,8 @@ export function ProposalCard({
                 {targetLabel}
               </h3>
               <p className="text-sm text-text-secondary">
-                Proposed by {proposerLabel} in epoch {proposal.epoch}
+                Proposed by {proposerLabel} in epoch{" "}
+                <span className="font-number">{proposal.epoch}</span>
               </p>
             </div>
           </div>
@@ -134,7 +135,7 @@ export function ProposalCard({
                     <p className="text-xs font-bold uppercase text-text-tertiary">
                       Threshold target
                     </p>
-                    <p className="mt-1 text-lg font-bold text-text-primary">
+                    <p className="mt-1 font-number text-lg font-bold text-text-primary">
                       {formatPercent(threshold.thresholdRatio, 0)}
                     </p>
                   </div>
@@ -142,7 +143,7 @@ export function ProposalCard({
                     <p className="text-xs font-bold uppercase text-text-tertiary">
                       Current support
                     </p>
-                    <p className="mt-1 text-lg font-bold text-text-primary">
+                    <p className="mt-1 font-number text-lg font-bold text-text-primary">
                       {formatPercent(threshold.currentRatio, 1)}
                     </p>
                   </div>
@@ -153,11 +154,17 @@ export function ProposalCard({
                   thresholdMet={threshold.thresholdMet}
                 />
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-secondary">
-                  <span>{formatAmount(proposal.votes.yea)} yea weight</span>
-                  <span>{formatAmount(proposal.votes.total)} total weight</span>
+                  <span className="font-number">
+                    {formatAmount(proposal.votes.yea)} yea weight
+                  </span>
+                  <span className="font-number">
+                    {formatAmount(proposal.votes.total)} total weight
+                  </span>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">
-                  <span>{formatAmount(proposal.votes.nay)} nay weight</span>
+                  <span className="font-number">
+                    {formatAmount(proposal.votes.nay)} nay weight
+                  </span>
                   <span>
                     {threshold.thresholdMet ? "Threshold met" : "Below threshold"}
                   </span>

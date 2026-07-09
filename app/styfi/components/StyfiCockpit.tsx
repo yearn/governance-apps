@@ -18,7 +18,6 @@ import type { StyfiAsset } from "./types";
 type Props = {
   selectedAsset: StyfiAsset;
   onSelectAsset: (asset: StyfiAsset) => void;
-  isNewUser: boolean;
   balances: AccountBalances | null;
   externalPositions: ExternalPosition[];
 };
@@ -26,7 +25,6 @@ type Props = {
 export function StyfiCockpit({
   selectedAsset,
   onSelectAsset,
-  isNewUser,
   balances,
   externalPositions,
 }: Props) {
@@ -34,11 +32,7 @@ export function StyfiCockpit({
 
   return (
     <div className="space-y-6">
-      <div
-        className={`grid gap-6 lg:grid-cols-2 animate-in fade-in duration-1000 fill-mode-backwards ${
-          isNewUser ? "" : "delay-200"
-        }`}
-      >
+      <div className="grid gap-6 lg:grid-cols-2">
         <StakeManageCard
           selectedAsset={selectedAsset}
           onSelectAsset={onSelectAsset}
