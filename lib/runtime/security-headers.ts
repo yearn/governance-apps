@@ -106,7 +106,14 @@ export function buildContentSecurityPolicy({
     "'self'",
     "https:",
     "wss:",
-    ...(isDevelopment ? ["http://localhost:*", "ws://localhost:*"] : []),
+    ...(isDevelopment
+      ? [
+          "http://localhost:*",
+          "http://127.0.0.1:*",
+          "ws://localhost:*",
+          "ws://127.0.0.1:*",
+        ]
+      : []),
     ...additionalConnectSrc,
   ];
   const connectSrc = `connect-src ${Array.from(new Set(connectSrcDirective)).join(" ")}`;

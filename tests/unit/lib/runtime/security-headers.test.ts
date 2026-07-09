@@ -31,7 +31,9 @@ describe("security header policy", () => {
 
     expect(csp).toContain("'unsafe-eval'");
     expect(csp).toContain("http://localhost:*");
+    expect(csp).toContain("http://127.0.0.1:*");
     expect(csp).toContain("ws://localhost:*");
+    expect(csp).toContain("ws://127.0.0.1:*");
   });
 
   it("allows explicitly configured RPC origins in connect-src", () => {
