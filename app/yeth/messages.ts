@@ -16,8 +16,8 @@ export const yethCopy = {
       "No claimable yETH balance or Recovery Vault position remains for this wallet.",
     noSnapshotClaimTitle: "No active recovery position",
     noSnapshotClaimBody:
-      "This wallet currently has no active yETH recovery position. If you believe this is incorrect, submit a manual settlement/discrepancy request for review.",
-    noSnapshotClaimManualCta: "Open manual settlement/discrepancy request",
+      "This wallet currently has no active yETH recovery position. If you believe this is incorrect, submit a manual yETH claim request for review.",
+    noSnapshotClaimManualCta: "Open manual yETH claim request",
     sections: {
       recovery: "Your Recovery",
       actions: "Choose how you want to recover",
@@ -70,7 +70,7 @@ export const yethCopy = {
   },
   claimEnded: {
     title: "Claim Window Closed",
-    body: "The claim window has ended. Late claims are handled through the manual governance process.",
-    cta: "Manual Late Claim Process",
+    body: "The claim window has ended. Submit a manual yETH claim request for review.",
+    cta: "Open manual yETH claim request",
   },
 } as const;

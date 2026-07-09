@@ -8,6 +8,7 @@ import type {
   YethDebugPreset,
   YethGlobalState,
 } from "./types";
+import { YETH_MANUAL_RECOVERY_CLAIM_URL } from "./links";
 import { nowSeconds } from "@/lib/mocks/time";
 
 const ONE = 10n ** 18n;
@@ -168,7 +169,7 @@ export class MockYethClient implements YethClient {
         closesAt: CLAIM_WINDOW_CLOSES_AT,
       },
       approvedYipUrl: "https://gov.yearn.fi",
-      manualLateClaimUrl: "https://gov.yearn.fi",
+      manualLateClaimUrl: YETH_MANUAL_RECOVERY_CLAIM_URL,
       contracts: CONTRACTS,
       recoveryVault: {
         pps,

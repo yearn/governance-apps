@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { YethGlobalState } from "@/lib/clients/yeth";
+import {
+  YETH_MANUAL_RECOVERY_CLAIM_URL,
+  type YethGlobalState,
+} from "@/lib/clients/yeth";
 import { TrustFooter } from "@/app/yeth/components/TrustFooter";
 
 const mockGlobal: YethGlobalState = {
   asOf: 1_700_000_000,
   claimWindow: { closesAt: 1_710_000_000 },
   approvedYipUrl: "https://gov.yearn.fi/yip-1",
-  manualLateClaimUrl: "https://gov.yearn.fi/late-claim",
+  manualLateClaimUrl: YETH_MANUAL_RECOVERY_CLAIM_URL,
   contracts: {
     claimContract: "0x1111111111111111111111111111111111111111",
     recoveryVault: "0x2222222222222222222222222222222222222222",

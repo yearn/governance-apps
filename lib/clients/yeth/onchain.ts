@@ -15,12 +15,12 @@ import {
   YETH_RECOVERY_VAULT,
   YETH_YIELD_VAULT,
 } from "./deployment";
+import { YETH_MANUAL_RECOVERY_CLAIM_URL } from "./links";
 
 const ONE = 10n ** 18n;
 const MIN_REASONABLE_DEADLINE_UNIX_SECONDS = 1_577_836_800; // 2020-01-01 00:00:00 UTC
 
 const YETH_YIP_URL = "https://gov.yearn.fi";
-const YETH_MANUAL_LATE_CLAIM_URL = "https://gov.yearn.fi";
 
 const STATIC_YIELD_SOURCES = [
   "Strategy yield forwarded from Yield Vault to Recovery Vault via performance fees",
@@ -236,7 +236,7 @@ export class OnchainYethClient implements YethClient {
       asOf,
       claimWindow: { closesAt: closesAt ?? 0 },
       approvedYipUrl: YETH_YIP_URL,
-      manualLateClaimUrl: YETH_MANUAL_LATE_CLAIM_URL,
+      manualLateClaimUrl: YETH_MANUAL_RECOVERY_CLAIM_URL,
       contracts: {
         claimContract: YETH_CLAIM,
         recoveryVault: YETH_RECOVERY_VAULT,

@@ -88,7 +88,7 @@ Replaces the old trust drawer treatment.
   - Contract addresses (Claim Contract, Recovery Vault, Yield Vault) with explorer links
   - Vault metrics (TVL, PPS, performance fee)
   - Yield sources and risk disclosures
-  - Manual late-claim instructions
+  - Manual yETH claim request
 
 ## 3. Interaction Flows
 
@@ -125,7 +125,7 @@ Requirements:
 
 - Hero metrics replaced by `Claim Window Closed`.
 - Action deck hidden or disabled.
-- Callout to manual late-claim process (governance docs link).
+- Callout to manual yETH claim request.
 
 ## 4. Copy Guidelines
 

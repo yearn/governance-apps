@@ -8,6 +8,8 @@ import {
 } from "../utils";
 
 const OPEN_CLAIM_WINDOW_NOW = 1_770_000_000;
+const YETH_MANUAL_RECOVERY_CLAIM_URL =
+  "https://github.com/yearn/yeth-manual-recovery-claims/issues/new?template=manual-yeth-claim.yml";
 
 test("claim, stay, redeem, claim-ended, and empty-state flows", async ({ page }) => {
   test.setTimeout(120_000);
@@ -90,9 +92,14 @@ test("claim, stay, redeem, claim-ended, and empty-state flows", async ({ page })
   await expect(
     page.getByRole("heading", { name: /Claim Window Closed/i })
   ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: /Manual Late Claim Process/i })
-  ).toBeVisible();
+  const manualClaimLink = page.getByRole("link", {
+    name: /Open manual yETH claim request/i,
+  });
+  await expect(manualClaimLink).toBeVisible();
+  await expect(manualClaimLink).toHaveAttribute(
+    "href",
+    YETH_MANUAL_RECOVERY_CLAIM_URL
+  );
 
   await setNow(page, OPEN_CLAIM_WINDOW_NOW);
   await setYethPreset(page, "empty");
