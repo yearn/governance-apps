@@ -14,12 +14,15 @@ describe("ViewToggle", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: /visual/i })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: /cards/i })).toHaveAttribute(
       "aria-pressed",
       "true"
     );
+    expect(screen.getByRole("button", { name: /cards/i })).toHaveClass(
+      "min-h-10"
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: /audit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /table/i }));
     expect(onChange).toHaveBeenCalledWith("audit");
   });
 });

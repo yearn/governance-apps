@@ -27,7 +27,7 @@ function ToastContent({ content, cta }: { content: ReactNode; cta?: ToastCTA }) 
             event.stopPropagation();
             cta.onClick();
           }}
-          className="rounded bg-black/10 px-2 py-1 text-xs font-bold uppercase tracking-wide transition-colors hover:bg-black/20"
+          className="rounded bg-neutral-900/10 px-2 py-1 text-xs font-bold uppercase tracking-wide transition-colors hover:bg-neutral-900/20"
         >
           {cta.label}
         </button>
@@ -64,7 +64,11 @@ const toast = Object.assign(toastMaster, {
       ...rest,
       icon: <IconCheckmark className="h-5 w-5 text-white" />,
       style: applyStyle(
-        { ...baseToastStyle, backgroundColor: "#00796D", color: "#FFFFFF" },
+        {
+          ...baseToastStyle,
+          backgroundColor: "var(--color-success-700)",
+          color: "var(--color-neutral-0)",
+        },
         rest.style
       ),
     });
@@ -75,7 +79,11 @@ const toast = Object.assign(toastMaster, {
       ...rest,
       icon: <IconAlertCritical className="h-5 w-5 text-white" />,
       style: applyStyle(
-        { ...baseToastStyle, backgroundColor: "#C73203", color: "#FFFFFF" },
+        {
+          ...baseToastStyle,
+          backgroundColor: "var(--color-error-700)",
+          color: "var(--color-neutral-0)",
+        },
         rest.style
       ),
     });
@@ -86,7 +94,11 @@ const toast = Object.assign(toastMaster, {
       ...rest,
       icon: <IconAlertError className="h-5 w-5 text-white" />,
       style: applyStyle(
-        { ...baseToastStyle, backgroundColor: "#0657F9", color: "#FFFFFF" },
+        {
+          ...baseToastStyle,
+          backgroundColor: "var(--color-yearn-blue)",
+          color: "var(--color-neutral-0)",
+        },
         rest.style
       ),
     });
@@ -95,9 +107,13 @@ const toast = Object.assign(toastMaster, {
     const { cta, ...rest } = options ?? {};
     return baseToast(buildMessage(content, cta), {
       ...rest,
-      icon: <IconAlertWarning className="h-5 w-5 text-black" />,
+      icon: <IconAlertWarning className="h-5 w-5 text-neutral-900" />,
       style: applyStyle(
-        { ...baseToastStyle, backgroundColor: "#FFDC53", color: "#000000" },
+        {
+          ...baseToastStyle,
+          backgroundColor: "var(--color-warning-300)",
+          color: "var(--color-neutral-900)",
+        },
         rest.style
       ),
     });
@@ -107,7 +123,11 @@ const toast = Object.assign(toastMaster, {
     return baseLoading(buildMessage(content, cta), {
       ...rest,
       style: applyStyle(
-        { ...baseToastStyle, backgroundColor: "#0657F9", color: "#FFFFFF" },
+        {
+          ...baseToastStyle,
+          backgroundColor: "var(--color-yearn-blue)",
+          color: "var(--color-neutral-0)",
+        },
         rest.style
       ),
     });

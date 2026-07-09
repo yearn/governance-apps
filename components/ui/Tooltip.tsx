@@ -83,7 +83,7 @@ export function Tooltip({
           "text-xs font-normal text-text-secondary leading-relaxed",
 
           // Animation
-          "transition-all duration-200 ease-out origin-center",
+          "origin-center transition-[opacity,scale,visibility] duration-200 ease-out",
           open
             ? "pointer-events-auto opacity-100 scale-100 visible"
             : "pointer-events-none opacity-0 scale-95 invisible"

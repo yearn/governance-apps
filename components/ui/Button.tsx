@@ -6,16 +6,18 @@ export interface ButtonProps
   variant?: "primary" | "secondary" | "ghost" | "styfi" | "veyfi" | "yeth";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
+  static?: boolean;
 }
 
 type ButtonClassNameOptions = {
   variant?: ButtonProps["variant"];
   size?: ButtonProps["size"];
   className?: string;
+  static?: boolean;
 };
 
 const BUTTON_BASE_CLASS_NAME =
-  "inline-flex items-center justify-center rounded-box transition-colors focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app disabled:cursor-not-allowed";
+  "inline-flex min-w-10 items-center justify-center rounded-box transition-[background-color,border-color,color,box-shadow,scale,transform] duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app disabled:cursor-not-allowed disabled:active:scale-100";
 const BUTTON_VARIANT_CLASS_NAMES: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
     "bg-neutral-900 text-neutral-0 hover:bg-neutral-800 disabled:bg-neutral-300 disabled:text-neutral-500",
@@ -31,20 +33,23 @@ const BUTTON_VARIANT_CLASS_NAMES: Record<NonNullable<ButtonProps["variant"]>, st
     "bg-tokyo-600 text-white hover:bg-tokyo-700 disabled:bg-tokyo-100 disabled:text-tokyo-900",
 };
 const BUTTON_SIZE_CLASS_NAMES: Record<NonNullable<ButtonProps["size"]>, string> = {
-  sm: "h-8 px-3 text-xs",
+  sm: "h-10 px-3 text-xs",
   md: "h-12 px-6 text-sm font-bold",
   lg: "h-14 px-8 text-base font-bold",
 };
+const BUTTON_PRESS_CLASS_NAME = "active:scale-[0.96]";
 
 export function getButtonClassName({
   variant = "primary",
   size = "md",
   className,
+  static: isStatic,
 }: ButtonClassNameOptions = {}) {
   return cn(
     BUTTON_BASE_CLASS_NAME,
     BUTTON_VARIANT_CLASS_NAMES[variant],
     BUTTON_SIZE_CLASS_NAMES[size],
+    !isStatic && BUTTON_PRESS_CLASS_NAME,
     className
   );
 }
@@ -81,6 +86,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       isLoading,
       disabled,
       children,
+      static: isStatic,
       ...props
     },
     ref
@@ -89,7 +95,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || isLoading}
-        className={getButtonClassName({ variant, size, className })}
+        className={getButtonClassName({
+          variant,
+          size,
+          className,
+          static: isStatic,
+        })}
         {...props}
       >
         {isLoading ? <Spinner /> : children}

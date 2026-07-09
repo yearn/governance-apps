@@ -24,6 +24,15 @@ interface TabsProps {
   variant?: "pill" | "line";
 }
 
+function TabContent({ tab }: { tab: Tab }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span>{tab.label}</span>
+      {tab.badge ? <span className="inline-flex items-center">{tab.badge}</span> : null}
+    </span>
+  );
+}
+
 export function Tabs({
   tabs,
   activeTab,
@@ -69,7 +78,10 @@ export function Tabs({
       <div
         role="tablist"
         aria-label={ariaLabel}
-        className={cn("flex w-full gap-6 border-b border-border", className)}
+        className={cn(
+          "flex w-full gap-5 overflow-x-auto border-b border-border",
+          className
+        )}
       >
         {tabs.map((tab, index) => {
           const isActive = activeTab === tab.id;
@@ -94,7 +106,7 @@ export function Tabs({
               onKeyDown={handleKeyDown}
               disabled={isDisabled}
               className={cn(
-                "pb-2 text-sm font-bold transition-all relative",
+                "relative inline-flex min-h-10 shrink-0 items-center pb-2 pt-2 text-sm font-bold transition-[color] duration-150 ease-out",
                 isDisabled
                   ? "text-text-secondary/50 cursor-not-allowed pointer-events-none"
                   : isActive
@@ -102,10 +114,7 @@ export function Tabs({
                   : "text-text-secondary hover:text-text-primary"
               )}
             >
-              <div className="flex items-center gap-2">
-                {tab.label}
-                {tab.badge}
-              </div>
+              <TabContent tab={tab} />
               {isActive && !isDisabled && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-text-primary" />
               )}
@@ -163,7 +172,7 @@ export function Tabs({
             onKeyDown={handleKeyDown}
             disabled={isDisabled}
             className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-md transition-all",
+              "min-h-10 px-4 py-1.5 text-sm font-medium rounded-md transition-[background-color,color,box-shadow] duration-150 ease-out",
               isDisabled
                 ? "text-text-secondary/50 cursor-not-allowed pointer-events-none"
                 : isActive
@@ -171,10 +180,7 @@ export function Tabs({
                 : "text-text-secondary hover:text-text-primary"
             )}
           >
-            <span className="inline-flex items-center gap-2">
-              {tab.label}
-              {tab.badge}
-            </span>
+            <TabContent tab={tab} />
           </button>
         );
 
