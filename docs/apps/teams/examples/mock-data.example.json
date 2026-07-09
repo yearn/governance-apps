@@ -52,6 +52,19 @@
               "profitUsd": "90000.00",
               "lossUsd": "0.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "250000.00",
+                  "costUsd": "160000.00",
+                  "profitUsd": "90000.00",
+                  "lossUsd": "0.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "1225000.00",
               "costUsd": "845000.00",
@@ -117,6 +130,19 @@
               "profitUsd": "0.00",
               "lossUsd": "24000.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "68000.00",
+                  "costUsd": "92000.00",
+                  "profitUsd": "0.00",
+                  "lossUsd": "24000.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "508000.00",
               "costUsd": "440000.00",
@@ -212,6 +238,19 @@
               "profitUsd": "0.00",
               "lossUsd": "5000.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "120000.00",
+                  "costUsd": "125000.00",
+                  "profitUsd": "0.00",
+                  "lossUsd": "5000.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "338000.00",
               "costUsd": "135000.00",
@@ -296,6 +335,19 @@
               "profitUsd": "0.00",
               "lossUsd": "0.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "0.00",
+                  "costUsd": "0.00",
+                  "profitUsd": "0.00",
+                  "lossUsd": "0.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "50000.00",
               "costUsd": "0.00",
@@ -402,6 +454,19 @@
               "profitUsd": "0.00",
               "lossUsd": "24000.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "68000.00",
+                  "costUsd": "92000.00",
+                  "profitUsd": "0.00",
+                  "lossUsd": "24000.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "508000.00",
               "costUsd": "440000.00",
@@ -621,6 +686,19 @@
               "profitUsd": "90000.00",
               "lossUsd": "0.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "250000.00",
+                  "costUsd": "160000.00",
+                  "profitUsd": "90000.00",
+                  "lossUsd": "0.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "1225000.00",
               "costUsd": "845000.00",
@@ -760,6 +838,19 @@
               "profitUsd": "90000.00",
               "lossUsd": "0.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "250000.00",
+                  "costUsd": "160000.00",
+                  "profitUsd": "90000.00",
+                  "lossUsd": "0.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "1225000.00",
               "costUsd": "845000.00",
@@ -891,6 +982,19 @@
               "profitUsd": "0.00",
               "lossUsd": "0.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "0.00",
+                  "costUsd": "0.00",
+                  "profitUsd": "0.00",
+                  "lossUsd": "0.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "50000.00",
               "costUsd": "0.00",
@@ -997,6 +1101,19 @@
               "profitUsd": "0.00",
               "lossUsd": "24000.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "68000.00",
+                  "costUsd": "92000.00",
+                  "profitUsd": "0.00",
+                  "lossUsd": "24000.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "508000.00",
               "costUsd": "440000.00",
@@ -1119,6 +1236,19 @@
               "profitUsd": "0.00",
               "lossUsd": "5000.00"
             },
+            "financialPeriods": [
+              {
+                "period": 4,
+                "startsAt": null,
+                "endsAt": null,
+                "financials": {
+                  "revenueUsd": "120000.00",
+                  "costUsd": "125000.00",
+                  "profitUsd": "0.00",
+                  "lossUsd": "5000.00"
+                }
+              }
+            ],
             "lifetime": {
               "revenueUsd": "338000.00",
               "costUsd": "135000.00",

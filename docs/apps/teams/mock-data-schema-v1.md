@@ -79,6 +79,7 @@ type TeamRecord = {
   status: TeamLifecycleStatus;
   readOnlyReason: "retired" | "successor-active" | null;
   currentPeriod: TeamFinancials;
+  financialPeriods: TeamFinancialPeriod[];
   lifetime: TeamFinancials;
   lifecycle: TeamLifecycleState;
   revenueOptions: RevenueOption[];
@@ -96,6 +97,13 @@ type TeamFinancials = {
   costUsd: UsdDecimalString;
   profitUsd: UsdDecimalString;
   lossUsd: UsdDecimalString;
+};
+
+type TeamFinancialPeriod = {
+  period: PeriodNumber;
+  startsAt: UnixTimestampSeconds | null;
+  endsAt: UnixTimestampSeconds | null;
+  financials: TeamFinancials;
 };
 
 type TeamLifecycleState = {

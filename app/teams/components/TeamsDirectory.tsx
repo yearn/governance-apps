@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { formatAddress } from "@/lib/format";
+import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -18,12 +19,19 @@ import {
 import {
   formatTeamsUsd,
   getFinancialNetState,
+  type TeamFinancials,
   type TeamRecord,
 } from "@/lib/clients/teams";
 import { teamsCopy } from "../messages";
 
+type DirectoryFinancialScope = "current" | "period" | "lifetime";
+type DirectoryFinancialResult = TeamFinancials | null;
+
+const DIRECTORY_FINANCIAL_PANEL_ID = "teams-directory-financial-panel";
+
 type TeamsDirectoryProps = {
   teams: TeamRecord[];
+  currentPeriod: number | null;
   selectedTeamId: string | null;
   onSelectTeam: (teamId: string) => void;
   state: "ready" | "loading" | "empty";
@@ -31,11 +39,32 @@ type TeamsDirectoryProps = {
 
 export function TeamsDirectory({
   teams,
+  currentPeriod,
   selectedTeamId,
   onSelectTeam,
   state,
 }: TeamsDirectoryProps) {
   const [viewMode, setViewMode] = useState<ViewToggleValue>("visual");
+  const [financialScope, setFinancialScope] =
+    useState<DirectoryFinancialScope>("current");
+  const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
+  const periodOptions = useMemo(
+    () => getDirectoryPeriodOptions(teams, currentPeriod),
+    [currentPeriod, teams]
+  );
+  const effectiveSelectedPeriod =
+    selectedPeriod !== null && periodOptions.includes(selectedPeriod)
+      ? selectedPeriod
+      : getDefaultSelectedPeriod(periodOptions, currentPeriod);
+  const effectiveFinancialScope =
+    financialScope === "period" && effectiveSelectedPeriod === null
+      ? "current"
+      : financialScope;
+  const scopeLabel = getDirectoryScopeLabel(
+    effectiveFinancialScope,
+    effectiveSelectedPeriod,
+    currentPeriod
+  );
 
   if (state === "loading") {
     return (
@@ -79,51 +108,85 @@ export function TeamsDirectory({
           title={teamsCopy.directory.title}
           description={teamsCopy.directory.description}
         />
-        <ViewToggle
-          aria-label="Team directory view"
-          value={viewMode}
-          onChange={setViewMode}
-          className="shrink-0"
-        />
+        <div className="flex w-full flex-col items-start gap-3 sm:w-auto sm:items-end">
+          <DirectoryFinancialScopeControls
+            scope={effectiveFinancialScope}
+            onScopeChange={setFinancialScope}
+            periodOptions={periodOptions}
+            selectedPeriod={effectiveSelectedPeriod}
+            onPeriodChange={setSelectedPeriod}
+            currentPeriod={currentPeriod}
+          />
+          <ViewToggle
+            aria-label="Team directory view"
+            value={viewMode}
+            onChange={setViewMode}
+            className="shrink-0"
+          />
+        </div>
       </div>
 
-      {viewMode === "visual" ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {teams.map((team) => (
-            <TeamDirectoryCard
-              key={team.id}
-              team={team}
-              isSelected={team.id === selectedTeamId}
-              onSelectTeam={onSelectTeam}
-            />
-          ))}
-        </div>
-      ) : (
-        <DirectoryAuditTable
-          teams={teams}
-          selectedTeamId={selectedTeamId}
-          onSelectTeam={onSelectTeam}
-        />
-      )}
+      <div
+        id={DIRECTORY_FINANCIAL_PANEL_ID}
+        role="tabpanel"
+        aria-label={scopeLabel}
+      >
+        {viewMode === "visual" ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {teams.map((team) => (
+              <TeamDirectoryCard
+                key={team.id}
+                team={team}
+                financialScope={effectiveFinancialScope}
+                selectedPeriod={effectiveSelectedPeriod}
+                scopeLabel={scopeLabel}
+                isSelected={team.id === selectedTeamId}
+                onSelectTeam={onSelectTeam}
+              />
+            ))}
+          </div>
+        ) : (
+          <DirectoryAuditTable
+            teams={teams}
+            financialScope={effectiveFinancialScope}
+            selectedPeriod={effectiveSelectedPeriod}
+            scopeLabel={scopeLabel}
+            selectedTeamId={selectedTeamId}
+            onSelectTeam={onSelectTeam}
+          />
+        )}
+      </div>
     </section>
   );
 }
 
 function TeamDirectoryCard({
   team,
+  financialScope,
+  selectedPeriod,
+  scopeLabel,
   isSelected,
   onSelectTeam,
 }: {
   team: TeamRecord;
+  financialScope: DirectoryFinancialScope;
+  selectedPeriod: number | null;
+  scopeLabel: string;
   isSelected: boolean;
   onSelectTeam: (teamId: string) => void;
 }) {
   const status = teamsCopy.statuses[team.status];
-  const net = getFinancialNetState(team.currentPeriod);
+  const scopedFinancials = getDirectoryFinancials(
+    team,
+    financialScope,
+    selectedPeriod
+  );
+  const net = scopedFinancials ? getFinancialNetState(scopedFinancials) : null;
+  const lifetimeNet = getFinancialNetState(team.lifetime);
   const netToneClassName =
-    net.tone === "profit"
+    net?.tone === "profit"
       ? "text-green-700"
-      : net.tone === "loss"
+      : net?.tone === "loss"
         ? "text-red-700"
         : "text-text-primary";
 
@@ -160,21 +223,40 @@ function TeamDirectoryCard({
 
       <div className="rounded-box border border-border bg-app px-4 py-4">
         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          {net.label}
+          {teamsCopy.directory.scope.scopedSummary(scopeLabel)}
         </p>
         <p className={`mt-1 font-number text-3xl font-bold ${netToneClassName}`}>
-          {formatTeamsUsd(net.value)}
+          {net ? formatTeamsUsd(net.value) : teamsCopy.directory.scope.missingPeriodValue}
+        </p>
+        <p className="mt-1 text-xs font-bold uppercase tracking-wide text-text-tertiary">
+          {net?.label ?? teamsCopy.directory.scope.missingPeriod}
         </p>
       </div>
 
       <dl className="grid gap-3 sm:grid-cols-2">
         <DirectoryMetric
           label={teamsCopy.directory.headers.revenue}
-          value={formatTeamsUsd(team.currentPeriod.revenueUsd)}
+          value={formatDirectoryFinancialValue(scopedFinancials?.revenueUsd)}
         />
         <DirectoryMetric
           label={teamsCopy.directory.headers.cost}
-          value={formatTeamsUsd(team.currentPeriod.costUsd)}
+          value={formatDirectoryFinancialValue(scopedFinancials?.costUsd)}
+        />
+      </dl>
+
+      <dl className="grid gap-2 rounded-box border border-border bg-surface-secondary/40 px-3 py-3 sm:grid-cols-3">
+        <DirectoryMetricCompact
+          label={`${teamsCopy.directory.scope.lifetimeStrip} ${teamsCopy.directory.headers.revenue}`}
+          value={formatTeamsUsd(team.lifetime.revenueUsd)}
+        />
+        <DirectoryMetricCompact
+          label={`${teamsCopy.directory.scope.lifetimeStrip} ${teamsCopy.directory.headers.cost}`}
+          value={formatTeamsUsd(team.lifetime.costUsd)}
+        />
+        <DirectoryMetricCompact
+          label={`${teamsCopy.directory.scope.lifetimeStrip} ${lifetimeNet.label}`}
+          value={formatTeamsUsd(lifetimeNet.value)}
+          tone={lifetimeNet.tone}
         />
       </dl>
 
@@ -190,6 +272,114 @@ function TeamDirectoryCard({
   );
 }
 
+function DirectoryFinancialScopeControls({
+  scope,
+  onScopeChange,
+  periodOptions,
+  selectedPeriod,
+  onPeriodChange,
+  currentPeriod,
+}: {
+  scope: DirectoryFinancialScope;
+  onScopeChange: (scope: DirectoryFinancialScope) => void;
+  periodOptions: number[];
+  selectedPeriod: number | null;
+  onPeriodChange: (period: number | null) => void;
+  currentPeriod: number | null;
+}) {
+  const currentLabel =
+    currentPeriod !== null
+      ? teamsCopy.directory.scope.currentCompactLabel(currentPeriod)
+      : teamsCopy.directory.scope.current;
+
+  return (
+    <div className="flex w-full flex-col gap-2 sm:items-end">
+      <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+        {teamsCopy.directory.scope.label}
+      </p>
+      <div
+        role="tablist"
+        aria-label={teamsCopy.directory.scope.label}
+        className="grid w-full min-w-0 max-w-[42rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center rounded-lg bg-surface-secondary/70 p-1 sm:w-auto"
+      >
+        <FinancialScopeTab
+          label={currentLabel}
+          ariaLabel={
+            currentPeriod !== null
+              ? teamsCopy.directory.scope.currentPeriodLabel(currentPeriod)
+              : teamsCopy.directory.scope.current
+          }
+          isActive={scope === "current"}
+          onClick={() => onScopeChange("current")}
+          controls={DIRECTORY_FINANCIAL_PANEL_ID}
+        />
+        <div className="mx-1 flex min-w-0 gap-1 overflow-x-auto">
+          {periodOptions.map((period) => (
+            <FinancialScopeTab
+              key={period}
+              label={teamsCopy.directory.scope.periodCompactLabel(period)}
+              ariaLabel={teamsCopy.directory.scope.periodLabel(period)}
+              isActive={scope === "period" && selectedPeriod === period}
+              onClick={() => {
+                onPeriodChange(period);
+                onScopeChange("period");
+              }}
+              compact
+              controls={DIRECTORY_FINANCIAL_PANEL_ID}
+            />
+          ))}
+        </div>
+        <FinancialScopeTab
+          label={teamsCopy.directory.scope.lifetime}
+          isActive={scope === "lifetime"}
+          onClick={() => onScopeChange("lifetime")}
+          alignRight
+          controls={DIRECTORY_FINANCIAL_PANEL_ID}
+        />
+      </div>
+    </div>
+  );
+}
+
+function FinancialScopeTab({
+  label,
+  ariaLabel,
+  isActive,
+  onClick,
+  controls,
+  compact = false,
+  alignRight = false,
+}: {
+  label: string;
+  ariaLabel?: string;
+  isActive: boolean;
+  onClick: () => void;
+  controls: string;
+  compact?: boolean;
+  alignRight?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={isActive}
+      aria-label={ariaLabel ?? label}
+      aria-controls={controls}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app",
+        compact ? "min-w-[5.75rem] font-number" : "min-w-[7rem]",
+        alignRight && "justify-self-end",
+        isActive
+          ? "bg-surface text-text-primary shadow-sm"
+          : "text-text-secondary hover:text-text-primary"
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
 function DirectoryMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-box border border-border bg-app px-3 py-3">
@@ -201,17 +391,54 @@ function DirectoryMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function DirectoryMetricCompact({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: "profit" | "loss" | "neutral";
+}) {
+  const toneClassName =
+    tone === "profit"
+      ? "text-green-700"
+      : tone === "loss"
+        ? "text-red-700"
+        : "text-text-primary";
+
+  return (
+    <div className="min-w-0 space-y-1">
+      <dt className="truncate text-[0.6875rem] font-bold uppercase tracking-wide text-text-tertiary">
+        {label}
+      </dt>
+      <dd className={`font-number text-xs font-bold ${toneClassName}`}>{value}</dd>
+    </div>
+  );
+}
+
 function DirectoryAuditTable({
   teams,
+  financialScope,
+  selectedPeriod,
+  scopeLabel,
   selectedTeamId,
   onSelectTeam,
 }: {
   teams: TeamRecord[];
+  financialScope: DirectoryFinancialScope;
+  selectedPeriod: number | null;
+  scopeLabel: string;
   selectedTeamId: string | null;
   onSelectTeam: (teamId: string) => void;
 }) {
   return (
     <Card className="overflow-hidden p-0">
+      <div className="border-b border-border px-5 py-3">
+        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+          {teamsCopy.directory.scope.scopedSummary(scopeLabel)}
+        </p>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -227,12 +454,17 @@ function DirectoryAuditTable({
         <TableBody>
           {teams.map((team) => {
             const status = teamsCopy.statuses[team.status];
-            const net = getFinancialNetState(team.currentPeriod);
+            const scopedFinancials = getDirectoryFinancials(
+              team,
+              financialScope,
+              selectedPeriod
+            );
+            const net = scopedFinancials ? getFinancialNetState(scopedFinancials) : null;
             const isSelected = team.id === selectedTeamId;
             const netToneClassName =
-              net.tone === "profit"
+              net?.tone === "profit"
                 ? "text-green-700"
-                : net.tone === "loss"
+                : net?.tone === "loss"
                   ? "text-red-700"
                   : "text-text-primary";
 
@@ -261,13 +493,15 @@ function DirectoryAuditTable({
                   <Badge variant={status.variant}>{status.label}</Badge>
                 </TableCell>
                 <TableCell className="text-right font-number text-text-primary">
-                  {formatTeamsUsd(team.currentPeriod.revenueUsd)}
+                  {formatDirectoryFinancialValue(scopedFinancials?.revenueUsd)}
                 </TableCell>
                 <TableCell className="text-right font-number text-text-primary">
-                  {formatTeamsUsd(team.currentPeriod.costUsd)}
+                  {formatDirectoryFinancialValue(scopedFinancials?.costUsd)}
                 </TableCell>
                 <TableCell className={`text-right font-number font-bold ${netToneClassName}`}>
-                  {formatTeamsUsd(net.value)}
+                  {net
+                    ? formatTeamsUsd(net.value)
+                    : teamsCopy.directory.scope.missingPeriodValue}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
@@ -286,6 +520,73 @@ function DirectoryAuditTable({
       </Table>
     </Card>
   );
+}
+
+function getDirectoryFinancials(
+  team: TeamRecord,
+  financialScope: DirectoryFinancialScope,
+  selectedPeriod: number | null
+): DirectoryFinancialResult {
+  if (financialScope === "lifetime") {
+    return team.lifetime;
+  }
+
+  if (financialScope === "period" && selectedPeriod !== null) {
+    return (
+      team.financialPeriods.find((entry) => entry.period === selectedPeriod)
+        ?.financials ?? null
+    );
+  }
+
+  return team.currentPeriod;
+}
+
+function getDirectoryPeriodOptions(
+  teams: readonly TeamRecord[],
+  currentPeriod: number | null
+) {
+  const periods = new Set<number>();
+
+  for (const team of teams) {
+    for (const entry of team.financialPeriods) {
+      if (entry.period === currentPeriod) {
+        continue;
+      }
+      periods.add(entry.period);
+    }
+  }
+
+  return Array.from(periods).sort((left, right) => right - left);
+}
+
+function getDefaultSelectedPeriod(
+  periodOptions: readonly number[],
+  currentPeriod: number | null
+) {
+  void currentPeriod;
+  return periodOptions[0] ?? null;
+}
+
+function getDirectoryScopeLabel(
+  scope: DirectoryFinancialScope,
+  selectedPeriod: number | null,
+  currentPeriod: number | null
+) {
+  if (scope === "lifetime") {
+    return teamsCopy.directory.scope.lifetime;
+  }
+
+  if (scope === "period" && selectedPeriod !== null) {
+    return teamsCopy.directory.scope.periodLabel(selectedPeriod);
+  }
+
+  return currentPeriod !== null
+    ? teamsCopy.directory.scope.currentPeriodLabel(currentPeriod)
+    : teamsCopy.directory.scope.current;
+}
+
+function formatDirectoryFinancialValue(value: string | null | undefined) {
+  return value ? formatTeamsUsd(value) : teamsCopy.directory.scope.missingPeriodValue;
 }
 
 function DirectoryHeader({

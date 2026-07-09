@@ -9,6 +9,7 @@ import type {
   FundingApproval,
   TeamBonusState,
   TeamFinancials,
+  TeamFinancialPeriod,
   TeamId,
   TeamLifecycleStatus,
   TeamReadOnlyReason,
@@ -162,9 +163,53 @@ function sumFinancials(
   };
 }
 
+function normalizeTeamFinancialPeriods(
+  team: TeamRecord,
+  currentPeriod: number
+): TeamFinancialPeriod[] {
+  const periods =
+    team.financialPeriods && team.financialPeriods.length > 0
+      ? team.financialPeriods
+      : [
+          {
+            period: currentPeriod,
+            startsAt: null,
+            endsAt: null,
+            financials: team.currentPeriod,
+          },
+        ];
+
+  const normalized = periods
+    .map((period) => ({
+      period: period.period,
+      startsAt: period.startsAt ?? null,
+      endsAt: period.endsAt ?? null,
+      financials:
+        period.period === currentPeriod
+          ? team.currentPeriod
+          : period.financials,
+    }))
+    .sort((left, right) => right.period - left.period);
+
+  if (!normalized.some((period) => period.period === currentPeriod)) {
+    return [
+      {
+        period: currentPeriod,
+        startsAt: null,
+        endsAt: null,
+        financials: team.currentPeriod,
+      },
+      ...normalized,
+    ];
+  }
+
+  return normalized;
+}
+
 function finalizeMockTeamsData(data: TeamsMockDataV1): TeamsMockDataV1 {
   const teams = data.teams.map((team) => ({
     ...team,
+    financialPeriods: normalizeTeamFinancialPeriods(team, data.currentPeriod),
     fundingSummary: deriveTeamsFundingSummary(team.fundingApprovals),
   }));
   const selectedTeamId =

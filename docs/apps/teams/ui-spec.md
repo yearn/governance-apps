@@ -86,29 +86,76 @@ Landing directory cards should show:
 - address
 - owner
 - status: active / retiring / retired
-- current-period revenue
-- current-period cost
-- current-period profit / loss
+- scoped revenue
+- scoped cost
+- scoped profit / loss
+- all-time revenue, cost, and net context
 - primary action: open workspace
 - secondary context: whether revenue, funding, bonus, or lifecycle work needs attention
 
 The directory audit view must keep the existing dense table-style data reachable for
 reviewers, operators, and test automation.
 
+### Financial scope controls
+
+The directory must make the financial scope explicit because protocol accounting spans
+multiple budget periods and all-time lifetime state.
+
+Approved directory financial scopes:
+
+- **Current period**: default. Shows `team.currentPeriod` values for operational review.
+- **Historical period**: shows one selected historical period across all teams. Historical
+  periods render as direct period tabs populated from `team.financialPeriods[].period`
+  and should default to the most recent non-current period when one exists.
+- **All-time**: shows `team.lifetime` values for cumulative review.
+
+Rules:
+
+- Revenue, cost, and net must always use the same selected scope within a row/card.
+- Current-period values must remain the default so launch operations do not lose the
+  period-sensitive funding and bonus context.
+- Scope selection must use one tabbed control: current period on the left, historical
+  period tabs in the horizontally scrollable middle, and all-time pinned on the right.
+- Visual cards and the audit table must use the same selected scope.
+- Visual cards should also retain compact all-time context so a current-period loss does
+  not hide lifetime performance.
+- Historical period tabs should be hidden when no non-current periods are available.
+- Missing values for a selected historical period should render as unavailable, not as
+  real zero financials.
+- Labels must include the active scope, for example `Current period #2 financials`,
+  `Period #1 financials`, or `All-time financials`.
+- The frontend must not reconstruct history from browser-side log scans. Feed-backed
+  history comes from `teams.json`; mock-backed history comes from the mock data contract
+  and runtime normalization.
+
 ## 4.2 Team workspace
 
 The workspace should render:
 
 1. Overview header with current-period and lifetime context.
-2. Action deck that makes the next useful actions obvious.
-3. Revenue section, including the permissionless deposit flow and revenue ledger.
-4. Outflows & Yield section that groups funding and bonus actions without blending their
+2. Financial history table with period, dates, revenue, cost, and profit/loss rows.
+3. Action deck that makes the next useful actions obvious.
+4. Revenue section, including the permissionless deposit flow and revenue ledger.
+5. Outflows & Yield section that groups funding and bonus actions without blending their
    protocol meanings.
-5. Lifecycle section with ownership, retirement, and migration visibility.
-6. Audit ledgers for revenue, funding, bonus, and lifecycle, each reachable by stable ids.
+6. Lifecycle section with ownership, retirement, and migration visibility.
+7. Audit ledgers for revenue, funding, bonus, and lifecycle, each reachable by stable ids.
 
 Admin is intentionally not nested inside the workspace. It remains a separate
 operator/admin surface so privileged review does not compete with team-owner tasks.
+
+The financial history table is read-only audit context. Each row represents one
+`TeamFinancialPeriod` entry from the domain model:
+
+- `period`
+- `startsAt` / `endsAt`, shown as a UTC date range when available
+- `financials.revenueUsd`
+- `financials.costUsd`
+- profit/loss derived from `financials.profitUsd` / `financials.lossUsd`
+
+The current period row may be marked, but historical and all-time values must not alter
+write eligibility. Funding, revenue deposit, return, and bonus write readiness continue
+to derive from raw protocol state, wallet state, current chain, and simulation.
 
 ## 4.3 Debug-backed route coverage
 

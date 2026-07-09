@@ -3,8 +3,17 @@ import { Badge } from "@/components/ui/Badge";
 import { Button, getButtonClassName } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
 import { formatAddress } from "@/lib/format";
 import {
+  formatTeamsDate,
   formatTeamsTokenAmount,
   formatTeamsUsd,
   getFinancialNetState,
@@ -235,6 +244,7 @@ export function TeamWorkspace({
             />
           </div>
         </div>
+        <FinancialHistoryTable team={readyTeam} currentPeriod={currentPeriod} />
       </section>
 
       <ActionDeck
@@ -292,6 +302,106 @@ export function TeamWorkspace({
       </section>
     </section>
   );
+}
+
+function FinancialHistoryTable({
+  team,
+  currentPeriod,
+}: {
+  team: TeamRecord;
+  currentPeriod: number | null;
+}) {
+  const periods = team.financialPeriods;
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="border-b border-border px-5 py-4">
+        <h3 className="text-xl font-bold text-text-primary">
+          {teamsCopy.workspace.financialHistory.title}
+        </h3>
+        <p className="mt-1 text-sm leading-6 text-text-secondary">
+          {teamsCopy.workspace.financialHistory.description}
+        </p>
+      </div>
+      {periods.length === 0 ? (
+        <div className="px-5 py-6 text-sm text-text-secondary">
+          {teamsCopy.workspace.financialHistory.empty}
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{teamsCopy.workspace.financialHistory.headers.period}</TableHead>
+              <TableHead>{teamsCopy.workspace.financialHistory.headers.dates}</TableHead>
+              <TableHead className="text-right">
+                {teamsCopy.workspace.financialHistory.headers.revenue}
+              </TableHead>
+              <TableHead className="text-right">
+                {teamsCopy.workspace.financialHistory.headers.cost}
+              </TableHead>
+              <TableHead className="text-right">
+                {teamsCopy.workspace.financialHistory.headers.net}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {periods.map((entry) => {
+              const net = getFinancialNetState(entry.financials);
+              const netToneClassName =
+                net.tone === "profit"
+                  ? "text-green-700"
+                  : net.tone === "loss"
+                    ? "text-red-700"
+                    : "text-text-primary";
+
+              return (
+                <TableRow key={entry.period}>
+                  <TableCell>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-number font-bold text-text-primary">
+                        {teamsCopy.directory.scope.periodLabel(entry.period)}
+                      </span>
+                      {currentPeriod === entry.period ? (
+                        <Badge variant="brand">
+                          {teamsCopy.workspace.financialHistory.currentBadge}
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-number text-text-secondary">
+                    {formatPeriodRange(entry.startsAt, entry.endsAt)}
+                  </TableCell>
+                  <TableCell className="text-right font-number text-text-primary">
+                    {formatTeamsUsd(entry.financials.revenueUsd)}
+                  </TableCell>
+                  <TableCell className="text-right font-number text-text-primary">
+                    {formatTeamsUsd(entry.financials.costUsd)}
+                  </TableCell>
+                  <TableCell className={`text-right font-number font-bold ${netToneClassName}`}>
+                    {net.label} {formatTeamsUsd(net.value)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      )}
+    </Card>
+  );
+}
+
+function formatPeriodRange(
+  startsAt: number | null | undefined,
+  endsAt: number | null | undefined
+) {
+  const start = formatTeamsDate(startsAt);
+  const end = formatTeamsDate(endsAt);
+
+  if (start && end) {
+    return `${start} - ${end}`;
+  }
+
+  return "--";
 }
 
 function WorkspaceSummaryCard({ team }: { team: TeamRecord }) {

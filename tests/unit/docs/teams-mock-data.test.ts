@@ -179,6 +179,10 @@ function assertTeamRecord(value: unknown): asserts value is TeamRecord {
   expectOneOf(value.status, expectedLifecycleStatuses);
   assertNullableOneOf(value.readOnlyReason, expectedReadOnlyReasons);
   assertFinancials(value.currentPeriod);
+  assertArray(value.financialPeriods);
+  for (const entry of value.financialPeriods) {
+    assertFinancialPeriod(entry);
+  }
   assertFinancials(value.lifetime);
   assertLifecycleState(value.lifecycle);
   assertArray(value.revenueOptions);
@@ -211,6 +215,14 @@ function assertFinancials(value: unknown): void {
   assertDecimalString(value.costUsd);
   assertDecimalString(value.profitUsd);
   assertDecimalString(value.lossUsd);
+}
+
+function assertFinancialPeriod(value: unknown): void {
+  assertRecord(value);
+  assertNumber(value.period);
+  assertNullableNumber(value.startsAt);
+  assertNullableNumber(value.endsAt);
+  assertFinancials(value.financials);
 }
 
 function assertLifecycleState(value: unknown): void {
@@ -590,6 +602,12 @@ describe("Team Finances mock data contract", () => {
 
       for (const team of scenario.data.teams) {
         expectStableFundingSummaryToReconcile(team);
+        expect(team.financialPeriods[0]).toMatchObject({
+          period: scenario.data.currentPeriod,
+          startsAt: null,
+          endsAt: null,
+          financials: team.currentPeriod,
+        });
 
         if (team.status === "retired") {
           expect(team.readOnlyReason).not.toBeNull();

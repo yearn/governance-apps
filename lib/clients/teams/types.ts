@@ -71,6 +71,7 @@ export type TeamRecord = {
   status: TeamLifecycleStatus;
   readOnlyReason: TeamReadOnlyReason | null;
   currentPeriod: TeamFinancials;
+  financialPeriods: TeamFinancialPeriod[];
   lifetime: TeamFinancials;
   lifecycle: TeamLifecycleState;
   revenueOptions: RevenueOption[];
@@ -89,6 +90,13 @@ export type TeamFinancials = {
   costUsd: UsdDecimalString;
   profitUsd: UsdDecimalString;
   lossUsd: UsdDecimalString;
+};
+
+export type TeamFinancialPeriod = {
+  period: PeriodNumber;
+  startsAt: UnixTimestampSeconds | null;
+  endsAt: UnixTimestampSeconds | null;
+  financials: TeamFinancials;
 };
 
 export type TeamLifecycleState = {

@@ -19,6 +19,15 @@ describe("Teams feed mapper", () => {
     expect(data.totals.activeTeamCount).toBe(1);
     expect(data.totals.currentPeriod.revenueUsd).toBe("125");
     expect(team.currentPeriod.profitUsd).toBe("75");
+    expect(team.financialPeriods).toEqual([
+      expect.objectContaining({
+        period: 2,
+        financials: expect.objectContaining({
+          revenueUsd: "125",
+          costUsd: "50",
+        }),
+      }),
+    ]);
     expect(team.revenueHistory[0]).toEqual(
       expect.objectContaining({
         amount: "125",
@@ -54,6 +63,32 @@ describe("Teams feed mapper", () => {
     expect(data.viewer.canClaimFunding).toBe(false);
     expect(data.viewer.canReturnFunding).toBe(false);
     expect(data.viewer.canClaimBonus).toBe(false);
+  });
+
+  it("does not label stale period financials as current-period data", () => {
+    const feed = parseFeed({
+      ...feedExample,
+      periods: {
+        ...feedExample.periods,
+        current: 3,
+        indexed: [2],
+      },
+    });
+    const data = mapTeamsFeedToPageData(feed);
+    const team = data.teams[0]!;
+
+    expect(team.currentPeriod).toEqual({
+      revenueUsd: "0.00",
+      costUsd: "0.00",
+      profitUsd: "0.00",
+      lossUsd: "0.00",
+    });
+    expect(team.financialPeriods[0]).toMatchObject({
+      period: 2,
+      financials: expect.objectContaining({
+        revenueUsd: "125",
+      }),
+    });
   });
 
   it("maps funding approvals and bonus periods from base-unit feed values", () => {

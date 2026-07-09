@@ -79,6 +79,12 @@ The workspace tab renders the deeper operational sections on one page so deep li
 such as `#revenue`, `#funding`, `#bonus`, and `#lifecycle` scroll directly to their
 audit and action areas.
 
+Financial reporting has explicit scope controls. The directory defaults to current
+period values, can switch to a selected historical period, and can switch to all-time
+lifetime values. The selected team workspace keeps current-period and lifetime overview
+cards and adds a period financial history table so submitted revenue and cost entries
+remain auditable across periods.
+
 ## Live data path
 
 The production Teams route consumes a dedicated `teams.json` feed from `gov-apps-stats`,
@@ -106,6 +112,7 @@ approval are complete.
 
 - `docs/apps/teams/ui-spec.md`
 - `docs/apps/teams/user-stories.md`
+- `docs/apps/teams/financial-reporting-scope.md`
 - `docs/apps/teams/mock-data-schema-v1.md`
 - `docs/apps/teams/examples/mock-data.example.json`
 - `docs/apps/teams/onchain-integration-plan/README.md`

@@ -105,6 +105,11 @@ describe("TeamsPageClient", () => {
     await screen.findByRole("button", {
       name: "Open Platform workspace",
     });
+    expect(
+      screen
+        .getByRole("tablist", { name: teamsCopy.directory.scope.label })
+        .querySelector('[role="tab"][aria-label^="Period #"]')
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Admin/i })).not.toBeInTheDocument();
     expect(screen.getByText("Retiring")).toBeInTheDocument();
     expect(screen.getByText("Retired")).toBeInTheDocument();

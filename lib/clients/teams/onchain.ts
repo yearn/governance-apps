@@ -26,6 +26,7 @@ import type {
   RevenueTokenAdminRecord,
   TeamBonusState,
   TeamFinancials,
+  TeamFinancialPeriod,
   TeamId,
   TeamLifecycleStatus,
   TeamMigrationReadiness,
@@ -268,9 +269,8 @@ function mapTeam(
   teamIds: Map<string, TeamId>
 ): TeamRecord {
   const currentPeriod =
-    team.periods.find((period) => period.period === feed.periods.current) ??
-    team.periods.at(-1) ??
-    null;
+    team.periods.find((period) => period.period === feed.periods.current) ?? null;
+  const financialPeriods = mapFinancialPeriods(team);
   const fundingApprovals = feed.fundingApprovals
     .filter((approval) => sameAddress(approval.team, team.address))
     .map((approval) => mapFundingApproval(feed, approval));
@@ -285,6 +285,7 @@ function mapTeam(
     status: mapLifecycleStatus(team),
     readOnlyReason: mapReadOnlyReason(team),
     currentPeriod: currentPeriod ? mapFinancials(currentPeriod.financials) : ZERO_FINANCIALS,
+    financialPeriods,
     lifetime: mapFinancials(team.lifetime),
     lifecycle: {
       migrationReadiness: mapMigrationReadiness(team),
@@ -303,6 +304,17 @@ function mapTeam(
       .flatMap((approval) => mapFundingReturns(feed, approval)),
     bonus: mapBonus(feed, team),
   };
+}
+
+function mapFinancialPeriods(team: TeamsFeedTeam): TeamFinancialPeriod[] {
+  return team.periods
+    .map((period) => ({
+      period: period.period,
+      startsAt: period.startsAt,
+      endsAt: period.endsAt,
+      financials: mapFinancials(period.financials),
+    }))
+    .sort((left, right) => right.period - left.period);
 }
 
 function mapViewer(

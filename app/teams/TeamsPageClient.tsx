@@ -225,6 +225,7 @@ export function TeamsPageClient() {
         >
           <TeamsDirectory
             teams={renderState === "ready" ? data?.teams ?? [] : []}
+            currentPeriod={renderState === "ready" ? data?.currentPeriod ?? null : null}
             selectedTeamId={selectedTeamId}
             onSelectTeam={(teamId) => {
               if (isMockRuntime) {
