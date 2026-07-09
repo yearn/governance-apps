@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type KeyboardEvent, useMemo, useState } from "react";
 import { formatAddress } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ViewToggle, type ViewToggleValue } from "@/components/ui/ViewToggle";
+import { ViewToggle } from "@/components/ui/ViewToggle";
+import { usePersistentViewToggle } from "@/components/ui/usePersistentViewToggle";
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ type DirectoryFinancialScope = "current" | "period" | "lifetime";
 type DirectoryFinancialResult = TeamFinancials | null;
 
 const DIRECTORY_FINANCIAL_PANEL_ID = "teams-directory-financial-panel";
+const DIRECTORY_VIEW_STORAGE_KEY = "yearn.teams.directory.view";
 
 type TeamsDirectoryProps = {
   teams: TeamRecord[];
@@ -44,7 +46,10 @@ export function TeamsDirectory({
   onSelectTeam,
   state,
 }: TeamsDirectoryProps) {
-  const [viewMode, setViewMode] = useState<ViewToggleValue>("visual");
+  const [viewMode, setViewMode] = usePersistentViewToggle(
+    DIRECTORY_VIEW_STORAGE_KEY,
+    "audit"
+  );
   const [financialScope, setFinancialScope] =
     useState<DirectoryFinancialScope>("current");
   const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
@@ -192,8 +197,11 @@ function TeamDirectoryCard({
 
   return (
     <Card
-      variant={isSelected ? "default" : "flat"}
-      className="flex min-h-[22rem] flex-col gap-5"
+      variant="default"
+      className={cn(
+        "flex min-h-[22rem] flex-col gap-5 bg-surface",
+        !isSelected && "shadow-none"
+      )}
       data-state={isSelected ? "selected" : undefined}
     >
       <div className="space-y-3">
@@ -264,7 +272,7 @@ function TeamDirectoryCard({
         className="mt-auto w-full"
         variant={isSelected ? "primary" : "secondary"}
         onClick={() => onSelectTeam(team.id)}
-        aria-label={`Open ${team.name} workspace`}
+        aria-label={`Open ${team.name} details`}
       >
         {teamsCopy.directory.openWorkspace}
       </Button>
@@ -367,7 +375,7 @@ function FinancialScopeTab({
       aria-controls={controls}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app",
+        "inline-flex min-h-10 shrink-0 items-center justify-center rounded-md px-3 text-sm font-bold transition-[background-color,color,box-shadow] duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app",
         compact ? "min-w-[5.75rem] font-number" : "min-w-[7rem]",
         alignRight && "justify-self-end",
         isActive
@@ -469,7 +477,17 @@ function DirectoryAuditTable({
                   : "text-text-primary";
 
             return (
-              <TableRow key={team.id} data-state={isSelected ? "selected" : undefined}>
+              <TableRow
+                key={team.id}
+                data-state={isSelected ? "selected" : undefined}
+                tabIndex={0}
+                aria-label={`Open ${team.name} details`}
+                onClick={() => onSelectTeam(team.id)}
+                onKeyDown={(event) =>
+                  handleDirectoryRowKeyDown(event, team.id, onSelectTeam)
+                }
+                className="cursor-pointer focus:outline-none focus-visible:bg-surface-secondary"
+              >
                 <TableCell>
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -507,8 +525,11 @@ function DirectoryAuditTable({
                   <Button
                     size="sm"
                     variant={isSelected ? "primary" : "secondary"}
-                    onClick={() => onSelectTeam(team.id)}
-                    aria-label={`Open ${team.name} workspace`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectTeam(team.id);
+                    }}
+                    aria-label={`Open ${team.name} details`}
                   >
                     {teamsCopy.directory.openWorkspace}
                   </Button>
@@ -520,6 +541,27 @@ function DirectoryAuditTable({
       </Table>
     </Card>
   );
+}
+
+function handleDirectoryRowKeyDown(
+  event: KeyboardEvent<HTMLTableRowElement>,
+  teamId: string,
+  onSelectTeam: (teamId: string) => void
+) {
+  const target = event.target;
+  if (
+    target instanceof HTMLElement &&
+    target.closest("button, a, input, select, textarea")
+  ) {
+    return;
+  }
+
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+
+  event.preventDefault();
+  onSelectTeam(teamId);
 }
 
 function getDirectoryFinancials(

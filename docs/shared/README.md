@@ -14,6 +14,8 @@ Shared docs define requirements and architecture that apply across multiple apps
 
 - [`design-system.md`](design-system.md)
 - [`copy-and-tone.md`](copy-and-tone.md)
+- [`design-review-process.md`](design-review-process.md)
+- [`polished-app-baseline-audit.md`](polished-app-baseline-audit.md)
 
 ## Delivery and Testing
 

@@ -70,6 +70,7 @@ async function dispatchTeamsHash(hash: string, scrollIntoView: ReturnType<typeof
 describe("TeamsPageClient", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/");
+    window.localStorage.clear();
     resetMockTeamsStore();
   });
 
@@ -85,13 +86,12 @@ describe("TeamsPageClient", () => {
       })
     ).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.app.routeKey)).toBeInTheDocument();
-    expect(screen.getByText(teamsCopy.page.productionGate)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.page.description)).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Directory/i })).toHaveAttribute(
       "aria-selected",
       "true"
     );
-    expect(screen.getByRole("tab", { name: /Workspace/i })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: /Team/i })).toHaveAttribute(
       "aria-selected",
       "false"
     );
@@ -103,7 +103,7 @@ describe("TeamsPageClient", () => {
     expect(screen.getByRole("button", { name: /debug/i })).toBeInTheDocument();
 
     await screen.findByRole("button", {
-      name: "Open Platform workspace",
+      name: "Open Platform details",
     });
     expect(
       screen
@@ -113,12 +113,19 @@ describe("TeamsPageClient", () => {
     expect(screen.queryByRole("tab", { name: /Admin/i })).not.toBeInTheDocument();
     expect(screen.getByText("Retiring")).toBeInTheDocument();
     expect(screen.getByText("Retired")).toBeInTheDocument();
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /Audit/i }));
+    expect(screen.getByRole("button", { name: /Table/i })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: teamsCopy.directory.headers.owner })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Open Platform workspace" }));
+    await user.click(screen.getByRole("button", { name: /Cards/i }));
+    await waitFor(() => {
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Open Platform details" }));
 
     expect(
       await screen.findByRole("heading", { name: "Platform", level: 2 })
@@ -150,12 +157,51 @@ describe("TeamsPageClient", () => {
     ).toBeInTheDocument();
   });
 
+  it("loads the saved Teams directory view", async () => {
+    window.localStorage.setItem("yearn.teams.directory.view", "visual");
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await screen.findByRole("button", { name: "Open Platform details" });
+    await waitFor(() => {
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /Cards/i })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+  });
+
+  it("opens the team workspace when a directory table row is selected", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<TeamsPageClient />);
+
+    await screen.findByRole("button", {
+      name: "Open Platform details",
+    });
+
+    await user.click(
+      screen.getByRole("row", {
+        name: "Open Platform details",
+      })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Platform", level: 2 })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Team/i })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+  });
+
   it("mounts Teams controls inside the shared debug panel", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(<TeamsPageClient />);
 
-    await screen.findByRole("button", { name: "Open Platform workspace" });
+    await screen.findByRole("button", { name: "Open Platform details" });
     await user.click(screen.getByRole("button", { name: /debug/i }));
 
     expect(screen.getByText("App Specific")).toBeInTheDocument();
@@ -184,7 +230,7 @@ describe("TeamsPageClient", () => {
     );
 
     expect(await screen.findByRole("tab", { name: /Admin/i })).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: /Workspace/i }));
+    await user.click(screen.getByRole("tab", { name: /Team/i }));
     expect(screen.getByRole("heading", { name: "Security", level: 2 })).toBeInTheDocument();
 
     await user.click(
@@ -194,7 +240,7 @@ describe("TeamsPageClient", () => {
     );
 
     expect(await screen.findByText(teamsCopy.directory.loadingTitle)).toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: /Workspace/i }));
+    await user.click(screen.getByRole("tab", { name: /Team/i }));
     expect(screen.getByText(teamsCopy.workspace.loadingTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.revenue.loadingTitle)).toBeInTheDocument();
 
@@ -215,7 +261,7 @@ describe("TeamsPageClient", () => {
       })
     );
 
-    await user.click(screen.getByRole("tab", { name: /Workspace/i }));
+    await user.click(screen.getByRole("tab", { name: /Team/i }));
     expect(
       await screen.findByRole("heading", { name: "Security", level: 2 })
     ).toBeInTheDocument();
@@ -278,10 +324,10 @@ describe("TeamsPageClient", () => {
       const directoryTab = await screen.findByRole("tab", { name: /Directory/i });
       expect(directoryTab).toHaveAttribute("aria-selected", "true");
       expect(document.getElementById("directory")).not.toBeNull();
-      await screen.findByRole("button", { name: "Open Platform workspace" });
+      await screen.findByRole("button", { name: "Open Platform details" });
 
       await dispatchTeamsHash("revenue", hashScroll.scrollIntoView);
-      expect(screen.getByRole("tab", { name: /Workspace/i })).toHaveAttribute(
+      expect(screen.getByRole("tab", { name: /Team/i })).toHaveAttribute(
         "aria-selected",
         "true"
       );
@@ -365,7 +411,7 @@ describe("TeamsPageClient", () => {
     const { queryClient } = renderWithProviders(<TeamsPageClient />);
 
     expect(await screen.findByText(teamsCopy.directory.loadingTitle)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("tab", { name: /Workspace/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /Team/i }));
     expect(screen.getByText(teamsCopy.workspace.loadingTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.revenue.loadingTitle)).toBeInTheDocument();
     expect(screen.getAllByText("--").length).toBeGreaterThanOrEqual(5);
@@ -377,7 +423,7 @@ describe("TeamsPageClient", () => {
 
     await userEvent.click(screen.getByRole("tab", { name: /Directory/i }));
     expect(await screen.findByText(teamsCopy.directory.emptyTitle)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("tab", { name: /Workspace/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /Team/i }));
     expect(screen.getByText(teamsCopy.workspace.noTeamsTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.revenue.emptyTitle)).toBeInTheDocument();
     expect(screen.getByText(teamsCopy.bonus.placeholders.empty)).toBeInTheDocument();
@@ -405,7 +451,7 @@ describe("TeamsPageClient", () => {
 
     await user.click(
       await screen.findByRole("button", {
-        name: "Open Research workspace",
+        name: "Open Research details",
       })
     );
     expect(
@@ -416,7 +462,7 @@ describe("TeamsPageClient", () => {
       setMockTeamsPreset("operator-admin");
     });
 
-    await user.click(screen.getByRole("tab", { name: /Workspace/i }));
+    await user.click(screen.getByRole("tab", { name: /Team/i }));
     expect(
       await screen.findByRole("heading", { name: "Security", level: 2 })
     ).toBeInTheDocument();
@@ -430,7 +476,7 @@ describe("TeamsPageClient", () => {
     setMockTeamsPreset("bonus-available");
     const { queryClient } = renderWithProviders(<TeamsPageClient />);
 
-    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await user.click(await screen.findByRole("tab", { name: /Team/i }));
     expect(
       await screen.findByRole("heading", { name: "Platform", level: 2 })
     ).toBeInTheDocument();
@@ -485,7 +531,7 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
-    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await user.click(await screen.findByRole("tab", { name: /Team/i }));
     expect(
       await screen.findByRole("heading", { name: "Security", level: 2 })
     ).toBeInTheDocument();
@@ -501,7 +547,7 @@ describe("TeamsPageClient", () => {
     await user.click(screen.getByRole("tab", { name: /Directory/i }));
     await user.click(
       screen.getByRole("button", {
-        name: "Open Research workspace",
+        name: "Open Research details",
       })
     );
 
@@ -525,7 +571,7 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
-    await userEvent.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await userEvent.click(await screen.findByRole("tab", { name: /Team/i }));
     expect(
       await screen.findByRole("heading", { name: "Grants Archive", level: 2 })
     ).toBeInTheDocument();
@@ -540,7 +586,7 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
-    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await user.click(await screen.findByRole("tab", { name: /Team/i }));
     expect(
       await screen.findByText(teamsCopy.revenue.permissionless.title)
     ).toBeInTheDocument();
@@ -574,7 +620,7 @@ describe("TeamsPageClient", () => {
 
     await user.click(
       await screen.findByRole("button", {
-        name: "Open Research workspace",
+        name: "Open Research details",
       })
     );
 
@@ -590,7 +636,7 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
-    await userEvent.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await userEvent.click(await screen.findByRole("tab", { name: /Team/i }));
     await screen.findByRole("heading", { name: "Security", level: 2 });
     expect(
       await screen.findByRole("heading", {
@@ -621,7 +667,7 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
-    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await user.click(await screen.findByRole("tab", { name: /Team/i }));
     await user.click(
       await screen.findByRole("button", {
         name: "Use approval-security-23 in claim flow",
@@ -667,7 +713,7 @@ describe("TeamsPageClient", () => {
 
     renderWithProviders(<TeamsPageClient />);
 
-    await user.click(await screen.findByRole("tab", { name: /Workspace/i }));
+    await user.click(await screen.findByRole("tab", { name: /Team/i }));
     const returnAmountInput = await screen.findByLabelText(
       teamsCopy.funding.returnForm.amount
     );

@@ -168,7 +168,7 @@ export function BonusCard({
                       <Tooltip content={<BonusMathTooltip bonus={bonus} period={period} />}>
                         <button
                           type="button"
-                          className="rounded-box border border-border px-3 py-2 text-xs font-bold text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
+                          className="inline-flex min-h-10 items-center justify-center rounded-box border border-border px-3 text-xs font-bold text-text-secondary transition-[border-color,color] duration-150 ease-out hover:border-border-hover hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app"
                         >
                           {teamsCopy.bonus.mathTrigger}
                         </button>

@@ -37,7 +37,7 @@ export function ProgressBar({
     >
       <div
         className={cn(
-          "h-full transition-all duration-500 ease-in-out",
+          "h-full transition-[width,background-color] duration-500 ease-in-out",
           colors[variant]
         )}
         style={{ width: `${percentage}%` }}

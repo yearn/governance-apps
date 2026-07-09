@@ -71,4 +71,4 @@ Impersonate management and call the verified deadline admin method
 (commonly `set_deadline(now - 1)`) on the Claim contract.
 Reload:
 - Banner should show “Claim ended”
-- Claim action should be disabled / replaced by manual link
+- Claim action should be disabled / replaced by the manual claim request link

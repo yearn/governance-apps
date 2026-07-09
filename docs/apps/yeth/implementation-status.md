@@ -129,7 +129,7 @@ Aligned in UI:
 - simplified observable wallet-state branching,
 - settlement-framed staying state with dynamic cash-out labeling,
 - trust and verify footer,
-- claim-ended manual process messaging.
+- claim-ended manual claim request messaging.
 
 Still placeholder/static for MVP:
 
@@ -154,7 +154,7 @@ Still placeholder/static for MVP:
   - claim and exit
   - claim and stay
   - redeem
-  - claim-window-ended manual flow
+  - claim-window-ended manual claim request
   - empty wallet-state flow
 
 ## 5. Open Implementation Gaps
@@ -163,7 +163,6 @@ Still placeholder/static for MVP:
 - Add yETH failure-path e2e cases (tx rejection, revert handling, liquidity failure).
 - Production content finalization:
   - approved YIP URL,
-  - manual late-claim instructions URL,
   - legal/comms copy review.
 
 ## 6. Acceptance Gate Before Production Ready

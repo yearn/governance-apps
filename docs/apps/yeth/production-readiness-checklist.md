@@ -10,7 +10,7 @@ Use this checklist to track all work required to move from current mock-first yE
 - [ ] Finalize Recovery Vault and Yield Vault contract addresses.
 - [ ] Finalize Claim contract interface and eligibility/claim amount methods.
 - [ ] Confirm claim window constants and governance-approved timeline.
-- [ ] Confirm late-claim governance/manual process and endpoint.
+- [x] Confirm manual yETH claim request endpoint.
 - [ ] Confirm canonical data source for:
   - [ ] Recovery Vault PPS
   - [ ] Recovery Vault total assets
@@ -63,7 +63,8 @@ Use this checklist to track all work required to move from current mock-first yE
 ## 5. Data, Content, and Governance Artifacts
 
 - [ ] Confirm final approved YIP link.
-- [ ] Publish manual late-claim instructions and stable URL.
+- [x] Publish manual claim request URL:
+  `https://github.com/yearn/yeth-manual-recovery-claims/issues/new?template=manual-yeth-claim.yml`.
 - [ ] Validate all copy against approved governance language.
 - [ ] Validate all displayed numbers are current-state only.
 - [ ] Confirm no prohibited language (yield promises, urgency pressure).

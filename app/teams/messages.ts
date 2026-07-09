@@ -29,14 +29,13 @@ export const teamsCopy = {
   },
   page: {
     title: "Team Finances",
-    eyebrow: "Registered team finance and operations",
+    eyebrow: "Team finance",
     description:
-      "Compare registered teams, open one workspace, then act on revenue, funding, bonus, and lifecycle state.",
-    productionGate: "Production gated",
+      "Review each team's revenue, costs, funding, bonus, and status.",
   },
   navigation: {
     directory: "Directory",
-    workspace: "Workspace",
+    workspace: "Team",
     admin: "Admin",
   },
   stats: {
@@ -48,10 +47,10 @@ export const teamsCopy = {
   },
   controls: {
     description:
-      "Bootstrap known review states, then adjust the live Teams runtime in place without changing the default route chrome.",
+      "Load known states and adjust the Teams runtime.",
     presetLabel: "Preset",
     viewerLabel: "Viewer",
-    workspaceLabel: "Workspace",
+    workspaceLabel: "Team",
     currentPeriodLabel: "Current period",
     scenarioLabel: "Presets",
     directoryOnly: "Directory only",
@@ -63,20 +62,19 @@ export const teamsCopy = {
     },
     scenarioNames: {
       "directory-observer": "Directory mix",
-      "team-owner-funding": "Owner workspace",
+      "team-owner-funding": "Owner team",
       "bonus-available": "Single-team snapshot",
-      "finance-operator-revenue": "Operator workspace",
-      "retired-read-only": "Retired workspace",
+      "finance-operator-revenue": "Operator team",
+      "retired-read-only": "Retired team",
       "operator-admin": "Operator/admin view",
     },
     customRuntime: "Custom runtime",
   },
   directory: {
     title: "Team Directory",
-    description:
-      "Scan scoped performance in cards, or switch to the audit table for dense review.",
+    description: "Compare registered teams by period or all-time totals.",
     loadingTitle: "Loading team directory",
-    loadingBody: "Fetching the current teams snapshot.",
+    loadingBody: "Loading the current team list.",
     emptyTitle: "No teams available",
     emptyBody:
       "No teams are available in this view yet.",
@@ -107,20 +105,21 @@ export const teamsCopy = {
       lifetimeStrip: "All-time",
       scopedSummary: (scope: string) => `${scope} financials`,
     },
-    openWorkspace: "Open workspace",
+    openWorkspace: "Open team",
     selected: "Selected",
   },
   workspace: {
-    title: "Workspace Overview",
+    title: "Team Overview",
+    overviewEyebrow: "Selected team",
     description:
-      "Current-period and lifetime reporting for the selected team, followed by action and ledger sections.",
-    loadingTitle: "Loading workspace overview",
-    loadingBody: "Preparing the selected team workspace.",
+      "Current and all-time totals for the selected team.",
+    loadingTitle: "Loading team overview",
+    loadingBody: "Loading the selected team.",
     emptyTitle: "No team selected",
     emptyBody:
-      "Open a team from the directory to inspect current-period and lifetime overview cards.",
-    noTeamsTitle: "No workspace available",
-    noTeamsBody: "A team workspace appears here once a team is available and selected.",
+      "Open a team from the directory to see its current and all-time totals.",
+    noTeamsTitle: "No team available",
+    noTeamsBody: "Team details appear here once a team is available.",
     cards: {
       current: "Current Budget Period",
       lifetime: "Lifetime",
@@ -160,16 +159,17 @@ export const teamsCopy = {
       lifecycle: "Lifecycle",
     },
     actionDeck: {
-      title: "Action deck",
+      eyebrow: "Actions",
+      title: "Actions",
       description:
-        "Deposit permissionless revenue, then review outbound funding and bonus actions without losing the audit ledgers below.",
-      outflowsTitle: "Outflows & Yield command",
+        "Deposit revenue, claim funding, return unused funding, or claim bonus YFI.",
+      outflowsTitle: "Funding and bonus",
       outflowsBody:
-        "Funding approvals and finalized YFI bonus stay beside each other, but each panel keeps its source and action meaning separate.",
+        "Funding approvals and bonus YFI are separate actions.",
       fundingTitle: "Funding approvals",
       fundingSource: "Source: team funding approvals",
       fundingBody:
-        "Claims spend approved funding balances. Returns account for previously used funding against the historical claim price.",
+        "Claims spend approved funding. Returns account for used funding.",
       fundingClaimSource: "Claim source",
       fundingReturnSource: "Return accounting",
       fundingClaimableCount: "Claimable approvals",
@@ -181,16 +181,16 @@ export const teamsCopy = {
       fundingReturnBody: (approvalId: string, amount: string) =>
         `${approvalId} has ${amount} of used balance available for return accounting.`,
       fundingNoClaimable:
-        "No funding approval is claimable from this workspace right now.",
+        "No funding approval is claimable right now.",
       fundingNoReturnable:
-        "No used funding balance is available for return accounting right now.",
+        "No used funding can be returned right now.",
       fundingCta: "Open funding claim and return flows",
       fundingClaimCta: "Open funding claim flow",
       fundingReturnCta: "Open funding return flow",
       bonusTitle: "YFI bonus",
       bonusSource: "Source: finalized team bonus output",
       bonusBody:
-        "Bonus yield is calculated from finalized period profit and remains separate from funding approvals.",
+        "Bonus YFI comes from finalized period profit.",
       bonusStatus: "Bonus state",
       bonusClaimable: "Claimable now",
       bonusPeriods: "Periods included",
@@ -198,21 +198,22 @@ export const teamsCopy = {
       bonusCta: "Open bonus claim",
     },
     outflows: {
-      title: "Outflows & Yield",
+      eyebrow: "Funding and bonus",
+      title: "Funding and Bonus",
       description:
-        "Funding approvals and YFI bonus actions are surfaced together as outbound work, while preserving their separate protocol meanings and ledgers.",
+        "Claim funding, return unused funding, or claim finalized bonus YFI.",
     },
   },
   bonus: {
     title: "Bonus",
     description:
-      "Lead with claimable YFI and period state. Open the drilldown only when you need the profit and pricing inputs behind a finalized amount.",
+      "Check claimable YFI and the periods behind it.",
     placeholders: {
-      loading: "Preparing bonus totals and period detail for the selected workspace.",
+      loading: "Loading bonus totals and period detail.",
       empty:
-        "A bonus summary appears here once a team workspace is available.",
+        "Bonus totals appear once a team is selected.",
       unselected:
-        "Open a team from the directory to inspect claimable bonus, the primary claim action, and period-level detail.",
+        "Open a team from the directory to see its bonus.",
     },
     summary: {
       claimable: "Claimable now",
@@ -244,34 +245,34 @@ export const teamsCopy = {
       claimedCta: "Already claimed",
       noneCta: "No bonus to claim",
       claimBody:
-        "Stage the claim action from the default view, then keep the period drilldown available for audit detail.",
+        "Stage the claim and keep the period detail visible.",
       liveClaimBody:
-        "Claim the finalized bonus from the default view, with the period drilldown still available for audit detail.",
+        "Claim the finalized bonus. Period detail stays visible.",
       stagedBody:
-        "The claim is staged for review only. The bonus breakdown stays visible so the finalized periods remain easy to audit.",
+        "The claim is staged for review. The bonus breakdown stays visible.",
       permissionBody:
-        "This bonus is claimable, but the action stays limited to the eligible team-owner view.",
+        "Only the eligible team owner can claim this bonus.",
       pendingBody:
-        "The primary action stays blocked until the included period finishes finalization and moves into the claimable total.",
+        "The period must finalize before this bonus can be claimed.",
       claimedBody:
-        "The latest finalized bonus is already claimed, so the primary action stays in a historical state.",
+        "The latest finalized bonus has already been claimed.",
       noneBody:
-        "There is no claimable bonus in this workspace yet, so the default view stays focused on availability rather than submission.",
+        "There is no claimable bonus yet.",
     },
     summaries: {
       claimable: (amount: string) =>
-        `${amount} is finalized and available now. The default view stays focused on what can be acted on first.`,
+        `${amount} is finalized and available now.`,
       claimableWithPending: (amount: string, pendingPeriods: number) =>
-        `${amount} is finalized and available now. ${pendingPeriods.toLocaleString("en-US")} ${pendingPeriods === 1 ? "period stays" : "periods stay"} outside the main total until finalization lands.`,
+        `${amount} is finalized and available now. ${pendingPeriods.toLocaleString("en-US")} ${pendingPeriods === 1 ? "period is" : "periods are"} still waiting for finalization.`,
       pendingFinalization: (pendingPeriods: number) =>
         `No YFI is claimable yet. ${pendingPeriods.toLocaleString("en-US")} ${pendingPeriods === 1 ? "period is" : "periods are"} still waiting for finalization.`,
       claimed:
-        "The latest finalized bonus period has already been claimed, so the default view stays read-only.",
+        "The latest finalized bonus period has already been claimed.",
       none: "No bonus periods are included yet.",
       noneWithHistory:
-        "Included periods have no claimable YFI, so the default view stays focused on the historical state.",
+        "Included periods have no claimable YFI.",
     },
-    noPeriods: "No bonus periods are available in this workspace.",
+    noPeriods: "No bonus periods are available for this team.",
     statuses: {
       none: {
         label: "No bonus",
@@ -314,18 +315,18 @@ export const teamsCopy = {
     } satisfies Record<BonusPeriodStatus, StatusCopy & { body: string }>,
   },
   lifecycle: {
-    title: "Ownership & Lifecycle",
+    title: "Ownership and Status",
     description:
-      "Keep ownership transfer, retirement, and successor state readable before any ownership writes are introduced.",
+      "Check owner, retirement, migration, and successor state.",
     placeholders: {
-      loading: "Preparing owner, retirement, migration, and successor state for the selected workspace.",
+      loading: "Loading owner, retirement, migration, and successor state.",
       empty:
-        "Ownership and lifecycle details appear here once a team workspace is available.",
+        "Ownership and status details appear once a team is selected.",
       unselected:
-        "Open a team from the directory to inspect owner, pending owner, retirement, and migration readiness.",
+        "Open a team from the directory to see owner and status details.",
     },
     atAGlance: "At a glance",
-    activeWorkspace: "Active workspace",
+    activeWorkspace: "Active",
     pendingOwnerNone: "No pending transfer",
     successorNone: "No successor",
     unknownPeriod: "an upcoming period",
@@ -335,7 +336,7 @@ export const teamsCopy = {
       retirement: "Retirement",
       migration: "Migration readiness",
       successor: "Successor",
-      workspaceAccess: "Workspace access",
+      workspaceAccess: "Access",
     },
     retirement: {
       active: "No retirement scheduled",
@@ -346,13 +347,13 @@ export const teamsCopy = {
     },
     summaries: {
       active:
-        "This team is active with no retirement scheduled, so ownership state is purely operational.",
+        "This team is active with no retirement scheduled.",
       activeWithPendingOwner: (pendingOwner: string) =>
-        `This team is active, but ownership is mid-transfer to ${pendingOwner}.`,
+        `Ownership is transferring to ${pendingOwner}.`,
       retiring: (periodLabel: string, pendingOwner: string) =>
-        `Retirement is scheduled for ${periodLabel}, and the pending owner state remains visible${pendingOwner === "No pending transfer" ? "." : ` as the handoff prepares for ${pendingOwner}.`}`,
+        `Retirement is scheduled for ${periodLabel}${pendingOwner === "No pending transfer" ? "." : ` with transfer pending to ${pendingOwner}.`}`,
       retired: (successor: string) =>
-        `This team is historical and read-only. ${successor === "No successor" ? "No successor is recorded." : `Successor state now points to ${successor}.`}`,
+        `This team is retired and read-only. ${successor === "No successor" ? "No successor is recorded." : `Successor: ${successor}.`}`,
     },
     migrationReadiness: {
       "not-needed": {
@@ -376,34 +377,34 @@ export const teamsCopy = {
   revenue: {
     title: "Revenue Deposit",
     description:
-      "Deposit revenue on behalf of the selected team, preview any auto-conversion, and compare the submitted amount with the credited USD estimate.",
+      "Deposit revenue for the selected team and preview the credited USD amount.",
     loadingTitle: "Loading revenue deposit flow",
     loadingBody:
-      "Preparing supported tokens, the conversion preview, and recent deposit history.",
-    emptyTitle: "No revenue workspace available",
-    emptyBody: "A revenue deposit flow appears here once a team workspace is available.",
+      "Loading supported tokens, preview, and recent deposits.",
+    emptyTitle: "No revenue data available",
+    emptyBody: "Revenue deposits appear once a team is selected.",
     noTeamTitle: "No team selected",
     noTeamBody:
-      "Open a team from the directory to preview permissionless deposits and recent revenue history.",
+      "Open a team from the directory to deposit revenue.",
     permissionless: {
       title: "Permissionless action",
-      body: "Anyone can deposit supported revenue tokens on behalf of this team. Owner status is not required.",
+      body: "Anyone can deposit supported revenue tokens for this team.",
     },
     unavailable: {
-      title: "Deposits unavailable in this workspace",
+      title: "Deposits unavailable for this team",
       disabledCta: "Deposit unavailable",
       viewerBody:
-        "This viewer cannot submit deposits, but recent history stays visible for review.",
+        "This viewer cannot submit deposits.",
       readOnlyBody:
         "This team is read-only, so new deposits stay disabled.",
       optionsBody:
-        "No supported revenue tokens are available for new deposits in this workspace.",
+        "No supported revenue tokens are available for new deposits.",
     },
     form: {
       tokenLabel: "Supported tokens",
       amountLabel: "Deposit amount",
       amountHint:
-        "Credited USD can differ from the nominal token amount because conversion and pricing apply before accounting.",
+        "Credited USD may differ after conversion and pricing.",
       submit: "Deposit revenue",
       approve: "Approve token",
       balanceLabel: "Balance",
@@ -426,10 +427,10 @@ export const teamsCopy = {
     history: {
       title: "Recent deposit history",
       description:
-        "Recent deposits stay visible beside the next submission so teams can compare the quoted credit against recorded entries.",
-      auditTitle: "Revenue audit ledger",
+        "Compare the next quote with recent deposits.",
+      auditTitle: "Revenue ledger",
       auditDescription:
-        "Deposit records stay reachable from the stable revenue anchor with visible record identifiers for audit review.",
+        "Deposit records with IDs, periods, amounts, and credited USD.",
       emptyTitle: "No deposits recorded yet",
       emptyBody: "This selected team has no revenue deposit history yet.",
       headers: {
@@ -454,10 +455,10 @@ export const teamsCopy = {
   funding: {
     title: "Funding Approvals",
     description:
-      "Keep current-period claimability, late-liquid handling, and return accounting visible from the same selected team workspace.",
+      "Review claimable funding, late-liquid approvals, and returns.",
     emptyTitle: "No funding approvals available",
     emptyBody:
-      "This selected team does not have any funding approvals yet, so claim and return flows stay inactive.",
+      "This team has no funding approvals yet.",
     summary: {
       claimableUsd: "Stable claimable value",
       refundableUsd: "Refundable value",
@@ -605,21 +606,21 @@ export const teamsCopy = {
     mockBadge: "Access controlled",
     title: "Admin Console",
     description:
-      "Operator/admin-only view for registry state, revenue token and bucket coverage, funding queue health, and bonus finalization readiness.",
+      "Review registry state, revenue tokens, funding queue, and bonus finalization.",
     loadingTitle: "Loading admin console",
     loadingBody:
-      "Preparing registry coverage, bucket usage, funding queue, and bonus finalization detail.",
+      "Loading registry, bucket, funding, and bonus detail.",
     emptyTitle: "No admin console available",
     emptyBody:
-      "Admin coverage appears here once the current view exposes operator controls.",
+      "Admin controls appear for operator viewers.",
     accessCard: {
-      title: "Admin visibility is role-gated",
+      title: "Admin access required",
       body:
-        "This section stays out of the default team workspace. Switch to an operator/admin viewer to inspect registry, revenue ops, funding ops, and bonus ops.",
+        "Switch to an operator viewer to inspect registry, revenue, funding, and bonus controls.",
       viewerLabel: "Current viewer",
       accessLabel: "Admin controls",
       lockedValue: "Locked",
-      hint: "Operator controls unlock when the current viewer has admin access.",
+      hint: "Operator controls unlock for admin viewers.",
     },
     summary: {
       title: "Admin summary",
@@ -631,7 +632,7 @@ export const teamsCopy = {
     registry: {
       title: "Registry",
       description:
-        "Keep team status, retirement timing, successor context, and migration readiness readable from one place.",
+        "Review team status, retirement timing, successor, and migration state.",
       metrics: {
         active: "Active teams",
         retiring: "Retiring teams",
@@ -643,7 +644,7 @@ export const teamsCopy = {
         status: "Status",
         retirement: "Retirement",
         migration: "Migration",
-        workspace: "Workspace",
+        workspace: "Team",
       },
       retirement: {
         active: "No retirement scheduled",
@@ -651,7 +652,7 @@ export const teamsCopy = {
         retired: "Historical team",
       },
       workspace: {
-        full: "Full workspace",
+        full: "Full access",
         readOnlyPrefix: "Read-only",
         successor: (teamId: string) => `Successor: ${teamId}`,
         noSuccessor: "No successor set",
@@ -660,7 +661,7 @@ export const teamsCopy = {
     revenue: {
       title: "Revenue Ops",
       description:
-        "Show bucket headroom and whitelisted token wiring without expanding into low-level setter coverage.",
+        "Review bucket headroom and whitelisted revenue tokens.",
       directCredit: "Direct credit",
       bucketUsage: "Bucket usage",
       ofBudget: "of budget used",
@@ -685,7 +686,7 @@ export const teamsCopy = {
     fundingOps: {
       title: "Funding Ops",
       description:
-        "Track approval queue health, late-liquid exposure, and which approvals need operator follow-up.",
+        "Track approval queue health and late-liquid exposure.",
       metrics: {
         approvals: "Approvals visible",
         attention: "Operator attention",
@@ -701,7 +702,7 @@ export const teamsCopy = {
     bonusOps: {
       title: "Bonus Ops",
       description:
-        "Keep bonus period review separate from the user claim surface and summarize what still needs finalization.",
+        "Review bonus periods and finalization status.",
       metrics: {
         periods: "Periods visible",
         finalization: "Needs finalization",

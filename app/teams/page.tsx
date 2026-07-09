@@ -12,7 +12,7 @@ export const viewport: Viewport = {
 const baseMetadata: Metadata = {
   title: "Team Finances | Yearn Finance",
   description:
-    "Directory-first finance and operations workspace for registered protocol teams.",
+    "Review registered team revenue, costs, funding, bonus, and status.",
   applicationName: "Team Finances",
   icons: {
     icon: [
@@ -39,7 +39,7 @@ const baseMetadata: Metadata = {
   openGraph: {
     title: "Team Finances | Yearn Finance",
     description:
-      "Directory-first finance and operations workspace for registered protocol teams.",
+      "Review registered team revenue, costs, funding, bonus, and status.",
     url: "https://teams.yearn.fi",
     siteName: "Yearn Finance",
     locale: "en_US",
@@ -49,7 +49,7 @@ const baseMetadata: Metadata = {
     card: "summary",
     title: "Team Finances | Yearn Finance",
     description:
-      "Directory-first finance and operations workspace for registered protocol teams.",
+      "Review registered team revenue, costs, funding, bonus, and status.",
   },
 };
 

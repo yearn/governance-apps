@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 
 export interface StatItem {
   label: string;
-  value: string | React.ReactNode;
+  value: React.ReactNode;
 }
 
 interface StatsBarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -19,7 +19,7 @@ export function StatsBar({ items, className, ...props }: StatsBarProps) {
       )}
       {...props}
     >
-      <div className="container mx-auto px-4 md:px-6 flex flex-wrap gap-x-8 gap-y-2 items-center justify-center sm:justify-start">
+      <div className="container mx-auto flex min-h-10 flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 md:px-6 sm:justify-start">
         {items.map((item, index) => (
           <div key={index} className="flex items-center gap-2 text-xs">
             <span className="font-bold uppercase tracking-wide text-text-tertiary">

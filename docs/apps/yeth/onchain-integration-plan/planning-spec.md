@@ -168,8 +168,8 @@ The page should render:
 ### 5.2 Claim flow behavior
 
 - Claim UI is available only when `claimableNowEth > 0` and claim window is open (`now < deadline`).
-- If claim window is closed, show the existing "Manual late claim process" CTA (global URL can remain `https://gov.yearn.fi` for now).
-  - URL can remain static in code for MVP.
+- If claim window is closed, show the manual yETH claim request CTA.
+  - URL: `https://github.com/yearn/yeth-manual-recovery-claims/issues/new?template=manual-yeth-claim.yml`.
 
 ### 5.3 Recovery position behavior
 
@@ -261,6 +261,6 @@ The fork runbook is in `fork-runbook.md`.
 - [ ] yETH global feed (`NEXT_PUBLIC_YETH_GLOBAL_DATA_URL`) is configured in preprod/prod
 - [x] `claimable > 0` wallet sees claim UI and can transact
 - [x] `shares > 0` wallet sees recovery UI and can redeem
-- [x] claim window closed disables claim and links to manual process
+- [x] claim window closed disables claim and links to manual claim request
 - [x] feature gating still respected (`NEXT_PUBLIC_ENABLE_YETH` in production)
 - [ ] mainnet fork test passes (WP5)

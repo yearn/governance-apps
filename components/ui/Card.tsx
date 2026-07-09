@@ -19,7 +19,7 @@ export const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-box border p-6",
+      "rounded-box border p-6 transition-[background-color,border-color,box-shadow] duration-150 ease-out",
       CARD_VARIANT_CLASS_NAMES[variant],
       className
     )}

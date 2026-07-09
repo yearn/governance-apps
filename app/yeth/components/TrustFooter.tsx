@@ -102,14 +102,14 @@ export function TrustFooter({ global }: { global: YethGlobalState }) {
         </section>
 
         <section className="space-y-2">
-          <h3 className="font-bold text-text-primary">Manual Late Claim</h3>
+          <h3 className="font-bold text-text-primary">Manual yETH Claim</h3>
           <a
             href={global.manualLateClaimUrl}
             target="_blank"
             rel="noreferrer"
             className="inline-flex underline underline-offset-4"
           >
-            Open manual settlement instructions
+            Open manual yETH claim request
           </a>
         </section>
       </div>

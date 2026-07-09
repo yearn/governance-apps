@@ -72,7 +72,7 @@ export function ContractLink({ address, className }: ContractLinkProps) {
         onClick={() => {
           void copyAddress();
         }}
-        className="inline-flex items-center justify-center rounded p-0.5 text-text-tertiary opacity-0 transition-all group-hover/contract:opacity-100 group-focus-within/contract:opacity-100 hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+        className="inline-flex items-center justify-center rounded p-0.5 text-text-tertiary opacity-0 transition-[color,opacity] duration-150 ease-out group-hover/contract:opacity-100 group-focus-within/contract:opacity-100 hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
         aria-label="Copy contract address"
         title={copied ? "Address copied" : "Copy address"}
       >
@@ -89,7 +89,7 @@ export function ContractLink({ address, className }: ContractLinkProps) {
         href={`https://etherscan.io/address/${address}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center justify-center rounded p-0.5 text-text-tertiary opacity-0 transition-all group-hover/contract:opacity-100 group-focus-within/contract:opacity-100 hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+        className="inline-flex items-center justify-center rounded p-0.5 text-text-tertiary opacity-0 transition-[color,opacity] duration-150 ease-out group-hover/contract:opacity-100 group-focus-within/contract:opacity-100 hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
         aria-label="Open in Etherscan"
         title="Open in Etherscan"
       >

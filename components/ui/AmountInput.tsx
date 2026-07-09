@@ -72,7 +72,7 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
                 type="button"
                 onClick={onMaxClick}
                 disabled={disabled}
-                className="rounded-md bg-surface border border-border px-2 py-1 text-xs font-bold uppercase text-text-primary shadow-sm hover:border-border-hover hover:bg-surface-secondary active:translate-y-px transition-all disabled:opacity-50 disabled:pointer-events-none"
+                className="rounded-md bg-surface border border-border px-2 py-1 text-xs font-bold uppercase text-text-primary shadow-sm transition-[background-color,border-color,box-shadow,translate,transform,opacity] duration-150 ease-out hover:border-border-hover hover:bg-surface-secondary active:translate-y-px disabled:opacity-50 disabled:pointer-events-none"
               >
                 Max
               </button>

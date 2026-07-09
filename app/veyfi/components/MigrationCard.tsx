@@ -201,7 +201,7 @@ export function MigrationCard() {
                 "w-full md:w-72 flex flex-col justify-center gap-4 rounded-box p-5",
                 "bg-surface shadow-sm",
                 "border border-disco-600",
-                "transition-all cursor-help hover:shadow-md group",
+                "cursor-help transition-[box-shadow] duration-150 ease-out hover:shadow-md group",
               )}
             >
               <div>
@@ -237,7 +237,7 @@ export function MigrationCard() {
                 </div>
                 <div className="h-2 w-full bg-neutral-100 rounded-full overflow-hidden dark:bg-neutral-300">
                   <div
-                    className="h-full bg-disco-600 transition-all duration-500 ease-out"
+                    className="h-full bg-disco-600 transition-[width] duration-500 ease-out"
                     style={{
                       width: `${
                         Math.max(0, Math.min(1, aprMetrics.boostMultiplier - 1)) * 100

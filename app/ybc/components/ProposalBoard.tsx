@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import type {
   YbcMockDataV1,
+  YbcProposalRecord,
   YbcProposalType,
   YbcVoteChoice,
 } from "@/lib/clients/ybc";
@@ -180,6 +181,10 @@ export function ProposalBoard({
                 <ProposalCard
                   key={proposal.id}
                   proposal={proposal}
+                  defaultOpen={shouldOpenProposalByDefault(
+                    proposal,
+                    data.proposals.items.length
+                  )}
                   proposerLabel={
                     accountLabels[proposal.proposer.toLowerCase()] ??
                     formatAddress(proposal.proposer)
@@ -287,6 +292,24 @@ export function ProposalBoard({
         </div>
       </div>
     </section>
+  );
+}
+
+function shouldOpenProposalByDefault(
+  proposal: YbcProposalRecord,
+  proposalCount: number
+) {
+  if (proposalCount < 3) {
+    return true;
+  }
+
+  return (
+    proposal.phase === "discussion" ||
+    proposal.phase === "voting" ||
+    proposal.phase === "awaiting-execution" ||
+    proposal.actions.canRetract ||
+    proposal.actions.canVote ||
+    proposal.actions.canExecute
   );
 }
 

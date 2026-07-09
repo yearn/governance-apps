@@ -41,6 +41,11 @@
   --color-tokyo-700: #460dc9; /* Hover */
   --color-tokyo-900: #2a0580;
 
+  /* --- Colors: Semantic State --- */
+  --color-success-700: #00796d;
+  --color-error-700: #c73203;
+  --color-warning-300: var(--color-sunset-100);
+
   /* --- Semantic Theme Tokens --- */
   --color-app: var(--color-neutral-100);
   --color-surface: var(--color-neutral-0);
@@ -62,6 +67,25 @@
 }
 
 @layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-kerning: normal;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  figcaption,
+  blockquote {
+    text-wrap: pretty;
+  }
+
   :root[data-theme="soft-dark"] {
     /* --- Dark Theme Neutrals --- */
     --color-neutral-0: #1a1a1a;
@@ -121,10 +145,11 @@ body {
   background-color: var(--color-app);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
   transition: background-color 200ms ease, color 200ms ease;
 }
 
 .font-number {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }

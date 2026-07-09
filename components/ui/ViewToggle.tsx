@@ -23,15 +23,15 @@ type ViewToggleProps<TValue extends string = ViewToggleValue> = {
 const DEFAULT_VIEW_TOGGLE_OPTIONS: ReadonlyArray<ViewToggleOption<ViewToggleValue>> = [
   {
     value: "visual",
-    label: "Visual",
-    description: "Card view",
-    icon: <VisualIcon />,
+    label: "Cards",
+    description: "Cards view",
+    icon: <CardsIcon />,
   },
   {
     value: "audit",
-    label: "Audit",
+    label: "Table",
     description: "Table view",
-    icon: <AuditIcon />,
+    icon: <TableIcon />,
   },
 ];
 
@@ -61,7 +61,7 @@ export function ViewToggle<TValue extends string = ViewToggleValue>({
             aria-pressed={isActive}
             onClick={() => onChange(option.value)}
             className={cn(
-              "inline-flex min-h-9 min-w-[6.75rem] items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app",
+              "inline-flex min-h-10 min-w-[6.75rem] items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-bold transition-[background-color,color,box-shadow] duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app",
               isActive
                 ? "bg-surface text-text-primary shadow-sm"
                 : "text-text-secondary hover:text-text-primary"
@@ -81,7 +81,7 @@ export function ViewToggle<TValue extends string = ViewToggleValue>({
   );
 }
 
-function VisualIcon() {
+function CardsIcon() {
   return (
     <span className="grid size-4 grid-cols-2 gap-0.5">
       <span className="rounded-[2px] bg-current" />
@@ -92,7 +92,7 @@ function VisualIcon() {
   );
 }
 
-function AuditIcon() {
+function TableIcon() {
   return (
     <span className="grid size-4 gap-0.5">
       <span className="h-0.5 rounded-full bg-current" />

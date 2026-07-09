@@ -6,9 +6,10 @@ describe("getButtonClassName", () => {
     const className = getButtonClassName({ variant: "secondary", size: "sm" });
 
     expect(className).toContain("rounded-box");
-    expect(className).toContain("h-8");
+    expect(className).toContain("h-10");
     expect(className).toContain("bg-surface");
     expect(className).toContain("border-border");
+    expect(className).toContain("active:scale-[0.96]");
   });
 
   it("appends caller-provided classes", () => {
@@ -23,5 +24,11 @@ describe("getButtonClassName", () => {
     expect(className).toContain("bg-tokyo-600");
     expect(className).toContain("hover:bg-tokyo-700");
     expect(className).toContain("h-14");
+  });
+
+  it("can disable press scaling for static buttons", () => {
+    const className = getButtonClassName({ static: true });
+
+    expect(className).not.toContain("active:scale-[0.96]");
   });
 });

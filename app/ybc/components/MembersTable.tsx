@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ViewToggle, type ViewToggleValue } from "@/components/ui/ViewToggle";
+import { ViewToggle } from "@/components/ui/ViewToggle";
+import { usePersistentViewToggle } from "@/components/ui/usePersistentViewToggle";
 import {
   Table,
   TableBody,
@@ -29,8 +29,13 @@ type MembersTableProps = {
   currentAddress?: string | null;
 };
 
+const MEMBERS_VIEW_STORAGE_KEY = "yearn.ybc.members.view";
+
 export function MembersTable({ roster, currentAddress }: MembersTableProps) {
-  const [viewMode, setViewMode] = useState<ViewToggleValue>("visual");
+  const [viewMode, setViewMode] = usePersistentViewToggle(
+    MEMBERS_VIEW_STORAGE_KEY,
+    "audit"
+  );
 
   return (
     <section id="members" className="space-y-6">
@@ -208,8 +213,8 @@ function MemberCard({
 
   return (
     <Card
-      variant={isCurrentMember ? "default" : "flat"}
-      className="flex min-h-[24rem] flex-col gap-5"
+      variant="default"
+      className="flex min-h-[24rem] flex-col gap-5 bg-surface shadow-sm"
       data-state={isCurrentMember ? "current" : undefined}
     >
       <div className="flex items-start justify-between gap-4">

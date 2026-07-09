@@ -250,10 +250,6 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
       </button>
     </Tooltip>
   ) : "-- YFI";
-  const totalBalance = balances
-    ? balances.styfi.total + balances.styfix.total
-    : 0n;
-  const isNewUser = totalBalance === 0n;
   const isSummaryLoading = isAccountLoading || isVeyfiLoading;
 
   return (
@@ -300,7 +296,6 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
           <StyfiCockpit
             selectedAsset={activeAsset}
             onSelectAsset={handleSelectAsset}
-            isNewUser={isNewUser}
             balances={balances}
             externalPositions={externalPositions}
           />

@@ -187,14 +187,13 @@ export function TeamsPageClient() {
           <div className="max-w-3xl space-y-5">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="brand">{teamsCopy.app.routeKey}</Badge>
-              <Badge variant="warning">{teamsCopy.page.productionGate}</Badge>
             </div>
 
             <div className="space-y-4">
               <p className="text-sm font-bold uppercase text-text-tertiary">
                 {teamsCopy.page.eyebrow}
               </p>
-              <h1 className="text-4xl font-bold md:text-6xl">{teamsCopy.page.title}</h1>
+              <h1 className="text-3xl font-bold md:text-5xl">{teamsCopy.page.title}</h1>
               <p className="max-w-2xl text-base leading-7 text-text-secondary">
                 {teamsCopy.page.description}
               </p>

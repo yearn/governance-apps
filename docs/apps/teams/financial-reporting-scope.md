@@ -44,7 +44,7 @@ Available scopes:
 - Historical period: selected `team.financialPeriods[].financials`
 - All-time: `team.lifetime`
 
-The selected scope affects both visual cards and the audit table.
+The selected scope affects both Cards and Table.
 
 Rules:
 
@@ -57,9 +57,9 @@ Rules:
   available.
 - Missing team data for a selected historical period renders unavailable values rather
   than falling back to another period or showing real zero financials.
-- Visual cards retain compact all-time context even when the selected scope is current
+- Cards retain compact all-time context even when the selected scope is current
   or historical.
-- Audit table rows show the selected scope above the table.
+- Table rows show the selected scope above the table.
 
 ## Workspace Behavior
 
@@ -85,7 +85,7 @@ The current period row is marked when it appears in history.
 
 ## Acceptance Criteria
 
-- Directory visual cards and audit table can show current-period, selected-period, and
+- Directory Cards and Table can show current-period, selected-period, and
   all-time financials.
 - Workspace exposes period financial history for the selected team.
 - Feed-backed mapper preserves all feed period rows in the domain model.

@@ -158,6 +158,10 @@ Visual indicator for cooldowns or limits.
 
 ## 6. Developer Workflow
 
+Use [`design-review-process.md`](design-review-process.md) for route-level UI
+and copy review. It combines the shared visual baseline, copy rules, static
+detector, browser review, and required tests.
+
 ### 6.1. Visual Testing
 
 We maintain a "Kitchen Sink" page to audit components without needing to connect a wallet or perform transactions.

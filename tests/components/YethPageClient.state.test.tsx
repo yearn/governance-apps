@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { YethAccountState, YethGlobalState } from "@/lib/clients/yeth";
+import {
+  YETH_MANUAL_RECOVERY_CLAIM_URL,
+  type YethAccountState,
+  type YethGlobalState,
+} from "@/lib/clients/yeth";
 import { setFixedNow } from "@/lib/mocks/time";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { yethCopy } from "@/app/yeth/messages";
@@ -57,7 +61,7 @@ function buildGlobalState(
     asOf: CLOSES_AT - 600,
     claimWindow: { closesAt: CLOSES_AT },
     approvedYipUrl: "https://gov.yearn.fi",
-    manualLateClaimUrl: "https://gov.yearn.fi",
+    manualLateClaimUrl: YETH_MANUAL_RECOVERY_CLAIM_URL,
     contracts: {
       claimContract: "0x1111111111111111111111111111111111111111",
       recoveryVault: "0x2222222222222222222222222222222222222222",
@@ -148,9 +152,16 @@ describe("YethPageClient wallet state gating", () => {
     expect(screen.queryByText(yethCopy.postClaim.stayingTitle)).not.toBeInTheDocument();
     expect(screen.getByText(yethCopy.page.noSnapshotClaimTitle)).toBeInTheDocument();
     expect(screen.getByText(yethCopy.page.noSnapshotClaimBody)).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: yethCopy.page.noSnapshotClaimManualCta })
-    ).toHaveAttribute("href", currentGlobalState?.manualLateClaimUrl);
+    const manualClaimLinks = screen.getAllByRole("link", {
+      name: yethCopy.page.noSnapshotClaimManualCta,
+    });
+    expect(manualClaimLinks).not.toHaveLength(0);
+    for (const manualClaimLink of manualClaimLinks) {
+      expect(manualClaimLink).toHaveAttribute(
+        "href",
+        currentGlobalState?.manualLateClaimUrl
+      );
+    }
     expect(screen.getByText("View Contracts, Risks & Sources")).toBeInTheDocument();
   });
 
