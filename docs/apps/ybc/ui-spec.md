@@ -68,11 +68,17 @@ Default structure:
 
 1. Overview summary.
 2. Action-prioritized proposal feed when proposals are in discussion, voting, or awaiting execution.
-3. Visual member roster by default, with dense audit table as a secondary view.
-4. Rewards handoff.
+3. Member roster table by default, with Cards available as a saved preference.
+4. Rewards.
 5. Operator panel, shown only for operator/admin perspectives.
 
 Default landing state: command-center overview.
+
+Design alignment follows the root `DESIGN.md` product baseline. YBC should keep its
+governance-board shape while matching the polished governance app family: restrained
+neutral surfaces, 8px cards and controls, compact tabular numbers, persistent terminal
+and blocked-action copy, and no decorative dashboard tropes. Proposal lifecycle and
+member weight hierarchy should carry the experience, not visual ornament.
 
 The route should render the core command-center sections on one page instead of forcing
 members, proposals, rewards, and operator controls behind line tabs. When there are
@@ -85,13 +91,13 @@ Approved shell map:
   total governance influence, current epoch, active proposals, and proposals awaiting
   execution.
 - Members keeps raw stake, effective voting weight, target weight, maturity progress,
-  and source mix visible as separate values in both visual and audit views.
+  and source mix visible as separate values in both Table and Cards views.
 - Proposals maps addition and expulsion proposals through discussion, voting, awaiting
   execution, executed, and expired terminal states.
-- Proposal cards show a phase timeline, threshold marker, and prominent vote or execute
-  actions when available.
-- Rewards shows YBC-related rewards and hands claim actions to the shared claim surface.
-- Operator is conditional and limited to scoped membership, operator, hooks, threshold,
+- Proposal cards keep phase, target, proposer, and next action visible in the summary.
+  The timeline, threshold marker, votes, and action buttons live inside each disclosure.
+- Rewards shows YBC rewards and points claims to the shared rewards route.
+- Operator is conditional and limited to membership, operator, hooks, threshold,
   and reward status controls.
 - Deep links such as `#overview`, `#members`, `#proposals`, `#rewards`, and `#admin`
   should scroll to the matching section.
@@ -143,7 +149,7 @@ explanations are not enough.
 Show:
 - member’s YBC-related rewards
 - statement that rewards are claimed through the shared reward flow
-- CTA that hands off to the shared claim surface instead of duplicating reward-claim machinery
+- CTA that points to the shared rewards route instead of duplicating reward claims
 
 ## 6. Hero section
 
@@ -159,8 +165,7 @@ Recommended hero stats:
 
 ## 7. Members table
 
-The default roster view is visual cards. The dense table remains available through a
-view toggle for audit, reviewer, and operator workflows.
+The default roster view is Table. Cards remain available through a saved view toggle.
 
 Columns:
 - member
@@ -171,7 +176,7 @@ Columns:
 - maturity progress
 - source mix summary
 
-Visual priority:
+Cards show:
 - maturity progress bar
 - effective vs target weight
 
@@ -185,6 +190,12 @@ Each card should show:
 - votes
 - phase
 - next available action
+
+Proposal cards should use disclosures so long proposal history stays scannable. When
+there are fewer than three proposals, keep cards open by default. When there are three
+or more, keep discussion, voting, awaiting-execution, and otherwise actionable
+proposals open; collapse terminal history by default. Collapsed cards must still show
+the proposal id, type, phase, target, proposer, and next action.
 
 Actions to support before onchain writes land:
 - propose addition

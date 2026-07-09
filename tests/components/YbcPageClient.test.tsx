@@ -64,6 +64,7 @@ async function dispatchYbcHash(hash: string, scrollIntoView: ReturnType<typeof v
 describe("YbcPageClient", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/");
+    window.localStorage.clear();
     resetYbcMockStore({ scenarioId: "observer" });
   });
 
@@ -113,8 +114,10 @@ describe("YbcPageClient", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(ybcCopy.operatorPanel.operatorsTitle)).not.toBeInTheDocument();
 
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Audit/i }));
+    expect(screen.getByRole("button", { name: /Table/i })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
     const table = screen.getByRole("table");
     expect(
       within(table).getByRole("columnheader", {
@@ -138,6 +141,21 @@ describe("YbcPageClient", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText("5,650 weight").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("100,000 weight").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("loads the saved YBC member view", async () => {
+    const data = await getScenarioData("observer");
+    window.localStorage.setItem("yearn.ybc.members.view", "visual");
+
+    render(<YbcPageContent data={data} />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /Cards/i })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
   });
 
   it("renders the member perspective with distinct current and target weight", async () => {
@@ -369,7 +387,13 @@ describe("YbcPageClient", () => {
     const proposal = screen.getByRole("article", {
       name: /YBC-4/i,
     });
+    expect(screen.getByRole("article", { name: /YBC-8/i })).toHaveAttribute(
+      "open"
+    );
+    expect(proposal).not.toHaveAttribute("open");
     expect(within(proposal).getByText("Expired")).toBeInTheDocument();
+    fireEvent.click(within(proposal).getByText("Details"));
+    expect(proposal).toHaveAttribute("open");
     expect(
       within(proposal).getByText(/start a new proposal instead/i)
     ).toBeInTheDocument();

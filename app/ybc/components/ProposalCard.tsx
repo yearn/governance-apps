@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { IconChevron } from "@/components/icons/IconChevron";
 import { TimelineStepper, type TimelineStep } from "@/components/ui/TimelineStepper";
 import type { YbcProposalRecord } from "@/lib/clients/ybc";
 import {
@@ -19,6 +21,7 @@ type ProposalCardProps = {
   onVote?: (choice: YbcVoteChoice) => void;
   onExecute?: () => void;
   transactionPending?: boolean;
+  defaultOpen?: boolean;
 };
 
 type TimelineStatus = "complete" | "current" | "upcoming" | "closed";
@@ -56,16 +59,27 @@ export function ProposalCard({
   onVote,
   onExecute,
   transactionPending = false,
+  defaultOpen = false,
 }: ProposalCardProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const threshold = getYbcProposalThresholdState(proposal);
   const headingId = `${proposal.id}-heading`;
   const timelineRows = getTimelineRows(proposal);
 
   return (
-    <Card className="border-border bg-app/70 p-0">
-      <div role="article" aria-labelledby={headingId} className="space-y-6 p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-3">
+    <Card className="overflow-hidden border-border bg-app/70 p-0">
+      <details
+        open={isOpen}
+        onToggle={(event) => setIsOpen(event.currentTarget.open)}
+        role="article"
+        aria-labelledby={headingId}
+        className="group"
+      >
+        <summary
+          aria-label={`${isOpen ? "Collapse" : "Expand"} ${proposal.id} proposal details`}
+          className="grid cursor-pointer list-none gap-4 p-6 transition-colors hover:bg-surface-secondary/40 focus:outline-none focus-visible:bg-surface-secondary/60 lg:grid-cols-[minmax(0,1fr)_minmax(260px,auto)] [&::-webkit-details-marker]:hidden"
+        >
+          <div className="min-w-0 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="neutral">{proposal.id}</Badge>
               <Badge variant="brand">{proposalTypeLabel[proposal.type]}</Badge>
@@ -83,125 +97,142 @@ export function ProposalCard({
               </p>
             </div>
           </div>
-          <div className="min-w-[200px] rounded-box border border-border bg-surface p-3">
+
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-1">
+            <div className="min-w-0 rounded-box border border-border bg-surface p-3">
+              <p className="text-xs font-bold uppercase text-text-tertiary">
+                Next action
+              </p>
+              <p className="mt-1 text-sm font-bold text-text-primary">
+                {getNextActionLabel(proposal)}
+              </p>
+            </div>
+            <span className="inline-flex h-10 items-center justify-center gap-2 rounded-box border border-border bg-surface px-3 text-xs font-bold text-text-secondary transition-[background-color,color] group-hover:text-text-primary">
+              Details
+              <IconChevron
+                className="h-4 w-4 transition-transform duration-150 group-open:rotate-180"
+                aria-hidden="true"
+              />
+            </span>
+          </div>
+        </summary>
+
+        <div className="space-y-6 border-t border-border p-6">
+          <div className="rounded-box border border-border bg-surface p-3">
             <p className="text-xs font-bold uppercase text-text-tertiary">
-              Next action
+              Status
             </p>
-            <p className="mt-1 text-sm font-bold text-text-primary">
-              {getNextActionLabel(proposal)}
-            </p>
-            <p className="mt-2 text-xs leading-5 text-text-secondary">
+            <p className="mt-2 text-sm leading-6 text-text-secondary">
               {getDisabledReason(proposal)}
             </p>
           </div>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.95fr)]">
-          <div className="space-y-4">
-            <div className="rounded-box border border-border bg-surface p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold uppercase text-text-tertiary">
-                    Threshold target
-                  </p>
-                  <p className="mt-1 text-lg font-bold text-text-primary">
-                    {formatPercent(threshold.thresholdRatio, 0)}
-                  </p>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.95fr)]">
+            <div className="space-y-4">
+              <div className="rounded-box border border-border bg-surface p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-text-tertiary">
+                      Threshold target
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-text-primary">
+                      {formatPercent(threshold.thresholdRatio, 0)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold uppercase text-text-tertiary">
+                      Current support
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-text-primary">
+                      {formatPercent(threshold.currentRatio, 1)}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold uppercase text-text-tertiary">
-                    Current support
-                  </p>
-                  <p className="mt-1 text-lg font-bold text-text-primary">
-                    {formatPercent(threshold.currentRatio, 1)}
-                  </p>
+                <ThresholdVoteBar
+                  currentBps={threshold.currentBps}
+                  thresholdBps={threshold.thresholdBps}
+                  thresholdMet={threshold.thresholdMet}
+                />
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-secondary">
+                  <span>{formatAmount(proposal.votes.yea)} yea weight</span>
+                  <span>{formatAmount(proposal.votes.total)} total weight</span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">
+                  <span>{formatAmount(proposal.votes.nay)} nay weight</span>
+                  <span>
+                    {threshold.thresholdMet ? "Threshold met" : "Below threshold"}
+                  </span>
                 </div>
               </div>
-              <ThresholdVoteBar
-                currentBps={threshold.currentBps}
-                thresholdBps={threshold.thresholdBps}
-                thresholdMet={threshold.thresholdMet}
-              />
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-secondary">
-                <span>{formatAmount(proposal.votes.yea)} yea weight</span>
-                <span>{formatAmount(proposal.votes.total)} total weight</span>
-              </div>
-              <div className="mt-1 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">
-                <span>{formatAmount(proposal.votes.nay)} nay weight</span>
-                <span>
-                  {threshold.thresholdMet ? "Threshold met" : "Below threshold"}
-                </span>
-              </div>
-            </div>
 
-            <div className="grid gap-3">
-              {proposal.actions.canRetract && onRetract ? (
-                <Button
-                  className="w-full"
-                  variant="secondary"
-                  onClick={onRetract}
-                  disabled={transactionPending}
-                  isLoading={transactionPending}
-                >
-                  Retract proposal
-                </Button>
-              ) : null}
-              {proposal.actions.canVote && onVote ? (
-                <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3">
+                {proposal.actions.canRetract && onRetract ? (
                   <Button
                     className="w-full"
-                    size="lg"
-                    onClick={() => onVote("yea")}
-                    disabled={transactionPending}
-                    isLoading={transactionPending}
-                  >
-                    Vote yea
-                  </Button>
-                  <Button
-                    className="w-full"
-                    size="lg"
                     variant="secondary"
-                    onClick={() => onVote("nay")}
+                    onClick={onRetract}
                     disabled={transactionPending}
                     isLoading={transactionPending}
                   >
-                    Vote nay
+                    Retract proposal
                   </Button>
-                </div>
-              ) : null}
-              {proposal.actions.canExecute && onExecute ? (
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={onExecute}
-                  disabled={transactionPending}
-                  isLoading={transactionPending}
-                >
-                  Execute proposal
-                </Button>
-              ) : null}
-              {!proposal.actions.canRetract &&
-              !proposal.actions.canVote &&
-              !proposal.actions.canExecute ? (
-                <Button className="w-full" disabled>
-                  {getDisabledActionLabel(proposal)}
-                </Button>
-              ) : null}
+                ) : null}
+                {proposal.actions.canVote && onVote ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      onClick={() => onVote("yea")}
+                      disabled={transactionPending}
+                      isLoading={transactionPending}
+                    >
+                      Vote yea
+                    </Button>
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      variant="secondary"
+                      onClick={() => onVote("nay")}
+                      disabled={transactionPending}
+                      isLoading={transactionPending}
+                    >
+                      Vote nay
+                    </Button>
+                  </div>
+                ) : null}
+                {proposal.actions.canExecute && onExecute ? (
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={onExecute}
+                    disabled={transactionPending}
+                    isLoading={transactionPending}
+                  >
+                    Execute proposal
+                  </Button>
+                ) : null}
+                {!proposal.actions.canRetract &&
+                !proposal.actions.canVote &&
+                !proposal.actions.canExecute ? (
+                  <Button className="w-full" disabled>
+                    {getDisabledActionLabel(proposal)}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="rounded-box border border-border bg-surface p-4">
+              <p className="text-xs font-bold uppercase text-text-tertiary">
+                Proposal timeline (UTC)
+              </p>
+              <TimelineStepper
+                aria-label={`${proposal.id} proposal phase timeline`}
+                steps={timelineRows}
+                className="mt-4"
+              />
             </div>
           </div>
-
-          <div className="rounded-box border border-border bg-surface p-4">
-            <p className="text-xs font-bold uppercase text-text-tertiary">
-              Proposal timeline (UTC)
-            </p>
-            <TimelineStepper
-              aria-label={`${proposal.id} proposal phase timeline`}
-              steps={timelineRows}
-              className="mt-4"
-            />
-          </div>
         </div>
-      </div>
+      </details>
     </Card>
   );
 }

@@ -12,7 +12,7 @@ export const viewport: Viewport = {
 const baseMetadata: Metadata = {
   title: "Yearn Builder's Collective | Yearn Finance",
   description:
-    "Governance and membership workspace for the Yearn Builder's Collective.",
+    "Review YBC influence, member weight, proposals, and rewards.",
   applicationName: "Yearn Builder's Collective",
   icons: {
     icon: [
@@ -39,7 +39,7 @@ const baseMetadata: Metadata = {
   openGraph: {
     title: "Yearn Builder's Collective | Yearn Finance",
     description:
-      "Governance and membership workspace for the Yearn Builder's Collective.",
+      "Review YBC influence, member weight, proposals, and rewards.",
     url: "https://ybc.yearn.fi",
     siteName: "Yearn Finance",
     locale: "en_US",
@@ -49,7 +49,7 @@ const baseMetadata: Metadata = {
     card: "summary",
     title: "Yearn Builder's Collective | Yearn Finance",
     description:
-      "Governance and membership workspace for the Yearn Builder's Collective.",
+      "Review YBC influence, member weight, proposals, and rewards.",
   },
 };
 

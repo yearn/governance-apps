@@ -63,7 +63,7 @@ export function RewardsCard({ data, id, hostname }: RewardsCardProps) {
             />
           </div>
 
-          <Card className="bg-app/50 p-4">
+          <div className="rounded-box border border-border bg-app/50 p-4">
             <div className="space-y-2">
               <h3 className="text-lg font-bold">{copy.rewards.periodsTitle}</h3>
               <p className="max-w-3xl text-sm leading-6 text-text-secondary">
@@ -77,20 +77,20 @@ export function RewardsCard({ data, id, hostname }: RewardsCardProps) {
                 ))}
               </div>
             ) : (
-              <Card className="mt-4 border-dashed bg-app/40">
+              <div className="mt-4 rounded-box border border-dashed border-border bg-app/40 p-4">
                 <div className="space-y-3">
                   <h4 className="text-base font-bold">{emptyState.title}</h4>
                   <p className="text-sm leading-6 text-text-secondary">
                     {emptyState.body}
                   </p>
                 </div>
-              </Card>
+              </div>
             )}
-          </Card>
+          </div>
         </div>
 
         <div className="space-y-4">
-          <Card className="bg-app/50 p-4">
+          <div className="rounded-box border border-border bg-app/50 p-4">
             <p className="text-xs font-bold uppercase text-text-tertiary">
               {copy.rewards.viewerTitle}
             </p>
@@ -105,9 +105,9 @@ export function RewardsCard({ data, id, hostname }: RewardsCardProps) {
                 value={copy.rewards.states.sharedClaimMode}
               />
             </div>
-          </Card>
+          </div>
 
-          <Card className="bg-app/50 p-4">
+          <div className="rounded-box border border-border bg-app/50 p-4">
             <p className="text-xs font-bold uppercase text-text-tertiary">
               {copy.rewards.handoffTitle}
             </p>
@@ -134,7 +134,7 @@ export function RewardsCard({ data, id, hostname }: RewardsCardProps) {
                 </Link>
               )}
             </div>
-          </Card>
+          </div>
         </div>
       </div>
     </Card>
@@ -180,12 +180,12 @@ function RewardPeriodCard({ period }: { period: YbcRewardPeriod }) {
 
 function SummaryStat({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="bg-surface">
+    <div className="rounded-box border border-border bg-surface p-4">
       <div className="space-y-2">
         <p className="text-xs font-bold uppercase text-text-tertiary">{label}</p>
         <p className="font-number text-2xl font-bold text-text-primary">{value}</p>
       </div>
-    </Card>
+    </div>
   );
 }
 

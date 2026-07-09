@@ -26,7 +26,6 @@ export function YbcHero({ data }: YbcHeroProps) {
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="brand">{copy.app.routeKey}</Badge>
-            <Badge variant="warning">{copy.page.productionGate}</Badge>
             <Badge variant={isMember ? "success" : "neutral"}>
               {isMember ? copy.hero.states.member : copy.hero.states.observer}
             </Badge>
@@ -37,7 +36,7 @@ export function YbcHero({ data }: YbcHeroProps) {
               {copy.page.eyebrow}
             </p>
             <div className="space-y-3">
-              <h1 className="text-4xl font-bold md:text-6xl">{copy.page.title}</h1>
+              <h1 className="text-3xl font-bold md:text-5xl">{copy.page.title}</h1>
               <p className="max-w-3xl text-base leading-7 text-text-secondary md:text-lg">
                 {copy.page.description}
               </p>
@@ -90,9 +89,7 @@ export function YbcHero({ data }: YbcHeroProps) {
         <Card className="flex h-full flex-col justify-between gap-6">
           <div className="space-y-3">
             <p className="text-sm font-bold uppercase text-text-tertiary">
-              {isMember
-                ? copy.hero.perspective.memberTitle
-                : copy.hero.perspective.observerTitle}
+              {copy.hero.perspective.eyebrow}
             </p>
             <h2 className="text-2xl font-bold">
               {isMember
@@ -156,7 +153,6 @@ export function YbcHeroSkeleton() {
         <div className="space-y-6">
           <div className="flex gap-2">
             <Skeleton className="h-6 w-16" />
-            <Skeleton className="h-6 w-28" />
             <Skeleton className="h-6 w-20" />
           </div>
           <div className="space-y-3">

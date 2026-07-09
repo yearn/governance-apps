@@ -8,39 +8,38 @@ export const ybcCopy = {
   },
   page: {
     title: "Yearn Builder's Collective",
-    eyebrow: "YBC governance workspace",
+    eyebrow: "YBC governance",
     description:
-      "Track collective influence, member weight, proposals, and rewards handoff.",
-    productionGate: "Production gated",
+      "Review influence, member weight, proposals, and rewards.",
     loadingTitle: "Loading collective influence",
     loadingBody:
-      "Loading the YBC overview, member roster, and proposal board.",
+      "Loading the YBC overview, members, and proposals.",
     errorTitle: "Unable to load collective influence",
     errorBody:
-      "YBC data could not be loaded. Retry to restore the overview, member roster, and proposal board.",
+      "YBC data could not be loaded. Retry to restore the page.",
     retryCta: "Retry",
   },
   proposalBoard: {
     title: "Proposal Board",
-    eyebrow: "Proposal lifecycle",
+    eyebrow: "Proposals",
     description:
-      "Inspect every proposal phase with explicit UTC timing, visible vote thresholds, and scoped actions for proposing, retracting, voting, and executing membership changes.",
-    emptyTitle: "No active proposal history in this perspective",
+      "Review proposal timing, vote thresholds, and available actions.",
+    emptyTitle: "No proposal history",
     emptyBody:
-      "There are no active or historical proposals in this view right now.",
+      "There are no active or past proposals right now.",
     emptyHint:
-      "New member proposals and their history will appear here as they move through discussion, voting, and execution.",
+      "Member proposals will appear here during discussion, voting, and execution.",
     thresholdTitle: "Threshold guide",
     viewerTitle: "Current viewer",
     terminalTitle: "Expired proposals",
     terminalBody:
-      "Expired proposals stay visible as terminal history. The UI does not offer a revive path; members must start a fresh proposal instead.",
+      "Expired proposals stay visible. Members must start a new proposal instead.",
     proposeAdditionCta: "Propose add member",
     proposeExpulsionCta: "Propose remove member",
     proposeAdditionDisabledCta: "Add proposal unavailable",
     proposeExpulsionDisabledCta: "Remove proposal unavailable",
     proposeDisabledBody:
-      "Proposal creation is blocked for this viewer or runtime, so add/remove membership actions stay unavailable.",
+      "This viewer cannot create member proposals.",
     targetLabel: "Target address",
     targetInvalid: "Enter a valid Ethereum address before proposing.",
     summary: {
@@ -50,11 +49,11 @@ export const ybcCopy = {
     },
   },
   rewards: {
-    title: "Rewards Handoff",
-    eyebrow: "Rewards visibility",
-    handoffBadge: "Shared claim surface",
+    title: "Rewards",
+    eyebrow: "Rewards",
+    handoffBadge: "Shared claim route",
     description:
-      "Track YBC-attributed rewards here, then hand claim execution to the shared rewards route instead of implying a separate YBC claim stack.",
+      "Review YBC rewards. Claims use the shared rewards route.",
     summary: {
       pending: "Pending for this wallet",
       claimable: "Claimable on shared route",
@@ -62,11 +61,11 @@ export const ybcCopy = {
     },
     periodsTitle: "Reward periods",
     periodsBody:
-      "Each period keeps the YBC reward source visible here while the actual claim path stays on the shared rewards surface.",
+      "Each period shows its YBC source and claim status.",
     viewerTitle: "Current viewer",
-    handoffTitle: "Claim path",
+    handoffTitle: "Claim route",
     handoffBody:
-      "YBC shows rewards sourced from member weight and operator bonuses, but claiming remains on the shared stYFI rewards surface.",
+      "YBC shows member and operator rewards. Claiming stays on the shared stYFI rewards route.",
     disabledClaimCta: "Shared rewards unavailable",
     rows: {
       role: "Role",
@@ -80,20 +79,20 @@ export const ybcCopy = {
       observer: "Observer",
       member: "Member",
       operator: "Operator",
-      sharedClaimMode: "Shared reward surface only",
+      sharedClaimMode: "Shared rewards route only",
       finalized: "Finalized",
       pending: "Accruing",
       memberWeight: "Member weight",
       operatorBonus: "Operator bonus",
       emptyMemberTitle: "No finalized YBC rewards yet",
       emptyMemberBody:
-        "This member perspective keeps the handoff visible, but there are no finalized YBC reward periods ready for the shared claim surface yet.",
-      emptyObserverTitle: "Connect a member wallet to view YBC reward periods",
+        "No finalized YBC reward periods are ready to claim yet.",
+      emptyObserverTitle: "Connect a member wallet to view YBC rewards",
       emptyObserverBody:
-        "Observer wallets can inspect the reward section, but only member wallets with YBC rewards unlock the shared-claim handoff.",
+        "Only member wallets with YBC rewards can use the claim route.",
       emptyUnseededTitle: "No YBC reward periods seeded",
       emptyUnseededBody:
-        "Reward periods will appear here once YBC distributions are finalized for this view.",
+        "Reward periods appear here after YBC distributions are finalized.",
     },
   },
   sections: {
@@ -119,12 +118,13 @@ export const ybcCopy = {
       awaitingExecution: "Awaiting execution",
     },
     perspective: {
+      eyebrow: "Current view",
       observerTitle: "Observer view",
       observerBody:
-        "Browse member weight and maturity without exposing proposal or operator actions.",
+        "Read-only view of member weight and maturity.",
       memberTitle: "Member view",
       memberBody:
-        "Your raw stake, active voting weight, and full target weight remain separate until maturity completes.",
+        "Raw stake, active weight, and target weight stay separate until maturity completes.",
       membership: "Membership",
       collectiveAddress: "Collective address",
       rawStaked: "Raw staked",
@@ -166,35 +166,35 @@ export const ybcCopy = {
       maturesOn: "Full weight on",
       emptyTitle: "No members seeded",
       emptyBody:
-        "Member records will appear here once the collective has active roster data.",
+        "Member records appear here once the collective has roster data.",
     },
   },
   operatorPanel: {
-    title: "Scoped Operator Panel",
-    eyebrow: "Scoped operator access",
+    title: "Operator Panel",
+    eyebrow: "Operator access",
     description:
-      "Expose only add/remove member controls, current operator visibility, governance hook wiring, and reward sync status. Generic arbitrary-call tooling stays out of scope.",
+      "Manage member proposal entry points and review operator, hook, and reward status.",
     accessCard: {
       title: "Operator access required",
       body:
-        "Operator access unlocks scoped membership controls and governance wiring details.",
+        "Operator access unlocks member controls and governance details.",
       viewerLabel: "Current viewer",
-      controlsLabel: "Scoped member controls",
+      controlsLabel: "Member controls",
       lockedValue: "Locked",
       hint: "Operator access is required to inspect the full panel.",
     },
-    operationsTitle: "Scoped member overrides",
+    operationsTitle: "Member changes",
     operationsBody:
-      "These actions reuse the proposal flow for membership changes instead of introducing separate admin write machinery.",
+      "These actions open the member proposal flow.",
     operations: {
       addMember: {
         title: "Add member",
-        body: "Open the add-member proposal flow directly from the operator panel.",
+        body: "Open the add-member proposal flow.",
         cta: "Start add member flow",
       },
       removeMember: {
         title: "Remove member",
-        body: "Open the remove-member proposal flow without expanding into broader admin tooling.",
+        body: "Open the remove-member proposal flow.",
         cta: "Start remove member flow",
       },
     },
@@ -202,7 +202,7 @@ export const ybcCopy = {
     operationDisabled: "Unavailable",
     operatorsTitle: "Operators and management",
     operatorsBody:
-      "Inspect the current operator set and management visibility without expanding into broader admin tooling.",
+      "Review operators and management addresses.",
     roles: {
       operator: "Operator",
       management: "Management",
@@ -232,17 +232,17 @@ export const ybcCopy = {
     },
     rewardStatusTitle: "Reward wiring",
     rewardStatusBody:
-      "Keep distributor funding and bonus recipient visibility in scope for MVP review.",
+      "Review distributor funding and bonus recipient status.",
     rewardStatus: {
       funded: "Distributor funded",
       unfunded: "Funding needed",
       lastSynced: "Last synced UTC",
     },
-    guardrailsTitle: "MVP guardrails",
+    guardrailsTitle: "Limits",
     guardrails: [
-      "Add member and remove member proposal entry points only",
-      "Visible operator set, thresholds, hooks, and reward status",
-      "No generic arbitrary-call builder in this scope",
+      "Add member and remove member proposal entry points",
+      "Visible operators, thresholds, hooks, and reward status",
+      "No generic arbitrary-call builder",
     ],
   },
 } as const;

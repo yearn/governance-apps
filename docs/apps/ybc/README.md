@@ -35,14 +35,16 @@ surface grows.
 The shared-host route is `/ybc`. The accepted shell keeps the overview visible first,
 then renders the governance command-center sections on one page. When discussion,
 voting, or awaiting-execution proposals exist, the proposal feed appears above the
-roster so actionable governance work is not buried.
+roster so actionable governance work is not buried. Proposal cards use disclosures:
+short proposal lists stay open, while longer lists keep active/actionable proposals
+open and collapse terminal history by default.
 
 Default structure:
 
 1. Overview summary
 2. Priority proposal feed when proposals are actionable
-3. Visual member roster, with audit table available through a view toggle
-4. Rewards handoff
+3. Member roster table, with Cards available through a saved view toggle
+4. Rewards
 5. Operator panel, shown only for operator/admin perspectives
 
 ## Live data path
@@ -85,10 +87,12 @@ WP7 runtime work:
 - the default `/ybc` runtime reseeds from the active wallet on connect, disconnect,
   and account changes unless an explicit debug preset is applied
 - observer and member perspectives render distinct weight summaries
-- the visual member roster and audit table keep raw stake, effective weight, target
+- the roster Table and Cards views keep raw stake, effective weight, target
   weight, and maturity separate
 - loading and empty roster states are implemented for the overview state machine
 - the proposal board shows explicit phases, UTC timeline rows, and threshold targets
+- proposal cards keep phase and next action visible, with timeline, votes, and actions
+  available inside each disclosure
 - proposal propose, retract, vote, and execute interactions remain available on the
   route without mock-specific badge copy
 - empty-board, empty-roster, loading, and operator coverage now seed through the shared

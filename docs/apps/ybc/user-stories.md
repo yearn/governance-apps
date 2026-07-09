@@ -5,7 +5,7 @@
 - As an observer, I can understand what YBC is and what influence it currently holds.
 - As an observer, I can browse the member roster and see which members are still ramping into full weight.
 - As an observer, I can inspect proposals and immediately understand what phase they are in.
-- As an observer, I can switch from visual member cards to the audit table when I need exact roster data.
+- As an observer, I can switch between Table and Cards when I need a different roster view.
 
 ## Member
 
@@ -31,5 +31,5 @@
 - The UI must not imply that YBC rewards are claimed on a separate isolated page in MVP.
 - The UI must not expose a generic arbitrary-call UI in MVP.
 - Deep links to `#overview`, `#members`, `#proposals`, `#rewards`, and `#admin` must remain valid.
-- Audit tables must remain reachable when visual command-center cards are the default.
+- Table data is the default view. Cards must remain available as a saved preference.
 - Operator actions must remain isolated from member proposal and reward flows and permission-gated.
