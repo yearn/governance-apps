@@ -11,6 +11,8 @@ docs/
     styfi/             # stYFI + stYFIx product docs
     veyfi/             # veYFI + LLYFI product docs
     yeth/              # yETH recovery docs
+    teams/             # Team finances docs
+    ybc/               # Yearn Builder's Collective docs
 ```
 
 ## Navigation
@@ -20,6 +22,8 @@ docs/
 - stYFI docs: [`docs/apps/styfi/README.md`](apps/styfi/README.md)
 - veYFI docs: [`docs/apps/veyfi/README.md`](apps/veyfi/README.md)
 - yETH docs: [`docs/apps/yeth/README.md`](apps/yeth/README.md)
+- Teams docs: [`docs/apps/teams/README.md`](apps/teams/README.md)
+- YBC docs: [`docs/apps/ybc/README.md`](apps/ybc/README.md)
 
 ## Documentation Rules
 

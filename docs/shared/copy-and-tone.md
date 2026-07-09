@@ -1,83 +1,142 @@
 # 7. Copywriting & Tone of Voice
 
-**Version:** 1.1
-**Source:** Yearn Tone of Voice Guide
-**Scope:** All user-facing text, error messages, toasts, and tooltips.
+**Version:** 1.2
+**Sources:** Yearn Tone of Voice Guide, Plain English review rules
+**Scope:** All user-facing text, error messages, toasts, tooltips, and route
+documentation that defines user-visible behavior.
 
 ---
 
-## 1. The Core Philosophy
+## 1. Product Register
 
-**"Write code, talk human."**
+Write code, talk human.
 
-Yearn is high-tech, but our interface should not be. We do not speak in `contract_reverts` or `generic_success_flags`. We speak to the user as a confident, knowledgeable peer.
+Governance Apps is a calm, precise product UI for finance and governance work.
+Copy should help users understand state, risk, and the next action without
+sounding like a contract error, a marketing page, or an AI assistant.
 
-### The 5 Commandments
+Use Plain English as a review lens, not as a blind rewrite rule. It adds useful
+pressure to cut filler, vague words, and AI-style prose. It does not override
+canonical token names, contract names, protocol terms, legal/security wording,
+or domain terms that carry real meaning.
 
-1.  **Write code, talk human:** Clarity over complexity. No corporate speak.
-2.  **Embrace culture, shape culture:** We are crypto-native. It's okay to nod to the culture (wagmi, anon, etc) where appropriate, but never at the cost of clarity.
-3.  **Money, the ultimate meme:** Humor is allowed. Don't be boring.
-4.  **Weirdos welcome:** Non-judgmental. Open.
-5.  **Truth + Transparency = Trust:** If something breaks, say it. If a fee exists, show it.
+## 2. Repository Rules
 
----
+- Keep route copy in `app/<domain>/messages.ts`.
+- Keep shared shell copy in `app/_shared/messages.ts`.
+- Keep shared components copy-agnostic. Components accept strings or ReactNodes
+  through props and do not import route `messages.ts` directly.
+- Avoid inline strings longer than about 60 characters in components unless the
+  string is an accessibility attribute.
+- Dynamic text belongs in message functions, for example
+  `positionSummary(amount: string) => string`.
+- Mature default routes must not show mock, prototype, QA, or implementation
+  wording. Those controls belong in the shared debug panel, local test bridges,
+  docs, or test-only routes.
+- Blocked, terminal, loading, empty, permissioned, and read-only states need
+  persistent visible copy. Tooltip-only explanations are not enough.
+- Never show raw contract errors. Map them to user-readable messages.
 
-## 2. UI Specific Guidelines
+## 3. Plain English Rules
 
-### 2.1. Error Messages (Commandment 1 & 5)
+Use these checks before review:
 
-Never show raw contract errors to the user. Translate them.
+- Cut filler: "it is important to note that", "in order to", "due to the fact
+  that", "it is worth noting", and similar throat-clearing.
+- Prefer active verbs and concrete nouns.
+- Use short words when they do the same job.
+- Avoid AI/corporate words such as "delve", "tapestry", "leverage",
+  "landscape", "realm", "multifaceted", "foster", "underscore", "robust",
+  "comprehensive", "nuanced", "paramount", "crucial", "holistic", "pivotal",
+  "facilitate", "utilize", "ameliorate", "expedite", "methodology",
+  "commence", "terminate", "endeavour", "numerous", and "approximately".
+- Allowed exception: keep a word when it is the product term, canonical label,
+  or technically precise term. For example, "Ecosystem" is allowed as a header
+  navigation label and "stYFI ecosystem" is allowed when it means the actual
+  product family.
+- Avoid false cheer, apologies without action, and preambles.
+- Avoid hedge stacks. Say what is known, what is unknown, and what the user can
+  do next.
 
-| Context       | Bad Copy (Robot)            | Good Copy (Human)                                                |
-| :------------ | :-------------------------- | :--------------------------------------------------------------- |
-| **Slippage**  | `Error: execution reverted` | "Slippage too high. Try increasing your tolerance."              |
-| **Rejected**  | `UserRejectedRequestError`  | "Transaction cancelled."                                         |
-| **Cap Hit**   | `Limit exceeded`            | "Global deposit limit reached. You cannot stake more right now." |
-| **Blacklist** | `Access Denied`             | "This address is restricted from using this interface."          |
+## 4. UI Text Patterns
 
-### 2.2. Success States (Commandment 3)
+### Errors
 
-Celebration is encouraged.
+Errors should answer:
 
-- **Boring:** "Transaction confirmed."
-- **Yearn:** "Success! Your YFI is now staking." / "Welcome to the vault."
+1. What happened?
+2. Why did it happen, if known?
+3. What can the user do next?
 
-### 2.3. Empty States (Commandment 2)
+| Context | Avoid | Use |
+| :-- | :-- | :-- |
+| Slippage | `Error: execution reverted` | "Slippage is too high. Increase tolerance and try again." |
+| Rejected transaction | `UserRejectedRequestError` | "Transaction cancelled." |
+| Cap hit | `Limit exceeded` | "Global deposit limit reached. You cannot stake more right now." |
+| Restricted address | `Access Denied` | "This address is restricted from using this action." |
 
-Empty states are opportunities for education or personality, not dead ends.
+Do not use jokes in errors, permission states, risk disclosures, or money-moving
+actions.
 
-- **Boring:** "No data found."
-- **Yearn:** "No positions found. Deposit tokens to get started."
+### Buttons and CTAs
 
-### 2.4. Buttons & CTAs (Commandment 1)
+Use specific verb plus object labels:
 
-Be direct.
+- "Stake YFI"
+- "Withdraw YFI"
+- "Claim rewards"
+- "Connect wallet"
+- "Switch network"
 
-- **Bad:** "Execute", "Submit", "Proceed"
-- **Good:** "Stake", "Withdraw", "Claim Rewards"
+Avoid generic labels such as "Submit", "Proceed", "OK", and "Click here" unless
+the surrounding UI makes the action fully obvious and there is no better compact
+label. Use exact governance or protocol verbs when they are the real action, for
+example "Execute proposal".
 
----
+### Empty and Loading States
 
-## 3. Formatting Standards
+Empty states should explain whether the state is normal, blocked, or waiting
+for user action.
 
-- **Sentence Case:** Use sentence case for headings and buttons (e.g., "Connect wallet", not "CONNECT WALLET" or "Connect Wallet").
-- **Numbers:** Use `Aeonik Mono` for all financial data.
-- **Precision:**
-  - Dollar values: 2 decimals (`$1,234.56`).
-  - Token amounts: Dynamic based on value (show dust if relevant, otherwise 4 decimals).
-  - Percentages: 2 decimals (`4.20%`).
+Loading states should describe the work when it may last more than a brief
+moment, for example "Loading proposal data" rather than only "Loading".
 
----
+### Success States
 
-## 4. Glossary
+Success copy should confirm the specific result. Celebration is allowed for
+low-risk wins, but the default tone is restrained:
 
-| Term              | Usage                                                                    |
-| :---------------- | :----------------------------------------------------------------------- |
-| **stYFI**         | Always lowercase 'st', uppercase 'YFI'.                                  |
-| **veYFI**         | Always lowercase 've', uppercase 'YFI'.                                  |
-| **LLYFI**         | Liquid Lockers (generic term).                                           |
-| **Active**        | Funds currently staked and earning rewards.                              |
-| **Unstaking**     | Funds currently in the linear cooldown stream (locked).                  |
-| **Withdrawable**  | Funds fully unlocked (finished streaming) but not yet withdrawn.         |
-| **Gauge**         | The contract where you stake BPT/LP tokens.                              |
-| **Vote Weight**   | The power used in governance.                                            |
+- "Stake confirmed."
+- "Rewards claimed."
+- "Settings saved."
+
+## 5. Capitalization and Labels
+
+- Use sentence case for helper text, errors, tooltips, toasts, and
+  full-sentence copy.
+- For headings and buttons, keep capitalization consistent within the route and
+  control group. Prefer sentence case when adding new labels, but do not mix a
+  single sentence-case label into an established title-case cluster. Convert
+  route capitalization as an intentional route-wide copy pass.
+- Use title case only for compact metric names, table labels, and canonical
+  domain labels when that matches the existing app pattern, for example
+  "Total Supply", "Claim Deadline", "Current Base APR", and "Recovery Vault".
+- Do not title-case full sentences.
+- Do not add periods to labels. Use periods for full sentences.
+- Use `Aeonik Mono` / `font-number` for financial data, addresses, hashes,
+  percentages, IDs, and dynamic counters.
+
+## 6. Glossary
+
+| Term | Usage |
+| :-- | :-- |
+| stYFI | Always lowercase `st`, uppercase `YFI`. |
+| stYFIx | Always lowercase `st`, uppercase `YFI`, lowercase `x`. |
+| veYFI | Always lowercase `ve`, uppercase `YFI`. |
+| LLYFI | Liquid locker YFI token family. |
+| Active | Funds currently staked, delegated, or otherwise in the active product state. |
+| Unstaking | Funds currently in the linear cooldown stream. |
+| Withdrawable | Funds fully unlocked but not yet withdrawn. |
+| Gauge | The staking contract for BPT/LP tokens. |
+| Vote weight | The power used in governance. |
+| Terminal | A state that cannot return to active without a new proposal, position, or flow. |

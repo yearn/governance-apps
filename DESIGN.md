@@ -243,6 +243,8 @@ compete with neighboring content. Use spacing and headings before using shadow.
   to the action.
 - **Do** verify desktop and mobile screenshots for `/styfi`, `/veyfi`, `/yeth`,
   `/teams`, and `/ybc` before calling a design pass done.
+- **Do** use `docs/shared/design-review-process.md` for route-level UI and copy
+  passes.
 
 ### Don't:
 
