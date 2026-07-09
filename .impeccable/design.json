@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-09T00:00:00.000Z",
+  "title": "Design System: Yearn Governance Apps",
+  "extensions": {
+    "colorMeta": {
+      "yearn-blue": {
+        "role": "primary",
+        "displayName": "Yearn Blue",
+        "canonical": "#0657f9",
+        "tonalRamp": [
+          "#00133d",
+          "#002e7a",
+          "#0646c7",
+          "#0657f9",
+          "#4f86ff",
+          "#9bbcff",
+          "#d7e4ff",
+          "#f3f7ff"
+        ]
+      },
+      "neutral-900": {
+        "role": "neutral",
+        "displayName": "Ink Neutral",
+        "canonical": "#171717",
+        "tonalRamp": [
+          "#171717",
+          "#262626",
+          "#404040",
+          "#525252",
+          "#737373",
+          "#a3a3a3",
+          "#e5e5e5",
+          "#fafafa"
+        ]
+      },
+      "sunset-600": {
+        "role": "secondary",
+        "displayName": "stYFI Sunset",
+        "canonical": "#fb7f33",
+        "tonalRamp": [
+          "#361000",
+          "#6b2500",
+          "#a94708",
+          "#fb7f33",
+          "#f8a908",
+          "#ffcd7a",
+          "#ffead0",
+          "#fff8ec"
+        ]
+      },
+      "disco-700": {
+        "role": "secondary",
+        "displayName": "veYFI Disco",
+        "canonical": "#b71962",
+        "tonalRamp": [
+          "#2c0014",
+          "#5a0028",
+          "#8d0647",
+          "#b71962",
+          "#cc3767",
+          "#e56e92",
+          "#ffd6e1",
+          "#fff3f6"
+        ]
+      },
+      "tokyo-600": {
+        "role": "secondary",
+        "displayName": "yETH Tokyo",
+        "canonical": "#5814fb",
+        "tonalRamp": [
+          "#160033",
+          "#2a0580",
+          "#460dc9",
+          "#5814fb",
+          "#8060ff",
+          "#b6a5ff",
+          "#e0d4ff",
+          "#f7f4ff"
+        ]
+      },
+      "success-700": {
+        "role": "semantic",
+        "displayName": "Success Green",
+        "canonical": "#00796d",
+        "tonalRamp": [
+          "#00231f",
+          "#00473f",
+          "#00695f",
+          "#00796d",
+          "#26a69a",
+          "#80cbc4",
+          "#d7f2ef",
+          "#f1fbfa"
+        ]
+      },
+      "error-700": {
+        "role": "semantic",
+        "displayName": "Error Vermilion",
+        "canonical": "#c73203",
+        "tonalRamp": [
+          "#320900",
+          "#641300",
+          "#9a2600",
+          "#c73203",
+          "#ef5b2a",
+          "#ff9e80",
+          "#ffe0d6",
+          "#fff5f1"
+        ]
+      },
+      "warning-300": {
+        "role": "semantic",
+        "displayName": "Warning Amber",
+        "canonical": "#ffdc53",
+        "tonalRamp": [
+          "#352700",
+          "#6b5100",
+          "#a98200",
+          "#d9ad1f",
+          "#ffdc53",
+          "#ffe78a",
+          "#fff4c7",
+          "#fffbec"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Route-level titles only."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Operational copy and route descriptions."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Small uppercase labels and metadata."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "shadow-sm",
+        "purpose": "Low surface lift for cards on the app canvas."
+      },
+      {
+        "name": "overlay",
+        "value": "shadow-xl",
+        "purpose": "Dropdowns, modals, toasts, and floating debug controls."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "150ms ease-out",
+        "purpose": "Color, border, transform, and shadow state changes."
+      },
+      {
+        "name": "button-press",
+        "value": "scale(0.96)",
+        "purpose": "Tactile feedback for button and anchor-button press states."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default route action button.",
+      "html": "<button class=\"ds-btn-primary\">Continue</button>",
+      "css": ".ds-btn-primary { min-height: 48px; border: 0; border-radius: 8px; padding: 0 24px; background: #171717; color: #ffffff; font-family: Aeonik, system-ui, sans-serif; font-size: 14px; font-weight: 700; transition-property: background-color, color, box-shadow, transform; transition-duration: 150ms; transition-timing-function: ease-out; } .ds-btn-primary:hover { background: #262626; } .ds-btn-primary:focus-visible { outline: 2px solid #171717; outline-offset: 2px; } .ds-btn-primary:active { transform: scale(0.96); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary action button for route-local commands.",
+      "html": "<button class=\"ds-btn-secondary\">Review</button>",
+      "css": ".ds-btn-secondary { min-height: 48px; border: 1px solid #e5e5e5; border-radius: 8px; padding: 0 24px; background: #ffffff; color: #171717; font-family: Aeonik, system-ui, sans-serif; font-size: 14px; font-weight: 700; transition-property: background-color, border-color, color, box-shadow, transform; transition-duration: 150ms; transition-timing-function: ease-out; } .ds-btn-secondary:hover { background: #f5f5f5; } .ds-btn-secondary:focus-visible { outline: 2px solid #171717; outline-offset: 2px; } .ds-btn-secondary:active { transform: scale(0.96); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card-default",
+      "description": "Default panel for distinct actionable or inspectable content.",
+      "html": "<article class=\"ds-card\"><p class=\"ds-card-label\">Status</p><h3 class=\"ds-card-title\">Ready for review</h3><p class=\"ds-card-body\">The panel uses neutral surfaces, compact labels, and no decorative accent.</p></article>",
+      "css": ".ds-card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 24px; background: #ffffff; color: #171717; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-family: Aeonik, system-ui, sans-serif; } .ds-card-label { margin: 0 0 8px; color: #a3a3a3; font-size: 12px; font-weight: 700; letter-spacing: 0.025em; text-transform: uppercase; } .ds-card-title { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 700; } .ds-card-body { margin: 8px 0 0; color: #525252; font-size: 14px; line-height: 1.5; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Governance Console",
+    "overview": "This is a product interface for people doing governance and finance work, not a campaign site. The visual system is quiet, dense, and precise: neutral surfaces, clear type, compact control groups, and strong state language.",
+    "keyCharacteristics": [
+      "Product register, web platform, restrained color strategy.",
+      "Aeonik for all UI text, Aeonik Mono for addresses, amounts, periods, and IDs.",
+      "Flat neutral surfaces with 8px radii and sparse shadows.",
+      "Accent colors reserved for brand identity, active selection, primary action, and semantic state.",
+      "Persistent copy for blocked, terminal, loading, empty, and permissioned states."
+    ],
+    "rules": [
+      {
+        "name": "The Accent Rarity Rule",
+        "body": "Accent color should be rare enough that active state, selection, or action meaning remains obvious. Do not use accent color as ambient decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Product Type Rule",
+        "body": "Use fixed rem sizes for app UI. Do not use fluid viewport-scaled typography inside dense operational surfaces.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-First Rule",
+        "body": "A panel at rest should not look elevated unless it must compete with neighboring content. Use spacing and headings before using shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reuse components/ui/* before adding route-local primitives.",
+      "Do keep copy local to app/<domain>/messages.ts.",
+      "Do show blocked state in the disabled CTA label and in persistent copy next to the action."
+    ],
+    "donts": [
+      "Don't use purple gradients, glassmorphism, decorative blobs, or generic AI dashboard decoration.",
+      "Don't create nested UI cards where spacing, dividers, or tonal data blocks are enough.",
+      "Don't use transition: all or Tailwind transition-all for core shared controls."
+    ]
+  }
+}
