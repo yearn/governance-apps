@@ -1,8 +1,8 @@
-# stYFI UI Spec v3.1
+# stYFI UI Spec v3.2
 
 **Status:** Final
 **Applies to:** `styfi.yearn.fi` (and `/styfi` route)
-**Last updated:** 2026-02-11
+**Last updated:** 2026-07-14
 
 ---
 
@@ -40,11 +40,12 @@ It specifically addresses:
 
 ## 3. Page Structure
 
-1. **Global Header** (standard Yearn header)
+1. **Global Header** (standard Yearn header) with a Styfi-only **Snapshot Voting** external link on desktop and in the mobile navigation.
 2. **Protocol Stats Bar** (Total Supply, Staked, APR). Show **"Epoch 1 APR"** when current epoch == 0 from the canonical clock. **Staked** should use `styfi.staked` (excludes cooldown balances; `styfi.unstaking` is the cooldown amount).
-3. **AccountSummary** (Hero for new users, positions list for returning users)
-4. **Cockpit** (StakeManageCard + Rewards)
-5. **Contracts Footer** (`<details>` disclosure with Etherscan links for YFI, stYFI, stYFIx, Reward Claimer, and reward token)
+3. **Active Snapshot Proposal Banner** when one or more votes are open.
+4. **AccountSummary** (Hero for new users, positions list for returning users)
+5. **Cockpit** (StakeManageCard + Rewards)
+6. **Contracts Footer** (`<details>` disclosure with Etherscan links for YFI, stYFI, stYFIx, Reward Claimer, and reward token)
 
 ---
 
@@ -196,3 +197,16 @@ Always visible and owns all write interactions.
     - `*.yearn.fi` -> canonical `https://veyfi.yearn.fi`
 - **Deep-link behavior:** CTA routes include `source=nudge` + action/focus params.
 - **Scroll reliability:** Target scrolling uses DOM-observer readiness checks (`MutationObserver`) rather than fixed timeout delays.
+
+---
+
+## 11. Snapshot Governance Discovery
+
+- **Permanent access:** Show `Snapshot Voting` as a direct external link after the desktop `Resources` navigation item and at the bottom of the mobile navigation, below the `Tools` section. The link always opens the `styfi.eth` Snapshot space in a new tab.
+- **Active proposal query:** Query Snapshot's public GraphQL API for active proposals in `styfi.eth`. Request only proposal ID, title, end timestamp, and state; do not add the Snapshot SDK.
+- **Active banner:** When exactly one proposal is active, show the shared brand banner above `AccountSummary`, link directly to the proposal, and display `Voting open`, the proposal title, its UTC closing time, and `Review & vote`.
+- **Multiple proposals:** Show the number of active proposals, the earliest UTC closing time, and link to the Snapshot space.
+- **Expiry:** Treat a proposal as inactive locally once its end timestamp passes, even if cached API data still reports it as active.
+- **Failure behavior:** Loading, API failure, rate limiting, or malformed data must not block the Styfi page. Do not show an inactive-state page banner; the permanent header link remains available.
+- **Priority:** While an active proposal banner is visible, suppress the cross-app nudge to avoid stacked calls to action. If the Snapshot request completes without an active proposal or fails, the cross-app nudge may render normally.
+- **Scope:** Proposal discovery and outbound linking only. Eligibility checks, voting power, vote totals, embedded voting, and proposal writes remain outside the Styfi app.
