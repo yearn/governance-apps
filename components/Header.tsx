@@ -14,6 +14,8 @@ import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
 import { HeaderNavMenu } from "@/components/header/HeaderNavMenu";
 import { MobileNavMenu } from "@/components/header/MobileNavMenu";
 import { useHostname } from "@/lib/hooks/useHostname";
+import { STYFI_SNAPSHOT_SPACE_URL } from "@/lib/clients/styfi/snapshot";
+import { styfiCopy } from "@/app/styfi/messages";
 
 export function Header() {
   const pathname = usePathname();
@@ -36,6 +38,13 @@ export function Header() {
   const primaryNav = resolveHeaderPrimaryNav(pathname, segment, hostname);
   const showEpochPill =
     shouldShowEpochPill && (!!publicClient || !isGlobalLoading);
+  const snapshotVotingLink =
+    appKey === "styfi"
+      ? {
+          href: STYFI_SNAPSHOT_SPACE_URL,
+          label: styfiCopy.governance.headerLabel,
+        }
+      : undefined;
 
   return (
     <>
@@ -51,7 +60,7 @@ export function Header() {
             ) : null}
             <div className="hidden h-6 w-px bg-border md:block" />
             <div className="hidden md:block">
-              <HeaderNavMenu />
+              <HeaderNavMenu snapshotVotingLink={snapshotVotingLink} />
             </div>
           </div>
 
@@ -84,6 +93,7 @@ export function Header() {
       <MobileNavMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
+        snapshotVotingLink={snapshotVotingLink}
       />
     </>
   );

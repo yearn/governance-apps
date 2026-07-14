@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
+import Link from "next/link";
 import {
   useAccountModal,
   useChainModal,
@@ -12,6 +13,7 @@ import { IconChevron } from "@/components/icons/IconChevron";
 import { IconClose } from "@/components/icons/IconClose";
 import { IconDiscord } from "@/components/icons/IconDiscord";
 import { IconMoon } from "@/components/icons/IconMoon";
+import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { IconSun } from "@/components/icons/IconSun";
 import { IconTwitter } from "@/components/icons/IconTwitter";
 import { IconWallet } from "@/components/icons/IconWallet";
@@ -36,6 +38,10 @@ import { MobileNavTile } from "./MobileNavTile";
 type MobileNavMenuProps = {
   isOpen: boolean;
   onClose: () => void;
+  snapshotVotingLink?: {
+    href: string;
+    label: string;
+  };
 };
 
 type TSectionId = "products" | "information" | "community" | "tools";
@@ -61,6 +67,7 @@ const LIST_BUTTON_CLASS =
 export function MobileNavMenu({
   isOpen,
   onClose,
+  snapshotVotingLink,
 }: MobileNavMenuProps): ReactElement | null {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
@@ -231,6 +238,25 @@ export function MobileNavMenu({
                 </div>
               );
             })}
+            {snapshotVotingLink ? (
+              <div onClick={handleClose}>
+                <Link
+                  href={snapshotVotingLink.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={LIST_BUTTON_CLASS}
+                  aria-label={`${snapshotVotingLink.label} (opens in a new tab)`}
+                >
+                  <span className="min-w-0 flex-1 truncate">
+                    {snapshotVotingLink.label}
+                  </span>
+                  <IconLinkOut
+                    className="size-4 shrink-0 text-text-tertiary"
+                    aria-hidden
+                  />
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
