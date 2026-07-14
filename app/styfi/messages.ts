@@ -54,10 +54,17 @@ export const styfiCopy = {
           "Voting is delegated to a group of individual Yearn contributors. Enjoy max yield without managing votes. Set, forget, and let builders steer.",
       },
     },
-    voteBanner: {
-      title: "Vote boost coming soon",
-      body: "Once voting launches, voting on governance proposals will lead to increased rewards. Until then, both modes deliver the same APR.",
-    },
+  },
+  governance: {
+    headerLabel: "Snapshot Voting",
+    activeLabel: "Voting open",
+    singleBody: "Voting is open on Snapshot.",
+    multipleTitle: (count: number) =>
+      `${count} governance proposals are open for voting`,
+    multipleBody: "Multiple votes are open on Snapshot.",
+    singleClosesLabel: "Vote closes",
+    multipleClosesLabel: "Next vote closes",
+    ctaLabel: "Review & vote",
   },
   hero: {
     kicker: "Choose your path",

@@ -26,6 +26,8 @@ import { scrollToTargetWhenReady } from "@/lib/scrollToTarget";
 import { deriveExternalPositions } from "./external-positions";
 import { getLlyfiBackingYfi } from "@/lib/portfolio/governance";
 import { ContractsFooter } from "@/components/domain/ContractsFooter";
+import { GovernanceBanner } from "./components/GovernanceBanner";
+import { useStyfiSnapshotProposals } from "@/lib/hooks/useStyfiSnapshot";
 import {
   REWARD_CLAIMER_ADDRESS,
   REWARD_TOKEN_CONFIG,
@@ -103,6 +105,10 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
     currentApp: "styfi",
     hostname,
   });
+  const {
+    activeProposals,
+    isLoading: isSnapshotLoading,
+  } = useStyfiSnapshotProposals();
 
   const handleSelectAsset = useCallback((asset: StyfiAsset) => {
     hasUserSelected.current = true;
@@ -272,10 +278,11 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
       />
 
       <main className="container mx-auto px-4 md:px-6 pt-8 space-y-6 pb-24">
-        <CrossAppNudge
-          nudge={nudge}
-          onDismiss={dismiss}
-        />
+        <GovernanceBanner proposals={activeProposals} />
+
+        {!isSnapshotLoading && activeProposals.length === 0 ? (
+          <CrossAppNudge nudge={nudge} onDismiss={dismiss} />
+        ) : null}
 
         <AccountSummary
           selectedAsset={activeAsset}
