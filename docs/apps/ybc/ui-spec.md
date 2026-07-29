@@ -1,6 +1,6 @@
 # YBC UI Spec
 
-Status: UX command-center overhaul in implementation
+Status: implemented
 Applies to: `/ybc` route, `ybc-beta.dao-ops.com` beta host, and gated production
 host `ybc.yearn.fi`
 Recommended app key: `ybc`
@@ -151,6 +151,26 @@ Show:
 - statement that rewards are claimed through the shared reward flow
 - CTA that points to the shared rewards route instead of duplicating reward claims
 
+## 5.5 Keep identity canonical
+
+Resolve member labels in this order everywhere:
+
+1. A valid name saved in this browser.
+2. A reverse and forward verified Mainnet ENS name.
+3. A deterministic pseudonym, with stable ordinals for collisions.
+
+Show one resolved name and one linked canonical address. Do not add `Local`, `ENS`, or
+`Generated` badges. A local name is a display preference, not identity or protocol
+authority, and never replaces the address.
+
+The resolved name is the edit control. Click, Enter, or Space opens the local editor.
+Its secondary pencil stays hidden at rest and appears on fine-pointer hover or keyboard
+focus without shifting or blurring the row. Save, cancel, reset, and Escape restore
+focus to the name.
+
+Member names, addresses, amounts, and statuses must wrap inside table and card layouts
+at 360px. The canonical address remains a Mainnet Etherscan target on coarse pointers.
+
 ## 6. Hero section
 
 Recommended hero stats:
@@ -180,6 +200,9 @@ Cards show:
 - maturity progress bar
 - effective vs target weight
 
+Names and canonical addresses use the same identity treatment in the roster, proposal
+cards, viewer summary, and operator panel.
+
 ## 8. Proposal board
 
 Each card should show:
@@ -191,13 +214,17 @@ Each card should show:
 - phase
 - next available action
 
+Proposal, reward, operator, and last-updated timestamps use the shared UTC formatter.
+Action timing comes from the verified Mainnet block and canonical proposal status, not
+the publisher's `generatedAt` value.
+
 Proposal cards should use disclosures so long proposal history stays scannable. When
 there are fewer than three proposals, keep cards open by default. When there are three
 or more, keep discussion, voting, awaiting-execution, and otherwise actionable
 proposals open; collapse terminal history by default. Collapsed cards must still show
 the proposal id, type, phase, target, proposer, and next action.
 
-Actions to support before onchain writes land:
+Supported proposal actions:
 - propose addition
 - propose expulsion
 - retract
@@ -210,8 +237,8 @@ YBC now seeds observer, member, operator, loading, empty-roster, empty-board, pr
 rewards, and admin coverage through the shared floating debug panel and the shared E2E
 bridge so the default `/ybc` route can keep production-like copy and navigation.
 That production-like posture should avoid visible `mock` / `prototype` badges or
-route-shell implementation notes on the default surface; review-only state switching
-belongs in the panel and bridge instead.
+route-shell implementation notes on the default surface; debug state switching belongs
+in the panel and bridge instead.
 When no explicit debug preset is applied, the default runtime should follow the active
 wallet on connect, disconnect, and account changes so `/ybc` keeps the same production-
 like observer/member split a real connected route would show.
@@ -238,8 +265,8 @@ These scenarios remain the seed contract for the mock data model, but the debug-
 runtime now exposes them as hidden debug presets and granular bridge setters instead of
 page-local UI controls.
 Admin access toggles in that runtime should mutate the viewer's effective operator
-membership, not only local booleans, so operator coverage can be turned on and off
-symmetrically during QA.
+membership, not only local booleans, so debug mode can turn operator access on and off
+symmetrically.
 
 Required mock scenarios:
 

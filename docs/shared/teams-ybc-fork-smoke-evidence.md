@@ -6,6 +6,9 @@ Started: 2026-07-06
 This file records fork-smoke evidence, launch findings, and explicit deferrals for the
 Teams/YBC production-readiness pass.
 
+> Historical only: the Teams checks used the pre-correction v1 object. They do not count
+> as corrected-v2 financial evidence or current preprod sign-off.
+
 ## Environment
 
 - App URL: `http://127.0.0.1:3000`

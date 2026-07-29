@@ -26,6 +26,10 @@ The feed should be independent from the shared stYFI/veYFI global stats payload.
 - Proposal status must be read from `YBCElection.status(id)` at the snapshot block.
 - Per-viewer action eligibility is a frontend live overlay, not a global feed
   responsibility.
+- `generatedAt` records publisher time for display and logging. It does not authorize
+  actions or define proposal timing.
+- The response body must not exceed 2 MiB. Fetch and body reading share one 10-second
+  limit.
 
 ## 3. Type shape
 
@@ -183,6 +187,35 @@ The frontend may add live wallet overlays for:
 - connected wallet proposal/write eligibility;
 - write simulation and transaction submission;
 - post-write invalidation while waiting for the next feed refresh.
+
+### 4.1 Consumer trust checks
+
+The consumer pins the Mainnet chain, deployment addresses, genesis, epoch lengths, and
+reward contracts. A feed cannot replace them.
+
+Before enabling actions, the consumer:
+
+1. verifies that both the configured client and live RPC report Ethereum Mainnet;
+2. matches `blockHash` against `blockNumber`;
+3. requires the block to be no more than five minutes old, no more than two minutes in
+   the future, and no more than 32 blocks behind the RPC tip;
+4. checks the full proposal id range, proposal count, thresholds, tuples, and statuses
+   at that block; and
+5. checks the block again after the reads.
+
+Wallet membership, operator, weight, and vote reads use the same block and are enclosed
+by block checks. Cached display data may remain visible, but it cannot restore actions
+until the mounted snapshot and wallet overlay pass verification.
+
+### 4.2 Resource and timeline limits
+
+The consumer accepts at most 64 operators, 64 reward claimers, 512 members, 512
+proposals, 4,096 votes, and 4,096 reward claims. Event ids are limited to 160
+characters and source refs to 128. Integer strings must fit `uint256`.
+
+Proposal ids must cover the complete zero-based range. Epoch and action timing comes
+from the pinned deployment constants and verified block time. `proposedAt` may help
+display the discussion start, but it never changes a canonical phase or action window.
 
 ## 5. Producer notes
 

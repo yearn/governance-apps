@@ -1,6 +1,6 @@
 # Team Finances UI Spec
 
-Status: UX command-center overhaul in implementation
+Status: implemented
 Applies to: `/teams` route, `teams-beta.dao-ops.com` beta host, and gated
 production host `teams.yearn.fi`
 App key / slug: `teams`
@@ -76,13 +76,12 @@ the visual language is shared.
 Approved top-level structure:
 
 1. Directory table by default, with Cards available as a saved preference.
-2. Selected team workspace rendered as a single flattened command center.
+2. Team workspace rendered as the next hierarchy level and one command center.
 3. Admin, shown only for operator/admin contexts and kept outside the team workspace.
 
-The selected workspace no longer hides core workflows behind workspace tabs. It renders
-an overview header, an action deck, and the full ledger/audit sections as scroll targets
-on one page. Existing deep links such as `#revenue`, `#funding`, `#bonus`, `#lifecycle`,
-and `#admin` must scroll to the matching section and keep that section reachable.
+The workspace does not hide core workflows behind peer tabs. The team name replaces the
+generic hero title. A `/teams / <team-id>` breadcrumb shows the hierarchy and returns
+to the directory. Existing section links remain reachable.
 
 ## 4.1 Directory layer
 
@@ -96,11 +95,12 @@ Landing directory cards should show:
 - scoped cost
 - scoped profit / loss
 - all-time revenue, cost, and net context
-- primary action: open workspace
 - secondary context: whether revenue, funding, bonus, or lifecycle work needs attention
 
-The Table view must stay reachable for reviewers, operators, and test automation.
-Table rows and the explicit row action both open the selected-team workspace.
+The Table view remains available.
+The team-name link stretches across its row or card so the whole surface opens the
+workspace with native link and keyboard behavior. Nested explorer and copy controls
+remain independent.
 
 ### Financial scope controls
 
@@ -109,11 +109,11 @@ multiple budget periods and all-time lifetime state.
 
 Approved directory financial scopes:
 
-- **Current period**: default. Shows `team.currentPeriod` values for operational review.
+- **Current period**: default. Shows `team.currentPeriod` values for current operations.
 - **Historical period**: shows one selected historical period across all teams. Historical
   periods render as direct period tabs populated from `team.financialPeriods[].period`
   and should default to the most recent non-current period when one exists.
-- **All-time**: shows `team.lifetime` values for cumulative review.
+- **All-time**: shows `team.lifetime` cumulative values.
 
 Rules:
 
@@ -136,21 +136,28 @@ Rules:
 
 ## 4.2 Team workspace
 
+The URL is the workspace authority. `team` contains the normalized team contract
+address and `section` contains the active area. A missing team opens the directory
+without choosing a default. Refresh and browser history restore both values. Invalid or
+unknown addresses return to `/teams`.
+
 The workspace should render:
 
-1. Overview header with current-period and lifetime context.
+1. Team details with aligned owner, team id, and contract identities, followed by
+   current-period and lifetime context.
 2. Financial history table with period, dates, revenue, cost, and profit/loss rows.
 3. Action deck that makes the next useful actions obvious.
 4. Revenue section, including the permissionless deposit flow and revenue ledger.
 5. Outflows & Yield section that groups funding and bonus actions without blending their
    protocol meanings.
 6. Lifecycle section with ownership, retirement, and migration visibility.
-7. Audit ledgers for revenue, funding, bonus, and lifecycle, each reachable by stable ids.
+7. Ledgers for revenue, funding, bonus, and lifecycle, each reachable by stable ids.
 
 Admin is intentionally not nested inside the workspace. It remains a separate
-operator/admin surface so privileged review does not compete with team-owner tasks.
+operator/admin surface so privileged controls do not compete with team-owner tasks.
 
-The financial history table is read-only audit context. Each row represents one
+The financial history table is passive accounting context, with no hover or pointer cue.
+Each row represents one
 `TeamFinancialPeriod` entry from the domain model:
 
 - `period`
@@ -166,10 +173,10 @@ to derive from raw protocol state, wallet state, current chain, and simulation.
 ## 4.3 Debug-backed route coverage
 
 The route-local prototype controls used during the early mock phase are retired. Teams
-now seeds review coverage through the shared floating debug panel and the shared E2E
+now seeds debug states through the shared floating debug panel and the shared E2E
 bridge so the default `/teams` route can keep production-like copy and navigation.
 
-The accepted debug-backed route must keep explicit state coverage for:
+Debug mode covers:
 
 - populated directory with multiple teams
 - selected team overview with current-period and lifetime cards
@@ -177,7 +184,8 @@ The accepted debug-backed route must keep explicit state coverage for:
 - funding approvals table with claim and return selection state
 - claim and return validation plus success feedback
 - bonus summary with period drilldown and hidden math detail
-- ownership and status state with owner, pending owner, retirement, and migration visibility
+- ownership and status state with the owner, a conditional pending-transfer warning,
+  retirement, and migration visibility
 - operator/admin console loading and empty states once operator/admin access is active
 - loading state
 - empty state
@@ -185,9 +193,10 @@ The accepted debug-backed route must keep explicit state coverage for:
 The debug-backed controls should apply coherently across the whole route:
 
 - loading and empty controls blank the stat strip as well as the directory/workspace panes
-- preset changes revert the workspace to that preset's declared selected team
+- preset changes do not replace an explicit URL-selected team
 - preset changes also reset any staged mock bonus action to the target fixture default
 - bonus math stays out of the default view until the period drilldown or tooltip is opened
+- bonus math stays inside its card and viewport at narrow widths
 - bonus and ownership/lifecycle section anchors remain present across selected, loading, empty, and no-team states
 - admin navigation and the admin console appear only in the operator/admin runtime
 - when operator/admin access is active, loading and empty controls keep the admin section mounted with explicit state copy
@@ -204,16 +213,18 @@ persistent accessible copy next to the action. Tooltip-only explanations are not
 
 Key UX rules:
 - permissionless action
-- preview token conversion if naked token auto-converts into a vault token
-- show estimated accountant credit in USD
-- explain that the credit may differ from nominal token count because of conversion / pricing
+- show a non-zero converter as a linked protocol contract, not an output token
+- keep a null converter labelled as the direct route
+- do not promise a live pre-submit USD quote
+- explain that protocol accounting records the final credit after conversion and pricing
+- keep token symbols and the amount-input suffix on one line
 
 ### Suggested UI block
 
 - token selector
 - amount input
-- conversion line
-- estimated credit line
+- deposit path
+- optional fixture-backed reference credit in mock mode
 - submit CTA
 - recent deposits list
 
@@ -221,29 +232,27 @@ Key UX rules:
 
 Per approval row, show:
 
-- approval id
+- `Approval #<index>`; internal fixture ids are not user-facing
 - approved period
 - token
 - total approved
 - used
-- claimable now
+- unclaimed allocation
+- current claimability
 - recipient
-- stream / liquid status
+- settlement rule for a current-period claim
 
 Statuses to visualize:
 - claimable this period
 - partially claimed
-- late claim / fully liquid
-- not claimable this period
+- expired and archived
+- scheduled for a future period
+- unavailable for an inactive current team
 - fully used
 
-The accepted WP4 prototype implements this as a mock approvals table plus a separate
-claim form that can be pointed at a selected approval row. Each row keeps the token
-symbol and total approved amount visible next to used and claimable balances so the
-remaining budget can be compared at a glance.
-
-Funding approval context must stay visible near claim actions, especially when a claim
-is blocked or no longer stream-backed.
+Only a current-period approval can enter the claim flow. Duration decides whether that
+current claim vests or transfers immediately; it never reopens a past approval. Raw
+token units, not rounded display text or inferred USD values, determine action bounds.
 
 ## 5.3 Return Funding
 
@@ -252,10 +261,10 @@ This should be described as a return flow, not as an owner-only reverse claim fl
 Expose:
 - token amount input
 - refund estimate in USD
-- note that refund accounting uses historical average claim price
+- note that refund accounting uses the current aggregate team/period/token cost
 
-The accepted WP4 prototype keeps this as a distinct mock return card rather than
-blending it into the claim flow.
+Keep return funding separate from claiming. Returns use the current period's aggregate
+cost bucket and remain permissionless where the contract allows them.
 
 ## 5.4 Bonus
 
@@ -266,9 +275,8 @@ Keep the default presentation simple:
 - primary CTA
 - short detail rows
 
-For the WP5 prototype, the primary CTA is a mock `Claim Bonus` action. It should be
-visibly available in claimable states, visibly blocked in non-claimable states, and
-must not imply that a live write has been submitted yet.
+`Claim Bonus` is available only when the verified current state supports it. Mock mode
+keeps deterministic claimable and blocked states for debugging.
 
 Hide the heavier math in expandable details or tooltip copy:
 - team profit
@@ -277,20 +285,24 @@ Hide the heavier math in expandable details or tooltip copy:
 - growth factor / cap note
 - YBC split
 
+The tooltip must remain inside the viewport and wrap long values.
+
 ## 5.5 Lifecycle
 
 Show:
 - owner
-- pending owner
+- one pending-transfer warning with a linked pending owner, only while a transfer exists
 - retirement state
 - migration readiness
 - successor registry if relevant
+
+Do not repeat pending-owner state in a second drawer or lifecycle summary.
 
 ## 6. Admin console
 
 Admin is a separate surface within the app, not the default landing state.
 
-In the accepted debug-backed route, the admin console unlocks only in the
+In debug mode, the admin console unlocks only in the
 `Operator/admin view` preset or equivalent operator/admin runtime state and remains
 hidden from the default team-owner, observer, and contributor workspaces. The
 unlocked view should keep four groups distinct:
@@ -333,7 +345,7 @@ Required mock scenarios:
 
 1. active team with no approvals yet
 2. active team with partially used approval
-3. late claim that is fully liquid
+3. expired past-period approval retained in history
 4. team with bonus available
 5. retiring / retired team in read-only view
 6. admin view with bucket usage near limits

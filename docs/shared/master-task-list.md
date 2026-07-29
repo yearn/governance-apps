@@ -84,7 +84,7 @@ Use this with:
 - [x] debug-runtime alignment documented for Teams and YBC
 - [x] finalized `styfi` deployment manifest identified as source of truth
 - [x] consumer-owned `teams.json` and `ybc.json` feed contracts documented
-- [x] live `teams.json` payload validated from `governance-apps`
+- [ ] corrected Teams v2 payload validated from `governance-apps`
 - [x] live `ybc.json` payload validated from `governance-apps`
 - [x] production Teams reads wired to the feed-backed client
 - [x] production YBC reads wired to the feed-backed client
@@ -98,8 +98,9 @@ Use this with:
 
 ### 5.2 Remaining
 
-- [ ] Run targeted fork smoke with live/saved feed JSON and fixture coverage for absent
-  states
+- [ ] Validate the corrected Teams v2 candidate and hot-switch the stable object
+- [ ] Run targeted fork smoke with corrected Teams v2, validated YBC JSON, and fixture
+  coverage for absent states
 - [ ] Run preprod/beta route, host, wallet, and feed smoke
 - [ ] Enable production flags and host exposure after release approval
 
@@ -116,9 +117,10 @@ Historical data-producer milestones:
 
 - [x] Start shared WP2 in `gov-apps-stats`
 - [x] Import Teams/YBC deployment block heights from `styfi/deployment.json`
-- [x] Publish live `teams.json`
+- [x] Publish the legacy Teams v1 object and stable URL
 - [x] Publish live `ybc.json`
 - [x] Hand `teams.json` URL back to `governance-apps` for shared WP3 validation
+- [ ] Replace the stable Teams object with corrected, validated v2
 
 ## 7. Previous Immediate Milestone (yETH Controlled Testing)
 

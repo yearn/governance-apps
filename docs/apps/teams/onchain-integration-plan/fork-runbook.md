@@ -20,13 +20,16 @@ NEXT_PUBLIC_RUNTIME_MODE=development
 NEXT_PUBLIC_USE_MOCKS=false
 NEXT_PUBLIC_E2E=false
 NEXT_PUBLIC_RPC_URLS=http://127.0.0.1:8545
-NEXT_PUBLIC_TEAMS_DATA_URL=<live-or-saved-teams-json-url>
+NEXT_PUBLIC_TEAMS_DATA_URL=<validated-corrected-v2-url>
 ```
 
-Use the live production `teams.json` or a saved copy from the same snapshot block for
-normal fork smoke. Do not run a fork-specific `gov-apps-stats` publisher for launch
-testing unless a concrete bug proves it necessary. For states not present in the live
-feed, use deterministic fixture JSON or test-time interception of `/api/teams-data`.
+Until the stable object has been hot-switched, use the exact corrected v2 candidate
+that is being prepared for release. It must use a canonical block at or after
+`25,633,144`. Do not use the current v1 object as financial evidence. After cutover, a
+saved copy of the validated stable v2 object is also acceptable. For states not present
+in the candidate, use deterministic fixture JSON or test-time interception of
+`/api/teams-data`. A pre-cutover candidate URL must remain local or private test
+plumbing, not a second public or versioned producer endpoint.
 
 Fork writes will not update the R2 feed. That is expected. Validate transaction
 simulation/submission and fork chain effects separately from "next feed snapshot"
@@ -48,7 +51,7 @@ Validate at minimum:
 
 Preferred fast path:
 
-1. Keep the app in non-mock mode with live or saved production `teams.json`.
+1. Keep the app in non-mock mode with the validated corrected v2 candidate.
 2. Use the deployed production contracts on a mainnet fork; do not redeploy Teams
    contracts for launch smoke.
 3. For owner-gated flows, impersonate the current team owner on the fork, transfer
@@ -70,7 +73,7 @@ Capture:
 
 - wallet used
 - fork block / RPC
-- `teams.json` URL and snapshot block
+- corrected v2 candidate URL and snapshot block
 - tx hashes for successful writes
 - screenshots for:
   - directory

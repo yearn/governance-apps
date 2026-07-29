@@ -12,14 +12,17 @@ new production fact is that `../styfi` `master` now contains finalized deployed 
 addresses and contract sources.
 
 The old roadmap was "mock first, then discover contracts." That is complete enough to
-retire. As of 2026-07-02, `teams.json` and `ybc.json` are live, both frontend read
-models are feed-backed, and both launch-write packages are wired through `useTx`. The
-roadmap from here is now:
+retire. The YBC feed is live and validated. The existing Teams v1 object is not safe
+for financial display because its seeded accounting values used the wrong scale. The
+frontend read and launch-write paths are wired, but Teams still requires a corrected,
+validated v2 object at the same stable URL. The roadmap from here is:
 
-1. run targeted fork smoke with live or saved feed JSON;
-2. run preprod/beta smoke;
-3. release each accepted app behind its production route flag;
-4. monitor feed freshness and write reports while iterating in production.
+1. validate the corrected Teams v2 candidate;
+2. run targeted fork smoke with that candidate and the validated YBC feed;
+3. run preprod/beta smoke;
+4. atomically replace the stable Teams object with v2;
+5. release each accepted app behind its production route flag;
+6. monitor feed freshness and write reports.
 
 The detailed production plan is:
 
@@ -154,8 +157,9 @@ Exit gate:
 Teams:
 
 - run targeted fork smoke for directory, workspace, revenue, funding, return, and bonus;
-- read from live or saved `teams.json` during fork smoke; use fixture/intercepted JSON
-  only for states absent from the live feed;
+- read from the validated corrected v2 candidate, or the stable object after cutover;
+  never use the unsafe v1 object as financial evidence;
+- use fixture/intercepted JSON only for states absent from the candidate;
 - run preprod route smoke;
 - triage launch blockers vs post-launch issues.
 
@@ -177,10 +181,12 @@ Exit gate:
 
 Recommended order:
 
-1. set production feed URLs and RPC env;
-2. enable each app's production flag only after read, write, fork, and preprod approval;
-3. expose the production host after approval;
-4. monitor feed freshness and write reports.
+1. validate the corrected Teams v2 object and keep the stable feed URL unchanged;
+2. set production feed URLs and RPC env;
+3. atomically replace the stable Teams object with v2;
+4. enable each app's production flag only after read, write, fork, and preprod approval;
+5. expose the production host after approval;
+6. monitor feed freshness and write reports.
 
 Exit gate:
 

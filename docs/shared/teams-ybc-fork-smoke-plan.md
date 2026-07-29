@@ -21,7 +21,8 @@ component/E2E tests after the baseline fork smoke has passed.
 
 Use three data sources deliberately:
 
-- live or saved production JSON for normal feed-backed rendering;
+- the validated corrected Teams v2 candidate and validated YBC JSON for normal
+  feed-backed rendering;
 - the real deployed contracts on a mainnet fork for transaction submission;
 - tiny local feed fixtures or request interception only where fork writes create state
   that the live R2 feed cannot know about.
@@ -50,7 +51,7 @@ set -x NEXT_PUBLIC_USE_MOCKS false
 set -x NEXT_PUBLIC_E2E false
 set -x NEXT_PUBLIC_RPC_URLS http://127.0.0.1:8545
 set -x NEXT_PUBLIC_GLOBAL_DATA_URL https://data.dao-ops.com/prod/stats.json
-set -x NEXT_PUBLIC_TEAMS_DATA_URL https://data.dao-ops.com/prod/teams.json
+set -x NEXT_PUBLIC_TEAMS_DATA_URL http://127.0.0.1:8788/teams.json
 set -x NEXT_PUBLIC_YBC_DATA_URL https://data.dao-ops.com/prod/ybc.json
 set -x NEXT_PUBLIC_ENABLE_TEAMS true
 set -x NEXT_PUBLIC_ENABLE_YBC true
@@ -70,15 +71,20 @@ Avoid signing with privileged production wallets during fork smoke unless explic
 accepted. Because the fork uses chain id `1`, signatures from real privileged wallets
 should be treated carefully even if they are only sent to a local RPC.
 
+Before cutover, the local Teams URL above must serve the exact validated v2 candidate.
+It is private test plumbing, not a second public or versioned producer endpoint.
+Intercepting `/api/teams-data` with the same candidate is also acceptable.
+
 ## 4. Fast-path test tracks
 
-### Track A: production JSON only
+### Track A: validated JSON only
 
 Use this for the first sanity pass.
 
 Validate:
 
-- Teams and YBC routes render with live feeds;
+- Teams renders with the corrected v2 candidate and YBC renders with its validated
+  feed;
 - wallet connects to chain id `1`;
 - wrong-network guards behave correctly if the wallet is moved away from chain id `1`;
 - Teams revenue deposit works after seeding the test wallet with the selected revenue
@@ -88,13 +94,16 @@ Validate:
 This track is not sufficient by itself if the test wallet is not a team owner or YBC
 member.
 
+Do not use the current Teams v1 object for financial sign-off. It remains unsafe until
+the same-URL v2 cutover is complete.
+
 ### Track B: production contracts plus minimal fork state
 
 Use this as the preferred launch-write smoke.
 
 Teams:
 
-1. Pick one active team from `teams.json`.
+1. Pick one active team from the corrected v2 candidate.
 2. Impersonate the current team owner on the fork.
 3. Transfer ownership to the local test wallet and accept ownership from that wallet.
 4. Patch a local Teams fixture, or intercept `/api/teams-data`, so the same team owner in

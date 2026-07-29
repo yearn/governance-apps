@@ -155,22 +155,24 @@ Owns merge order, conflict resolution, milestone assembly, and release readiness
 
 ## 11. Cross-repo handoff order
 
-Completed feed/read handoff:
+Completed feed/read groundwork:
 
 1. Shared WP1 completed in `governance-apps`.
 2. Shared WP2 completed in `gov-apps-stats`.
-3. Live `teams.json` and `ybc.json` published.
-4. Shared WP3 validated from `governance-apps`.
+3. The stable Teams v1 URL and live YBC feed were published.
+4. YBC and the legacy Teams transport were validated from `governance-apps`.
 5. Teams WP9 and YBC WP8 feed-backed reads completed.
 6. `agent/data` merged into `agent/integration`.
 7. Teams WP10 and YBC WP9 launch-scope writes completed.
 
 Current handoff order from here:
 
-1. Keep `NEXT_PUBLIC_USE_MOCKS=false` for fork/preprod work; use live or saved feed
-   JSON plus fixture/intercepted JSON for rare states.
-2. Finish Teams WP11 and YBC WP10 for targeted fork smoke, preprod smoke, rollout notes,
+1. Validate the corrected Teams v2 candidate and hot-switch the same stable URL; do not
+   use v1 financials as release evidence.
+2. Keep `NEXT_PUBLIC_USE_MOCKS=false` for fork/preprod work; use corrected Teams v2,
+   validated YBC JSON, and fixture/intercepted JSON for rare states.
+3. Finish Teams WP11 and YBC WP10 for targeted fork smoke, preprod smoke, rollout notes,
    and rollback checks.
-3. Enable `NEXT_PUBLIC_ENABLE_TEAMS` / `NEXT_PUBLIC_ENABLE_YBC` only after approval.
+4. Enable `NEXT_PUBLIC_ENABLE_TEAMS` / `NEXT_PUBLIC_ENABLE_YBC` only after approval.
 
 Do not add per-app mock/live switches or separate Teams/YBC write flags for this launch.

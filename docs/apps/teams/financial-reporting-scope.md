@@ -79,8 +79,9 @@ The current period row is marked when it appears in history.
 
 - No browser-side historical log indexing.
 - No changes to write eligibility.
-- No changes to `teams.json` schema v1, because the feed already contains
-  `teams[].periods` and `teams[].lifetime`.
+- No new period or lifetime fields for this reporting surface; the feed already
+  supplies `teams[].periods` and `teams[].lifetime`. See the Teams feed schema
+  for current version and unit requirements.
 - No aggregation of mixed scopes, such as lifetime revenue with current-period cost.
 
 ## Acceptance Criteria

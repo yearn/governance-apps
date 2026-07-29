@@ -1,30 +1,40 @@
-# Teams Feed Schema (v1)
+# Teams Feed Schema (v1 compatibility and v2 units)
 
 This is the consumer-owned contract for the `teams.json` feed produced by
 `gov-apps-stats` and consumed by the `/teams` app.
 
 ## 1. Feed URL
 
-Recommended frontend env key:
+Frontend env key:
 
 ```text
 NEXT_PUBLIC_TEAMS_DATA_URL
 ```
 
-The feed should be independent from the shared stYFI/veYFI global stats payload.
+This is the one stable Teams feed URL. Browser examples use `/api/teams-data`; there is
+no versioned public endpoint.
 
 ## 2. General rules
 
-- `version` must be `1`.
+- `version: 1` is accepted only for transition compatibility.
+- `version: 2` requires the exact `units` block shown below.
 - `chainId` must be `1` for mainnet.
 - `generatedAt` is unix seconds.
 - `blockNumber` and `blockHash` describe the snapshot block.
-- All token amounts, prices, shares, weights, and USD values are base-unit integer
-  strings.
-- Addresses are hex strings; frontend consumers normalize before comparing.
-- Timestamps are unix seconds.
+- A v2 `blockNumber` must be at or after corrected accounting block `25,633,144`.
+- Raw amounts are unsigned integer strings no larger than `uint256`.
+- Every v2 financial and event USD field uses 18-decimal base units.
+- Revenue-recipient balances use their declared token's decimals, not USD decimals.
+- Addresses and hashes are non-zero hex values. Optional addresses use `null`.
+- Timestamps are unix seconds no greater than `4_294_967_295`.
 - Arrays are deterministically sorted.
 - Unknown optional fields may be omitted or set to `null`.
+
+The consumer allows at most a 2 MiB response and a 10-second fetch-plus-body read.
+Limits are 256 tokens, 512 teams, 1,024 periods per bounded period collection, and
+4,096 approvals or events per bounded event collection. Team names are limited to 128
+characters, token symbols to 32, token names and source refs to 128, and event ids to
+160.
 
 ## 3. Type shape
 
@@ -32,8 +42,9 @@ The feed should be independent from the shared stYFI/veYFI global stats payload.
 type Address = `0x${string}`;
 type IntegerString = string;
 
-type TeamsFeedV1 = {
-  version: 1;
+type TeamsFeed = {
+  version: 1 | 2;
+  units?: TeamsFeedUnits;
   chainId: 1;
   generatedAt: number;
   blockNumber: number;
@@ -47,6 +58,18 @@ type TeamsFeedV1 = {
   revenueRecipient: TeamsRevenueRecipientState;
   accountant: TeamsAccountantState;
   events: TeamsEventSummary;
+};
+
+type TeamsFeedUnits = {
+  usd: {
+    symbol: "USD";
+    decimals: 18;
+    scope: "all-financial-and-event-usd";
+  };
+  bonusToken: {
+    symbol: "YFI";
+    decimals: 18;
+  };
 };
 
 type TeamsDeployment = {
@@ -227,6 +250,7 @@ type TeamsBonusClaim = {
 
 type TeamsRevenueRecipientState = {
   address: Address;
+  token?: Address;
   killed: boolean;
   operator: Address | null;
   treasury: Address | null;
@@ -258,12 +282,12 @@ type TeamsEventSummary = {
 };
 ```
 
-## 4. Required v1 behavior
+## 4. Version behavior
 
 The feed must be sufficient for the frontend to render a complete read-only Teams app
 without connected-wallet historical indexing.
 
-`availableActions` is retained in v1 for compatibility with the current producer shape,
+`availableActions` is retained for compatibility with the current producer shape,
 but it is not an authoritative permission model. `gov-apps-stats` should not spend extra
 work deriving wallet-specific write eligibility for this field. Production consumers must
 derive CTA availability client side from the raw feed state, connected wallet, current
@@ -277,8 +301,28 @@ The frontend may add live wallet overlays for:
 - write simulation and transaction submission;
 - post-write invalidation while waiting for the next feed refresh.
 
+The frontend never infers USD units from value size. V1 remains usable for identity,
+lifecycle, token amounts, and nonfinancial display, but all financial values are
+unavailable. V2 makes financial values eligible only when it supplies the exact unit
+metadata above and passes the full schema and canonical snapshot checks.
+
+For v2, every financial object must conserve revenue and cost:
+
+```text
+profit = max(revenue - cost, 0)
+loss = max(cost - revenue, 0)
+```
+
 ## 5. Producer notes
 
+- Keep addresses, ids, indices, event ids, and transaction-log coordinates unique in
+  their scopes. All team, period, token, approval, and event references must resolve.
+- V2 must include a complete revenue-recipient balance group: `token`, `lastBalance`,
+  `sumBalance`, and `used` are either all present or all absent. Legacy v1 may omit the
+  token only for an all-zero tuple.
+- Token splits total exactly 10,000 basis points.
+- Funding returns cannot exceed recorded claim units for the same team, period, and
+  token.
 - `BonusDistributor.finalize_period()` does not emit a dedicated finalization event.
   Read `pending_period()` and `parameters(period)` from the contract.
 - Use `TEAMS_DEPLOY_BLOCK` from `styfi/deployment.json` as the default historical scan
@@ -297,3 +341,6 @@ The frontend may add live wallet overlays for:
 See:
 
 - `docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json`
+
+This file is a synthetic schema and test fixture. Its addresses, block metadata, and
+amounts are not production data and it must never be published as a release candidate.

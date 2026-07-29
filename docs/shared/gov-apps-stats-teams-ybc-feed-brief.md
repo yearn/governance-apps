@@ -7,20 +7,18 @@ Contract/source repo: `styfi`
 
 ## 1. Objective
 
-Implement two new app-specific JSON feeds in `gov-apps-stats`:
+Publish two app-specific JSON feeds from `gov-apps-stats`:
 
 - `teams.json`
 - `ybc.json`
 
-The feeds will be consumed by `governance-apps` to replace the current mock-backed Teams
-and YBC read models. They must provide historical and derived state that should not be
-indexed in browser code.
+`governance-apps` consumes these feeds for historical and derived state that should not
+be indexed in browser code.
 
 ## 2. Source of truth
 
-Use `../styfi` `master` as the contract source of truth. At the time this brief was
-updated, `master` included the finalized deployment manifest, deployment block heights,
-and Vyper sources.
+Use the finalized deployment manifest and Vyper sources in `styfi` as the contract
+source of truth.
 
 Required source files:
 
@@ -97,19 +95,19 @@ The producer still must define and document:
 
 ## 5. Common feed rules
 
-Both feeds must follow these rules:
+Both feeds follow these rules:
 
-- `version` starts at `1`;
+- Teams publishes the complete v2 contract described below. YBC remains v1.
 - `chainId` is `1`;
 - `generatedAt` is unix seconds;
 - `blockNumber` and `blockHash` identify the snapshot block;
-- all token amounts, shares, prices, weights, and USD values are base-unit integer
-  strings;
+- raw values are base-unit integer strings using the units declared by their app schema;
 - addresses are hex strings; consumers will normalize for comparison;
 - timestamps are unix seconds;
 - arrays must be sorted deterministically;
 - feed objects must be atomic per snapshot;
-- producer should keep previous-good objects for rollback;
+- retained payloads are rollback candidates only when they match the deployed consumer
+  and the current onchain unit contract;
 - invalid or partial snapshots must not overwrite the last good object.
 
 Recommended sorting:
@@ -205,6 +203,64 @@ Important Teams notes:
   derives wallet/write eligibility from feed state, wallet state, current chain, and
   simulation.
 
+### Teams v2 accounting and publication
+
+The seeded TeamAccountant revenue and cost entries were corrected in
+[transaction `0x72d8…4c53`](https://etherscan.io/tx/0x72d8633d89bb52c14566ed761b560105400fc16dfec2ae5c4ca6867fa6e14c53)
+at block `25,633,144`. Every release candidate must use a canonical block at or after
+that block.
+
+Post-correction accountant values already use 18-decimal USD base units. The producer
+**MUST NOT multiply them by `10^12` again**. Event reconstruction must apply both sides
+of every adjustment and respect the `_increment` flag.
+
+Teams v2 requires the full schema, not a version change alone. It includes:
+
+```json
+{
+  "version": 2,
+  "units": {
+    "usd": {
+      "symbol": "USD",
+      "decimals": 18,
+      "scope": "all-financial-and-event-usd"
+    },
+    "bonusToken": {
+      "symbol": "YFI",
+      "decimals": 18
+    }
+  }
+}
+```
+
+The producer must publish every financial and event USD field at that scale, recompute
+profit and loss from revenue and cost, and include `revenueRecipient.token` whenever
+the recipient balance tuple is present. Token amounts and recipient balances continue
+to use their token's own decimals. The complete constraints are in the Teams feed
+schema.
+
+Teams uses one stable object at `NEXT_PUBLIC_TEAMS_DATA_URL`. Browser examples reach it
+through `/api/teams-data`. Do not add a v2 URL, route, or environment variable.
+
+Cut over in this order:
+
+1. Build and validate the exact v2 candidate without changing the stable object.
+2. Deploy and verify the compatible frontend while the stable object still serves v1.
+   V1 may supply nonfinancial display data during this step, but finance must fail
+   closed.
+3. Atomically replace the object at the same stable URL with the validated v2 payload.
+4. Purge the upstream cache or wait its full 60-second window.
+5. Verify v2 through `/api/teams-data`. App fetches and proxy responses use
+   `Cache-Control: no-store`.
+
+After cutover, a v1 build is a failed producer release and must not be published.
+Consumer downgrade handling also fails finance closed, but it is not a rollback plan.
+
+If a bad v2 is published, replace it with a fresh corrected and validated v2. If the
+frontend must roll back, release a tested frontend/feed pair. If neither option is
+safe, disable Teams. Never restore the unsafe v1 object or expose corrected 18-decimal
+values to a consumer that assumes six decimals.
+
 ## 7. YBC feed requirements
 
 Schema document:
@@ -261,12 +317,12 @@ Important YBC notes:
 
 ## 8. Producer deliverables
 
-For Shared WP2, deliver:
+For producer changes, deliver:
 
 - deployment/config module with Teams/YBC addresses and imported deploy blocks;
 - minimal ABIs or `alloy::sol!` interfaces for required events/view calls;
 - feed reducer/indexer modules for Teams and YBC;
-- R2 publication for staging `teams.json` and `ybc.json`;
+- atomic R2 publication for `teams.json` and `ybc.json`;
 - persistent cursor state for both feeds;
 - producer-side schema or snapshot tests;
 - sample staging payloads linked in the PR notes;
@@ -274,9 +330,9 @@ For Shared WP2, deliver:
 
 ## 9. Consumer verification deliverables
 
-After staging feeds are published, `governance-apps` will verify:
+Before promotion, `governance-apps` verifies:
 
-- JSON parses and matches v1 schema;
+- JSON parses and matches the declared app schema and version;
 - feed metadata is fresh and block-consistent;
 - known deployed addresses match `styfi/deployment.json`;
 - Teams directory has all registered teams;
@@ -287,7 +343,7 @@ After staging feeds are published, `governance-apps` will verify:
 - missing optional fields degrade cleanly;
 - payload size is acceptable for frontend fetch/cache behavior.
 
-## 10. Out of scope for producer v1
+## 10. Out of scope for the producer
 
 - frontend rendering;
 - wallet-specific action eligibility and write readiness;

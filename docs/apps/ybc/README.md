@@ -11,28 +11,21 @@ Recommended display label: `Yearn Builder's Collective`
 
 A governance and membership workspace for the Yearn Builder's Collective.
 
-This surface is broader than a simple vote page. It covers:
-
-- collective overview and governance influence
-- member roster and weight maturity
-- proposal lifecycle
-- thresholds and voting status
-- execution timing
-- reward visibility
-- operator/admin controls for membership governance
+It covers collective influence, membership, weight maturity, proposal lifecycle,
+thresholds, execution timing, rewards, and scoped operator controls.
 
 ## Naming stance
 
-- Keep the **app slug** short and stable: `ybc`
-- Keep the **route key** explicit and stable: `/ybc`
-- Use the richer **display label** in product copy and headers: `Yearn Builder's Collective`
+- Keep the app slug stable as `ybc`.
+- Keep the route stable as `/ybc`.
+- Use `Yearn Builder's Collective` in product copy and headers.
 
-This keeps routing, hostnames, branch names, and domain client keys durable even if the
-surface grows.
+This keeps routing, hostnames, and domain client keys durable even if the surface
+grows.
 
 ## Route shell baseline
 
-The shared-host route is `/ybc`. The accepted shell keeps the overview visible first,
+The shared-host route is `/ybc`. The route shell keeps the overview visible first,
 then renders the governance command-center sections on one page. When discussion,
 voting, or awaiting-execution proposals exist, the proposal feed appears above the
 roster so actionable governance work is not buried. Proposal cards use disclosures:
@@ -49,65 +42,37 @@ Default structure:
 
 ## Live data path
 
-The production YBC route consumes a dedicated `ybc.json` feed from `gov-apps-stats`,
-configured by `NEXT_PUBLIC_YBC_DATA_URL`. The feed owns historical member, proposal,
-vote, weight, and reward display state. The frontend owns presentation and
-wallet-specific overlays.
+Production consumes `ybc.json` from `NEXT_PUBLIC_YBC_DATA_URL`; browsers use the
+same-origin `/api/ybc-data` proxy. The feed owns historical member, proposal, vote,
+weight, and reward display state.
 
-Feed-backed reads are wired for the non-mock runtime through a same-origin
-`/api/ybc-data` proxy, a typed v1 schema, and a mapper into the accepted YBC page data
-contract. Launch-scope proposal writes are wired in feed mode through the shared
-transaction pipeline for propose addition, propose expulsion, retract, vote yea/nay,
-and execute. Feed rendering stays authoritative after writes; the frontend invalidates
-the feed and wallet overlay, but does not fabricate proposal rows or vote totals before
-`gov-apps-stats` publishes the next indexed snapshot. Local/debug runs keep the mock
-store and floating debug controls.
+The feed is display input, not deployment or write authority. The frontend pins the
+Mainnet deployment, verifies the snapshot block and canonical proposal state, then adds
+wallet-specific membership, voting, and action eligibility. If refresh or freshness
+verification fails, the last accepted snapshot may remain visible while actions stay
+disabled. A rejected payload must not replace it.
 
-Wallet-specific action eligibility is derived client side from the feed plus a live
-wallet overlay when RPC is available: membership, operator status, live weight,
-proposal status, and whether the connected wallet has already voted. The feed remains
-safe to render without the overlay, but write CTAs are conservative when the connected
-wallet, chain, phase, or proposal history does not support the action.
+Proposal writes use the shared transaction pipeline for propose addition, propose
+expulsion, retract, vote, and execute. Feed rendering stays authoritative after a
+transaction; the app waits for `gov-apps-stats` to publish indexed state instead of
+inventing proposal rows or vote totals.
 
-The beta host is `ybc-beta.dao-ops.com`. The production host is `ybc.yearn.fi`, but
-production exposure remains gated until fork smoke, preprod smoke, and explicit
-production approval are complete.
+Member identity resolves in one order: a valid browser-local name, verified Mainnet
+ENS, then a deterministic pseudonym. The canonical linked address always remains
+visible. Clicking the resolved name opens the local editor; its secondary pencil
+appears on fine-pointer hover or keyboard focus. Local names never leave the browser
+or affect protocol actions.
+
+Dates use the shared UTC formatter. Rewards continue to hand off to the shared stYFI
+claim route. See [`ui-spec.md`](ui-spec.md) for product behavior and
+[`onchain-integration-plan/ybc-feed-schema-v1.md`](onchain-integration-plan/ybc-feed-schema-v1.md)
+for the feed contract.
 
 ## Debug runtime alignment
 
-The current mock-backed route integrates the accepted WP2, WP3, WP4, WP5, WP6, and
-WP7 runtime work:
-
-- the overview stays visible while members, proposals, rewards, and operator tooling
-  render as stable command-center sections
-- the default `/ybc` surface keeps production-like copy and navigation while QA-only
-  state seeding lives in the floating debug panel and the shared E2E bridge
-- the hero separates internal member influence from delegated public influence
-- unknown connected non-member wallets remain on the observer path
-- the default `/ybc` runtime reseeds from the active wallet on connect, disconnect,
-  and account changes unless an explicit debug preset is applied
-- observer and member perspectives render distinct weight summaries
-- the roster Table and Cards views keep raw stake, effective weight, target
-  weight, and maturity separate
-- loading and empty roster states are implemented for the overview state machine
-- the proposal board shows explicit phases, UTC timeline rows, and threshold targets
-- proposal cards keep phase and next action visible, with timeline, votes, and actions
-  available inside each disclosure
-- proposal propose, retract, vote, and execute interactions remain available on the
-  route without mock-specific badge copy
-- empty-board, empty-roster, loading, and operator coverage now seed through the shared
-  debug panel instead of visible route-local controls
-- terminal proposal debug setters keep executed, expired, failed, and retracted history
-  actionless so the route never implies those states can be revived
-- the rewards section shows YBC-attributed rewards while routing claims to the shared reward surface
-- observer, empty, member, and operator perspectives keep the reward handoff visible without implying a separate YBC claim stack
-- the operator/admin perspective now exposes a scoped operator panel for add/remove
-  member affordances, operator visibility, hook visibility, threshold visibility, and
-  reward sync status
-- the operator access debug toggle mutates the viewer's operator membership rather than
-  relying on display-only booleans, so access can be turned on and off consistently
-- the floating debug panel mutates a shared YBC mock store in place and the E2E bridge
-  exposes domain-prefixed setters for YBC state seeding without visible debug clicking
+The default route keeps production copy. Observer, member, proposal, reward, loading,
+empty, and operator states are seeded through the shared debug panel and E2E bridge.
+Without an explicit preset, the view follows the active wallet.
 
 ## Included docs
 

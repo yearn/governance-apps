@@ -1,6 +1,6 @@
 # 6. Design System & UI Standards
 
-**Version:** 1.3
+**Version:** 1.4
 **Scope:** Visual language, typography, and component usage for `governance-apps`.
 
 ---
@@ -103,6 +103,9 @@ A clean, unopinionated table structure.
 
 - Use for lists of LLYFI tokens or historical data.
 - Supports `font-mono` cells for financial data.
+- Rows are visually passive by default.
+- Use the `interactive` treatment only when a row has a real link or action. Styling
+  does not supply link, click, or keyboard semantics.
 
 ### 4.5. `Tooltip`
 
@@ -143,6 +146,25 @@ Visual indicator for cooldowns or limits.
   - `styfi`: **Orange** (Sunset-600).
   - `veyfi`: **Pink** (Disco-700).
   - `success`: Green.
+
+### 4.9. Explorer links
+
+- Use `AddressLink` for wallet and contract addresses.
+- Use `TransactionLink` for transaction hashes.
+- Explorer destinations are Ethereum Mainnet Etherscan only.
+- Validate the address or hash before creating a URL. Invalid values stay visible as
+  plain text.
+- Keep link and copy actions separate. Dense layouts may use the compact treatment,
+  which reveals secondary actions on fine-pointer hover or keyboard focus without
+  moving or blurring the primary label.
+
+### 4.10. UTC dates and exact values
+
+- Use `UtcTime` for user-facing Unix timestamps.
+- Use the shared bigint or decimal-string formatters for token and USD values.
+- Do not pass exact financial values through JavaScript `Number`.
+- Confirmed zero stays zero. Positive dust below the chosen precision uses a leading
+  `<` marker, and malformed values render as unavailable.
 
 ---
 

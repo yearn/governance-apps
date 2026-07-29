@@ -63,9 +63,10 @@
 - Server/runtime reads the configured URL directly; browser runtime reads `/api/teams-data` so the payload is delivered same-origin.
 - Launch-scope writes are wired in feed mode after Teams WP10. Production exposure
   remains gated until Teams WP11 fork/preprod smoke and release approval are accepted.
-- For fork smoke, use live or saved `teams.json` as the read source. Use fixture JSON or
-  test route interception for rare states absent from the live feed; do not switch the
-  production app into Teams-only mock mode.
+- For fork smoke, use the validated corrected v2 candidate, or the stable v2 object
+  after cutover. Do not use the current v1 object as financial evidence. Use fixture
+  JSON or test route interception for rare states absent from the candidate; do not
+  switch the production app into Teams-only mock mode.
 
 ## YBC Data (Non-Mock Mode)
 
