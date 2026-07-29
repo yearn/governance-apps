@@ -10,7 +10,11 @@ import {
   mapTeamsFeedToRuntimeState,
   OnchainTeamsClient,
 } from "@/lib/clients/teams";
-import { TeamsFeedSchema, type TeamsFeed } from "@/lib/schemas/teams-feed";
+import {
+  TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK,
+  TeamsFeedSchema,
+  type TeamsFeed,
+} from "@/lib/schemas/teams-feed";
 
 function parseFeed(value: unknown): TeamsFeed {
   return TeamsFeedSchema.parse(value);
@@ -54,6 +58,24 @@ describe("Teams feed mapper", () => {
       converterAddress: null,
       convertToSymbol: null,
     });
+  });
+
+  it("fails pre-correction v2 financials closed even for preconstructed data", () => {
+    const preCorrectionFeed = structuredClone(
+      feedExample
+    ) as unknown as TeamsFeed;
+    preCorrectionFeed.blockNumber =
+      TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK - 1;
+
+    const data = mapTeamsFeedToPageData(preCorrectionFeed);
+
+    expect(data.financialData).toEqual({
+      status: "unavailable",
+      source: "feed",
+      reason: "incompatible-feed",
+      feedVersion: 2,
+    });
+    expect(data.teams[0]?.currentPeriod.revenueUsd).toBe("0.00");
   });
 
   it("treats a shared price-oracle and converter contract as a conversion route", () => {

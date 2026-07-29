@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import feedExample from "@/docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json";
+import { mapTeamsFeedToPageData } from "@/lib/clients/teams/onchain";
 import { TEAMS_FEED_REQUEST_TIMEOUT_MS } from "@/lib/clients/teams/payload";
-import { TEAMS_FEED_MAX_PAYLOAD_BYTES } from "@/lib/schemas/teams-feed";
+import {
+  TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK,
+  TEAMS_FEED_MAX_PAYLOAD_BYTES,
+} from "@/lib/schemas/teams-feed";
 
 describe("Teams feed transport validation", () => {
   beforeEach(() => {
@@ -29,7 +33,105 @@ describe("Teams feed transport validation", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       "/api/teams-data",
-      { signal: expect.any(AbortSignal) }
+      {
+        cache: "no-store",
+        signal: expect.any(AbortSignal),
+      }
+    );
+  });
+
+  it("supports a same-URL v1-to-v2 switch and fails v1 financials closed", async () => {
+    const correctedButUnitlessV1 = {
+      ...feedExample,
+      version: 1 as const,
+      units: undefined,
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(okResponse(correctedButUnitlessV1))
+      .mockResolvedValueOnce(okResponse(feedExample))
+      .mockResolvedValueOnce(okResponse(correctedButUnitlessV1));
+    vi.stubGlobal("fetch", fetchMock);
+    const { fetchTeamsFeed } = await import("@/lib/clients/teams/feed");
+
+    const v1 = await fetchTeamsFeed();
+    const v2 = await fetchTeamsFeed();
+    const fallbackV1 = await fetchTeamsFeed();
+
+    expect(v1).not.toBeNull();
+    expect(v2).not.toBeNull();
+    expect(fallbackV1).not.toBeNull();
+    const v1Data = mapTeamsFeedToPageData(v1!);
+    const v2Data = mapTeamsFeedToPageData(v2!);
+    const fallbackV1Data = mapTeamsFeedToPageData(fallbackV1!);
+    expect(v1Data.financialData).toEqual({
+      status: "unavailable",
+      source: "feed",
+      reason: "incompatible-feed",
+      feedVersion: 1,
+    });
+    expect(v1Data.teams[0]).toMatchObject({
+      name: "Example Team",
+      currentPeriod: { revenueUsd: "0.00" },
+    });
+    expect(v2Data.financialData).toEqual({
+      status: "available",
+      source: "feed",
+      usdDecimals: 18,
+    });
+    expect(v2Data.teams[0]?.currentPeriod.revenueUsd).toBe("125");
+    expect(fallbackV1Data.financialData).toEqual({
+      status: "unavailable",
+      source: "feed",
+      reason: "incompatible-feed",
+      feedVersion: 1,
+    });
+    expect(fallbackV1Data.teams[0]?.currentPeriod.revenueUsd).toBe("0.00");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/teams-data",
+      {
+        cache: "no-store",
+        signal: expect.any(AbortSignal),
+      }
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/teams-data",
+      {
+        cache: "no-store",
+        signal: expect.any(AbortSignal),
+      }
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      "/api/teams-data",
+      {
+        cache: "no-store",
+        signal: expect.any(AbortSignal),
+      }
+    );
+  });
+
+  it("rejects v2 snapshots from before the accounting correction", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        okResponse({
+          ...feedExample,
+          blockNumber: TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK - 1,
+          events: {
+            ...feedExample.events,
+            lastIndexedBlock:
+              TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK - 1,
+          },
+        })
+      )
+    );
+    const { fetchTeamsFeed } = await import("@/lib/clients/teams/feed");
+
+    await expect(fetchTeamsFeed()).rejects.toThrow(
+      /schema validation failed/i
     );
   });
 

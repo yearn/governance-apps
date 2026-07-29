@@ -61,7 +61,7 @@ export const teamsCopy = {
     unavailableValue: "--",
     unavailableTitle: "Financial data unavailable",
     unavailableBody:
-      "This feed mixes incompatible USD units. Team identity, status, and actions remain available while the data producer publishes a normalized snapshot.",
+      "Financial values are hidden until this data source declares its USD units. Team details and actions are still available.",
   },
   controls: {
     description:

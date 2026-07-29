@@ -13,7 +13,7 @@
   },
   "chainId": 1,
   "generatedAt": 1776849600,
-  "blockNumber": 25250000,
+  "blockNumber": 25633144,
   "blockHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "deployment": {
     "budgetGenesis": 1762992000,
@@ -194,7 +194,7 @@
   },
   "events": {
     "firstIndexedBlock": 25244861,
-    "lastIndexedBlock": 25250000,
+    "lastIndexedBlock": 25633144,
     "teamCount": 1,
     "revenueDepositCount": 1,
     "fundingApprovalCount": 1,

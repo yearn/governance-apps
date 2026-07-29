@@ -2,6 +2,7 @@ import { z } from "@/lib/schemas/zod";
 
 export const TEAMS_PROTOCOL_USD_DECIMALS = 18;
 export const TEAMS_BONUS_TOKEN_DECIMALS = 18;
+export const TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK = 25_633_144;
 export const TEAMS_FEED_MAX_PAYLOAD_BYTES = 2 * 1024 * 1024;
 export const TEAMS_FEED_MAX_TOKENS = 256;
 export const TEAMS_FEED_MAX_TEAMS = 512;
@@ -342,6 +343,17 @@ export const TeamsFeedSchema = z.object({
   }
 
   if (
+    feed.version === 2 &&
+    feed.blockNumber < TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK
+  ) {
+    addIssue(
+      context,
+      ["blockNumber"],
+      `Teams feed v2 must use a snapshot at or after corrected accounting block ${TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK}.`
+    );
+  }
+
+  if (
     feed.revenueRecipient.tokenSplitBps.reduce(
       (sum, split) => sum + split,
       0
@@ -487,6 +499,9 @@ export const TeamsFeedSchema = z.object({
   const fundingApprovalIds = new Set(
     feed.fundingApprovals.map((approval) => approval.id)
   );
+  const fundingApprovalsById = new Map(
+    feed.fundingApprovals.map((approval) => [approval.id, approval])
+  );
   assertUniqueNumbers(
     feed.fundingApprovals.map((approval) => approval.id),
     context,
@@ -554,9 +569,7 @@ export const TeamsFeedSchema = z.object({
       );
       for (const approvalId of period.fundingApprovalIds) {
         referencedFundingApprovalIds.add(approvalId);
-        const approval = feed.fundingApprovals.find(
-          (entry) => entry.id === approvalId
-        );
+        const approval = fundingApprovalsById.get(approvalId);
         if (
           !approval ||
           normalize(approval.team) !== normalize(team.address) ||
@@ -861,7 +874,11 @@ export type TeamsFeedUnits = NonNullable<TeamsFeed["units"]>;
 export function hasCompatibleTeamsFinancialUnits(
   feed: TeamsFeed
 ): feed is TeamsFeed & { version: 2; units: TeamsFeedUnits } {
-  return feed.version === 2 && feed.units !== undefined;
+  return (
+    feed.version === 2 &&
+    feed.units !== undefined &&
+    feed.blockNumber >= TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK
+  );
 }
 
 function boundedNonBlankString(maximumLength: number) {

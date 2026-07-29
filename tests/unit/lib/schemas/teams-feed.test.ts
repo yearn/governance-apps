@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import feedExample from "@/docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json";
 import {
+  TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK,
   TEAMS_FEED_MAX_EVENT_ID_LENGTH,
   TEAMS_FEED_MAX_SOURCE_REF_LENGTH,
   TEAMS_FEED_MAX_TEAMS,
@@ -82,6 +83,17 @@ describe("TeamsFeedSchema", () => {
       units: undefined,
     });
     expect(parsed.success).toBe(false);
+  });
+
+  it("requires v2 snapshots at or after the accounting correction block", () => {
+    const beforeCorrection = cloneFeed();
+    beforeCorrection.blockNumber =
+      TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK - 1;
+    beforeCorrection.events.lastIndexedBlock =
+      TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK - 1;
+
+    expectSchemaIssue(beforeCorrection, /corrected accounting block/i);
+    expect(TeamsFeedSchema.safeParse(feedExample).success).toBe(true);
   });
 
   it.each([
@@ -340,6 +352,33 @@ describe("TeamsFeedSchema", () => {
       unknownApproval,
       /Funding approval references must resolve/i
     );
+  });
+
+  it("indexes dense funding-approval references instead of rescanning the array", () => {
+    const payload = cloneFeed();
+    const baseApproval = payload.fundingApprovals[0]!;
+    payload.fundingApprovals = Array.from({ length: 64 }, (_, id) => ({
+      ...structuredClone(baseApproval),
+      id,
+      claims: [],
+      returns: [],
+    }));
+    payload.teams[0]!.periods[0]!.fundingApprovalIds =
+      payload.fundingApprovals.map((approval) => approval.id);
+    payload.events.fundingApprovalCount = payload.fundingApprovals.length;
+
+    const findSpy = vi.spyOn(Array.prototype, "find");
+    let result: ReturnType<typeof TeamsFeedSchema.safeParse>;
+    let findCallCount: number;
+    try {
+      result = TeamsFeedSchema.safeParse(payload);
+      findCallCount = findSpy.mock.calls.length;
+    } finally {
+      findSpy.mockRestore();
+    }
+
+    expect(result!.success).toBe(true);
+    expect(findCallCount!).toBe(0);
   });
 
   it("conserves event ranges, counters, IDs, and log coordinates", () => {

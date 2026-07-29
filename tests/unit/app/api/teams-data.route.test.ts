@@ -42,6 +42,7 @@ describe("GET /api/teams-data", () => {
     const response = await GET();
 
     expect(response.status).toBe(500);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     await expect(response.json()).resolves.toEqual({
       error: "NEXT_PUBLIC_TEAMS_DATA_URL is not configured",
     });
@@ -59,6 +60,7 @@ describe("GET /api/teams-data", () => {
     const response = await GET();
 
     expect(response.status).toBe(502);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     await expect(response.json()).resolves.toEqual({
       error: "Teams feed upstream request failed",
       upstreamStatus: 502,
@@ -78,12 +80,15 @@ describe("GET /api/teams-data", () => {
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
       "https://example.invalid/teams.json",
-      { signal: expect.any(AbortSignal) }
+      {
+        cache: "no-store",
+        signal: expect.any(AbortSignal),
+      }
     );
     await expect(response.json()).resolves.toEqual(payload);
   });
 
-  it("propagates upstream Cache-Control when present", async () => {
+  it("uses app-owned no-store when the upstream response is cacheable", async () => {
     process.env.NEXT_PUBLIC_TEAMS_DATA_URL =
       "https://example.invalid/teams.json";
     vi.stubGlobal(
@@ -94,7 +99,7 @@ describe("GET /api/teams-data", () => {
     const { GET } = await loadRoute();
     const response = await GET();
 
-    expect(response.headers.get("cache-control")).toBe("max-age=60");
+    expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
   it("uses no-store when upstream Cache-Control is missing", async () => {

@@ -5,21 +5,20 @@ import {
 } from "@/lib/clients/teams/payload";
 
 const TEAMS_DATA_URL_ENV = "NEXT_PUBLIC_TEAMS_DATA_URL";
-const FALLBACK_CACHE_CONTROL = "no-store";
+const TEAMS_PROXY_CACHE_CONTROL = "no-store";
 
 export const dynamic = "force-dynamic";
 
 function jsonError(
   message: string,
   status: number,
-  upstreamStatus?: number,
-  cacheControl = FALLBACK_CACHE_CONTROL
+  upstreamStatus?: number
 ) {
   return Response.json(
     { error: message, upstreamStatus },
     {
       status,
-      headers: { "Cache-Control": cacheControl },
+      headers: { "Cache-Control": TEAMS_PROXY_CACHE_CONTROL },
     }
   );
 }
@@ -34,22 +33,19 @@ export async function GET() {
     return await withTeamsFeedRequest(
       upstreamUrl,
       async (upstream, context) => {
-        const cacheControl = upstream.headers.get("cache-control");
-
         if (!upstream.ok) {
           await upstream.body?.cancel().catch(() => undefined);
           return jsonError(
             "Teams feed upstream request failed",
             upstream.status,
-            upstream.status,
-            cacheControl ?? FALLBACK_CACHE_CONTROL
+            upstream.status
           );
         }
 
         const json = await readBoundedTeamsJson(upstream, context);
         return Response.json(json, {
           headers: {
-            "Cache-Control": cacheControl ?? FALLBACK_CACHE_CONTROL,
+            "Cache-Control": TEAMS_PROXY_CACHE_CONTROL,
           },
         });
       }

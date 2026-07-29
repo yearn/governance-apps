@@ -213,6 +213,77 @@ describe("useTeamsState canonical feed trust", () => {
     authorityState.gate = null;
   });
 
+  it("pauses actions while a same-URL v1-to-v2 activation is verified", async () => {
+    const correctedButUnitlessV1 = {
+      ...feedExample,
+      version: 1 as const,
+      units: undefined,
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(okResponse(correctedButUnitlessV1))
+      .mockResolvedValueOnce(okResponse(feedExample));
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = renderHook(() => useTeamsState(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.readStatus).toBe("current");
+      expect(result.current.data?.feed?.version).toBe(1);
+      expect(result.current.data?.data.financialData.status).toBe(
+        "unavailable"
+      );
+      expect(result.current.writeFeed).not.toBeNull();
+    });
+
+    let releaseAuthority: () => void = () => {};
+    authorityState.gate = new Promise<void>((resolve) => {
+      releaseAuthority = resolve;
+    });
+    act(() => {
+      void result.current.refetch();
+    });
+
+    await waitFor(() => {
+      expect(result.current.data?.feed?.version).toBe(1);
+      expect(result.current.data?.data.financialData.status).toBe(
+        "unavailable"
+      );
+      expect(result.current.readStatus).toBe("stale");
+      expect(result.current.writeFeed).toBeNull();
+    });
+
+    await act(async () => {
+      releaseAuthority();
+    });
+    authorityState.gate = null;
+    await waitFor(() => {
+      expect(result.current.data?.feed?.version).toBe(2);
+      expect(result.current.data?.data.financialData.status).toBe(
+        "available"
+      );
+      expect(result.current.readStatus).toBe("current");
+      expect(result.current.writeFeed?.version).toBe(2);
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/teams-data",
+      {
+        cache: "no-store",
+        signal: expect.any(AbortSignal),
+      }
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/teams-data",
+      {
+        cache: "no-store",
+        signal: expect.any(AbortSignal),
+      }
+    );
+  });
+
   it("reverifies every same-block A to B to A to B activation", async () => {
     const originalOwner = feedExample.teams[0]!.owner;
     const mutatedOwner =
