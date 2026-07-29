@@ -1,11 +1,10 @@
 "use client";
 
-import { type KeyboardEvent, useMemo, useState } from "react";
-import { formatAddress } from "@/lib/format";
+import { useMemo, useState, type MouseEvent } from "react";
 import { cn } from "@/lib/cn";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { AddressLink } from "@/components/ui/ExplorerLink";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ViewToggle } from "@/components/ui/ViewToggle";
 import { usePersistentViewToggle } from "@/components/ui/usePersistentViewToggle";
@@ -34,7 +33,6 @@ const DIRECTORY_VIEW_STORAGE_KEY = "yearn.teams.directory.view";
 type TeamsDirectoryProps = {
   teams: TeamRecord[];
   currentPeriod: number | null;
-  selectedTeamId: string | null;
   onSelectTeam: (teamId: string) => void;
   state: "ready" | "loading" | "empty";
 };
@@ -42,7 +40,6 @@ type TeamsDirectoryProps = {
 export function TeamsDirectory({
   teams,
   currentPeriod,
-  selectedTeamId,
   onSelectTeam,
   state,
 }: TeamsDirectoryProps) {
@@ -53,6 +50,9 @@ export function TeamsDirectory({
   const [financialScope, setFinancialScope] =
     useState<DirectoryFinancialScope>("current");
   const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
+  const financialDataAvailable = teams.every(
+    (team) => team.financialData.status === "available"
+  );
   const periodOptions = useMemo(
     () => getDirectoryPeriodOptions(teams, currentPeriod),
     [currentPeriod, teams]
@@ -114,14 +114,16 @@ export function TeamsDirectory({
           description={teamsCopy.directory.description}
         />
         <div className="flex w-full flex-col items-start gap-3 sm:w-auto sm:items-end">
-          <DirectoryFinancialScopeControls
-            scope={effectiveFinancialScope}
-            onScopeChange={setFinancialScope}
-            periodOptions={periodOptions}
-            selectedPeriod={effectiveSelectedPeriod}
-            onPeriodChange={setSelectedPeriod}
-            currentPeriod={currentPeriod}
-          />
+          {financialDataAvailable ? (
+            <DirectoryFinancialScopeControls
+              scope={effectiveFinancialScope}
+              onScopeChange={setFinancialScope}
+              periodOptions={periodOptions}
+              selectedPeriod={effectiveSelectedPeriod}
+              onPeriodChange={setSelectedPeriod}
+              currentPeriod={currentPeriod}
+            />
+          ) : null}
           <ViewToggle
             aria-label="Team directory view"
             value={viewMode}
@@ -130,6 +132,8 @@ export function TeamsDirectory({
           />
         </div>
       </div>
+
+      {!financialDataAvailable ? <FinancialDataUnavailableNotice /> : null}
 
       <div
         id={DIRECTORY_FINANCIAL_PANEL_ID}
@@ -145,7 +149,6 @@ export function TeamsDirectory({
                 financialScope={effectiveFinancialScope}
                 selectedPeriod={effectiveSelectedPeriod}
                 scopeLabel={scopeLabel}
-                isSelected={team.id === selectedTeamId}
                 onSelectTeam={onSelectTeam}
               />
             ))}
@@ -156,7 +159,6 @@ export function TeamsDirectory({
             financialScope={effectiveFinancialScope}
             selectedPeriod={effectiveSelectedPeriod}
             scopeLabel={scopeLabel}
-            selectedTeamId={selectedTeamId}
             onSelectTeam={onSelectTeam}
           />
         )}
@@ -170,14 +172,12 @@ function TeamDirectoryCard({
   financialScope,
   selectedPeriod,
   scopeLabel,
-  isSelected,
   onSelectTeam,
 }: {
   team: TeamRecord;
   financialScope: DirectoryFinancialScope;
   selectedPeriod: number | null;
   scopeLabel: string;
-  isSelected: boolean;
   onSelectTeam: (teamId: string) => void;
 }) {
   const status = teamsCopy.statuses[team.status];
@@ -187,7 +187,10 @@ function TeamDirectoryCard({
     selectedPeriod
   );
   const net = scopedFinancials ? getFinancialNetState(scopedFinancials) : null;
-  const lifetimeNet = getFinancialNetState(team.lifetime);
+  const lifetimeNet =
+    team.financialData.status === "available"
+      ? getFinancialNetState(team.lifetime)
+      : null;
   const netToneClassName =
     net?.tone === "profit"
       ? "text-green-700"
@@ -198,19 +201,23 @@ function TeamDirectoryCard({
   return (
     <Card
       variant="default"
-      className={cn(
-        "flex min-h-[22rem] flex-col gap-5 bg-surface",
-        !isSelected && "shadow-none"
-      )}
-      data-state={isSelected ? "selected" : undefined}
+      className="relative flex h-full cursor-pointer flex-col gap-5 bg-surface shadow-none hover:bg-surface-secondary/30 hover:shadow-sm"
     >
       <div className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <Badge variant={status.variant}>{status.label}</Badge>
-          {isSelected ? <Badge variant="brand">{teamsCopy.directory.selected}</Badge> : null}
         </div>
         <div className="space-y-1">
-          <h3 className="text-xl font-bold text-text-primary">{team.name}</h3>
+          <h3 className="text-xl font-bold text-text-primary">
+            <a
+              href={getTeamHref(team)}
+              className="rounded focus:outline-none focus-visible:after:absolute focus-visible:after:inset-0 focus-visible:after:rounded-box focus-visible:after:ring-2 focus-visible:after:ring-text-primary focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-app after:absolute after:inset-0 after:rounded-box after:content-['']"
+              aria-label={`Open ${team.name} details`}
+              onClick={(event) => handleTeamLinkClick(event, team.id, onSelectTeam)}
+            >
+              {team.name}
+            </a>
+          </h3>
           <p className="font-number text-xs text-text-secondary">{team.id}</p>
         </div>
       </div>
@@ -219,9 +226,11 @@ function TeamDirectoryCard({
         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
           {teamsCopy.directory.headers.owner}
         </p>
-        <p className="font-number text-sm font-bold text-text-primary">
-          {formatAddress(team.owner)}
-        </p>
+        <AddressLink
+          address={team.owner}
+          variant="compact"
+          className="relative z-10"
+        />
         {team.readOnlyReason ? (
           <p className="text-xs text-text-secondary">
             {teamsCopy.readOnlyReasons[team.readOnlyReason]}
@@ -255,27 +264,23 @@ function TeamDirectoryCard({
       <dl className="grid gap-2 rounded-box border border-border bg-surface-secondary/40 px-3 py-3 sm:grid-cols-3">
         <DirectoryMetricCompact
           label={`${teamsCopy.directory.scope.lifetimeStrip} ${teamsCopy.directory.headers.revenue}`}
-          value={formatTeamsUsd(team.lifetime.revenueUsd)}
+          value={formatTeamFinancialValue(team, team.lifetime.revenueUsd)}
         />
         <DirectoryMetricCompact
           label={`${teamsCopy.directory.scope.lifetimeStrip} ${teamsCopy.directory.headers.cost}`}
-          value={formatTeamsUsd(team.lifetime.costUsd)}
+          value={formatTeamFinancialValue(team, team.lifetime.costUsd)}
         />
         <DirectoryMetricCompact
-          label={`${teamsCopy.directory.scope.lifetimeStrip} ${lifetimeNet.label}`}
-          value={formatTeamsUsd(lifetimeNet.value)}
-          tone={lifetimeNet.tone}
+          label={`${teamsCopy.directory.scope.lifetimeStrip} ${lifetimeNet?.label ?? teamsCopy.directory.headers.net}`}
+          value={
+            lifetimeNet
+              ? formatTeamsUsd(lifetimeNet.value)
+              : teamsCopy.financialData.unavailableValue
+          }
+          tone={lifetimeNet?.tone}
         />
       </dl>
 
-      <Button
-        className="mt-auto w-full"
-        variant={isSelected ? "primary" : "secondary"}
-        onClick={() => onSelectTeam(team.id)}
-        aria-label={`Open ${team.name} details`}
-      >
-        {teamsCopy.directory.openWorkspace}
-      </Button>
     </Card>
   );
 }
@@ -430,14 +435,12 @@ function DirectoryAuditTable({
   financialScope,
   selectedPeriod,
   scopeLabel,
-  selectedTeamId,
   onSelectTeam,
 }: {
   teams: TeamRecord[];
   financialScope: DirectoryFinancialScope;
   selectedPeriod: number | null;
   scopeLabel: string;
-  selectedTeamId: string | null;
   onSelectTeam: (teamId: string) => void;
 }) {
   return (
@@ -456,7 +459,6 @@ function DirectoryAuditTable({
             <TableHead className="text-right">{teamsCopy.directory.headers.revenue}</TableHead>
             <TableHead className="text-right">{teamsCopy.directory.headers.cost}</TableHead>
             <TableHead className="text-right">{teamsCopy.directory.headers.net}</TableHead>
-            <TableHead className="text-right">{teamsCopy.directory.headers.action}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -468,7 +470,6 @@ function DirectoryAuditTable({
               selectedPeriod
             );
             const net = scopedFinancials ? getFinancialNetState(scopedFinancials) : null;
-            const isSelected = team.id === selectedTeamId;
             const netToneClassName =
               net?.tone === "profit"
                 ? "text-green-700"
@@ -479,23 +480,21 @@ function DirectoryAuditTable({
             return (
               <TableRow
                 key={team.id}
-                data-state={isSelected ? "selected" : undefined}
-                tabIndex={0}
-                aria-label={`Open ${team.name} details`}
-                onClick={() => onSelectTeam(team.id)}
-                onKeyDown={(event) =>
-                  handleDirectoryRowKeyDown(event, team.id, onSelectTeam)
-                }
-                className="cursor-pointer focus:outline-none focus-visible:bg-surface-secondary"
+                interactive
+                className="relative cursor-pointer"
               >
                 <TableCell>
                   <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-text-primary">{team.name}</span>
-                      {isSelected && (
-                        <Badge variant="brand">{teamsCopy.directory.selected}</Badge>
-                      )}
-                    </div>
+                    <a
+                      href={getTeamHref(team)}
+                      className="font-bold text-text-primary focus:outline-none focus-visible:after:absolute focus-visible:after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-text-primary after:absolute after:inset-0 after:content-['']"
+                      aria-label={`Open ${team.name} details`}
+                      onClick={(event) =>
+                        handleTeamLinkClick(event, team.id, onSelectTeam)
+                      }
+                    >
+                      {team.name}
+                    </a>
                     <div className="text-xs text-text-secondary">
                       {team.id}
                       {team.readOnlyReason
@@ -504,8 +503,12 @@ function DirectoryAuditTable({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="font-number text-text-secondary">
-                  {formatAddress(team.owner)}
+                <TableCell>
+                  <AddressLink
+                    address={team.owner}
+                    variant="compact"
+                    className="relative z-10"
+                  />
                 </TableCell>
                 <TableCell>
                   <Badge variant={status.variant}>{status.label}</Badge>
@@ -521,19 +524,6 @@ function DirectoryAuditTable({
                     ? formatTeamsUsd(net.value)
                     : teamsCopy.directory.scope.missingPeriodValue}
                 </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant={isSelected ? "primary" : "secondary"}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onSelectTeam(team.id);
-                    }}
-                    aria-label={`Open ${team.name} details`}
-                  >
-                    {teamsCopy.directory.openWorkspace}
-                  </Button>
-                </TableCell>
               </TableRow>
             );
           })}
@@ -543,20 +533,22 @@ function DirectoryAuditTable({
   );
 }
 
-function handleDirectoryRowKeyDown(
-  event: KeyboardEvent<HTMLTableRowElement>,
+function getTeamHref(team: TeamRecord) {
+  return `/teams?section=overview&team=${team.address.toLowerCase()}`;
+}
+
+function handleTeamLinkClick(
+  event: MouseEvent<HTMLAnchorElement>,
   teamId: string,
   onSelectTeam: (teamId: string) => void
 ) {
-  const target = event.target;
   if (
-    target instanceof HTMLElement &&
-    target.closest("button, a, input, select, textarea")
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
   ) {
-    return;
-  }
-
-  if (event.key !== "Enter" && event.key !== " ") {
     return;
   }
 
@@ -569,6 +561,8 @@ function getDirectoryFinancials(
   financialScope: DirectoryFinancialScope,
   selectedPeriod: number | null
 ): DirectoryFinancialResult {
+  if (team.financialData.status === "unavailable") return null;
+
   if (financialScope === "lifetime") {
     return team.lifetime;
   }
@@ -629,6 +623,25 @@ function getDirectoryScopeLabel(
 
 function formatDirectoryFinancialValue(value: string | null | undefined) {
   return value ? formatTeamsUsd(value) : teamsCopy.directory.scope.missingPeriodValue;
+}
+
+function formatTeamFinancialValue(team: TeamRecord, value: string) {
+  return team.financialData.status === "available"
+    ? formatTeamsUsd(value)
+    : teamsCopy.financialData.unavailableValue;
+}
+
+function FinancialDataUnavailableNotice() {
+  return (
+    <Card className="border-warning/40 bg-warning/5">
+      <h3 className="text-base font-bold text-text-primary">
+        {teamsCopy.financialData.unavailableTitle}
+      </h3>
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-text-secondary">
+        {teamsCopy.financialData.unavailableBody}
+      </p>
+    </Card>
+  );
 }
 
 function DirectoryHeader({

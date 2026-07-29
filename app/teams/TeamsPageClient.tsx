@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type MouseEvent,
+} from "react";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { StatsBar } from "@/components/ui/StatsBar";
-import { Tabs } from "@/components/ui/Tabs";
 import { UtcTime } from "@/components/ui/UtcTime";
+import { cn } from "@/lib/cn";
 import {
   deriveTeamsViewerForTeam,
-  resolveSelectedTeam,
   type TeamRecord,
 } from "@/lib/clients/teams";
 import { useTeamsDebugActions, useTeamsState } from "@/lib/hooks/useTeams";
@@ -19,28 +23,53 @@ import { MockControls } from "./components/MockControls";
 import { TeamWorkspace } from "./components/TeamWorkspace";
 import { TeamsDirectory } from "./components/TeamsDirectory";
 import { teamsCopy } from "./messages";
+import {
+  createTeamsRouteHref,
+  findTeamByRouteAddress,
+  getCanonicalTeamsRouteHref,
+  getTeamsTopSection,
+  isTeamsAdminRouteRequest,
+  parseTeamsRouteState,
+  type TeamsRouteSection,
+  type TeamsRouteState,
+} from "./route-state";
 
 const EMPTY_STATS_VALUE = "--";
-type TeamsTopTab = "directory" | "workspace" | "admin";
-
-const WORKSPACE_HASHES = new Set([
-  "workspace",
-  "overview",
-  "revenue",
-  "funding",
-  "bonus",
-  "lifecycle",
-]);
-
-function getTeamsTopTabId(tabId: string) {
-  return `teams-section-tab-${tabId}`;
-}
+const TEAMS_PAGE_TOP_ID = "teams-page-top";
 
 export function TeamsPageClient() {
   const { replaceTeam, setSelectedTeam } = useTeamsDebugActions();
-  const [activeTopTab, setActiveTopTab] = useState<TeamsTopTab>("directory");
-  const [feedSelectedTeamId, setFeedSelectedTeamId] = useState<string | null>(null);
-  const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
+  const [routeState, setRouteState] = useState<TeamsRouteState>({
+    section: "directory",
+    teamAddress: null,
+  });
+  const [pendingScrollId, setPendingScrollId] =
+    useState<TeamsRouteSection | null>(null);
+  const navigateTo = useCallback(
+    (
+      nextRoute: TeamsRouteState,
+      options: { replace?: boolean } = {}
+    ) => {
+      if (
+        nextRoute.section === routeState.section &&
+        nextRoute.teamAddress === routeState.teamAddress
+      ) {
+        return;
+      }
+
+      setRouteState(nextRoute);
+      setPendingScrollId(nextRoute.section);
+      if (typeof window === "undefined") return;
+
+      const method = options.replace ? "replaceState" : "pushState";
+      window.history[method](
+        null,
+        "",
+        createTeamsRouteHref(window.location.href, nextRoute)
+      );
+    },
+    [routeState]
+  );
   const runtimeQuery = useTeamsState();
   const runtime = runtimeQuery.data ?? null;
   const isLiveBackend =
@@ -55,11 +84,14 @@ export function TeamsPageClient() {
       : runtime?.isEmpty
         ? "empty"
         : "ready";
-  const selectedTeamId =
-    runtime?.backend === "feed"
-      ? feedSelectedTeamId ?? data?.selectedTeamId ?? null
-      : data?.selectedTeamId ?? null;
-  const selectedTeam = resolveSelectedTeam(data, selectedTeamId);
+  const routeAuthorizationReady =
+    data !== null &&
+    !runtimeQuery.isPending &&
+    !runtime?.isLoading;
+  const selectedTeam = findTeamByRouteAddress(
+    data?.teams ?? [],
+    routeState.teamAddress
+  );
   const selectedViewer =
     data && selectedTeam
       ? deriveTeamsViewerForTeam(
@@ -69,8 +101,11 @@ export function TeamsPageClient() {
         )
       : data?.viewer ?? null;
   const showAdminSection = Boolean(data?.viewer.canUseAdmin);
-  const resolvedActiveTopTab =
-    activeTopTab === "admin" && !showAdminSection ? "directory" : activeTopTab;
+  const resolvedRouteSection =
+    routeState.section === "admin" && !showAdminSection
+      ? "directory"
+      : routeState.section;
+  const resolvedSurface = getTeamsTopSection(resolvedRouteSection);
   const revenueCardKey = [
     renderState,
     runtime?.presetId ?? "default",
@@ -115,104 +150,154 @@ export function TeamsPageClient() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const applyHash = () => {
-      const hash = window.location.hash.replace(/^#/, "");
-      if (!hash) return;
-
-      if (hash === "admin") {
-        setActiveTopTab("admin");
-        setPendingScrollId(hash);
-        return;
+    const applyLocation = () => {
+      const nextRoute = parseTeamsRouteState(window.location.href, {
+        canUseAdmin: showAdminSection,
+        adminAuthorizationReady: routeAuthorizationReady,
+      });
+      const canonicalHref = getCanonicalTeamsRouteHref(
+        window.location.href,
+        nextRoute
+      );
+      if (
+        canonicalHref &&
+        (routeAuthorizationReady ||
+          !isTeamsAdminRouteRequest(window.location.href))
+      ) {
+        window.history.replaceState(null, "", canonicalHref);
       }
-
-      if (WORKSPACE_HASHES.has(hash)) {
-        setActiveTopTab("workspace");
-        setPendingScrollId(hash);
-        return;
-      }
-
-      if (hash === "directory") {
-        setActiveTopTab("directory");
-        setPendingScrollId(hash);
-      }
+      setRouteState(nextRoute);
+      setPendingScrollId(nextRoute.section);
     };
 
-    applyHash();
-    window.addEventListener("hashchange", applyHash);
-    return () => window.removeEventListener("hashchange", applyHash);
-  }, []);
+    applyLocation();
+    window.addEventListener("popstate", applyLocation);
+    return () => {
+      window.removeEventListener("popstate", applyLocation);
+    };
+  }, [routeAuthorizationReady, showAdminSection]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !showAdminSection) return;
-
-    if (window.location.hash === "#admin") {
-      window.requestAnimationFrame(() => {
-        setActiveTopTab("admin");
-        setPendingScrollId("admin");
-      });
+    if (
+      !routeState.teamAddress ||
+      renderState === "loading" ||
+      (renderState === "ready" && selectedTeam)
+    ) {
+      return;
     }
-  }, [showAdminSection]);
+
+    navigateTo(
+      {
+        section: "directory",
+        teamAddress: null,
+      },
+      { replace: true }
+    );
+  }, [navigateTo, renderState, routeState.teamAddress, selectedTeam]);
 
   useEffect(() => {
-    if (runtime?.backend !== "feed" || !feedSelectedTeamId || !data) return;
-    if (data.teams.some((team) => team.id === feedSelectedTeamId)) return;
-    setFeedSelectedTeamId(data.selectedTeamId);
-  }, [data, feedSelectedTeamId, runtime?.backend]);
+    if (!pendingScrollId || renderState !== "ready") return;
 
-  useEffect(() => {
-    if (!pendingScrollId) return;
+    const topSection = getTeamsTopSection(pendingScrollId);
+    if (topSection === "workspace" && !selectedTeam) {
+      if (!routeState.teamAddress) {
+        setPendingScrollId(null);
+      }
+      return;
+    }
+    if (topSection === "admin" && !showAdminSection) return;
+    const scrollTargetId = getTeamsScrollTargetId(pendingScrollId);
 
     window.requestAnimationFrame(() => {
-      const target = document.getElementById(pendingScrollId);
+      const target = document.getElementById(scrollTargetId);
       if (typeof target?.scrollIntoView === "function") {
         target.scrollIntoView({ block: "start" });
+        setPendingScrollId(null);
       }
-      setPendingScrollId(null);
     });
-  }, [resolvedActiveTopTab, pendingScrollId, showAdminSection]);
+  }, [
+    pendingScrollId,
+    renderState,
+    resolvedSurface,
+    routeState.teamAddress,
+    selectedTeam,
+    showAdminSection,
+  ]);
 
-  const topTabs = [
-    {
-      id: "directory",
-      label: teamsCopy.navigation.directory,
-      badge:
-        renderState === "ready" && data
-          ? data.teams.length.toLocaleString("en-US")
-          : undefined,
-    },
-    {
-      id: "workspace",
-      label: teamsCopy.navigation.workspace,
-      badge: selectedTeam?.name ?? undefined,
-    },
-    ...(showAdminSection
-      ? [
-          {
-            id: "admin",
-            label: teamsCopy.navigation.admin,
-          },
-        ]
-      : []),
-  ];
+  const isWorkspaceSurface =
+    resolvedSurface === "workspace" && selectedTeam !== null;
+  const isAdminSurface = resolvedSurface === "admin";
+  const heroTitle = isWorkspaceSurface
+    ? selectedTeam.name
+    : isAdminSurface
+      ? teamsCopy.admin.title
+      : teamsCopy.page.title;
+  const heroDescription = isWorkspaceSurface
+    ? null
+    : isAdminSurface
+      ? teamsCopy.admin.description
+      : teamsCopy.page.description;
 
   return (
     <div className="bg-app text-text-primary">
-      <section className="border-b border-border bg-surface">
-        <div className="container mx-auto px-4 py-10 md:px-6 md:py-12">
-          <div className="max-w-3xl space-y-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="brand">{teamsCopy.app.routeKey}</Badge>
-            </div>
-
+      <section
+        id={TEAMS_PAGE_TOP_ID}
+        className="scroll-mt-24 border-b border-border bg-surface"
+      >
+        <div
+          className={cn(
+            "container mx-auto px-4 md:px-6",
+            isWorkspaceSurface ? "py-7 md:py-8" : "py-10 md:py-12"
+          )}
+        >
+          <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-4">
-              <p className="text-sm font-bold uppercase text-text-tertiary">
-                {teamsCopy.page.eyebrow}
-              </p>
-              <h1 className="text-3xl font-bold md:text-5xl">{teamsCopy.page.title}</h1>
-              <p className="max-w-2xl text-base leading-7 text-text-secondary">
-                {teamsCopy.page.description}
-              </p>
+              <TeamsBreadcrumb
+                currentLabel={
+                  isWorkspaceSurface
+                    ? selectedTeam.id
+                    : isAdminSurface
+                      ? teamsCopy.navigation.admin.toLowerCase()
+                      : null
+                }
+                onNavigateRoot={navigateToDirectory}
+              />
+              <h1
+                className={cn(
+                  "text-balance font-bold",
+                  isWorkspaceSurface
+                    ? "text-3xl md:text-4xl"
+                    : "text-3xl md:text-5xl"
+                )}
+              >
+                {heroTitle}
+              </h1>
+              {heroDescription ? (
+                <p className="max-w-2xl text-pretty text-base leading-7 text-text-secondary">
+                  {heroDescription}
+                </p>
+              ) : null}
             </div>
+            {showAdminSection && !isAdminSurface ? (
+              <a
+                href="/teams?section=admin"
+                className={getButtonClassName({
+                  variant: "secondary",
+                  size: "sm",
+                  className: "shrink-0",
+                })}
+                onClick={(event) => {
+                  if (!shouldHandleInternalNavigation(event)) return;
+                  event.preventDefault();
+                  navigateTo({
+                    section: "admin",
+                    teamAddress: null,
+                  });
+                }}
+              >
+                {teamsCopy.navigation.admin}
+              </a>
+            ) : null}
           </div>
         </div>
       </section>
@@ -236,52 +321,40 @@ export function TeamsPageClient() {
           />
         ) : null}
 
-        <Tabs
-          aria-label="Team Finances sections"
-          tabs={topTabs}
-          activeTab={resolvedActiveTopTab}
-          getPanelId={(tabId) => tabId}
-          getTabId={getTeamsTopTabId}
-          onChange={(tabId) => handleTopTabChange(tabId as TeamsTopTab)}
-          variant="line"
-          className="overflow-x-auto"
-        />
-
-        <section
-          id="directory"
-          role="tabpanel"
-          aria-labelledby={getTeamsTopTabId("directory")}
-          hidden={resolvedActiveTopTab !== "directory"}
-        >
+        {resolvedSurface === "directory" ? (
+          <section id="directory">
           <TeamsDirectory
             teams={renderState === "ready" ? data?.teams ?? [] : []}
             currentPeriod={renderState === "ready" ? data?.currentPeriod ?? null : null}
-            selectedTeamId={selectedTeamId}
             onSelectTeam={(teamId) => {
+              const team = data?.teams.find((entry) => entry.id === teamId);
+              if (!team) return;
               if (isMockRuntime) {
                 void setSelectedTeam(teamId);
-              } else {
-                setFeedSelectedTeamId(teamId);
               }
-              setActiveTopTab("workspace");
-              replaceHash("workspace");
+              navigateTo({
+                section: "overview",
+                teamAddress: team.address,
+              });
             }}
             state={renderState}
           />
-        </section>
+          </section>
+        ) : null}
 
-        <section
-          id="workspace"
-          role="tabpanel"
-          aria-labelledby={getTeamsTopTabId("workspace")}
-          hidden={resolvedActiveTopTab !== "workspace"}
-        >
+        {resolvedSurface === "workspace" ? (
+          <section id="workspace" className="min-w-0 overflow-x-hidden">
           <TeamWorkspace
             team={renderState === "ready" ? selectedTeam : null}
             viewer={renderState === "ready" ? selectedViewer : null}
             currentPeriod={renderState === "ready" ? data?.currentPeriod ?? null : null}
             onUpdateTeam={handleTeamUpdate}
-            onNavigateSection={(section) => replaceHash(section)}
+            onNavigateSection={(section) =>
+              navigateTo({
+                section,
+                teamAddress: routeState.teamAddress,
+              })
+            }
             revenueCardKey={revenueCardKey}
             state={renderState}
             liveWrites={
@@ -292,15 +365,11 @@ export function TeamsPageClient() {
                 : undefined
             }
           />
-        </section>
+          </section>
+        ) : null}
 
-        {showAdminSection ? (
-          <section
-            id="admin"
-            role="tabpanel"
-            aria-labelledby={getTeamsTopTabId("admin")}
-            hidden={resolvedActiveTopTab !== "admin"}
-          >
+        {showAdminSection && resolvedSurface === "admin" ? (
+          <section id="admin">
             <AdminConsole
               admin={renderState === "ready" ? data?.admin ?? null : null}
               teams={renderState === "ready" ? data?.teams ?? [] : []}
@@ -322,15 +391,75 @@ export function TeamsPageClient() {
     }
   }
 
-  function handleTopTabChange(tabId: TeamsTopTab) {
-    setActiveTopTab(tabId);
-    replaceHash(tabId);
+  function navigateToDirectory() {
+    navigateTo({
+      section: "directory",
+      teamAddress: null,
+    });
   }
 }
 
-function replaceHash(id: string) {
-  if (typeof window === "undefined") return;
-  window.history.replaceState(null, "", `#${id}`);
+function TeamsBreadcrumb({
+  currentLabel,
+  onNavigateRoot,
+}: {
+  currentLabel: string | null;
+  onNavigateRoot: () => void;
+}) {
+  if (!currentLabel) return null;
+
+  return (
+    <nav aria-label="Teams hierarchy">
+      <ol className="flex min-h-10 min-w-0 items-center gap-1.5 font-number text-sm font-medium">
+        <li className="min-w-0">
+          <a
+            href="/teams"
+            className="inline-flex min-h-10 items-center rounded-md px-2 text-text-secondary transition-[background-color,color] duration-150 ease-out hover:bg-surface-secondary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+            onClick={(event) => {
+              if (!shouldHandleInternalNavigation(event)) return;
+              event.preventDefault();
+              onNavigateRoot();
+            }}
+          >
+            {teamsCopy.app.routeKey}
+          </a>
+        </li>
+        <li aria-hidden="true" className="select-none text-text-tertiary">
+          /
+        </li>
+        <li
+          className="min-w-0 truncate px-1 text-text-secondary lowercase"
+          aria-current="page"
+          title={currentLabel}
+        >
+          {currentLabel}
+        </li>
+      </ol>
+    </nav>
+  );
+}
+
+export function shouldHandleInternalNavigation(
+  event: Pick<
+    MouseEvent<HTMLAnchorElement>,
+    "altKey" | "button" | "ctrlKey" | "metaKey" | "shiftKey"
+  >
+) {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
+function getTeamsScrollTargetId(section: TeamsRouteSection) {
+  return section === "directory" ||
+    section === "overview" ||
+    section === "admin"
+    ? TEAMS_PAGE_TOP_ID
+    : section;
 }
 
 export function TeamsDataStatusNotice({

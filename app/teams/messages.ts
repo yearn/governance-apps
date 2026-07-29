@@ -29,7 +29,6 @@ export const teamsCopy = {
   },
   page: {
     title: "Team Finances",
-    eyebrow: "Team finance",
     description:
       "Review each team's revenue, costs, funding, bonus, and status.",
     current: "Current Teams snapshot",
@@ -98,8 +97,6 @@ export const teamsCopy = {
     emptyBody:
       "No teams are available in this view yet.",
     emptyHint: "No teams are available right now.",
-    selected: "Selected",
-    openWorkspace: "Open team",
     headers: {
       team: "Team",
       owner: "Owner",
@@ -108,7 +105,6 @@ export const teamsCopy = {
       revenue: "Revenue",
       cost: "Cost",
       net: "Net",
-      action: "Action",
     },
     scope: {
       label: "Financial scope",
