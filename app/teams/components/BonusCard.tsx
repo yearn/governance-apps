@@ -16,14 +16,16 @@ import { teamsCopy } from "../messages";
 
 type BonusCardProps = {
   bonus: TeamBonusState;
+  financialDataAvailable?: boolean;
   canClaimBonus: boolean;
   viewerAddress?: string | null;
-  onClaimBonus?: (recipient: string) => Promise<void>;
+  onClaimBonus?: (recipient: string) => Promise<boolean>;
   txState?: TxState;
 };
 
 export function BonusCard({
   bonus,
+  financialDataAvailable = true,
   canClaimBonus,
   viewerAddress,
   onClaimBonus,
@@ -107,7 +109,7 @@ export function BonusCard({
           aria-describedby={action.disabled ? actionDescriptionId : undefined}
           onClick={() => {
             if (action.canSubmitLiveClaim && onClaimBonus && viewerAddress) {
-              void onClaimBonus(viewerAddress);
+              void onClaimBonus(viewerAddress).catch(() => undefined);
               return;
             }
 
@@ -165,7 +167,16 @@ export function BonusCard({
                           {formatTeamsTokenAmount(period.claimableYfi, bonus.tokenSymbol)}
                         </p>
                       </div>
-                      <Tooltip content={<BonusMathTooltip bonus={bonus} period={period} />}>
+                      <Tooltip
+                        content={
+                          <BonusMathTooltip
+                            bonus={bonus}
+                            period={period}
+                            financialDataAvailable={financialDataAvailable}
+                          />
+                        }
+                        align="end"
+                      >
                         <button
                           type="button"
                           className="inline-flex min-h-10 items-center justify-center rounded-box border border-border px-3 text-xs font-bold text-text-secondary transition-[border-color,color] duration-150 ease-out hover:border-border-hover hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app"
@@ -190,23 +201,37 @@ export function BonusCard({
 function BonusMathTooltip({
   bonus,
   period,
+  financialDataAvailable,
 }: {
   bonus: TeamBonusState;
   period: TeamBonusState["periods"][number];
+  financialDataAvailable: boolean;
 }) {
   return (
-    <dl className="grid min-w-[220px] gap-2">
+    <dl className="grid w-[min(15rem,calc(100vw-4rem))] min-w-0 gap-2">
       <MathRow
         label={teamsCopy.bonus.math.profit}
-        value={formatTeamsUsd(period.profitUsd)}
+        value={
+          financialDataAvailable
+            ? formatTeamsUsd(period.profitUsd)
+            : teamsCopy.financialData.unavailableValue
+        }
       />
       <MathRow
         label={teamsCopy.bonus.math.spotPrice}
-        value={formatTeamsUsd(period.spotPriceUsd, 2)}
+        value={
+          financialDataAvailable
+            ? formatTeamsUsd(period.spotPriceUsd, 2)
+            : teamsCopy.financialData.unavailableValue
+        }
       />
       <MathRow
         label={teamsCopy.bonus.math.adjustedPrice}
-        value={formatTeamsUsd(period.adjustedPriceUsd, 2)}
+        value={
+          financialDataAvailable
+            ? formatTeamsUsd(period.adjustedPriceUsd, 2)
+            : teamsCopy.financialData.unavailableValue
+        }
       />
       <MathRow
         label={teamsCopy.bonus.math.growthFactor}
@@ -249,9 +274,11 @@ function MathRow({
   value: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3">
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className="font-number font-bold text-neutral-900">{value}</dd>
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+      <dt className="min-w-0 text-neutral-500">{label}</dt>
+      <dd className="min-w-0 max-w-36 break-words text-right font-number font-bold text-neutral-900 [overflow-wrap:anywhere]">
+        {value}
+      </dd>
     </div>
   );
 }

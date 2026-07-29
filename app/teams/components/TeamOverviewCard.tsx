@@ -24,7 +24,7 @@ export function TeamOverviewCard({
         : "text-text-primary";
 
   return (
-    <Card className="space-y-5">
+    <Card className="min-w-0 space-y-5">
       <div className="space-y-1">
         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
           {teamsCopy.workspace.title}
@@ -51,11 +51,13 @@ export function TeamOverviewCard({
         />
       </dl>
 
-      <div className="rounded-box border border-border bg-app px-4 py-3">
+      <div className="min-w-0 rounded-box border border-border bg-app px-4 py-3">
         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
           {netState.label}
         </p>
-        <p className={`font-number text-lg font-bold ${netToneClassName}`}>
+        <p
+          className={`break-words font-number text-lg font-bold [overflow-wrap:anywhere] ${netToneClassName}`}
+        >
           {formatTeamsUsd(netState.value)}
         </p>
       </div>
@@ -71,11 +73,13 @@ function OverviewMetric({
   value: string;
 }) {
   return (
-    <div className="space-y-1 rounded-box border border-border bg-app px-4 py-3">
+    <div className="min-w-0 space-y-1 rounded-box border border-border bg-app px-4 py-3">
       <dt className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
         {label}
       </dt>
-      <dd className="font-number text-base font-bold text-text-primary">{value}</dd>
+      <dd className="break-words font-number text-base font-bold text-text-primary [overflow-wrap:anywhere]">
+        {value}
+      </dd>
     </div>
   );
 }

@@ -9,9 +9,11 @@ import {
   applyMockTeamsFundingReturn,
   formatTeamsAmount,
   formatTeamsUsd,
+  getTeamsFundingReturnableRaw,
   isTeamsFundingApprovalClaimable,
   isTeamsFundingApprovalReturnable,
-  resolveTeamsFundingUnitPriceUsd,
+  multiplyTeamsDecimalsToFixed,
+  resolveTeamsFundingUnitPriceDecimalUsd,
   type FundingApproval,
   type TeamRecord,
   type TeamsViewerContext,
@@ -20,10 +22,13 @@ import { AmountInput } from "@/components/ui/AmountInput";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import {
+  AddressLink,
+  TransactionLink,
+} from "@/components/ui/ExplorerLink";
 import { formatInputAmount, formatTokenAmount } from "@/lib/format";
 import type { TxState } from "@/lib/tx/types";
 import { useTokenAllowance } from "@/lib/hooks/useTokenAllowance";
-import { useTokenApprove } from "@/lib/hooks/useTokenApprove";
 import { useTokenBalance } from "@/lib/hooks/useTokenBalance";
 import {
   Table,
@@ -33,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
+import { UtcTime } from "@/components/ui/UtcTime";
 import { teamsCopy } from "../messages";
 
 type FundingApprovalsTableProps = {
@@ -45,12 +51,17 @@ type FundingApprovalsTableProps = {
     approval: FundingApproval,
     amount: string,
     recipient: string
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   onReturnFunding?: (
     team: TeamRecord,
     approval: FundingApproval,
     amount: string
-  ) => Promise<void>;
+  ) => Promise<boolean>;
+  onApproveFundingReturn?: (
+    team: TeamRecord,
+    approval: FundingApproval,
+    amount: string
+  ) => Promise<boolean>;
   txState?: TxState;
 };
 
@@ -79,19 +90,25 @@ export function FundingApprovalsTable({
   onUpdateTeam,
   onClaimFunding,
   onReturnFunding,
+  onApproveFundingReturn,
   txState,
 }: FundingApprovalsTableProps) {
   const claimableApprovals = useMemo(
-    () => team.fundingApprovals.filter(isTeamsFundingApprovalClaimable),
-    [team.fundingApprovals]
+    () =>
+      team.fundingApprovals.filter((approval) =>
+        isTeamsFundingApprovalClaimable(approval, currentPeriod)
+      ),
+    [currentPeriod, team.fundingApprovals]
   );
   const returnableApprovals = useMemo(
-    () => team.fundingApprovals.filter(isTeamsFundingApprovalReturnable),
-    [team.fundingApprovals]
+    () =>
+      team.fundingApprovals.filter((approval) =>
+        isTeamsFundingApprovalReturnable(approval, currentPeriod)
+      ),
+    [currentPeriod, team.fundingApprovals]
   );
-  const lateLiquidCount = team.fundingApprovals.filter(
-    (approval) =>
-      approval.status === "late-liquid" && Number(approval.claimable) > 0
+  const expiredCount = team.fundingApprovals.filter(
+    (approval) => approval.status === "expired"
   ).length;
 
   const [selectedClaimApprovalId, setSelectedClaimApprovalId] = useState<string | null>(
@@ -115,7 +132,7 @@ export function FundingApprovalsTable({
   const liveClaimMode = Boolean(onClaimFunding);
   const liveReturnMode = Boolean(onReturnFunding);
   const returnAmountRaw = selectedReturnApproval
-    ? tryParseTokenAmount(returnAmount, selectedReturnApproval.decimals ?? 18)
+    ? tryParseTokenAmount(returnAmount, selectedReturnApproval.decimals)
     : null;
   const returnTokenBalance = useTokenBalance(
     (selectedReturnApproval?.tokenAddress ?? ZERO_ADDRESS) as Address,
@@ -132,13 +149,12 @@ export function FundingApprovalsTable({
     (selectedReturnApproval?.tokenAddress ?? ZERO_ADDRESS) as Address,
     team.address as Address
   );
-  const returnApproval = useTokenApprove();
   const returnNeedsApproval =
     liveReturnMode &&
     returnAmountRaw !== null &&
     !returnExceedsAvailableBalance &&
     (returnAllowance.data ?? 0n) < returnAmountRaw;
-  const isTxPending = returnApproval.isLoading || isTeamsTxPending(txState);
+  const isTxPending = isTeamsTxPending(txState);
   const previousClaimApprovalIdRef = useRef<string | null>(selectedClaimApprovalId);
 
   useEffect(() => {
@@ -204,19 +220,29 @@ export function FundingApprovalsTable({
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <FundingMetric
             label={teamsCopy.funding.summary.claimableUsd}
-            value={formatTeamsUsd(team.fundingSummary.claimableUsd)}
+            value={
+              team.financialData.status === "available" &&
+              team.fundingSummary.claimableUsd !== null
+                ? formatTeamsUsd(team.fundingSummary.claimableUsd)
+                : teamsCopy.financialData.unavailableValue
+            }
           />
           <FundingMetric
             label={teamsCopy.funding.summary.refundableUsd}
-            value={formatTeamsUsd(team.fundingSummary.refundableUsd)}
+            value={
+              team.financialData.status === "available" &&
+              team.fundingSummary.refundableUsd !== null
+                ? formatTeamsUsd(team.fundingSummary.refundableUsd)
+                : teamsCopy.financialData.unavailableValue
+            }
           />
           <FundingMetric
             label={teamsCopy.funding.summary.state}
             value={teamsCopy.funding.summaryStates[team.fundingSummary.state]}
           />
           <FundingMetric
-            label={teamsCopy.funding.summary.lateLiquidCount}
-            value={String(lateLiquidCount)}
+            label={teamsCopy.funding.summary.expiredCount}
+            value={String(expiredCount)}
           />
         </div>
 
@@ -232,7 +258,7 @@ export function FundingApprovalsTable({
               </TableHead>
               <TableHead className="text-right">{teamsCopy.funding.headers.used}</TableHead>
               <TableHead className="text-right">
-                {teamsCopy.funding.headers.claimable}
+                {teamsCopy.funding.headers.unclaimed}
               </TableHead>
               <TableHead>{teamsCopy.funding.headers.flow}</TableHead>
               <TableHead className="text-right">{teamsCopy.funding.headers.actions}</TableHead>
@@ -242,24 +268,29 @@ export function FundingApprovalsTable({
             {team.fundingApprovals.map((approval) => {
               const status = teamsCopy.funding.statuses[approval.status];
               const canClaim = Boolean(viewer?.canClaimFunding) &&
-                isTeamsFundingApprovalClaimable(approval);
+                isTeamsFundingApprovalClaimable(approval, currentPeriod);
               const canReturn = Boolean(viewer?.canReturnFunding) &&
-                isTeamsFundingApprovalReturnable(approval);
+                isTeamsFundingApprovalReturnable(approval, currentPeriod);
 
               return (
                 <TableRow key={approval.id}>
                   <TableCell>
                     <div className="space-y-1">
                       <p className="font-number text-sm font-bold text-text-primary">
-                        #{approval.idx}
+                        {`Approval #${approval.idx}`}
                       </p>
-                      <p className="text-xs text-text-secondary">{approval.id}</p>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <p className="font-number text-sm font-bold text-text-primary">
-                      {approval.symbol}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="font-number text-sm font-bold text-text-primary">
+                        {approval.symbol}
+                      </p>
+                      <AddressLink
+                        address={approval.tokenAddress}
+                        variant="compact"
+                      />
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
@@ -272,11 +303,16 @@ export function FundingApprovalsTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-text-primary">
-                      {approval.recipient
-                        ? formatAddress(approval.recipient)
-                        : teamsCopy.funding.recipientMissing}
-                    </span>
+                    {approval.recipient ? (
+                      <AddressLink
+                        address={approval.recipient}
+                        variant="compact"
+                      />
+                    ) : (
+                      <span className="text-sm text-text-primary">
+                        {teamsCopy.funding.recipientMissing}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <AmountValue
@@ -290,7 +326,8 @@ export function FundingApprovalsTable({
                     <AmountValue
                       primary={formatApprovalAmount(approval.used, approval.symbol)}
                       secondary={
-                        Number(approval.claimedCostUsd) > 0
+                        team.financialData.status === "available" &&
+                        approval.claimedCostUsd !== null
                           ? formatTeamsUsd(approval.claimedCostUsd)
                           : null
                       }
@@ -298,7 +335,7 @@ export function FundingApprovalsTable({
                   </TableCell>
                   <TableCell className="text-right">
                     <AmountValue
-                      primary={formatApprovalAmount(approval.claimable, approval.symbol)}
+                      primary={formatUnclaimedAllocation(approval)}
                     />
                   </TableCell>
                   <TableCell>
@@ -318,7 +355,7 @@ export function FundingApprovalsTable({
                             selectedClaimApprovalId === approval.id ? "primary" : "secondary"
                           }
                           onClick={() => setSelectedClaimApprovalId(approval.id)}
-                          aria-label={`Use ${approval.id} in claim flow`}
+                          aria-label={`Use Approval #${approval.idx} in claim flow`}
                         >
                           {selectedClaimApprovalId === approval.id
                             ? teamsCopy.funding.actions.claimSelected
@@ -332,7 +369,7 @@ export function FundingApprovalsTable({
                             selectedReturnApprovalId === approval.id ? "primary" : "secondary"
                           }
                           onClick={() => setSelectedReturnApprovalId(approval.id)}
-                          aria-label={`Use ${approval.id} in return flow`}
+                          aria-label={`Use Approval #${approval.idx} in return flow`}
                         >
                           {selectedReturnApprovalId === approval.id
                             ? teamsCopy.funding.actions.returnSelected
@@ -419,7 +456,14 @@ export function FundingApprovalsTable({
                     setClaimErrors((current) => ({ ...current, amount: null }));
                   }}
                   tokenSymbol={selectedClaimApproval.symbol}
-                  onMaxClick={() => setClaimAmount(selectedClaimApproval.claimable)}
+                  onMaxClick={() =>
+                    setClaimAmount(
+                      formatInputAmount(
+                        BigInt(selectedClaimApproval.claimableRaw),
+                        selectedClaimApproval.decimals
+                      )
+                    )
+                  }
                   maxLabel={`${teamsCopy.funding.claimForm.maxLabel}: ${formatApprovalAmount(selectedClaimApproval.claimable, selectedClaimApproval.symbol)}`}
                   error={claimErrors.amount ?? undefined}
                 />
@@ -578,21 +622,41 @@ export function FundingApprovalsTable({
                         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
                           {teamsCopy.funding.history.record}
                         </p>
-                        <p className="font-number text-sm font-bold break-all text-text-primary">
-                          {entry.id}
-                        </p>
+                        {entry.txHash ? (
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <TransactionLink
+                              hash={entry.txHash}
+                              variant="compact"
+                            />
+                            {entry.logIndex !== undefined ? (
+                              <span className="font-number text-xs text-text-secondary">
+                                {teamsCopy.funding.history.logIndex(entry.logIndex)}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <p className="text-sm font-medium text-text-secondary">
+                            {teamsCopy.funding.history.localRecord}
+                          </p>
+                        )}
                       </div>
                       <p className="font-number text-sm font-bold text-text-primary">
-                        {formatTeamsUsd(entry.refundValueUsd)}
+                        {team.financialData.status === "available" &&
+                        entry.refundValueUsd !== null
+                          ? formatTeamsUsd(entry.refundValueUsd)
+                          : teamsCopy.financialData.unavailableValue}
                       </p>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-text-secondary">
                       <span>{formatApprovalAmount(entry.amount, entry.symbol)}</span>
                       <span>{teamsCopy.funding.history.period(entry.period)}</span>
-                      <span>{teamsCopy.funding.history.approval(entry.approvalId)}</span>
-                      <span>
-                        {teamsCopy.funding.history.returnedBy}: {formatAddress(entry.returnedBy)}
-                      </span>
+                      <span>{teamsCopy.funding.history.approval(entry.approvalIdx)}</span>
+                      <span>{teamsCopy.funding.history.returnedBy}:</span>
+                      <AddressLink
+                        address={entry.returnedBy}
+                        variant="compact"
+                      />
+                      <UtcTime timestamp={entry.createdAt} format="date" />
                     </div>
                   </div>
                 ))}
@@ -625,8 +689,8 @@ export function FundingApprovalsTable({
 
     const amountError = validateAmount(
       claimAmount,
-      selectedClaimApproval.claimable,
-      selectedClaimApproval.decimals ?? 18,
+      BigInt(selectedClaimApproval.claimableRaw),
+      selectedClaimApproval.decimals,
       teamsCopy.funding.claimForm.errors.amountRequired,
       teamsCopy.funding.claimForm.errors.amountInvalid,
       teamsCopy.funding.claimForm.errors.amountExceeds
@@ -641,13 +705,19 @@ export function FundingApprovalsTable({
     }
 
     if (liveClaimMode && onClaimFunding) {
-      await onClaimFunding(team, selectedClaimApproval, claimAmount, recipient);
+      const submitted = await onClaimFunding(
+        team,
+        selectedClaimApproval,
+        claimAmount,
+        recipient
+      );
+      if (!submitted) return;
       setClaimFeedback({
         tone: "success",
         message: teamsCopy.funding.claimForm.success(
           formatTeamsAmount(claimAmount),
           selectedClaimApproval.symbol,
-          selectedClaimApproval.id,
+          selectedClaimApproval.idx,
           formatAddress(recipient)
         ),
       });
@@ -672,7 +742,7 @@ export function FundingApprovalsTable({
       message: teamsCopy.funding.claimForm.success(
         formatTeamsAmount(claimAmount),
         selectedClaimApproval.symbol,
-        selectedClaimApproval.id,
+        selectedClaimApproval.idx,
         formatAddress(recipient)
       ),
     });
@@ -689,8 +759,8 @@ export function FundingApprovalsTable({
 
     const amountError = validateAmount(
       returnAmount,
-      getReturnableInputAmount(selectedReturnApproval),
-      selectedReturnApproval.decimals ?? 18,
+      getTeamsFundingReturnableRaw(selectedReturnApproval),
+      selectedReturnApproval.decimals,
       teamsCopy.funding.returnForm.errors.amountRequired,
       teamsCopy.funding.returnForm.errors.amountInvalid,
       teamsCopy.funding.returnForm.errors.amountExceeds
@@ -708,27 +778,32 @@ export function FundingApprovalsTable({
 
     if (liveReturnMode && onReturnFunding) {
       if (returnNeedsApproval) {
-        await returnApproval.write(
-          selectedReturnApproval.tokenAddress as Address,
-          team.address as Address,
-          returnAmountRaw,
-          {
-            invalidate: async () => {
-              await returnAllowance.refetch();
-            },
-          }
+        if (!onApproveFundingReturn) {
+          return;
+        }
+        const approved = await onApproveFundingReturn(
+          team,
+          selectedReturnApproval,
+          returnAmount
         );
+        if (!approved) return;
+        await returnAllowance.refetch();
         return;
       }
 
-      await onReturnFunding(team, selectedReturnApproval, returnAmount);
+      const submitted = await onReturnFunding(
+        team,
+        selectedReturnApproval,
+        returnAmount
+      );
+      if (!submitted) return;
       await returnTokenBalance.refetch();
       setReturnFeedback({
         tone: "success",
         message: teamsCopy.funding.returnForm.success(
           formatTeamsAmount(returnAmount),
           selectedReturnApproval.symbol,
-          selectedReturnApproval.id,
+          selectedReturnApproval.idx,
           formatReturnEstimate(selectedReturnApproval, returnAmount)
         ),
       });
@@ -750,7 +825,7 @@ export function FundingApprovalsTable({
       message: teamsCopy.funding.returnForm.success(
         formatTeamsAmount(returnAmount),
         selectedReturnApproval.symbol,
-        selectedReturnApproval.id,
+        selectedReturnApproval.idx,
         formatReturnEstimate(selectedReturnApproval, returnAmount)
       ),
     });
@@ -825,7 +900,7 @@ function SelectionSummary({
             {title}
           </p>
           <p className="font-number text-base font-bold text-text-primary">
-            #{approval.idx} • {approval.id}
+            {`Approval #${approval.idx}`}
           </p>
         </div>
         <Badge variant={status.variant}>{status.label}</Badge>
@@ -901,15 +976,21 @@ function formatApprovalAmount(amount: string, symbol: string) {
   return `${formatTeamsAmount(amount)} ${symbol}`;
 }
 
+function formatUnclaimedAllocation(approval: FundingApproval) {
+  const amountRaw = BigInt(approval.amountRaw);
+  const usedRaw = BigInt(approval.usedRaw);
+  const unclaimedRaw = amountRaw > usedRaw ? amountRaw - usedRaw : 0n;
+  return `${formatTokenAmount(unclaimedRaw, approval.decimals)} ${approval.symbol}`;
+}
+
 function getReturnMaxInputAmount(
   approval: FundingApproval,
   availableBalance: bigint | undefined
 ) {
-  const decimals = approval.decimals ?? 18;
+  const decimals = approval.decimals;
   const returnableRaw = getReturnableAmountRaw(approval);
   if (
     availableBalance === undefined ||
-    returnableRaw === null ||
     availableBalance >= returnableRaw
   ) {
     return getReturnableInputAmount(approval);
@@ -931,64 +1012,32 @@ function getReturnMaxLabel(
 
   return `${teamsCopy.funding.returnForm.balanceLabel}: ${formatTokenAmount(
     availableBalance,
-    approval.decimals ?? 18
+    approval.decimals
   )} ${approval.symbol}`;
 }
 
 function getReturnableInputAmount(approval: FundingApproval) {
   const returnableRaw = getReturnableAmountRaw(approval);
-  return returnableRaw === null
-    ? "0"
-    : formatInputAmount(returnableRaw, approval.decimals ?? 18);
+  return formatInputAmount(returnableRaw, approval.decimals);
 }
 
 function getReturnableAmountRaw(approval: FundingApproval) {
-  const decimals = approval.decimals ?? 18;
-  const usedRaw = tryParseTokenAmount(approval.used, decimals);
-  const refundableRaw = getRefundableAmountRaw(approval);
-
-  if (usedRaw === null || refundableRaw === null) {
-    return null;
-  }
-
-  return usedRaw < refundableRaw ? usedRaw : refundableRaw;
-}
-
-function getRefundableAmountRaw(approval: FundingApproval) {
-  const unitPriceUsd = resolveTeamsFundingUnitPriceUsd(approval);
-  const refundableUsd = Number(approval.refundValueUsd);
-
-  if (
-    unitPriceUsd === null ||
-    unitPriceUsd <= 0 ||
-    !Number.isFinite(refundableUsd) ||
-    refundableUsd <= 0
-  ) {
-    return null;
-  }
-
-  const decimals = approval.decimals ?? 18;
-  const precision = Math.min(decimals, 12);
-  const factor = 10 ** precision;
-  const amount = Math.floor((refundableUsd / unitPriceUsd) * factor) / factor;
-
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return null;
-  }
-
-  return tryParseTokenAmount(
-    amount.toFixed(precision).replace(/\.?0+$/, "") || "0",
-    decimals
-  );
+  return getTeamsFundingReturnableRaw(approval);
 }
 
 function getApprovalScopeText(approval: FundingApproval, currentPeriod: number) {
-  if (approval.status === "late-liquid") {
-    return teamsCopy.funding.periodScope.lateLiquid(approval.approvedPeriod);
+  if (approval.status === "expired") {
+    return teamsCopy.funding.periodScope.expired(approval.approvedPeriod);
   }
 
-  if (approval.status === "not-current-period") {
+  if (approval.status === "scheduled") {
     return teamsCopy.funding.periodScope.future(approval.approvedPeriod);
+  }
+
+  if (approval.status === "current-unavailable") {
+    return teamsCopy.funding.periodScope.currentUnavailable(
+      approval.approvedPeriod
+    );
   }
 
   if (approval.status === "fully-used") {
@@ -1003,28 +1052,40 @@ function getApprovalScopeText(approval: FundingApproval, currentPeriod: number) 
 }
 
 function getApprovalFlowText(approval: FundingApproval) {
-  if (approval.status === "late-liquid") {
-    return teamsCopy.funding.flow.lateLiquid;
+  if (approval.status === "expired") {
+    return teamsCopy.funding.flow.expired;
   }
 
-  if (approval.status === "not-current-period") {
+  if (approval.status === "scheduled") {
     return teamsCopy.funding.flow.future;
+  }
+
+  if (approval.status === "current-unavailable") {
+    return teamsCopy.funding.flow.currentUnavailable;
   }
 
   if (approval.status === "fully-used") {
     return teamsCopy.funding.flow.spent;
   }
 
-  return teamsCopy.funding.flow.streamBacked(approval.streamDurationDays);
+  return approval.streamDurationDays > 0
+    ? teamsCopy.funding.flow.vestingWindow(
+        formatFundingDuration(approval.streamDurationDays)
+      )
+    : teamsCopy.funding.flow.immediate;
 }
 
 function getClaimHelperText(approval: FundingApproval, currentPeriod: number) {
-  if (approval.status === "late-liquid") {
-    return teamsCopy.funding.claimForm.helpers.lateLiquid;
+  if (approval.status === "expired") {
+    return teamsCopy.funding.claimForm.helpers.expired;
   }
 
-  if (approval.status === "not-current-period") {
+  if (approval.status === "scheduled") {
     return teamsCopy.funding.claimForm.helpers.future;
+  }
+
+  if (approval.status === "current-unavailable") {
+    return teamsCopy.funding.claimForm.helpers.currentUnavailable;
   }
 
   if (approval.status === "fully-used") {
@@ -1032,15 +1093,46 @@ function getClaimHelperText(approval: FundingApproval, currentPeriod: number) {
   }
 
   if (approval.approvedPeriod === currentPeriod) {
-    return teamsCopy.funding.claimForm.helpers.streamBacked(approval.streamDurationDays);
+    return approval.streamDurationDays > 0
+      ? teamsCopy.funding.claimForm.helpers.vestingWindow(
+          formatFundingDuration(approval.streamDurationDays)
+        )
+      : teamsCopy.funding.claimForm.helpers.immediate;
   }
 
-  return teamsCopy.funding.claimForm.helpers.streamBacked(approval.streamDurationDays);
+  return teamsCopy.funding.claimForm.helpers.expired;
+}
+
+function formatFundingDuration(durationDays: number) {
+  const totalMinutes = durationDays * 24 * 60;
+  if (totalMinutes < 1) {
+    return "<1 minute";
+  }
+
+  const remainingMinutes = Math.max(
+    1,
+    Math.floor(totalMinutes + Number.EPSILON)
+  );
+  const days = Math.floor(remainingMinutes / (24 * 60));
+  const hours = Math.floor((remainingMinutes % (24 * 60)) / 60);
+  const minutes = remainingMinutes % 60;
+  const parts = [
+    formatDurationPart(days, "day"),
+    formatDurationPart(hours, "hour"),
+    formatDurationPart(minutes, "minute"),
+  ].filter((part): part is string => part !== null);
+
+  return parts.join(" ");
+}
+
+function formatDurationPart(value: number, unit: string) {
+  if (value === 0) return null;
+  return `${value} ${unit}${value === 1 ? "" : "s"}`;
 }
 
 function validateAmount(
   rawAmount: string,
-  maxAmount: string,
+  maxAmountRaw: bigint,
   decimals: number,
   requiredMessage: string,
   invalidMessage: string,
@@ -1055,8 +1147,7 @@ function validateAmount(
     return invalidMessage;
   }
 
-  const max = tryParseTokenAmount(maxAmount, decimals);
-  if (max !== null && amount > max) {
+  if (amount > maxAmountRaw) {
     return exceedsMessage;
   }
 
@@ -1064,28 +1155,28 @@ function validateAmount(
 }
 
 function getAveragePriceLabel(approval: FundingApproval) {
-  const resolvedUnitPriceUsd = resolveTeamsFundingUnitPriceUsd(approval);
+  const resolvedUnitPriceUsd =
+    resolveTeamsFundingUnitPriceDecimalUsd(approval);
   if (resolvedUnitPriceUsd === null) {
     return "Unavailable";
   }
 
-  return formatTeamsUsd(resolvedUnitPriceUsd.toFixed(2), 2);
+  return formatTeamsUsd(resolvedUnitPriceUsd, 2);
 }
 
 function formatReturnEstimate(approval: FundingApproval, amount: string) {
-  const numericAmount = Number(amount);
-  const averagePrice = resolveTeamsFundingUnitPriceUsd(approval);
+  const averagePrice =
+    resolveTeamsFundingUnitPriceDecimalUsd(approval);
+  const estimate =
+    averagePrice === null
+      ? null
+      : multiplyTeamsDecimalsToFixed(amount, averagePrice, 2);
 
-  if (
-    !Number.isFinite(numericAmount) ||
-    numericAmount <= 0 ||
-    averagePrice === null ||
-    averagePrice <= 0
-  ) {
-    return formatTeamsUsd("0.00", 2);
+  if (!estimate || estimate === "0" || estimate === "0.00") {
+    return teamsCopy.financialData.unavailableValue;
   }
 
-  return formatTeamsUsd((numericAmount * averagePrice).toFixed(2), 2);
+  return formatTeamsUsd(estimate, 2);
 }
 
 function tryParseTokenAmount(value: string, decimals: number) {

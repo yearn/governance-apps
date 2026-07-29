@@ -30,13 +30,29 @@ export const teamsCopy = {
   page: {
     title: "Team Finances",
     eyebrow: "Team finance",
+    teamEyebrow: "Team workspace",
     description:
       "Review each team's revenue, costs, funding, bonus, and status.",
+    teamDescription: (teamName: string) =>
+      `Revenue, costs, funding, bonus, and lifecycle for ${teamName}.`,
+    current: "Current Teams snapshot",
+    refreshing: "Refreshing Teams data",
+    lastUpdated: "Last updated",
+    staleTitle: "Showing the last canonical-block-anchored snapshot",
+    staleBody:
+      "Producer values remain visible for review, but financial actions are paused until a current mainnet snapshot is confirmed.",
+    unavailableTitle: "Teams snapshot unavailable",
+    unavailableBody:
+      "No Teams data is shown because a canonical mainnet snapshot could not be verified.",
+    retryCta: "Retry",
+    retrying: "Retrying",
   },
   navigation: {
-    directory: "Directory",
+    directory: "Teams",
     workspace: "Team",
     admin: "Admin",
+    backToDirectory: "Teams",
+    selectTeamFirst: "Select a team from the directory first.",
   },
   stats: {
     currentPeriod: "Current period",
@@ -44,6 +60,12 @@ export const teamsCopy = {
     retiringTeams: "Retiring",
     retiredTeams: "Retired",
     viewerRole: "Viewer",
+  },
+  financialData: {
+    unavailableValue: "--",
+    unavailableTitle: "Financial data unavailable",
+    unavailableBody:
+      "This feed mixes incompatible USD units. Team identity, status, and actions remain available while the data producer publishes a normalized snapshot.",
   },
   controls: {
     description:
@@ -110,9 +132,9 @@ export const teamsCopy = {
   },
   workspace: {
     title: "Team Overview",
-    overviewEyebrow: "Selected team",
+    overviewEyebrow: "Overview",
     description:
-      "Current and all-time totals for the selected team.",
+      "Owner, contract, current-period totals, and all-time totals.",
     loadingTitle: "Loading team overview",
     loadingBody: "Loading the selected team.",
     emptyTitle: "No team selected",
@@ -151,6 +173,9 @@ export const teamsCopy = {
       retirement: "Retirement",
       viewer: "Viewer permissions",
     },
+    ownership: {
+      pendingTransfer: "Ownership transfer pending",
+    },
     tabs: {
       overview: "Overview",
       revenue: "Revenue",
@@ -174,12 +199,12 @@ export const teamsCopy = {
       fundingReturnSource: "Return accounting",
       fundingClaimableCount: "Claimable approvals",
       fundingReturnableCount: "Returnable approvals",
-      fundingClaimableValue: "Stable claimable value",
+      fundingClaimableValue: "Claimable USD value",
       fundingRefundableValue: "Refundable value",
-      fundingClaimBody: (approvalId: string, amount: string, periodLabel: string) =>
-        `${approvalId} has ${amount} available from ${periodLabel}.`,
-      fundingReturnBody: (approvalId: string, amount: string) =>
-        `${approvalId} has ${amount} of used balance available for return accounting.`,
+      fundingClaimBody: (approvalIdx: number, amount: string, periodLabel: string) =>
+        `Approval #${approvalIdx} has ${amount} available from ${periodLabel}.`,
+      fundingReturnBody: (approvalIdx: number, amount: string) =>
+        `Approval #${approvalIdx} has ${amount} in the current aggregate return bucket.`,
       fundingNoClaimable:
         "No funding approval is claimable right now.",
       fundingNoReturnable:
@@ -377,10 +402,10 @@ export const teamsCopy = {
   revenue: {
     title: "Revenue Deposit",
     description:
-      "Deposit revenue for the selected team and preview the credited USD amount.",
+      "Deposit a supported revenue token for the selected team. Protocol accounting records the final USD credit.",
     loadingTitle: "Loading revenue deposit flow",
     loadingBody:
-      "Loading supported tokens, preview, and recent deposits.",
+      "Loading supported tokens, deposit details, and recent deposits.",
     emptyTitle: "No revenue data available",
     emptyBody: "Revenue deposits appear once a team is selected.",
     noTeamTitle: "No team selected",
@@ -393,10 +418,22 @@ export const teamsCopy = {
     unavailable: {
       title: "Deposits unavailable for this team",
       disabledCta: "Deposit unavailable",
-      viewerBody:
-        "This viewer cannot submit deposits.",
+      untrustedTitle: "Deposit actions paused",
+      untrustedBody:
+        "Producer values remain visible for review, but token approval and deposit submission are paused until a current verified Ethereum Mainnet snapshot is available.",
+      untrustedCta: "Waiting for verified snapshot",
+      connectTitle: "Connect a wallet to deposit",
+      connectBody:
+        "Revenue deposits are permissionless. Connect a wallet to continue.",
+      connectCta: "Connect wallet",
+      networkTitle: "Switch to Ethereum Mainnet",
+      networkBody:
+        "Revenue deposits are available on Ethereum Mainnet only.",
+      networkCta: "Switch network",
       readOnlyBody:
         "This team is read-only, so new deposits stay disabled.",
+      restrictedBody:
+        "The revenue recipient is not accepting deposits for this team.",
       optionsBody:
         "No supported revenue tokens are available for new deposits.",
     },
@@ -404,12 +441,14 @@ export const teamsCopy = {
       tokenLabel: "Supported tokens",
       amountLabel: "Deposit amount",
       amountHint:
-        "Credited USD may differ after conversion and pricing.",
+        "Protocol accounting determines the final credited USD after submission.",
       submit: "Deposit revenue",
       approve: "Approve token",
       balanceLabel: "Balance",
       amountError: "Enter an amount greater than 0.",
       amountExceedsBalance: "Amount exceeds the connected wallet balance.",
+      quoteUnavailable:
+        "This mock token has no deterministic credit fixture, so the mock deposit cannot be recorded.",
     },
     tokenBadges: {
       convertible: "Auto-converts",
@@ -419,22 +458,26 @@ export const teamsCopy = {
       title: "Deposit preview",
       submitted: "Depositing",
       path: "Deposit path",
-      credit: "Estimated accountant credit",
+      credit: "Reference accountant credit",
       direct: "Direct accountant credit",
-      quote: "Quoted credit",
+      quote: "Mock reference credit",
+      quoteUnavailable:
+        "No pre-submit USD credit is available. Protocol accounting records the final credit.",
       convertedPrefix: "Auto-converts to",
+      protocolConverter: "Via protocol converter",
+      conversionRequired: "Protocol conversion",
     },
     history: {
       title: "Recent deposit history",
       description:
-        "Compare the next quote with recent deposits.",
+        "Review recently recorded deposits and their final credited USD.",
       auditTitle: "Revenue ledger",
       auditDescription:
-        "Deposit records with IDs, periods, amounts, and credited USD.",
+        "Deposit transactions with log indices, periods, amounts, and credited USD.",
       emptyTitle: "No deposits recorded yet",
       emptyBody: "This selected team has no revenue deposit history yet.",
       headers: {
-        record: "Record ID",
+        record: "Transaction",
         period: "Period",
         deposit: "Deposit",
         credit: "Credited USD",
@@ -443,33 +486,36 @@ export const teamsCopy = {
         recorded: "Recorded",
       },
       direct: "Direct credit",
+      logIndex: (value: number) => `Log #${value}`,
+      localRecord: "Local preview",
       permissionlessDepositor: "Permissionless depositor",
     },
     success: {
       title: "Deposit recorded",
       body:
-        "The credited USD estimate and recent deposit history have been updated for this session.",
+        "The mock deposit and its fixture-backed USD credit were recorded for this session.",
       currentPeriodPrefix: "Current period",
     },
   },
   funding: {
     title: "Funding Approvals",
     description:
-      "Review claimable funding, late-liquid approvals, and returns.",
+      "Review current-period claims, expired approval history, and returns.",
     emptyTitle: "No funding approvals available",
     emptyBody:
       "This team has no funding approvals yet.",
     summary: {
-      claimableUsd: "Stable claimable value",
+      claimableUsd: "Current claimable USD",
       refundableUsd: "Refundable value",
       state: "Funding state",
-      lateLiquidCount: "Late-liquid approvals",
+      expiredCount: "Expired approvals",
     },
     summaryStates: {
       "no-approvals": "No approvals",
       "has-claimable": "Claimable balance available",
       "partially-claimed": "Claimed and claimable balances",
-      "late-liquid-available": "Late-liquid balance available",
+      "has-expired": "Includes expired approvals",
+      "current-unavailable": "Current claims unavailable",
       "fully-used": "Fully used",
     } satisfies Record<TeamFundingSummaryState, string>,
     headers: {
@@ -479,8 +525,9 @@ export const teamsCopy = {
       recipient: "Recipient",
       totalApproved: "Total approved",
       used: "Used",
-      claimable: "Claimable now",
-      flow: "Claim style",
+      unclaimed: "Unclaimed allocation",
+      claimable: "Current claimable",
+      flow: "Claim settlement",
       actions: "Actions",
     },
     statuses: {
@@ -492,13 +539,17 @@ export const teamsCopy = {
         label: "Partially claimed",
         variant: "warning",
       },
-      "late-liquid": {
-        label: "Late liquid",
-        variant: "error",
+      expired: {
+        label: "Expired",
+        variant: "warning",
       },
-      "not-current-period": {
-        label: "Future period",
+      scheduled: {
+        label: "Scheduled",
         variant: "neutral",
+      },
+      "current-unavailable": {
+        label: "Claims unavailable",
+        variant: "warning",
       },
       "fully-used": {
         label: "Fully used",
@@ -507,8 +558,10 @@ export const teamsCopy = {
     } satisfies Record<FundingApprovalStatus, StatusCopy>,
     periodScope: {
       currentPeriod: (period: number) => `Current period #${period} claimable now`,
-      lateLiquid: (period: number) => `Period #${period} late-claim window`,
+      expired: (period: number) => `Period #${period} expired — audit only`,
       future: (period: number) => `Queued for period #${period}`,
+      currentUnavailable: (period: number) =>
+        `Current period #${period} — claims unavailable`,
       spent: (period: number) => `Period #${period} fully used`,
     },
     recipientMissing: "Recipient required on claim",
@@ -520,9 +573,12 @@ export const teamsCopy = {
       none: "No action available",
     },
     flow: {
-      streamBacked: (days: number) => `Stream-backed • ${days}-day vest`,
-      lateLiquid: "Liquid immediately",
-      future: "Not claimable this period",
+      vestingWindow: (duration: string) =>
+        `Vesting window • ${duration} from period start`,
+      immediate: "Transfers immediately",
+      expired: "Not claimable • audit only",
+      future: "Not claimable yet",
+      currentUnavailable: "Claims unavailable • current returns stay permissionless",
       spent: "No remaining balance",
     },
     claimForm: {
@@ -541,19 +597,23 @@ export const teamsCopy = {
       maxLabel: "Claimable",
       submit: "Claim funding",
       helpers: {
-        streamBacked: (days: number) =>
-          `This approval remains stream-backed for ${days} days after claim.`,
-        lateLiquid:
-          "This approval is late-liquid. Claimed funds arrive immediately in this flow.",
+        vestingWindow: (duration: string) =>
+          `During the ${duration} window from the period start, a claim vests. After that window, it transfers immediately.`,
+        immediate:
+          "This current-period approval has no vesting window, so a claim transfers immediately.",
+        expired:
+          "This approval belongs to a past period and is retained for audit only. It cannot be claimed.",
         future: "This approval is visible but not claimable in the current period.",
+        currentUnavailable:
+          "This approval is current, but protocol claims are unavailable. Current aggregate returns remain permissionless.",
         spent: "This approval has no remaining claimable balance.",
       },
       success: (
         amount: string,
         symbol: string,
-        approvalId: string,
+        approvalIdx: number,
         recipient: string
-      ) => `Claimed ${amount} ${symbol} from ${approvalId} to ${recipient}.`,
+      ) => `Claimed ${amount} ${symbol} from Approval #${approvalIdx} to ${recipient}.`,
       errors: {
         recipientRequired: "Enter a recipient address.",
         recipientInvalid: "Enter a valid recipient address.",
@@ -565,26 +625,26 @@ export const teamsCopy = {
     returnForm: {
       title: "Return Funding",
       description:
-        "Represent funding returns separately from claims. Refund value uses the historical average claim price.",
+        "Return previously claimed tokens against the current team, period, and token cost bucket.",
       disabledPermission: "This viewer cannot return funding in the current view.",
       disabledPermissionCta: "Return unavailable",
       disabledNoApproval: "Select a refundable approval from the table.",
       disabledNoApprovalCta: "Select approval to return",
       selectedApproval: "Selected approval",
-      averagePrice: "Historical average claim price",
+      averagePrice: "Current aggregate cost price",
       amount: "Amount to return",
       maxLabel: "Refundable balance",
       balanceLabel: "Balance",
       estimate: "Estimated refund value",
-      note: "Refund accounting uses the historical average claim price for this approval.",
+      note: "Refund accounting uses the current aggregate average cost for this team, period, and token.",
       submit: "Return funding",
       approve: "Approve token",
       success: (
         amount: string,
         symbol: string,
-        approvalId: string,
+        approvalIdx: number,
         refundValue: string
-      ) => `Returned ${amount} ${symbol} from ${approvalId} for ${refundValue}.`,
+      ) => `Returned ${amount} ${symbol} from Approval #${approvalIdx} for ${refundValue}.`,
       errors: {
         amountRequired: "Enter an amount to return.",
         amountInvalid: "Enter an amount greater than zero.",
@@ -595,9 +655,11 @@ export const teamsCopy = {
     history: {
       title: "Return history",
       empty: "No funding returns have been recorded yet.",
-      record: "Return record",
+      record: "Return transaction",
+      localRecord: "Local preview",
+      logIndex: (value: number) => `Log #${value}`,
       period: (period: number) => `Period #${period}`,
-      approval: (approvalId: string) => `Approval ${approvalId}`,
+      approval: (approvalIdx: number) => `Approval #${approvalIdx}`,
       returnedBy: "Returned by",
     },
   },
@@ -665,6 +727,8 @@ export const teamsCopy = {
       directCredit: "Direct credit",
       bucketUsage: "Bucket usage",
       ofBudget: "of budget used",
+      bucketUnavailable:
+        "Bucket accounting is unavailable until the feed identifies the source token and its decimals.",
       bucketLabels: {
         rewards: "Rewards bucket",
         treasury: "Treasury bucket",
@@ -686,11 +750,11 @@ export const teamsCopy = {
     fundingOps: {
       title: "Funding Ops",
       description:
-        "Track approval queue health and late-liquid exposure.",
+        "Track current approval readiness and expired audit records.",
       metrics: {
         approvals: "Approvals visible",
         attention: "Operator attention",
-        lateLiquid: "Late-liquid approvals",
+        expired: "Expired approvals",
       },
       headers: {
         approval: "Approval",
@@ -756,6 +820,10 @@ export const teamsCopy = {
       "limit-reached": {
         label: "Limit reached",
         variant: "error",
+      },
+      unavailable: {
+        label: "Unavailable",
+        variant: "neutral",
       },
     } satisfies Record<BucketStatus, StatusCopy>,
     tokenStatuses: {

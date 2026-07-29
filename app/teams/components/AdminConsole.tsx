@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { AddressLink } from "@/components/ui/ExplorerLink";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -12,13 +13,15 @@ import {
 } from "@/components/ui/Table";
 import {
   formatTeamsDate,
+  formatTeamsTokenAmount,
   formatTeamsUsd,
+  getTeamsDecimalPercentage,
   type BucketRecord,
   type TeamRecord,
   type TeamsAdminRecord,
   type TeamsViewerContext,
 } from "@/lib/clients/teams";
-import { formatAddress, formatPercent } from "@/lib/format";
+import { formatPercent } from "@/lib/format";
 import { teamsCopy } from "../messages";
 
 type AdminConsoleProps = {
@@ -248,10 +251,7 @@ function RegistryCard({ teams }: { teams: TeamRecord[] }) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <p className="font-medium text-text-primary">{formatAddress(team.owner)}</p>
-                  <p className="font-number break-all text-xs text-text-secondary">
-                    {team.owner}
-                  </p>
+                  <AddressLink address={team.owner} variant="compact" />
                 </TableCell>
                 <TableCell>
                   <Badge variant={lifecycleStatus.variant}>{lifecycleStatus.label}</Badge>
@@ -286,9 +286,13 @@ function RegistryCard({ teams }: { teams: TeamRecord[] }) {
                         : teamsCopy.admin.registry.workspace.full}
                     </p>
                     {team.pendingOwner ? (
-                      <p className="text-xs text-text-secondary">
-                        Pending owner: {formatAddress(team.pendingOwner)}
-                      </p>
+                      <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-text-secondary">
+                        <span>Pending owner:</span>
+                        <AddressLink
+                          address={team.pendingOwner}
+                          variant="compact"
+                        />
+                      </div>
                     ) : null}
                   </div>
                 </TableCell>
@@ -359,9 +363,10 @@ function RevenueOpsCard({ admin }: { admin: TeamsAdminRecord }) {
                   <TableCell>
                     <div className="space-y-1">
                       <p className="font-bold text-text-primary">{token.symbol}</p>
-                      <p className="font-number text-xs text-text-secondary">
-                        {token.tokenAddress}
-                      </p>
+                      <AddressLink
+                        address={token.tokenAddress}
+                        variant="compact"
+                      />
                     </div>
                   </TableCell>
                   <TableCell>
@@ -393,8 +398,8 @@ function FundingOpsCard({ admin }: { admin: TeamsAdminRecord }) {
   const attentionCount = admin.fundingQueue.filter(
     (entry) => entry.requiresOperatorAttention
   ).length;
-  const lateLiquidCount = admin.fundingQueue.filter(
-    (entry) => entry.status === "late-liquid"
+  const expiredCount = admin.fundingQueue.filter(
+    (entry) => entry.status === "expired"
   ).length;
 
   return (
@@ -414,8 +419,8 @@ function FundingOpsCard({ admin }: { admin: TeamsAdminRecord }) {
           value={String(attentionCount)}
         />
         <InlineMetric
-          label={teamsCopy.admin.fundingOps.metrics.lateLiquid}
-          value={String(lateLiquidCount)}
+          label={teamsCopy.admin.fundingOps.metrics.expired}
+          value={String(expiredCount)}
         />
       </div>
 
@@ -439,7 +444,7 @@ function FundingOpsCard({ admin }: { admin: TeamsAdminRecord }) {
               <TableRow key={`${entry.teamId}:${entry.approvalId}`}>
                 <TableCell>
                   <span className="font-number text-sm font-medium text-text-primary">
-                    {entry.approvalId}
+                    {`Approval #${entry.approvalIdx}`}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -547,7 +552,8 @@ function BucketUsageCard({
       </div>
 
       <div className="mt-4 space-y-3">
-        <div className="space-y-2">
+        {bucket.sourceAvailable ? (
+          <div className="space-y-2">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
               {teamsCopy.admin.revenue.bucketUsage}
@@ -564,20 +570,25 @@ function BucketUsageCard({
           <p className="text-xs text-text-secondary">
             {formatPercent(usagePercent / 100, 0)} {teamsCopy.admin.revenue.ofBudget}
           </p>
-        </div>
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-text-secondary">
+            {teamsCopy.admin.revenue.bucketUnavailable}
+          </p>
+        )}
 
         <div className="grid gap-2">
           <MetricRow
             label={teamsCopy.admin.revenue.bucketMetrics.budget}
-            value={formatTeamsUsd(bucket.budget)}
+            value={formatBucketValue(bucket, "budget")}
           />
           <MetricRow
             label={teamsCopy.admin.revenue.bucketMetrics.used}
-            value={formatTeamsUsd(bucket.used)}
+            value={formatBucketValue(bucket, "used")}
           />
           <MetricRow
             label={teamsCopy.admin.revenue.bucketMetrics.remaining}
-            value={formatTeamsUsd(bucket.remaining)}
+            value={formatBucketValue(bucket, "remaining")}
           />
         </div>
       </div>
@@ -636,12 +647,7 @@ function KeyValueRow({ label, value }: { label: string; value: string }) {
 }
 
 function AddressCell({ address }: { address: string }) {
-  return (
-    <div className="space-y-1">
-      <p className="font-medium text-text-primary">{formatAddress(address)}</p>
-      <p className="font-number break-all text-xs text-text-secondary">{address}</p>
-    </div>
-  );
+  return <AddressLink address={address} variant="compact" />;
 }
 
 function getRetirementLabel(team: TeamRecord) {
@@ -661,12 +667,16 @@ function getRetirementLabel(team: TeamRecord) {
 }
 
 function getBucketUsagePercent(bucket: BucketRecord) {
-  const budget = Number(bucket.budget);
-  const used = Number(bucket.used);
+  if (!bucket.sourceAvailable) return 0;
+  return getTeamsDecimalPercentage(bucket.used, bucket.budget);
+}
 
-  if (!Number.isFinite(budget) || budget <= 0 || !Number.isFinite(used)) {
-    return 0;
-  }
-
-  return Math.min(100, Math.max(0, (used / budget) * 100));
+function formatBucketValue(
+  bucket: BucketRecord,
+  key: "budget" | "used" | "remaining"
+) {
+  if (!bucket.sourceAvailable) return teamsCopy.financialData.unavailableValue;
+  return bucket.unit.kind === "usd"
+    ? formatTeamsUsd(bucket[key])
+    : formatTeamsTokenAmount(bucket[key], bucket.unit.symbol, 4);
 }

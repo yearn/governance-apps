@@ -300,7 +300,8 @@ export function MockControls() {
           <Button
             size="sm"
             variant={
-              selectedTeam?.fundingSummary.state === "late-liquid-available"
+              selectedTeam?.fundingSummary.state === "has-claimable" ||
+              selectedTeam?.fundingSummary.state === "partially-claimed"
                 ? "primary"
                 : "secondary"
             }
@@ -315,17 +316,17 @@ export function MockControls() {
             size="sm"
             variant={
               selectedTeam?.fundingApprovals.some(
-                (approval) => approval.status === "late-liquid"
+                (approval) => approval.status === "expired"
               )
                 ? "primary"
                 : "secondary"
             }
             onClick={() => {
-              void actions.setFundingState("late-liquid");
+              void actions.setFundingState("expired");
             }}
             disabled={!selectedTeam}
           >
-            Late liquid
+            Expired
           </Button>
           <Button
             size="sm"

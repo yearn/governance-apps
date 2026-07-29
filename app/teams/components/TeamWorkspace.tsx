@@ -1,8 +1,10 @@
-import { useId } from "react";
+import { type ReactNode, useId } from "react";
 import { Badge } from "@/components/ui/Badge";
-import { Button, getButtonClassName } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { AddressLink } from "@/components/ui/ExplorerLink";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { formatTokenAmount } from "@/lib/format";
 import {
   Table,
   TableBody,
@@ -11,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { formatAddress } from "@/lib/format";
 import {
   formatTeamsDate,
   formatTeamsTokenAmount,
@@ -29,37 +30,50 @@ import { FundingApprovalsTable } from "./FundingApprovalsTable";
 import { RevenueDepositCard, RevenueHistoryLedger } from "./RevenueDepositCard";
 import { TeamLifecycleCard } from "./TeamLifecycleCard";
 import { TeamOverviewCard } from "./TeamOverviewCard";
+import { TeamOwnership } from "./TeamOwnership";
 import { teamsCopy } from "../messages";
+import type { TeamsRouteSection } from "../route-state";
 
 type TeamWorkspaceProps = {
   team: TeamRecord | null;
   viewer: TeamsViewerContext | null;
   currentPeriod: number | null;
   onUpdateTeam: (team: TeamRecord) => void;
+  onNavigateSection: (section: TeamsRouteSection) => void;
   revenueCardKey: string;
   state: "ready" | "loading" | "empty";
   liveWrites?: TeamsLiveWriteHandlers;
 };
 
 export type TeamsLiveWriteHandlers = {
+  approveRevenueDeposit: (
+    team: TeamRecord,
+    tokenAddress: string,
+    amount: string
+  ) => Promise<boolean>;
+  approveFundingReturn: (
+    team: TeamRecord,
+    approval: FundingApproval,
+    amount: string
+  ) => Promise<boolean>;
   depositRevenue: (
     team: TeamRecord,
     tokenAddress: string,
     amount: string,
     decimals: number
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   claimFunding: (
     team: TeamRecord,
     approval: FundingApproval,
     amount: string,
     recipient: string
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   returnFunding: (
     team: TeamRecord,
     approval: FundingApproval,
     amount: string
-  ) => Promise<void>;
-  claimBonus: (team: TeamRecord, recipient: string) => Promise<void>;
+  ) => Promise<boolean>;
+  claimBonus: (team: TeamRecord, recipient: string) => Promise<boolean>;
   state: TxState;
 };
 
@@ -68,6 +82,7 @@ export function TeamWorkspace({
   viewer,
   currentPeriod,
   onUpdateTeam,
+  onNavigateSection,
   revenueCardKey,
   state,
   liveWrites,
@@ -206,22 +221,16 @@ export function TeamWorkspace({
   return (
     <section className="space-y-8">
       <section id="overview" className="scroll-mt-24 space-y-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={status.variant}>{status.label}</Badge>
-              {readyTeam.readOnlyReason ? (
-                <Badge variant="neutral">
-                  {teamsCopy.readOnlyReasons[readyTeam.readOnlyReason]}
-                </Badge>
-              ) : null}
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold text-text-primary">{readyTeam.name}</h2>
-              <p className="font-number text-sm text-text-secondary">{readyTeam.id}</p>
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-box border border-border bg-surface px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={status.variant}>{status.label}</Badge>
+            {readyTeam.readOnlyReason ? (
+              <Badge variant="neutral">
+                {teamsCopy.readOnlyReasons[readyTeam.readOnlyReason]}
+              </Badge>
+            ) : null}
           </div>
-          <div className="rounded-box border border-border bg-surface px-4 py-3">
+          <div>
             <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
               {teamsCopy.workspace.fields.viewer}
             </p>
@@ -231,38 +240,50 @@ export function TeamWorkspace({
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)]">
           <WorkspaceSummaryCard team={readyTeam} />
-          <div className="grid gap-4 md:grid-cols-2">
-            <TeamOverviewCard
-              title={teamsCopy.workspace.cards.current}
-              financials={readyTeam.currentPeriod}
-            />
-            <TeamOverviewCard
-              title={teamsCopy.workspace.cards.lifetime}
-              financials={readyTeam.lifetime}
-            />
-          </div>
+          {readyTeam.financialData.status === "available" ? (
+            <div className="grid min-w-0 gap-4 md:grid-cols-2">
+              <TeamOverviewCard
+                title={teamsCopy.workspace.cards.current}
+                financials={readyTeam.currentPeriod}
+              />
+              <TeamOverviewCard
+                title={teamsCopy.workspace.cards.lifetime}
+                financials={readyTeam.lifetime}
+              />
+            </div>
+          ) : (
+            <FinancialDataUnavailableCard />
+          )}
         </div>
-        <FinancialHistoryTable team={readyTeam} currentPeriod={currentPeriod} />
+        {readyTeam.financialData.status === "available" ? (
+          <FinancialHistoryTable team={readyTeam} currentPeriod={currentPeriod} />
+        ) : null}
       </section>
 
-      <ActionDeck
-        team={readyTeam}
-        viewer={viewer}
-        currentPeriod={currentPeriod}
-        onUpdateTeam={onUpdateTeam}
-        revenueCardKey={revenueCardKey}
-        state={state}
-        liveWrites={liveWrites}
-      />
-
       <section id="revenue" className="scroll-mt-24">
-        <Card className="space-y-4">
+        <ActionDeck
+          team={readyTeam}
+          viewer={viewer}
+          currentPeriod={currentPeriod}
+          onUpdateTeam={onUpdateTeam}
+          revenueCardKey={revenueCardKey}
+          state={state}
+          liveWrites={liveWrites}
+          onNavigateSection={onNavigateSection}
+        />
+      </section>
+
+      <section id="revenue-ledger" className="scroll-mt-24">
+        <Card className="min-w-0 space-y-4 overflow-hidden">
           <RevenueHistoryLedger
             history={readyTeam.revenueHistory}
             title={teamsCopy.revenue.history.auditTitle}
             description={teamsCopy.revenue.history.auditDescription}
+            financialDataAvailable={
+              readyTeam.financialData.status === "available"
+            }
           />
         </Card>
       </section>
@@ -277,6 +298,7 @@ export function TeamWorkspace({
             onUpdateTeam={onUpdateTeam}
             onClaimFunding={liveWrites?.claimFunding}
             onReturnFunding={liveWrites?.returnFunding}
+            onApproveFundingReturn={liveWrites?.approveFundingReturn}
             txState={liveWrites?.state}
           />
         ) : null}
@@ -286,6 +308,7 @@ export function TeamWorkspace({
         <BonusCard
           key={getBonusCardKey(readyTeam, viewer)}
           bonus={readyTeam.bonus}
+          financialDataAvailable={readyTeam.financialData.status === "available"}
           canClaimBonus={viewer?.canClaimBonus ?? false}
           viewerAddress={viewer?.address ?? null}
           onClaimBonus={
@@ -405,16 +428,19 @@ function formatPeriodRange(
 }
 
 function WorkspaceSummaryCard({ team }: { team: TeamRecord }) {
-  const net = getFinancialNetState(team.currentPeriod);
+  const net =
+    team.financialData.status === "available"
+      ? getFinancialNetState(team.currentPeriod)
+      : null;
   const netToneClassName =
-    net.tone === "profit"
+    net?.tone === "profit"
       ? "text-green-700"
-      : net.tone === "loss"
+      : net?.tone === "loss"
         ? "text-red-700"
         : "text-text-primary";
 
   return (
-    <Card className="space-y-5">
+    <Card className="min-w-0 space-y-5">
       <div className="space-y-1">
         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
           {teamsCopy.workspace.overviewEyebrow}
@@ -425,13 +451,13 @@ function WorkspaceSummaryCard({ team }: { team: TeamRecord }) {
         </p>
       </div>
       <dl className="space-y-3">
-        <SummaryRow label={teamsCopy.workspace.fields.owner} value={formatAddress(team.owner)} />
         <SummaryRow
-          label={teamsCopy.workspace.fields.pendingOwner}
+          label={teamsCopy.workspace.fields.owner}
           value={
-            team.pendingOwner
-              ? formatAddress(team.pendingOwner)
-              : teamsCopy.lifecycle.pendingOwnerNone
+            <TeamOwnership
+              owner={team.owner}
+              pendingOwner={team.pendingOwner}
+            />
           }
         />
         <SummaryRow
@@ -440,17 +466,40 @@ function WorkspaceSummaryCard({ team }: { team: TeamRecord }) {
         />
         <SummaryRow
           label={teamsCopy.workspace.fields.contract}
-          value={formatAddress(team.address)}
+          value={
+            <AddressLink
+              address={team.address}
+              label={team.name}
+              variant="compact"
+            />
+          }
         />
       </dl>
       <div className="rounded-box border border-border bg-app px-4 py-4">
         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          {net.label}
+          {net?.label ?? teamsCopy.directory.headers.net}
         </p>
-        <p className={`mt-1 font-number text-3xl font-bold ${netToneClassName}`}>
-          {formatTeamsUsd(net.value)}
+        <p
+          className={`mt-1 break-words font-number text-2xl font-bold [overflow-wrap:anywhere] sm:text-3xl ${netToneClassName}`}
+        >
+          {net
+            ? formatTeamsUsd(net.value)
+            : teamsCopy.financialData.unavailableValue}
         </p>
       </div>
+    </Card>
+  );
+}
+
+function FinancialDataUnavailableCard() {
+  return (
+    <Card className="flex min-h-48 flex-col justify-center border-yellow-500/30 bg-yellow-500/5">
+      <h3 className="text-lg font-bold text-text-primary">
+        {teamsCopy.financialData.unavailableTitle}
+      </h3>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
+        {teamsCopy.financialData.unavailableBody}
+      </p>
     </Card>
   );
 }
@@ -463,6 +512,7 @@ function ActionDeck({
   revenueCardKey,
   state,
   liveWrites,
+  onNavigateSection,
 }: {
   team: TeamRecord;
   viewer: TeamsViewerContext | null;
@@ -471,9 +521,14 @@ function ActionDeck({
   revenueCardKey: string;
   state: "ready" | "loading" | "empty";
   liveWrites?: TeamsLiveWriteHandlers;
+  onNavigateSection: (section: TeamsRouteSection) => void;
 }) {
   return (
-    <section aria-labelledby="teams-action-deck-title" className="space-y-4">
+    <section
+      id="actions"
+      aria-labelledby="teams-action-deck-title"
+      className="scroll-mt-24 space-y-4"
+    >
       <div className="space-y-1">
         <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
           {teamsCopy.workspace.actionDeck.eyebrow}
@@ -485,7 +540,7 @@ function ActionDeck({
           {teamsCopy.workspace.actionDeck.description}
         </p>
       </div>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <RevenueDepositCard
           key={revenueCardKey}
           team={team}
@@ -494,12 +549,14 @@ function ActionDeck({
           onUpdateTeam={onUpdateTeam}
           state={state}
           onDepositRevenue={liveWrites?.depositRevenue}
+          onApproveRevenueDeposit={liveWrites?.approveRevenueDeposit}
           txState={liveWrites?.state}
         />
         <OutflowsCommandPanel
           team={team}
           viewer={viewer}
           currentPeriod={currentPeriod}
+          onNavigateSection={onNavigateSection}
         />
       </div>
     </section>
@@ -513,7 +570,7 @@ function ActionDeckSkeleton() {
         <Skeleton className="h-4 w-28" />
         <Skeleton className="h-8 w-full max-w-xl" />
       </div>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <Card className="space-y-5">
           <Skeleton className="h-7 w-48" />
           <Skeleton className="h-20 w-full" />
@@ -534,13 +591,25 @@ function OutflowsCommandPanel({
   team,
   viewer,
   currentPeriod,
+  onNavigateSection,
 }: {
   team: TeamRecord;
   viewer: TeamsViewerContext | null;
   currentPeriod: number | null;
+  onNavigateSection: (section: TeamsRouteSection) => void;
 }) {
-  const claimableApprovals = team.fundingApprovals.filter(isTeamsFundingApprovalClaimable);
-  const returnableApprovals = team.fundingApprovals.filter(isTeamsFundingApprovalReturnable);
+  const claimableApprovals =
+    currentPeriod === null
+      ? []
+      : team.fundingApprovals.filter((approval) =>
+          isTeamsFundingApprovalClaimable(approval, currentPeriod)
+        );
+  const returnableApprovals =
+    currentPeriod === null
+      ? []
+      : team.fundingApprovals.filter((approval) =>
+          isTeamsFundingApprovalReturnable(approval, currentPeriod)
+        );
   const firstClaimableApproval = claimableApprovals[0] ?? null;
   const firstReturnableApproval = returnableApprovals[0] ?? null;
   const fundingState = teamsCopy.funding.summaryStates[team.fundingSummary.state];
@@ -571,7 +640,18 @@ function OutflowsCommandPanel({
               {teamsCopy.workspace.actionDeck.fundingSource}
             </p>
           </div>
-          <Badge variant={team.fundingSummary.state === "fully-used" ? "neutral" : "success"}>
+          <Badge
+            variant={
+              team.fundingSummary.state === "has-expired"
+                ? "warning"
+                : team.fundingSummary.state === "current-unavailable"
+                  ? "warning"
+                : team.fundingSummary.state === "fully-used" ||
+                    team.fundingSummary.state === "no-approvals"
+                  ? "neutral"
+                  : "success"
+            }
+          >
             {fundingState}
           </Badge>
         </div>
@@ -590,11 +670,21 @@ function OutflowsCommandPanel({
           />
           <CommandMetric
             label={teamsCopy.workspace.actionDeck.fundingClaimableValue}
-            value={formatTeamsUsd(team.fundingSummary.claimableUsd)}
+            value={
+              team.financialData.status === "available" &&
+              team.fundingSummary.claimableUsd !== null
+                ? formatTeamsUsd(team.fundingSummary.claimableUsd)
+                : teamsCopy.financialData.unavailableValue
+            }
           />
           <CommandMetric
             label={teamsCopy.workspace.actionDeck.fundingRefundableValue}
-            value={formatTeamsUsd(team.fundingSummary.refundableUsd)}
+            value={
+              team.financialData.status === "available" &&
+              team.fundingSummary.refundableUsd !== null
+                ? formatTeamsUsd(team.fundingSummary.refundableUsd)
+                : teamsCopy.financialData.unavailableValue
+            }
           />
         </div>
 
@@ -615,7 +705,8 @@ function OutflowsCommandPanel({
                 ? teamsCopy.funding.claimForm.disabledPermissionCta
                 : teamsCopy.funding.claimForm.disabledNoApprovalCta
             }
-            href="#funding"
+            section="funding"
+            onNavigateSection={onNavigateSection}
           />
           <FundingCommandSource
             title={teamsCopy.workspace.actionDeck.fundingReturnSource}
@@ -633,7 +724,8 @@ function OutflowsCommandPanel({
                 ? teamsCopy.funding.returnForm.disabledPermissionCta
                 : teamsCopy.funding.returnForm.disabledNoApprovalCta
             }
-            href="#funding"
+            section="funding"
+            onNavigateSection={onNavigateSection}
           />
         </div>
       </div>
@@ -675,7 +767,8 @@ function OutflowsCommandPanel({
 
         <CommandAction
           canAct={bonusAction.canAct}
-          href="#bonus"
+          section="bonus"
+          onNavigateSection={onNavigateSection}
           cta={bonusAction.cta}
           body={bonusAction.body}
           enabledVariant="primary"
@@ -693,7 +786,8 @@ function FundingCommandSource({
   canAct,
   cta,
   disabledCta,
-  href,
+  section,
+  onNavigateSection,
 }: {
   title: string;
   approval: FundingApproval | null;
@@ -702,7 +796,8 @@ function FundingCommandSource({
   canAct: boolean;
   cta: string;
   disabledCta: string;
-  href: string;
+  section: TeamsRouteSection;
+  onNavigateSection: (section: TeamsRouteSection) => void;
 }) {
   return (
     <div className="rounded-box border border-border bg-surface-secondary px-4 py-3">
@@ -718,7 +813,8 @@ function FundingCommandSource({
       </div>
       <CommandAction
         canAct={canAct}
-        href={href}
+        section={section}
+        onNavigateSection={onNavigateSection}
         cta={canAct ? cta : disabledCta}
         body={canAct ? body : blockedBody}
       />
@@ -739,13 +835,15 @@ function CommandMetric({ label, value }: { label: string; value: string }) {
 
 function CommandAction({
   canAct,
-  href,
+  section,
+  onNavigateSection,
   cta,
   body,
   enabledVariant = "secondary",
 }: {
   canAct: boolean;
-  href: string;
+  section: TeamsRouteSection;
+  onNavigateSection: (section: TeamsRouteSection) => void;
   cta: string;
   body: string;
   enabledVariant?: "primary" | "secondary";
@@ -759,16 +857,15 @@ function CommandAction({
         {body}
       </p>
       {canAct ? (
-        <a
-          href={href}
+        <Button
+          type="button"
+          variant={enabledVariant}
+          onClick={() => onNavigateSection(section)}
           aria-describedby={descriptionId}
-          className={getButtonClassName({
-            variant: enabledVariant,
-            className: "w-full",
-          })}
+          className="w-full"
         >
           {cta}
-        </a>
+        </Button>
       ) : (
         <Button
           type="button"
@@ -792,7 +889,7 @@ function getFundingClaimCommandBody(
   }
 
   return teamsCopy.workspace.actionDeck.fundingClaimBody(
-    approval.id,
+    approval.idx,
     formatTeamsTokenAmount(approval.claimable, approval.symbol),
     getFundingPeriodLabel(approval, currentPeriod)
   );
@@ -804,8 +901,11 @@ function getFundingReturnCommandBody(approval: FundingApproval | null) {
   }
 
   return teamsCopy.workspace.actionDeck.fundingReturnBody(
-    approval.id,
-    formatTeamsTokenAmount(approval.used, approval.symbol)
+    approval.idx,
+    `${formatTokenAmount(
+      BigInt(approval.returnableRaw),
+      approval.decimals
+    )} ${approval.symbol}`
   );
 }
 
@@ -819,7 +919,7 @@ function getFundingPeriodLabel(approval: FundingApproval, currentPeriod: number 
   }
 
   if (approval.approvedPeriod < currentPeriod) {
-    return `late-claim period #${approval.approvedPeriod}`;
+    return `expired period #${approval.approvedPeriod}`;
   }
 
   return `future period #${approval.approvedPeriod}`;
@@ -984,13 +1084,21 @@ function WorkspaceSectionHeader({
   );
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
   return (
     <div className="flex items-start justify-between gap-4 border-t border-border pt-3 first:border-t-0 first:pt-0">
       <dt className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
         {label}
       </dt>
-      <dd className="text-right font-number text-sm font-bold text-text-primary">{value}</dd>
+      <dd className="min-w-0 text-right font-number text-sm font-bold text-text-primary">
+        {value}
+      </dd>
     </div>
   );
 }

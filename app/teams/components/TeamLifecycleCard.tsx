@@ -1,4 +1,7 @@
+import type { ReactNode } from "react";
+import { AddressLink } from "@/components/ui/ExplorerLink";
 import { formatAddress } from "@/lib/format";
+import { isEthereumAddress } from "@/lib/explorer";
 import {
   formatTeamsDate,
   type TeamRecord,
@@ -6,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { teamsCopy } from "../messages";
+import { TeamOwnership } from "./TeamOwnership";
 
 type TeamLifecycleCardProps = {
   team: TeamRecord;
@@ -48,14 +52,11 @@ export function TeamLifecycleCard({ team }: TeamLifecycleCardProps) {
       <dl className="grid gap-4 sm:grid-cols-2">
         <LifecycleField
           label={teamsCopy.lifecycle.fields.owner}
-          value={formatAddress(team.owner)}
-        />
-        <LifecycleField
-          label={teamsCopy.lifecycle.fields.pendingOwner}
           value={
-            team.pendingOwner
-              ? formatAddress(team.pendingOwner)
-              : teamsCopy.lifecycle.pendingOwnerNone
+            <TeamOwnership
+              owner={team.owner}
+              pendingOwner={team.pendingOwner}
+            />
           }
         />
         <LifecycleField
@@ -68,7 +69,18 @@ export function TeamLifecycleCard({ team }: TeamLifecycleCardProps) {
         />
         <LifecycleField
           label={teamsCopy.lifecycle.fields.successor}
-          value={team.lifecycle.successorTeamId ?? teamsCopy.lifecycle.successorNone}
+          value={
+            team.lifecycle.successorTeamId &&
+            isEthereumAddress(team.lifecycle.successorTeamId) ? (
+              <AddressLink
+                address={team.lifecycle.successorTeamId}
+                variant="compact"
+              />
+            ) : (
+              team.lifecycle.successorTeamId ??
+              teamsCopy.lifecycle.successorNone
+            )
+          }
         />
         <LifecycleField
           label={teamsCopy.lifecycle.fields.workspaceAccess}
@@ -88,14 +100,16 @@ function LifecycleField({
   value,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
 }) {
   return (
     <div className="rounded-box border border-border bg-app px-4 py-3">
       <dt className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
         {label}
       </dt>
-      <dd className="mt-1 text-sm font-medium text-text-primary">{value}</dd>
+      <dd className="mt-1 min-w-0 text-sm font-medium text-text-primary">
+        {value}
+      </dd>
     </div>
   );
 }

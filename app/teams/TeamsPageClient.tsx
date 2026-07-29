@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { Tabs } from "@/components/ui/Tabs";
+import { UtcTime } from "@/components/ui/UtcTime";
 import {
+  deriveTeamsViewerForTeam,
   resolveSelectedTeam,
   type TeamRecord,
 } from "@/lib/clients/teams";
@@ -39,9 +43,12 @@ export function TeamsPageClient() {
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const runtimeQuery = useTeamsState();
   const runtime = runtimeQuery.data ?? null;
-  const teamsWrites = useTeamsWrites(runtime?.backend === "feed" ? runtime.feed : null);
+  const isLiveBackend =
+    runtimeQuery.backend === "feed" || runtime?.backend === "feed";
+  const liveReadStatus = runtimeQuery.readStatus ?? "current";
+  const teamsWrites = useTeamsWrites(runtimeQuery.writeFeed);
   const data = runtime?.data ?? null;
-  const isMockRuntime = runtime?.backend !== "feed";
+  const isMockRuntime = !isLiveBackend;
   const renderState =
     runtimeQuery.isPending || runtime?.isLoading
       ? "loading"
@@ -53,6 +60,14 @@ export function TeamsPageClient() {
       ? feedSelectedTeamId ?? data?.selectedTeamId ?? null
       : data?.selectedTeamId ?? null;
   const selectedTeam = resolveSelectedTeam(data, selectedTeamId);
+  const selectedViewer =
+    data && selectedTeam
+      ? deriveTeamsViewerForTeam(
+          data.viewer,
+          selectedTeam,
+          data.currentPeriod
+        )
+      : data?.viewer ?? null;
   const showAdminSection = Boolean(data?.viewer.canUseAdmin);
   const resolvedActiveTopTab =
     activeTopTab === "admin" && !showAdminSection ? "directory" : activeTopTab;
@@ -205,6 +220,22 @@ export function TeamsPageClient() {
       <StatsBar items={statsItems} />
 
       <main className="container mx-auto space-y-6 px-4 py-8 md:px-6 md:py-10">
+        {isLiveBackend ? (
+          <TeamsDataStatusNotice
+            isRefreshing={runtimeQuery.isRefreshing}
+            lastUpdatedAt={runtimeQuery.lastUpdatedAt}
+            onRetry={() => {
+              void runtimeQuery.refetch();
+            }}
+            readStatus={liveReadStatus}
+            warningMessage={
+              runtimeQuery.warning?.message ??
+              runtimeQuery.error?.message ??
+              null
+            }
+          />
+        ) : null}
+
         <Tabs
           aria-label="Team Finances sections"
           tabs={topTabs}
@@ -247,12 +278,19 @@ export function TeamsPageClient() {
         >
           <TeamWorkspace
             team={renderState === "ready" ? selectedTeam : null}
-            viewer={renderState === "ready" ? data?.viewer ?? null : null}
+            viewer={renderState === "ready" ? selectedViewer : null}
             currentPeriod={renderState === "ready" ? data?.currentPeriod ?? null : null}
             onUpdateTeam={handleTeamUpdate}
+            onNavigateSection={(section) => replaceHash(section)}
             revenueCardKey={revenueCardKey}
             state={renderState}
-            liveWrites={runtime?.backend === "feed" ? teamsWrites : undefined}
+            liveWrites={
+              runtime?.backend === "feed" &&
+              liveReadStatus === "current" &&
+              runtimeQuery.writeFeed
+                ? teamsWrites
+                : undefined
+            }
           />
         </section>
 
@@ -293,4 +331,97 @@ export function TeamsPageClient() {
 function replaceHash(id: string) {
   if (typeof window === "undefined") return;
   window.history.replaceState(null, "", `#${id}`);
+}
+
+export function TeamsDataStatusNotice({
+  isRefreshing = false,
+  lastUpdatedAt,
+  onRetry,
+  readStatus,
+  warningMessage,
+}: {
+  isRefreshing?: boolean;
+  lastUpdatedAt?: number | null;
+  onRetry?: () => void;
+  readStatus: "current" | "stale" | "unavailable";
+  warningMessage?: string | null;
+}) {
+  if (readStatus === "current") {
+    return (
+      <div
+        className="flex min-w-0 flex-wrap items-center gap-2 rounded-box border border-border bg-surface px-4 py-3 text-sm text-text-secondary"
+        role="status"
+        aria-live="polite"
+      >
+        <Badge variant={isRefreshing ? "neutral" : "success"}>
+          {isRefreshing
+            ? teamsCopy.page.refreshing
+            : teamsCopy.page.current}
+        </Badge>
+        {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
+          <span className="min-w-0 text-pretty break-words [overflow-wrap:anywhere]">
+            {teamsCopy.page.lastUpdated}:{" "}
+            <UtcTime
+              className="font-number tabular-nums"
+              timestamp={lastUpdatedAt}
+            />
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
+  const isUnavailable = readStatus === "unavailable";
+  return (
+    <Card
+      className={
+        isUnavailable
+          ? "border-red-300 bg-red-50 text-red-950"
+          : "border-amber-300 bg-amber-50 text-amber-950"
+      }
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
+          <p className="text-balance font-bold">
+            {isUnavailable
+              ? teamsCopy.page.unavailableTitle
+              : teamsCopy.page.staleTitle}
+          </p>
+          <p className="text-pretty text-sm leading-6">
+            {isUnavailable
+              ? teamsCopy.page.unavailableBody
+              : teamsCopy.page.staleBody}
+          </p>
+          {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
+            <p className="min-w-0 break-words font-number text-xs tabular-nums [overflow-wrap:anywhere]">
+              {teamsCopy.page.lastUpdated}:{" "}
+              <UtcTime timestamp={lastUpdatedAt} />
+            </p>
+          ) : null}
+          {warningMessage ? (
+            <p className="min-w-0 text-pretty break-words font-number text-xs opacity-80 [overflow-wrap:anywhere]">
+              {warningMessage}
+            </p>
+          ) : null}
+        </div>
+        {onRetry ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="shrink-0"
+            disabled={isRefreshing}
+            aria-busy={isRefreshing || undefined}
+            onClick={onRetry}
+          >
+            {isRefreshing
+              ? teamsCopy.page.retrying
+              : teamsCopy.page.retryCta}
+          </Button>
+        ) : null}
+      </div>
+    </Card>
+  );
 }

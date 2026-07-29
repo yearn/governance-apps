@@ -117,6 +117,19 @@ export async function patchTeamsAdmin(page: Page, patch: Record<string, unknown>
   }, patch);
 }
 
+export async function patchTeamsTeam(
+  page: Page,
+  teamId: string,
+  patch: Record<string, unknown>
+) {
+  await page.evaluate(
+    async ({ id, nextPatch }) => {
+      await window.__TEST__?.patchTeamsTeam?.(id, nextPatch);
+    },
+    { id: teamId, nextPatch: patch }
+  );
+}
+
 export async function setYbcPerspective(page: Page, perspective: YbcPerspective) {
   await page.evaluate(async (value) => {
     await window.__TEST__?.setYbcPerspective?.(value);
