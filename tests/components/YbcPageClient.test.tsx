@@ -664,6 +664,38 @@ describe("YbcPageClient", () => {
     expect(screen.getByText(ybcCopy.proposalBoard.emptyHint)).toBeInTheDocument();
   });
 
+  it("surfaces rejected proposal callbacks without an unhandled promise", async () => {
+    const data = await getScenarioData("member-ramping");
+    const createProposal = vi
+      .fn()
+      .mockRejectedValue(new Error("Proposal preparation failed."));
+    render(
+      <YbcPageContent
+        data={data}
+        createProposal={createProposal}
+        proposalTargetRequired
+      />
+    );
+
+    fireEvent.change(
+      screen.getByLabelText(ybcCopy.proposalBoard.targetLabel),
+      {
+        target: {
+          value: "0x4444444444444444444444444444444444444444",
+        },
+      }
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: ybcCopy.proposalBoard.proposeAdditionCta,
+      })
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Proposal preparation failed."
+    );
+  });
+
   it("supports mock propose, retract, vote, and execute actions", async () => {
     renderWithProviders(<YbcPageClient scenarioOverride="member-ramping" latencyMs={0} />);
 

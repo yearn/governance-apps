@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { AddressLink } from "@/components/ui/ExplorerLink";
+import { UtcTime } from "@/components/ui/UtcTime";
 import type {
   YbcAdminOperationId,
   YbcMockDataV1,
@@ -13,15 +14,6 @@ import type {
 import { formatPercent } from "@/lib/format";
 import { getYbcIdentity, type YbcIdentityMap } from "../identity";
 import { ybcCopy as copy } from "../messages";
-
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
 
 const OPERATION_TO_PROPOSAL_TYPE: Record<YbcAdminOperationId, YbcProposalType> = {
   "add-member": "addition",
@@ -56,18 +48,13 @@ export function OperatorPanel({
       id={id}
       className="space-y-6 rounded-box border border-yearn-blue/30 bg-yearn-blue/[0.04] p-6"
     >
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="brand">{copy.operatorPanel.eyebrow}</Badge>
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold">
-            {copy.operatorPanel.title}
-          </h2>
-          <p className="max-w-3xl text-sm leading-6 text-text-secondary">
-            {copy.operatorPanel.description}
-          </p>
-        </div>
+      <div className="space-y-2">
+        <h2 className="text-balance text-2xl font-bold">
+          {copy.operatorPanel.title}
+        </h2>
+        <p className="max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
+          {copy.operatorPanel.description}
+        </p>
       </div>
 
       {hasOperatorAccess && admin ? (
@@ -121,18 +108,13 @@ function UnlockedOperatorPanel({
   createProposal,
 }: UnlockedOperatorPanelProps) {
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
+    <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,20rem)]">
       <div className="space-y-4">
         <Card className="bg-app/40">
           <div className="space-y-4">
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-text-primary">
-                {copy.operatorPanel.operationsTitle}
-              </h3>
-              <p className="max-w-2xl text-sm leading-6 text-text-secondary">
-                {copy.operatorPanel.operationsBody}
-              </p>
-            </div>
+            <h3 className="text-lg font-bold text-text-primary">
+              {copy.operatorPanel.operationsTitle}
+            </h3>
             <div className="grid gap-3 md:grid-cols-2">
               {admin.scopedOperations.map((operation) => {
                 const operationCopy =
@@ -143,20 +125,15 @@ function UnlockedOperatorPanel({
                 return (
                   <Card key={operation.id} className="bg-surface p-5">
                     <div className="flex h-full flex-col gap-4">
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <h4 className="text-base font-bold text-text-primary">
-                            {operationCopy.title}
-                          </h4>
-                          <Badge variant={operation.enabled ? "success" : "neutral"}>
-                            {operation.enabled
-                              ? copy.operatorPanel.operationEnabled
-                              : copy.operatorPanel.operationDisabled}
-                          </Badge>
-                        </div>
-                        <p className="text-sm leading-6 text-text-secondary">
-                          {operationCopy.body}
-                        </p>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h4 className="text-base font-bold text-text-primary">
+                          {operationCopy.title}
+                        </h4>
+                        <Badge variant={operation.enabled ? "success" : "neutral"}>
+                          {operation.enabled
+                            ? copy.operatorPanel.operationEnabled
+                            : copy.operatorPanel.operationDisabled}
+                        </Badge>
                       </div>
                       <div className="mt-auto">
                         <Button
@@ -184,14 +161,9 @@ function UnlockedOperatorPanel({
         </Card>
 
         <Card className="bg-app/40">
-          <div className="space-y-2">
-            <h3 className="text-lg font-bold text-text-primary">
-              {copy.operatorPanel.operatorsTitle}
-            </h3>
-            <p className="max-w-2xl text-sm leading-6 text-text-secondary">
-              {copy.operatorPanel.operatorsBody}
-            </p>
-          </div>
+          <h3 className="text-lg font-bold text-text-primary">
+            {copy.operatorPanel.operatorsTitle}
+          </h3>
           <ul className="mt-4 space-y-3">
             {admin.operators.map((operator) => {
               const isCurrentViewer =
@@ -205,9 +177,11 @@ function UnlockedOperatorPanel({
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
-                      <p className="min-w-0 break-words font-bold text-text-primary [overflow-wrap:anywhere]">
-                        {identity.label}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="min-w-0 break-words font-bold text-text-primary [overflow-wrap:anywhere]">
+                          {identity.label}
+                        </p>
+                      </div>
                       <AddressLink address={operator.address} variant="compact" />
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -304,7 +278,9 @@ function UnlockedOperatorPanel({
           <div className="mt-4 space-y-3 text-sm text-text-secondary">
             <KeyValueRow
               label={copy.operatorPanel.rewardStatus.lastSynced}
-              value={formatUtcDateTime(admin.rewardStatus.lastSyncedAt)}
+              value={
+                <UtcTime timestamp={admin.rewardStatus.lastSyncedAt} />
+              }
             />
           </div>
         </Card>
@@ -335,9 +311,11 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 
 function KeyValueRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="grid min-w-0 gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-4">
       <span className="text-text-secondary">{label}</span>
-      <span className="text-right font-medium text-text-primary">{value}</span>
+      <div className="min-w-0 break-words font-medium text-text-primary [overflow-wrap:anywhere] sm:text-right">
+        {value}
+      </div>
     </div>
   );
 }
@@ -361,8 +339,4 @@ function getViewerRoleLabel(data: YbcMockDataV1) {
   }
 
   return copy.operatorPanel.viewer.roles.observer;
-}
-
-function formatUtcDateTime(unixSeconds: number) {
-  return `${DATE_TIME_FORMATTER.format(unixSeconds * 1000)} UTC`;
 }

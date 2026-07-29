@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import {
   resetBridge,
   setYbcEmptyBoard,
@@ -14,7 +15,7 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Yearn Builder's Collective", level: 1 })
   ).toBeVisible();
-  await expect(page.getByText("/ybc")).toBeVisible();
+  await expect(page.getByText("/ybc")).toHaveCount(0);
   await expect(page.getByText("Accepted shell map")).toHaveCount(0);
   await expect(page.getByText("Mock interactions")).toHaveCount(0);
   await expect(page.getByText("Mock MVP scope")).toHaveCount(0);
@@ -31,7 +32,13 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Proposal Board", level: 2 })).toBeVisible();
 
-  await expect(page.getByRole("heading", { name: "Rewards", level: 2 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Rewards",
+      exact: true,
+      level: 2,
+    })
+  ).toBeVisible();
   await expect(
     page.getByText("Connect a member wallet to view YBC rewards")
   ).toBeVisible();
@@ -53,3 +60,137 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
   await setYbcEmptyBoard(page, true);
   await expect(page.getByText("No proposal history")).toBeVisible();
 });
+
+test("contains YBC identity and timestamp layouts at 360px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.goto("/ybc");
+  await waitForTestBridge(page);
+  await resetBridge(page);
+
+  const members = page.locator("#members");
+  const proposals = page.locator("#proposals");
+  const statusTimestamp = page.locator('main > [role="status"] time');
+  const memberAddress = "0x1111111111111111111111111111111111111111";
+  const longEnsName = `${"a".repeat(63)}.${"b".repeat(63)}.${"c".repeat(
+    63
+  )}.${"d".repeat(59)}.eth`;
+  await page.evaluate(
+    async ({ address, ens }) => {
+      await window.__TEST__?.patchYbcMember?.(address, { ens });
+    },
+    {
+      address: memberAddress,
+      ens: longEnsName,
+    }
+  );
+
+  await expect(members).toBeVisible();
+  await expect(proposals).toBeVisible();
+  await expect(page.getByRole("table")).toBeVisible();
+  await expect(statusTimestamp).toBeVisible();
+  await expect(page.getByText(longEnsName, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("ENS", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Generated", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Local", { exact: true })).toHaveCount(0);
+  await expectNoDocumentOverflow(page);
+  await expectWithinViewport(members, 360);
+  await expectWithinViewport(proposals, 360);
+  await expectWithinViewport(statusTimestamp, 360);
+
+  await page.getByRole("button", { name: /Cards/i }).click();
+
+  await expect(page.getByRole("table")).toHaveCount(0);
+  const editNameButton = page
+    .getByRole("button", { name: /^Edit name:/i })
+    .first();
+  await expect(editNameButton).toBeVisible();
+  await expect(editNameButton).toHaveAttribute("title", "Edit name");
+  await expect(editNameButton).toHaveClass(/text-text-tertiary/);
+  await expect(editNameButton).toHaveClass(/hover:text-text-secondary/);
+  const editNameButtonBox = await editNameButton.boundingBox();
+  expect(editNameButtonBox).not.toBeNull();
+  expect(editNameButtonBox!.width).toBeGreaterThanOrEqual(40);
+  expect(editNameButtonBox!.height).toBeGreaterThanOrEqual(40);
+  await expect(
+    page.getByRole("link", {
+      name: `View Ethereum address ${memberAddress} on Etherscan`,
+    }).first()
+  ).toBeVisible();
+  await expectNoDocumentOverflow(page);
+  await expectWithinViewport(members, 360);
+  await expectWithinViewport(proposals, 360);
+  await expectWithinViewport(statusTimestamp, 360);
+});
+
+test.describe("touch identity controls", () => {
+  test.use({
+    hasTouch: true,
+    viewport: { width: 360, height: 900 },
+  });
+
+  test("keeps the compact member address as the tap target", async ({
+    page,
+  }) => {
+    const memberAddress = "0x1111111111111111111111111111111111111111";
+
+    await page.goto("/ybc");
+    await waitForTestBridge(page);
+    await resetBridge(page);
+
+    expect(
+      await page.evaluate(() => window.matchMedia("(pointer: coarse)").matches)
+    ).toBe(true);
+
+    const addressLink = page
+      .locator("#members")
+      .getByRole("link", {
+        name: `View Ethereum address ${memberAddress} on Etherscan`,
+      })
+      .first();
+    await expect(addressLink).toBeVisible();
+    await expect(addressLink).toHaveAttribute(
+      "href",
+      `https://etherscan.io/address/${memberAddress}`
+    );
+
+    const addressBox = await addressLink.boundingBox();
+    expect(addressBox).not.toBeNull();
+    expect(addressBox!.height).toBeGreaterThanOrEqual(40);
+
+    const explorerControl = addressLink.locator("..");
+    await expect(
+      explorerControl.getByRole("button", { name: "Copy address" })
+    ).toBeHidden();
+
+    await addressLink.evaluate((element) => {
+      element.addEventListener(
+        "click",
+        (event) => {
+          event.preventDefault();
+          element.setAttribute("data-tap-observed", "true");
+        },
+        { once: true }
+      );
+    });
+    await addressLink.tap();
+    await expect(addressLink).toHaveAttribute("data-tap-observed", "true");
+  });
+});
+
+async function expectNoDocumentOverflow(page: Page) {
+  const widths = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+
+  expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+}
+
+async function expectWithinViewport(locator: Locator, viewportWidth: number) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth + 1);
+}

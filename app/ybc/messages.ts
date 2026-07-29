@@ -8,7 +8,6 @@ export const ybcCopy = {
   },
   page: {
     title: "Yearn Builder's Collective",
-    eyebrow: "YBC governance",
     description:
       "Review influence, member weight, proposals, and rewards.",
     loadingTitle: "Loading collective influence",
@@ -29,7 +28,6 @@ export const ybcCopy = {
   },
   proposalBoard: {
     title: "Proposal Board",
-    eyebrow: "Proposals",
     description:
       "Review proposal timing, vote thresholds, and available actions.",
     emptyTitle: "No proposal history",
@@ -50,6 +48,7 @@ export const ybcCopy = {
       "This viewer cannot create member proposals.",
     targetLabel: "Target address",
     targetInvalid: "Enter a valid Ethereum address before proposing.",
+    actionFailed: "The YBC action failed. Review the details and try again.",
     summary: {
       active: "Active",
       awaitingExecution: "Awaiting execution",
@@ -58,18 +57,13 @@ export const ybcCopy = {
   },
   rewards: {
     title: "Rewards",
-    eyebrow: "Rewards",
     handoffBadge: "Shared claim route",
-    description:
-      "Review YBC rewards. Claims use the shared rewards route.",
     summary: {
       pending: "Pending for this wallet",
       claimable: "Claimable on shared route",
       accruing: "Accruing this epoch",
     },
     periodsTitle: "Reward periods",
-    periodsBody:
-      "Each period shows its YBC source and claim status.",
     viewerTitle: "Current viewer",
     handoffTitle: "Claim route",
     handoffBody:
@@ -126,14 +120,12 @@ export const ybcCopy = {
       awaitingExecution: "Awaiting execution",
     },
     perspective: {
-      eyebrow: "Current view",
       observerTitle: "Observer view",
       observerBody:
         "Read-only view of member weight and maturity.",
       memberTitle: "Member view",
       memberBody:
         "Raw stake, active weight, and target weight stay separate until maturity completes.",
-      membership: "Membership",
       collectiveAddress: "Collective address",
       rawStaked: "Raw staked",
       effectiveWeight: "Effective weight",
@@ -193,9 +185,7 @@ export const ybcCopy = {
   },
   operatorPanel: {
     title: "Operator Panel",
-    eyebrow: "Operator access",
-    description:
-      "Manage member proposal entry points and review operator, hook, and reward status.",
+    description: "Manage member proposals and review governance configuration.",
     accessCard: {
       title: "Operator access required",
       body:
@@ -206,25 +196,19 @@ export const ybcCopy = {
       hint: "Operator access is required to inspect the full panel.",
     },
     operationsTitle: "Member changes",
-    operationsBody:
-      "These actions open the member proposal flow.",
     operations: {
       addMember: {
         title: "Add member",
-        body: "Open the add-member proposal flow.",
         cta: "Start add member flow",
       },
       removeMember: {
         title: "Remove member",
-        body: "Open the remove-member proposal flow.",
         cta: "Start remove member flow",
       },
     },
     operationEnabled: "Enabled",
     operationDisabled: "Unavailable",
     operatorsTitle: "Operators and management",
-    operatorsBody:
-      "Review operators and management addresses.",
     roles: {
       operator: "Operator",
       management: "Management",

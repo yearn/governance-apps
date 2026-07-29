@@ -345,7 +345,10 @@ export function YbcDataStatusNotice({
         {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
           <span className="min-w-0 break-words [overflow-wrap:anywhere]">
             {copy.page.lastUpdated}:{" "}
-            <UtcTime className="font-number" timestamp={lastUpdatedAt} />
+            <UtcTime
+              className="font-number"
+              timestamp={lastUpdatedAt}
+            />
           </span>
         ) : null}
       </div>
@@ -364,7 +367,8 @@ export function YbcDataStatusNotice({
           <p className="text-sm leading-6">{copy.page.staleBody}</p>
           {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
             <p className="min-w-0 break-words font-number text-xs [overflow-wrap:anywhere]">
-              {copy.page.snapshot}: <UtcTime timestamp={lastUpdatedAt} />
+              {copy.page.snapshot}:{" "}
+              <UtcTime timestamp={lastUpdatedAt} />
             </p>
           ) : null}
           {warningMessage ? (

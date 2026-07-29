@@ -1,16 +1,13 @@
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { AddressLink } from "@/components/ui/ExplorerLink";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { formatAddress, formatPercent } from "@/lib/format";
+import { UtcTime } from "@/components/ui/UtcTime";
+import { formatDecimalAmount, formatPercent } from "@/lib/format";
 import type { YbcMockDataV1 } from "@/lib/clients/ybc";
 import { ybcCopy as copy } from "../messages";
-
-const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
 
 type YbcHeroProps = {
   data: YbcMockDataV1;
@@ -25,22 +22,18 @@ export function YbcHero({ data }: YbcHeroProps) {
       <div className="container mx-auto grid gap-6 px-4 py-10 md:px-6 md:py-14 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.9fr)]">
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="brand">{copy.app.routeKey}</Badge>
             <Badge variant={isMember ? "success" : "neutral"}>
               {isMember ? copy.hero.states.member : copy.hero.states.observer}
             </Badge>
           </div>
 
-          <div className="space-y-4">
-            <p className="text-sm font-bold uppercase text-text-tertiary">
-              {copy.page.eyebrow}
+          <div className="space-y-3">
+            <h1 className="text-balance text-3xl font-bold md:text-5xl">
+              {copy.page.title}
+            </h1>
+            <p className="max-w-3xl text-pretty text-base leading-7 text-text-secondary md:text-lg">
+              {copy.page.description}
             </p>
-            <div className="space-y-3">
-              <h1 className="text-3xl font-bold md:text-5xl">{copy.page.title}</h1>
-              <p className="max-w-3xl text-base leading-7 text-text-secondary md:text-lg">
-                {copy.page.description}
-              </p>
-            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
@@ -88,9 +81,6 @@ export function YbcHero({ data }: YbcHeroProps) {
 
         <Card className="flex h-full flex-col justify-between gap-6">
           <div className="space-y-3">
-            <p className="text-sm font-bold uppercase text-text-tertiary">
-              {copy.hero.perspective.eyebrow}
-            </p>
             <h2 className="text-2xl font-bold">
               {isMember
                 ? copy.hero.perspective.memberTitle
@@ -105,12 +95,13 @@ export function YbcHero({ data }: YbcHeroProps) {
 
           <div className="grid gap-3 text-sm">
             <PerspectiveRow
-              label={copy.hero.perspective.membership}
-              value={isMember ? copy.hero.states.member : copy.hero.states.observer}
-            />
-            <PerspectiveRow
               label={copy.hero.perspective.collectiveAddress}
-              value={formatAddress(data.hero.collectiveAddress)}
+              value={
+                <AddressLink
+                  address={data.hero.collectiveAddress}
+                  variant="compact"
+                />
+              }
             />
             <PerspectiveRow
               label={copy.hero.perspective.rawStaked}
@@ -136,9 +127,9 @@ export function YbcHero({ data }: YbcHeroProps) {
               </span>
             </div>
             <ProgressBar value={maturityPercent} className="h-2.5 bg-surface-secondary" />
-            <p className="text-sm text-text-secondary">
+            <div className="min-w-0 break-words text-sm text-text-secondary [overflow-wrap:anywhere]">
               {getMaturityLabel(data.me.weight)}
-            </p>
+            </div>
           </div>
         </Card>
       </div>
@@ -152,11 +143,9 @@ export function YbcHeroSkeleton() {
       <div className="container mx-auto grid gap-6 px-4 py-10 md:px-6 md:py-14 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.9fr)]">
         <div className="space-y-6">
           <div className="flex gap-2">
-            <Skeleton className="h-6 w-16" />
             <Skeleton className="h-6 w-20" />
           </div>
           <div className="space-y-3">
-            <Skeleton className="h-4 w-32" />
             <Skeleton className="h-12 w-full max-w-2xl" />
             <Skeleton className="h-20 w-full max-w-3xl" />
           </div>
@@ -204,7 +193,7 @@ function InfluenceCard({
           <p className={`text-sm font-bold uppercase ${mutedClassName ?? "text-text-tertiary"}`}>
             {label}
           </p>
-          <p className={`font-number text-3xl font-bold ${emphasisClassName ?? "text-text-primary"}`}>
+          <p className={`min-w-0 break-words font-number text-2xl font-bold [overflow-wrap:anywhere] sm:text-3xl ${emphasisClassName ?? "text-text-primary"}`}>
             {value}
           </p>
         </div>
@@ -221,45 +210,43 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     <Card className="bg-app p-4">
       <div className="space-y-2">
         <p className="text-xs font-bold uppercase text-text-tertiary">{label}</p>
-        <p className="font-number text-2xl font-bold text-text-primary">{value}</p>
+        <p className="min-w-0 break-words font-number text-xl font-bold text-text-primary [overflow-wrap:anywhere] sm:text-2xl">
+          {value}
+        </p>
       </div>
     </Card>
   );
 }
 
-function PerspectiveRow({ label, value }: { label: string; value: string }) {
+function PerspectiveRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="grid gap-1 border-t border-border pt-3 first:border-t-0 first:pt-0">
+    <div className="grid min-w-0 gap-1 border-t border-border pt-3 first:border-t-0 first:pt-0">
       <span className="text-xs font-bold uppercase text-text-tertiary">{label}</span>
-      <span className="font-number text-sm font-bold text-text-primary">{value}</span>
+      <div className="min-w-0 break-words font-number text-sm font-bold text-text-primary [overflow-wrap:anywhere]">
+        {value}
+      </div>
     </div>
   );
 }
 
 function formatToken(amount: string) {
-  return `${formatAmount(amount)} YFI`;
+  return `${formatDecimalAmount(amount, 2)} YFI`;
 }
 
 function formatWeight(amount: string) {
-  return `${formatAmount(amount)} weight`;
+  return `${formatDecimalAmount(amount, 2)} weight`;
 }
 
-function formatAmount(amount: string) {
-  const parsed = Number(amount);
-  if (!Number.isFinite(parsed)) {
-    return amount;
-  }
-
-  return parsed.toLocaleString("en-US", {
-    maximumFractionDigits: amount.includes(".") ? 2 : 0,
-  });
-}
-
-function getMaturityLabel(weight: YbcMockDataV1["me"]["weight"]) {
+function getMaturityLabel(
+  weight: YbcMockDataV1["me"]["weight"]
+): ReactNode {
   if (weight.maturesAt) {
-    return `${copy.members.states.maturesOn} ${DATE_FORMATTER.format(
-      weight.maturesAt * 1000
-    )}`;
+    return (
+      <>
+        {copy.members.states.maturesOn}{" "}
+        <UtcTime timestamp={weight.maturesAt} format="date" /> UTC
+      </>
+    );
   }
 
   return weight.maturityBps >= 10_000

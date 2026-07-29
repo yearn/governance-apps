@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { isAddress } from "viem";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
@@ -13,7 +12,7 @@ import type {
   YbcProposalType,
   YbcVoteChoice,
 } from "@/lib/clients/ybc";
-import { formatPercent } from "@/lib/format";
+import { formatDecimalAmount, formatPercent } from "@/lib/format";
 import type { TxState } from "@/lib/tx/types";
 import {
   getYbcIdentity,
@@ -42,6 +41,8 @@ type ProposalBoardProps = {
   ) => void | Promise<void>;
 };
 
+type ProposalAction = () => void | Promise<void>;
+
 export function ProposalBoard({
   data,
   identities,
@@ -57,6 +58,7 @@ export function ProposalBoard({
   const [proposalType, setProposalType] = useState<YbcProposalType>("addition");
   const [targetAddress, setTargetAddress] = useState("");
   const [targetError, setTargetError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const additionThresholdBps = getThresholdBps(data, "addition");
   const expulsionThresholdBps = getThresholdBps(data, "expulsion");
   const canCreateProposal = data.me.canPropose && Boolean(createProposal);
@@ -70,14 +72,27 @@ export function ProposalBoard({
     setProposalType(nextType);
     setTargetAddress("");
     setTargetError(null);
+    setActionError(null);
     resetProposalTx?.();
+  };
+
+  const runProposalAction = (action: ProposalAction) => {
+    setActionError(null);
+
+    try {
+      void Promise.resolve(action()).catch((error: unknown) => {
+        setActionError(getProposalActionError(error));
+      });
+    } catch (error) {
+      setActionError(getProposalActionError(error));
+    }
   };
 
   const submitProposal = () => {
     if (!createProposal) return;
 
     if (!proposalTargetRequired) {
-      void createProposal(proposalType);
+      runProposalAction(() => createProposal(proposalType));
       return;
     }
 
@@ -88,24 +103,21 @@ export function ProposalBoard({
     }
 
     setTargetError(null);
-    void createProposal(proposalType, trimmedTarget);
+    runProposalAction(() => createProposal(proposalType, trimmedTarget));
   };
 
   return (
     <section id={id} className="space-y-6">
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="brand">{copy.proposalBoard.eyebrow}</Badge>
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold">{copy.proposalBoard.title}</h2>
-          <p className="max-w-3xl text-sm leading-6 text-text-secondary">
-            {copy.proposalBoard.description}
-          </p>
-        </div>
+      <div className="space-y-2">
+        <h2 className="text-balance text-2xl font-bold">
+          {copy.proposalBoard.title}
+        </h2>
+        <p className="max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
+          {copy.proposalBoard.description}
+        </p>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
         <div className="space-y-6">
           <div className="flex flex-wrap items-start justify-end gap-2">
             <div className="w-full max-w-xl space-y-3 rounded-box border border-border bg-app/60 p-4 sm:w-auto sm:min-w-[360px]">
@@ -135,6 +147,9 @@ export function ProposalBoard({
                       if (targetError) {
                         setTargetError(null);
                       }
+                      if (actionError) {
+                        setActionError(null);
+                      }
                     }}
                     placeholder="0x..."
                     spellCheck={false}
@@ -156,12 +171,12 @@ export function ProposalBoard({
                   {copy.proposalBoard.proposeDisabledBody}
                 </p>
               ) : null}
-              {targetError || transactionError ? (
+              {targetError || actionError || transactionError ? (
                 <p
                   className="rounded-box border border-red-200 bg-red-50 px-3 py-2 text-sm leading-6 text-red-900"
                   role="alert"
                 >
-                  {targetError ?? transactionError}
+                  {targetError ?? actionError ?? transactionError}
                 </p>
               ) : null}
             </div>
@@ -203,21 +218,27 @@ export function ProposalBoard({
                   onRetract={
                     retractProposal
                       ? () => {
-                          void retractProposal(proposal.id);
+                          runProposalAction(() =>
+                            retractProposal(proposal.id)
+                          );
                         }
                       : undefined
                   }
                   onVote={
                     voteOnProposal
                       ? (choice) => {
-                          void voteOnProposal(proposal.id, choice);
+                          runProposalAction(() =>
+                            voteOnProposal(proposal.id, choice)
+                          );
                         }
                       : undefined
                   }
                   onExecute={
                     executeProposal
                       ? () => {
-                          void executeProposal(proposal.id);
+                          runProposalAction(() =>
+                            executeProposal(proposal.id)
+                          );
                         }
                       : undefined
                   }
@@ -279,7 +300,10 @@ export function ProposalBoard({
               />
               <ViewerRow
                 label="Effective weight"
-                value={`${data.me.weight.effectiveWeight} voting weight`}
+                value={`${formatDecimalAmount(
+                  data.me.weight.effectiveWeight,
+                  2
+                )} voting weight`}
               />
               <ViewerRow
                 label="Can propose"
@@ -304,6 +328,12 @@ export function ProposalBoard({
       </div>
     </section>
   );
+}
+
+function getProposalActionError(error: unknown): string {
+  return error instanceof Error && error.message
+    ? error.message
+    : copy.proposalBoard.actionFailed;
 }
 
 function shouldOpenProposalByDefault(
@@ -361,7 +391,9 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-box border border-border bg-app/60 p-4">
       <p className="text-xs font-bold uppercase text-text-tertiary">{label}</p>
-      <p className="mt-2 font-number text-2xl font-bold text-text-primary">{value}</p>
+      <p className="mt-2 min-w-0 break-words font-number text-xl font-bold text-text-primary [overflow-wrap:anywhere] sm:text-2xl">
+        {value}
+      </p>
     </div>
   );
 }
@@ -377,9 +409,11 @@ function ThresholdRow({ label, value }: { label: string; value: string }) {
 
 function ViewerRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-border pt-3 first:border-t-0 first:pt-0">
+    <div className="grid min-w-0 gap-1 border-t border-border pt-3 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-3">
       <span className="text-text-tertiary">{label}</span>
-      <span className="font-medium text-text-primary">{value}</span>
+      <div className="min-w-0 break-words font-medium text-text-primary [overflow-wrap:anywhere] sm:text-right">
+        {value}
+      </div>
     </div>
   );
 }

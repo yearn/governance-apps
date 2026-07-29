@@ -12,7 +12,8 @@ import {
   getYbcProposalThresholdState,
   type YbcVoteChoice,
 } from "@/lib/clients/ybc/mock";
-import { formatPercent } from "@/lib/format";
+import { formatUtcDateTime } from "@/lib/date";
+import { formatDecimalAmount, formatPercent } from "@/lib/format";
 import type { YbcDisplayIdentity } from "../identity";
 
 type ProposalCardProps = {
@@ -90,17 +91,21 @@ export function ProposalCard({
               </Badge>
             </div>
             <div className="space-y-1">
-              <h3
-                id={headingId}
-                className="min-w-0 break-words text-xl font-bold text-text-primary [overflow-wrap:anywhere]"
-              >
-                {proposal.id} · {proposalTypeLabel[proposal.type]} proposal for{" "}
-                {targetIdentity.label}
-              </h3>
-              <p className="min-w-0 break-words text-sm text-text-secondary [overflow-wrap:anywhere]">
-                Proposed by {proposerIdentity.label} in epoch{" "}
-                <span className="font-number">{proposal.epoch}</span>
-              </p>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <h3
+                  id={headingId}
+                  className="min-w-0 break-words text-xl font-bold text-text-primary [overflow-wrap:anywhere]"
+                >
+                  {proposal.id} · {proposalTypeLabel[proposal.type]} proposal
+                  for {targetIdentity.label}
+                </h3>
+              </div>
+              <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-text-secondary">
+                <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                  Proposed by {proposerIdentity.label} in epoch{" "}
+                  <span className="font-number">{proposal.epoch}</span>
+                </span>
+              </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-text-tertiary">
                 <span className="inline-flex items-center gap-2">
                   Target{" "}
@@ -176,15 +181,15 @@ export function ProposalCard({
                 />
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-secondary">
                   <span className="font-number">
-                    {formatAmount(proposal.votes.yea)} yea weight
+                    {formatDecimalAmount(proposal.votes.yea, 4)} yea weight
                   </span>
                   <span className="font-number">
-                    {formatAmount(proposal.votes.total)} total weight
+                    {formatDecimalAmount(proposal.votes.total, 4)} total weight
                   </span>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">
                   <span className="font-number">
-                    {formatAmount(proposal.votes.nay)} nay weight
+                    {formatDecimalAmount(proposal.votes.nay, 4)} nay weight
                   </span>
                   <span>
                     {threshold.thresholdMet ? "Threshold met" : "Below threshold"}
@@ -420,20 +425,6 @@ function getExpiryStatus(proposal: YbcProposalRecord): TimelineStatus {
   return "upcoming";
 }
 
-function formatAmount(value: string): string {
-  return Number.parseFloat(value).toLocaleString("en-US", {
-    maximumFractionDigits: 4,
-  });
-}
-
 function formatTimestamp(timestamp: number): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-    timeZoneName: "short",
-  }).format(new Date(timestamp * 1000));
+  return formatUtcDateTime(timestamp);
 }

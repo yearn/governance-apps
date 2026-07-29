@@ -1,20 +1,13 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { getButtonClassName } from "@/components/ui/Button";
+import { UtcTime } from "@/components/ui/UtcTime";
 import type { YbcMockDataV1, YbcRewardPeriod } from "@/lib/clients/ybc";
+import { formatDecimalAmount } from "@/lib/format";
 import { resolveGovernanceHref } from "@/lib/governance-links";
 import { ybcCopy as copy } from "../messages";
-
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
-  timeZoneName: "short",
-});
 
 type RewardsCardProps = {
   data: YbcMockDataV1;
@@ -35,41 +28,30 @@ export function RewardsCard({ data, id, hostname }: RewardsCardProps) {
     <Card id={id} className="space-y-6">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="brand">{copy.rewards.eyebrow}</Badge>
           <Badge variant="neutral">{copy.rewards.handoffBadge}</Badge>
         </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold">{copy.rewards.title}</h2>
-          <p className="max-w-3xl text-sm leading-6 text-text-secondary">
-            {copy.rewards.description}
-          </p>
-        </div>
+        <h2 className="text-balance text-2xl font-bold">{copy.rewards.title}</h2>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,20rem)]">
         <div className="space-y-6">
           <div className="grid gap-3 sm:grid-cols-3">
             <SummaryStat
               label={copy.rewards.summary.pending}
-              value={`${formatAmount(data.me.pendingRewards)} ${data.rewards.token.symbol}`}
+              value={`${formatDecimalAmount(data.me.pendingRewards, 2)} ${data.rewards.token.symbol}`}
             />
             <SummaryStat
               label={copy.rewards.summary.claimable}
-              value={`${formatAmount(data.rewards.claimable)} ${data.rewards.token.symbol}`}
+              value={`${formatDecimalAmount(data.rewards.claimable, 2)} ${data.rewards.token.symbol}`}
             />
             <SummaryStat
               label={copy.rewards.summary.accruing}
-              value={`${formatAmount(data.rewards.accruing)} ${data.rewards.token.symbol}`}
+              value={`${formatDecimalAmount(data.rewards.accruing, 2)} ${data.rewards.token.symbol}`}
             />
           </div>
 
           <div className="rounded-box border border-border bg-app/50 p-4">
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold">{copy.rewards.periodsTitle}</h3>
-              <p className="max-w-3xl text-sm leading-6 text-text-secondary">
-                {copy.rewards.periodsBody}
-              </p>
-            </div>
+            <h3 className="text-lg font-bold">{copy.rewards.periodsTitle}</h3>
             {data.rewards.periods.length > 0 ? (
               <div className="mt-4 space-y-3">
                 {data.rewards.periods.map((period) => (
@@ -97,10 +79,6 @@ export function RewardsCard({ data, id, hostname }: RewardsCardProps) {
             <div className="mt-4 space-y-3 text-sm text-text-secondary">
               <DetailRow label={copy.rewards.rows.role} value={viewerLabel} />
               <DetailRow
-                label={copy.rewards.rows.pendingRewards}
-                value={`${formatAmount(data.me.pendingRewards)} ${data.rewards.token.symbol}`}
-              />
-              <DetailRow
                 label={copy.rewards.rows.claimMode}
                 value={copy.rewards.states.sharedClaimMode}
               />
@@ -117,7 +95,10 @@ export function RewardsCard({ data, id, hostname }: RewardsCardProps) {
               </p>
               <DetailRow
                 label={copy.rewards.rows.lastUpdated}
-                value={DATE_TIME_FORMATTER.format(data.rewards.lastUpdatedAt * 1000)}
+                stacked
+                value={
+                  <UtcTime timestamp={data.rewards.lastUpdatedAt} />
+                }
               />
               {data.rewards.claim.disabledReason ? (
                 <p className="rounded-box border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -164,12 +145,12 @@ function RewardPeriodCard({ period }: { period: YbcRewardPeriod }) {
         <div className="grid gap-3 text-right text-sm text-text-secondary">
           <DetailRow
             label={copy.rewards.rows.earned}
-            value={`${formatAmount(period.earned)} YFI`}
+            value={`${formatDecimalAmount(period.earned, 2)} YFI`}
             align="right"
           />
           <DetailRow
             label={copy.rewards.rows.claimable}
-            value={`${formatAmount(period.claimable)} YFI`}
+            value={`${formatDecimalAmount(period.claimable, 2)} YFI`}
             align="right"
           />
         </div>
@@ -183,7 +164,9 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-box border border-border bg-surface p-4">
       <div className="space-y-2">
         <p className="text-xs font-bold uppercase text-text-tertiary">{label}</p>
-        <p className="font-number text-2xl font-bold text-text-primary">{value}</p>
+        <p className="min-w-0 break-words font-number text-xl font-bold text-text-primary [overflow-wrap:anywhere] sm:text-2xl">
+          {value}
+        </p>
       </div>
     </div>
   );
@@ -193,34 +176,29 @@ function DetailRow({
   label,
   value,
   align = "left",
+  stacked = false,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   align?: "left" | "right";
+  stacked?: boolean;
 }) {
   return (
     <div
       className={
         align === "right"
-          ? "grid gap-1 text-right"
-          : "grid gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3"
+          ? "grid min-w-0 gap-1 text-right"
+          : stacked
+            ? "grid min-w-0 gap-1"
+            : "grid min-w-0 gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-3"
       }
     >
       <span className="text-xs font-bold uppercase text-text-tertiary">{label}</span>
-      <span className="font-number font-bold text-text-primary">{value}</span>
+      <div className="min-w-0 break-words font-number font-bold text-text-primary [overflow-wrap:anywhere]">
+        {value}
+      </div>
     </div>
   );
-}
-
-function formatAmount(amount: string) {
-  const parsed = Number(amount);
-  if (!Number.isFinite(parsed)) {
-    return amount;
-  }
-
-  return parsed.toLocaleString("en-US", {
-    maximumFractionDigits: amount.includes(".") ? 2 : 0,
-  });
 }
 
 function getViewerLabel(data: YbcMockDataV1) {
