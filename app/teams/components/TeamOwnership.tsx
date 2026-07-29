@@ -1,5 +1,6 @@
-import { IconChevron } from "@/components/icons/IconChevron";
+import { IconAlertWarning } from "@/components/icons/ToastIcons";
 import { AddressLink } from "@/components/ui/ExplorerLink";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/cn";
 import { teamsCopy } from "../messages";
 
@@ -15,32 +16,36 @@ export function TeamOwnership({
   className,
 }: TeamOwnershipProps) {
   return (
-    <div className={cn("min-w-0 space-y-2", className)}>
+    <div className={cn("min-w-0 space-y-1.5", className)}>
       <AddressLink address={owner} variant="compact" />
 
       {pendingOwner ? (
-        <details
-          open
-          className="group/transfer min-w-0 rounded-lg border border-amber-300 bg-amber-50 text-left"
-        >
-          <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-bold text-amber-950 transition-[background-color] duration-150 ease-out hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 [&::-webkit-details-marker]:hidden">
-            <span>{teamsCopy.workspace.ownership.pendingTransfer}</span>
-            <IconChevron
-              className="size-4 shrink-0 transition-transform duration-150 ease-out group-open/transfer:rotate-180"
-              aria-hidden="true"
-            />
-          </summary>
-          <div className="min-w-0 border-t border-amber-200 px-3 py-2.5">
-            <p className="text-[0.6875rem] font-bold uppercase tracking-wide text-amber-800">
-              {teamsCopy.workspace.fields.pendingOwner}
-            </p>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1 rounded-md bg-amber-50 pr-2 text-left text-xs font-medium text-amber-950">
+          <Tooltip
+            align="start"
+            side="bottom"
+            content={
+              <span className="block max-w-64 text-pretty">
+                {teamsCopy.workspace.ownership.pendingTransferHelp}
+              </span>
+            }
+          >
+            <button
+              type="button"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-amber-700 transition-[background-color,color] duration-150 ease-out hover:bg-amber-100 hover:text-amber-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
+              aria-label={`${teamsCopy.workspace.ownership.pendingTransfer} ${pendingOwner}`}
+            >
+              <IconAlertWarning className="size-4" aria-hidden="true" />
+            </button>
+          </Tooltip>
+          <span>{teamsCopy.workspace.ownership.pendingTransfer}</span>
+          <span className="min-w-0 [&_a]:text-amber-950 [&_code]:text-amber-950">
             <AddressLink
               address={pendingOwner}
               variant="compact"
-              className="mt-1"
             />
-          </div>
-        </details>
+          </span>
+        </div>
       ) : null}
     </div>
   );

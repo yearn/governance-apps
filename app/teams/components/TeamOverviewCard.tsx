@@ -24,15 +24,10 @@ export function TeamOverviewCard({
         : "text-text-primary";
 
   return (
-    <Card className="min-w-0 space-y-5">
-      <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          {teamsCopy.workspace.title}
-        </p>
-        <h3 className="text-xl font-bold text-text-primary">{title}</h3>
-      </div>
+    <Card className="min-w-0 space-y-4">
+      <h2 className="text-xl font-bold text-text-primary">{title}</h2>
 
-      <dl className="grid gap-4 sm:grid-cols-2">
+      <dl className="grid gap-3 sm:grid-cols-2">
         <OverviewMetric
           label={teamsCopy.workspace.cards.revenue}
           value={formatTeamsUsd(financials.revenueUsd)}
@@ -42,42 +37,33 @@ export function TeamOverviewCard({
           value={formatTeamsUsd(financials.costUsd)}
         />
         <OverviewMetric
-          label={teamsCopy.workspace.cards.profit}
-          value={formatTeamsUsd(financials.profitUsd)}
-        />
-        <OverviewMetric
-          label={teamsCopy.workspace.cards.loss}
-          value={formatTeamsUsd(financials.lossUsd)}
+          className="sm:col-span-2"
+          label={netState.label}
+          value={formatTeamsUsd(netState.value)}
+          valueClassName={netToneClassName}
         />
       </dl>
-
-      <div className="min-w-0 rounded-box border border-border bg-app px-4 py-3">
-        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          {netState.label}
-        </p>
-        <p
-          className={`break-words font-number text-lg font-bold [overflow-wrap:anywhere] ${netToneClassName}`}
-        >
-          {formatTeamsUsd(netState.value)}
-        </p>
-      </div>
     </Card>
   );
 }
 
 function OverviewMetric({
+  className,
   label,
   value,
+  valueClassName,
 }: {
+  className?: string;
   label: string;
   value: string;
+  valueClassName?: string;
 }) {
   return (
-    <div className="min-w-0 space-y-1 rounded-box border border-border bg-app px-4 py-3">
+    <div className={`min-w-0 space-y-1 rounded-box border border-border bg-app px-4 py-3 ${className ?? ""}`}>
       <dt className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
         {label}
       </dt>
-      <dd className="break-words font-number text-base font-bold text-text-primary [overflow-wrap:anywhere]">
+      <dd className={`break-words font-number text-base font-bold text-text-primary [overflow-wrap:anywhere] ${valueClassName ?? ""}`}>
         {value}
       </dd>
     </div>

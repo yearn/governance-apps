@@ -30,11 +30,8 @@ export const teamsCopy = {
   page: {
     title: "Team Finances",
     eyebrow: "Team finance",
-    teamEyebrow: "Team workspace",
     description:
       "Review each team's revenue, costs, funding, bonus, and status.",
-    teamDescription: (teamName: string) =>
-      `Revenue, costs, funding, bonus, and lifecycle for ${teamName}.`,
     current: "Current Teams snapshot",
     refreshing: "Refreshing Teams data",
     lastUpdated: "Last updated",
@@ -101,6 +98,8 @@ export const teamsCopy = {
     emptyBody:
       "No teams are available in this view yet.",
     emptyHint: "No teams are available right now.",
+    selected: "Selected",
+    openWorkspace: "Open team",
     headers: {
       team: "Team",
       owner: "Owner",
@@ -127,16 +126,11 @@ export const teamsCopy = {
       lifetimeStrip: "All-time",
       scopedSummary: (scope: string) => `${scope} financials`,
     },
-    openWorkspace: "Open team",
-    selected: "Selected",
   },
   workspace: {
-    title: "Team Overview",
-    overviewEyebrow: "Overview",
-    description:
-      "Owner, contract, current-period totals, and all-time totals.",
+    title: "Team details",
     loadingTitle: "Loading team overview",
-    loadingBody: "Loading the selected team.",
+    loadingBody: "Loading team details.",
     emptyTitle: "No team selected",
     emptyBody:
       "Open a team from the directory to see its current and all-time totals.",
@@ -147,12 +141,9 @@ export const teamsCopy = {
       lifetime: "Lifetime",
       revenue: "Revenue",
       cost: "Cost",
-      profit: "Profit",
-      loss: "Loss",
     },
     financialHistory: {
       title: "Financial History",
-      description: "Period revenue, cost, and profit/loss for the selected team.",
       empty: "No period financials are available for this team yet.",
       currentBadge: "Current",
       headers: {
@@ -174,25 +165,15 @@ export const teamsCopy = {
       viewer: "Viewer permissions",
     },
     ownership: {
-      pendingTransfer: "Ownership transfer pending",
-    },
-    tabs: {
-      overview: "Overview",
-      revenue: "Revenue",
-      funding: "Funding",
-      bonus: "Bonus",
-      lifecycle: "Lifecycle",
+      pendingTransfer: "Transfer pending to",
+      pendingTransferHelp:
+        "The current owner nominated this address. Ownership does not change until the transfer is accepted.",
     },
     actionDeck: {
-      eyebrow: "Actions",
       title: "Actions",
-      description:
-        "Deposit revenue, claim funding, return unused funding, or claim bonus YFI.",
+      description: "Deposit revenue or manage funding and bonus claims.",
       outflowsTitle: "Funding and bonus",
-      outflowsBody:
-        "Funding approvals and bonus YFI are separate actions.",
       fundingTitle: "Funding approvals",
-      fundingSource: "Source: team funding approvals",
       fundingBody:
         "Claims spend approved funding. Returns account for used funding.",
       fundingClaimSource: "Claim source",
@@ -213,7 +194,6 @@ export const teamsCopy = {
       fundingClaimCta: "Open funding claim flow",
       fundingReturnCta: "Open funding return flow",
       bonusTitle: "YFI bonus",
-      bonusSource: "Source: finalized team bonus output",
       bonusBody:
         "Bonus YFI comes from finalized period profit.",
       bonusStatus: "Bonus state",
@@ -221,12 +201,6 @@ export const teamsCopy = {
       bonusPeriods: "Periods included",
       bonusPending: "Awaiting finalization",
       bonusCta: "Open bonus claim",
-    },
-    outflows: {
-      eyebrow: "Funding and bonus",
-      title: "Funding and Bonus",
-      description:
-        "Claim funding, return unused funding, or claim finalized bonus YFI.",
     },
   },
   bonus: {
@@ -352,7 +326,6 @@ export const teamsCopy = {
     },
     atAGlance: "At a glance",
     activeWorkspace: "Active",
-    pendingOwnerNone: "No pending transfer",
     successorNone: "No successor",
     unknownPeriod: "an upcoming period",
     fields: {
@@ -373,10 +346,8 @@ export const teamsCopy = {
     summaries: {
       active:
         "This team is active with no retirement scheduled.",
-      activeWithPendingOwner: (pendingOwner: string) =>
-        `Ownership is transferring to ${pendingOwner}.`,
-      retiring: (periodLabel: string, pendingOwner: string) =>
-        `Retirement is scheduled for ${periodLabel}${pendingOwner === "No pending transfer" ? "." : ` with transfer pending to ${pendingOwner}.`}`,
+      retiring: (periodLabel: string) =>
+        `Retirement is scheduled for ${periodLabel}.`,
       retired: (successor: string) =>
         `This team is retired and read-only. ${successor === "No successor" ? "No successor is recorded." : `Successor: ${successor}.`}`,
     },
@@ -402,7 +373,7 @@ export const teamsCopy = {
   revenue: {
     title: "Revenue Deposit",
     description:
-      "Deposit a supported revenue token for the selected team. Protocol accounting records the final USD credit.",
+      "Deposit a supported revenue token. Protocol accounting records the final USD credit.",
     loadingTitle: "Loading revenue deposit flow",
     loadingBody:
       "Loading supported tokens, deposit details, and recent deposits.",
@@ -475,7 +446,7 @@ export const teamsCopy = {
       auditDescription:
         "Deposit transactions with log indices, periods, amounts, and credited USD.",
       emptyTitle: "No deposits recorded yet",
-      emptyBody: "This selected team has no revenue deposit history yet.",
+      emptyBody: "This team has no revenue deposit history yet.",
       headers: {
         record: "Transaction",
         period: "Period",
@@ -664,8 +635,6 @@ export const teamsCopy = {
     },
   },
   admin: {
-    eyebrow: "Admin console",
-    mockBadge: "Access controlled",
     title: "Admin Console",
     description:
       "Review registry state, revenue tokens, funding queue, and bonus finalization.",

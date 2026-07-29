@@ -51,10 +51,7 @@ export function BonusCard({
     <Card className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-            {teamsCopy.workspace.title}
-          </p>
-          <h3 className="text-xl font-bold text-text-primary">{teamsCopy.bonus.title}</h3>
+          <h2 className="text-xl font-bold text-text-primary">{teamsCopy.bonus.title}</h2>
           <p className="text-sm leading-6 text-text-secondary">
             {teamsCopy.bonus.description}
           </p>

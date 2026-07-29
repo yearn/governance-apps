@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { parseUnits, type Address } from "viem";
+import type { Address } from "viem";
 import { cn } from "@/lib/cn";
 import { formatAddress } from "@/lib/format";
 import {
@@ -13,6 +13,7 @@ import {
   isTeamsFundingApprovalClaimable,
   isTeamsFundingApprovalReturnable,
   multiplyTeamsDecimalsToFixed,
+  parsePositiveTeamsTokenAmountRaw,
   resolveTeamsFundingUnitPriceDecimalUsd,
   type FundingApproval,
   type TeamRecord,
@@ -132,7 +133,10 @@ export function FundingApprovalsTable({
   const liveClaimMode = Boolean(onClaimFunding);
   const liveReturnMode = Boolean(onReturnFunding);
   const returnAmountRaw = selectedReturnApproval
-    ? tryParseTokenAmount(returnAmount, selectedReturnApproval.decimals)
+    ? parsePositiveTeamsTokenAmountRaw(
+        returnAmount,
+        selectedReturnApproval.decimals
+      )
     : null;
   const returnTokenBalance = useTokenBalance(
     (selectedReturnApproval?.tokenAddress ?? ZERO_ADDRESS) as Address,
@@ -202,6 +206,7 @@ export function FundingApprovalsTable({
     return (
       <Card className="space-y-4">
         <FundingSectionHeader
+          level={2}
           title={teamsCopy.funding.emptyTitle}
           description={teamsCopy.funding.emptyBody}
         />
@@ -213,6 +218,7 @@ export function FundingApprovalsTable({
     <div className="space-y-4">
       <Card className="space-y-5">
         <FundingSectionHeader
+          level={2}
           title={teamsCopy.funding.title}
           description={teamsCopy.funding.description}
         />
@@ -835,15 +841,21 @@ export function FundingApprovalsTable({
 }
 
 function FundingSectionHeader({
+  level = 3,
   title,
   description,
 }: {
+  level?: 2 | 3;
   title: string;
   description: string;
 }) {
   return (
     <div className="space-y-1">
-      <h3 className="text-xl font-bold text-text-primary">{title}</h3>
+      {level === 2 ? (
+        <h2 className="text-xl font-bold text-text-primary">{title}</h2>
+      ) : (
+        <h3 className="text-xl font-bold text-text-primary">{title}</h3>
+      )}
       <p className="text-sm leading-6 text-text-secondary">{description}</p>
     </div>
   );
@@ -1142,7 +1154,7 @@ function validateAmount(
     return requiredMessage;
   }
 
-  const amount = tryParseTokenAmount(rawAmount, decimals);
+  const amount = parsePositiveTeamsTokenAmountRaw(rawAmount, decimals);
   if (amount === null) {
     return invalidMessage;
   }
@@ -1177,15 +1189,6 @@ function formatReturnEstimate(approval: FundingApproval, amount: string) {
   }
 
   return formatTeamsUsd(estimate, 2);
-}
-
-function tryParseTokenAmount(value: string, decimals: number) {
-  try {
-    const amount = parseUnits(value, decimals);
-    return amount > 0n ? amount : null;
-  } catch {
-    return null;
-  }
 }
 
 function isTeamsTxPending(state?: TxState) {

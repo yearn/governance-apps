@@ -5,7 +5,7 @@ import {
   useConnectModal,
 } from "@rainbow-me/rainbowkit";
 import { useState, type ReactNode } from "react";
-import { parseUnits, type Address } from "viem";
+import type { Address } from "viem";
 import { AmountInput } from "@/components/ui/AmountInput";
 import { Badge } from "@/components/ui/Badge";
 import { Banner } from "@/components/ui/Banner";
@@ -31,6 +31,7 @@ import {
   formatTeamsTokenAmount,
   formatTeamsUsd,
   getTeamsDepositReadiness,
+  parsePositiveTeamsTokenAmountRaw,
   type RevenueHistoryEntry,
   type RevenueOption,
   type TeamRecord,
@@ -48,6 +49,7 @@ type RevenueDepositCardProps = {
   team: TeamRecord | null;
   viewer: TeamsViewerContext | null;
   currentPeriod: number | null;
+  headingLevel?: 2 | 3;
   onUpdateTeam: (team: TeamRecord) => void;
   onDepositRevenue?: (
     team: TeamRecord,
@@ -74,6 +76,7 @@ export function RevenueDepositCard({
   team,
   viewer,
   currentPeriod,
+  headingLevel = 2,
   onUpdateTeam,
   onDepositRevenue,
   onApproveRevenueDeposit,
@@ -96,7 +99,7 @@ export function RevenueDepositCard({
     team?.revenueOptions[0] ??
     null;
   const amountRaw = selectedOption
-    ? tryParseTokenAmount(amount, selectedOption.decimals)
+    ? parsePositiveTeamsTokenAmountRaw(amount, selectedOption.decimals)
     : null;
   const allowance = useTokenAllowance(
     (selectedOption?.tokenAddress ?? ZERO_ADDRESS) as Address,
@@ -126,6 +129,7 @@ export function RevenueDepositCard({
     return (
       <Card className="space-y-5" aria-busy="true">
         <RevenueHeader
+          level={headingLevel}
           title={teamsCopy.revenue.loadingTitle}
           description={teamsCopy.revenue.loadingBody}
         />
@@ -148,6 +152,7 @@ export function RevenueDepositCard({
     return (
       <Card className="space-y-4">
         <RevenueHeader
+          level={headingLevel}
           title={teamsCopy.revenue.emptyTitle}
           description={teamsCopy.revenue.emptyBody}
         />
@@ -159,6 +164,7 @@ export function RevenueDepositCard({
     return (
       <Card className="space-y-4">
         <RevenueHeader
+          level={headingLevel}
           title={teamsCopy.revenue.title}
           description={teamsCopy.revenue.description}
         />
@@ -280,6 +286,7 @@ export function RevenueDepositCard({
   return (
     <Card className="space-y-6">
       <RevenueHeader
+        level={headingLevel}
         title={teamsCopy.revenue.title}
         description={teamsCopy.revenue.description}
       />
@@ -502,6 +509,7 @@ export function RevenueDepositCard({
 
           <RevenueHistoryLedger
             history={renderedHistory}
+            headingLevel={headingLevel === 2 ? 3 : 4}
             variant="compact"
             financialDataAvailable={
               activeTeam.financialData.status === "available"
@@ -518,6 +526,7 @@ export function RevenueHistoryLedger({
   history,
   title = teamsCopy.revenue.history.title,
   description = teamsCopy.revenue.history.description,
+  headingLevel = 3,
   financialDataAvailable = true,
   variant = "table",
   className,
@@ -525,16 +534,21 @@ export function RevenueHistoryLedger({
   history: RevenueHistoryEntry[];
   title?: string;
   description?: string;
+  headingLevel?: 2 | 3 | 4;
   financialDataAvailable?: boolean;
   variant?: "table" | "compact";
   className?: string;
 }) {
   const renderedHistory = history as DisplayRevenueHistoryEntry[];
+  const Heading =
+    headingLevel === 2 ? "h2" : headingLevel === 3 ? "h3" : "h4";
 
   return (
     <div className={cn("space-y-3", className)}>
       <div className="space-y-1">
-        <h3 className="text-lg font-bold text-text-primary">{title}</h3>
+        <Heading className="text-lg font-bold text-text-primary">
+          {title}
+        </Heading>
         <p className="text-sm leading-6 text-text-secondary">{description}</p>
       </div>
 
@@ -697,15 +711,19 @@ function RevenueTransactionReference({
 }
 
 function RevenueHeader({
+  level,
   title,
   description,
 }: {
+  level: 2 | 3;
   title: string;
   description: string;
 }) {
+  const Heading = level === 2 ? "h2" : "h3";
+
   return (
     <div className="space-y-1">
-      <h2 className="text-2xl font-bold text-text-primary">{title}</h2>
+      <Heading className="text-2xl font-bold text-text-primary">{title}</Heading>
       <p className="text-sm leading-6 text-text-secondary">{description}</p>
     </div>
   );
@@ -827,15 +845,6 @@ function normalizeDecimal(value: string): string {
   if (!value.includes(".")) return value;
 
   return value.replace(/\.?0+$/, "");
-}
-
-function tryParseTokenAmount(value: string, decimals: number) {
-  try {
-    const amount = parseUnits(value, decimals);
-    return amount > 0n ? amount : null;
-  } catch {
-    return null;
-  }
 }
 
 function isTeamsTxPending(state?: TxState) {

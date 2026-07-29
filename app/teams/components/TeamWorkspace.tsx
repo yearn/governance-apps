@@ -115,8 +115,7 @@ export function TeamWorkspace({
             state="loading"
           />
         </section>
-        <section id="funding" className="scroll-mt-24 space-y-4">
-          <OutflowsHeader />
+        <section id="funding" className="scroll-mt-24">
           <WorkspaceSectionStateCard
             title={teamsCopy.funding.title}
             description={teamsCopy.funding.description}
@@ -182,8 +181,7 @@ export function TeamWorkspace({
             state={workspaceState === "empty" ? "empty" : "ready"}
           />
         </section>
-        <section id="funding" className="scroll-mt-24 space-y-4">
-          <OutflowsHeader />
+        <section id="funding" className="scroll-mt-24">
           <WorkspaceSectionStateCard
             title={teamsCopy.funding.emptyTitle}
             description={teamsCopy.funding.emptyBody}
@@ -240,7 +238,7 @@ export function TeamWorkspace({
           </div>
         </div>
 
-        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(20rem,0.8fr)_minmax(0,1.2fr)]">
           <WorkspaceSummaryCard team={readyTeam} />
           {readyTeam.financialData.status === "available" ? (
             <div className="grid min-w-0 gap-4 md:grid-cols-2">
@@ -281,6 +279,7 @@ export function TeamWorkspace({
             history={readyTeam.revenueHistory}
             title={teamsCopy.revenue.history.auditTitle}
             description={teamsCopy.revenue.history.auditDescription}
+            headingLevel={2}
             financialDataAvailable={
               readyTeam.financialData.status === "available"
             }
@@ -288,8 +287,7 @@ export function TeamWorkspace({
         </Card>
       </section>
 
-      <section id="funding" className="scroll-mt-24 space-y-4">
-        <OutflowsHeader />
+      <section id="funding" className="scroll-mt-24">
         {currentPeriod !== null ? (
           <FundingApprovalsTable
             team={readyTeam}
@@ -339,12 +337,9 @@ function FinancialHistoryTable({
   return (
     <Card className="overflow-hidden p-0">
       <div className="border-b border-border px-5 py-4">
-        <h3 className="text-xl font-bold text-text-primary">
+        <h2 className="text-xl font-bold text-text-primary">
           {teamsCopy.workspace.financialHistory.title}
-        </h3>
-        <p className="mt-1 text-sm leading-6 text-text-secondary">
-          {teamsCopy.workspace.financialHistory.description}
-        </p>
+        </h2>
       </div>
       {periods.length === 0 ? (
         <div className="px-5 py-6 text-sm text-text-secondary">
@@ -428,28 +423,11 @@ function formatPeriodRange(
 }
 
 function WorkspaceSummaryCard({ team }: { team: TeamRecord }) {
-  const net =
-    team.financialData.status === "available"
-      ? getFinancialNetState(team.currentPeriod)
-      : null;
-  const netToneClassName =
-    net?.tone === "profit"
-      ? "text-green-700"
-      : net?.tone === "loss"
-        ? "text-red-700"
-        : "text-text-primary";
-
   return (
-    <Card className="min-w-0 space-y-5">
-      <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          {teamsCopy.workspace.overviewEyebrow}
-        </p>
-        <h3 className="text-xl font-bold text-text-primary">{teamsCopy.workspace.title}</h3>
-        <p className="text-sm leading-6 text-text-secondary">
-          {teamsCopy.workspace.description}
-        </p>
-      </div>
+    <Card className="min-w-0 space-y-4">
+      <h2 className="text-xl font-bold text-text-primary">
+        {teamsCopy.workspace.title}
+      </h2>
       <dl className="space-y-3">
         <SummaryRow
           label={teamsCopy.workspace.fields.owner}
@@ -475,18 +453,6 @@ function WorkspaceSummaryCard({ team }: { team: TeamRecord }) {
           }
         />
       </dl>
-      <div className="rounded-box border border-border bg-app px-4 py-4">
-        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          {net?.label ?? teamsCopy.directory.headers.net}
-        </p>
-        <p
-          className={`mt-1 break-words font-number text-2xl font-bold [overflow-wrap:anywhere] sm:text-3xl ${netToneClassName}`}
-        >
-          {net
-            ? formatTeamsUsd(net.value)
-            : teamsCopy.financialData.unavailableValue}
-        </p>
-      </div>
     </Card>
   );
 }
@@ -530,12 +496,9 @@ function ActionDeck({
       className="scroll-mt-24 space-y-4"
     >
       <div className="space-y-1">
-        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-          {teamsCopy.workspace.actionDeck.eyebrow}
-        </p>
-        <h3 id="teams-action-deck-title" className="text-2xl font-bold text-text-primary">
+        <h2 id="teams-action-deck-title" className="text-2xl font-bold text-text-primary">
           {teamsCopy.workspace.actionDeck.title}
-        </h3>
+        </h2>
         <p className="max-w-3xl text-sm leading-6 text-text-secondary">
           {teamsCopy.workspace.actionDeck.description}
         </p>
@@ -546,6 +509,7 @@ function ActionDeck({
           team={team}
           viewer={viewer}
           currentPeriod={currentPeriod}
+          headingLevel={3}
           onUpdateTeam={onUpdateTeam}
           state={state}
           onDepositRevenue={liveWrites?.depositRevenue}
@@ -618,27 +582,18 @@ function OutflowsCommandPanel({
 
   return (
     <Card className="space-y-6">
-      <div className="space-y-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
+      <div>
+        <h3 className="text-xl font-bold text-text-primary">
           {teamsCopy.workspace.actionDeck.outflowsTitle}
-        </p>
-        <h4 className="text-xl font-bold text-text-primary">
-          {teamsCopy.workspace.actionDeck.outflowsTitle}
-        </h4>
-        <p className="text-sm leading-6 text-text-secondary">
-          {teamsCopy.workspace.actionDeck.outflowsBody}
-        </p>
+        </h3>
       </div>
 
       <div className="space-y-4 rounded-box border border-border bg-app p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <h5 className="text-lg font-bold text-text-primary">
+            <h4 className="text-lg font-bold text-text-primary">
               {teamsCopy.workspace.actionDeck.fundingTitle}
-            </h5>
-            <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-              {teamsCopy.workspace.actionDeck.fundingSource}
-            </p>
+            </h4>
           </div>
           <Badge
             variant={
@@ -733,12 +688,9 @@ function OutflowsCommandPanel({
       <div className="space-y-4 rounded-box border border-border bg-app p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <h5 className="text-lg font-bold text-text-primary">
+            <h4 className="text-lg font-bold text-text-primary">
               {teamsCopy.workspace.actionDeck.bonusTitle}
-            </h5>
-            <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-              {teamsCopy.workspace.actionDeck.bonusSource}
-            </p>
+            </h4>
           </div>
           <Badge variant={bonusStatus.variant}>{bonusStatus.label}</Badge>
         </div>
@@ -977,22 +929,6 @@ function getPendingBonusPeriodCount(team: TeamRecord) {
   ).length;
 }
 
-function OutflowsHeader() {
-  return (
-    <div className="space-y-1">
-      <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-        {teamsCopy.workspace.outflows.eyebrow}
-      </p>
-      <h3 className="text-2xl font-bold text-text-primary">
-        {teamsCopy.workspace.outflows.title}
-      </h3>
-      <p className="max-w-3xl text-sm leading-6 text-text-secondary">
-        {teamsCopy.workspace.outflows.description}
-      </p>
-    </div>
-  );
-}
-
 function WorkspaceStateOverview({
   title,
   description,
@@ -1075,10 +1011,7 @@ function WorkspaceSectionHeader({
 }) {
   return (
     <div className="space-y-1">
-      <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-        {teamsCopy.workspace.title}
-      </p>
-      <h3 className="text-xl font-bold text-text-primary">{title}</h3>
+      <h2 className="text-xl font-bold text-text-primary">{title}</h2>
       <p className="text-sm leading-6 text-text-secondary">{description}</p>
     </div>
   );
@@ -1092,11 +1025,11 @@ function SummaryRow({
   value: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-t border-border pt-3 first:border-t-0 first:pt-0">
+    <div className="grid gap-1 border-t border-border pt-3 first:border-t-0 first:pt-0 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-start sm:gap-3">
       <dt className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
         {label}
       </dt>
-      <dd className="min-w-0 text-right font-number text-sm font-bold text-text-primary">
+      <dd className="min-w-0 text-left font-number text-sm font-bold text-text-primary">
         {value}
       </dd>
     </div>

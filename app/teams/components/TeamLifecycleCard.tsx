@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { AddressLink } from "@/components/ui/ExplorerLink";
-import { formatAddress } from "@/lib/format";
 import { isEthereumAddress } from "@/lib/explorer";
 import {
   formatTeamsDate,
@@ -9,7 +8,6 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { teamsCopy } from "../messages";
-import { TeamOwnership } from "./TeamOwnership";
 
 type TeamLifecycleCardProps = {
   team: TeamRecord;
@@ -23,12 +21,9 @@ export function TeamLifecycleCard({ team }: TeamLifecycleCardProps) {
     <Card className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-text-tertiary">
-            {teamsCopy.workspace.title}
-          </p>
-          <h3 className="text-xl font-bold text-text-primary">
+          <h2 className="text-xl font-bold text-text-primary">
             {teamsCopy.lifecycle.title}
-          </h3>
+          </h2>
           <p className="text-sm leading-6 text-text-secondary">
             {teamsCopy.lifecycle.description}
           </p>
@@ -52,12 +47,7 @@ export function TeamLifecycleCard({ team }: TeamLifecycleCardProps) {
       <dl className="grid gap-4 sm:grid-cols-2">
         <LifecycleField
           label={teamsCopy.lifecycle.fields.owner}
-          value={
-            <TeamOwnership
-              owner={team.owner}
-              pendingOwner={team.pendingOwner}
-            />
-          }
+          value={<AddressLink address={team.owner} variant="compact" />}
         />
         <LifecycleField
           label={teamsCopy.lifecycle.fields.retirement}
@@ -139,8 +129,7 @@ function getLifecycleSummary(team: TeamRecord) {
     return teamsCopy.lifecycle.summaries.retiring(
       team.lifecycle.retirementEffectivePeriod === null
         ? teamsCopy.lifecycle.unknownPeriod
-        : `period ${team.lifecycle.retirementEffectivePeriod}`,
-      team.pendingOwner ? formatAddress(team.pendingOwner) : teamsCopy.lifecycle.pendingOwnerNone
+        : `period ${team.lifecycle.retirementEffectivePeriod}`
     );
   }
 
@@ -150,7 +139,5 @@ function getLifecycleSummary(team: TeamRecord) {
     );
   }
 
-  return team.pendingOwner
-    ? teamsCopy.lifecycle.summaries.activeWithPendingOwner(formatAddress(team.pendingOwner))
-    : teamsCopy.lifecycle.summaries.active;
+  return teamsCopy.lifecycle.summaries.active;
 }

@@ -42,11 +42,10 @@ export function AdminConsole({
   if (state === "loading") {
     return (
       <Card className="space-y-6" aria-busy="true">
-        <AdminConsoleHeader />
         <div className="rounded-box border border-border bg-app px-5 py-6">
-          <h3 className="text-lg font-bold text-text-primary">
+          <h2 className="text-lg font-bold text-text-primary">
             {teamsCopy.admin.loadingTitle}
-          </h3>
+          </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
             {teamsCopy.admin.loadingBody}
           </p>
@@ -66,11 +65,10 @@ export function AdminConsole({
   if (state === "empty") {
     return (
       <Card className="space-y-6">
-        <AdminConsoleHeader />
         <div className="rounded-box border border-dashed border-border bg-app px-5 py-6">
-          <h3 className="text-lg font-bold text-text-primary">
+          <h2 className="text-lg font-bold text-text-primary">
             {teamsCopy.admin.emptyTitle}
-          </h3>
+          </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
             {teamsCopy.admin.emptyBody}
           </p>
@@ -81,8 +79,6 @@ export function AdminConsole({
 
   return (
     <Card className="space-y-6">
-      <AdminConsoleHeader />
-
       {admin && viewer?.canUseAdmin ? (
         <UnlockedAdminConsole
           admin={admin}
@@ -97,31 +93,14 @@ export function AdminConsole({
   );
 }
 
-function AdminConsoleHeader() {
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="brand">{teamsCopy.admin.eyebrow}</Badge>
-        <Badge variant="warning">{teamsCopy.admin.mockBadge}</Badge>
-      </div>
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold text-text-primary">{teamsCopy.admin.title}</h2>
-        <p className="max-w-3xl text-sm leading-6 text-text-secondary">
-          {teamsCopy.admin.description}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function LockedAdminConsole({ viewer }: { viewer: TeamsViewerContext | null }) {
   return (
     <div className="rounded-box border border-dashed border-border bg-app px-5 py-6">
       <div className="space-y-4">
         <div className="space-y-2">
-          <h3 className="text-lg font-bold text-text-primary">
+          <h2 className="text-lg font-bold text-text-primary">
             {teamsCopy.admin.accessCard.title}
-          </h3>
+          </h2>
           <p className="max-w-2xl text-sm leading-6 text-text-secondary">
             {teamsCopy.admin.accessCard.body}
           </p>
@@ -605,7 +584,7 @@ function SectionHeader({
 }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-lg font-bold text-text-primary">{title}</h3>
+      <h2 className="text-lg font-bold text-text-primary">{title}</h2>
       <p className="max-w-3xl text-sm leading-6 text-text-secondary">{description}</p>
     </div>
   );
