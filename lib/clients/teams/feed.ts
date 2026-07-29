@@ -1,8 +1,13 @@
 import { TeamsFeedSchema, type TeamsFeed } from "@/lib/schemas/teams-feed";
+import {
+  readBoundedTeamsJson,
+  TeamsFeedRequestTimeoutError,
+  withTeamsFeedRequest,
+} from "./payload";
+import { assertTeamsMainnetDeployment } from "./deployment";
 
 const TEAMS_DATA_URL = process.env.NEXT_PUBLIC_TEAMS_DATA_URL;
 const TEAMS_DATA_PROXY_URL = "/api/teams-data";
-let lastValidTeamsFeed: TeamsFeed | null = null;
 
 function isBrowserRuntime() {
   return typeof window !== "undefined";
@@ -10,23 +15,47 @@ function isBrowserRuntime() {
 
 async function fetchAndValidate(url: string, label: string) {
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`Teams feed fetch failed (${label}):`, response.status);
-      return null;
-    }
+    return await withTeamsFeedRequest(url, async (response, context) => {
+      if (!response.ok) {
+        await response.body?.cancel().catch(() => undefined);
+        throw new Error(
+          `Teams feed fetch failed (${label}) with status ${response.status}.`
+        );
+      }
 
-    const json = await response.json();
-    const parsed = TeamsFeedSchema.safeParse(json);
-    if (!parsed.success) {
-      console.warn(`Teams feed schema validation failed (${label})`, parsed.error);
-      return null;
-    }
+      const json = await readBoundedTeamsJson(response, context);
+      const parsed = TeamsFeedSchema.safeParse(json);
+      if (!parsed.success) {
+        throw new Error(
+          `Teams feed schema validation failed (${label}).`,
+          { cause: parsed.error }
+        );
+      }
 
-    return parsed.data;
+      assertTeamsMainnetDeployment(parsed.data);
+      return parsed.data;
+    });
   } catch (error) {
-    console.warn(`Teams feed fetch failed (${label})`, error);
-    return null;
+    if (
+      error instanceof Error &&
+      error.message.startsWith("Teams feed ")
+    ) {
+      throw error;
+    }
+    if (
+      error instanceof TeamsFeedRequestTimeoutError ||
+      (error instanceof Error &&
+        error.message ===
+          "The Teams feed payload exceeds the supported size.")
+    ) {
+      throw new Error(
+        `Teams feed fetch failed (${label}): ${error.message}`,
+        { cause: error }
+      );
+    }
+    throw new Error(`Teams feed fetch failed (${label}).`, {
+      cause: error,
+    });
   }
 }
 
@@ -34,14 +63,8 @@ export async function fetchTeamsFeed(): Promise<TeamsFeed | null> {
   const url = isBrowserRuntime() ? TEAMS_DATA_PROXY_URL : TEAMS_DATA_URL;
   if (!url) return null;
 
-  const data = await fetchAndValidate(
+  return fetchAndValidate(
     url,
     isBrowserRuntime() ? "same-origin proxy" : "direct"
   );
-  if (data) {
-    lastValidTeamsFeed = data;
-    return data;
-  }
-
-  return lastValidTeamsFeed;
 }

@@ -4,11 +4,13 @@ import {
   applyMockTeamsFundingClaim,
   applyMockTeamsFundingReturn,
   createMockTeamsClient,
+  deriveTeamsViewerForTeam,
   getMockTeamsRuntimeState,
   patchMockTeamsFundingApproval,
+  patchMockTeamsTeam,
   resetMockTeamsStore,
   resolveSelectedTeam,
-  resolveTeamsFundingUnitPriceUsd,
+  resolveTeamsFundingUnitPriceDecimalUsd,
   setMockTeamsCurrentPeriod,
   setMockTeamsNow,
   setMockTeamsPreset,
@@ -47,6 +49,10 @@ describe("MockTeamsClient", () => {
     const secondScenario = await client.getScenario("directory-observer");
 
     expect(secondScenario.data.teams[0].name).toBe("Platform");
+    expect(secondScenario.data.financialData).toMatchObject({
+      status: "available",
+      source: "mock",
+    });
   });
 
   it("resolves the selected team from scenario defaults or explicit team ids", async () => {
@@ -58,7 +64,7 @@ describe("MockTeamsClient", () => {
     expect(resolveSelectedTeam(scenario.data, "does-not-exist")).toBeNull();
   });
 
-  it("applies a mock funding claim and preserves USD summary reconciliation for non-stable approvals", async () => {
+  it("applies a mock funding claim without inventing a USD quote", async () => {
     const client = createMockTeamsClient({ latencyMs: 0 });
     const scenario = await client.getScenario("team-owner-funding");
     const team = resolveSelectedTeam(scenario.data, "security");
@@ -81,11 +87,35 @@ describe("MockTeamsClient", () => {
     expect(updatedApproval).toMatchObject({
       used: "1.25",
       claimable: "1.25",
+      usedRaw: "1250000000000000000",
+      claimableRaw: "1250000000000000000",
+      claimedRaw: "1250000000000000000",
+      returnableRaw: "1250000000000000000",
       status: "partially-claimed",
       recipient: "0xcccc000000000000000000000000000000000099",
+      claimedCostUsd: null,
+      refundValueUsd: null,
     });
-    expect(updatedTeam.fundingSummary.claimableUsd).toBe("43000.00");
-    expect(updatedTeam.fundingSummary.refundableUsd).toBe("27000.00");
+    expect(updatedTeam.fundingSummary.claimableUsd).toBeNull();
+    expect(updatedTeam.fundingSummary.refundableUsd).toBeNull();
+  });
+
+  it("rejects expired mock funding claims", async () => {
+    const client = createMockTeamsClient({ latencyMs: 0 });
+    const scenario = await client.getScenario("team-owner-funding");
+    const team = resolveSelectedTeam(scenario.data, "security");
+
+    expect(() =>
+      applyMockTeamsFundingClaim(
+        team!,
+        {
+          approvalId: "approval-security-21",
+          amount: "1",
+          recipient: "0xcccc000000000000000000000000000000000099",
+        },
+        scenario.data.currentPeriod
+      )
+    ).toThrow("Only a current-period approval can be claimed.");
   });
 
   it("applies a mock funding return without reopening claimable balance", async () => {
@@ -109,12 +139,14 @@ describe("MockTeamsClient", () => {
     expect(updatedApproval).toMatchObject({
       used: "18000",
       claimable: "32000",
+      returnedRaw: "3500000000",
+      returnableRaw: "14500000000",
       status: "partially-claimed",
-      claimedCostUsd: "17000.00",
-      refundValueUsd: "17000.00",
+      claimedCostUsd: "14500.00",
+      refundValueUsd: "14500.00",
     });
-    expect(updatedTeam.fundingSummary.claimableUsd).toBe("43000.00");
-    expect(updatedTeam.fundingSummary.refundableUsd).toBe("26000.00");
+    expect(updatedTeam.fundingSummary.claimableUsd).toBeNull();
+    expect(updatedTeam.fundingSummary.refundableUsd).toBe("14500.00");
     expect(updatedTeam.fundingReturns[0]).toMatchObject({
       approvalId: "approval-security-22",
       amount: "1000",
@@ -123,31 +155,98 @@ describe("MockTeamsClient", () => {
     });
   });
 
-  it("rejects a mock funding return above remaining refundable value", async () => {
+  it("uses prior raw returns when enforcing the remaining return maximum", async () => {
     const client = createMockTeamsClient({ latencyMs: 0 });
     const scenario = await client.getScenario("team-owner-funding");
     const team = resolveSelectedTeam(scenario.data, "security");
 
     expect(team).not.toBeNull();
 
-    const partiallyReturnedTeam = applyMockTeamsFundingReturn(team!, {
-      approvalId: "approval-security-22",
-      amount: "17999",
-      returnedBy: "0xaaaa000000000000000000000000000000000002",
-      currentPeriod: scenario.data.currentPeriod,
-    });
-
     expect(() =>
-      applyMockTeamsFundingReturn(partiallyReturnedTeam, {
+      applyMockTeamsFundingReturn(team!, {
         approvalId: "approval-security-22",
-        amount: "2",
+        amount: "15500.000001",
         returnedBy: "0xaaaa000000000000000000000000000000000002",
         currentPeriod: scenario.data.currentPeriod,
       })
-    ).toThrow("Return amount exceeds the refundable value.");
+    ).toThrow("Return amount exceeds the outstanding token balance.");
+
+    const fullyReturnedTeam = applyMockTeamsFundingReturn(team!, {
+      approvalId: "approval-security-22",
+      amount: "15500",
+      returnedBy: "0xaaaa000000000000000000000000000000000002",
+      currentPeriod: scenario.data.currentPeriod,
+    });
+    expect(
+      fullyReturnedTeam.fundingApprovals.find(
+        (approval) => approval.id === "approval-security-22"
+      )?.returnableRaw
+    ).toBe("0");
   });
 
-  it("reuses the same funding unit price fallback for UI estimates and mock accounting", async () => {
+  it("keeps one aggregate return selector for sibling approvals in the same cost bucket", async () => {
+    const client = createMockTeamsClient({ latencyMs: 0 });
+    const scenario = await client.getScenario("team-owner-funding");
+    const team = resolveSelectedTeam(scenario.data, "security");
+    const selector = team?.fundingApprovals.find(
+      (approval) => approval.id === "approval-security-22"
+    );
+
+    expect(team).not.toBeNull();
+    expect(selector).toBeDefined();
+
+    const sibling = {
+      ...selector!,
+      id: "approval-security-99",
+      idx: 99,
+      usedRaw: "1000000000",
+      claimableRaw: "49000000000",
+      claimedRaw: "1000000000",
+      returnedRaw: "2000000000",
+      returnableRaw: "0",
+      used: "1000",
+      claimable: "49000",
+      claimedCostUsd: "0.00",
+      refundValueUsd: "0.00",
+    };
+    const bucketTeam = {
+      ...team!,
+      fundingApprovals: team!.fundingApprovals.map((approval) =>
+        approval.id === selector!.id
+          ? { ...approval, returnableRaw: "14500000000" }
+          : approval
+      ).concat(sibling),
+    };
+
+    const updatedTeam = applyMockTeamsFundingReturn(bucketTeam, {
+      approvalId: selector!.id,
+      amount: "1000",
+      returnedBy: "0xaaaa000000000000000000000000000000000002",
+      currentPeriod: scenario.data.currentPeriod,
+    });
+    const updatedSelector = updatedTeam.fundingApprovals.find(
+      (approval) => approval.id === selector!.id
+    );
+    const updatedSibling = updatedTeam.fundingApprovals.find(
+      (approval) => approval.id === sibling.id
+    );
+
+    expect(updatedSelector?.returnableRaw).toBe("13500000000");
+    expect(updatedSibling).toMatchObject({
+      returnedRaw: "2000000000",
+      returnableRaw: "0",
+    });
+    expect(() =>
+      applyMockTeamsFundingReturn(bucketTeam, {
+        approvalId: sibling.id,
+        amount: "1",
+        returnedBy: "0xaaaa000000000000000000000000000000000002",
+        currentPeriod: scenario.data.currentPeriod,
+      })
+    ).toThrow("Approval has no refundable funding");
+  });
+
+  it("does not infer a one-dollar price from a stable-looking symbol", async () => {
     const client = createMockTeamsClient({ latencyMs: 0 });
     const scenario = await client.getScenario("finance-operator-revenue");
     const team = resolveSelectedTeam(scenario.data, "platform");
@@ -159,7 +258,7 @@ describe("MockTeamsClient", () => {
     );
 
     expect(approval).toBeDefined();
-    expect(resolveTeamsFundingUnitPriceUsd(approval!)).toBe(1);
+    expect(resolveTeamsFundingUnitPriceDecimalUsd(approval!)).toBeNull();
   });
 
   it("bootstraps runtime presets, role changes, and admin visibility from the shared store", async () => {
@@ -183,6 +282,57 @@ describe("MockTeamsClient", () => {
 
     resetMockTeamsStore();
     expect(getMockTeamsRuntimeState().data.currentPeriod).toBe(4);
+  });
+
+  it("reclassifies mock approvals when the current period changes", () => {
+    setMockTeamsPreset("team-owner-funding");
+    setMockTeamsCurrentPeriod(5);
+
+    const runtime = getMockTeamsRuntimeState();
+    const team = resolveSelectedTeam(runtime.data, "security");
+    const expired = team?.fundingApprovals.find(
+      (approval) => approval.id === "approval-security-22"
+    );
+    const newlyCurrent = team?.fundingApprovals.find(
+      (approval) => approval.id === "approval-security-24"
+    );
+
+    expect(expired).toMatchObject({
+      status: "expired",
+      claimableRaw: "0",
+    });
+    expect(newlyCurrent).toMatchObject({
+      status: "claimable-current-period",
+      claimableRaw: "18000000000",
+    });
+  });
+
+  it("keeps inactive current funding explicit while preserving permissionless returns", () => {
+    setMockTeamsPreset("team-owner-funding");
+    patchMockTeamsTeam("security", {
+      status: "retired",
+      readOnlyReason: "retired",
+    });
+
+    const runtime = getMockTeamsRuntimeState();
+    const team = resolveSelectedTeam(runtime.data, "security")!;
+    const approval = team.fundingApprovals.find(
+      (candidate) => candidate.id === "approval-security-22"
+    );
+    const viewer = deriveTeamsViewerForTeam(
+      runtime.data.viewer,
+      team,
+      runtime.data.currentPeriod
+    );
+
+    expect(approval).toMatchObject({
+      status: "current-unavailable",
+      claimableRaw: "0",
+      returnableRaw: "15500000000",
+    });
+    expect(team.fundingSummary.state).toBe("current-unavailable");
+    expect(viewer.canClaimFunding).toBe(false);
+    expect(viewer.canReturnFunding).toBe(true);
   });
 
   it("advances the displayed period on the first setNow call after reset", () => {
@@ -226,8 +376,7 @@ describe("MockTeamsClient", () => {
     setMockTeamsPreset("team-owner-funding");
 
     patchMockTeamsFundingApproval("approval-security-22", {
-      claimable: "0",
-      status: "fully-used",
+      used: "50000",
       refundValueUsd: "0.00",
     });
 
@@ -239,8 +388,91 @@ describe("MockTeamsClient", () => {
       security?.fundingApprovals.find((approval) => approval.id === "approval-security-22")
     ).toMatchObject({
       claimable: "0",
+      used: "50000",
       status: "fully-used",
     });
-    expect(security?.fundingSummary.claimableUsd).toBe("11000.00");
+    expect(security?.fundingSummary.claimableUsd).toBeNull();
+  });
+
+  it("preserves sub-display-precision raw amounts through claim and return", async () => {
+    const client = createMockTeamsClient({ latencyMs: 0 });
+    const scenario = await client.getScenario("team-owner-funding");
+    const team = resolveSelectedTeam(scenario.data, "security");
+    const sourceApproval = team?.fundingApprovals.find(
+      (approval) => approval.id === "approval-security-23"
+    );
+
+    expect(team).not.toBeNull();
+    expect(sourceApproval).toBeDefined();
+
+    const dustApproval = {
+      ...sourceApproval!,
+      amountRaw: "1",
+      usedRaw: "0",
+      claimableRaw: "1",
+      claimedRaw: "0",
+      returnedRaw: "0",
+      returnableRaw: "0",
+      totalApproved: "0",
+      used: "0",
+      claimable: "0",
+      status: "claimable-current-period" as const,
+    };
+    const dustTeam = {
+      ...team!,
+      fundingApprovals: team!.fundingApprovals.map((approval) =>
+        approval.id === dustApproval.id ? dustApproval : approval
+      ),
+    };
+    const claimedTeam = applyMockTeamsFundingClaim(
+      dustTeam,
+      {
+        approvalId: dustApproval.id,
+        amount: "0.000000000000000001",
+        recipient: "0xcccc000000000000000000000000000000000099",
+      },
+      scenario.data.currentPeriod
+    );
+    const claimedApproval = claimedTeam.fundingApprovals.find(
+      (approval) => approval.id === dustApproval.id
+    );
+
+    expect(claimedApproval).toMatchObject({
+      used: "0.000000000000000001",
+      claimable: "0",
+      usedRaw: "1",
+      claimableRaw: "0",
+      returnableRaw: "1",
+    });
+
+    const returnedTeam = applyMockTeamsFundingReturn(claimedTeam, {
+      approvalId: dustApproval.id,
+      amount: "0.000000000000000001",
+      returnedBy: "0xaaaa000000000000000000000000000000000002",
+      currentPeriod: scenario.data.currentPeriod,
+    });
+    expect(
+      returnedTeam.fundingApprovals.find(
+        (approval) => approval.id === dustApproval.id
+      )
+    ).toMatchObject({
+      returnedRaw: "1",
+      returnableRaw: "0",
+    });
+  });
+
+  it("rejects returns from an approval outside the current period", async () => {
+    const client = createMockTeamsClient({ latencyMs: 0 });
+    const scenario = await client.getScenario("team-owner-funding");
+    const team = resolveSelectedTeam(scenario.data, "security");
+
+    expect(() =>
+      applyMockTeamsFundingReturn(team!, {
+        approvalId: "approval-security-21",
+        amount: "1",
+        returnedBy: "0xaaaa000000000000000000000000000000000002",
+        currentPeriod: scenario.data.currentPeriod,
+      })
+    ).toThrow("Approval has no refundable funding");
   });
 });

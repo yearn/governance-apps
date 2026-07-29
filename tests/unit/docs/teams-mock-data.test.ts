@@ -31,10 +31,11 @@ const expectedScenarioIds: TeamsMockScenarioId[] = [
 
 const expectedFundingStatuses: FundingApprovalStatus[] = [
   "claimable-current-period",
+  "current-unavailable",
+  "expired",
   "fully-used",
-  "late-liquid",
-  "not-current-period",
   "partially-claimed",
+  "scheduled",
 ];
 
 const expectedBonusStatuses: TeamBonusStatus[] = [
@@ -77,9 +78,10 @@ const expectedMigrationReadiness: TeamMigrationReadiness[] = [
 ];
 
 const expectedFundingSummaryStates: TeamFundingSummaryState[] = [
+  "current-unavailable",
   "fully-used",
   "has-claimable",
-  "late-liquid-available",
+  "has-expired",
   "no-approvals",
   "partially-claimed",
 ];
@@ -260,8 +262,8 @@ function assertRevenueHistoryEntry(value: unknown): void {
 function assertFundingSummary(value: unknown): void {
   assertRecord(value);
   expectOneOf(value.state, expectedFundingSummaryStates);
-  assertDecimalString(value.claimableUsd);
-  assertDecimalString(value.refundableUsd);
+  assertNullableDecimalString(value.claimableUsd);
+  assertNullableDecimalString(value.refundableUsd);
 }
 
 function assertFundingApproval(value: unknown): void {
@@ -271,14 +273,21 @@ function assertFundingApproval(value: unknown): void {
   assertNumber(value.approvedPeriod);
   assertString(value.symbol);
   assertAddress(value.tokenAddress);
+  assertNumber(value.decimals);
+  assertRawAmountString(value.amountRaw);
+  assertRawAmountString(value.usedRaw);
+  assertRawAmountString(value.claimableRaw);
+  assertRawAmountString(value.claimedRaw);
+  assertRawAmountString(value.returnedRaw);
+  assertRawAmountString(value.returnableRaw);
   assertDecimalString(value.totalApproved);
   assertDecimalString(value.used);
   assertDecimalString(value.claimable);
   assertNumber(value.streamDurationDays);
   expectOneOf(value.status, expectedFundingStatuses);
   assertNullableString(value.recipient);
-  assertDecimalString(value.claimedCostUsd);
-  assertDecimalString(value.refundValueUsd);
+  assertNullableDecimalString(value.claimedCostUsd);
+  assertNullableDecimalString(value.refundValueUsd);
   assertNullableDecimalString(value.averageClaimPriceUsd);
 }
 
@@ -286,10 +295,13 @@ function assertFundingReturnEntry(value: unknown): void {
   assertRecord(value);
   assertString(value.id);
   assertString(value.approvalId);
+  assertNumber(value.approvalIdx);
   assertNumber(value.period);
   assertString(value.symbol);
+  assertNumber(value.decimals);
+  assertRawAmountString(value.amountRaw);
   assertDecimalString(value.amount);
-  assertDecimalString(value.refundValueUsd);
+  assertNullableDecimalString(value.refundValueUsd);
   assertAddress(value.returnedBy);
   assertNumber(value.createdAt);
 }
@@ -297,7 +309,9 @@ function assertFundingReturnEntry(value: unknown): void {
 function assertBonusState(value: unknown): void {
   assertRecord(value);
   expect(value.tokenSymbol).toBe("YFI");
+  assertNumber(value.tokenDecimals);
   expectOneOf(value.status, expectedBonusStatuses);
+  assertRawAmountString(value.totalClaimableRaw);
   assertDecimalString(value.totalClaimable);
   assertNumber(value.includedPeriodCount);
   assertArray(value.periods);
@@ -318,6 +332,7 @@ function assertBonusPeriod(value: unknown): void {
   assertDecimalString(value.adjustedPriceUsd);
   assertNumber(value.growthFactorBps);
   assertNumber(value.ybcSplitBps);
+  assertRawAmountString(value.claimableYfiRaw);
   assertDecimalString(value.claimableYfi);
 }
 
@@ -370,6 +385,7 @@ function assertRevenueTokenAdminRecord(value: unknown): void {
 function assertAdminFundingQueueEntry(value: unknown): void {
   assertRecord(value);
   assertString(value.approvalId);
+  assertNumber(value.approvalIdx);
   assertString(value.teamId);
   expectOneOf(value.status, expectedFundingStatuses);
   assertBoolean(value.requiresOperatorAttention);
@@ -401,6 +417,11 @@ function assertNullableDecimalString(value: unknown): void {
   if (value !== null) {
     assertDecimalString(value);
   }
+}
+
+function assertRawAmountString(value: unknown): asserts value is string {
+  assertString(value);
+  expect(value).toMatch(/^(0|[1-9]\d*)$/);
 }
 
 function assertBoolean(value: unknown): asserts value is boolean {
@@ -459,8 +480,6 @@ const financialKeys = [
   "lossUsd",
 ] as const;
 
-const stableFundingSymbols = new Set(["USDC", "DAI", "yvUSDC-1", "yvDAI"]);
-
 function sumFinancials(
   teams: TeamRecord[],
   scope: "currentPeriod" | "lifetime"
@@ -500,26 +519,25 @@ function formatCents(value: number): string {
   return (value / 100).toFixed(2);
 }
 
-function expectStableFundingSummaryToReconcile(team: TeamRecord): void {
-  if (
-    !team.fundingApprovals.every((approval) =>
-      stableFundingSymbols.has(approval.symbol)
-    )
-  ) {
-    return;
+function expectRawFundingAndBonusToReconcile(team: TeamRecord): void {
+  for (const approval of team.fundingApprovals) {
+    const expectedReturnedRaw = team.fundingReturns
+      .filter((entry) => entry.approvalId === approval.id)
+      .reduce((sum, entry) => sum + BigInt(entry.amountRaw), 0n);
+    const expectedReturnableRaw =
+      BigInt(approval.claimedRaw) > expectedReturnedRaw
+        ? BigInt(approval.claimedRaw) - expectedReturnedRaw
+        : 0n;
+
+    expect(approval.returnedRaw).toBe(expectedReturnedRaw.toString());
+    expect(approval.returnableRaw).toBe(expectedReturnableRaw.toString());
   }
 
-  const claimableCents = team.fundingApprovals.reduce(
-    (sum, approval) => sum + toCents(approval.claimable),
-    0
+  expect(team.bonus.totalClaimableRaw).toBe(
+    team.bonus.periods
+      .reduce((sum, period) => sum + BigInt(period.claimableYfiRaw), 0n)
+      .toString()
   );
-  const refundableCents = team.fundingApprovals.reduce(
-    (sum, approval) => sum + toCents(approval.refundValueUsd),
-    0
-  );
-
-  expect(team.fundingSummary.claimableUsd).toBe(formatCents(claimableCents));
-  expect(team.fundingSummary.refundableUsd).toBe(formatCents(refundableCents));
 }
 
 describe("Team Finances mock data contract", () => {
@@ -601,7 +619,7 @@ describe("Team Finances mock data contract", () => {
       }
 
       for (const team of scenario.data.teams) {
-        expectStableFundingSummaryToReconcile(team);
+        expectRawFundingAndBonusToReconcile(team);
         expect(team.financialPeriods[0]).toMatchObject({
           period: scenario.data.currentPeriod,
           startsAt: null,

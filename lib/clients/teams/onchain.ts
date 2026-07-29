@@ -1,13 +1,13 @@
-import { formatUnits, isAddress, type Address } from "viem";
+import { formatUnits, getAddress, isAddress, type Address } from "viem";
 import { BonusDistributorAbi } from "@/lib/abis/BonusDistributor";
 import { TeamAbi } from "@/lib/abis/Team";
 import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
 import type { PreparedTransaction } from "@/lib/tx/types";
 import {
+  addTeamsDecimalStrings,
   createTeamsScenarioCatalog,
   deriveTeamsFundingSummary,
-  isTeamsFundingApprovalClaimable,
-  isTeamsFundingApprovalReturnable,
+  formatTeamsRawTokenAmount,
   type TeamsClient,
   type TeamsScenarioCatalogEntry,
 } from "./client";
@@ -38,6 +38,8 @@ import type {
   TeamsMockScenarioId,
   TeamsViewerContext,
   TeamsViewerRole,
+  TeamsFinancialDataState,
+  ProtocolUsd18String,
 } from "./types";
 import type {
   TeamsFeed,
@@ -46,6 +48,11 @@ import type {
   TeamsFeedTeam,
   TeamsFeedTeamPeriod,
   TeamsFeedToken,
+} from "@/lib/schemas/teams-feed";
+import {
+  hasCompatibleTeamsFinancialUnits,
+  TEAMS_BONUS_TOKEN_DECIMALS,
+  TEAMS_PROTOCOL_USD_DECIMALS,
 } from "@/lib/schemas/teams-feed";
 
 const ZERO_FINANCIALS: TeamFinancials = {
@@ -57,10 +64,8 @@ const ZERO_FINANCIALS: TeamFinancials = {
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 const READ_ONLY_PRESET_ID: TeamsMockScenarioId = "directory-observer";
-const WRITE_DISABLED_PREVIEW_AMOUNT = "1000";
-const USD_DECIMALS = 6;
-
 type TeamsMapOptions = {
+  actionStateTrusted?: boolean;
   walletChainId?: number | null;
 };
 
@@ -98,8 +103,8 @@ export class OnchainTeamsClient implements TeamsClient {
     token: Address,
     amount: bigint
   ): Promise<PreparedTransaction> {
-    assertValidTeamsAddress(team, "team");
-    assertValidTeamsAddress(token, "token");
+    const canonicalTeam = resolveCanonicalTeamsFeedTeamAddress(this.feed, team);
+    const canonicalToken = resolveCanonicalTeamsFeedTokenAddress(this.feed, token);
     assertPositiveAmount(amount);
 
     return async () => {
@@ -108,10 +113,10 @@ export class OnchainTeamsClient implements TeamsClient {
       const account = getAccount(wagmiConfig);
       const address = assertMainnetAccount(account);
       const request = {
-        address: team,
+        address: canonicalTeam,
         abi: TeamAbi,
         functionName: "deposit_revenue",
-        args: [token, amount] as const,
+        args: [canonicalToken, amount] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
       };
@@ -125,9 +130,23 @@ export class OnchainTeamsClient implements TeamsClient {
     amount: bigint,
     recipient: Address
   ): Promise<PreparedTransaction> {
-    assertValidTeamsAddress(team, "team");
+    const canonicalTeam = resolveCanonicalTeamsFeedTeamAddress(this.feed, team);
+    const approval = resolveTeamsFeedFundingApproval(
+      this.feed,
+      canonicalTeam,
+      approvalIdx
+    );
     assertValidTeamsAddress(recipient, "recipient");
     assertPositiveAmount(amount);
+    if (
+      approval.status !== "claimable" ||
+      approval.period > this.feed.periods.current
+    ) {
+      throw new Error("The selected Teams funding approval is not claimable.");
+    }
+    if (amount > BigInt(approval.claimable)) {
+      throw new Error("Teams funding claim exceeds the remaining raw balance.");
+    }
 
     return async () => {
       const { getAccount, simulateThenWrite, wagmiConfig } =
@@ -135,7 +154,7 @@ export class OnchainTeamsClient implements TeamsClient {
       const account = getAccount(wagmiConfig);
       const address = assertMainnetAccount(account);
       const request = {
-        address: team,
+        address: canonicalTeam,
         abi: TeamAbi,
         functionName: "claim_funding",
         args: [approvalIdx, amount, recipient] as const,
@@ -151,8 +170,22 @@ export class OnchainTeamsClient implements TeamsClient {
     approvalIdx: bigint,
     amount: bigint
   ): Promise<PreparedTransaction> {
-    assertValidTeamsAddress(team, "team");
+    const canonicalTeam = resolveCanonicalTeamsFeedTeamAddress(this.feed, team);
+    const approval = resolveTeamsFeedFundingApproval(
+      this.feed,
+      canonicalTeam,
+      approvalIdx
+    );
     assertPositiveAmount(amount);
+    if (approval.period !== this.feed.periods.current) {
+      throw new Error(
+        "Only the current-period Teams funding approval can accept returns."
+      );
+    }
+    const returnableRaw = getFeedFundingReturnableRaw(approval);
+    if (amount > returnableRaw) {
+      throw new Error("Teams funding return exceeds the outstanding raw balance.");
+    }
 
     return async () => {
       const { getAccount, simulateThenWrite, wagmiConfig } =
@@ -160,7 +193,7 @@ export class OnchainTeamsClient implements TeamsClient {
       const account = getAccount(wagmiConfig);
       const address = assertMainnetAccount(account);
       const request = {
-        address: team,
+        address: canonicalTeam,
         abi: TeamAbi,
         functionName: "return_funding",
         args: [approvalIdx, amount] as const,
@@ -175,7 +208,7 @@ export class OnchainTeamsClient implements TeamsClient {
     team: Address,
     recipient: Address
   ): Promise<PreparedTransaction> {
-    assertValidTeamsAddress(team, "team");
+    const canonicalTeam = resolveCanonicalTeamsFeedTeamAddress(this.feed, team);
     assertValidTeamsAddress(recipient, "recipient");
 
     return async () => {
@@ -187,7 +220,7 @@ export class OnchainTeamsClient implements TeamsClient {
         address: this.feed.deployment.bonusDistributor as Address,
         abi: BonusDistributorAbi,
         functionName: "claim",
-        args: [team, recipient] as const,
+        args: [canonicalTeam, recipient] as const,
         account: address,
         chainId: MAINNET_CHAIN_ID,
       };
@@ -235,10 +268,12 @@ export function mapTeamsFeedToPageData(
   account: string | null = null,
   options: TeamsMapOptions = {}
 ): TeamsMockDataV1 {
+  const financialData = mapFinancialDataState(feed);
   const teamIds = resolveTeamIds(feed.teams);
-  const teams = feed.teams.map((team) => mapTeam(feed, team, teamIds));
-  const selectedTeamId = resolveSelectedTeamId(feed, teams, account);
-  const viewer = mapViewer(feed, teams, selectedTeamId, account, options);
+  const teams = feed.teams.map((team) =>
+    mapTeam(feed, team, teamIds, financialData)
+  );
+  const viewer = mapViewer(feed, teams, account, options);
   const currentGlobalPeriod = feed.accountant.globalByPeriod.find(
     (entry) => entry.period === feed.periods.current
   );
@@ -247,13 +282,14 @@ export function mapTeamsFeedToPageData(
     version: 1,
     generatedAt: feed.generatedAt,
     currentPeriod: feed.periods.current,
+    financialData,
     viewer,
-    selectedTeamId,
+    selectedTeamId: null,
     totals: {
       currentPeriod: currentGlobalPeriod
-        ? mapFinancials(currentGlobalPeriod.financials)
-        : sumFinancials(teams, "currentPeriod"),
-      lifetime: mapFinancials(feed.accountant.lifetime),
+        ? mapFinancials(feed, currentGlobalPeriod.financials)
+        : sumFinancials(teams, "currentPeriod", financialData),
+      lifetime: mapFinancials(feed, feed.accountant.lifetime),
       activeTeamCount: teams.filter((team) => team.status === "active").length,
       retiringTeamCount: teams.filter((team) => team.status === "retiring").length,
       retiredTeamCount: teams.filter((team) => team.status === "retired").length,
@@ -266,11 +302,12 @@ export function mapTeamsFeedToPageData(
 function mapTeam(
   feed: TeamsFeed,
   team: TeamsFeedTeam,
-  teamIds: Map<string, TeamId>
+  teamIds: Map<string, TeamId>,
+  financialData: TeamsFinancialDataState
 ): TeamRecord {
   const currentPeriod =
     team.periods.find((period) => period.period === feed.periods.current) ?? null;
-  const financialPeriods = mapFinancialPeriods(team);
+  const financialPeriods = mapFinancialPeriods(feed, team);
   const fundingApprovals = feed.fundingApprovals
     .filter((approval) => sameAddress(approval.team, team.address))
     .map((approval) => mapFundingApproval(feed, approval));
@@ -284,9 +321,12 @@ function mapTeam(
     pendingOwner: team.pendingOwner,
     status: mapLifecycleStatus(team),
     readOnlyReason: mapReadOnlyReason(team),
-    currentPeriod: currentPeriod ? mapFinancials(currentPeriod.financials) : ZERO_FINANCIALS,
+    financialData,
+    currentPeriod: currentPeriod
+      ? mapFinancials(feed, currentPeriod.financials)
+      : ZERO_FINANCIALS,
     financialPeriods,
-    lifetime: mapFinancials(team.lifetime),
+    lifetime: mapFinancials(feed, team.lifetime),
     lifecycle: {
       migrationReadiness: mapMigrationReadiness(team),
       successorTeamId: team.successor
@@ -297,7 +337,10 @@ function mapTeam(
     },
     revenueOptions: mapRevenueOptions(feed),
     revenueHistory: mapRevenueHistory(feed, team),
-    fundingSummary: deriveTeamsFundingSummary(fundingApprovals),
+    fundingSummary: deriveTeamsFundingSummary(
+      fundingApprovals,
+      feed.periods.current
+    ),
     fundingApprovals,
     fundingReturns: feed.fundingApprovals
       .filter((approval) => sameAddress(approval.team, team.address))
@@ -306,13 +349,16 @@ function mapTeam(
   };
 }
 
-function mapFinancialPeriods(team: TeamsFeedTeam): TeamFinancialPeriod[] {
+function mapFinancialPeriods(
+  feed: TeamsFeed,
+  team: TeamsFeedTeam
+): TeamFinancialPeriod[] {
   return team.periods
     .map((period) => ({
       period: period.period,
       startsAt: period.startsAt,
       endsAt: period.endsAt,
-      financials: mapFinancials(period.financials),
+      financials: mapFinancials(feed, period.financials),
     }))
     .sort((left, right) => right.period - left.period);
 }
@@ -320,15 +366,10 @@ function mapFinancialPeriods(team: TeamsFeedTeam): TeamFinancialPeriod[] {
 function mapViewer(
   feed: TeamsFeed,
   teams: TeamRecord[],
-  selectedTeamId: TeamId | null,
   account: string | null,
   options: TeamsMapOptions
 ): TeamsViewerContext {
   const normalizedAccount = account ? normalizeAddress(account) : null;
-  const selectedTeam =
-    selectedTeamId === null
-      ? null
-      : teams.find((team) => team.id === selectedTeamId) ?? null;
   const ownedTeam =
     normalizedAccount === null
       ? null
@@ -343,48 +384,36 @@ function mapViewer(
       : ownedTeam
       ? "team-owner"
       : "observer";
-  const teamId = ownedTeam?.id ?? selectedTeamId;
   const isMainnetAccount =
     normalizedAccount !== null &&
-    (options.walletChainId === undefined ||
-      options.walletChainId === MAINNET_CHAIN_ID);
-  const selectedTeamIsOwner =
-    selectedTeam !== null &&
-    normalizedAccount !== null &&
-    normalizeAddress(selectedTeam.owner) === normalizedAccount;
-  const selectedTeamCanReceiveRevenue =
-    selectedTeam !== null &&
-    selectedTeam.readOnlyReason === null &&
-    selectedTeam.status === "active" &&
-    selectedTeam.revenueOptions.length > 0 &&
-    !feed.revenueRecipient.killed;
-  const selectedTeamHasClaimableFunding =
-    selectedTeam?.fundingApprovals.some(isTeamsFundingApprovalClaimable) ?? false;
-  const selectedTeamHasReturnableFunding =
-    selectedTeam?.fundingApprovals.some(isTeamsFundingApprovalReturnable) ?? false;
-  const selectedTeamHasClaimableBonus =
-    selectedTeam?.bonus.status === "claimable" &&
-    parseDisplayAmount(selectedTeam.bonus.totalClaimable) > 0;
+    options.walletChainId === MAINNET_CHAIN_ID;
 
   return {
     role,
     address: account,
-    teamId: role === "observer" ? null : teamId,
-    canDepositRevenue: isMainnetAccount && selectedTeamCanReceiveRevenue,
-    canClaimFunding:
-      isMainnetAccount && selectedTeamIsOwner && selectedTeamHasClaimableFunding,
-    canReturnFunding: isMainnetAccount && selectedTeamHasReturnableFunding,
-    canClaimBonus:
-      isMainnetAccount && selectedTeamIsOwner && selectedTeamHasClaimableBonus,
+    teamId: role === "observer" ? null : ownedTeam?.id ?? null,
+    actionStateTrusted: options.actionStateTrusted !== false,
+    walletStatus:
+      normalizedAccount === null
+        ? "disconnected"
+        : isMainnetAccount
+          ? "mainnet"
+          : "switch-mainnet",
+    revenueDepositsEnabled:
+      options.actionStateTrusted !== false &&
+      !feed.revenueRecipient.killed,
+    canDepositRevenue: false,
+    canClaimFunding: false,
+    canReturnFunding: false,
+    canClaimBonus: false,
     canUseAdmin: isOperator,
   };
 }
 
 function mapRevenueOptions(feed: TeamsFeed): RevenueOption[] {
   return Object.values(feed.tokens)
-    .filter((token) => token.kind !== "bonus")
+    .filter(isProducerSupportedRevenueToken)
     .map((token) => {
-      const oraclePriceUsd = "1.00";
       return {
         symbol: token.symbol,
         tokenAddress: token.address,
@@ -393,11 +422,9 @@ function mapRevenueOptions(feed: TeamsFeed): RevenueOption[] {
           token.converter !== null &&
           normalizeAddress(token.converter) !== normalizeAddress(token.priceOracle ?? ""),
         convertToSymbol: resolveConvertedSymbol(feed, token),
-        oraclePriceUsd,
-        previewAmount: WRITE_DISABLED_PREVIEW_AMOUNT,
-        estimatedCreditUsd: (
-          Number(WRITE_DISABLED_PREVIEW_AMOUNT) * Number(oraclePriceUsd)
-        ).toFixed(2),
+        oraclePriceUsd: null,
+        previewAmount: null,
+        estimatedCreditUsd: null,
       };
     });
 }
@@ -409,10 +436,12 @@ function mapRevenueHistory(feed: TeamsFeed, team: TeamsFeedTeam): RevenueHistory
         const token = getFeedToken(feed, deposit.token);
         return {
           id: deposit.id,
+          txHash: deposit.txHash,
+          logIndex: deposit.logIndex,
           period: deposit.period,
           symbol: token?.symbol ?? "UNKNOWN",
           amount: fromTokenUnits(deposit.amount, token?.decimals ?? 18, 4),
-          creditedUsd: fromUsd(deposit.revenueUsd),
+          creditedUsd: fromUsd(feed, deposit.revenueUsd),
           convertedToSymbol: resolveConvertedSymbol(feed, token),
           depositedBy: deposit.depositor,
           createdAt: deposit.timestamp ?? feed.generatedAt,
@@ -427,6 +456,17 @@ function mapFundingApproval(
   approval: TeamsFeedFundingApproval
 ): FundingApproval {
   const token = getFeedToken(feed, approval.token);
+  const decimals = token?.decimals ?? 18;
+  const claimedRaw = approval.claims.reduce(
+    (sum, claim) => sum + BigInt(claim.amount),
+    0n
+  );
+  const returnedRaw = approval.returns.reduce(
+    (sum, entry) => sum + BigInt(entry.amount),
+    0n
+  );
+  const returnableRaw =
+    claimedRaw > returnedRaw ? claimedRaw - returnedRaw : 0n;
   const claimsCostUsd = approval.claims.reduce(
     (sum, claim) => sum + BigInt(claim.costUsd),
     0n
@@ -444,17 +484,28 @@ function mapFundingApproval(
     approvedPeriod: approval.period,
     symbol: token?.symbol ?? "UNKNOWN",
     tokenAddress: approval.token,
-    decimals: token?.decimals ?? 18,
-    totalApproved: fromTokenUnits(approval.amount, token?.decimals ?? 18, 4),
-    used: fromTokenUnits(approval.used, token?.decimals ?? 18, 4),
-    claimable: fromTokenUnits(approval.claimable, token?.decimals ?? 18, 4),
+    decimals,
+    amountRaw: approval.amount,
+    usedRaw: approval.used,
+    claimableRaw: approval.claimable,
+    claimedRaw: claimedRaw.toString(),
+    returnedRaw: returnedRaw.toString(),
+    returnableRaw: returnableRaw.toString(),
+    totalApproved: fromTokenUnits(approval.amount, decimals, 4),
+    used: fromTokenUnits(approval.used, decimals, 4),
+    claimable: fromTokenUnits(approval.claimable, decimals, 4),
     streamDurationDays: Math.floor(approval.durationSeconds / 86_400),
     status: mapFundingStatus(feed, approval),
     recipient: approval.claims.at(-1)?.recipient ?? null,
-    claimedCostUsd: fromUsd(refundableUsd.toString()),
-    refundValueUsd: fromUsd(refundableUsd.toString()),
-    averageClaimPriceUsd: approval.averageCostPriceUsd
-      ? fromUsd(approval.averageCostPriceUsd)
+    claimedCostUsd: hasCompatibleTeamsFinancialUnits(feed)
+      ? fromProtocolUsd18(refundableUsd.toString())
+      : null,
+    refundValueUsd: hasCompatibleTeamsFinancialUnits(feed)
+      ? fromProtocolUsd18(refundableUsd.toString())
+      : null,
+    averageClaimPriceUsd:
+      hasCompatibleTeamsFinancialUnits(feed) && approval.averageCostPriceUsd
+      ? fromProtocolUsd18(approval.averageCostPriceUsd)
       : null,
   };
 }
@@ -464,13 +515,20 @@ function mapFundingReturns(
   approval: TeamsFeedFundingApproval
 ): FundingReturnEntry[] {
   const token = getFeedToken(feed, approval.token);
+  const decimals = token?.decimals ?? 18;
   return approval.returns.map((entry) => ({
     id: entry.id,
+    txHash: entry.txHash,
+    logIndex: entry.logIndex,
     approvalId: `approval-${approval.id}`,
     period: entry.period,
     symbol: token?.symbol ?? "UNKNOWN",
-    amount: fromTokenUnits(entry.amount, token?.decimals ?? 18, 4),
-    refundValueUsd: fromUsd(entry.refundUsd),
+    decimals,
+    amountRaw: entry.amount,
+    amount: fromTokenUnits(entry.amount, decimals, 4),
+    refundValueUsd: hasCompatibleTeamsFinancialUnits(feed)
+      ? fromProtocolUsd18(entry.refundUsd)
+      : null,
     returnedBy: entry.sender,
     createdAt: entry.timestamp ?? feed.generatedAt,
   }));
@@ -486,15 +544,16 @@ function mapBonus(feed: TeamsFeed, team: TeamsFeedTeam): TeamBonusState {
     .map((period) => mapBonusPeriod(feed, period, claimsByPeriod))
     .filter((period): period is BonusPeriod => period !== null);
   const totalClaimableRaw = periods.reduce(
-    (sum, period) => sum + parseDisplayAmount(period.claimableYfi),
-    0
+    (sum, period) => sum + BigInt(period.claimableYfiRaw),
+    0n
   );
-  const hasClaimable = totalClaimableRaw > 0;
+  const hasClaimable = totalClaimableRaw > 0n;
   const hasPending = periods.some((period) => period.status === "pending-finalization");
   const hasClaimed = periods.some((period) => period.status === "claimed");
 
   return {
     tokenSymbol: "YFI",
+    tokenDecimals: TEAMS_BONUS_TOKEN_DECIMALS,
     status: hasClaimable
       ? "claimable"
       : hasPending
@@ -502,7 +561,11 @@ function mapBonus(feed: TeamsFeed, team: TeamsFeedTeam): TeamBonusState {
         : hasClaimed
           ? "claimed"
           : "none",
-    totalClaimable: trimDecimal(String(totalClaimableRaw), 4),
+    totalClaimableRaw: totalClaimableRaw.toString(),
+    totalClaimable: formatTeamsRawTokenAmount(
+      totalClaimableRaw.toString(),
+      TEAMS_BONUS_TOKEN_DECIMALS
+    ),
     includedPeriodCount: periods.length,
     periods,
   };
@@ -532,12 +595,17 @@ function mapBonusPeriod(
     status,
     finalized,
     claimed,
-    profitUsd: mapFinancials(period.financials).profitUsd,
-    spotPriceUsd: fromUsd(price),
-    adjustedPriceUsd: fromUsd(price),
+    profitUsd: mapFinancials(feed, period.financials).profitUsd,
+    spotPriceUsd: fromUsd(feed, price),
+    adjustedPriceUsd: fromUsd(feed, price),
     growthFactorBps: bonus.parameters?.bonusFactorBps ?? 0,
     ybcSplitBps: bonus.parameters?.ybcSplitBps ?? 0,
-    claimableYfi: fromTokenUnits(bonus.claimableYfi, 18, 4),
+    claimableYfiRaw: bonus.claimableYfi,
+    claimableYfi: fromTokenUnits(
+      bonus.claimableYfi,
+      TEAMS_BONUS_TOKEN_DECIMALS,
+      4
+    ),
   };
 }
 
@@ -559,7 +627,7 @@ function mapAdmin(feed: TeamsFeed, teams: TeamRecord[]): TeamsAdminRecord {
     treasuryBucket: mapBucket(feed, 1),
     recoveryBucket: mapBucket(feed, 2),
     whitelistedRevenueTokens: Object.values(feed.tokens)
-      .filter((token) => token.kind !== "bonus")
+      .filter(isProducerSupportedRevenueToken)
       .map(mapRevenueTokenAdminRecord),
     fundingQueue: feed.fundingApprovals.map((approval) =>
       mapAdminFundingQueueEntry(feed, teams, approval)
@@ -569,16 +637,38 @@ function mapAdmin(feed: TeamsFeed, teams: TeamRecord[]): TeamsAdminRecord {
 }
 
 function mapBucket(feed: TeamsFeed, index: 0 | 1 | 2): BucketRecord {
-  const sumBalance = BigInt(feed.revenueRecipient.sumBalance ?? "0");
+  const token = getFeedToken(feed, feed.revenueRecipient.token);
+  if (
+    !token ||
+    feed.revenueRecipient.sumBalance === null ||
+    feed.revenueRecipient.used === null
+  ) {
+    return {
+      sourceAvailable: false,
+      unit: null,
+      budget: null,
+      used: null,
+      remaining: null,
+      status: "unavailable",
+    };
+  }
+
+  const sumBalance = BigInt(feed.revenueRecipient.sumBalance);
   const budgetRaw =
     (sumBalance * BigInt(feed.revenueRecipient.tokenSplitBps[index])) / 10_000n;
-  const usedRaw = BigInt(feed.revenueRecipient.used?.[index] ?? "0");
+  const usedRaw = BigInt(feed.revenueRecipient.used[index]);
   const remainingRaw = budgetRaw > usedRaw ? budgetRaw - usedRaw : 0n;
 
   return {
-    budget: fromUsd(budgetRaw.toString()),
-    used: fromUsd(usedRaw.toString()),
-    remaining: fromUsd(remainingRaw.toString()),
+    sourceAvailable: true,
+    unit: {
+      kind: "token",
+      symbol: token.symbol,
+      decimals: token.decimals,
+    },
+    budget: fromTokenUnits(budgetRaw.toString(), token.decimals, 4),
+    used: fromTokenUnits(usedRaw.toString(), token.decimals, 4),
+    remaining: fromTokenUnits(remainingRaw.toString(), token.decimals, 4),
     status:
       remainingRaw === 0n && budgetRaw > 0n
         ? "limit-reached"
@@ -640,40 +730,36 @@ function mapFundingStatus(
   return "not-current-period";
 }
 
-function mapFinancials(financials: TeamsFeedFinancials): TeamFinancials {
+function mapFinancials(
+  feed: TeamsFeed,
+  financials: TeamsFeedFinancials
+): TeamFinancials {
+  if (!hasCompatibleTeamsFinancialUnits(feed)) return ZERO_FINANCIALS;
+
   return {
-    revenueUsd: fromUsd(financials.revenueUsd),
-    costUsd: fromUsd(financials.costUsd),
-    profitUsd: fromUsd(financials.profitUsd),
-    lossUsd: fromUsd(financials.lossUsd),
+    revenueUsd: fromProtocolUsd18(financials.revenueUsd),
+    costUsd: fromProtocolUsd18(financials.costUsd),
+    profitUsd: fromProtocolUsd18(financials.profitUsd),
+    lossUsd: fromProtocolUsd18(financials.lossUsd),
   };
 }
 
 function sumFinancials(
   teams: readonly TeamRecord[],
-  key: "currentPeriod" | "lifetime"
+  key: "currentPeriod" | "lifetime",
+  financialData: TeamsFinancialDataState
 ): TeamFinancials {
-  const totals = teams.reduce(
-    (sum, team) => {
-      sum.revenueUsd += Number(team[key].revenueUsd);
-      sum.costUsd += Number(team[key].costUsd);
-      sum.profitUsd += Number(team[key].profitUsd);
-      sum.lossUsd += Number(team[key].lossUsd);
-      return sum;
-    },
-    {
-      revenueUsd: 0,
-      costUsd: 0,
-      profitUsd: 0,
-      lossUsd: 0,
-    }
-  );
+  if (financialData.status === "unavailable") return ZERO_FINANCIALS;
 
   return {
-    revenueUsd: totals.revenueUsd.toFixed(2),
-    costUsd: totals.costUsd.toFixed(2),
-    profitUsd: totals.profitUsd.toFixed(2),
-    lossUsd: totals.lossUsd.toFixed(2),
+    revenueUsd: addTeamsDecimalStrings(
+      teams.map((team) => team[key].revenueUsd)
+    ),
+    costUsd: addTeamsDecimalStrings(teams.map((team) => team[key].costUsd)),
+    profitUsd: addTeamsDecimalStrings(
+      teams.map((team) => team[key].profitUsd)
+    ),
+    lossUsd: addTeamsDecimalStrings(teams.map((team) => team[key].lossUsd)),
   };
 }
 
@@ -695,20 +781,6 @@ function mapMigrationReadiness(team: TeamsFeedTeam): TeamMigrationReadiness {
   return "not-needed";
 }
 
-function resolveSelectedTeamId(
-  feed: TeamsFeed,
-  teams: TeamRecord[],
-  account: string | null
-) {
-  const normalizedAccount = account ? normalizeAddress(account) : null;
-  const ownedTeam =
-    normalizedAccount === null
-      ? null
-      : teams.find((team) => normalizeAddress(team.owner) === normalizedAccount) ??
-        null;
-  return ownedTeam?.id ?? teams[0]?.id ?? (feed.teams[0] ? createTeamId(feed.teams[0]) : null);
-}
-
 function resolveTeamIds(teams: TeamsFeedTeam[]) {
   const counts = new Map<string, number>();
   const ids = new Map<string, TeamId>();
@@ -724,6 +796,73 @@ function resolveTeamIds(teams: TeamsFeedTeam[]) {
   }
 
   return ids;
+}
+
+export function resolveCanonicalTeamsFeedTeamAddress(
+  feed: TeamsFeed,
+  requestedAddress: string
+): Address {
+  assertValidTeamsAddress(requestedAddress, "team");
+  const team = feed.teams.find((entry) =>
+    sameAddress(entry.address, requestedAddress)
+  );
+  if (!team) {
+    throw new Error("The selected Teams contract is not present in the current feed.");
+  }
+  return getAddress(team.address);
+}
+
+function resolveCanonicalTeamsFeedTokenAddress(
+  feed: TeamsFeed,
+  requestedAddress: string
+): Address {
+  assertValidTeamsAddress(requestedAddress, "token");
+  const token = Object.values(feed.tokens).find((entry) =>
+    sameAddress(entry.address, requestedAddress)
+  );
+  if (!token || !isProducerSupportedRevenueToken(token)) {
+    throw new Error("The selected revenue token is not supported by the current feed.");
+  }
+  return getAddress(token.address);
+}
+
+function isProducerSupportedRevenueToken(token: TeamsFeedToken) {
+  return (
+    token.kind === "revenue" &&
+    token.priceOracle !== null &&
+    normalizeAddress(token.priceOracle) !== ZERO_ADDRESS
+  );
+}
+
+function resolveTeamsFeedFundingApproval(
+  feed: TeamsFeed,
+  team: Address,
+  approvalIdx: bigint
+): TeamsFeedFundingApproval {
+  const approval = feed.fundingApprovals.find(
+    (entry) =>
+      BigInt(entry.id) === approvalIdx && sameAddress(entry.team, team)
+  );
+  if (!approval) {
+    throw new Error(
+      "The selected Teams funding approval is not present for this team."
+    );
+  }
+  return approval;
+}
+
+function getFeedFundingReturnableRaw(
+  approval: TeamsFeedFundingApproval
+): bigint {
+  const claimedRaw = approval.claims.reduce(
+    (sum, claim) => sum + BigInt(claim.amount),
+    0n
+  );
+  const returnedRaw = approval.returns.reduce(
+    (sum, entry) => sum + BigInt(entry.amount),
+    0n
+  );
+  return claimedRaw > returnedRaw ? claimedRaw - returnedRaw : 0n;
 }
 
 function createTeamId(team: TeamsFeedTeam) {
@@ -754,8 +893,33 @@ function getFeedToken(feed: TeamsFeed, address: string | null | undefined) {
   );
 }
 
-function fromUsd(value: string) {
-  return toFixedDisplay(value, USD_DECIMALS, 2);
+function mapFinancialDataState(feed: TeamsFeed): TeamsFinancialDataState {
+  return hasCompatibleTeamsFinancialUnits(feed)
+    ? {
+        status: "available",
+        source: "feed",
+        usdDecimals: TEAMS_PROTOCOL_USD_DECIMALS,
+      }
+    : {
+        status: "unavailable",
+        source: "feed",
+        reason: "incompatible-feed",
+        feedVersion: feed.version,
+      };
+}
+
+function fromUsd(feed: TeamsFeed, value: string) {
+  return hasCompatibleTeamsFinancialUnits(feed)
+    ? fromProtocolUsd18(value)
+    : "0";
+}
+
+function fromProtocolUsd18(value: string) {
+  return toFixedDisplay(
+    value as ProtocolUsd18String,
+    TEAMS_PROTOCOL_USD_DECIMALS,
+    2
+  );
 }
 
 function fromTokenUnits(value: string, decimals: number, fractionDigits: number) {
@@ -775,19 +939,6 @@ function toFixedDisplay(value: string, decimals: number, fractionDigits: number)
   return trimmedFraction.length > 0 ? `${whole}.${trimmedFraction}` : whole ?? "0";
 }
 
-function parseDisplayAmount(value: string) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function trimDecimal(value: string, fractionDigits: number) {
-  const [whole, fraction = ""] = value.split(".");
-  if (fraction.length === 0) return whole ?? "0";
-
-  const trimmedFraction = fraction.slice(0, fractionDigits).replace(/0+$/, "");
-  return trimmedFraction.length > 0 ? `${whole}.${trimmedFraction}` : whole ?? "0";
-}
-
 function normalizeAddress(address: string) {
   return address.toLowerCase();
 }
@@ -796,7 +947,7 @@ function sameAddress(left: string, right: string) {
   return normalizeAddress(left) === normalizeAddress(right);
 }
 
-function assertValidTeamsAddress(address: Address, label: string) {
+function assertValidTeamsAddress(address: string, label: string) {
   if (!isAddress(address) || normalizeAddress(address) === ZERO_ADDRESS) {
     throw new Error(`Invalid Teams ${label} address.`);
   }

@@ -1,12 +1,18 @@
 import mockExampleScenariosJson from "@/docs/apps/teams/examples/mock-data.example.json";
 import { nowSeconds } from "@/lib/mocks/time";
 import {
+  addTeamsDecimalStrings,
   createTeamsScenarioCatalog,
   deriveTeamsFundingSummary,
+  formatTeamsRawTokenAmount,
+  isTeamsFundingApprovalClaimable,
+  parseTeamsTokenAmountRaw,
   type TeamsClient,
 } from "./client";
 import type {
+  BonusPeriod,
   FundingApproval,
+  FundingReturnEntry,
   TeamBonusState,
   TeamFinancials,
   TeamFinancialPeriod,
@@ -41,7 +47,7 @@ export type TeamsMockRuntimeState = {
 export type TeamsRevenueDebugState = "seeded" | "empty-history" | "no-options";
 export type TeamsFundingDebugState =
   | "claimable"
-  | "late-liquid"
+  | "expired"
   | "fully-used"
   | "none";
 export type TeamsBonusDebugState =
@@ -111,7 +117,11 @@ function getScenarioOrThrow(id: TeamsMockScenarioId): TeamsMockScenario {
 }
 
 function cloneScenario(scenario: TeamsMockScenario): TeamsMockScenario {
-  return cloneValue(scenario);
+  const cloned = cloneValue(scenario);
+  return {
+    ...cloned,
+    data: finalizeMockTeamsData(cloned.data),
+  };
 }
 
 function cloneScenarioData(id: TeamsMockScenarioId): TeamsMockDataV1 {
@@ -139,27 +149,15 @@ function sumFinancials(
   teams: readonly TeamRecord[],
   key: "currentPeriod" | "lifetime"
 ): TeamFinancials {
-  const totals = teams.reduce(
-    (current, team) => {
-      current.revenueUsd += Number(team[key].revenueUsd);
-      current.costUsd += Number(team[key].costUsd);
-      current.profitUsd += Number(team[key].profitUsd);
-      current.lossUsd += Number(team[key].lossUsd);
-      return current;
-    },
-    {
-      revenueUsd: 0,
-      costUsd: 0,
-      profitUsd: 0,
-      lossUsd: 0,
-    }
-  );
-
   return {
-    revenueUsd: totals.revenueUsd.toFixed(2),
-    costUsd: totals.costUsd.toFixed(2),
-    profitUsd: totals.profitUsd.toFixed(2),
-    lossUsd: totals.lossUsd.toFixed(2),
+    revenueUsd: addTeamsDecimalStrings(
+      teams.map((team) => team[key].revenueUsd)
+    ),
+    costUsd: addTeamsDecimalStrings(teams.map((team) => team[key].costUsd)),
+    profitUsd: addTeamsDecimalStrings(
+      teams.map((team) => team[key].profitUsd)
+    ),
+    lossUsd: addTeamsDecimalStrings(teams.map((team) => team[key].lossUsd)),
   };
 }
 
@@ -207,11 +205,27 @@ function normalizeTeamFinancialPeriods(
 }
 
 function finalizeMockTeamsData(data: TeamsMockDataV1): TeamsMockDataV1 {
-  const teams = data.teams.map((team) => ({
-    ...team,
-    financialPeriods: normalizeTeamFinancialPeriods(team, data.currentPeriod),
-    fundingSummary: deriveTeamsFundingSummary(team.fundingApprovals),
-  }));
+  const teams = data.teams.map((team) => {
+    const funding = normalizeMockFunding(team, data.currentPeriod);
+    const bonus = normalizeMockBonus(team.bonus);
+
+    return {
+      ...team,
+      financialData: {
+        status: "available" as const,
+        source: "mock" as const,
+        usdDecimals: 18 as const,
+      },
+      financialPeriods: normalizeTeamFinancialPeriods(team, data.currentPeriod),
+      fundingApprovals: funding.approvals,
+      fundingReturns: funding.returns,
+      fundingSummary: deriveTeamsFundingSummary(
+        funding.approvals,
+        data.currentPeriod
+      ),
+      bonus,
+    };
+  });
   const selectedTeamId =
     data.selectedTeamId && teams.some((team) => team.id === data.selectedTeamId)
       ? data.selectedTeamId
@@ -223,6 +237,11 @@ function finalizeMockTeamsData(data: TeamsMockDataV1): TeamsMockDataV1 {
 
   return {
     ...data,
+    financialData: {
+      status: "available",
+      source: "mock",
+      usdDecimals: 18,
+    },
     viewer: {
       ...data.viewer,
       teamId: data.viewer.role === "observer" ? null : viewerTeamId,
@@ -236,6 +255,53 @@ function finalizeMockTeamsData(data: TeamsMockDataV1): TeamsMockDataV1 {
       retiringTeamCount: teams.filter((team) => team.status === "retiring").length,
       retiredTeamCount: teams.filter((team) => team.status === "retired").length,
     },
+    admin: data.admin
+      ? normalizeMockAdmin(data.admin, teams, data.currentPeriod)
+      : undefined,
+  };
+}
+
+function normalizeMockAdmin(
+  admin: TeamsAdminRecord,
+  teams: readonly TeamRecord[],
+  currentPeriod: number
+): TeamsAdminRecord {
+  const normalizeBucket = (
+    bucket: TeamsAdminRecord["rewardsBucket"]
+  ): TeamsAdminRecord["rewardsBucket"] => {
+    if (bucket.sourceAvailable === false) return bucket;
+    return {
+      sourceAvailable: true,
+      unit: { kind: "usd", symbol: "USD" },
+      budget: bucket.budget ?? "0",
+      used: bucket.used ?? "0",
+      remaining: bucket.remaining ?? "0",
+      status: bucket.status,
+    };
+  };
+
+  return {
+    ...admin,
+    rewardsBucket: normalizeBucket(admin.rewardsBucket),
+    treasuryBucket: normalizeBucket(admin.treasuryBucket),
+    recoveryBucket: normalizeBucket(admin.recoveryBucket),
+    fundingQueue: admin.fundingQueue.map((entry) => {
+      const approval = teams
+        .find((team) => team.id === entry.teamId)
+        ?.fundingApprovals.find(
+          (candidate) => candidate.id === entry.approvalId
+        );
+      if (!approval) return entry;
+      return {
+        ...entry,
+        approvalIdx: approval.idx,
+        status: approval.status,
+        requiresOperatorAttention: isTeamsFundingApprovalClaimable(
+          approval,
+          currentPeriod
+        ),
+      };
+    }),
   };
 }
 
@@ -326,17 +392,36 @@ function getRevenueFixtureTeam() {
   return getScenarioTeamOrThrow("finance-operator-revenue", "platform");
 }
 
-function getFundingClaimableFixtureTeam() {
+function getFundingFixtureTeam() {
   return getScenarioTeamOrThrow("team-owner-funding", "security");
 }
 
-function getFundingLateLiquidFixtureTeam() {
-  const team = getFundingClaimableFixtureTeam();
+function getFundingClaimableFixtureTeam() {
+  const team = getFundingFixtureTeam();
+  const fundingApprovals = team.fundingApprovals.filter(
+    (approval) =>
+      approval.status === "claimable-current-period" ||
+      approval.status === "partially-claimed"
+  );
+  const approvalIds = new Set(
+    fundingApprovals.map((approval) => approval.id)
+  );
+  return {
+    ...team,
+    fundingApprovals,
+    fundingReturns: team.fundingReturns.filter((entry) =>
+      approvalIds.has(entry.approvalId)
+    ),
+  };
+}
+
+function getFundingExpiredFixtureTeam() {
+  const team = getFundingFixtureTeam();
   return {
     ...team,
     fundingApprovals: team.fundingApprovals.filter(
       (approval) =>
-        approval.status === "late-liquid" || approval.status === "fully-used"
+        approval.status === "expired" || approval.status === "fully-used"
     ),
     fundingReturns: team.fundingReturns.filter(
       (entry) => entry.approvalId === "approval-security-21"
@@ -387,13 +472,259 @@ function getDefaultAdminRecord(): TeamsAdminRecord {
 }
 
 function normalizeFundingApproval(
-  approval: FundingApproval
+  approval: FundingApproval,
+  returns: readonly FundingReturnEntry[] = [],
+  currentPeriod?: number,
+  currentClaimsAvailable = true
 ): FundingApproval {
+  const decimals = normalizeTokenDecimals(approval.decimals);
+  const amountRaw = resolveMockRawAmount(
+    approval.amountRaw,
+    approval.totalApproved,
+    decimals
+  );
+  const usedRaw = resolveMockRawAmount(
+    approval.usedRaw,
+    approval.used,
+    decimals
+  );
+  const fixtureClaimableRaw = resolveMockRawAmount(
+    approval.claimableRaw,
+    approval.claimable,
+    decimals
+  );
+  const claimableRaw =
+    currentPeriod === undefined
+      ? fixtureClaimableRaw
+      : approval.approvedPeriod === currentPeriod && currentClaimsAvailable
+        ? amountRaw > usedRaw
+          ? amountRaw - usedRaw
+          : 0n
+        : 0n;
+  const claimedRaw = isRawAmountString(approval.claimedRaw)
+    ? BigInt(approval.claimedRaw)
+    : usedRaw;
+  const matchingReturns = returns.filter(
+    (entry) => entry.approvalId === approval.id
+  );
+  const returnedRaw =
+    matchingReturns.length > 0
+      ? matchingReturns.reduce(
+          (sum, entry) => sum + BigInt(entry.amountRaw),
+          0n
+        )
+      : isRawAmountString(approval.returnedRaw)
+        ? BigInt(approval.returnedRaw)
+        : 0n;
+  const returnableRaw =
+    claimedRaw > returnedRaw ? claimedRaw - returnedRaw : 0n;
+
   return {
     ...approval,
+    decimals,
+    amountRaw: amountRaw.toString(),
+    usedRaw: usedRaw.toString(),
+    claimableRaw: claimableRaw.toString(),
+    claimedRaw: claimedRaw.toString(),
+    returnedRaw: returnedRaw.toString(),
+    returnableRaw: returnableRaw.toString(),
+    totalApproved: formatTeamsRawTokenAmount(amountRaw.toString(), decimals),
+    used: formatTeamsRawTokenAmount(usedRaw.toString(), decimals),
+    claimable: formatTeamsRawTokenAmount(claimableRaw.toString(), decimals),
+    status:
+      currentPeriod === undefined
+        ? approval.status
+        : deriveMockFundingApprovalStatus(
+            approval.approvedPeriod,
+            amountRaw,
+            usedRaw,
+            claimableRaw,
+            currentPeriod,
+            currentClaimsAvailable
+          ),
     recipient: approval.recipient ?? null,
+    claimedCostUsd: approval.claimedCostUsd ?? null,
+    refundValueUsd: approval.refundValueUsd ?? null,
     averageClaimPriceUsd: approval.averageClaimPriceUsd ?? null,
   };
+}
+
+function areMockTeamFundingClaimsAvailable(team: TeamRecord) {
+  return team.status !== "retired" && team.readOnlyReason === null;
+}
+
+function normalizeMockFunding(
+  team: TeamRecord,
+  currentPeriod: number
+): {
+  approvals: FundingApproval[];
+  returns: FundingReturnEntry[];
+} {
+  const currentClaimsAvailable = areMockTeamFundingClaimsAvailable(team);
+  const approvalsWithoutReturns = team.fundingApprovals.map((approval) =>
+    normalizeFundingApproval(
+      approval,
+      [],
+      currentPeriod,
+      currentClaimsAvailable
+    )
+  );
+  const approvalById = new Map(
+    approvalsWithoutReturns.map((approval) => [approval.id, approval])
+  );
+  const returns = team.fundingReturns.map((entry) => {
+    const approval = approvalById.get(entry.approvalId);
+    const decimals = normalizeTokenDecimals(
+      entry.decimals ?? approval?.decimals
+    );
+    const amountRaw = resolveMockRawAmount(
+      entry.amountRaw,
+      entry.amount,
+      decimals
+    );
+
+    return {
+      ...entry,
+      approvalIdx: approval?.idx ?? entry.approvalIdx,
+      decimals,
+      amountRaw: amountRaw.toString(),
+      amount: formatTeamsRawTokenAmount(amountRaw.toString(), decimals),
+      refundValueUsd: entry.refundValueUsd ?? null,
+    };
+  });
+  const approvals = approvalsWithoutReturns.map((approval) =>
+    normalizeFundingApproval(
+      approval,
+      returns,
+      currentPeriod,
+      currentClaimsAvailable
+    )
+  );
+
+  return { approvals, returns };
+}
+
+function deriveMockFundingApprovalStatus(
+  approvedPeriod: number,
+  amountRaw: bigint,
+  usedRaw: bigint,
+  claimableRaw: bigint,
+  currentPeriod: number,
+  currentClaimsAvailable: boolean
+): FundingApproval["status"] {
+  if (amountRaw <= usedRaw) return "fully-used";
+  if (approvedPeriod < currentPeriod) return "expired";
+  if (approvedPeriod > currentPeriod) return "scheduled";
+  if (!currentClaimsAvailable || claimableRaw <= 0n) {
+    return "current-unavailable";
+  }
+  return usedRaw > 0n
+    ? "partially-claimed"
+    : "claimable-current-period";
+}
+
+function normalizeMockBonus(bonus: TeamBonusState): TeamBonusState {
+  const tokenDecimals = normalizeTokenDecimals(bonus.tokenDecimals);
+  const periods = bonus.periods.map((period) =>
+    normalizeMockBonusPeriod(period, tokenDecimals)
+  );
+  const totalClaimableRaw = periods.reduce(
+    (sum, period) => sum + BigInt(period.claimableYfiRaw),
+    0n
+  );
+
+  return {
+    ...bonus,
+    tokenDecimals,
+    status:
+      totalClaimableRaw > 0n
+        ? "claimable"
+        : bonus.status === "claimable"
+          ? "none"
+          : bonus.status,
+    totalClaimableRaw: totalClaimableRaw.toString(),
+    totalClaimable: formatTeamsRawTokenAmount(
+      totalClaimableRaw.toString(),
+      tokenDecimals
+    ),
+    includedPeriodCount: periods.length,
+    periods,
+  };
+}
+
+function normalizeMockBonusPeriod(
+  period: BonusPeriod,
+  tokenDecimals: number
+): BonusPeriod {
+  const claimableYfiRaw = resolveMockRawAmount(
+    period.claimableYfiRaw,
+    period.claimableYfi,
+    tokenDecimals
+  );
+
+  return {
+    ...period,
+    claimableYfiRaw: claimableYfiRaw.toString(),
+    claimableYfi: formatTeamsRawTokenAmount(
+      claimableYfiRaw.toString(),
+      tokenDecimals
+    ),
+  };
+}
+
+function resolveMockRawAmount(
+  raw: string | undefined,
+  display: string,
+  decimals: number
+): bigint {
+  if (isRawAmountString(raw)) {
+    return BigInt(raw);
+  }
+
+  return parseTeamsTokenAmountRaw(display, decimals) ?? 0n;
+}
+
+function isRawAmountString(value: string | undefined): value is string {
+  return typeof value === "string" && /^(0|[1-9]\d*)$/.test(value);
+}
+
+function normalizeTokenDecimals(value: number | undefined): number {
+  return Number.isInteger(value) && value !== undefined && value >= 0 && value <= 36
+    ? value
+    : 18;
+}
+
+function synchronizeFundingApprovalPatch(
+  approval: FundingApproval,
+  patch: Record<string, unknown>
+): Record<string, unknown> {
+  const synchronized = { ...patch };
+  const decimals = normalizeTokenDecimals(
+    typeof patch.decimals === "number" ? patch.decimals : approval.decimals
+  );
+  const rawMappings = [
+    ["totalApproved", "amountRaw"],
+    ["used", "usedRaw"],
+    ["claimable", "claimableRaw"],
+  ] as const;
+
+  for (const [displayKey, rawKey] of rawMappings) {
+    if (
+      typeof patch[displayKey] === "string" &&
+      patch[rawKey] === undefined
+    ) {
+      const raw = parseTeamsTokenAmountRaw(patch[displayKey], decimals);
+      if (raw !== null) {
+        synchronized[rawKey] = raw.toString();
+      }
+    }
+  }
+
+  if (synchronized.usedRaw !== undefined && patch.claimedRaw === undefined) {
+    synchronized.claimedRaw = synchronized.usedRaw;
+  }
+
+  return synchronized;
 }
 
 export function listTeamsMockScenarios(): readonly TeamsMockScenario[] {
@@ -405,7 +736,7 @@ export function getTeamsMockScenario(id: TeamsMockScenarioId): TeamsMockScenario
 }
 
 export function cloneTeamsMockScenarioData(id: TeamsMockScenarioId): TeamsMockDataV1 {
-  return cloneScenarioData(id);
+  return finalizeMockTeamsData(cloneScenarioData(id));
 }
 
 export function getMockTeamsRuntimeState(): TeamsMockRuntimeState {
@@ -521,17 +852,7 @@ export function patchMockTeamsTeam(teamId: TeamId, patch: Record<string, unknown
       }
 
       const nextTeam = mergePatch(team, patch);
-      const approvalsPatched = Object.prototype.hasOwnProperty.call(
-        patch,
-        "fundingApprovals"
-      );
-
-      return approvalsPatched
-        ? {
-            ...nextTeam,
-            fundingApprovals: nextTeam.fundingApprovals.map(normalizeFundingApproval),
-          }
-        : nextTeam;
+      return nextTeam;
     });
 
     return current;
@@ -552,7 +873,15 @@ export function patchMockTeamsFundingApproval(
         ...team,
         fundingApprovals: team.fundingApprovals.map((approval) =>
           approval.id === approvalId
-            ? normalizeFundingApproval(mergePatch(approval, patch))
+            ? normalizeFundingApproval(
+                mergePatch(
+                  approval,
+                  synchronizeFundingApprovalPatch(approval, patch)
+                ),
+                team.fundingReturns,
+                current.data.currentPeriod,
+                areMockTeamFundingClaimsAvailable(team)
+              )
             : approval
         ),
       };
@@ -638,8 +967,8 @@ export function setMockTeamsSelectedTeamFundingState(
   const fixture =
     mode === "claimable"
       ? getFundingClaimableFixtureTeam()
-      : mode === "late-liquid"
-        ? getFundingLateLiquidFixtureTeam()
+      : mode === "expired"
+        ? getFundingExpiredFixtureTeam()
         : mode === "fully-used"
           ? getFundingFullyUsedFixtureTeam()
           : null;

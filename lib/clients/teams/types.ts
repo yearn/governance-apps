@@ -22,6 +22,7 @@ export type TeamsMockDataV1 = {
   version: 1;
   generatedAt: UnixTimestampSeconds;
   currentPeriod: PeriodNumber;
+  financialData: TeamsFinancialDataState;
   viewer: TeamsViewerContext;
   selectedTeamId: TeamId | null;
   totals: TeamsTotals;
@@ -35,17 +36,53 @@ export type TeamId = string;
 export type TeamsAddress = string;
 export type DecimalString = string;
 export type UsdDecimalString = string;
+export type RawTokenAmountString = string;
+export type ProtocolUsd18String = string & {
+  readonly __protocolUsd18: unique symbol;
+};
 export type BasisPoints = number;
+
+export type TeamsFinancialDataState =
+  | {
+      status: "available";
+      source: "mock" | "feed";
+      usdDecimals: 18;
+    }
+  | {
+      status: "unavailable";
+      source: "feed";
+      reason: "incompatible-feed";
+      feedVersion: number;
+    };
 
 export type TeamsViewerContext = {
   role: TeamsViewerRole;
   address: TeamsAddress | null;
   teamId: TeamId | null;
+  walletStatus?: TeamsWalletStatus;
+  actionStateTrusted?: boolean;
+  revenueDepositsEnabled?: boolean;
   canDepositRevenue: boolean;
   canClaimFunding: boolean;
   canReturnFunding: boolean;
   canClaimBonus: boolean;
   canUseAdmin: boolean;
+};
+
+export type TeamsWalletStatus =
+  | "disconnected"
+  | "switch-mainnet"
+  | "mainnet";
+
+export type TeamsDepositReadiness = {
+  state:
+    | "untrusted"
+    | "disconnected"
+    | "switch-mainnet"
+    | "restricted"
+    | "unsupported"
+    | "ready";
+  canSubmit: boolean;
 };
 
 export type TeamsViewerRole =
@@ -70,6 +107,7 @@ export type TeamRecord = {
   pendingOwner: TeamsAddress | null;
   status: TeamLifecycleStatus;
   readOnlyReason: TeamReadOnlyReason | null;
+  financialData: TeamsFinancialDataState;
   currentPeriod: TeamFinancials;
   financialPeriods: TeamFinancialPeriod[];
   lifetime: TeamFinancials;
@@ -117,18 +155,22 @@ export type RevenueOption = {
   tokenAddress: TeamsAddress;
   decimals: number;
   isConvertible: boolean;
+  converterAddress?: TeamsAddress | null;
   convertToSymbol: string | null;
-  oraclePriceUsd: UsdDecimalString;
-  previewAmount: DecimalString;
-  estimatedCreditUsd: UsdDecimalString;
+  oraclePriceUsd: UsdDecimalString | null;
+  previewAmount: DecimalString | null;
+  estimatedCreditUsd: UsdDecimalString | null;
 };
 
 export type RevenueHistoryEntry = {
   id: string;
+  txHash?: string;
+  logIndex?: number;
   period: PeriodNumber;
   symbol: string;
   amount: DecimalString;
   creditedUsd: UsdDecimalString;
+  converterAddress?: TeamsAddress | null;
   convertedToSymbol: string | null;
   depositedBy: TeamsAddress;
   createdAt: UnixTimestampSeconds;
@@ -136,15 +178,16 @@ export type RevenueHistoryEntry = {
 
 export type TeamFundingSummary = {
   state: TeamFundingSummaryState;
-  claimableUsd: UsdDecimalString;
-  refundableUsd: UsdDecimalString;
+  claimableUsd: UsdDecimalString | null;
+  refundableUsd: UsdDecimalString | null;
 };
 
 export type TeamFundingSummaryState =
   | "no-approvals"
   | "has-claimable"
   | "partially-claimed"
-  | "late-liquid-available"
+  | "has-expired"
+  | "current-unavailable"
   | "fully-used";
 
 export type FundingApproval = {
@@ -153,39 +196,53 @@ export type FundingApproval = {
   approvedPeriod: PeriodNumber;
   symbol: string;
   tokenAddress: TeamsAddress;
-  decimals?: number;
+  decimals: number;
+  amountRaw: RawTokenAmountString;
+  usedRaw: RawTokenAmountString;
+  claimableRaw: RawTokenAmountString;
+  claimedRaw: RawTokenAmountString;
+  returnedRaw: RawTokenAmountString;
+  returnableRaw: RawTokenAmountString;
   totalApproved: DecimalString;
   used: DecimalString;
   claimable: DecimalString;
   streamDurationDays: number;
   status: FundingApprovalStatus;
   recipient: TeamsAddress | null;
-  claimedCostUsd: UsdDecimalString;
-  refundValueUsd: UsdDecimalString;
+  claimedCostUsd: UsdDecimalString | null;
+  refundValueUsd: UsdDecimalString | null;
   averageClaimPriceUsd: UsdDecimalString | null;
 };
 
 export type FundingApprovalStatus =
   | "claimable-current-period"
   | "partially-claimed"
-  | "late-liquid"
-  | "not-current-period"
+  | "expired"
+  | "scheduled"
+  | "current-unavailable"
   | "fully-used";
 
 export type FundingReturnEntry = {
   id: string;
+  txHash?: string;
+  logIndex?: number;
   approvalId: string;
+  approvalIdx: number;
   period: PeriodNumber;
   symbol: string;
+  decimals: number;
+  amountRaw: RawTokenAmountString;
   amount: DecimalString;
-  refundValueUsd: UsdDecimalString;
+  refundValueUsd: UsdDecimalString | null;
   returnedBy: TeamsAddress;
   createdAt: UnixTimestampSeconds;
 };
 
 export type TeamBonusState = {
   tokenSymbol: "YFI";
+  tokenDecimals: number;
   status: TeamBonusStatus;
+  totalClaimableRaw: RawTokenAmountString;
   totalClaimable: DecimalString;
   includedPeriodCount: number;
   periods: BonusPeriod[];
@@ -207,6 +264,7 @@ export type BonusPeriod = {
   adjustedPriceUsd: UsdDecimalString;
   growthFactorBps: BasisPoints;
   ybcSplitBps: BasisPoints;
+  claimableYfiRaw: RawTokenAmountString;
   claimableYfi: DecimalString;
 };
 
@@ -230,14 +288,40 @@ export type TeamsAdminRecord = {
 export type TeamsRegistryStatus = "active" | "paused" | "deprecated";
 export type PeriodFinalizationStatus = "open" | "ready" | "finalized";
 
-export type BucketRecord = {
-  budget: UsdDecimalString;
-  used: UsdDecimalString;
-  remaining: UsdDecimalString;
-  status: BucketStatus;
-};
+export type BucketUnit =
+  | {
+      kind: "usd";
+      symbol: "USD";
+    }
+  | {
+      kind: "token";
+      symbol: string;
+      decimals: number;
+    };
 
-export type BucketStatus = "healthy" | "watch" | "limit-reached";
+export type BucketRecord =
+  | {
+      sourceAvailable: true;
+      unit: BucketUnit;
+      budget: DecimalString;
+      used: DecimalString;
+      remaining: DecimalString;
+      status: Exclude<BucketStatus, "unavailable">;
+    }
+  | {
+      sourceAvailable: false;
+      unit: null;
+      budget: null;
+      used: null;
+      remaining: null;
+      status: "unavailable";
+    };
+
+export type BucketStatus =
+  | "healthy"
+  | "watch"
+  | "limit-reached"
+  | "unavailable";
 
 export type RevenueTokenAdminRecord = {
   symbol: string;
@@ -251,6 +335,7 @@ export type RevenueTokenAdminStatus = "active" | "paused";
 
 export type AdminFundingQueueEntry = {
   approvalId: string;
+  approvalIdx: number;
   teamId: TeamId;
   status: FundingApprovalStatus;
   requiresOperatorAttention: boolean;

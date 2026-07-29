@@ -1,9 +1,20 @@
 {
-  "version": 1,
+  "version": 2,
+  "units": {
+    "usd": {
+      "symbol": "USD",
+      "decimals": 18,
+      "scope": "all-financial-and-event-usd"
+    },
+    "bonusToken": {
+      "symbol": "YFI",
+      "decimals": 18
+    }
+  },
   "chainId": 1,
-  "generatedAt": 1770249600,
-  "blockNumber": 24700000,
-  "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "generatedAt": 1776849600,
+  "blockNumber": 25250000,
+  "blockHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "deployment": {
     "budgetGenesis": 1762992000,
     "deployBlock": 25244861,
@@ -67,9 +78,9 @@
           "startsAt": 1770249600,
           "endsAt": 1777507200,
           "financials": {
-            "revenueUsd": "125000000",
-            "costUsd": "50000000",
-            "profitUsd": "75000000",
+            "revenueUsd": "125000000000000000000",
+            "costUsd": "50000000000000000000",
+            "profitUsd": "75000000000000000000",
             "lossUsd": "0"
           },
           "revenueDeposits": [
@@ -79,10 +90,10 @@
               "period": 2,
               "token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
               "amount": "125000000",
-              "revenueUsd": "125000000",
+              "revenueUsd": "125000000000000000000",
               "depositor": "0x3333333333333333333333333333333333333333",
               "txHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-              "blockNumber": 24700000,
+              "blockNumber": 25250000,
               "logIndex": 12,
               "timestamp": 1770250000
             }
@@ -98,15 +109,15 @@
               "period": 2,
               "bonusFactorBps": 1000,
               "ybcSplitBps": 1000,
-              "bonusPriceUsd": "7500000000"
+              "bonusPriceUsd": "7500000000000000000000"
             }
           }
         }
       ],
       "lifetime": {
-        "revenueUsd": "125000000",
-        "costUsd": "50000000",
-        "profitUsd": "75000000",
+        "revenueUsd": "125000000000000000000",
+        "costUsd": "50000000000000000000",
+        "profitUsd": "75000000000000000000",
         "lossUsd": "0"
       },
       "claimCursor": {
@@ -144,19 +155,20 @@
         "period": 2,
         "bonusFactorBps": 1000,
         "ybcSplitBps": 1000,
-        "bonusPriceUsd": "7500000000"
+        "bonusPriceUsd": "7500000000000000000000"
       }
     ],
     "claims": []
   },
   "revenueRecipient": {
     "address": "0x5B5AB518F532Ce260A5d2795E1eEc544FC159587",
+    "token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     "killed": false,
     "operator": null,
     "treasury": null,
     "rewardDistributor": "0xd31911a33a5577Be233Dc096F6F5a7e496fF5934",
     "recoveryAuction": null,
-    "tokenSplitBps": [0, 0, 0],
+    "tokenSplitBps": [5000, 3000, 2000],
     "lastBalance": null,
     "sumBalance": null,
     "used": null
@@ -166,23 +178,23 @@
       {
         "period": 2,
         "financials": {
-          "revenueUsd": "125000000",
-          "costUsd": "50000000",
-          "profitUsd": "75000000",
+          "revenueUsd": "125000000000000000000",
+          "costUsd": "50000000000000000000",
+          "profitUsd": "75000000000000000000",
           "lossUsd": "0"
         }
       }
     ],
     "lifetime": {
-      "revenueUsd": "125000000",
-      "costUsd": "50000000",
-      "profitUsd": "75000000",
+      "revenueUsd": "125000000000000000000",
+      "costUsd": "50000000000000000000",
+      "profitUsd": "75000000000000000000",
       "lossUsd": "0"
     }
   },
   "events": {
     "firstIndexedBlock": 25244861,
-    "lastIndexedBlock": 24700000,
+    "lastIndexedBlock": 25250000,
     "teamCount": 1,
     "revenueDepositCount": 1,
     "fundingApprovalCount": 1,

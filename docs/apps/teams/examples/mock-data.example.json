@@ -103,7 +103,7 @@
             ],
             "fundingSummary": {
               "state": "no-approvals",
-              "claimableUsd": "0.00",
+              "claimableUsd": null,
               "refundableUsd": "0.00"
             },
             "fundingApprovals": [],
@@ -113,7 +113,9 @@
               "status": "none",
               "totalClaimable": "0",
               "includedPeriodCount": 0,
-              "periods": []
+              "periods": [],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "0"
             }
           },
           {
@@ -170,8 +172,8 @@
             "revenueHistory": [],
             "fundingSummary": {
               "state": "partially-claimed",
-              "claimableUsd": "32000.00",
-              "refundableUsd": "18000.00"
+              "claimableUsd": null,
+              "refundableUsd": "15500.00"
             },
             "fundingApprovals": [
               {
@@ -186,21 +188,31 @@
                 "streamDurationDays": 60,
                 "status": "partially-claimed",
                 "recipient": "0xcccc000000000000000000000000000000000002",
-                "claimedCostUsd": "18000.00",
-                "refundValueUsd": "18000.00",
-                "averageClaimPriceUsd": "1.00"
+                "claimedCostUsd": "15500.00",
+                "refundValueUsd": "15500.00",
+                "averageClaimPriceUsd": "1.00",
+                "decimals": 6,
+                "amountRaw": "50000000000",
+                "usedRaw": "18000000000",
+                "claimableRaw": "32000000000",
+                "claimedRaw": "18000000000",
+                "returnedRaw": "2500000000",
+                "returnableRaw": "15500000000"
               }
             ],
             "fundingReturns": [
               {
                 "id": "return-security-4-1",
                 "approvalId": "approval-security-22",
+                "approvalIdx": 22,
                 "period": 4,
                 "symbol": "USDC",
                 "amount": "2500",
                 "refundValueUsd": "2500.00",
                 "returnedBy": "0xaaaa000000000000000000000000000000000002",
-                "createdAt": 1776100000
+                "createdAt": 1776100000,
+                "decimals": 6,
+                "amountRaw": "2500000000"
               }
             ],
             "bonus": {
@@ -219,9 +231,12 @@
                   "adjustedPriceUsd": "2700.00",
                   "growthFactorBps": 10500,
                   "ybcSplitBps": 1000,
-                  "claimableYfi": "0"
+                  "claimableYfi": "0",
+                  "claimableYfiRaw": "0"
                 }
-              ]
+              ],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "0"
             }
           },
           {
@@ -278,7 +293,7 @@
             "revenueHistory": [],
             "fundingSummary": {
               "state": "fully-used",
-              "claimableUsd": "0.00",
+              "claimableUsd": null,
               "refundableUsd": "0.00"
             },
             "fundingApprovals": [
@@ -296,7 +311,14 @@
                 "recipient": "0xcccc000000000000000000000000000000000003",
                 "claimedCostUsd": "25000.00",
                 "refundValueUsd": "0.00",
-                "averageClaimPriceUsd": "1.00"
+                "averageClaimPriceUsd": "1.00",
+                "decimals": 6,
+                "amountRaw": "25000000000",
+                "usedRaw": "25000000000",
+                "claimableRaw": "0",
+                "claimedRaw": "25000000000",
+                "returnedRaw": "0",
+                "returnableRaw": "25000000000"
               }
             ],
             "fundingReturns": [],
@@ -316,9 +338,12 @@
                   "adjustedPriceUsd": "3200.00",
                   "growthFactorBps": 10000,
                   "ybcSplitBps": 1000,
-                  "claimableYfi": "0"
+                  "claimableYfi": "0",
+                  "claimableYfiRaw": "0"
                 }
-              ]
+              ],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "0"
             }
           },
           {
@@ -375,7 +400,7 @@
             ],
             "fundingSummary": {
               "state": "fully-used",
-              "claimableUsd": "0.00",
+              "claimableUsd": null,
               "refundableUsd": "0.00"
             },
             "fundingApprovals": [],
@@ -396,9 +421,12 @@
                   "adjustedPriceUsd": "3000.00",
                   "growthFactorBps": 10000,
                   "ybcSplitBps": 1000,
-                  "claimableYfi": "0"
+                  "claimableYfi": "0",
+                  "claimableYfiRaw": "0"
                 }
-              ]
+              ],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "0"
             }
           }
         ]
@@ -406,7 +434,7 @@
     },
     {
       "id": "team-owner-funding",
-      "label": "Team owner with claimable, late-liquid, and historical funding approvals",
+      "label": "Team owner with current, expired, and scheduled funding approvals",
       "data": {
         "version": 1,
         "generatedAt": 1776200000,
@@ -514,9 +542,9 @@
               }
             ],
             "fundingSummary": {
-              "state": "late-liquid-available",
-              "claimableUsd": "43000.00",
-              "refundableUsd": "27000.00"
+              "state": "has-expired",
+              "claimableUsd": null,
+              "refundableUsd": "15500.00"
             },
             "fundingApprovals": [
               {
@@ -531,9 +559,16 @@
                 "streamDurationDays": 60,
                 "status": "partially-claimed",
                 "recipient": "0xcccc000000000000000000000000000000000002",
-                "claimedCostUsd": "18000.00",
-                "refundValueUsd": "18000.00",
-                "averageClaimPriceUsd": "1.00"
+                "claimedCostUsd": "15500.00",
+                "refundValueUsd": "15500.00",
+                "averageClaimPriceUsd": "1.00",
+                "decimals": 6,
+                "amountRaw": "50000000000",
+                "usedRaw": "18000000000",
+                "claimableRaw": "32000000000",
+                "claimedRaw": "18000000000",
+                "returnedRaw": "2500000000",
+                "returnableRaw": "15500000000"
               },
               {
                 "id": "approval-security-23",
@@ -549,7 +584,14 @@
                 "recipient": null,
                 "claimedCostUsd": "0.00",
                 "refundValueUsd": "0.00",
-                "averageClaimPriceUsd": null
+                "averageClaimPriceUsd": null,
+                "decimals": 18,
+                "amountRaw": "2500000000000000000",
+                "usedRaw": "0",
+                "claimableRaw": "2500000000000000000",
+                "claimedRaw": "0",
+                "returnedRaw": "0",
+                "returnableRaw": "0"
               },
               {
                 "id": "approval-security-21",
@@ -559,13 +601,20 @@
                 "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 "totalApproved": "20000",
                 "used": "9000",
-                "claimable": "11000",
+                "claimable": "0",
                 "streamDurationDays": 30,
-                "status": "late-liquid",
+                "status": "expired",
                 "recipient": "0xcccc000000000000000000000000000000000002",
                 "claimedCostUsd": "9000.00",
                 "refundValueUsd": "9000.00",
-                "averageClaimPriceUsd": "1.00"
+                "averageClaimPriceUsd": "1.00",
+                "decimals": 6,
+                "amountRaw": "20000000000",
+                "usedRaw": "9000000000",
+                "claimableRaw": "0",
+                "claimedRaw": "9000000000",
+                "returnedRaw": "0",
+                "returnableRaw": "9000000000"
               },
               {
                 "id": "approval-security-20",
@@ -581,7 +630,14 @@
                 "recipient": "0xcccc000000000000000000000000000000000002",
                 "claimedCostUsd": "15000.00",
                 "refundValueUsd": "0.00",
-                "averageClaimPriceUsd": "1.00"
+                "averageClaimPriceUsd": "1.00",
+                "decimals": 6,
+                "amountRaw": "15000000000",
+                "usedRaw": "15000000000",
+                "claimableRaw": "0",
+                "claimedRaw": "15000000000",
+                "returnedRaw": "0",
+                "returnableRaw": "15000000000"
               },
               {
                 "id": "approval-security-24",
@@ -593,23 +649,33 @@
                 "used": "0",
                 "claimable": "0",
                 "streamDurationDays": 45,
-                "status": "not-current-period",
+                "status": "scheduled",
                 "recipient": null,
                 "claimedCostUsd": "0.00",
                 "refundValueUsd": "0.00",
-                "averageClaimPriceUsd": null
+                "averageClaimPriceUsd": null,
+                "decimals": 6,
+                "amountRaw": "18000000000",
+                "usedRaw": "0",
+                "claimableRaw": "0",
+                "claimedRaw": "0",
+                "returnedRaw": "0",
+                "returnableRaw": "0"
               }
             ],
             "fundingReturns": [
               {
                 "id": "return-security-4-1",
                 "approvalId": "approval-security-22",
+                "approvalIdx": 22,
                 "period": 4,
                 "symbol": "USDC",
                 "amount": "2500",
                 "refundValueUsd": "2500.00",
                 "returnedBy": "0xaaaa000000000000000000000000000000000002",
-                "createdAt": 1776100000
+                "createdAt": 1776100000,
+                "decimals": 6,
+                "amountRaw": "2500000000"
               }
             ],
             "bonus": {
@@ -628,9 +694,12 @@
                   "adjustedPriceUsd": "2700.00",
                   "growthFactorBps": 10500,
                   "ybcSplitBps": 1000,
-                  "claimableYfi": "0"
+                  "claimableYfi": "0",
+                  "claimableYfiRaw": "0"
                 }
-              ]
+              ],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "0"
             }
           }
         ]
@@ -747,7 +816,7 @@
             ],
             "fundingSummary": {
               "state": "no-approvals",
-              "claimableUsd": "0.00",
+              "claimableUsd": null,
               "refundableUsd": "0.00"
             },
             "fundingApprovals": [],
@@ -768,7 +837,8 @@
                   "adjustedPriceUsd": "2700.00",
                   "growthFactorBps": 11000,
                   "ybcSplitBps": 1000,
-                  "claimableYfi": "14.5"
+                  "claimableYfi": "14.5",
+                  "claimableYfiRaw": "14500000000000000000"
                 },
                 {
                   "period": 4,
@@ -780,9 +850,12 @@
                   "adjustedPriceUsd": "3040.00",
                   "growthFactorBps": 10400,
                   "ybcSplitBps": 1000,
-                  "claimableYfi": "0"
+                  "claimableYfi": "0",
+                  "claimableYfiRaw": "0"
                 }
-              ]
+              ],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "14500000000000000000"
             }
           }
         ]
@@ -899,7 +972,7 @@
             ],
             "fundingSummary": {
               "state": "has-claimable",
-              "claimableUsd": "10000.00",
+              "claimableUsd": null,
               "refundableUsd": "0.00"
             },
             "fundingApprovals": [
@@ -917,7 +990,14 @@
                 "recipient": null,
                 "claimedCostUsd": "0.00",
                 "refundValueUsd": "0.00",
-                "averageClaimPriceUsd": null
+                "averageClaimPriceUsd": null,
+                "decimals": 6,
+                "amountRaw": "10000000000",
+                "usedRaw": "0",
+                "claimableRaw": "10000000000",
+                "claimedRaw": "0",
+                "returnedRaw": "0",
+                "returnableRaw": "0"
               }
             ],
             "fundingReturns": [],
@@ -926,7 +1006,9 @@
               "status": "none",
               "totalClaimable": "0",
               "includedPeriodCount": 0,
-              "periods": []
+              "periods": [],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "0"
             }
           }
         ]
@@ -1021,11 +1103,35 @@
               }
             ],
             "fundingSummary": {
-              "state": "fully-used",
-              "claimableUsd": "0.00",
-              "refundableUsd": "0.00"
+              "state": "current-unavailable",
+              "claimableUsd": null,
+              "refundableUsd": "1000.00"
             },
-            "fundingApprovals": [],
+            "fundingApprovals": [
+              {
+                "id": "approval-grants-40",
+                "idx": 40,
+                "approvedPeriod": 4,
+                "symbol": "USDC",
+                "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "totalApproved": "2000",
+                "used": "1000",
+                "claimable": "0",
+                "streamDurationDays": 0.041666666666666664,
+                "status": "current-unavailable",
+                "recipient": "0xcccc000000000000000000000000000000000004",
+                "claimedCostUsd": "1000.00",
+                "refundValueUsd": "1000.00",
+                "averageClaimPriceUsd": "1.00",
+                "decimals": 6,
+                "amountRaw": "2000000000",
+                "usedRaw": "1000000000",
+                "claimableRaw": "0",
+                "claimedRaw": "1000000000",
+                "returnedRaw": "0",
+                "returnableRaw": "1000000000"
+              }
+            ],
             "fundingReturns": [],
             "bonus": {
               "tokenSymbol": "YFI",
@@ -1043,9 +1149,12 @@
                   "adjustedPriceUsd": "3000.00",
                   "growthFactorBps": 10000,
                   "ybcSplitBps": 1000,
-                  "claimableYfi": "0"
+                  "claimableYfi": "0",
+                  "claimableYfiRaw": "0"
                 }
-              ]
+              ],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "0"
             }
           }
         ]
@@ -1151,9 +1260,9 @@
               }
             ],
             "fundingSummary": {
-              "state": "late-liquid-available",
-              "claimableUsd": "43000.00",
-              "refundableUsd": "27000.00"
+              "state": "has-expired",
+              "claimableUsd": null,
+              "refundableUsd": "15500.00"
             },
             "fundingApprovals": [
               {
@@ -1168,9 +1277,16 @@
                 "streamDurationDays": 60,
                 "status": "partially-claimed",
                 "recipient": "0xcccc000000000000000000000000000000000002",
-                "claimedCostUsd": "18000.00",
-                "refundValueUsd": "18000.00",
-                "averageClaimPriceUsd": "1.00"
+                "claimedCostUsd": "15500.00",
+                "refundValueUsd": "15500.00",
+                "averageClaimPriceUsd": "1.00",
+                "decimals": 6,
+                "amountRaw": "50000000000",
+                "usedRaw": "18000000000",
+                "claimableRaw": "32000000000",
+                "claimedRaw": "18000000000",
+                "returnedRaw": "2500000000",
+                "returnableRaw": "15500000000"
               },
               {
                 "id": "approval-security-21",
@@ -1180,25 +1296,35 @@
                 "tokenAddress": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 "totalApproved": "20000",
                 "used": "9000",
-                "claimable": "11000",
+                "claimable": "0",
                 "streamDurationDays": 30,
-                "status": "late-liquid",
+                "status": "expired",
                 "recipient": "0xcccc000000000000000000000000000000000002",
                 "claimedCostUsd": "9000.00",
                 "refundValueUsd": "9000.00",
-                "averageClaimPriceUsd": "1.00"
+                "averageClaimPriceUsd": "1.00",
+                "decimals": 6,
+                "amountRaw": "20000000000",
+                "usedRaw": "9000000000",
+                "claimableRaw": "0",
+                "claimedRaw": "9000000000",
+                "returnedRaw": "0",
+                "returnableRaw": "9000000000"
               }
             ],
             "fundingReturns": [
               {
                 "id": "return-security-4-1",
                 "approvalId": "approval-security-22",
+                "approvalIdx": 22,
                 "period": 4,
                 "symbol": "USDC",
                 "amount": "2500",
                 "refundValueUsd": "2500.00",
                 "returnedBy": "0xaaaa000000000000000000000000000000000002",
-                "createdAt": 1776100000
+                "createdAt": 1776100000,
+                "decimals": 6,
+                "amountRaw": "2500000000"
               }
             ],
             "bonus": {
@@ -1217,9 +1343,12 @@
                   "adjustedPriceUsd": "2700.00",
                   "growthFactorBps": 10500,
                   "ybcSplitBps": 1000,
-                  "claimableYfi": "0"
+                  "claimableYfi": "0",
+                  "claimableYfiRaw": "0"
                 }
-              ]
+              ],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "0"
             }
           },
           {
@@ -1276,7 +1405,7 @@
             "revenueHistory": [],
             "fundingSummary": {
               "state": "fully-used",
-              "claimableUsd": "0.00",
+              "claimableUsd": null,
               "refundableUsd": "0.00"
             },
             "fundingApprovals": [
@@ -1294,7 +1423,14 @@
                 "recipient": "0xcccc000000000000000000000000000000000003",
                 "claimedCostUsd": "25000.00",
                 "refundValueUsd": "0.00",
-                "averageClaimPriceUsd": "1.00"
+                "averageClaimPriceUsd": "1.00",
+                "decimals": 6,
+                "amountRaw": "25000000000",
+                "usedRaw": "25000000000",
+                "claimableRaw": "0",
+                "claimedRaw": "25000000000",
+                "returnedRaw": "0",
+                "returnableRaw": "25000000000"
               }
             ],
             "fundingReturns": [],
@@ -1314,9 +1450,12 @@
                   "adjustedPriceUsd": "3200.00",
                   "growthFactorBps": 10000,
                   "ybcSplitBps": 1000,
-                  "claimableYfi": "0"
+                  "claimableYfi": "0",
+                  "claimableYfiRaw": "0"
                 }
-              ]
+              ],
+              "tokenDecimals": 18,
+              "totalClaimableRaw": "0"
             }
           }
         ],
@@ -1367,18 +1506,21 @@
           "fundingQueue": [
             {
               "approvalId": "approval-security-22",
+              "approvalIdx": 22,
               "teamId": "security",
               "status": "partially-claimed",
               "requiresOperatorAttention": false
             },
             {
               "approvalId": "approval-security-21",
+              "approvalIdx": 21,
               "teamId": "security",
-              "status": "late-liquid",
-              "requiresOperatorAttention": true
+              "status": "expired",
+              "requiresOperatorAttention": false
             },
             {
               "approvalId": "approval-research-18",
+              "approvalIdx": 18,
               "teamId": "research",
               "status": "fully-used",
               "requiresOperatorAttention": false

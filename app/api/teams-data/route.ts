@@ -1,3 +1,9 @@
+import {
+  readBoundedTeamsJson,
+  withTeamsFeedRequest,
+  TeamsFeedRequestTimeoutError,
+} from "@/lib/clients/teams/payload";
+
 const TEAMS_DATA_URL_ENV = "NEXT_PUBLIC_TEAMS_DATA_URL";
 const FALLBACK_CACHE_CONTROL = "no-store";
 
@@ -25,25 +31,33 @@ export async function GET() {
   }
 
   try {
-    const upstream = await fetch(upstreamUrl);
-    const cacheControl = upstream.headers.get("cache-control");
+    return await withTeamsFeedRequest(
+      upstreamUrl,
+      async (upstream, context) => {
+        const cacheControl = upstream.headers.get("cache-control");
 
-    if (!upstream.ok) {
-      return jsonError(
-        "Teams feed upstream request failed",
-        upstream.status,
-        upstream.status,
-        cacheControl ?? FALLBACK_CACHE_CONTROL
-      );
+        if (!upstream.ok) {
+          await upstream.body?.cancel().catch(() => undefined);
+          return jsonError(
+            "Teams feed upstream request failed",
+            upstream.status,
+            upstream.status,
+            cacheControl ?? FALLBACK_CACHE_CONTROL
+          );
+        }
+
+        const json = await readBoundedTeamsJson(upstream, context);
+        return Response.json(json, {
+          headers: {
+            "Cache-Control": cacheControl ?? FALLBACK_CACHE_CONTROL,
+          },
+        });
+      }
+    );
+  } catch (error) {
+    if (error instanceof TeamsFeedRequestTimeoutError) {
+      return jsonError("Teams feed upstream request timed out", 504);
     }
-
-    const json = await upstream.json();
-    return Response.json(json, {
-      headers: {
-        "Cache-Control": cacheControl ?? FALLBACK_CACHE_CONTROL,
-      },
-    });
-  } catch {
     return jsonError("Teams feed upstream request failed", 500);
   }
 }
