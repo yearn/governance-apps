@@ -170,16 +170,11 @@ export function MemberIdentity({
         </>
       ) : (
         <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-0">
-          <span className="min-w-0 max-w-full break-words font-bold text-text-primary [overflow-wrap:anywhere]">
-            {identity.label}
-          </span>
           {canEdit ? (
-            <Button
+            <button
               ref={editButtonRef}
               type="button"
-              size="sm"
-              variant="ghost"
-              className="shrink-0 px-0 text-text-tertiary hover:bg-transparent hover:text-text-secondary"
+              className="group/name inline-flex min-h-10 min-w-10 max-w-full items-center gap-1 rounded text-left font-bold text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
               aria-label={`${copy.members.alias.edit}: ${identity.label}`}
               title={copy.members.alias.edit}
               onClick={() => {
@@ -188,9 +183,19 @@ export function MemberIdentity({
                 setIsEditing(true);
               }}
             >
-              <IconPencil className="size-4" aria-hidden="true" />
-            </Button>
-          ) : null}
+              <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
+                {identity.label}
+              </span>
+              <IconPencil
+                className="pointer-events-none size-4 shrink-0 text-text-tertiary opacity-0 transition-opacity duration-150 ease-out [@media(pointer:fine)]:group-hover/name:opacity-100 group-focus-visible/name:opacity-100"
+                aria-hidden="true"
+              />
+            </button>
+          ) : (
+            <span className="min-w-0 max-w-full break-words font-bold text-text-primary [overflow-wrap:anywhere]">
+              {identity.label}
+            </span>
+          )}
           {isCurrentMember ? (
             <Badge variant="brand">{copy.members.states.you}</Badge>
           ) : null}

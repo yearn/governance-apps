@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import {
   YbcPageClient,
   YbcPageContent,
@@ -182,6 +183,7 @@ describe("YbcPageClient", () => {
   });
 
   it("edits local member names without hiding the canonical address", async () => {
+    const user = userEvent.setup();
     const data = await getScenarioData("observer");
     const member = data.roster.members[0]!;
 
@@ -200,12 +202,30 @@ describe("YbcPageClient", () => {
     const addressLinkName =
       `View Ethereum address ${member.address} on Etherscan`;
 
-    expect(editButton).toHaveClass("h-10");
+    expect(editButton).toHaveClass("group/name");
+    expect(editButton).toHaveClass("min-h-10");
     expect(editButton).toHaveClass("min-w-10");
-    expect(editButton).toHaveClass("text-text-tertiary");
-    expect(editButton).toHaveClass("hover:text-text-secondary");
+    expect(editButton).toHaveClass("font-bold");
     expect(editButton).toHaveAttribute("title", ybcCopy.members.alias.edit);
-    expect(editButton.querySelector("svg")).not.toBeNull();
+    const editIcon = editButton.querySelector("svg")!;
+    expect(editIcon).not.toBeNull();
+    expect(editIcon).toHaveClass(
+      "text-text-tertiary",
+      "opacity-0",
+      "transition-opacity",
+      "duration-150",
+      "ease-out",
+      "[@media(pointer:fine)]:group-hover/name:opacity-100",
+      "group-focus-visible/name:opacity-100"
+    );
+    expect(editIcon).not.toHaveClass(
+      "blur-[4px]",
+      "scale-[0.25]",
+      "transition-[filter,opacity,scale]"
+    );
+    expect(editButton).toHaveTextContent(
+      originalEditButtonName.replace(`${ybcCopy.members.alias.edit}: `, "")
+    );
     const addressLink = within(memberRow).getByRole("link", {
       name: addressLinkName,
     });
@@ -213,7 +233,11 @@ describe("YbcPageClient", () => {
     expect(addressLink.parentElement?.parentElement).toBe(editButton.parentElement);
     expect(editButton.parentElement).toHaveClass("gap-x-2", "gap-y-0");
 
-    fireEvent.click(editButton);
+    await user.click(
+      within(editButton).getByText(
+        originalEditButtonName.replace(`${ybcCopy.members.alias.edit}: `, "")
+      )
+    );
     const input = within(memberRow).getByRole("textbox", {
       name: ybcCopy.members.alias.fieldLabel,
     }) as HTMLInputElement;
@@ -257,11 +281,11 @@ describe("YbcPageClient", () => {
       version: YBC_MEMBER_ALIASES_VERSION,
     });
 
-    fireEvent.click(
-      within(memberRow).getByRole("button", {
-        name: "Edit name: Local Alice",
-      })
-    );
+    const renamedEditButton = within(memberRow).getByRole("button", {
+      name: "Edit name: Local Alice",
+    });
+    renamedEditButton.focus();
+    await user.keyboard("{Enter}");
     fireEvent.click(
       within(memberRow).getByRole("button", {
         name: ybcCopy.members.alias.cancel,
@@ -275,11 +299,10 @@ describe("YbcPageClient", () => {
       ).toHaveFocus();
     });
 
-    fireEvent.click(
-      within(memberRow).getByRole("button", {
-        name: "Edit name: Local Alice",
-      })
-    );
+    within(memberRow)
+      .getByRole("button", { name: "Edit name: Local Alice" })
+      .focus();
+    await user.keyboard(" ");
     fireEvent.keyDown(
       within(memberRow).getByRole("textbox", {
         name: ybcCopy.members.alias.fieldLabel,
