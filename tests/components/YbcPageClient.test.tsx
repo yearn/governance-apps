@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import {
   YbcPageClient,
   YbcPageContent,
+  YbcDataStatusNotice,
   YbcPageErrorState,
   YbcPageLoadingState,
 } from "@/app/ybc/YbcPageClient";
@@ -81,6 +82,34 @@ describe("YbcPageClient", () => {
     expect(screen.getByText(ybcCopy.page.errorTitle)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.page.errorBody)).toBeInTheDocument();
     expect(screen.getByText("fixture load failed")).toBeInTheDocument();
+  });
+
+  it("renders a semantic stale-snapshot notice with retry", () => {
+    const lastUpdatedAt = 1_785_000_000;
+    const onRetry = vi.fn();
+    const { container } = render(
+      <YbcDataStatusNotice
+        lastUpdatedAt={lastUpdatedAt}
+        onRetry={onRetry}
+        readStatus="stale"
+        warningMessage="Snapshot verification failed."
+      />
+    );
+
+    expect(screen.getByText(ybcCopy.page.staleTitle)).toBeInTheDocument();
+    expect(screen.getByText(ybcCopy.page.staleBody)).toBeInTheDocument();
+    expect(
+      screen.getByText("Snapshot verification failed.")
+    ).toBeInTheDocument();
+    expect(container.querySelector("time")).toHaveAttribute(
+      "datetime",
+      new Date(lastUpdatedAt * 1_000).toISOString()
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: ybcCopy.page.retryCta })
+    );
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 
   it("renders the observer overview with separate internal and delegated influence", async () => {

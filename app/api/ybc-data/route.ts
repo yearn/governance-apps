@@ -1,3 +1,9 @@
+import {
+  readBoundedYbcJson,
+  withYbcFeedRequest,
+  YbcFeedRequestTimeoutError,
+} from "@/lib/clients/ybc/payload";
+
 const YBC_DATA_URL_ENV = "NEXT_PUBLIC_YBC_DATA_URL";
 const FALLBACK_CACHE_CONTROL = "no-store";
 
@@ -25,25 +31,32 @@ export async function GET() {
   }
 
   try {
-    const upstream = await fetch(upstreamUrl);
-    const cacheControl = upstream.headers.get("cache-control");
+    return await withYbcFeedRequest(
+      upstreamUrl,
+      async (upstream, context) => {
+        const cacheControl = upstream.headers.get("cache-control");
 
-    if (!upstream.ok) {
-      return jsonError(
-        "YBC feed upstream request failed",
-        upstream.status,
-        upstream.status,
-        cacheControl ?? FALLBACK_CACHE_CONTROL
-      );
+        if (!upstream.ok) {
+          return jsonError(
+            "YBC feed upstream request failed",
+            upstream.status,
+            upstream.status,
+            cacheControl ?? FALLBACK_CACHE_CONTROL
+          );
+        }
+
+        const json = await readBoundedYbcJson(upstream, context);
+        return Response.json(json, {
+          headers: {
+            "Cache-Control": cacheControl ?? FALLBACK_CACHE_CONTROL,
+          },
+        });
+      }
+    );
+  } catch (error) {
+    if (error instanceof YbcFeedRequestTimeoutError) {
+      return jsonError("YBC feed upstream request timed out", 504);
     }
-
-    const json = await upstream.json();
-    return Response.json(json, {
-      headers: {
-        "Cache-Control": cacheControl ?? FALLBACK_CACHE_CONTROL,
-      },
-    });
-  } catch {
     return jsonError("YBC feed upstream request failed", 500);
   }
 }

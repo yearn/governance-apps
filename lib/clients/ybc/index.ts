@@ -1,5 +1,10 @@
 export type * from "./client";
 export type * from "./types";
+export * from "./deployment";
+export * from "./ens";
 export * from "./feed";
+export * from "./freshness";
 export * from "./mock";
 export * from "./onchain";
+export * from "./payload";
+export * from "./proposalSecurity";

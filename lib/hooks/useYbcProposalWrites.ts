@@ -58,52 +58,67 @@ export function useYbcProposalWrites(
 
   const createProposal = useCallback(
     async (type: YbcProposalType, targetAddress?: Address | string) => {
-      if (!targetAddress || !isAddress(targetAddress)) {
-        throw new Error("Enter a valid target address.");
-      }
+      await execute(
+        async () => {
+          if (!targetAddress || !isAddress(targetAddress)) {
+            throw new Error("Enter a valid target address.");
+          }
 
-      const target = getAddress(targetAddress) as Address;
-      const prepare = await requireClient().preparePropose(type, target);
-      await execute(prepare, {
-        invalidate,
-      });
+          const target = getAddress(targetAddress) as Address;
+          const prepared = await requireClient().preparePropose(
+            type,
+            target
+          );
+          return prepared();
+        },
+        { invalidate }
+      );
     },
     [execute, invalidate, requireClient]
   );
 
   const retractProposal = useCallback(
     async (proposalId: string) => {
-      const prepare = await requireClient().prepareRetract(
-        parseYbcProposalContractId(proposalId)
+      await execute(
+        async () => {
+          const prepared = await requireClient().prepareRetract(
+            parseYbcProposalContractId(proposalId)
+          );
+          return prepared();
+        },
+        { invalidate }
       );
-      await execute(prepare, {
-        invalidate,
-      });
     },
     [execute, invalidate, requireClient]
   );
 
   const voteOnProposal = useCallback(
     async (proposalId: string, choice: YbcVoteChoice) => {
-      const prepare = await requireClient().prepareVote(
-        parseYbcProposalContractId(proposalId),
-        choice
+      await execute(
+        async () => {
+          const prepared = await requireClient().prepareVote(
+            parseYbcProposalContractId(proposalId),
+            choice
+          );
+          return prepared();
+        },
+        { invalidate }
       );
-      await execute(prepare, {
-        invalidate,
-      });
     },
     [execute, invalidate, requireClient]
   );
 
   const executeProposal = useCallback(
     async (proposalId: string) => {
-      const prepare = await requireClient().prepareExecute(
-        parseYbcProposalContractId(proposalId)
+      await execute(
+        async () => {
+          const prepared = await requireClient().prepareExecute(
+            parseYbcProposalContractId(proposalId)
+          );
+          return prepared();
+        },
+        { invalidate }
       );
-      await execute(prepare, {
-        invalidate,
-      });
     },
     [execute, invalidate, requireClient]
   );

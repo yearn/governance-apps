@@ -56,6 +56,7 @@ type ProtocolContextValue = {
   teamsUsesMockBackend: boolean;
   ybcUsesMockBackend: boolean;
   yethUsesMockBackend: boolean;
+  mainnetPublicClient: PublicClient | null;
   publicClient: PublicClient | null;
   globalData: GlobalData | null;
   yethGlobalData: YethGlobalData | null;
@@ -107,6 +108,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         teamsUsesMockBackend: true,
         ybcUsesMockBackend: true,
         yethUsesMockBackend: true,
+        mainnetPublicClient: null,
         publicClient: null,
         globalData: null,
         yethGlobalData: null,
@@ -122,11 +124,19 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
       teamsUsesMockBackend: false,
       ybcUsesMockBackend: false,
       yethUsesMockBackend: false,
+      mainnetPublicClient: rpcPublicClient ?? null,
       publicClient,
       globalData: globalData ?? null,
       yethGlobalData: yethGlobalData ?? null,
     };
-  }, [preferMocks, publicClient, globalData, yethGlobalData, mockClients]);
+  }, [
+    preferMocks,
+    publicClient,
+    rpcPublicClient,
+    globalData,
+    yethGlobalData,
+    mockClients,
+  ]);
 
   const teams = useMemo<TeamsTestBridgeAdapter>(
     () => ({

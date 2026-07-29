@@ -1,5 +1,43 @@
 export const YbcElectionAbi = [
   {
+    inputs: [],
+    name: "addition_threshold",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "expulsion_threshold",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "num_proposals",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "", type: "uint256" }],
+    name: "proposals",
+    outputs: [
+      { name: "account", type: "address" },
+      { name: "proposer", type: "address" },
+      { name: "epoch", type: "uint256" },
+      { name: "addition", type: "bool" },
+      { name: "threshold", type: "uint256" },
+      { name: "votes", type: "uint256" },
+      { name: "yea", type: "uint256" },
+      { name: "retracted", type: "bool" },
+      { name: "executed", type: "bool" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [{ name: "_account", type: "address" }],
     name: "propose_addition",
     outputs: [{ name: "", type: "uint256" }],

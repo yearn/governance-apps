@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { UtcTime } from "@/components/ui/UtcTime";
 import type {
   YbcMockDataV1,
   YbcProposalType,
@@ -43,6 +45,11 @@ type YbcPageContentProps = {
   proposalTargetRequired?: boolean;
   proposalTxState?: TxState;
   resetProposalTx?: () => void;
+  isRefreshing?: boolean;
+  lastUpdatedAt?: number | null;
+  onRetry?: () => void;
+  readStatus?: "current" | "stale";
+  warningMessage?: string | null;
 };
 
 const SECTION_HASHES = new Set(["overview", "members", "proposals", "rewards", "admin"]);
@@ -63,18 +70,26 @@ export function YbcPageClient({
     latencyMs,
   });
   const proposalWrites = useYbcProposalWrites(
-    ybcState.backend === "feed" ? ybcState.feed : null
+    ybcState.backend === "feed" && ybcState.readStatus === "current"
+      ? ybcState.feed
+      : null
   );
   const {
     data,
     error,
     isError,
     isLoading,
+    isRefreshing,
+    lastUpdatedAt,
+    readStatus,
     refetch,
+    warning,
   } = ybcState;
   const createProposal =
     ybcState.backend === "feed"
-      ? proposalWrites.createProposal
+      ? ybcState.readStatus === "current"
+        ? proposalWrites.createProposal
+        : undefined
       : ybcState.createProposal
         ? (type: YbcProposalType) => {
             ybcState.createProposal(type);
@@ -82,7 +97,9 @@ export function YbcPageClient({
         : undefined;
   const retractProposal =
     ybcState.backend === "feed"
-      ? proposalWrites.retractProposal
+      ? ybcState.readStatus === "current"
+        ? proposalWrites.retractProposal
+        : undefined
       : ybcState.retractProposal
         ? (proposalId: string) => {
             ybcState.retractProposal(proposalId);
@@ -90,7 +107,9 @@ export function YbcPageClient({
         : undefined;
   const voteOnProposal =
     ybcState.backend === "feed"
-      ? proposalWrites.voteOnProposal
+      ? ybcState.readStatus === "current"
+        ? proposalWrites.voteOnProposal
+        : undefined
       : ybcState.voteOnProposal
         ? (proposalId: string, choice: YbcVoteChoice) => {
             ybcState.voteOnProposal(proposalId, choice);
@@ -98,7 +117,9 @@ export function YbcPageClient({
         : undefined;
   const executeProposal =
     ybcState.backend === "feed"
-      ? proposalWrites.executeProposal
+      ? ybcState.readStatus === "current"
+        ? proposalWrites.executeProposal
+        : undefined
       : ybcState.executeProposal
         ? (proposalId: string) => {
             ybcState.executeProposal(proposalId);
@@ -109,6 +130,7 @@ export function YbcPageClient({
     return (
       <YbcPageErrorState
         errorMessage={error instanceof Error ? error.message : null}
+        isRetrying={isRefreshing}
         onRetry={() => {
           void refetch();
         }}
@@ -134,8 +156,18 @@ export function YbcPageClient({
           ybcState.backend === "feed" ? proposalWrites.state : undefined
         }
         resetProposalTx={
-          ybcState.backend === "feed" ? proposalWrites.reset : undefined
+          ybcState.backend === "feed" &&
+          ybcState.readStatus === "current"
+            ? proposalWrites.reset
+            : undefined
         }
+        isRefreshing={isRefreshing}
+        lastUpdatedAt={lastUpdatedAt}
+        onRetry={() => {
+          void refetch();
+        }}
+        readStatus={readStatus}
+        warningMessage={warning?.message ?? null}
       />
       {ybcUsesMockBackend ? <MockControls /> : null}
     </>
@@ -152,6 +184,11 @@ export function YbcPageContent({
   proposalTargetRequired = false,
   proposalTxState,
   resetProposalTx,
+  isRefreshing = false,
+  lastUpdatedAt = null,
+  onRetry,
+  readStatus = "current",
+  warningMessage,
 }: YbcPageContentProps) {
   const showOperatorSection = Boolean(data.admin && data.me.isOperator);
   const hasPriorityProposals = data.proposals.items.some((proposal) =>
@@ -194,9 +231,19 @@ export function YbcPageContent({
   );
 
   return (
-    <div className="bg-app text-text-primary">
+    <div
+      className="bg-app text-text-primary"
+      aria-busy={isRefreshing || undefined}
+    >
       <YbcHero data={data} />
       <main className="container mx-auto space-y-8 px-4 py-8 md:px-6 md:py-10">
+        <YbcDataStatusNotice
+          isRefreshing={isRefreshing}
+          lastUpdatedAt={lastUpdatedAt}
+          onRetry={onRetry}
+          readStatus={readStatus}
+          warningMessage={warningMessage}
+        />
         {hasPriorityProposals ? proposalsSection : membersSection}
         {hasPriorityProposals ? membersSection : proposalsSection}
         <RewardsCard id="rewards" data={data} hostname={hostname} />
@@ -206,6 +253,78 @@ export function YbcPageContent({
         ) : null}
       </main>
     </div>
+  );
+}
+
+export function YbcDataStatusNotice({
+  isRefreshing = false,
+  lastUpdatedAt,
+  onRetry,
+  readStatus,
+  warningMessage,
+}: {
+  isRefreshing?: boolean;
+  lastUpdatedAt?: number | null;
+  onRetry?: () => void;
+  readStatus: "current" | "stale";
+  warningMessage?: string | null;
+}) {
+  if (readStatus === "current") {
+    return (
+      <div
+        className="flex min-w-0 flex-wrap items-center gap-2 rounded-box border border-border bg-surface px-4 py-3 text-sm text-text-secondary"
+        role="status"
+        aria-live="polite"
+      >
+        <Badge variant={isRefreshing ? "neutral" : "success"}>
+          {isRefreshing ? copy.page.refreshing : copy.page.current}
+        </Badge>
+        {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+            {copy.page.lastUpdated}:{" "}
+            <UtcTime className="font-number" timestamp={lastUpdatedAt} />
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <Card
+      className="border-amber-300 bg-amber-50 text-amber-950"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
+          <p className="font-bold">{copy.page.staleTitle}</p>
+          <p className="text-sm leading-6">{copy.page.staleBody}</p>
+          {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
+            <p className="min-w-0 break-words font-number text-xs [overflow-wrap:anywhere]">
+              {copy.page.snapshot}: <UtcTime timestamp={lastUpdatedAt} />
+            </p>
+          ) : null}
+          {warningMessage ? (
+            <p className="min-w-0 break-words font-number text-xs opacity-80 [overflow-wrap:anywhere]">
+              {warningMessage}
+            </p>
+          ) : null}
+        </div>
+        {onRetry ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="shrink-0"
+            disabled={isRefreshing}
+            aria-busy={isRefreshing || undefined}
+            onClick={onRetry}
+          >
+            {isRefreshing ? copy.page.retrying : copy.page.retryCta}
+          </Button>
+        ) : null}
+      </div>
+    </Card>
   );
 }
 
@@ -241,9 +360,11 @@ function scrollToHashTarget(id: string) {
 
 export function YbcPageErrorState({
   errorMessage,
+  isRetrying = false,
   onRetry,
 }: {
   errorMessage?: string | null;
+  isRetrying?: boolean;
   onRetry?: () => void;
 }) {
   return (
@@ -266,8 +387,14 @@ export function YbcPageErrorState({
           </div>
           {onRetry ? (
             <div>
-              <Button type="button" variant="secondary" onClick={onRetry}>
-                {copy.page.retryCta}
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isRetrying}
+                aria-busy={isRetrying || undefined}
+                onClick={onRetry}
+              >
+                {isRetrying ? copy.page.retrying : copy.page.retryCta}
               </Button>
             </div>
           ) : null}
