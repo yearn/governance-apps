@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { AddressLink } from "@/components/ui/ExplorerLink";
 import { IconChevron } from "@/components/icons/IconChevron";
 import { TimelineStepper, type TimelineStep } from "@/components/ui/TimelineStepper";
 import type { YbcProposalRecord } from "@/lib/clients/ybc";
@@ -12,11 +13,12 @@ import {
   type YbcVoteChoice,
 } from "@/lib/clients/ybc/mock";
 import { formatPercent } from "@/lib/format";
+import type { YbcDisplayIdentity } from "../identity";
 
 type ProposalCardProps = {
   proposal: YbcProposalRecord;
-  proposerLabel: string;
-  targetLabel: string;
+  proposerIdentity: YbcDisplayIdentity;
+  targetIdentity: YbcDisplayIdentity;
   onRetract?: () => void;
   onVote?: (choice: YbcVoteChoice) => void;
   onExecute?: () => void;
@@ -53,8 +55,8 @@ const badgeVariantByPhase = {
 
 export function ProposalCard({
   proposal,
-  proposerLabel,
-  targetLabel,
+  proposerIdentity,
+  targetIdentity,
   onRetract,
   onVote,
   onExecute,
@@ -88,14 +90,33 @@ export function ProposalCard({
               </Badge>
             </div>
             <div className="space-y-1">
-              <h3 id={headingId} className="text-xl font-bold text-text-primary">
+              <h3
+                id={headingId}
+                className="min-w-0 break-words text-xl font-bold text-text-primary [overflow-wrap:anywhere]"
+              >
                 {proposal.id} · {proposalTypeLabel[proposal.type]} proposal for{" "}
-                {targetLabel}
+                {targetIdentity.label}
               </h3>
-              <p className="text-sm text-text-secondary">
-                Proposed by {proposerLabel} in epoch{" "}
+              <p className="min-w-0 break-words text-sm text-text-secondary [overflow-wrap:anywhere]">
+                Proposed by {proposerIdentity.label} in epoch{" "}
                 <span className="font-number">{proposal.epoch}</span>
               </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-text-tertiary">
+                <span className="inline-flex items-center gap-2">
+                  Target{" "}
+                  <AddressLink
+                    address={targetIdentity.address}
+                    variant="compact"
+                  />
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  Proposer{" "}
+                  <AddressLink
+                    address={proposerIdentity.address}
+                    variant="compact"
+                  />
+                </span>
+              </div>
             </div>
           </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { isAddress } from "viem";
 import { Badge } from "@/components/ui/Badge";
@@ -12,13 +13,19 @@ import type {
   YbcProposalType,
   YbcVoteChoice,
 } from "@/lib/clients/ybc";
-import { formatAddress, formatPercent } from "@/lib/format";
+import { formatPercent } from "@/lib/format";
 import type { TxState } from "@/lib/tx/types";
+import {
+  getYbcIdentity,
+  type YbcIdentityMap,
+} from "../identity";
+import { MemberIdentity } from "./MemberIdentity";
 import { ProposalCard } from "./ProposalCard";
 import { ybcCopy as copy } from "../messages";
 
 type ProposalBoardProps = {
   data: YbcMockDataV1;
+  identities: YbcIdentityMap;
   id?: string;
   createProposal?: (
     type: YbcProposalType,
@@ -37,6 +44,7 @@ type ProposalBoardProps = {
 
 export function ProposalBoard({
   data,
+  identities,
   id,
   createProposal,
   executeProposal,
@@ -51,7 +59,6 @@ export function ProposalBoard({
   const [targetError, setTargetError] = useState<string | null>(null);
   const additionThresholdBps = getThresholdBps(data, "addition");
   const expulsionThresholdBps = getThresholdBps(data, "expulsion");
-  const accountLabels = getAccountLabels(data);
   const canCreateProposal = data.me.canPropose && Boolean(createProposal);
   const transactionPending = isYbcProposalTxPending(proposalTxState);
   const transactionError =
@@ -185,14 +192,14 @@ export function ProposalBoard({
                     proposal,
                     data.proposals.items.length
                   )}
-                  proposerLabel={
-                    accountLabels[proposal.proposer.toLowerCase()] ??
-                    formatAddress(proposal.proposer)
-                  }
-                  targetLabel={
-                    accountLabels[proposal.targetAccount.toLowerCase()] ??
-                    formatAddress(proposal.targetAccount)
-                  }
+                  proposerIdentity={getYbcIdentity(
+                    identities,
+                    proposal.proposer
+                  )}
+                  targetIdentity={getYbcIdentity(
+                    identities,
+                    proposal.targetAccount
+                  )}
                   onRetract={
                     retractProposal
                       ? () => {
@@ -261,8 +268,12 @@ export function ProposalBoard({
                 label="Wallet"
                 value={
                   data.me.address
-                    ? accountLabels[data.me.address.toLowerCase()] ??
-                      formatAddress(data.me.address)
+                    ? (
+                        <MemberIdentity
+                          identity={getYbcIdentity(identities, data.me.address)}
+                          isCurrentMember={data.me.isMember}
+                        />
+                      )
                     : "Observer"
                 }
               />
@@ -346,21 +357,6 @@ function getProposalSubmitLabel(
     : copy.proposalBoard.proposeExpulsionDisabledCta;
 }
 
-function getAccountLabels(data: YbcMockDataV1): Record<string, string> {
-  const labels: Record<string, string> = {};
-
-  for (const member of data.roster.members) {
-    labels[member.address.toLowerCase()] = member.ens ?? formatAddress(member.address);
-  }
-
-  if (data.me.address) {
-    labels[data.me.address.toLowerCase()] =
-      labels[data.me.address.toLowerCase()] ?? "You";
-  }
-
-  return labels;
-}
-
 function SummaryStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-box border border-border bg-app/60 p-4">
@@ -379,7 +375,7 @@ function ThresholdRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ViewerRow({ label, value }: { label: string; value: string }) {
+function ViewerRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 border-t border-border pt-3 first:border-t-0 first:pt-0">
       <span className="text-text-tertiary">{label}</span>

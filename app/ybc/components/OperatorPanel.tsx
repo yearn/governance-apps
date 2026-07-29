@@ -1,14 +1,17 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { AddressLink } from "@/components/ui/ExplorerLink";
 import type {
   YbcAdminOperationId,
   YbcMockDataV1,
   YbcProposalType,
 } from "@/lib/clients/ybc";
-import { formatAddress, formatPercent } from "@/lib/format";
+import { formatPercent } from "@/lib/format";
+import { getYbcIdentity, type YbcIdentityMap } from "../identity";
 import { ybcCopy as copy } from "../messages";
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
@@ -27,6 +30,7 @@ const OPERATION_TO_PROPOSAL_TYPE: Record<YbcAdminOperationId, YbcProposalType> =
 
 type OperatorPanelProps = {
   data: YbcMockDataV1;
+  identities: YbcIdentityMap;
   id?: string;
   createProposal?: (type: YbcProposalType) => void | Promise<void>;
 };
@@ -34,11 +38,13 @@ type OperatorPanelProps = {
 type UnlockedOperatorPanelProps = {
   admin: NonNullable<YbcMockDataV1["admin"]>;
   data: YbcMockDataV1;
+  identities: YbcIdentityMap;
   createProposal?: (type: YbcProposalType) => void | Promise<void>;
 };
 
 export function OperatorPanel({
   data,
+  identities,
   id,
   createProposal,
 }: OperatorPanelProps) {
@@ -68,6 +74,7 @@ export function OperatorPanel({
         <UnlockedOperatorPanel
           admin={admin}
           data={data}
+          identities={identities}
           createProposal={createProposal}
         />
       ) : (
@@ -110,6 +117,7 @@ function LockedOperatorPanel({ data }: { data: YbcMockDataV1 }) {
 function UnlockedOperatorPanel({
   admin,
   data,
+  identities,
   createProposal,
 }: UnlockedOperatorPanelProps) {
   return (
@@ -188,6 +196,7 @@ function UnlockedOperatorPanel({
             {admin.operators.map((operator) => {
               const isCurrentViewer =
                 data.me.address?.toLowerCase() === operator.address.toLowerCase();
+              const identity = getYbcIdentity(identities, operator.address);
 
               return (
                 <li
@@ -195,13 +204,11 @@ function UnlockedOperatorPanel({
                   className="rounded-box border border-border bg-surface p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="font-bold text-text-primary">
-                        {operator.ens ?? formatAddress(operator.address)}
+                    <div className="min-w-0 space-y-1">
+                      <p className="min-w-0 break-words font-bold text-text-primary [overflow-wrap:anywhere]">
+                        {identity.label}
                       </p>
-                      <p className="font-number text-xs text-text-secondary">
-                        {operator.address}
-                      </p>
+                      <AddressLink address={operator.address} variant="compact" />
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge
@@ -231,7 +238,7 @@ function UnlockedOperatorPanel({
               label={copy.operatorPanel.viewer.wallet}
               value={
                 data.me.address
-                  ? `${formatAddress(data.me.address)}`
+                  ? <AddressLink address={data.me.address} variant="compact" />
                   : copy.operatorPanel.viewer.observerWallet
               }
             />
@@ -326,7 +333,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function KeyValueRow({ label, value }: { label: string; value: string }) {
+function KeyValueRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <span className="text-text-secondary">{label}</span>
@@ -337,10 +344,9 @@ function KeyValueRow({ label, value }: { label: string; value: string }) {
 
 function AddressRow({ label, address }: { label: string; address: string }) {
   return (
-    <div className="space-y-1">
+    <div className="min-w-0 space-y-1">
       <p className="text-xs font-bold uppercase text-text-tertiary">{label}</p>
-      <p className="font-medium text-text-primary">{formatAddress(address)}</p>
-      <p className="font-number text-xs break-all text-text-secondary">{address}</p>
+      <AddressLink address={address} variant="compact" />
     </div>
   );
 }

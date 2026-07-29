@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -12,6 +12,7 @@ import type {
   YbcVoteChoice,
 } from "@/lib/clients/ybc";
 import { useYbcState } from "@/lib/hooks/useYbc";
+import { useYbcEnsIdentities } from "@/lib/hooks/useYbcEnsIdentities";
 import { useYbcProposalWrites } from "@/lib/hooks/useYbcProposalWrites";
 import type { TxState } from "@/lib/tx/types";
 import { useProtocol } from "@/state/protocol";
@@ -21,7 +22,9 @@ import { OperatorPanel } from "./components/OperatorPanel";
 import { ProposalBoard } from "./components/ProposalBoard";
 import { RewardsCard } from "./components/RewardsCard";
 import { YbcHero, YbcHeroSkeleton } from "./components/YbcHero";
+import { buildYbcIdentityMap } from "./identity";
 import { ybcCopy as copy } from "./messages";
+import { useYbcMemberAliases } from "./useYbcMemberAliases";
 
 type YbcPageClientProps = {
   scenarioOverride?: YbcPrototypeScenarioId;
@@ -32,6 +35,8 @@ type YbcPageClientProps = {
 type YbcPageContentProps = {
   data: YbcMockDataV1;
   hostname?: string | null;
+  trustRecordEns?: boolean;
+  verifiedEns?: Record<string, string>;
   createProposal?: (
     type: YbcProposalType,
     targetAddress?: string
@@ -64,11 +69,20 @@ export function YbcPageClient({
   latencyMs,
   hostname,
 }: YbcPageClientProps = {}) {
-  const { ybcUsesMockBackend } = useProtocol();
+  const { mainnetPublicClient, ybcUsesMockBackend } = useProtocol();
   const ybcState = useYbcState({
     scenarioOverride,
     latencyMs,
   });
+  const ensAddresses = useMemo(
+    () => getYbcIdentityAddresses(ybcState.data),
+    [ybcState.data]
+  );
+  const verifiedEns = useYbcEnsIdentities(
+    mainnetPublicClient,
+    ensAddresses,
+    ybcState.backend === "feed"
+  );
   const proposalWrites = useYbcProposalWrites(
     ybcState.backend === "feed" && ybcState.readStatus === "current"
       ? ybcState.feed
@@ -147,6 +161,8 @@ export function YbcPageClient({
       <YbcPageContent
         data={data}
         hostname={hostname}
+        trustRecordEns={ybcState.backend === "mock"}
+        verifiedEns={verifiedEns}
         createProposal={createProposal}
         retractProposal={retractProposal}
         voteOnProposal={voteOnProposal}
@@ -177,6 +193,8 @@ export function YbcPageClient({
 export function YbcPageContent({
   data,
   hostname,
+  trustRecordEns = true,
+  verifiedEns = {},
   createProposal,
   retractProposal,
   voteOnProposal,
@@ -190,9 +208,40 @@ export function YbcPageContent({
   readStatus = "current",
   warningMessage,
 }: YbcPageContentProps) {
+  const {
+    aliases,
+    clearAliases,
+    resetAlias,
+    setAlias,
+  } = useYbcMemberAliases();
   const showOperatorSection = Boolean(data.admin && data.me.isOperator);
   const hasPriorityProposals = data.proposals.items.some((proposal) =>
     PRIORITY_PROPOSAL_PHASES.has(proposal.phase)
+  );
+  const visibleIdentityAddresses = useMemo(
+    () => getYbcIdentityAddresses(data),
+    [data]
+  );
+  const identities = useMemo(
+    () =>
+      buildYbcIdentityMap(
+        data.roster.members,
+        data.admin?.operators ?? [],
+        {
+          aliases,
+          trustRecordEns,
+          verifiedEns,
+          visibleAddresses: visibleIdentityAddresses,
+        }
+      ),
+    [
+      aliases,
+      data.admin?.operators,
+      data.roster.members,
+      trustRecordEns,
+      verifiedEns,
+      visibleIdentityAddresses,
+    ]
   );
 
   useEffect(() => {
@@ -214,12 +263,21 @@ export function YbcPageContent({
   }, [showOperatorSection]);
 
   const membersSection = (
-    <MembersTable roster={data.roster} currentAddress={data.me.address} />
+    <MembersTable
+      aliases={aliases}
+      identities={identities}
+      roster={data.roster}
+      currentAddress={data.me.address}
+      onClearAliases={clearAliases}
+      onResetAlias={resetAlias}
+      onSetAlias={setAlias}
+    />
   );
   const proposalsSection = (
     <ProposalBoard
       id="proposals"
       data={data}
+      identities={identities}
       createProposal={createProposal}
       retractProposal={retractProposal}
       voteOnProposal={voteOnProposal}
@@ -249,7 +307,12 @@ export function YbcPageContent({
         <RewardsCard id="rewards" data={data} hostname={hostname} />
 
         {showOperatorSection ? (
-          <OperatorPanel id="admin" data={data} createProposal={createProposal} />
+          <OperatorPanel
+            id="admin"
+            identities={identities}
+            data={data}
+            createProposal={createProposal}
+          />
         ) : null}
       </main>
     </div>
@@ -326,6 +389,22 @@ export function YbcDataStatusNotice({
       </div>
     </Card>
   );
+}
+
+function getYbcIdentityAddresses(
+  data: YbcMockDataV1 | null | undefined
+): string[] {
+  if (!data) return [];
+
+  return [
+    ...data.roster.members.map((member) => member.address),
+    ...(data.admin?.operators.map((operator) => operator.address) ?? []),
+    ...data.proposals.items.flatMap((proposal) => [
+      proposal.proposer,
+      proposal.targetAccount,
+    ]),
+    ...(data.me.address ? [data.me.address] : []),
+  ];
 }
 
 export function YbcPageLoadingState() {

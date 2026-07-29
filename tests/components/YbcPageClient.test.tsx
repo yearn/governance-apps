@@ -7,6 +7,10 @@ import {
   YbcPageErrorState,
   YbcPageLoadingState,
 } from "@/app/ybc/YbcPageClient";
+import {
+  YBC_MEMBER_ALIASES_STORAGE_KEY,
+  YBC_MEMBER_ALIASES_VERSION,
+} from "@/app/ybc/memberAliases";
 import { ybcCopy } from "@/app/ybc/messages";
 import {
   createMockYbcClient,
@@ -123,7 +127,12 @@ describe("YbcPageClient", () => {
         level: 1,
       })
     ).toBeInTheDocument();
-    expect(screen.getByText(ybcCopy.app.routeKey)).toBeInTheDocument();
+    expect(screen.queryByText(ybcCopy.app.routeKey)).not.toBeInTheDocument();
+    expect(screen.queryByText("YBC governance")).not.toBeInTheDocument();
+    expect(screen.queryByText("Current view")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Membership", { exact: true }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText(ybcCopy.hero.summary.internalLabel)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.hero.summary.delegatedLabel)).toBeInTheDocument();
     expect(screen.getByText(ybcCopy.hero.summary.totalLabel)).toBeInTheDocument();
@@ -172,6 +181,215 @@ describe("YbcPageClient", () => {
     expect(screen.getAllByText("100,000 weight").length).toBeGreaterThanOrEqual(1);
   });
 
+  it("edits local member names without hiding the canonical address", async () => {
+    const data = await getScenarioData("observer");
+    const member = data.roster.members[0]!;
+
+    render(<YbcPageContent data={data} />);
+
+    expect(screen.queryByText("ENS", { exact: true })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Generated", { exact: true })
+    ).not.toBeInTheDocument();
+
+    const editButton = screen
+      .getAllByRole("button", { name: /^Edit name:/i })
+      .find((button) => button.closest("tr"))!;
+    const memberRow = editButton.closest("tr")!;
+    const originalEditButtonName = editButton.getAttribute("aria-label")!;
+    const addressLinkName =
+      `View Ethereum address ${member.address} on Etherscan`;
+
+    expect(editButton).toHaveClass("h-10");
+    expect(editButton).toHaveClass("min-w-10");
+    expect(editButton).toHaveClass("text-text-tertiary");
+    expect(editButton).toHaveClass("hover:text-text-secondary");
+    expect(editButton).toHaveAttribute("title", ybcCopy.members.alias.edit);
+    expect(editButton.querySelector("svg")).not.toBeNull();
+    const addressLink = within(memberRow).getByRole("link", {
+      name: addressLinkName,
+    });
+    expect(addressLink).toBeInTheDocument();
+    expect(addressLink.parentElement?.parentElement).toBe(editButton.parentElement);
+    expect(editButton.parentElement).toHaveClass("gap-x-2", "gap-y-0");
+
+    fireEvent.click(editButton);
+    const input = within(memberRow).getByRole("textbox", {
+      name: ybcCopy.members.alias.fieldLabel,
+    }) as HTMLInputElement;
+
+    expect(input).toHaveFocus();
+    expect(input.selectionStart).toBe(0);
+    expect(input.selectionEnd).toBe(input.value.length);
+    expect(
+      within(memberRow).getByRole("link", { name: addressLinkName })
+    ).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "Local Alice" } });
+    fireEvent.click(
+      within(memberRow).getByRole("button", {
+        name: ybcCopy.members.alias.save,
+      })
+    );
+
+    await waitFor(() => {
+      expect(within(memberRow).getByText("Local Alice")).toBeInTheDocument();
+      expect(
+        within(memberRow).getByRole("button", {
+          name: "Edit name: Local Alice",
+        })
+      ).toHaveFocus();
+    });
+    expect(
+      within(memberRow).queryByText("Local", { exact: true })
+    ).not.toBeInTheDocument();
+
+    const storedAliases = JSON.parse(
+      window.localStorage.getItem(YBC_MEMBER_ALIASES_STORAGE_KEY) ?? "null"
+    ) as {
+      aliases: Record<string, string>;
+      version: number;
+    };
+    expect(storedAliases).toEqual({
+      aliases: {
+        [member.address.toLowerCase()]: "Local Alice",
+      },
+      version: YBC_MEMBER_ALIASES_VERSION,
+    });
+
+    fireEvent.click(
+      within(memberRow).getByRole("button", {
+        name: "Edit name: Local Alice",
+      })
+    );
+    fireEvent.click(
+      within(memberRow).getByRole("button", {
+        name: ybcCopy.members.alias.cancel,
+      })
+    );
+    await waitFor(() => {
+      expect(
+        within(memberRow).getByRole("button", {
+          name: "Edit name: Local Alice",
+        })
+      ).toHaveFocus();
+    });
+
+    fireEvent.click(
+      within(memberRow).getByRole("button", {
+        name: "Edit name: Local Alice",
+      })
+    );
+    fireEvent.keyDown(
+      within(memberRow).getByRole("textbox", {
+        name: ybcCopy.members.alias.fieldLabel,
+      }),
+      { key: "Escape" }
+    );
+    await waitFor(() => {
+      expect(
+        within(memberRow).getByRole("button", {
+          name: "Edit name: Local Alice",
+        })
+      ).toHaveFocus();
+    });
+
+    fireEvent.click(
+      within(memberRow).getByRole("button", {
+        name: "Edit name: Local Alice",
+      })
+    );
+    fireEvent.click(
+      within(memberRow).getByRole("button", {
+        name: ybcCopy.members.alias.reset,
+      })
+    );
+
+    await waitFor(() => {
+      expect(within(memberRow).queryByText("Local Alice")).not.toBeInTheDocument();
+      expect(
+        within(memberRow).getByRole("button", {
+          name: originalEditButtonName,
+        })
+      ).toHaveFocus();
+    });
+    const resetAliases = JSON.parse(
+      window.localStorage.getItem(YBC_MEMBER_ALIASES_STORAGE_KEY) ?? "null"
+    ) as { aliases: Record<string, string> };
+    expect(resetAliases.aliases[member.address.toLowerCase()]).toBeUndefined();
+  });
+
+  it("clears all browser-local member names", async () => {
+    const data = await getScenarioData("observer");
+    const member = data.roster.members[0]!;
+    window.localStorage.setItem(
+      YBC_MEMBER_ALIASES_STORAGE_KEY,
+      JSON.stringify({
+        version: YBC_MEMBER_ALIASES_VERSION,
+        aliases: {
+          [member.address.toLowerCase()]: "Local Alice",
+        },
+      })
+    );
+
+    render(<YbcPageContent data={data} />);
+
+    const clearButton = await screen.findByRole("button", {
+      name: ybcCopy.members.alias.clearAll,
+    });
+    expect(screen.getAllByText("Local Alice").length).toBeGreaterThan(0);
+
+    fireEvent.click(clearButton);
+
+    await waitFor(() => {
+      expect(
+        window.localStorage.getItem(YBC_MEMBER_ALIASES_STORAGE_KEY)
+      ).toBeNull();
+    });
+    expect(screen.queryByText("Local Alice")).not.toBeInTheDocument();
+  });
+
+  it("keeps a visible-only alias consistent across viewer and proposal surfaces", async () => {
+    const visibleOnlyAddress =
+      "0x9999999999999999999999999999999999999999";
+    const data = await getScenarioData("observer");
+    data.me.address = visibleOnlyAddress;
+    data.proposals.items[0]!.targetAccount = visibleOnlyAddress;
+    expect(
+      data.roster.members.some(
+        (member) =>
+          member.address.toLowerCase() === visibleOnlyAddress.toLowerCase()
+      )
+    ).toBe(false);
+    window.localStorage.setItem(
+      YBC_MEMBER_ALIASES_STORAGE_KEY,
+      JSON.stringify({
+        version: YBC_MEMBER_ALIASES_VERSION,
+        aliases: {
+          [visibleOnlyAddress]: "Proposal guest",
+        },
+      })
+    );
+
+    render(<YbcPageContent data={data} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Proposal guest")).toBeInTheDocument();
+    });
+    expect(
+      screen
+        .getAllByRole("article")
+        .some((article) => article.textContent?.includes("Proposal guest"))
+    ).toBe(true);
+    expect(
+      screen.getAllByRole("link", {
+        name:
+          `View Ethereum address ${visibleOnlyAddress} on Etherscan`,
+      }).length
+    ).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText("Local", { exact: true })).not.toBeInTheDocument();
+  });
+
   it("loads the saved YBC member view", async () => {
     const data = await getScenarioData("observer");
     window.localStorage.setItem("yearn.ybc.members.view", "visual");
@@ -197,7 +415,9 @@ describe("YbcPageClient", () => {
     );
     expect(screen.getAllByText("250 weight").length).toBeGreaterThan(0);
     expect(screen.getAllByText("500 weight").length).toBeGreaterThan(0);
-    expect(screen.getByText(ybcCopy.members.states.you)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(ybcCopy.members.states.you).length
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText("50%").length).toBeGreaterThan(0);
   });
 
@@ -515,8 +735,11 @@ describe("YbcPageClient", () => {
     expect(screen.getAllByText("bobby-ybc.eth").length).toBeGreaterThan(0);
     expect(screen.getAllByText(ybcCopy.operatorPanel.roles.you).length).toBeGreaterThan(0);
     expect(
-      screen.getByText("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-    ).toBeInTheDocument();
+      screen.getAllByRole("link", {
+        name:
+          "View Ethereum address 0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb on Etherscan",
+      }).length
+    ).toBeGreaterThan(0);
 
     fireEvent.click(
       screen.getByRole("button", {

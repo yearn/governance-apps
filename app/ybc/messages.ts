@@ -164,6 +164,20 @@ export const ybcCopy = {
       maturity: "Maturity",
       sourceMix: "Source mix",
     },
+    alias: {
+      edit: "Edit name",
+      fieldLabel: "Local member name",
+      browserOnly:
+        "Saved only in this browser and never sent with a transaction. The Ethereum address remains canonical.",
+      save: "Save",
+      cancel: "Cancel",
+      reset: "Reset",
+      clearAll: "Clear all local names",
+      invalid:
+        "Enter a name from 1 to 40 characters without invisible or directional control characters.",
+      storageError:
+        "This browser could not save the name. Check its storage settings and try again.",
+    },
     states: {
       active: "Active",
       ramping: "Ramping",
