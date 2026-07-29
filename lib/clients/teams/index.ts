@@ -5,4 +5,5 @@ export * from "./feed";
 export * from "./freshness";
 export * from "./mock";
 export * from "./onchain";
+export * from "./security";
 export * from "./snapshot";

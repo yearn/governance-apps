@@ -1,4 +1,4 @@
-export const BonusDistributorAbi = [
+export const RevenueRecipientAbi = [
   {
     inputs: [],
     name: "accountant",
@@ -8,43 +8,37 @@ export const BonusDistributorAbi = [
   },
   {
     inputs: [],
-    name: "ybc_recipient",
+    name: "registry",
     outputs: [{ name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
-    name: "bonus_token",
-    outputs: [{ name: "", type: "address" }],
+    name: "killed",
+    outputs: [{ name: "", type: "bool" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
-    name: "pending_period",
+    name: "period",
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [{ name: "_team", type: "address" }],
-    name: "pending_claims",
-    outputs: [{ name: "", type: "uint256" }],
+    inputs: [{ name: "_token", type: "address" }],
+    name: "oracles",
+    outputs: [{ name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      { name: "_team", type: "address" },
-      { name: "_recipient", type: "address" },
-    ],
-    name: "claim",
-    outputs: [
-      { name: "", type: "uint256" },
-      { name: "", type: "uint256" },
-    ],
-    stateMutability: "nonpayable",
+    inputs: [{ name: "_token", type: "address" }],
+    name: "converters",
+    outputs: [{ name: "", type: "address" }],
+    stateMutability: "view",
     type: "function",
   },
 ] as const;

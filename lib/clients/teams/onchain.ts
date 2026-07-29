@@ -1,4 +1,10 @@
-import { formatUnits, getAddress, isAddress, type Address } from "viem";
+import {
+  erc20Abi,
+  formatUnits,
+  getAddress,
+  isAddress,
+  type Address,
+} from "viem";
 import { BonusDistributorAbi } from "@/lib/abis/BonusDistributor";
 import { TeamAbi } from "@/lib/abis/Team";
 import { assertMainnetAccount, MAINNET_CHAIN_ID } from "@/lib/tx/network";
@@ -54,6 +60,19 @@ import {
   TEAMS_BONUS_TOKEN_DECIMALS,
   TEAMS_PROTOCOL_USD_DECIMALS,
 } from "@/lib/schemas/teams-feed";
+import {
+  assertTeamsBonusSimulationTarget,
+  assertTeamsBonusWriteTarget,
+  assertTeamsBlockAnchorCanonical,
+  assertTeamsFundingWriteTarget,
+  assertTeamsMainnetWriteClient,
+  assertTeamsRevenueWriteTarget,
+  readTeamsCurrentBlockAnchor,
+  TeamsWriteValidationError,
+  type TeamsCurrentBlockAnchor,
+  type TeamsWritePublicClient,
+} from "./security";
+import { TEAMS_MAINNET_DEPLOYMENT } from "./deployment";
 
 const ZERO_FINANCIALS: TeamFinancials = {
   revenueUsd: "0.00",
@@ -64,6 +83,7 @@ const ZERO_FINANCIALS: TeamFinancials = {
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 const READ_ONLY_PRESET_ID: TeamsMockScenarioId = "directory-observer";
+const MAX_TEAMS_WRITE_SIMULATION_ATTEMPTS = 3;
 type TeamsMapOptions = {
   actionStateTrusted?: boolean;
   walletChainId?: number | null;
@@ -72,7 +92,8 @@ type TeamsMapOptions = {
 export class OnchainTeamsClient implements TeamsClient {
   constructor(
     private readonly feed: TeamsFeed,
-    private readonly account: string | null = null
+    private readonly account: string | null = null,
+    private readonly chainId: number | null = null
   ) {}
 
   async listScenarioCatalog(): Promise<TeamsScenarioCatalogEntry[]> {
@@ -106,21 +127,67 @@ export class OnchainTeamsClient implements TeamsClient {
     const canonicalTeam = resolveCanonicalTeamsFeedTeamAddress(this.feed, team);
     const canonicalToken = resolveCanonicalTeamsFeedTokenAddress(this.feed, token);
     assertPositiveAmount(amount);
+    const preparedWallet = getPreparedTeamsWallet(this.account, this.chainId);
 
     return async () => {
-      const { getAccount, simulateThenWrite, wagmiConfig } =
-        await getTeamsWriteRuntime();
-      const account = getAccount(wagmiConfig);
-      const address = assertMainnetAccount(account);
+      const context = await getValidatedTeamsWriteContext(preparedWallet);
+      const validateTarget = (anchor: TeamsCurrentBlockAnchor) =>
+        assertTeamsRevenueWriteTarget(
+          this.feed,
+          context.publicClient,
+          anchor,
+          canonicalTeam,
+          canonicalToken
+        );
       const request = {
         address: canonicalTeam,
         abi: TeamAbi,
         functionName: "deposit_revenue",
         args: [canonicalToken, amount] as const,
-        account: address,
+        account: preparedWallet.address,
         chainId: MAINNET_CHAIN_ID,
       };
-      return simulateThenWrite(request, request, "Teams revenue deposit");
+      return simulateValidatedTeamsWrite(
+        context,
+        request,
+        validateTarget
+      );
+    };
+  }
+
+  async prepareRevenueApproval(
+    team: Address,
+    token: Address,
+    amount: bigint
+  ): Promise<PreparedTransaction> {
+    const canonicalTeam = resolveCanonicalTeamsFeedTeamAddress(this.feed, team);
+    const canonicalToken = resolveCanonicalTeamsFeedTokenAddress(this.feed, token);
+    assertPositiveAmount(amount);
+    const preparedWallet = getPreparedTeamsWallet(this.account, this.chainId);
+
+    return async () => {
+      const context = await getValidatedTeamsWriteContext(preparedWallet);
+      const validateTarget = (anchor: TeamsCurrentBlockAnchor) =>
+        assertTeamsRevenueWriteTarget(
+          this.feed,
+          context.publicClient,
+          anchor,
+          canonicalTeam,
+          canonicalToken
+        );
+      const request = {
+        address: canonicalToken,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [canonicalTeam, amount] as const,
+        account: preparedWallet.address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateValidatedTeamsWrite(
+        context,
+        request,
+        validateTarget
+      );
     };
   }
 
@@ -138,30 +205,45 @@ export class OnchainTeamsClient implements TeamsClient {
     );
     assertValidTeamsAddress(recipient, "recipient");
     assertPositiveAmount(amount);
-    if (
-      approval.status !== "claimable" ||
-      approval.period > this.feed.periods.current
-    ) {
+    if (approval.period !== this.feed.periods.current) {
       throw new Error("The selected Teams funding approval is not claimable.");
     }
     if (amount > BigInt(approval.claimable)) {
       throw new Error("Teams funding claim exceeds the remaining raw balance.");
     }
+    const canonicalToken = getAddress(approval.token);
+    const preparedWallet = getPreparedTeamsWallet(this.account, this.chainId);
 
     return async () => {
-      const { getAccount, simulateThenWrite, wagmiConfig } =
-        await getTeamsWriteRuntime();
-      const account = getAccount(wagmiConfig);
-      const address = assertMainnetAccount(account);
+      const context = await getValidatedTeamsWriteContext(preparedWallet);
+      const binding = {
+        action: "claim",
+        approvalIdx,
+        requestedAmount: amount,
+        team: canonicalTeam,
+        token: canonicalToken,
+        preparedAccount: preparedWallet.address,
+      } as const;
+      const validateTarget = (anchor: TeamsCurrentBlockAnchor) =>
+        assertTeamsFundingWriteTarget(
+          this.feed,
+          context.publicClient,
+          anchor,
+          binding
+        );
       const request = {
         address: canonicalTeam,
         abi: TeamAbi,
         functionName: "claim_funding",
         args: [approvalIdx, amount, recipient] as const,
-        account: address,
+        account: preparedWallet.address,
         chainId: MAINNET_CHAIN_ID,
       };
-      return simulateThenWrite(request, request, "Teams funding claim");
+      return simulateValidatedTeamsWrite(
+        context,
+        request,
+        validateTarget
+      );
     };
   }
 
@@ -182,25 +264,92 @@ export class OnchainTeamsClient implements TeamsClient {
         "Only the current-period Teams funding approval can accept returns."
       );
     }
-    const returnableRaw = getFeedFundingReturnableRaw(approval);
-    if (amount > returnableRaw) {
-      throw new Error("Teams funding return exceeds the outstanding raw balance.");
-    }
+    const canonicalToken = getAddress(approval.token);
+    const preparedWallet = getPreparedTeamsWallet(this.account, this.chainId);
 
     return async () => {
-      const { getAccount, simulateThenWrite, wagmiConfig } =
-        await getTeamsWriteRuntime();
-      const account = getAccount(wagmiConfig);
-      const address = assertMainnetAccount(account);
+      const context = await getValidatedTeamsWriteContext(preparedWallet);
+      const binding = {
+        action: "return",
+        approvalIdx,
+        requestedAmount: amount,
+        team: canonicalTeam,
+        token: canonicalToken,
+        preparedAccount: preparedWallet.address,
+      } as const;
+      const validateTarget = (anchor: TeamsCurrentBlockAnchor) =>
+        assertTeamsFundingWriteTarget(
+          this.feed,
+          context.publicClient,
+          anchor,
+          binding
+        );
       const request = {
         address: canonicalTeam,
         abi: TeamAbi,
         functionName: "return_funding",
         args: [approvalIdx, amount] as const,
-        account: address,
+        account: preparedWallet.address,
         chainId: MAINNET_CHAIN_ID,
       };
-      return simulateThenWrite(request, request, "Teams funding return");
+      return simulateValidatedTeamsWrite(
+        context,
+        request,
+        validateTarget
+      );
+    };
+  }
+
+  async prepareFundingReturnApproval(
+    team: Address,
+    approvalIdx: bigint,
+    amount: bigint
+  ): Promise<PreparedTransaction> {
+    const canonicalTeam = resolveCanonicalTeamsFeedTeamAddress(this.feed, team);
+    const approval = resolveTeamsFeedFundingApproval(
+      this.feed,
+      canonicalTeam,
+      approvalIdx
+    );
+    assertPositiveAmount(amount);
+    if (approval.period !== this.feed.periods.current) {
+      throw new Error(
+        "Only the current-period Teams funding approval can accept returns."
+      );
+    }
+    const canonicalToken = getAddress(approval.token);
+    const preparedWallet = getPreparedTeamsWallet(this.account, this.chainId);
+
+    return async () => {
+      const context = await getValidatedTeamsWriteContext(preparedWallet);
+      const binding = {
+        action: "return",
+        approvalIdx,
+        requestedAmount: amount,
+        team: canonicalTeam,
+        token: canonicalToken,
+        preparedAccount: preparedWallet.address,
+      } as const;
+      const validateTarget = (anchor: TeamsCurrentBlockAnchor) =>
+        assertTeamsFundingWriteTarget(
+          this.feed,
+          context.publicClient,
+          anchor,
+          binding
+        );
+      const request = {
+        address: canonicalToken,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [canonicalTeam, amount] as const,
+        account: preparedWallet.address,
+        chainId: MAINNET_CHAIN_ID,
+      };
+      return simulateValidatedTeamsWrite(
+        context,
+        request,
+        validateTarget
+      );
     };
   }
 
@@ -210,38 +359,239 @@ export class OnchainTeamsClient implements TeamsClient {
   ): Promise<PreparedTransaction> {
     const canonicalTeam = resolveCanonicalTeamsFeedTeamAddress(this.feed, team);
     assertValidTeamsAddress(recipient, "recipient");
+    const preparedWallet = getPreparedTeamsWallet(this.account, this.chainId);
 
     return async () => {
-      const { getAccount, simulateThenWrite, wagmiConfig } =
-        await getTeamsWriteRuntime();
-      const account = getAccount(wagmiConfig);
-      const address = assertMainnetAccount(account);
+      const context = await getValidatedTeamsWriteContext(preparedWallet);
+      const validateTarget = (anchor: TeamsCurrentBlockAnchor) =>
+        assertTeamsBonusWriteTarget(
+          this.feed,
+          context.publicClient,
+          anchor,
+          canonicalTeam,
+          preparedWallet.address
+        );
       const request = {
-        address: this.feed.deployment.bonusDistributor as Address,
+        address: TEAMS_MAINNET_DEPLOYMENT.bonusDistributor,
         abi: BonusDistributorAbi,
         functionName: "claim",
         args: [canonicalTeam, recipient] as const,
-        account: address,
+        account: preparedWallet.address,
         chainId: MAINNET_CHAIN_ID,
       };
-      return simulateThenWrite(request, request, "Teams bonus claim");
+      return simulateValidatedTeamsWrite(
+        context,
+        request,
+        validateTarget,
+        (anchor, result) =>
+          assertTeamsBonusSimulationTarget(
+            context.publicClient,
+            anchor,
+            result
+          )
+      );
     };
   }
 }
 
 async function getTeamsWriteRuntime() {
-  const [{ getAccount }, { simulateThenWrite }, { wagmiConfig }] =
+  const [
+    {
+      getAccount,
+      getPublicClient,
+      simulateContract,
+      writeContract,
+    },
+    { wagmiConfig },
+  ] =
     await Promise.all([
       import("wagmi/actions"),
-      import("@/lib/tx/simulateWrite"),
       import("@/web3/wagmi"),
     ]);
 
   return {
     getAccount,
-    simulateThenWrite,
+    getPublicClient,
+    simulateContract,
     wagmiConfig,
+    writeContract,
   };
+}
+
+type PreparedTeamsWallet = {
+  address: Address;
+  chainId: typeof MAINNET_CHAIN_ID;
+};
+
+function getPreparedTeamsWallet(
+  account: string | null,
+  chainId: number | null
+): PreparedTeamsWallet {
+  if (!account || !isAddress(account)) {
+    throw new Error("No account connected");
+  }
+  if (chainId !== MAINNET_CHAIN_ID) {
+    throw new Error("Wrong network. Please switch to Ethereum Mainnet.");
+  }
+  return {
+    address: getAddress(account),
+    chainId: MAINNET_CHAIN_ID,
+  };
+}
+
+async function getValidatedTeamsWriteContext(
+  preparedWallet: PreparedTeamsWallet
+) {
+  const runtime = await getTeamsWriteRuntime();
+  assertPreparedTeamsWallet(
+    preparedWallet,
+    runtime.getAccount(runtime.wagmiConfig)
+  );
+  const publicClient = runtime.getPublicClient(runtime.wagmiConfig, {
+    chainId: MAINNET_CHAIN_ID,
+  });
+  if (!publicClient) {
+    throw new Error("Ethereum Mainnet public client is unavailable.");
+  }
+  const writePublicClient = publicClient as TeamsWritePublicClient;
+  await assertTeamsMainnetWriteClient(writePublicClient);
+  const anchor = await readTeamsCurrentBlockAnchor(writePublicClient);
+
+  return {
+    anchor,
+    publicClient: writePublicClient,
+    runtime,
+    assertWalletAndChain: async () => {
+      assertPreparedTeamsWallet(
+        preparedWallet,
+        runtime.getAccount(runtime.wagmiConfig)
+      );
+      await assertTeamsMainnetWriteClient(writePublicClient);
+    },
+    assertAnchorAndWallet: async (
+      validationAnchor: TeamsCurrentBlockAnchor
+    ) => {
+      await assertTeamsBlockAnchorCanonical(
+        writePublicClient,
+        validationAnchor
+      );
+      assertPreparedTeamsWallet(
+        preparedWallet,
+        runtime.getAccount(runtime.wagmiConfig)
+      );
+      await assertTeamsMainnetWriteClient(writePublicClient);
+    },
+  };
+}
+
+async function simulateValidatedTeamsWrite(
+  context: Awaited<ReturnType<typeof getValidatedTeamsWriteContext>>,
+  request: unknown,
+  validateTarget: (anchor: TeamsCurrentBlockAnchor) => Promise<void>,
+  validateSimulationResult?: (
+    anchor: TeamsCurrentBlockAnchor,
+    result: unknown
+  ) => Promise<void>
+) {
+  let anchor = context.anchor;
+  for (
+    let attempt = 0;
+    attempt < MAX_TEAMS_WRITE_SIMULATION_ATTEMPTS;
+    attempt += 1
+  ) {
+    await validateTarget(anchor);
+    await context.assertAnchorAndWallet(anchor);
+    const simulation = await context.runtime.simulateContract(
+      context.runtime.wagmiConfig,
+      addTeamsSimulationBlock(request, anchor.blockNumber) as never
+    );
+    if (validateSimulationResult) {
+      await validateSimulationResult(anchor, simulation.result);
+    }
+    await context.assertAnchorAndWallet(anchor);
+    const latestAnchor = await readTeamsCurrentBlockAnchor(
+      context.publicClient
+    );
+    if (assertTeamsAnchorProgression(anchor, latestAnchor)) {
+      anchor = latestAnchor;
+      continue;
+    }
+    await context.assertWalletAndChain();
+    return context.runtime.writeContract(
+      context.runtime.wagmiConfig,
+      removeTeamsSimulationBlock(simulation.request) as never
+    );
+  }
+
+  throw new TeamsWriteValidationError(
+    "The Teams chain head advanced too often to submit a validated transaction."
+  );
+}
+
+function addTeamsSimulationBlock(
+  request: unknown,
+  blockNumber: bigint
+): Record<string, unknown> {
+  if (!request || typeof request !== "object" || Array.isArray(request)) {
+    throw new TeamsWriteValidationError(
+      "The Teams transaction request is invalid."
+    );
+  }
+  return {
+    ...(request as Record<string, unknown>),
+    blockNumber,
+  };
+}
+
+function removeTeamsSimulationBlock(
+  request: unknown
+): Record<string, unknown> {
+  if (!request || typeof request !== "object" || Array.isArray(request)) {
+    throw new TeamsWriteValidationError(
+      "The Teams simulated transaction request is invalid."
+    );
+  }
+  const writeRequest = {
+    ...(request as Record<string, unknown>),
+  };
+  delete writeRequest.blockNumber;
+  delete writeRequest.blockTag;
+  return writeRequest;
+}
+
+function assertTeamsAnchorProgression(
+  previous: TeamsCurrentBlockAnchor,
+  current: TeamsCurrentBlockAnchor
+): boolean {
+  if (current.blockNumber < previous.blockNumber) {
+    throw new TeamsWriteValidationError(
+      "The latest Teams validation anchor regressed."
+    );
+  }
+  if (
+    current.blockNumber === previous.blockNumber &&
+    current.blockHash.toLowerCase() !== previous.blockHash.toLowerCase()
+  ) {
+    throw new TeamsWriteValidationError(
+      "The Teams validation anchor changed at the same block height."
+    );
+  }
+  return current.blockNumber > previous.blockNumber;
+}
+
+function assertPreparedTeamsWallet(
+  preparedWallet: PreparedTeamsWallet,
+  currentAccount: Parameters<typeof assertMainnetAccount>[0]
+): void {
+  const currentAddress = assertMainnetAccount(currentAccount);
+  if (
+    !sameAddress(currentAddress, preparedWallet.address) ||
+    currentAccount.chainId !== preparedWallet.chainId
+  ) {
+    throw new Error(
+      "The connected Teams wallet changed after this action was prepared."
+    );
+  }
 }
 
 export function mapTeamsFeedToRuntimeState(
@@ -270,8 +620,9 @@ export function mapTeamsFeedToPageData(
 ): TeamsMockDataV1 {
   const financialData = mapFinancialDataState(feed);
   const teamIds = resolveTeamIds(feed.teams);
+  const fundingBuckets = createFeedFundingBuckets(feed.fundingApprovals);
   const teams = feed.teams.map((team) =>
-    mapTeam(feed, team, teamIds, financialData)
+    mapTeam(feed, team, teamIds, financialData, fundingBuckets)
   );
   const viewer = mapViewer(feed, teams, account, options);
   const currentGlobalPeriod = feed.accountant.globalByPeriod.find(
@@ -303,14 +654,15 @@ function mapTeam(
   feed: TeamsFeed,
   team: TeamsFeedTeam,
   teamIds: Map<string, TeamId>,
-  financialData: TeamsFinancialDataState
+  financialData: TeamsFinancialDataState,
+  fundingBuckets: TeamsFundingBucketMap
 ): TeamRecord {
   const currentPeriod =
     team.periods.find((period) => period.period === feed.periods.current) ?? null;
   const financialPeriods = mapFinancialPeriods(feed, team);
   const fundingApprovals = feed.fundingApprovals
     .filter((approval) => sameAddress(approval.team, team.address))
-    .map((approval) => mapFundingApproval(feed, approval));
+    .map((approval) => mapFundingApproval(feed, approval, fundingBuckets));
   const id = teamIds.get(normalizeAddress(team.address)) ?? createTeamId(team);
 
   return {
@@ -412,16 +764,16 @@ function mapViewer(
 
 function mapRevenueOptions(feed: TeamsFeed): RevenueOption[] {
   return Object.values(feed.tokens)
-    .filter(isProducerSupportedRevenueToken)
+    .filter(isFeedRevenueOptionCandidate)
     .map((token) => {
+      const converterAddress = resolveProtocolConverterAddress(token);
       return {
         symbol: token.symbol,
         tokenAddress: token.address,
         decimals: token.decimals,
-        isConvertible:
-          token.converter !== null &&
-          normalizeAddress(token.converter) !== normalizeAddress(token.priceOracle ?? ""),
-        convertToSymbol: resolveConvertedSymbol(feed, token),
+        isConvertible: converterAddress !== null,
+        converterAddress,
+        convertToSymbol: null,
         oraclePriceUsd: null,
         previewAmount: null,
         estimatedCreditUsd: null,
@@ -434,15 +786,20 @@ function mapRevenueHistory(feed: TeamsFeed, team: TeamsFeedTeam): RevenueHistory
     .flatMap((period) =>
       period.revenueDeposits.map((deposit) => {
         const token = getFeedToken(feed, deposit.token);
+        const converterAddress = resolveProtocolConverterAddress(token);
         return {
           id: deposit.id,
           txHash: deposit.txHash,
           logIndex: deposit.logIndex,
           period: deposit.period,
           symbol: token?.symbol ?? "UNKNOWN",
-          amount: fromTokenUnits(deposit.amount, token?.decimals ?? 18, 4),
+          amount: formatTeamsRawTokenAmount(
+            deposit.amount,
+            token?.decimals ?? 18
+          ),
           creditedUsd: fromUsd(feed, deposit.revenueUsd),
-          convertedToSymbol: resolveConvertedSymbol(feed, token),
+          converterAddress,
+          convertedToSymbol: null,
           depositedBy: deposit.depositor,
           createdAt: deposit.timestamp ?? feed.generatedAt,
         };
@@ -453,10 +810,17 @@ function mapRevenueHistory(feed: TeamsFeed, team: TeamsFeedTeam): RevenueHistory
 
 function mapFundingApproval(
   feed: TeamsFeed,
-  approval: TeamsFeedFundingApproval
+  approval: TeamsFeedFundingApproval,
+  fundingBuckets: TeamsFundingBucketMap
 ): FundingApproval {
   const token = getFeedToken(feed, approval.token);
   const decimals = token?.decimals ?? 18;
+  const fundingBucket = fundingBuckets.get(getFundingBucketKey(approval));
+  if (!fundingBucket) {
+    throw new Error(
+      `Teams funding bucket is unavailable for approval ${approval.id}.`
+    );
+  }
   const claimedRaw = approval.claims.reduce(
     (sum, claim) => sum + BigInt(claim.amount),
     0n
@@ -465,18 +829,17 @@ function mapFundingApproval(
     (sum, entry) => sum + BigInt(entry.amount),
     0n
   );
+  const isReturnSelector = fundingBucket.selectorId === approval.id;
+  const outstandingCostUsd =
+    isReturnSelector
+      ? fundingBucket.claimedCostUsd > fundingBucket.refundedUsd
+        ? fundingBucket.claimedCostUsd - fundingBucket.refundedUsd
+        : 0n
+      : 0n;
   const returnableRaw =
-    claimedRaw > returnedRaw ? claimedRaw - returnedRaw : 0n;
-  const claimsCostUsd = approval.claims.reduce(
-    (sum, claim) => sum + BigInt(claim.costUsd),
-    0n
-  );
-  const refundsUsd = approval.returns.reduce(
-    (sum, entry) => sum + BigInt(entry.refundUsd),
-    0n
-  );
-  const refundableUsd =
-    claimsCostUsd > refundsUsd ? claimsCostUsd - refundsUsd : 0n;
+    isReturnSelector && fundingBucket.claimedRaw > fundingBucket.returnedRaw
+      ? fundingBucket.claimedRaw - fundingBucket.returnedRaw
+      : 0n;
 
   return {
     id: `approval-${approval.id}`,
@@ -491,23 +854,70 @@ function mapFundingApproval(
     claimedRaw: claimedRaw.toString(),
     returnedRaw: returnedRaw.toString(),
     returnableRaw: returnableRaw.toString(),
-    totalApproved: fromTokenUnits(approval.amount, decimals, 4),
-    used: fromTokenUnits(approval.used, decimals, 4),
-    claimable: fromTokenUnits(approval.claimable, decimals, 4),
-    streamDurationDays: Math.floor(approval.durationSeconds / 86_400),
+    totalApproved: formatTeamsRawTokenAmount(approval.amount, decimals),
+    used: formatTeamsRawTokenAmount(approval.used, decimals),
+    claimable: formatTeamsRawTokenAmount(approval.claimable, decimals),
+    streamDurationDays: approval.durationSeconds / 86_400,
     status: mapFundingStatus(feed, approval),
     recipient: approval.claims.at(-1)?.recipient ?? null,
     claimedCostUsd: hasCompatibleTeamsFinancialUnits(feed)
-      ? fromProtocolUsd18(refundableUsd.toString())
+      ? fromProtocolUsd18(outstandingCostUsd.toString())
       : null,
     refundValueUsd: hasCompatibleTeamsFinancialUnits(feed)
-      ? fromProtocolUsd18(refundableUsd.toString())
+      ? fromProtocolUsd18(outstandingCostUsd.toString())
       : null,
     averageClaimPriceUsd:
       hasCompatibleTeamsFinancialUnits(feed) && approval.averageCostPriceUsd
       ? fromProtocolUsd18(approval.averageCostPriceUsd)
       : null,
   };
+}
+
+type TeamsFundingBucket = {
+  selectorId: number;
+  claimedRaw: bigint;
+  returnedRaw: bigint;
+  claimedCostUsd: bigint;
+  refundedUsd: bigint;
+};
+
+type TeamsFundingBucketMap = Map<string, TeamsFundingBucket>;
+
+function createFeedFundingBuckets(
+  approvals: readonly TeamsFeedFundingApproval[]
+): TeamsFundingBucketMap {
+  const buckets: TeamsFundingBucketMap = new Map();
+  for (const approval of approvals) {
+    const key = getFundingBucketKey(approval);
+    const bucket = buckets.get(key) ?? {
+      selectorId: approval.id,
+      claimedRaw: 0n,
+      returnedRaw: 0n,
+      claimedCostUsd: 0n,
+      refundedUsd: 0n,
+    };
+    bucket.selectorId = Math.min(bucket.selectorId, approval.id);
+    for (const claim of approval.claims) {
+      bucket.claimedRaw += BigInt(claim.amount);
+      bucket.claimedCostUsd += BigInt(claim.costUsd);
+    }
+    for (const fundingReturn of approval.returns) {
+      bucket.returnedRaw += BigInt(fundingReturn.amount);
+      bucket.refundedUsd += BigInt(fundingReturn.refundUsd);
+    }
+    buckets.set(key, bucket);
+  }
+  return buckets;
+}
+
+function getFundingBucketKey(
+  approval: Pick<TeamsFeedFundingApproval, "period" | "team" | "token">
+): string {
+  return [
+    normalizeAddress(approval.team),
+    approval.period,
+    normalizeAddress(approval.token),
+  ].join(":");
 }
 
 function mapFundingReturns(
@@ -521,11 +931,12 @@ function mapFundingReturns(
     txHash: entry.txHash,
     logIndex: entry.logIndex,
     approvalId: `approval-${approval.id}`,
+    approvalIdx: approval.id,
     period: entry.period,
     symbol: token?.symbol ?? "UNKNOWN",
     decimals,
     amountRaw: entry.amount,
-    amount: fromTokenUnits(entry.amount, decimals, 4),
+    amount: formatTeamsRawTokenAmount(entry.amount, decimals),
     refundValueUsd: hasCompatibleTeamsFinancialUnits(feed)
       ? fromProtocolUsd18(entry.refundUsd)
       : null,
@@ -601,10 +1012,9 @@ function mapBonusPeriod(
     growthFactorBps: bonus.parameters?.bonusFactorBps ?? 0,
     ybcSplitBps: bonus.parameters?.ybcSplitBps ?? 0,
     claimableYfiRaw: bonus.claimableYfi,
-    claimableYfi: fromTokenUnits(
+    claimableYfi: formatTeamsRawTokenAmount(
       bonus.claimableYfi,
-      TEAMS_BONUS_TOKEN_DECIMALS,
-      4
+      TEAMS_BONUS_TOKEN_DECIMALS
     ),
   };
 }
@@ -627,7 +1037,7 @@ function mapAdmin(feed: TeamsFeed, teams: TeamRecord[]): TeamsAdminRecord {
     treasuryBucket: mapBucket(feed, 1),
     recoveryBucket: mapBucket(feed, 2),
     whitelistedRevenueTokens: Object.values(feed.tokens)
-      .filter(isProducerSupportedRevenueToken)
+      .filter(isFeedRevenueOptionCandidate)
       .map(mapRevenueTokenAdminRecord),
     fundingQueue: feed.fundingApprovals.map((approval) =>
       mapAdminFundingQueueEntry(feed, teams, approval)
@@ -666,9 +1076,12 @@ function mapBucket(feed: TeamsFeed, index: 0 | 1 | 2): BucketRecord {
       symbol: token.symbol,
       decimals: token.decimals,
     },
-    budget: fromTokenUnits(budgetRaw.toString(), token.decimals, 4),
-    used: fromTokenUnits(usedRaw.toString(), token.decimals, 4),
-    remaining: fromTokenUnits(remainingRaw.toString(), token.decimals, 4),
+    budget: formatTeamsRawTokenAmount(budgetRaw.toString(), token.decimals),
+    used: formatTeamsRawTokenAmount(usedRaw.toString(), token.decimals),
+    remaining: formatTeamsRawTokenAmount(
+      remainingRaw.toString(),
+      token.decimals
+    ),
     status:
       remainingRaw === 0n && budgetRaw > 0n
         ? "limit-reached"
@@ -699,10 +1112,13 @@ function mapAdminFundingQueueEntry(
 
   return {
     approvalId: `approval-${approval.id}`,
+    approvalIdx: approval.id,
     teamId,
     status: mapFundingStatus(feed, approval),
     requiresOperatorAttention:
-      approval.status === "claimable" && BigInt(approval.claimable) > 0n,
+      approval.period === feed.periods.current &&
+      approval.status === "claimable" &&
+      BigInt(approval.claimable) > 0n,
   };
 }
 
@@ -719,15 +1135,17 @@ function mapFundingStatus(
   feed: TeamsFeed,
   approval: TeamsFeedFundingApproval
 ): FundingApprovalStatus {
-  if (BigInt(approval.claimable) === 0n) return "fully-used";
-  if (approval.status === "fully_claimed") return "fully-used";
+  const hasUnusedAllocation =
+    BigInt(approval.amount) > BigInt(approval.used);
+  if (!hasUnusedAllocation || approval.status === "fully_claimed") {
+    return "fully-used";
+  }
+  if (approval.period < feed.periods.current) return "expired";
+  if (approval.period > feed.periods.current) return "scheduled";
   if (approval.status === "claimable" && approval.period === feed.periods.current) {
     return BigInt(approval.used) > 0n ? "partially-claimed" : "claimable-current-period";
   }
-  if (approval.status === "claimable" && approval.period < feed.periods.current) {
-    return "late-liquid";
-  }
-  return "not-current-period";
+  return "current-unavailable";
 }
 
 function mapFinancials(
@@ -820,18 +1238,21 @@ function resolveCanonicalTeamsFeedTokenAddress(
   const token = Object.values(feed.tokens).find((entry) =>
     sameAddress(entry.address, requestedAddress)
   );
-  if (!token || !isProducerSupportedRevenueToken(token)) {
+  if (!token || !hasFeedRevenueOracle(token)) {
     throw new Error("The selected revenue token is not supported by the current feed.");
   }
   return getAddress(token.address);
 }
 
-function isProducerSupportedRevenueToken(token: TeamsFeedToken) {
+function hasFeedRevenueOracle(token: TeamsFeedToken) {
   return (
-    token.kind === "revenue" &&
     token.priceOracle !== null &&
     normalizeAddress(token.priceOracle) !== ZERO_ADDRESS
   );
+}
+
+function isFeedRevenueOptionCandidate(token: TeamsFeedToken) {
+  return token.kind !== "bonus" && hasFeedRevenueOracle(token);
 }
 
 function resolveTeamsFeedFundingApproval(
@@ -851,20 +1272,6 @@ function resolveTeamsFeedFundingApproval(
   return approval;
 }
 
-function getFeedFundingReturnableRaw(
-  approval: TeamsFeedFundingApproval
-): bigint {
-  const claimedRaw = approval.claims.reduce(
-    (sum, claim) => sum + BigInt(claim.amount),
-    0n
-  );
-  const returnedRaw = approval.returns.reduce(
-    (sum, entry) => sum + BigInt(entry.amount),
-    0n
-  );
-  return claimedRaw > returnedRaw ? claimedRaw - returnedRaw : 0n;
-}
-
 function createTeamId(team: TeamsFeedTeam) {
   const slug = team.name
     .trim()
@@ -874,13 +1281,10 @@ function createTeamId(team: TeamsFeedTeam) {
   return slug || normalizeAddress(team.address);
 }
 
-function resolveConvertedSymbol(
-  feed: TeamsFeed,
+function resolveProtocolConverterAddress(
   token: TeamsFeedToken | null
 ): string | null {
-  if (!token?.converter) return null;
-  const convertedToken = getFeedToken(feed, token.converter);
-  return convertedToken?.symbol ?? null;
+  return token?.converter ?? null;
 }
 
 function getFeedToken(feed: TeamsFeed, address: string | null | undefined) {
@@ -920,10 +1324,6 @@ function fromProtocolUsd18(value: string) {
     TEAMS_PROTOCOL_USD_DECIMALS,
     2
   );
-}
-
-function fromTokenUnits(value: string, decimals: number, fractionDigits: number) {
-  return toFixedDisplay(value, decimals, fractionDigits);
 }
 
 function toFixedDisplay(value: string, decimals: number, fractionDigits: number) {

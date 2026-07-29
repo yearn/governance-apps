@@ -4,6 +4,8 @@ import feedExample from "@/docs/apps/teams/onchain-integration-plan/examples/tea
 import {
   deriveTeamsViewerForTeam,
   getTeamsDepositReadiness,
+  isTeamsFundingApprovalClaimable,
+  isTeamsFundingApprovalReturnable,
   mapTeamsFeedToPageData,
   mapTeamsFeedToRuntimeState,
   OnchainTeamsClient,
@@ -40,11 +42,92 @@ describe("Teams feed mapper", () => {
         amount: "125",
         creditedUsd: "125",
         symbol: "USDC",
+        converterAddress: null,
+        convertedToSymbol: null,
         txHash:
           "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         logIndex: 12,
       })
     );
+    expect(team.revenueOptions[0]).toMatchObject({
+      isConvertible: false,
+      converterAddress: null,
+      convertToSymbol: null,
+    });
+  });
+
+  it("treats a shared price-oracle and converter contract as a conversion route", () => {
+    const sourceToken = Object.values(feedExample.tokens).find(
+      (token) => token.symbol === "USDC"
+    )!;
+    const feed = parseFeed({
+      ...feedExample,
+      tokens: {
+        ...feedExample.tokens,
+        [sourceToken.address]: {
+          ...sourceToken,
+          converter: sourceToken.priceOracle,
+        },
+      },
+    });
+    const team = mapTeamsFeedToPageData(feed).teams[0]!;
+
+    expect(team.revenueOptions[0]).toMatchObject({
+      isConvertible: true,
+      converterAddress: sourceToken.priceOracle,
+      convertToSymbol: null,
+    });
+    expect(team.revenueHistory[0]).toMatchObject({
+      converterAddress: sourceToken.priceOracle,
+      convertedToSymbol: null,
+    });
+  });
+
+  it("keeps a null converter mapping on the direct route", () => {
+    const team = mapTeamsFeedToPageData(parseFeed(feedExample)).teams[0]!;
+
+    expect(team.revenueOptions[0]).toMatchObject({
+      isConvertible: false,
+      converterAddress: null,
+      convertToSymbol: null,
+    });
+    expect(team.revenueHistory[0]).toMatchObject({
+      converterAddress: null,
+      convertedToSymbol: null,
+    });
+  });
+
+  it("keeps a non-token converter as a contract address without inventing an output token", () => {
+    const converter = "0x7777777777777777777777777777777777777777";
+    const sourceToken = Object.values(feedExample.tokens).find(
+      (token) => token.symbol === "USDC"
+    )!;
+    const feed = parseFeed({
+      ...feedExample,
+      tokens: {
+        ...feedExample.tokens,
+        [sourceToken.address]: {
+          ...sourceToken,
+          converter,
+        },
+      },
+    });
+    const team = mapTeamsFeedToPageData(feed).teams[0]!;
+
+    expect(
+      Object.values(feed.tokens).some(
+        (token) => token.address.toLowerCase() === converter.toLowerCase()
+      )
+    ).toBe(false);
+    expect(team.revenueOptions[0]).toMatchObject({
+      isConvertible: true,
+      converterAddress: converter,
+      convertToSymbol: null,
+    });
+    expect(team.revenueHistory[0]).toMatchObject({
+      converterAddress: converter,
+      convertedToSymbol: null,
+    });
   });
 
   it("fails legacy mixed-unit financials closed without hiding nonfinancial data", () => {
@@ -248,6 +331,127 @@ describe("Teams feed mapper", () => {
     expect(bonusPeriod.ybcSplitBps).toBe(1000);
   });
 
+  it("keeps past unclaimed approvals expired and non-actionable", async () => {
+    const feed = structuredClone(feedExample) as unknown as TeamsFeed;
+    const sourceTeam = feed.teams[0]!;
+    const approval = feed.fundingApprovals[0]!;
+    approval.period = feed.periods.current - 1;
+    approval.status = "expired";
+    approval.claimable = "1";
+
+    const data = mapTeamsFeedToPageData(feed, sourceTeam.owner, {
+      walletChainId: 1,
+    });
+    const team = data.teams[0]!;
+    const mappedApproval = team.fundingApprovals[0]!;
+    const viewer = deriveTeamsViewerForTeam(
+      data.viewer,
+      team,
+      data.currentPeriod
+    );
+
+    expect(mappedApproval.status).toBe("expired");
+    expect(
+      isTeamsFundingApprovalClaimable(mappedApproval, data.currentPeriod)
+    ).toBe(false);
+    expect(viewer.canClaimFunding).toBe(false);
+
+    const client = new OnchainTeamsClient(feed, sourceTeam.owner, 1);
+    await expect(
+      client.prepareFundingClaim(
+        sourceTeam.address as Address,
+        BigInt(approval.id),
+        1n,
+        sourceTeam.owner as Address
+      )
+    ).rejects.toThrow("not claimable");
+    await expect(
+      client.prepareFundingReturn(
+        sourceTeam.address as Address,
+        BigInt(approval.id),
+        1n
+      )
+    ).rejects.toThrow("current-period");
+  });
+
+  it("keeps future approvals scheduled rather than claimable", () => {
+    const feed = structuredClone(feedExample) as unknown as TeamsFeed;
+    const approval = feed.fundingApprovals[0]!;
+    approval.period = feed.periods.current + 1;
+    approval.status = "pending";
+    approval.claimable = "0";
+
+    const mappedApproval =
+      mapTeamsFeedToPageData(feed).teams[0]!.fundingApprovals[0]!;
+
+    expect(mappedApproval.status).toBe("scheduled");
+    expect(
+      isTeamsFundingApprovalClaimable(mappedApproval, feed.periods.current)
+    ).toBe(false);
+  });
+
+  it("maps inactive current approvals as unavailable without blocking returns", () => {
+    const feed = structuredClone(feedExample) as unknown as TeamsFeed;
+    const sourceTeam = feed.teams[0]!;
+    const approval = feed.fundingApprovals[0]!;
+    sourceTeam.status = "retired";
+    approval.used = "10000000";
+    approval.claimable = "0";
+    approval.status = "inactive_team";
+    approval.claims = [
+      {
+        id: "claim-inactive-current",
+        approvalId: approval.id,
+        team: approval.team,
+        period: approval.period,
+        token: approval.token,
+        amount: "10000000",
+        costUsd: "10000000000000000000",
+        vest: null,
+        recipient: sourceTeam.owner,
+        txHash:
+          "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        blockNumber: feed.blockNumber,
+        logIndex: 3,
+        timestamp: feed.generatedAt,
+      },
+    ];
+
+    const data = mapTeamsFeedToPageData(feed, sourceTeam.owner, {
+      walletChainId: 1,
+    });
+    const team = data.teams[0]!;
+    const mappedApproval = team.fundingApprovals[0]!;
+    const viewer = deriveTeamsViewerForTeam(
+      data.viewer,
+      team,
+      data.currentPeriod
+    );
+
+    expect(mappedApproval.status).toBe("current-unavailable");
+    expect(mappedApproval.returnableRaw).toBe("10000000");
+    expect(team.fundingSummary.state).toBe("current-unavailable");
+    expect(
+      isTeamsFundingApprovalClaimable(mappedApproval, data.currentPeriod)
+    ).toBe(false);
+    expect(
+      isTeamsFundingApprovalReturnable(mappedApproval, data.currentPeriod)
+    ).toBe(true);
+    expect(viewer.canClaimFunding).toBe(false);
+    expect(viewer.canReturnFunding).toBe(true);
+  });
+
+  it("preserves sub-day funding durations for presentation", () => {
+    const feed = structuredClone(feedExample) as unknown as TeamsFeed;
+    feed.fundingApprovals[0]!.durationSeconds = 60 * 60;
+
+    const approval =
+      mapTeamsFeedToPageData(feed).teams[0]!.fundingApprovals[0]!;
+
+    expect(approval.streamDurationDays).toBeCloseTo(1 / 24);
+    expect(approval.streamDurationDays).toBeGreaterThan(0);
+  });
+
   it("derives refundable funding value from claimed cost net of returns", () => {
     const data = mapTeamsFeedToPageData(
       parseFeed({
@@ -315,7 +519,82 @@ describe("Teams feed mapper", () => {
     });
   });
 
-  it("keeps v1 raw-token writes eligible without inventing USD values", async () => {
+  it("maps one aggregate return selector across sibling approvals without double counting", () => {
+    const payload = structuredClone(feedExample) as unknown as TeamsFeed;
+    const first = payload.fundingApprovals[0]!;
+    first.used = "10";
+    first.claimable = "49999990";
+    first.averageCostPriceUsd = "1000000000000000000";
+    first.claims = [
+      {
+        id: "claim-aggregate",
+        approvalId: first.id,
+        team: first.team,
+        period: first.period,
+        token: first.token,
+        amount: "10",
+        costUsd: "10000000000000000000",
+        vest: null,
+        recipient: payload.teams[0]!.owner,
+        txHash:
+          "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        blockNumber: payload.blockNumber,
+        logIndex: 3,
+        timestamp: payload.generatedAt,
+      },
+    ];
+    const sibling = structuredClone(first);
+    sibling.id = 1;
+    sibling.used = "0";
+    sibling.claimable = sibling.amount;
+    sibling.claims = [];
+    sibling.returns = [
+      {
+        id: "return-cross-approval",
+        approvalId: sibling.id,
+        team: sibling.team,
+        period: sibling.period,
+        token: sibling.token,
+        amount: "8",
+        refundUsd: "8000000000000000000",
+        sender: payload.teams[0]!.owner,
+        txHash:
+          "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        blockNumber: payload.blockNumber,
+        logIndex: 4,
+        timestamp: payload.generatedAt,
+      },
+    ];
+    payload.fundingApprovals.push(sibling);
+    payload.teams[0]!.periods[0]!.fundingApprovalIds = [0, 1];
+    payload.events.fundingApprovalCount = 2;
+    payload.events.fundingClaimCount = 1;
+    payload.events.fundingReturnCount = 1;
+
+    const data = mapTeamsFeedToPageData(parseFeed(payload));
+    const approvals = data.teams[0]!.fundingApprovals;
+
+    expect(approvals).toHaveLength(2);
+    expect(approvals[0]).toMatchObject({
+      idx: 0,
+      claimedRaw: "10",
+      claimedCostUsd: "2",
+      returnedRaw: "0",
+      returnableRaw: "2",
+      refundValueUsd: "2",
+    });
+    expect(approvals[1]).toMatchObject({
+      idx: 1,
+      claimedRaw: "0",
+      claimedCostUsd: "0",
+      returnedRaw: "8",
+      returnableRaw: "0",
+      refundValueUsd: "0",
+    });
+    expect(data.teams[0]!.fundingSummary.refundableUsd).toBe("2.00");
+  });
+
+  it("preserves exact token dust while keeping v1 raw-token writes eligible", async () => {
     const sourceApproval = feedExample.fundingApprovals[0]!;
     const sourceTeam = feedExample.teams[0]!;
     const sourcePeriod = sourceTeam.periods[0]!;
@@ -355,6 +634,10 @@ describe("Teams feed mapper", () => {
           periods: [
             {
               ...sourcePeriod,
+              revenueDeposits: sourcePeriod.revenueDeposits.map(
+                (deposit, index) =>
+                  index === 0 ? { ...deposit, amount: "1" } : deposit
+              ),
               bonus: {
                 ...sourcePeriod.bonus!,
                 claimableYfi: "1",
@@ -382,7 +665,10 @@ describe("Teams feed mapper", () => {
     );
 
     expect(data.financialData.status).toBe("unavailable");
-    expect(approval.claimable).toBe("0");
+    expect(team.revenueHistory[0]?.amount).toBe("0.000001");
+    expect(approval.totalApproved).toBe("0.000002");
+    expect(approval.used).toBe("0.000001");
+    expect(approval.claimable).toBe("0.000001");
     expect(approval.claimableRaw).toBe("1");
     expect(approval.returnableRaw).toBe("1");
     expect(approval.claimedCostUsd).toBeNull();
@@ -391,8 +677,11 @@ describe("Teams feed mapper", () => {
       claimableUsd: null,
       refundableUsd: null,
     });
-    expect(team.bonus.totalClaimable).toBe("0");
+    expect(team.bonus.totalClaimable).toBe("0.000000000000000001");
     expect(team.bonus.totalClaimableRaw).toBe("1");
+    expect(team.bonus.periods[0]?.claimableYfi).toBe(
+      "0.000000000000000001"
+    );
     expect(viewer).toMatchObject({
       canDepositRevenue: true,
       canClaimFunding: true,
@@ -400,7 +689,7 @@ describe("Teams feed mapper", () => {
       canClaimBonus: true,
     });
 
-    const client = new OnchainTeamsClient(feed, sourceTeam.owner);
+    const client = new OnchainTeamsClient(feed, sourceTeam.owner, 1);
     await expect(
       client.prepareFundingClaim(
         sourceTeam.address as Address,
@@ -415,7 +704,7 @@ describe("Teams feed mapper", () => {
         BigInt(sourceApproval.id),
         2n
       )
-    ).rejects.toThrow("exceeds the outstanding raw balance");
+    ).resolves.toEqual(expect.any(Function));
     await expect(
       client.prepareFundingReturn(
         sourceTeam.address as Address,
@@ -481,7 +770,7 @@ describe("Teams feed mapper", () => {
     );
   });
 
-  it("exposes and accepts only producer-supported revenue tokens", async () => {
+  it("keeps revenue options curated while accepting every oracle-bound feed token", async () => {
     const fundingToken =
       "0x4444444444444444444444444444444444444444";
     const unknownToken =
@@ -524,26 +813,35 @@ describe("Teams feed mapper", () => {
       },
     });
     const team = mapTeamsFeedToPageData(feed).teams[0]!;
-    const client = new OnchainTeamsClient(feed);
+    const client = new OnchainTeamsClient(
+      feed,
+      feed.teams[0]!.owner,
+      1
+    );
 
     expect(team.revenueOptions.map((option) => option.symbol)).toEqual([
       "USDC",
+      "FUND",
+      "UNKNOWN",
     ]);
 
-    for (const token of [
-      fundingToken,
-      unknownToken,
-      revenueWithoutOracle,
-    ]) {
+    for (const token of [fundingToken, unknownToken]) {
       await expect(
         client.prepareRevenueDeposit(
           team.address as Address,
           token as Address,
           1n
         )
-      ).rejects.toThrow(
+      ).resolves.toEqual(expect.any(Function));
+    }
+    await expect(
+      client.prepareRevenueDeposit(
+        team.address as Address,
+        revenueWithoutOracle as Address,
+        1n
+      )
+    ).rejects.toThrow(
         "The selected revenue token is not supported by the current feed."
       );
-    }
   });
 });
