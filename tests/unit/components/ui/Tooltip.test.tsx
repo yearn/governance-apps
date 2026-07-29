@@ -57,4 +57,63 @@ describe("Tooltip", () => {
 
     expect(tooltip.className).toContain("pointer-events-none");
   });
+
+  it("can align an edge tooltip within a viewport-width constraint", () => {
+    render(
+      <Tooltip content="Tooltip body" align="end">
+        <button type="button">Trigger</button>
+      </Tooltip>
+    );
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toHaveClass("right-0");
+    expect(tooltip).not.toHaveClass("left-1/2", "-translate-x-1/2");
+    expect(tooltip.className).toContain(
+      "max-w-[min(280px,calc(100vw-2rem))]"
+    );
+  });
+
+  it("associates a direct trigger with the tooltip content", () => {
+    render(
+      <Tooltip content="Supplementary math">
+        <button type="button">Math inputs</button>
+      </Tooltip>
+    );
+
+    const trigger = screen.getByRole("button", { name: "Math inputs" });
+    const tooltip = screen.getByRole("tooltip");
+
+    expect(tooltip.id).not.toBe("");
+    expect(trigger).toHaveAttribute("aria-describedby", tooltip.id);
+    expect(trigger).toHaveAccessibleDescription("Supplementary math");
+  });
+
+  it("preserves existing aria-describedby ids when associating the tooltip", () => {
+    render(
+      <>
+        <p id="persistent-help">Persistent help</p>
+        <p id="validation-help">Validation help</p>
+        <Tooltip content="Supplementary help">
+          <button
+            type="button"
+            aria-describedby="persistent-help validation-help"
+          >
+            Trigger
+          </button>
+        </Tooltip>
+      </>
+    );
+
+    const trigger = screen.getByRole("button", { name: "Trigger" });
+    const tooltip = screen.getByRole("tooltip");
+    const describedBy = trigger
+      .getAttribute("aria-describedby")
+      ?.split(/\s+/);
+
+    expect(describedBy).toEqual([
+      "persistent-help",
+      "validation-help",
+      tooltip.id,
+    ]);
+  });
 });

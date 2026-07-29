@@ -48,27 +48,29 @@ describe("LlyfiInfoTab", () => {
     expect(screen.getByText("Global Redemption Facility")).toBeInTheDocument();
 
     expect(
-      screen.getByRole("link", { name: "0x1111...1111" }),
+      screen.getByRole("link", {
+        name: `View Ethereum address ${TOKEN.address} on Etherscan`,
+      }),
     ).toHaveAttribute(
       "href",
       "https://etherscan.io/address/0x1111111111111111111111111111111111111111",
     );
     expect(
-      screen.getByRole("link", { name: "0x2222...2222" }),
+      screen.getByRole("link", {
+        name: `View Ethereum address ${TOKEN.depositorAddress} on Etherscan`,
+      }),
     ).toHaveAttribute(
       "href",
       "https://etherscan.io/address/0x2222222222222222222222222222222222222222",
     );
     expect(
       screen.getByRole("link", {
-        name: new RegExp(
-          `${LIQUID_LOCKER_REDEMPTION_ADDRESS.slice(0, 6)}\\.\\.\\.${LIQUID_LOCKER_REDEMPTION_ADDRESS.slice(-4)}`,
-          "i",
-        ),
+        name: `View Ethereum address ${LIQUID_LOCKER_REDEMPTION_ADDRESS} on Etherscan`,
       }),
     ).toHaveAttribute(
       "href",
       `https://etherscan.io/address/${LIQUID_LOCKER_REDEMPTION_ADDRESS}`,
     );
+
   });
 });

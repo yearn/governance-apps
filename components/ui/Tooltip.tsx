@@ -7,6 +7,7 @@ type TooltipProps = {
   content: React.ReactNode;
   children: React.ReactNode;
   side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
   className?: string;
 };
 
@@ -14,8 +15,10 @@ export function Tooltip({
   content,
   children,
   side = "top",
+  align = "center",
   className,
 }: TooltipProps) {
+  const tooltipId = React.useId();
   const [open, setOpen] = React.useState(false);
   const closeTimeoutRef = React.useRef<number | null>(null);
 
@@ -45,18 +48,36 @@ export function Tooltip({
     };
   }, [clearCloseTimeout]);
 
-  // Position logic:
-  // - "bottom-full" anchors the bottom of the tooltip to the top of the trigger.
-  // - "mb-2" adds a gap so it doesn't touch.
-  // - "left-1/2 -translate-x-1/2" centers it horizontally.
+  const verticalAlignClasses =
+    align === "start"
+      ? "left-0"
+      : align === "end"
+        ? "right-0"
+        : "left-1/2 -translate-x-1/2";
+  const horizontalAlignClasses =
+    align === "start"
+      ? "top-0"
+      : align === "end"
+        ? "bottom-0"
+        : "top-1/2 -translate-y-1/2";
   const sideClasses =
     side === "top"
-      ? "bottom-full left-1/2 -translate-x-1/2 mb-2"
+      ? `bottom-full mb-2 ${verticalAlignClasses}`
       : side === "bottom"
-      ? "top-full left-1/2 -translate-x-1/2 mt-2"
-      : side === "left"
-      ? "right-full top-1/2 -translate-y-1/2 mr-2"
-      : "left-full top-1/2 -translate-y-1/2 ml-2";
+        ? `top-full mt-2 ${verticalAlignClasses}`
+        : side === "left"
+          ? `right-full mr-2 ${horizontalAlignClasses}`
+          : `left-full ml-2 ${horizontalAlignClasses}`;
+  const trigger =
+    React.isValidElement<{ "aria-describedby"?: string }>(children) &&
+    children.type !== React.Fragment
+      ? React.cloneElement(children, {
+          "aria-describedby": mergeAriaDescribedBy(
+            children.props["aria-describedby"],
+            tooltipId
+          ),
+        })
+      : children;
 
   return (
     <span
@@ -66,14 +87,15 @@ export function Tooltip({
       onFocus={showTooltip}
       onBlur={scheduleHideTooltip}
     >
-      {children}
+      {trigger}
       <span
+        id={tooltipId}
         role="tooltip"
         onMouseEnter={showTooltip}
         onMouseLeave={scheduleHideTooltip}
         className={cn(
           // Layout
-          "absolute z-50 w-max max-w-[280px]", // Increased max-width for tables
+          "absolute z-50 w-max max-w-[min(280px,calc(100vw-2rem))]",
           sideClasses,
 
           // Visuals (Pop-over Card style)
@@ -93,4 +115,12 @@ export function Tooltip({
       </span>
     </span>
   );
+}
+
+function mergeAriaDescribedBy(
+  existingIds: string | undefined,
+  tooltipId: string
+) {
+  const ids = existingIds?.trim().split(/\s+/).filter(Boolean) ?? [];
+  return Array.from(new Set([...ids, tooltipId])).join(" ");
 }

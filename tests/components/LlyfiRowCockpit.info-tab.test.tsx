@@ -64,13 +64,17 @@ describe("LlyfiRowCockpit info tab", () => {
     expect(screen.getByText("sdYFI Token")).toBeInTheDocument();
     expect(screen.getByText("Depositor Contract")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "0x1111...1111" }),
+      screen.getByRole("link", {
+        name: `View Ethereum address ${TOKEN.address} on Etherscan`,
+      }),
     ).toHaveAttribute(
       "href",
       "https://etherscan.io/address/0x1111111111111111111111111111111111111111",
     );
     expect(
-      screen.getByRole("link", { name: "0x2222...2222" }),
+      screen.getByRole("link", {
+        name: `View Ethereum address ${TOKEN.depositorAddress} on Etherscan`,
+      }),
     ).toHaveAttribute(
       "href",
       "https://etherscan.io/address/0x2222222222222222222222222222222222222222",

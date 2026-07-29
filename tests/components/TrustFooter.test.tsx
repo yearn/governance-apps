@@ -52,11 +52,11 @@ describe("TrustFooter", () => {
     expect(screen.getByText("PPS (ETH/share)")).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
-        name: /0x1111\.\.\.1111/i,
-      })
+        name: `View Ethereum address ${mockGlobal.contracts.claimContract} on Etherscan`,
+      }),
     ).toHaveAttribute(
       "href",
-      "https://etherscan.io/address/0x1111111111111111111111111111111111111111"
+      "https://etherscan.io/address/0x1111111111111111111111111111111111111111",
     );
 
     const contractsList = screen.getByText("Claim Contract").closest("ul");

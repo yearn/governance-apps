@@ -4,16 +4,18 @@ import { ContractsFooter } from "@/components/domain/ContractsFooter";
 
 describe("ContractsFooter", () => {
   it("renders contract labels and etherscan links", () => {
+    const firstAddress = "0x1111111111111111111111111111111111111111";
+    const secondAddress = "0x2222222222222222222222222222222222222222";
     render(
       <ContractsFooter
         contracts={[
           {
             label: "Legacy veYFI",
-            address: "0x1111111111111111111111111111111111111111",
+            address: firstAddress,
           },
           {
             label: "Global Redemption Facility",
-            address: "0x2222222222222222222222222222222222222222",
+            address: secondAddress,
           },
         ]}
       />,
@@ -24,16 +26,21 @@ describe("ContractsFooter", () => {
     expect(screen.getByText("Global Redemption Facility")).toBeInTheDocument();
 
     expect(
-      screen.getByRole("link", { name: "0x1111...1111" }),
+      screen.getByRole("link", {
+        name: `View Ethereum address ${firstAddress} on Etherscan`,
+      }),
     ).toHaveAttribute(
       "href",
-      "https://etherscan.io/address/0x1111111111111111111111111111111111111111",
+      `https://etherscan.io/address/${firstAddress}`,
     );
     expect(
-      screen.getByRole("link", { name: "0x2222...2222" }),
+      screen.getByRole("link", {
+        name: `View Ethereum address ${secondAddress} on Etherscan`,
+      }),
     ).toHaveAttribute(
       "href",
-      "https://etherscan.io/address/0x2222222222222222222222222222222222222222",
+      `https://etherscan.io/address/${secondAddress}`,
     );
+
   });
 });

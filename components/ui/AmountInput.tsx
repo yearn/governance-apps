@@ -33,10 +33,10 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
     const inputName = name ?? inputId;
 
     return (
-      <div className="w-full">
+      <div className="min-w-0 w-full">
         <div
           className={cn(
-            "relative flex items-center rounded-box border bg-surface-secondary transition-colors",
+            "relative flex min-w-0 items-center rounded-box border bg-surface-secondary transition-colors",
             error
               ? "border-red-500"
               : "border-transparent focus-within:border-text-primary",
@@ -60,13 +60,13 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
               }
             }}
             className={cn(
-              "w-full bg-transparent p-4 text-2xl font-bold outline-none font-number placeholder:text-text-tertiary",
+              "min-w-0 w-full bg-transparent p-4 text-2xl font-bold outline-none font-number placeholder:text-text-tertiary",
               disabled && "cursor-not-allowed"
             )}
             {...props}
           />
 
-          <div className="flex items-center gap-2 pr-4 shrink-0">
+          <div className="flex max-w-[45%] shrink-0 items-center gap-2 pr-4">
             {onMaxClick && (
               <button
                 type="button"
@@ -79,7 +79,10 @@ export const AmountInput = React.forwardRef<HTMLInputElement, AmountInputProps>(
             )}
 
             {tokenSymbol && (
-              <span className="text-sm font-bold text-text-primary select-none">
+              <span
+                className="max-w-full truncate whitespace-nowrap text-right text-sm font-bold text-text-primary select-none"
+                title={tokenSymbol}
+              >
                 {tokenSymbol}
               </span>
             )}
