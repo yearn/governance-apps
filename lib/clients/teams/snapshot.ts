@@ -9,7 +9,7 @@ import {
 import {
   verifyTeamsSnapshotBlock,
   type TeamsVerifiedBlock,
-} from "./freshness";
+} from "./canonical-block";
 
 export const TEAMS_SNAPSHOT_MAX_REORG_ROLLBACK_BLOCKS = 2n;
 

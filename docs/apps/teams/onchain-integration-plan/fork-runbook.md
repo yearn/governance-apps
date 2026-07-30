@@ -41,7 +41,7 @@ Validate at minimum:
 
 - directory reads load from `teams.json`
 - workspace reads load from `teams.json`
-- feed freshness and snapshot block metadata are visible in diagnostics or logs
+- feed age and snapshot block metadata are visible in diagnostics or logs
 - live/saved feed rendering remains coherent before and after fork writes
 - revenue deposit preview and deposit path
 - funding claim path
@@ -86,7 +86,7 @@ Capture:
 Exercise and record:
 
 - wrong-network write guard
-- missing or stale `teams.json`
+- missing or invalid `teams.json`, while an old canonical snapshot remains usable
 - missing approval / revert surface
 - not-current-period funding claim
 - no-bonus-available state

@@ -20,11 +20,9 @@ import type {
 } from "@/lib/clients/ybc";
 import {
   createMockYbcClient,
-  getYbcSnapshotFreshness,
   mapYbcFeedToPageState,
   readYbcCanonicalSnapshot,
   readYbcWalletOverlay,
-  YBC_SNAPSHOT_MAX_AGE_SECONDS,
 } from "@/lib/clients/ybc";
 import type { YbcFeed } from "@/lib/schemas/ybc-feed";
 import { useYbcData } from "@/lib/hooks/useYbcData";
@@ -117,6 +115,7 @@ export type UseYbcMockStateResult = UseYbcStateBase &
     backend: "mock";
     data: YbcMockDataV1;
     feed: null;
+    writeFeed: null;
   };
 
 export type UseYbcFeedStateResult = UseYbcStateBase &
@@ -124,6 +123,7 @@ export type UseYbcFeedStateResult = UseYbcStateBase &
     backend: "feed";
     data: YbcMockDataV1 | null;
     feed: YbcFeed | null;
+    writeFeed: YbcFeed | null;
   };
 
 export type UseYbcStateResult =
@@ -142,47 +142,6 @@ function sleep(latencyMs: number) {
   });
 }
 
-export function useYbcSnapshotFreshness(
-  blockTimestamp: number | null,
-  verifiedAtSeconds: number | null,
-  enabled = true
-) {
-  const [timerNowSeconds, setTimerNowSeconds] = useState(0);
-  const effectiveNowSeconds = Math.max(
-    timerNowSeconds,
-    verifiedAtSeconds ?? 0
-  );
-
-  useEffect(() => {
-    if (
-      !enabled ||
-      blockTimestamp === null ||
-      verifiedAtSeconds === null
-    ) {
-      return;
-    }
-
-    const expiresAtSeconds =
-      blockTimestamp + YBC_SNAPSHOT_MAX_AGE_SECONDS + 1;
-    const delayMs = Math.max(0, expiresAtSeconds * 1_000 - Date.now());
-    const expiryTimer = window.setTimeout(() => {
-      setTimerNowSeconds((current) =>
-        Math.max(
-          current,
-          verifiedAtSeconds,
-          Math.floor(Date.now() / 1_000)
-        )
-      );
-    }, Math.min(delayMs, 2_147_483_647));
-
-    return () => {
-      window.clearTimeout(expiryTimer);
-    };
-  }, [blockTimestamp, enabled, verifiedAtSeconds]);
-
-  return getYbcSnapshotFreshness(blockTimestamp, effectiveNowSeconds);
-}
-
 export function useYbcState(
   options: UseYbcStateOptions = {}
 ): UseYbcStateResult {
@@ -196,17 +155,11 @@ export function useYbcState(
     feed: ybcFeed.data ?? null,
     publicClient: mainnetPublicClient,
   });
-  const snapshotFreshness = useYbcSnapshotFreshness(
-    canonicalSnapshot.data?.blockTimestamp ?? null,
-    canonicalSnapshot.data?.verifiedAtSeconds ?? null,
-    !usesMockBackend
-  );
   const walletOverlay = useYbcWalletOverlay({
     account: address ?? null,
     enabled:
       !usesMockBackend &&
       isConnected &&
-      snapshotFreshness.isCurrent &&
       Boolean(canonicalSnapshot.data) &&
       Boolean(mainnetPublicClient) &&
       Boolean(ybcFeed.data),
@@ -239,11 +192,9 @@ export function useYbcState(
       walletOverlay.isFetchedAfterMount &&
       !walletOverlay.isError);
   const actionStateTrusted =
-    snapshotFreshness.isCurrent &&
     Boolean(canonicalSnapshot.data) &&
     canonicalSnapshot.isFetchedAfterMount &&
     !canonicalSnapshot.isError &&
-    !ybcFeed.isError &&
     walletOverlayTrusted;
   const feedPageState = useMemo(() => {
     if (
@@ -363,12 +314,9 @@ export function useYbcState(
   ]);
 
   if (!usesMockBackend) {
-    const readStatus =
-      feedPageState && !actionStateTrusted ? "stale" : "current";
     const canRefetchWalletOverlay =
       isConnected &&
       Boolean(mainnetPublicClient) &&
-      snapshotFreshness.isCurrent &&
       Boolean(canonicalSnapshot.data);
     const warning = feedPageState
       ? getYbcReadWarning({
@@ -376,13 +324,14 @@ export function useYbcState(
             ? canonicalSnapshot.error
             : null,
           feedError: ybcFeed.isError ? ybcFeed.error : null,
-          snapshotFreshness,
           isConnected,
           publicClientAvailable: Boolean(mainnetPublicClient),
           walletOverlayError: walletOverlay.error,
           walletOverlayTrusted,
         })
       : null;
+    const readStatus =
+      feedPageState && warning ? "stale" : "current";
 
     return {
       backend: "feed",
@@ -391,6 +340,8 @@ export function useYbcState(
       error: feedError,
       executeProposal: undefined,
       feed: ybcFeed.data ?? null,
+      writeFeed:
+        actionStateTrusted && ybcFeed.data ? ybcFeed.data : null,
       isError: feedError !== null,
       isLoading:
         ybcFeed.isLoading ||
@@ -446,6 +397,7 @@ export function useYbcState(
     error,
     executeProposal: executeYbcProposal,
     feed: null,
+    writeFeed: null,
     isError: error !== null,
     isLoading: isBootstrapping || runtime.loading,
     isRefreshing: false,
@@ -507,7 +459,6 @@ export function isCompleteYbcWalletOverlay(
 function getYbcReadWarning({
   canonicalSnapshotError,
   feedError,
-  snapshotFreshness,
   isConnected,
   publicClientAvailable,
   walletOverlayError,
@@ -515,7 +466,6 @@ function getYbcReadWarning({
 }: {
   canonicalSnapshotError: unknown;
   feedError: unknown;
-  snapshotFreshness: ReturnType<typeof getYbcSnapshotFreshness>;
   isConnected: boolean;
   publicClientAvailable: boolean;
   walletOverlayError: unknown;
@@ -531,7 +481,6 @@ function getYbcReadWarning({
       "The YBC snapshot could not be verified on Ethereum Mainnet."
     );
   }
-  if (!snapshotFreshness.isCurrent) return snapshotFreshness.warning;
   if (!isConnected || walletOverlayTrusted) return null;
   if (!publicClientAvailable) {
     return new Error(
@@ -605,8 +554,3 @@ function useYbcWalletOverlay({
 export type { YbcRuntimeSnapshot };
 export type { YbcVoteChoice };
 export type { YbcProposalPhase, YbcProposalType };
-export {
-  getYbcSnapshotFreshness,
-  YBC_SNAPSHOT_MAX_AGE_SECONDS,
-  YBC_SNAPSHOT_MAX_FUTURE_SKEW_SECONDS,
-} from "@/lib/clients/ybc/freshness";

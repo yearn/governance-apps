@@ -2,12 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import feedExample from "@/docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json";
 import {
   assertTeamsSnapshotTransition,
-  getTeamsSnapshotTrust,
   readTeamsCanonicalSnapshot,
   TEAMS_MAINNET_DEPLOYMENT,
-  TEAMS_SNAPSHOT_MAX_AGE_SECONDS,
   TEAMS_SNAPSHOT_MAX_REORG_ROLLBACK_BLOCKS,
-  TEAMS_SNAPSHOT_MAX_TIP_LAG_BLOCKS,
   type TeamsCanonicalSnapshot,
 } from "@/lib/clients/teams";
 import { TeamsFeedSchema, type TeamsFeed } from "@/lib/schemas/teams-feed";
@@ -167,88 +164,36 @@ describe("Teams canonical snapshot authority", () => {
     ).rejects.toThrow("not canonical");
   });
 
-  it("accepts canonical historical data but pauses actions by block time and tip lag", async () => {
+  it("accepts canonical historical data without age or tip-lag cutoffs", async () => {
     const feed = createFeed({
       generatedAt: NOW_SECONDS + 86_400,
     });
-    const staleBlock = createPublicClient({
-      blockTimestamp: BigInt(
-        NOW_SECONDS - TEAMS_SNAPSHOT_MAX_AGE_SECONDS - 1
-      ),
-    });
-    const staleSnapshot = await readTeamsCanonicalSnapshot(
-      staleBlock as never,
-      feed,
-      null
-    );
-    expect(
-      getTeamsSnapshotTrust(staleSnapshot, NOW_SECONDS)
-    ).toMatchObject({
-      isCurrent: false,
-      warning: expect.objectContaining({
-        message: expect.stringContaining("older than twenty minutes"),
-      }),
+    const historicalBlock = createPublicClient({
+      blockTimestamp: BigInt(NOW_SECONDS - 86_400),
+      tipBlockNumber: BigInt(feed.blockNumber) + 10_000n,
     });
 
-    const laggedTip = createPublicClient({
-      tipBlockNumber:
-        BigInt(feed.blockNumber) +
-        TEAMS_SNAPSHOT_MAX_TIP_LAG_BLOCKS +
-        1n,
-    });
-    const laggedSnapshot = await readTeamsCanonicalSnapshot(
-      laggedTip as never,
-      createFeed(),
-      null
-    );
-    expect(
-      getTeamsSnapshotTrust(laggedSnapshot, NOW_SECONDS)
-    ).toMatchObject({
-      isCurrent: false,
-      warning: expect.objectContaining({
-        message: expect.stringContaining("too far behind"),
-      }),
-    });
-
-    const freshBlock = createPublicClient();
     await expect(
       readTeamsCanonicalSnapshot(
-        freshBlock as never,
+        historicalBlock as never,
         feed,
         null
       )
-    ).resolves.toBeDefined();
+    ).resolves.toMatchObject({
+      blockTimestamp: NOW_SECONDS - 86_400,
+      tipBlockNumber: BigInt(feed.blockNumber) + 10_000n,
+    });
   });
 
-  it("keeps the 20-minute and 128-block action boundaries inclusive", () => {
-    const atBoundary = {
-      ...createSnapshot(100n, feedExample.blockHash),
-      blockTimestamp: NOW_SECONDS - TEAMS_SNAPSHOT_MAX_AGE_SECONDS,
-      tipBlockNumber: 100n + TEAMS_SNAPSHOT_MAX_TIP_LAG_BLOCKS,
-    };
-    expect(getTeamsSnapshotTrust(atBoundary, NOW_SECONDS)).toEqual({
-      isCurrent: true,
-      warning: null,
+  it("rejects an RPC tip behind the feed block", async () => {
+    const feed = createFeed();
+    const behindTip = createPublicClient({
+      tipBlockNumber: BigInt(feed.blockNumber) - 1n,
     });
 
-    expect(
-      getTeamsSnapshotTrust(
-        {
-          ...atBoundary,
-          blockTimestamp: atBoundary.blockTimestamp - 1,
-        },
-        NOW_SECONDS
-      ).isCurrent
-    ).toBe(false);
-    expect(
-      getTeamsSnapshotTrust(
-        {
-          ...atBoundary,
-          tipBlockNumber: atBoundary.tipBlockNumber + 1n,
-        },
-        NOW_SECONDS
-      ).isCurrent
-    ).toBe(false);
+    await expect(
+      readTeamsCanonicalSnapshot(behindTip as never, feed, null)
+    ).rejects.toThrow(/RPC tip is behind/i);
   });
 
   it("rejects mismatched canonical registry roots and team count", async () => {

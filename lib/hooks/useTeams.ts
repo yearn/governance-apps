@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Hash, PublicClient } from "viem";
 import { useAccount } from "wagmi";
 import {
   assertTeamsSnapshotTransition,
-  getTeamsSnapshotTrust,
   mapTeamsFeedToRuntimeState,
   readTeamsCanonicalSnapshot,
-  TEAMS_SNAPSHOT_MAX_AGE_SECONDS,
   type TeamsCanonicalSnapshot,
 } from "@/lib/clients/teams";
 import { createMockTeamsClient } from "@/lib/clients/teams/mock";
@@ -61,22 +59,16 @@ type TeamsRuntimeState = Awaited<ReturnType<typeof teamsClient.getPageState>> & 
 };
 
 type AcceptedTeamsFeed = {
-  acceptedAtSeconds: number;
   activationId: number;
   authorityFingerprint: Hash;
   feed: TeamsFeed;
   snapshot: TeamsCanonicalSnapshot;
 };
 
-type TeamsCanonicalVerification = {
-  snapshot: TeamsCanonicalSnapshot;
-  verifiedAtSeconds: number;
-};
-
 type TeamsAcceptanceState = {
   acceptedFeed: AcceptedTeamsFeed | null;
   evaluatedFeed: TeamsFeed | null;
-  evaluatedVerification: TeamsCanonicalVerification | null;
+  evaluatedSnapshot: TeamsCanonicalSnapshot | null;
   transitionError: Error | null;
 };
 
@@ -124,7 +116,7 @@ export function useTeamsState() {
     useState<TeamsAcceptanceState>({
       acceptedFeed: null,
       evaluatedFeed: null,
-      evaluatedVerification: null,
+      evaluatedSnapshot: null,
       transitionError: null,
     });
   const { acceptedFeed, transitionError } = acceptanceState;
@@ -138,11 +130,6 @@ export function useTeamsState() {
     previousSnapshot: acceptedFeed?.snapshot ?? null,
     publicClient: mainnetPublicClient,
   });
-  const snapshotFreshness = useTeamsSnapshotFreshness(
-    acceptedFeed?.snapshot ?? null,
-    acceptedFeed?.acceptedAtSeconds ?? null,
-    !usesMockBackend
-  );
   const mockQuery = useQuery({
     queryKey: teamsKeys.pageState(),
     queryFn: async (): Promise<TeamsRuntimeState> => ({
@@ -162,19 +149,18 @@ export function useTeamsState() {
     latestActivationId !== null &&
     latestAuthorityFingerprint &&
     nextVerification &&
-    snapshotMatchesFeed(nextVerification.snapshot, nextFeed) &&
+    snapshotMatchesFeed(nextVerification, nextFeed) &&
     (acceptanceState.evaluatedFeed !== nextFeed ||
-      acceptanceState.evaluatedVerification !== nextVerification)
+      acceptanceState.evaluatedSnapshot !== nextVerification)
   ) {
     setAcceptanceState(
       transitionTeamsAcceptance(
         acceptanceState,
         {
-          acceptedAtSeconds: nextVerification.verifiedAtSeconds,
           activationId: latestActivationId,
           authorityFingerprint: latestAuthorityFingerprint,
           feed: nextFeed,
-          snapshot: nextVerification.snapshot,
+          snapshot: nextVerification,
         },
         nextVerification
       )
@@ -186,7 +172,7 @@ export function useTeamsState() {
     canonicalSnapshot.data !== undefined &&
     canonicalSnapshot.isFetchedAfterMount &&
     snapshotMatchesFeed(
-      canonicalSnapshot.data.snapshot,
+      canonicalSnapshot.data,
       latestFeed
     );
   const actionStateTrusted =
@@ -194,10 +180,8 @@ export function useTeamsState() {
     acceptedFeed !== null &&
     latestFeedVerified &&
     acceptedFeed.activationId === latestActivationId &&
-    !teamsFeed.isError &&
     !canonicalSnapshot.isError &&
-    !transitionError &&
-    snapshotFreshness.isCurrent;
+    !transitionError;
   const feedRuntime = useMemo<TeamsRuntimeState | null>(() => {
     if (usesMockBackend || !acceptedFeed) return null;
     return {
@@ -245,14 +229,13 @@ export function useTeamsState() {
         feedError: teamsFeed.isError ? teamsFeed.error : null,
         latestFeedVerified,
         publicClientAvailable: Boolean(mainnetPublicClient),
-        snapshotFreshness,
         transitionError,
       })
     : null;
   const readStatus = feedRuntime
-    ? actionStateTrusted
-      ? ("current" as const)
-      : ("stale" as const)
+    ? warning
+      ? ("stale" as const)
+      : ("current" as const)
     : feedError
       ? ("unavailable" as const)
       : ("current" as const);
@@ -288,48 +271,6 @@ export function useTeamsState() {
   };
 }
 
-export function useTeamsSnapshotFreshness(
-  snapshot: TeamsCanonicalSnapshot | null,
-  acceptedAtSeconds: number | null,
-  enabled = true
-) {
-  const [scheduledNowSeconds, setScheduledNowSeconds] =
-    useState<number | null>(null);
-
-  useEffect(() => {
-    if (
-      !enabled ||
-      snapshot === null ||
-      acceptedAtSeconds === null
-    ) {
-      return;
-    }
-
-    const expiresAtSeconds =
-      snapshot.blockTimestamp + TEAMS_SNAPSHOT_MAX_AGE_SECONDS + 1;
-    const nowSeconds = Math.floor(Date.now() / 1_000);
-    const delayMs = Math.max(
-      0,
-      (expiresAtSeconds - nowSeconds) * 1_000
-    );
-    const expiryTimer = window.setTimeout(() => {
-      setScheduledNowSeconds(Math.floor(Date.now() / 1_000));
-    }, Math.min(delayMs, 2_147_483_647));
-
-    return () => {
-      window.clearTimeout(expiryTimer);
-    };
-  }, [acceptedAtSeconds, enabled, snapshot]);
-
-  return getTeamsSnapshotTrust(
-    snapshot,
-    Math.max(
-      scheduledNowSeconds ?? acceptedAtSeconds ?? 0,
-      acceptedAtSeconds ?? 0
-    )
-  );
-}
-
 function useTeamsCanonicalSnapshot({
   activationId,
   authorityFingerprint,
@@ -358,19 +299,15 @@ function useTeamsCanonicalSnapshot({
       activationId,
       transitionAuthority
     ),
-    queryFn: async (): Promise<TeamsCanonicalVerification> => {
+    queryFn: async (): Promise<TeamsCanonicalSnapshot> => {
       if (!publicClient || !feed) {
         throw new Error("Teams snapshot verification is unavailable.");
       }
-      const snapshot = await readTeamsCanonicalSnapshot(
+      return readTeamsCanonicalSnapshot(
         publicClient,
         feed,
         previousSnapshot
       );
-      return {
-        snapshot,
-        verifiedAtSeconds: Math.floor(Date.now() / 1_000),
-      };
     },
     enabled:
       enabled && Boolean(publicClient && feed && activationId),
@@ -397,7 +334,7 @@ function getTeamsTransitionAuthority(
 function transitionTeamsAcceptance(
   current: TeamsAcceptanceState,
   next: AcceptedTeamsFeed,
-  evaluatedVerification: TeamsCanonicalVerification
+  evaluatedSnapshot: TeamsCanonicalSnapshot
 ): TeamsAcceptanceState {
   let transitionError: Error | null = null;
   try {
@@ -417,7 +354,7 @@ function transitionTeamsAcceptance(
       ? current.acceptedFeed
       : next,
     evaluatedFeed: next.feed,
-    evaluatedVerification,
+    evaluatedSnapshot,
     transitionError,
   };
 }
@@ -474,14 +411,12 @@ function getTeamsReadWarning({
   feedError,
   latestFeedVerified,
   publicClientAvailable,
-  snapshotFreshness,
   transitionError,
 }: {
   canonicalSnapshotError: unknown;
   feedError: unknown;
   latestFeedVerified: boolean;
   publicClientAvailable: boolean;
-  snapshotFreshness: ReturnType<typeof getTeamsSnapshotTrust>;
   transitionError: Error | null;
 }): Error | null {
   if (feedError instanceof Error) return feedError;
@@ -500,7 +435,6 @@ function getTeamsReadWarning({
     );
   }
   if (transitionError) return transitionError;
-  if (!snapshotFreshness.isCurrent) return snapshotFreshness.warning;
   if (!latestFeedVerified) {
     return new Error(
       "The latest Teams feed is still awaiting canonical verification. Actions are paused."

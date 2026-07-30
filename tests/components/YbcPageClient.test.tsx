@@ -89,7 +89,7 @@ describe("YbcPageClient", () => {
     expect(screen.getByText("fixture load failed")).toBeInTheDocument();
   });
 
-  it("renders a semantic stale-snapshot notice with retry", () => {
+  it("renders a compact feed warning with retry", () => {
     const lastUpdatedAt = 1_785_000_000;
     const onRetry = vi.fn();
     const { container } = render(
@@ -101,8 +101,6 @@ describe("YbcPageClient", () => {
       />
     );
 
-    expect(screen.getByText(ybcCopy.page.staleTitle)).toBeInTheDocument();
-    expect(screen.getByText(ybcCopy.page.staleBody)).toBeInTheDocument();
     expect(
       screen.getByText("Snapshot verification failed.")
     ).toBeInTheDocument();

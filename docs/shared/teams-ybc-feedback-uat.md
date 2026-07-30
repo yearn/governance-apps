@@ -39,8 +39,10 @@ Use this checklist for the reported Teams and YBC fixes. Transaction tests also 
 ### Revenue, funding, and bonus
 
 - [ ] A disconnected user can connect; a non-Mainnet user can switch networks.
-- [ ] If refresh or freshness verification fails, the last accepted snapshot may remain
-  visible; actions stay disabled and the rejected payload does not replace it.
+- [ ] An old but canonical snapshot remains visible with its last-updated time and does
+  not disable actions solely because of age or tip distance.
+- [ ] A refresh failure keeps the last accepted snapshot visible with a compact warning;
+  canonical or live-state verification failures still disable affected actions.
 - [ ] DAI, USDC, and other token symbols stay on one line in choices and amount inputs.
 - [ ] Converter routes show the converter contract and never invent an output token.
 - [ ] Direct routes remain labelled direct.
@@ -73,8 +75,10 @@ Use this checklist for the reported Teams and YBC fixes. Transaction tests also 
   correct Mainnet Etherscan page.
 - [ ] Proposal, reward, operator, and last-updated dates render in UTC.
 - [ ] Proposal actions appear only for the connected wallet's current verified state.
-- [ ] If refresh or freshness verification fails, the last accepted snapshot may remain
-  visible; actions stay disabled and the rejected payload does not replace it.
+- [ ] An old but canonical snapshot remains visible with its last-updated time and does
+  not disable actions solely because of age or tip distance.
+- [ ] A refresh failure keeps the last accepted snapshot visible with a compact warning;
+  canonical or live proposal-state verification failures still disable affected actions.
 - [ ] Reward claims continue to the shared stYFI rewards route.
 
 ## Responsive and cross-app checks

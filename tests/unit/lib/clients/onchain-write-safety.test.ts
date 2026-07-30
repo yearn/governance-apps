@@ -11,7 +11,6 @@ import { OnchainTeamsClient } from "@/lib/clients/teams/onchain";
 import { OnchainVeyfiClient } from "@/lib/clients/veyfi/onchain";
 import { OnchainYbcClient } from "@/lib/clients/ybc/onchain";
 import { YBC_MAINNET_DEPLOYMENT } from "@/lib/clients/ybc/deployment";
-import { YBC_SNAPSHOT_MAX_AGE_SECONDS } from "@/lib/clients/ybc/freshness";
 import { LIQUID_LOCKERS, STYFI_ADDRESS } from "@/lib/constants";
 import teamsFeedExample from "@/docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json";
 import feedExample from "@/docs/apps/ybc/onchain-integration-plan/examples/ybc-feed.example.json";
@@ -300,7 +299,7 @@ describe("On-chain write safety", () => {
     expect(writeContract).toHaveBeenCalledWith(expect.anything(), request);
   });
 
-  it("blocks a prepared YBC write when its snapshot ages before execution", async () => {
+  it("allows an old canonical YBC snapshot through live write validation", async () => {
     const generatedAt = 2_000_000_000;
     vi.useFakeTimers();
     vi.setSystemTime(generatedAt * 1_000);
@@ -316,15 +315,23 @@ describe("On-chain write safety", () => {
       USER
     );
     const prepare = await client.prepareVote(0n, "yea");
+    const request = {
+      address: YBC_MAINNET_DEPLOYMENT.ybcElection,
+      functionName: "vote_yea",
+    };
+    vi.mocked(simulateContract).mockResolvedValue({
+      request,
+      result: undefined,
+    } as unknown as Awaited<ReturnType<typeof simulateContract>>);
 
-    vi.setSystemTime((generatedAt + 5 * 60 + 1) * 1_000);
+    vi.setSystemTime((generatedAt + 86_400) * 1_000);
 
-    await expect(prepare()).rejects.toThrow(/older than five minutes/i);
-    expect(simulateContract).not.toHaveBeenCalled();
-    expect(writeContract).not.toHaveBeenCalled();
+    await expect(prepare()).resolves.toBe("0xmockhash");
+    expect(simulateContract).toHaveBeenCalledOnce();
+    expect(writeContract).toHaveBeenCalledWith(expect.anything(), request);
   });
 
-  it("blocks a YBC write when verification completes after the freshness boundary", async () => {
+  it("allows canonical verification to complete after wall-clock time advances", async () => {
     const nowSeconds = 2_000_000_000;
     vi.useFakeTimers();
     vi.setSystemTime(nowSeconds * 1_000);
@@ -343,23 +350,26 @@ describe("On-chain write safety", () => {
       USER
     );
     const prepare = await client.prepareVote(0n, "yea");
+    const request = {
+      address: YBC_MAINNET_DEPLOYMENT.ybcElection,
+      functionName: "vote_yea",
+    };
+    vi.mocked(simulateContract).mockResolvedValue({
+      request,
+      result: undefined,
+    } as unknown as Awaited<ReturnType<typeof simulateContract>>);
     const submission = prepare();
-    const rejection = expect(submission).rejects.toThrow(
-      /older than five minutes/i
-    );
 
     await blockRequested.promise;
-    vi.setSystemTime((nowSeconds + 1) * 1_000);
+    vi.setSystemTime((nowSeconds + 86_400) * 1_000);
     block.resolve({
       hash: feedExample.blockHash,
-      timestamp: BigInt(
-        nowSeconds - YBC_SNAPSHOT_MAX_AGE_SECONDS
-      ),
+      timestamp: BigInt(nowSeconds - 86_400),
     } as Awaited<ReturnType<PublicClient["getBlock"]>>);
 
-    await rejection;
-    expect(simulateContract).not.toHaveBeenCalled();
-    expect(writeContract).not.toHaveBeenCalled();
+    await expect(submission).resolves.toBe("0xmockhash");
+    expect(simulateContract).toHaveBeenCalledOnce();
+    expect(writeContract).toHaveBeenCalledWith(expect.anything(), request);
   });
 
   it("rejects malicious feed authority before preparing a YBC write", () => {

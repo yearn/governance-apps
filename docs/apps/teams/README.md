@@ -70,9 +70,11 @@ use `no-store`.
 
 The feed is display input, not write authority. Actions use the connected wallet,
 Ethereum Mainnet state, exact token units, current protocol bindings, and simulation
-through the shared transaction flow. If refresh or freshness verification fails, the
-last accepted snapshot may remain visible while actions stay disabled. A rejected
-payload must not replace it.
+through the shared transaction flow. Snapshot age is shown as operational context, not
+used as an action cutoff. A refresh failure may leave the last accepted snapshot
+visible with a compact warning. Canonical-chain, deployment, or current-state
+verification failures keep the affected actions disabled, and a rejected payload must
+not replace accepted data.
 
 The feed contract is
 [`onchain-integration-plan/teams-feed-schema-v1.md`](onchain-integration-plan/teams-feed-schema-v1.md).

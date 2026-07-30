@@ -515,7 +515,6 @@ describe("YBC feed mapper", () => {
       expulsionThresholdBps: feed.config.expulsionThresholdBps,
       proposalStatusById: { 0: 4 },
       tipBlockNumber: BigInt(feed.blockNumber),
-      verifiedAtSeconds: nowSeconds,
     };
 
     await expect(
@@ -631,7 +630,7 @@ describe("YBC feed mapper", () => {
     ).rejects.toThrow(/not canonical/i);
   });
 
-  it("samples final snapshot freshness after proposal verification completes", async () => {
+  it("keeps a canonical snapshot valid while proposal verification runs", async () => {
     const nowSeconds = 2_000_000_000;
     vi.useFakeTimers();
     vi.setSystemTime(nowSeconds * 1_000);
@@ -674,7 +673,10 @@ describe("YBC feed mapper", () => {
 
     await expect(
       readYbcCanonicalSnapshot(publicClient, feed)
-    ).rejects.toThrow(/older than five minutes/i);
+    ).resolves.toMatchObject({
+      blockHash: feed.blockHash,
+      blockTimestamp: nowSeconds,
+    });
     expect(publicClient.getBlock).toHaveBeenCalledTimes(2);
   });
 

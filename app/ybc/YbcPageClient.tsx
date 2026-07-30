@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { UtcTime } from "@/components/ui/UtcTime";
@@ -83,10 +82,10 @@ export function YbcPageClient({
     ensAddresses,
     ybcState.backend === "feed"
   );
+  const hasLiveWriteContext =
+    ybcState.backend === "feed" && ybcState.writeFeed !== null;
   const proposalWrites = useYbcProposalWrites(
-    ybcState.backend === "feed" && ybcState.readStatus === "current"
-      ? ybcState.feed
-      : null
+    ybcState.backend === "feed" ? ybcState.writeFeed : null
   );
   const {
     data,
@@ -101,7 +100,7 @@ export function YbcPageClient({
   } = ybcState;
   const createProposal =
     ybcState.backend === "feed"
-      ? ybcState.readStatus === "current"
+      ? hasLiveWriteContext
         ? proposalWrites.createProposal
         : undefined
       : ybcState.createProposal
@@ -111,7 +110,7 @@ export function YbcPageClient({
         : undefined;
   const retractProposal =
     ybcState.backend === "feed"
-      ? ybcState.readStatus === "current"
+      ? hasLiveWriteContext
         ? proposalWrites.retractProposal
         : undefined
       : ybcState.retractProposal
@@ -121,7 +120,7 @@ export function YbcPageClient({
         : undefined;
   const voteOnProposal =
     ybcState.backend === "feed"
-      ? ybcState.readStatus === "current"
+      ? hasLiveWriteContext
         ? proposalWrites.voteOnProposal
         : undefined
       : ybcState.voteOnProposal
@@ -131,7 +130,7 @@ export function YbcPageClient({
         : undefined;
   const executeProposal =
     ybcState.backend === "feed"
-      ? ybcState.readStatus === "current"
+      ? hasLiveWriteContext
         ? proposalWrites.executeProposal
         : undefined
       : ybcState.executeProposal
@@ -172,8 +171,7 @@ export function YbcPageClient({
           ybcState.backend === "feed" ? proposalWrites.state : undefined
         }
         resetProposalTx={
-          ybcState.backend === "feed" &&
-          ybcState.readStatus === "current"
+          hasLiveWriteContext
             ? proposalWrites.reset
             : undefined
         }
@@ -335,13 +333,11 @@ export function YbcDataStatusNotice({
   if (readStatus === "current") {
     return (
       <div
-        className="flex min-w-0 flex-wrap items-center gap-2 rounded-box border border-border bg-surface px-4 py-3 text-sm text-text-secondary"
+        className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary"
         role="status"
         aria-live="polite"
       >
-        <Badge variant={isRefreshing ? "neutral" : "success"}>
-          {isRefreshing ? copy.page.refreshing : copy.page.current}
-        </Badge>
+        {isRefreshing ? <span>{copy.page.refreshing}</span> : null}
         {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
           <span className="min-w-0 break-words [overflow-wrap:anywhere]">
             {copy.page.lastUpdated}:{" "}
@@ -356,42 +352,38 @@ export function YbcDataStatusNotice({
   }
 
   return (
-    <Card
-      className="border-amber-300 bg-amber-50 text-amber-950"
+    <div
+      className="flex min-w-0 flex-col gap-3 rounded-box border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between"
       role="status"
       aria-live="polite"
     >
-      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-2">
-          <p className="font-bold">{copy.page.staleTitle}</p>
-          <p className="text-sm leading-6">{copy.page.staleBody}</p>
-          {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
-            <p className="min-w-0 break-words font-number text-xs [overflow-wrap:anywhere]">
-              {copy.page.snapshot}:{" "}
-              <UtcTime timestamp={lastUpdatedAt} />
-            </p>
-          ) : null}
-          {warningMessage ? (
-            <p className="min-w-0 break-words font-number text-xs opacity-80 [overflow-wrap:anywhere]">
-              {warningMessage}
-            </p>
-          ) : null}
-        </div>
-        {onRetry ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="shrink-0"
-            disabled={isRefreshing}
-            aria-busy={isRefreshing || undefined}
-            onClick={onRetry}
-          >
-            {isRefreshing ? copy.page.retrying : copy.page.retryCta}
-          </Button>
+      <div className="min-w-0 space-y-1">
+        {warningMessage ? (
+          <p className="min-w-0 text-pretty break-words [overflow-wrap:anywhere]">
+            {warningMessage}
+          </p>
+        ) : null}
+        {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
+          <p className="min-w-0 break-words font-number text-xs tabular-nums [overflow-wrap:anywhere]">
+            {copy.page.lastUpdated}:{" "}
+            <UtcTime timestamp={lastUpdatedAt} />
+          </p>
         ) : null}
       </div>
-    </Card>
+      {onRetry ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          className="shrink-0"
+          disabled={isRefreshing}
+          aria-busy={isRefreshing || undefined}
+          onClick={onRetry}
+        >
+          {isRefreshing ? copy.page.retrying : copy.page.retryCta}
+        </Button>
+      ) : null}
+    </div>
   );
 }
 

@@ -13,6 +13,7 @@ const writeRuntime = vi.hoisted(() => ({
   getBlockNumber: vi.fn(),
   getChainId: vi.fn(),
   getPublicClient: vi.fn(),
+  readContract: vi.fn(),
 }));
 
 vi.mock("wagmi/actions", () => ({
@@ -48,26 +49,52 @@ describe("useYbcProposalWrites preparation errors", () => {
       BigInt(feedExample.blockNumber)
     );
     writeRuntime.getChainId.mockResolvedValue(1);
+    writeRuntime.readContract.mockImplementation(
+      async ({ functionName }: { functionName: string }) => {
+        const proposal = feedExample.proposals[0]!;
+        switch (functionName) {
+          case "num_proposals":
+            return 1n;
+          case "proposals":
+            return [
+              proposal.account,
+              proposal.proposer,
+              BigInt(proposal.epoch),
+              proposal.addition,
+              BigInt(proposal.thresholdBps),
+              BigInt(proposal.votes),
+              BigInt(proposal.yea),
+              proposal.retracted,
+              proposal.executed,
+            ] as const;
+          case "status":
+            return 2n;
+          default:
+            return null;
+        }
+      }
+    );
     writeRuntime.getPublicClient.mockReturnValue({
       chain: { id: 1 },
       getChainId: writeRuntime.getChainId,
       getBlock: writeRuntime.getBlock,
       getBlockNumber: writeRuntime.getBlockNumber,
+      readContract: writeRuntime.readContract,
     });
   });
 
-  it("shows a stale-at-click preparation error without an unhandled rejection", async () => {
+  it("shows a live proposal-state error without an unhandled rejection", async () => {
     const nowSeconds = Math.floor(Date.now() / 1_000);
-    writeRuntime.blockTimestamp = BigInt(nowSeconds - 5 * 60 - 1);
+    writeRuntime.blockTimestamp = BigInt(nowSeconds - 86_400);
     const feed = createFeed(nowSeconds);
 
     renderWithProviders(
-      <ProposalWriteHarness action="stale-vote" feed={feed} />
+      <ProposalWriteHarness action="vote" feed={feed} />
     );
     fireEvent.click(screen.getByRole("button", { name: "Submit action" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      /older than five minutes/i
+      /no longer ready for voting/i
     );
   });
 
@@ -89,7 +116,7 @@ function ProposalWriteHarness({
   action,
   feed,
 }: {
-  action: "invalid-target" | "stale-vote";
+  action: "invalid-target" | "vote";
   feed: YbcFeed;
 }) {
   const writes = useYbcProposalWrites(feed);

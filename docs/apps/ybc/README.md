@@ -48,9 +48,11 @@ weight, and reward display state.
 
 The feed is display input, not deployment or write authority. The frontend pins the
 Mainnet deployment, verifies the snapshot block and canonical proposal state, then adds
-wallet-specific membership, voting, and action eligibility. If refresh or freshness
-verification fails, the last accepted snapshot may remain visible while actions stay
-disabled. A rejected payload must not replace it.
+wallet-specific membership, voting, and action eligibility. Snapshot age is shown as
+operational context, not used as an action cutoff. A refresh failure may leave the last
+accepted snapshot visible with a compact warning. Canonical-chain, deployment, or live
+wallet-state verification failures keep the affected actions disabled, and a rejected
+payload must not replace accepted data.
 
 Proposal writes use the shared transaction pipeline for propose addition, propose
 expulsion, retract, vote, and execute. Feed rendering stays authoritative after a

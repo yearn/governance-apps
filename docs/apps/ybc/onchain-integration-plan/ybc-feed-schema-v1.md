@@ -197,15 +197,16 @@ Before enabling actions, the consumer:
 
 1. verifies that both the configured client and live RPC report Ethereum Mainnet;
 2. matches `blockHash` against `blockNumber`;
-3. requires the block to be no more than five minutes old, no more than two minutes in
-   the future, and no more than 32 blocks behind the RPC tip;
-4. checks the full proposal id range, proposal count, thresholds, tuples, and statuses
+3. checks the full proposal id range, proposal count, thresholds, tuples, and statuses
    at that block; and
-5. checks the block again after the reads.
+4. checks the block again after the reads.
 
 Wallet membership, operator, weight, and vote reads use the same block and are enclosed
-by block checks. Cached display data may remain visible, but it cannot restore actions
-until the mounted snapshot and wallet overlay pass verification.
+by block checks. The UI shows the snapshot timestamp without treating elapsed wall-clock
+time or tip distance as authorization. Each write rechecks the connected account,
+current proposal identity and status, Mainnet deployment, and transaction simulation.
+Cached display data may remain visible, but it cannot restore actions after a canonical
+or live-state verification failure.
 
 ### 4.2 Resource and timeline limits
 

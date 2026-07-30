@@ -65,7 +65,7 @@ describe("useYbcState feed refresh trust", () => {
     vi.unstubAllGlobals();
   });
 
-  it("retains data but pauses proposal actions after a failed refresh", async () => {
+  it("retains verified data and write-time validation after a failed refresh", async () => {
     const currentFeed = {
       ...feedExample,
       generatedAt: Math.floor(Date.now() / 1_000),
@@ -110,9 +110,29 @@ describe("useYbcState feed refresh trust", () => {
     );
     expect(
       result.current.data?.proposals.items[0]?.actions.canVote
-    ).toBe(false);
+    ).toBe(true);
+    expect(result.current.writeFeed).toEqual(trustedFeed);
 
     unmount();
+  });
+
+  it("accepts an old canonical snapshot without using age as authorization", async () => {
+    mainnetPublicClient.getBlock.mockResolvedValue({
+      hash: feedExample.blockHash,
+      timestamp: BigInt(Math.floor(Date.now() / 1_000) - 86_400),
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okResponse(createFeed())));
+
+    const { result } = renderHook(() => useYbcState(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.data?.hero.memberCount).toBe(1);
+      expect(result.current.readStatus).toBe("current");
+      expect(result.current.writeFeed).not.toBeNull();
+    });
+    expect(result.current.warning).toBeNull();
   });
 
   it("verifies a disconnected observer through the always-mainnet client", async () => {
@@ -334,8 +354,11 @@ describe("useYbcState feed refresh trust", () => {
     await waitFor(() => {
       expect(aRevalidationHeld).toBe(true);
       expect(result.current.feed?.blockHash).toBe(feedA.blockHash);
-      expect(result.current.readStatus).toBe("stale");
+      expect(result.current.readStatus).toBe("current");
+      expect(result.current.isRefreshing).toBe(true);
     });
+    expect(result.current.warning).toBeNull();
+    expect(result.current.writeFeed).toBeNull();
     expect(result.current.data?.me.canPropose).toBe(false);
     expect(result.current.data?.me.canVote).toBe(false);
     expect(

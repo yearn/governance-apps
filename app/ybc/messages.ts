@@ -17,13 +17,8 @@ export const ybcCopy = {
     errorBody:
       "YBC data could not be loaded. Retry to restore the page.",
     retryCta: "Retry",
-    staleTitle: "Showing the last available snapshot",
-    staleBody:
-      "This YBC snapshot is not trusted for actions. Values remain visible for review, but proposal actions are paused until a current snapshot is confirmed.",
     refreshing: "Refreshing YBC data",
-    current: "Current YBC snapshot",
     lastUpdated: "Last updated",
-    snapshot: "Snapshot",
     retrying: "Retrying",
   },
   proposalBoard: {

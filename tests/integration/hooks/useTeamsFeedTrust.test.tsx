@@ -3,10 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import feedExample from "@/docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json";
-import {
-  TEAMS_MAINNET_DEPLOYMENT,
-  TEAMS_SNAPSHOT_MAX_AGE_SECONDS,
-} from "@/lib/clients/teams";
+import { TEAMS_MAINNET_DEPLOYMENT } from "@/lib/clients/teams";
 import {
   teamsKeys,
   useTeamsState,
@@ -87,7 +84,7 @@ describe("useTeamsState canonical feed trust", () => {
     vi.unstubAllGlobals();
   });
 
-  it("retains canonical-block-anchored data as stale after a failed refresh", async () => {
+  it("retains verified data and write-time validation after a failed refresh", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -131,20 +128,16 @@ describe("useTeamsState canonical feed trust", () => {
     ).toBe(trustedActivation);
     expect(
       result.current.data?.data.viewer.actionStateTrusted
-    ).toBe(false);
-    expect(result.current.writeFeed).toBeNull();
+    ).toBe(true);
+    expect(result.current.writeFeed).toBe(trustedFeed);
 
     unmount();
   });
 
-  it("renders a canonical historical snapshot as stale on first load", async () => {
+  it("accepts an old canonical snapshot without using age as authorization", async () => {
     mainnetPublicClient.getBlock.mockResolvedValue({
       hash: feedExample.blockHash,
-      timestamp: BigInt(
-        Math.floor(Date.now() / 1_000) -
-          TEAMS_SNAPSHOT_MAX_AGE_SECONDS -
-          1
-      ),
+      timestamp: BigInt(Math.floor(Date.now() / 1_000) - 86_400),
     });
     vi.stubGlobal(
       "fetch",
@@ -156,15 +149,13 @@ describe("useTeamsState canonical feed trust", () => {
 
     await waitFor(() => {
       expect(result.current.data?.data.teams).toHaveLength(1);
-      expect(result.current.readStatus).toBe("stale");
+      expect(result.current.readStatus).toBe("current");
     });
-    expect(result.current.warning?.message).toMatch(
-      /older than twenty minutes/i
-    );
+    expect(result.current.warning).toBeNull();
     expect(
       result.current.data?.data.viewer.actionStateTrusted
-    ).toBe(false);
-    expect(result.current.writeFeed).toBeNull();
+    ).toBe(true);
+    expect(result.current.writeFeed).not.toBeNull();
   });
 
   it("does not reuse cached authority for same-block mutable feed changes", async () => {

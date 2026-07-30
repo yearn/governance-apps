@@ -31,12 +31,8 @@ export const teamsCopy = {
     title: "Team Finances",
     description:
       "Review each team's revenue, costs, funding, bonus, and status.",
-    current: "Current Teams snapshot",
     refreshing: "Refreshing Teams data",
     lastUpdated: "Last updated",
-    staleTitle: "Showing the last canonical-block-anchored snapshot",
-    staleBody:
-      "Producer values remain visible for review, but financial actions are paused until a current mainnet snapshot is confirmed.",
     unavailableTitle: "Teams snapshot unavailable",
     unavailableBody:
       "No Teams data is shown because a canonical mainnet snapshot could not be verified.",

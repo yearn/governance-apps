@@ -31,7 +31,7 @@ import {
   assertYbcMainnetPublicClient,
   verifyYbcSnapshotBlock,
   type YbcVerifiedBlock,
-} from "./freshness";
+} from "./canonical-block";
 import {
   assertCompleteYbcProposalHistory,
   assertYbcProposalIdentityMatchesFeed,
@@ -1108,15 +1108,13 @@ export async function readYbcWalletOverlay(
 
 export async function readYbcCanonicalSnapshot(
   publicClient: PublicClient,
-  feed: YbcFeed,
-  nowSeconds?: number
+  feed: YbcFeed
 ): Promise<YbcCanonicalSnapshot> {
   assertYbcMainnetDeployment(feed);
   assertCompleteYbcProposalHistory(feed);
   const verifiedBlock = await verifyYbcSnapshotBlock(
     publicClient,
-    feed,
-    nowSeconds
+    feed
   );
   const blockNumber = verifiedBlock.blockNumber;
   const [
@@ -1209,8 +1207,7 @@ export async function readYbcCanonicalSnapshot(
   );
   const finalVerifiedBlock = await verifyYbcSnapshotBlock(
     publicClient,
-    feed,
-    nowSeconds
+    feed
   );
 
   return {

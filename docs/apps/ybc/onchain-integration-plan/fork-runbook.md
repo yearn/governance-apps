@@ -44,7 +44,7 @@ Validate at minimum:
 - overview reads load from `ybc.json`
 - members roster reads load from `ybc.json`
 - proposal board reads load from `ybc.json`
-- feed freshness and snapshot block metadata are visible in diagnostics or logs
+- feed age and snapshot block metadata are visible in diagnostics or logs
 - live/saved feed rendering remains coherent before and after fork writes
 - proposal creation path
 - retract path when the connected wallet is the proposer and voting has not opened
@@ -95,7 +95,7 @@ Capture:
 Exercise and record:
 
 - wrong-network write guard
-- missing or stale `ybc.json`
+- missing or invalid `ybc.json`, while an old canonical snapshot remains usable
 - not-a-member restrictions where applicable
 - proposal not yet in voting window
 - proposal expired

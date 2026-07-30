@@ -6,9 +6,7 @@ import {
   useState,
   type MouseEvent,
 } from "react";
-import { Badge } from "@/components/ui/Badge";
 import { Button, getButtonClassName } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { StatsBar } from "@/components/ui/StatsBar";
 import { UtcTime } from "@/components/ui/UtcTime";
 import { cn } from "@/lib/cn";
@@ -478,15 +476,11 @@ export function TeamsDataStatusNotice({
   if (readStatus === "current") {
     return (
       <div
-        className="flex min-w-0 flex-wrap items-center gap-2 rounded-box border border-border bg-surface px-4 py-3 text-sm text-text-secondary"
+        className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-secondary"
         role="status"
         aria-live="polite"
       >
-        <Badge variant={isRefreshing ? "neutral" : "success"}>
-          {isRefreshing
-            ? teamsCopy.page.refreshing
-            : teamsCopy.page.current}
-        </Badge>
+        {isRefreshing ? <span>{teamsCopy.page.refreshing}</span> : null}
         {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
           <span className="min-w-0 text-pretty break-words [overflow-wrap:anywhere]">
             {teamsCopy.page.lastUpdated}:{" "}
@@ -502,55 +496,58 @@ export function TeamsDataStatusNotice({
 
   const isUnavailable = readStatus === "unavailable";
   return (
-    <Card
+    <div
       className={
         isUnavailable
-          ? "border-red-300 bg-red-50 text-red-950"
-          : "border-amber-300 bg-amber-50 text-amber-950"
+          ? "flex min-w-0 flex-col gap-3 rounded-box border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-950 sm:flex-row sm:items-start sm:justify-between"
+          : "flex min-w-0 flex-col gap-3 rounded-box border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-text-secondary sm:flex-row sm:items-center sm:justify-between"
       }
       role="status"
       aria-live="polite"
     >
-      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-2">
+      <div className="min-w-0 space-y-1">
+        {isUnavailable ? (
           <p className="text-balance font-bold">
-            {isUnavailable
-              ? teamsCopy.page.unavailableTitle
-              : teamsCopy.page.staleTitle}
+            {teamsCopy.page.unavailableTitle}
           </p>
+        ) : null}
+        {isUnavailable ? (
           <p className="text-pretty text-sm leading-6">
-            {isUnavailable
-              ? teamsCopy.page.unavailableBody
-              : teamsCopy.page.staleBody}
+            {teamsCopy.page.unavailableBody}
           </p>
-          {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
-            <p className="min-w-0 break-words font-number text-xs tabular-nums [overflow-wrap:anywhere]">
-              {teamsCopy.page.lastUpdated}:{" "}
-              <UtcTime timestamp={lastUpdatedAt} />
-            </p>
-          ) : null}
-          {warningMessage ? (
-            <p className="min-w-0 text-pretty break-words font-number text-xs opacity-80 [overflow-wrap:anywhere]">
-              {warningMessage}
-            </p>
-          ) : null}
-        </div>
-        {onRetry ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="shrink-0"
-            disabled={isRefreshing}
-            aria-busy={isRefreshing || undefined}
-            onClick={onRetry}
-          >
-            {isRefreshing
-              ? teamsCopy.page.retrying
-              : teamsCopy.page.retryCta}
-          </Button>
+        ) : null}
+        {!isUnavailable && warningMessage ? (
+          <p className="min-w-0 text-pretty break-words [overflow-wrap:anywhere]">
+            {warningMessage}
+          </p>
+        ) : null}
+        {lastUpdatedAt !== null && lastUpdatedAt !== undefined ? (
+          <p className="min-w-0 break-words font-number text-xs tabular-nums [overflow-wrap:anywhere]">
+            {teamsCopy.page.lastUpdated}:{" "}
+            <UtcTime timestamp={lastUpdatedAt} />
+          </p>
+        ) : null}
+        {isUnavailable && warningMessage ? (
+          <p className="min-w-0 text-pretty break-words font-number text-xs opacity-80 [overflow-wrap:anywhere]">
+            {warningMessage}
+          </p>
         ) : null}
       </div>
-    </Card>
+      {onRetry ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          className="shrink-0"
+          disabled={isRefreshing}
+          aria-busy={isRefreshing || undefined}
+          onClick={onRetry}
+        >
+          {isRefreshing
+            ? teamsCopy.page.retrying
+            : teamsCopy.page.retryCta}
+        </Button>
+      ) : null}
+    </div>
   );
 }

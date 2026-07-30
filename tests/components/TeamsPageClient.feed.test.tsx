@@ -22,6 +22,7 @@ const {
   queryState: {
     lastWriteFeed: null as TeamsFeed | null,
     readStatus: "current" as "current" | "stale" | "unavailable",
+    warning: null as Error | null,
     writeFeed: null as TeamsFeed | null,
   },
   runtimeState: {
@@ -82,7 +83,7 @@ vi.mock("@/lib/hooks/useTeams", () => ({
     lastUpdatedAt: null,
     readStatus: queryState.readStatus,
     refetch: vi.fn(),
-    warning: null,
+    warning: queryState.warning,
     writeFeed: queryState.writeFeed,
   }),
 }));
@@ -327,6 +328,7 @@ describe("TeamsPageClient feed mode", () => {
     runtimeState.current = mapTeamsFeedToRuntimeState(feed);
     queryState.lastWriteFeed = null;
     queryState.readStatus = "current";
+    queryState.warning = null;
     queryState.writeFeed = feed;
     allowanceState.current = 0n;
     vi.clearAllMocks();
@@ -535,7 +537,7 @@ describe("TeamsPageClient feed mode", () => {
     expect(walletModals.connect).not.toHaveBeenCalled();
   });
 
-  it("keeps producer values visible while explicitly pausing stale-snapshot deposits", async () => {
+  it("keeps producer values visible while canonical verification pauses deposits", async () => {
     const feed = createFeedWithFinancialHistory();
     runtimeState.current = mapTeamsFeedToRuntimeState(
       feed,
@@ -546,6 +548,9 @@ describe("TeamsPageClient feed mode", () => {
       }
     );
     queryState.readStatus = "stale";
+    queryState.warning = new Error(
+      "The snapshot block could not be verified."
+    );
     queryState.writeFeed = null;
     const { TeamsPageClient } = await import("@/app/teams/TeamsPageClient");
     const user = userEvent.setup();
@@ -557,7 +562,7 @@ describe("TeamsPageClient feed mode", () => {
 
     expect(queryState.lastWriteFeed).toBeNull();
     expect(
-      screen.getByText(teamsCopy.page.staleTitle)
+      screen.getByText("The snapshot block could not be verified.")
     ).toBeInTheDocument();
     expect(
       screen.getByText(teamsCopy.revenue.unavailable.untrustedTitle)
