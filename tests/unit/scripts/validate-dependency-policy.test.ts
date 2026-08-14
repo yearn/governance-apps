@@ -24,10 +24,6 @@ const allowlistedInstallScriptLockPackages = {
     version: "4.0.9",
     hasInstallScript: true,
   },
-  "node_modules/esbuild": {
-    version: "0.21.5",
-    hasInstallScript: true,
-  },
   "node_modules/fsevents": {
     version: "2.3.3",
     hasInstallScript: true,

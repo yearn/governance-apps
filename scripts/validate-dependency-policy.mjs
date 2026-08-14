@@ -24,10 +24,6 @@ const allowedInstallScriptPackages = new Map([
     "Optional native WebSocket performance helper used by transitive wallet/RPC dependencies.",
   ],
   [
-    "node_modules/esbuild@0.21.5",
-    "Build tooling uses esbuild's platform binary validation.",
-  ],
-  [
     "node_modules/fsevents@2.3.3",
     "Optional macOS file watcher dependency captured in the lockfile.",
   ],
