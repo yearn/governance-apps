@@ -39,12 +39,12 @@ Acceptance criteria:
 - yETH is not accessible in production unless explicitly enabled.
 - `yeth.yearn.fi` does not fall through to launcher content when yETH is disabled.
 
-### 1.2 Harden host-derived metadata
-- [x] Add allowlisted host resolution for metadata origin.
-- [x] Ensure unknown hosts fall back to canonical app domains.
+### 1.2 Harden canonical metadata
+- [x] Generate metadata origins from the production `*.yearn.fi` app registry.
+- [x] Ensure request host headers cannot alter canonical or Open Graph URLs.
 
 Acceptance criteria:
-- `metadataBase` and OG URL generation do not trust arbitrary host headers.
+- `metadataBase`, canonical links, and OG URL generation do not trust arbitrary host headers.
 
 ### 1.3 Lock down debug surface
 - [x] Disable or gate `/debug/ui` in production.

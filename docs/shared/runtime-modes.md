@@ -18,7 +18,13 @@ If `NEXT_PUBLIC_RUNTIME_MODE` is not set, the app falls back to deployment marke
 |---|---|---|---|
 | `development` | Enabled | Sent (`noindex`) | Off |
 | `preview` | Enabled | Sent (`noindex`) | Off |
-| `production` | Disabled unless explicitly enabled | Not sent | On |
+| `production` | Disabled unless explicitly enabled | Sent except on approved public `*.yearn.fi` hosts | On |
+
+The discoverability allowlist is separate from route feature flags. Enabling a gated
+route does not make it indexable; its `*.yearn.fi` host must also be explicitly promoted
+in the shared discoverability registry after rollout approval. Non-public hosts such as
+preview, local, and internal operational domains remain `noindex` and do not publish
+sitemap or `llms.txt` discovery content.
 
 ### Production-only feature gates
 
