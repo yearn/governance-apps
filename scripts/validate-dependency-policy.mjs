@@ -24,6 +24,10 @@ const allowedInstallScriptPackages = new Map([
     "Optional native WebSocket performance helper used by transitive wallet/RPC dependencies.",
   ],
   [
+    "node_modules/esbuild@0.28.1",
+    "Wrangler uses esbuild's platform binary validation.",
+  ],
+  [
     "node_modules/fsevents@2.3.3",
     "Optional macOS file watcher dependency captured in the lockfile.",
   ],
@@ -48,12 +52,8 @@ const allowedInstallScriptPackages = new Map([
     "Optional native WebSocket validation helper used by transitive wallet/RPC dependencies.",
   ],
   [
-    "node_modules/workerd@1.20260507.1",
+    "node_modules/workerd@1.20260801.1",
     "Cloudflare worker tooling validates the workerd runtime binary.",
-  ],
-  [
-    "node_modules/wrangler/node_modules/esbuild@0.27.3",
-    "Wrangler uses esbuild's platform binary validation.",
   ],
 ]);
 

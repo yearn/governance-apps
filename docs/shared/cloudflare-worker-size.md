@@ -17,18 +17,19 @@ limit. `WORKER_SIZE_WARN_KIB` defaults to `2900` so CI still surfaces when the
 bundle is deployable but close to the limit. Override `WORKER_SIZE_LIMIT_KIB`
 only when the target Cloudflare plan and rollout decision explicitly allow it.
 
-Current measurement after the Teams/YBC launch-flow integration:
+Current measurement after the Next.js 16.2.11, OpenNext 1.20.2, and Wrangler
+4.120.0 platform upgrade:
 
-- Date: 2026-07-06
+- Date: 2026-08-14
 - Build posture: production runtime with `NEXT_PUBLIC_ENABLE_TEAMS=true`,
   `NEXT_PUBLIC_ENABLE_YBC=true`, and `NEXT_PUBLIC_ENABLE_YETH=true`
 - Command: `npm run validate:worker-size -- wrangler.preprod.jsonc`
-- Result: `14482.04 KiB / gzip: 2898.71 KiB`
+- Result: `14859.19 KiB / gzip: 2980.86 KiB`
 
-This is deployable under the current guard, but it leaves almost no practical margin
-below the `2900 KiB` warning threshold. Do not block the Teams/YBC preprod rollout on
-worker splitting while this guard passes, but treat the next sizeable app/runtime
-addition as a likely trigger for the deferred split work below.
+This is deployable under the current `3072 KiB` guard, but it is `80.86 KiB`
+above the warning threshold and leaves `91.14 KiB` of compressed headroom.
+Treat the next sizeable app/runtime addition as a likely trigger for the
+deferred split work below, and require a fresh measurement before deploy.
 
 ## Immediate Reduction
 
