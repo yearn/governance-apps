@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { YethPageClient } from "./YethPageClient";
-import { resolveAllowedOrigin } from "@/lib/runtime/host-allowlist";
+import { createGovernanceAppMetadata } from "@/lib/runtime/discoverability";
 import { isYethEnabled } from "@/lib/runtime/features";
 
 export const viewport: Viewport = {
@@ -11,7 +10,7 @@ export const viewport: Viewport = {
 
 const YETH_OG_IMAGE_URL = "/og-yETH.png?v=20260303";
 
-const baseMetadata: Metadata = {
+const enabledMetadata: Metadata = createGovernanceAppMetadata("yeth", {
   title: "yETH Recovery | Yearn Finance",
   description:
     "Recovery interface for yETH. Claim recovered ETH now, or stay in the Recovery Vault with ongoing risk.",
@@ -62,26 +61,16 @@ const baseMetadata: Metadata = {
       "Recovery interface for yETH. Claim ETH now, or stay in the Recovery Vault with ongoing risk.",
     images: [YETH_OG_IMAGE_URL],
   },
-};
+});
 
-export async function generateMetadata(): Promise<Metadata> {
+export function generateMetadata(): Metadata {
   if (!isYethEnabled()) {
     return {
       title: "Not Found",
       robots: { index: false, follow: false },
     };
   }
-  const headerList = await headers();
-  const origin = resolveAllowedOrigin("yeth", headerList.get("host"));
-
-  return {
-    ...baseMetadata,
-    metadataBase: new URL(origin),
-    openGraph: {
-      ...(baseMetadata.openGraph ?? {}),
-      url: origin,
-    },
-  };
+  return enabledMetadata;
 }
 
 export default function YethPage() {

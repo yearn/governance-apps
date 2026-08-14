@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { VeyfiPageClient } from "./VeyfiPageClient";
-import { resolveAllowedOrigin } from "@/lib/runtime/host-allowlist";
+import { GovernanceWebSiteJsonLd } from "@/components/seo/GovernanceWebSiteJsonLd";
+import { createGovernanceAppMetadata } from "@/lib/runtime/discoverability";
 
 export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
-const baseMetadata: Metadata = {
+export const metadata: Metadata = createGovernanceAppMetadata("veyfi", {
   title: "veYFI | Yearn Finance",
   description:
     "Manage legacy veYFI locks, migrate to the new system, and manage Liquid Lockers (LLYFI).",
@@ -56,24 +57,17 @@ const baseMetadata: Metadata = {
     description: "Manage veYFI and Liquid Lockers.",
     images: ["/og-veYFI.png"],
   },
-};
-
-export async function generateMetadata(): Promise<Metadata> {
-  const headerList = await headers();
-  const origin = resolveAllowedOrigin("veyfi", headerList.get("host"));
-
-  return {
-    ...baseMetadata,
-    metadataBase: new URL(origin),
-    openGraph: {
-      ...(baseMetadata.openGraph ?? {}),
-      url: origin,
-    },
-  };
-}
+});
 
 export default async function VeyfiPage() {
   const headerList = await headers();
   const hostname = headerList.get("host");
-  return <VeyfiPageClient hostname={hostname} />;
+  const nonce = headerList.get("x-nonce");
+
+  return (
+    <>
+      <GovernanceWebSiteJsonLd app="veyfi" nonce={nonce} />
+      <VeyfiPageClient hostname={hostname} />
+    </>
+  );
 }

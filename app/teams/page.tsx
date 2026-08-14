@@ -1,15 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { TeamsPageClient } from "./TeamsPageClient";
-import { resolveAllowedOrigin } from "@/lib/runtime/host-allowlist";
+import { createGovernanceAppMetadata } from "@/lib/runtime/discoverability";
 import { isTeamsEnabled } from "@/lib/runtime/features";
 
 export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
-const baseMetadata: Metadata = {
+const enabledMetadata: Metadata = createGovernanceAppMetadata("teams", {
   title: "Team Finances | Yearn Finance",
   description:
     "Review registered team revenue, costs, funding, bonus, and status.",
@@ -51,9 +50,9 @@ const baseMetadata: Metadata = {
     description:
       "Review registered team revenue, costs, funding, bonus, and status.",
   },
-};
+});
 
-export async function generateMetadata(): Promise<Metadata> {
+export function generateMetadata(): Metadata {
   if (!isTeamsEnabled()) {
     return {
       title: "Not Found",
@@ -61,17 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
 
-  const headerList = await headers();
-  const origin = resolveAllowedOrigin("teams", headerList.get("host"));
-
-  return {
-    ...baseMetadata,
-    metadataBase: new URL(origin),
-    openGraph: {
-      ...(baseMetadata.openGraph ?? {}),
-      url: origin,
-    },
-  };
+  return enabledMetadata;
 }
 
 export default function TeamsPage() {

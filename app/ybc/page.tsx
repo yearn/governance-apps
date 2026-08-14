@@ -2,14 +2,14 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { YbcPageClient } from "./YbcPageClient";
-import { resolveAllowedOrigin } from "@/lib/runtime/host-allowlist";
+import { createGovernanceAppMetadata } from "@/lib/runtime/discoverability";
 import { isYbcEnabled } from "@/lib/runtime/features";
 
 export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
-const baseMetadata: Metadata = {
+const enabledMetadata: Metadata = createGovernanceAppMetadata("ybc", {
   title: "Yearn Builder's Collective | Yearn Finance",
   description:
     "Review YBC influence, member weight, proposals, and rewards.",
@@ -51,9 +51,9 @@ const baseMetadata: Metadata = {
     description:
       "Review YBC influence, member weight, proposals, and rewards.",
   },
-};
+});
 
-export async function generateMetadata(): Promise<Metadata> {
+export function generateMetadata(): Metadata {
   if (!isYbcEnabled()) {
     return {
       title: "Not Found",
@@ -61,17 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
 
-  const headerList = await headers();
-  const origin = resolveAllowedOrigin("ybc", headerList.get("host"));
-
-  return {
-    ...baseMetadata,
-    metadataBase: new URL(origin),
-    openGraph: {
-      ...(baseMetadata.openGraph ?? {}),
-      url: origin,
-    },
-  };
+  return enabledMetadata;
 }
 
 export default async function YbcPage() {

@@ -1,15 +1,10 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
+import { buildGovernanceRobots } from "@/lib/runtime/discoverability";
+import { resolveRequestHostname } from "@/lib/runtime/request-host";
 
-export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: ["/api/", "/_next/", "/debug/"],
-    },
-    sitemap: [
-      "https://styfi.yearn.fi/sitemap.xml",
-      "https://veyfi.yearn.fi/sitemap.xml",
-    ],
-  };
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const requestHeaders = await headers();
+  const hostname = resolveRequestHostname(requestHeaders, "");
+  return buildGovernanceRobots(hostname);
 }

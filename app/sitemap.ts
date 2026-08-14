@@ -1,26 +1,10 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
+import { buildGovernanceSitemap } from "@/lib/runtime/discoverability";
+import { resolveRequestHostname } from "@/lib/runtime/request-host";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-
-  return [
-    {
-      url: "https://styfi.yearn.fi",
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-    {
-      url: "https://veyfi.yearn.fi",
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-    {
-      url: "https://yearn.fi",
-      lastModified,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-  ];
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const requestHeaders = await headers();
+  const hostname = resolveRequestHostname(requestHeaders, "");
+  return buildGovernanceSitemap(hostname);
 }
