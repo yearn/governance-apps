@@ -36,8 +36,8 @@
     "react-hot-toast": "2.6.0",
     "tailwind-merge": "3.5.0",
     "tailwindcss-animate": "1.0.7",
-    "viem": "2.39.3",
-    "wagmi": "2.19.4",
+    "viem": "2.55.11",
+    "wagmi": "2.19.5",
     "zod": "4.1.12"
   },
   "devDependencies": {
@@ -57,6 +57,9 @@
     "typescript": "5.9.3",
     "vitest": "4.1.5",
     "wrangler": "4.120.0"
+  },
+  "overrides": {
+    "@coinbase/cdp-sdk": "1.52.0"
   },
   "engines": {
     "node": "24.x"

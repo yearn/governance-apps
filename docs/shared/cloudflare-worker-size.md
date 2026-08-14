@@ -18,16 +18,16 @@ bundle is deployable but close to the limit. Override `WORKER_SIZE_LIMIT_KIB`
 only when the target Cloudflare plan and rollout decision explicitly allow it.
 
 Current measurement after the Next.js 16.2.11, OpenNext 1.20.2, and Wrangler
-4.120.0 platform upgrade:
+4.120.0 platform upgrade plus the viem 2.55.11 and wagmi 2.19.5 refresh:
 
 - Date: 2026-08-14
 - Build posture: production runtime with `NEXT_PUBLIC_ENABLE_TEAMS=true`,
   `NEXT_PUBLIC_ENABLE_YBC=true`, and `NEXT_PUBLIC_ENABLE_YETH=true`
 - Command: `npm run validate:worker-size -- wrangler.preprod.jsonc`
-- Result: `14859.19 KiB / gzip: 2980.86 KiB`
+- Result: `14881.70 KiB / gzip: 2988.93 KiB`
 
-This is deployable under the current `3072 KiB` guard, but it is `80.86 KiB`
-above the warning threshold and leaves `91.14 KiB` of compressed headroom.
+This is deployable under the current `3072 KiB` guard, but it is `88.93 KiB`
+above the warning threshold and leaves `83.07 KiB` of compressed headroom.
 Treat the next sizeable app/runtime addition as a likely trigger for the
 deferred split work below, and require a fresh measurement before deploy.
 
