@@ -53,7 +53,16 @@ For the full mode matrix and deployment checklists, see:
 ## Cloudflare Worker Targets
 
 - Production Worker config: `wrangler.jsonc` (`app.dao-ops.com`)
-- Preprod Worker config: `wrangler.preprod.jsonc` (`styfi-beta.dao-ops.com`, `veyfi-beta.dao-ops.com`, `yeth-beta.dao-ops.com`, `ybc-beta.dao-ops.com`)
+- Preprod Worker config: `wrangler.preprod.jsonc` (`styfi-beta.dao-ops.com`,
+  `veyfi-beta.dao-ops.com`, `teams-beta.dao-ops.com`,
+  `yeth-beta.dao-ops.com`, `ybc-beta.dao-ops.com`)
+
+Both web Worker configs are the source of truth for Cloudflare Workers Logs and
+persist fully sampled invocation logs. The account uses Workers Paid; CI warns
+at `7680 KiB` gzip and enforces an internal `9216 KiB` release ceiling below
+Cloudflare's `10240 KiB` compressed limit. See
+`docs/shared/cloudflare-worker-size.md` for the decision record and validation
+commands.
 
 ## Cross-App Link Routing
 

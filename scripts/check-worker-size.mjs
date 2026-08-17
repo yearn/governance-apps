@@ -7,8 +7,9 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = process.cwd();
 const DEFAULT_CONFIG = "wrangler.preprod.jsonc";
-const DEFAULT_LIMIT_KIB = 3072;
-const DEFAULT_WARN_KIB = 2900;
+export const CLOUDFLARE_PAID_LIMIT_KIB = 10 * 1024;
+export const DEFAULT_LIMIT_KIB = 9 * 1024;
+export const DEFAULT_WARN_KIB = 7.5 * 1024;
 
 export function parseWorkerUploadSize(output) {
   const match = output.match(
@@ -130,6 +131,11 @@ function main() {
   );
   console.log(
     `Worker gzip budget: ${limitKiB.toFixed(2)} KiB; warning threshold: ${warnKiB.toFixed(
+      2
+    )} KiB.`
+  );
+  console.log(
+    `Cloudflare Workers Paid compressed limit: ${CLOUDFLARE_PAID_LIMIT_KIB.toFixed(
       2
     )} KiB.`
   );
