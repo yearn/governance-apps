@@ -25,7 +25,7 @@ const allowlistedInstallScriptLockPackages = {
     hasInstallScript: true,
   },
   "node_modules/esbuild": {
-    version: "0.21.5",
+    version: "0.28.1",
     hasInstallScript: true,
   },
   "node_modules/fsevents": {
@@ -53,11 +53,7 @@ const allowlistedInstallScriptLockPackages = {
     hasInstallScript: true,
   },
   "node_modules/workerd": {
-    version: "1.20260507.1",
-    hasInstallScript: true,
-  },
-  "node_modules/wrangler/node_modules/esbuild": {
-    version: "0.27.3",
+    version: "1.20260801.1",
     hasInstallScript: true,
   },
 };

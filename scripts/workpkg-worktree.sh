@@ -4,10 +4,10 @@ set -eu
 usage() {
   cat >&2 <<'EOF'
 Usage:
-  workpkg-worktree.sh create --track <teams|ybc|shared> --milestone <M#> [--wp <WP#>] [--base <ref>] [--install|--no-install] [--seed-template]
-  workpkg-worktree.sh remove --track <teams|ybc|shared> --milestone <M#> [--wp <WP#>] [--keep-branch] [--force] [--prune]
-  workpkg-worktree.sh path   --track <teams|ybc|shared> --milestone <M#> [--wp <WP#>]
-  workpkg-worktree.sh branch --track <teams|ybc|shared> --milestone <M#> [--wp <WP#>]
+  workpkg-worktree.sh create --track <dao|teams|ybc|shared> --milestone <M#> [--wp <WP#>] [--base <ref>] [--install|--no-install] [--seed-template]
+  workpkg-worktree.sh remove --track <dao|teams|ybc|shared> --milestone <M#> [--wp <WP#>] [--keep-branch] [--force] [--prune]
+  workpkg-worktree.sh path   --track <dao|teams|ybc|shared> --milestone <M#> [--wp <WP#>]
+  workpkg-worktree.sh branch --track <dao|teams|ybc|shared> --milestone <M#> [--wp <WP#>]
   workpkg-worktree.sh list
 
 Notes:
@@ -57,7 +57,9 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-REPO_NAME="$(basename "$(pwd)")"
+MAIN_WORKTREE="$(git worktree list --porcelain | sed -n 's/^worktree //p' | sed -n '1p')"
+[ -n "$MAIN_WORKTREE" ] || { echo "ERROR: could not resolve the main worktree" >&2; exit 1; }
+REPO_NAME="$(basename "$MAIN_WORKTREE")"
 ROOT_PREFIX="../${REPO_NAME}"
 
 normalize() {
@@ -72,7 +74,7 @@ case "$CMD" in
   list)
     echo "Work package worktrees:"
     found=0
-    for path in "${ROOT_PREFIX}.teams."* "${ROOT_PREFIX}.ybc."* "${ROOT_PREFIX}.shared."*; do
+    for path in "${ROOT_PREFIX}.dao."* "${ROOT_PREFIX}.teams."* "${ROOT_PREFIX}.ybc."* "${ROOT_PREFIX}.shared."*; do
       [ -d "$path" ] || continue
       found=1
       echo "$path"
@@ -90,7 +92,7 @@ case "$CMD" in
 esac
 
 case "$TRACK" in
-  teams|ybc|shared) ;;
+  dao|teams|ybc|shared) ;;
   *) echo "ERROR: invalid --track '$TRACK'" >&2; usage ;;
 esac
 

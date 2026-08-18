@@ -122,10 +122,14 @@ Feature gating in production:
   changes materially. `NEXT_PUBLIC_USE_MOCKS` must stay globally disabled in production.
 - `yeth.yearn.fi` host routing always rewrites to `/yeth`; when yETH is disabled, the route gate returns 404 instead of falling through to launcher content.
 
-Host-derived metadata origin safety:
+Canonical discoverability metadata:
 
-- `metadataBase` and OG URL origin use explicit host allowlisting.
-- Unknown or malformed bracket-host values (for example malformed IPv6 host header forms) fall back to canonical app domains.
+- `metadataBase`, `rel=canonical`, and OG URLs come from the production app registry and always use the app's `*.yearn.fi` origin.
+- Request host headers do not influence canonical metadata.
+- Only approved public production hosts publish sitemap entries. stYFI and veYFI are currently approved; Teams, YBC, and yETH remain excluded until their rollout decisions change.
+- Approved hosts publish a concise, host-specific `/llms.txt` generated from the same registry. It contains stable descriptions and canonical links only, avoiding live protocol values that could become stale.
+- Non-public, preview, local, and not-yet-approved hosts receive `X-Robots-Tag: noindex, nofollow`.
+- `robots.txt` leaves Next.js JavaScript and CSS assets crawlable while excluding API and debug routes.
 
 ## 4. Transaction Safety Controls
 
@@ -175,7 +179,7 @@ Enforced headers include:
 - `X-Content-Type-Options`
 - `Referrer-Policy`
 - `X-Frame-Options` (`DENY`) by default for non-governance surfaces
-- `X-Robots-Tag` (`noindex, nofollow`) for non-production runtime modes (`development`, `preview`)
+- `X-Robots-Tag` (`noindex, nofollow`) for non-production runtime modes and non-public hosts
 - `Permissions-Policy`
 - `Cross-Origin-Opener-Policy`
 - `Cross-Origin-Resource-Policy`

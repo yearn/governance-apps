@@ -7,6 +7,17 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "preview_urls": true,
 
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true
+    }
+  },
+
   "routes": [
     { "pattern": "styfi-beta.dao-ops.com", "custom_domain": true },
     { "pattern": "veyfi-beta.dao-ops.com", "custom_domain": true },

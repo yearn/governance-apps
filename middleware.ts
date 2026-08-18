@@ -10,6 +10,7 @@ import {
   buildSecurityHeaders,
   resolveAdditionalConnectSrc,
 } from "@/lib/runtime/security-headers";
+import { isIndexableGovernanceHostname } from "@/lib/runtime/discoverability";
 
 // Regex to detect public files that should skip rewriting.
 // This is safer than checking for dots, which might exist in valid URL slugs.
@@ -37,6 +38,7 @@ function withSecurityHeaders(
   options: {
     allowUnsafeInlineScripts: boolean;
     allowSafeFrameEmbedding: boolean;
+    allowIndexing: boolean;
   }
 ) {
   const securityHeaders = buildSecurityHeaders({
@@ -59,6 +61,9 @@ function withSecurityHeaders(
   }
 
   response.headers.set("x-nonce", nonce);
+  if (!options.allowIndexing) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
   return response;
 }
 
@@ -76,6 +81,7 @@ export function middleware(request: NextRequest) {
   const securityOptions = {
     allowUnsafeInlineScripts: !shouldUseStrictCsp,
     allowSafeFrameEmbedding,
+    allowIndexing: isIndexableGovernanceHostname(requestHostname),
   };
 
   const isHeadRequest = request.method === "HEAD";

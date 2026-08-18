@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  CLOUDFLARE_PAID_LIMIT_KIB,
+  DEFAULT_LIMIT_KIB,
+  DEFAULT_WARN_KIB,
   evaluateWorkerSize,
   parseWorkerUploadSize,
 } from "../../../scripts/check-worker-size.mjs";
@@ -16,12 +19,18 @@ describe("check-worker-size", () => {
     });
   });
 
+  it("reserves headroom below the Cloudflare Workers Paid limit", () => {
+    expect(CLOUDFLARE_PAID_LIMIT_KIB).toBe(10240);
+    expect(DEFAULT_LIMIT_KIB).toBe(9216);
+    expect(DEFAULT_WARN_KIB).toBe(7680);
+  });
+
   it("fails when the gzip size exceeds the hard budget", () => {
     expect(
       evaluateWorkerSize({
-        gzipKiB: 3087.38,
-        limitKiB: 3072,
-        warnKiB: 2900,
+        gzipKiB: 9300,
+        limitKiB: DEFAULT_LIMIT_KIB,
+        warnKiB: DEFAULT_WARN_KIB,
       })
     ).toMatchObject({ status: "fail" });
   });
@@ -29,9 +38,9 @@ describe("check-worker-size", () => {
   it("warns above the warning threshold while staying under the limit", () => {
     expect(
       evaluateWorkerSize({
-        gzipKiB: 2930,
-        limitKiB: 3072,
-        warnKiB: 2900,
+        gzipKiB: 8000,
+        limitKiB: DEFAULT_LIMIT_KIB,
+        warnKiB: DEFAULT_WARN_KIB,
       })
     ).toMatchObject({ status: "warn" });
   });
@@ -39,9 +48,9 @@ describe("check-worker-size", () => {
   it("passes when the gzip size is below the warning threshold", () => {
     expect(
       evaluateWorkerSize({
-        gzipKiB: 2890,
-        limitKiB: 3072,
-        warnKiB: 2900,
+        gzipKiB: 7000,
+        limitKiB: DEFAULT_LIMIT_KIB,
+        warnKiB: DEFAULT_WARN_KIB,
       })
     ).toMatchObject({ status: "pass" });
   });

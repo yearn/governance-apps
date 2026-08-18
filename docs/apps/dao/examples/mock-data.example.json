@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "chainId": 1,
+  "generatedAt": "2026-08-18T12:00:00Z",
+  "canonicalBlock": {
+    "number": "24000000",
+    "hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "timestamp": 1787054400
+  },
+  "contracts": [
+    {
+      "votingAddress": "0x1111111111111111111111111111111111111111",
+      "voterAddress": "0x2222222222222222222222222222222222222222",
+      "executorAddress": "0x3333333333333333333333333333333333333333",
+      "deploymentBlock": "23900000",
+      "active": true
+    }
+  ],
+  "proposals": [
+    {
+      "ref": {
+        "chainId": 1,
+        "votingAddress": "0x1111111111111111111111111111111111111111",
+        "proposalId": "7"
+      },
+      "proposer": "0x4444444444444444444444444444444444444444",
+      "votingEpoch": "12",
+      "createdAt": 1785844800,
+      "voteStartsAt": 1786968000,
+      "voteEndsAt": 1787572800,
+      "executionStartsAt": null,
+      "executionEndsAt": null,
+      "thresholdBps": 5500,
+      "totalWeight": "250000000000000000000",
+      "yeaWeight": "155000000000000000000",
+      "nayWeight": "95000000000000000000",
+      "protocolStatus": "vetoed",
+      "displayStatus": "vetoed",
+      "displayGroup": "closed",
+      "type": "signal",
+      "content": {
+        "state": "available",
+        "cid": "bafkreicn4tqy2vtegf4ekjkqsay6hkdcbtlhetxqb2jjrllc2goigoukt4",
+        "digest": "0x4de4e18d566431784525509031e3a8620cd6724ef00e9298ad62d19c833a8a9f",
+        "value": {
+          "schema": "yearn.dao.proposal.v1",
+          "title": "Adopt the contributor budget policy",
+          "summary": "Records the DAO decision for the next budget period.",
+          "specification": "The DAO approves the budget policy described in the linked discussion.",
+          "discussionUrl": "https://gov.yearn.fi/t/example/12345",
+          "proposalType": "signal",
+          "createdBy": "0x4444444444444444444444444444444444444444",
+          "createdAt": "2026-08-04T12:00:00Z",
+          "links": []
+        },
+        "error": null
+      },
+      "discussion": {
+        "state": "verified",
+        "url": "https://gov.yearn.fi/t/example/12345",
+        "title": "Contributor budget policy",
+        "categoryId": 42,
+        "category": "Proposals",
+        "categorySlugPath": ["proposals"]
+      },
+      "script": {
+        "bytes": "0x",
+        "hash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+        "hashVerified": true
+      },
+      "analysis": {
+        "state": "unavailable",
+        "generatedAt": null,
+        "registryVersion": null,
+        "calls": [],
+        "proposalSimulation": {
+          "state": "unavailable",
+          "method": null,
+          "engine": null,
+          "blockNumber": null,
+          "blockHash": null,
+          "simulatedAt": null,
+          "stateTimestamp": null,
+          "timestampMode": null,
+          "timestampOverride": null,
+          "caller": null,
+          "stateOverrides": null,
+          "error": "No execution-equivalent context was available"
+        },
+        "error": "Proposal-time simulation unavailable"
+      },
+      "events": [
+        {
+          "type": "propose",
+          "log": {
+            "blockNumber": "23910000",
+            "blockHash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "transactionHash": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "transactionIndex": 3,
+            "logIndex": 8
+          },
+          "actor": "0x4444444444444444444444444444444444444444",
+          "voteActorKind": null,
+          "direction": null,
+          "weight": null,
+          "reason": null
+        },
+        {
+          "type": "vote",
+          "log": {
+            "blockNumber": "23990000",
+            "blockHash": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "transactionHash": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "transactionIndex": 1,
+            "logIndex": 2
+          },
+          "actor": "0x5555555555555555555555555555555555555555",
+          "voteActorKind": "human",
+          "direction": "yea",
+          "weight": "155000000000000000000",
+          "reason": null
+        },
+        {
+          "type": "vote",
+          "log": {
+            "blockNumber": "23990005",
+            "blockHash": "0x1212121212121212121212121212121212121212121212121212121212121212",
+            "transactionHash": "0x3434343434343434343434343434343434343434343434343434343434343434",
+            "transactionIndex": 2,
+            "logIndex": 5
+          },
+          "actor": "0x7777777777777777777777777777777777777777",
+          "voteActorKind": "human",
+          "direction": "nay",
+          "weight": "95000000000000000000",
+          "reason": null
+        },
+        {
+          "type": "veto",
+          "log": {
+            "blockNumber": "23990010",
+            "blockHash": "0xabababababababababababababababababababababababababababababababab",
+            "transactionHash": "0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+            "transactionIndex": 4,
+            "logIndex": 1
+          },
+          "actor": "0x6666666666666666666666666666666666666666",
+          "voteActorKind": null,
+          "direction": null,
+          "weight": null,
+          "reason": "Guardian veto after at least one vote"
+        }
+      ],
+      "moderation": {
+        "flagReason": null,
+        "vetoReason": "Guardian veto after at least one vote"
+      }
+    }
+  ]
+}

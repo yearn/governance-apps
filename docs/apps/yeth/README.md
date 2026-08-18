@@ -11,12 +11,12 @@ Scope: yETH recovery experience under `/yeth`.
 
 ## Current Delivery Status
 
-As of February 19, 2026:
-
 - A full mock-first yETH recovery app is implemented at `/yeth`.
 - Tokyo Refresh (v2.0) UI is implemented with de-boxed action-first hierarchy.
 - stYFI and veYFI remain independently operable.
-- yETH contracts are not integrated yet; on-chain reads/writes are pending.
+- The route has an onchain client, global feed path, and prepared claim/redeem
+  writes. Final addresses, production inputs, and rollout checks remain tracked
+  in the implementation status and production checklist.
 
 For exact completion details, use the status tracker:
 [`implementation-status.md`](implementation-status.md).

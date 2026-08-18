@@ -1,91 +1,183 @@
-# Codex Delivery Guide for Teams + YBC
+# Codex Delivery Workflow
 
-This guide is for running Teams and YBC production work in controlled parallel tracks.
-The current production path is feed-first: `governance-apps` defines and consumes the
-feed contract, while `gov-apps-stats` produces `teams.json` and `ybc.json`.
+This is the canonical workflow for planned app work in `governance-apps`. App
+delivery plans define scope and dependencies; this guide defines how agents use
+branches, worktrees, reviews, and the accepted integration lane.
 
-## 1. Pick the work package first
+Repository `AGENTS.md` instructions override generic Codex defaults. In
+particular, this repository uses `agent/` branches rather than `codex/` branches.
 
-Before creating a worktree, decide:
+## 1. Accepted-work lane
 
-- repo: `governance-apps` or `gov-apps-stats`
-- track: `shared`, `teams`, or `ybc`
-- milestone: `m3a`, `m3b`, `m3c`, `m4`, ...
-- work package: `wp0`, `wp1`, ...
+Use one long-lived integration worktree:
 
-Do **not** create every future worktree up front.
+```text
+branch:   agent/integration
+worktree: ../governance-apps.agent.integration
+```
 
-Use shared WP2 in the `gov-apps-stats` repo. Do not implement producer code in a
-`governance-apps` worktree.
-
-## 2. Create a focused worktree
-
-Create the long-lived integration worktree first from the `bootstrap` checkout:
+Create it only if it does not already exist:
 
 ```fish
 cd /Users/hydra/Developer/yearn/governance-apps
 ./scripts/agent-worktree.sh create integration --no-install
 ```
 
-This creates:
+If it exists, inspect it before use:
 
-```text
-../governance-apps.agent.integration
+```fish
+git -C ../governance-apps.agent.integration status --short --branch
+git rev-list --left-right --count agent/integration...master
 ```
 
-and branch:
+Fast-forward or merge the approved baseline into `agent/integration` before
+creating dependent work packages. Never reset the integration branch to discard
+accepted work.
+
+## 2. Work-package branches
+
+Use one branch and one worktree per package:
 
 ```text
-agent/integration
+branch:   agent/<track>/<milestone>/<wp>
+worktree: ../governance-apps.<track>.<milestone>.<wp>
 ```
 
-Work package branches should start from `agent/integration`.
+Supported tracks include `dao`, `teams`, `ybc`, and `shared`.
+
+Create packages only when their dependencies have landed in
+`agent/integration`. The helper ignores `--base` if the branch or worktree
+already exists, so creating future packages early can leave them on stale
+baselines.
 
 Example:
 
 ```fish
 cd /Users/hydra/Developer/yearn/governance-apps.agent.integration
-./scripts/workpkg-worktree.sh create --track teams --milestone m1 --wp wp3 --base agent/integration --seed-template
+./scripts/workpkg-worktree.sh create \
+  --track dao \
+  --milestone m1 \
+  --wp wp1 \
+  --base agent/integration \
+  --install
 ```
 
-`--seed-template` is optional. It uses a local `.env.worktree.example` file when present
-and warns without failing when that local template is absent.
-
-This creates a worktree under:
+The script resolves the main repository name even when run from the integration
+worktree, so this creates:
 
 ```text
-../governance-apps.agent.integration.teams.m1.wp3
+../governance-apps.dao.m1.wp1
+agent/dao/m1/wp1
 ```
 
-and a branch like:
+Use `--no-install` when another process will install dependencies. Environment
+sync never overwrites existing local files.
 
-```text
-agent/teams/m1/wp3
+## 3. Roles
+
+### Root orchestrator
+
+- reads the app plan and current package dependencies;
+- creates worktrees from the accepted integration head;
+- assigns one editing owner per worktree;
+- schedules independent review and specialist audits;
+- keeps product gates with the user;
+- does not merge work that still has blocking findings.
+
+### Implementer
+
+- owns all edits in one package worktree;
+- stays inside package scope;
+- adds tests and behavior docs with the change;
+- runs the package checks;
+- makes focused Conventional Commits;
+- never merges the branch.
+
+### Reviewer
+
+- works read-only against the committed package diff;
+- checks scope, correctness, tests, docs, and existing patterns;
+- cites files and lines for findings;
+- separates blockers from later improvements.
+
+### Specialist auditor
+
+Checks the risk relevant to the package: contract behavior, transaction safety,
+indexer determinism, accessibility, interface quality, deployment, or security.
+The auditor works read-only and does not silently fix findings.
+
+### Fixer
+
+- reproduces accepted findings in the same package worktree;
+- makes the smallest scoped corrections;
+- adds regression tests for behavior bugs;
+- commits the fixes and returns the finding-to-fix map.
+
+### Integrator
+
+- verifies the reviewed commit range and clean branch;
+- confirms dependency packages are already present;
+- merges with `--no-ff` in the documented order;
+- runs post-merge checks in the integration worktree;
+- records conflicts, deferred work, and rollout effects.
+
+Never let two agents edit the same worktree. A reviewer can inspect while an
+implementer is idle, but review must target committed code.
+
+## 4. Package loop
+
+For each package:
+
+1. Verify dependencies in `agent/integration`.
+2. Create the package branch and worktree from that exact head.
+3. Assign one implementer.
+4. Require a focused commit and clean worktree.
+5. Run an independent reviewer.
+6. Run the needed specialist auditor.
+7. Assign a fixer for every accepted blocker.
+8. Re-review the final commit range.
+9. Merge the approved branch into `agent/integration` with `--no-ff`.
+10. Run the post-merge test gate.
+11. Remove the worktree only after the merge is verified.
+
+Safe cleanup that retains the branch:
+
+```fish
+./scripts/workpkg-worktree.sh remove \
+  --track dao \
+  --milestone m1 \
+  --wp wp1 \
+  --keep-branch \
+  --prune
 ```
 
-## 3. Open the right docs in the worktree
+Do not use `--force` unless the exact worktree and its uncommitted state have
+been checked.
 
-For the current package, read in order:
+## 5. Integration and tags
 
-1. `AGENTS.md`
-2. `docs/shared/teams-ybc-delivery-roadmap.md`
-3. `docs/shared/teams-ybc-production-plan.md`
-4. for producer work, `docs/shared/gov-apps-stats-teams-ybc-feed-brief.md`
-5. the app README (`docs/apps/teams/README.md` or `docs/apps/ybc/README.md`)
-6. the work package doc under `onchain-integration-plan/work-packages/` or
-   `docs/shared/work-packages/`
-7. the role prompt you are using
+Merge from the integration worktree:
 
-## 4. Implement in small scope
+```fish
+cd /Users/hydra/Developer/yearn/governance-apps.agent.integration
+git status --short --branch
+git merge --no-ff agent/dao/m1/wp1 \
+  -m "chore(integration): merge DAO Governance M1 WP1"
+```
 
-For implementers:
-- stay inside the stated work package
-- do not consume later milestone scope
-- use the existing repo patterns before inventing new abstractions
-- do not let browser code own historical Teams/YBC log indexing
-- do not change feed schema shape without updating the consumer contract docs
+Use domain-scoped annotated milestone tags because generic integration tags may
+already exist:
 
-## 5. Run the minimum validation
+```fish
+git tag -a integration/dao-m1 -m "Accept DAO Governance M1"
+```
+
+Tag only after the milestone tests pass and the required human gate is accepted.
+Do not merge every work package directly into `master`.
+
+## 6. Validation gates
+
+Every meaningful package:
 
 ```fish
 npm run typecheck
@@ -93,86 +185,51 @@ npm run lint
 npm run test
 ```
 
-Run e2e only when the package touches UI flows or route behavior.
-
-## 6. Reviewer pass
-
-Use the reviewer prompt in the app prompt folder, plus the WP-specific reviewer section.
-
-The reviewer should check:
-- scope discipline
-- state coverage
-- docs updated
-- tests changed where behavior changed
-
-## 7. Integrate into `agent/integration`
-
-Merge approved WP branches into the long-lived integration worktree:
+Route or user-flow changes:
 
 ```fish
-cd /Users/hydra/Developer/yearn/governance-apps.agent.integration
-git merge --no-ff agent/teams/m1/wp3
+npm run test:e2e
+npm run test:e2e:full
 ```
 
-Re-run the minimum validation after each accepted merge.
-Do not merge every WP directly into `master`.
-
-## 8. Remove finished worktrees
+Milestone integration:
 
 ```fish
-./scripts/workpkg-worktree.sh remove --track teams --milestone m1 --wp wp3 --prune
+npm run typecheck
+npm run lint
+npm run test
+npm run test:e2e
+npm run test:e2e:full
+npm run build
 ```
 
-Add `--keep-branch` if you want to retain the branch temporarily.
+Run `npm run validate:deps` when dependencies or the lockfile change. Record any
+check that cannot run and why; do not report it as passing.
 
-## 9. Promotion path
+## 7. Cross-repository packages
 
-Recommended promotion path:
+Keep producer work in its own repository. `governance-apps` owns consumer
+schemas, frontend validation, route behavior, writes, and rollout docs.
+`gov-apps-stats` owns historical event indexing, snapshot generation, backend
+analysis, and feed publication.
 
-1. WP branch
-2. `agent/integration`
-3. milestone tag such as `integration/m1`
-4. shared release branch if needed
-5. `master`
+Each repository uses its own integration lane and instructions. Land the
+consumer contract first, implement the producer second, validate real producer
+output third, then wire production reads.
 
-## 10. Default role split
+## 8. Product gates
 
-### Implementer
-Builds the scoped package.
+Do not let an autonomous delivery run skip a product gate. For a mock-first app:
 
-For `gov-apps-stats`, the implementer owns producer indexing and staging publication only.
-For `governance-apps`, the implementer owns schemas, validation, frontend reads, writes,
-or rollout depending on the package.
+1. accept functional requirements;
+2. build and review deterministic mocks;
+3. present the mock UX for user acceptance;
+4. define and implement the producer feed;
+5. wire onchain reads and writes;
+6. prove the lifecycle on a fork;
+7. test preproduction;
+8. expose production behind its feature flag.
 
-### Reviewer
-Checks correctness, scope, tests, accessibility, and consistency.
-
-For producer work, also check event reducer determinism, cursor safety, snapshot block
-consistency, and atomic publication.
-
-### Integrator
-Owns merge order, conflict resolution, milestone assembly, and release readiness notes.
-
-## 11. Cross-repo handoff order
-
-Completed feed/read groundwork:
-
-1. Shared WP1 completed in `governance-apps`.
-2. Shared WP2 completed in `gov-apps-stats`.
-3. The stable Teams v1 URL and live YBC feed were published.
-4. YBC and the legacy Teams transport were validated from `governance-apps`.
-5. Teams WP9 and YBC WP8 feed-backed reads completed.
-6. `agent/data` merged into `agent/integration`.
-7. Teams WP10 and YBC WP9 launch-scope writes completed.
-
-Current handoff order from here:
-
-1. Validate the corrected Teams v2 candidate and hot-switch the same stable URL; do not
-   use v1 financials as release evidence.
-2. Keep `NEXT_PUBLIC_USE_MOCKS=false` for fork/preprod work; use corrected Teams v2,
-   validated YBC JSON, and fixture/intercepted JSON for rare states.
-3. Finish Teams WP11 and YBC WP10 for targeted fork smoke, preprod smoke, rollout notes,
-   and rollback checks.
-4. Enable `NEXT_PUBLIC_ENABLE_TEAMS` / `NEXT_PUBLIC_ENABLE_YBC` only after approval.
-
-Do not add per-app mock/live switches or separate Teams/YBC write flags for this launch.
+An open contract PR, pending deployment addresses, or pending producer work does
+not block the mock milestone unless the mock would encode an unknown product
+choice.

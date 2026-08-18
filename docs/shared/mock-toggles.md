@@ -15,8 +15,8 @@
 - **Default:** Disabled in repo; enable for local UI-only testing.
 - **Effect:** Uses mock/debug backends across app domains instead of on-chain/feed-backed
   production paths.
-- **Scope:** Global. There are no per-app mock/live switches for launch. Do not run
-  production with live `styfi`/`veyfi`/`yeth` while Teams or YBC use mocked flows.
+- **Scope:** Global. There are no per-app mock/live switches for launch. Do not
+  mix mock and live app domains in production.
 - **Clock behavior in mock mode:** Epoch and cooldown UI timing uses the local mock clock (`nowSeconds`) instead of chain/global-data canonical clock sources.
 - **Manual UAT tip:** For wallet-connect UX testing in mock mode, set `NEXT_PUBLIC_E2E=false`. If `NEXT_PUBLIC_E2E=true`, the app uses a fixed mock connector address and behaves as connected.
 
@@ -46,8 +46,6 @@
 - For the Teams/YBC launch, there are no separate write flags. Once the relevant app is
   approved, its production flag exposes feed-backed reads and launch-scope writes
   together. Disable the app flag to roll back exposure.
-
-## Public RPC (Non-Mock Mode)
 
 ## Global Data (Non-Mock Mode)
 
@@ -105,9 +103,9 @@ For mature mock-backed routes, debug controls should mutate underlying domain st
 place. Presets may bootstrap the state, but QA should be able to keep navigating the
 normal route while changing persona, time, loading/empty coverage, and domain-specific
 values under the current view.
-For `teams` and `ybc`, that also means the default route should avoid visible `mock` /
-`prototype` badges or route-shell implementation notes; those review states belong in
-the floating panel or the shared E2E bridge.
+Every mature mock-backed route must avoid visible `mock` or `prototype` badges
+and route-shell implementation notes. Those review states belong in the floating
+panel or shared E2E bridge.
 
 For Teams specifically, the shared panel now owns preset bootstrapping, viewer/admin
 access, loading/empty coverage, workspace selection, current period, lifecycle,
@@ -123,7 +121,9 @@ clipping or covering the route.
 
     - `+1 Day` / `+7 Days`
     - Advances the internal mock clock. Use this to fast-forward through 14-day cooldowns to test unlocking and streaming logic.
-    - Triggers an immediate refetch of account and domain queries (`styfi`, `veyfi`, `yeth`) and also reserves `teamsKeys.all` plus `ybcKeys.all` as the `M2A` shared-root invalidation seam; identity values update from the shared stYFI account query.
+    - Triggers an immediate refetch of account and registered domain query roots,
+      including Teams and YBC; identity values update from the shared stYFI
+      account query.
 
 2.  **Balance Injection:**
 
@@ -149,13 +149,9 @@ clipping or covering the route.
 
 - Domain allowances should be read from account state in mock mode (avoid `useTokenAllowance`).
 - Error shaping is normalized in `lib/tx/errors.ts`; keep new mock errors aligned with that map.
-- New mock-heavy domains should expose app-specific debug setters through the floating
-  panel and `window.__TEST__` rather than relying on route-local scenario UI.
-- When a new mock-heavy domain is added, `DebugControls` time travel and `Reset App`
-  must invalidate and reset that domain's store as part of the same package.
-- For the Teams and YBC `M2A` alignment work, shared seam ownership for
-  `DebugControls` and `window.__TEST__` sits in `shared / WP0`; the domain runtime
-  packages consume that seam rather than redefining it.
-- For that `M2A` seam specifically, domain controls should plug into
-  `DebugControlsSection[]` and the `TeamsTestBridgeAdapter` / `YbcTestBridgeAdapter`
-  types instead of extending the shared shell ad hoc.
+- New mock-heavy domains expose app-specific debug setters through the floating
+  panel and `window.__TEST__`, not route-local scenario UI.
+- The package adding the domain must register its query root, time-change hook,
+  reset hook, mock store, and typed test-bridge adapter.
+- Domain controls plug into `DebugControlsSection[]`. They do not extend the
+  shared shell ad hoc.

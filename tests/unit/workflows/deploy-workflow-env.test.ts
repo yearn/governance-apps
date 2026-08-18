@@ -108,3 +108,27 @@ describe("preprod worker routes", () => {
     }
   });
 });
+
+describe("web worker observability", () => {
+  const expectedObservabilityConfig = [
+    '  "observability": {',
+    '    "enabled": true,',
+    '    "head_sampling_rate": 1,',
+    '    "logs": {',
+    '      "enabled": true,',
+    '      "head_sampling_rate": 1,',
+    '      "invocation_logs": true,',
+    '      "persist": true',
+  ].join("\n");
+
+  for (const relativePath of ["wrangler.jsonc", "wrangler.preprod.jsonc"]) {
+    it(`${relativePath} persists sampled invocation logs`, () => {
+      const wranglerConfig = readFileSync(
+        path.resolve(process.cwd(), relativePath),
+        "utf8"
+      );
+
+      expect(wranglerConfig).toContain(expectedObservabilityConfig);
+    });
+  }
+});

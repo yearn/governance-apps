@@ -95,9 +95,9 @@ routes use different page shapes, but they share a common discipline: show the
 system state first, then guide the next action.
 
 The design rejects generic AI dashboard aesthetics, decorative gradients,
-glassmorphism, and one-size-fits-all card grids. `/teams` and `/ybc` should feel
-like they belong beside `/styfi`, `/veyfi`, and `/yeth`, while keeping their own
-command-center and governance-board workflows.
+glassmorphism, and one-size-fits-all card grids. `/teams`, `/ybc`, and `/dao`
+should feel like they belong beside `/styfi`, `/veyfi`, and `/yeth`, while
+keeping their own task-specific workflows.
 
 **Key Characteristics:**
 
@@ -110,12 +110,13 @@ command-center and governance-board workflows.
 
 ## 2. Colors
 
-The palette is neutral-first with one Yearn ecosystem blue and route-specific
-brand accents.
+The palette is neutral-first with one Yearn blue and route-specific brand
+accents. DAO Governance uses Yearn blue and the neutral governance palette
+rather than adding another decorative route color.
 
 ### Primary
 
-- **Yearn Blue**: The shared ecosystem accent used for brand marks, selected
+- **Yearn Blue**: The shared product accent used for brand marks, selected
   state, and high-confidence emphasis.
 - **Ink Neutral**: The text and primary-action anchor.
 
@@ -241,8 +242,8 @@ compete with neighboring content. Use spacing and headings before using shadow.
   `Badge` consistently across routes.
 - **Do** show blocked state in the disabled CTA label and in persistent copy next
   to the action.
-- **Do** verify desktop and mobile screenshots for `/styfi`, `/veyfi`, `/yeth`,
-  `/teams`, and `/ybc` before calling a design pass done.
+- **Do** verify desktop and mobile screenshots for every route changed by the
+  package, including `/dao` once implementation starts.
 - **Do** use `docs/shared/design-review-process.md` for route-level UI and copy
   passes.
 

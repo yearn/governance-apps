@@ -11,6 +11,7 @@ You are implementing `{track}` / `{milestone}` / `{wp}` in `governance-apps`.
 - `{scope_bullet_3}`
 
 ## Constraints
+- Work only in the assigned package worktree and branch.
 - Stay within this work package only.
 - Reuse existing repo patterns from `/styfi`, `/veyfi`, and `/yeth`.
 - Use shared UI primitives before creating new ones.
@@ -25,7 +26,7 @@ You are implementing `{track}` / `{milestone}` / `{wp}` in `governance-apps`.
 
 ## Validation
 Run:
-```bash
+```fish
 npm run typecheck
 npm run lint
 npm run test
@@ -36,6 +37,8 @@ Add targeted e2e only if this package changes route behavior or a critical user 
 ## Deliverables
 When done, provide:
 - concise summary
+- commit SHA and clean-worktree confirmation
 - files changed
 - tests run
 - follow-up risks or dependencies
+- do not merge or tag the branch
