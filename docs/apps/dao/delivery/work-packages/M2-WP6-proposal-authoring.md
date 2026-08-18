@@ -50,6 +50,24 @@ structural checks, immutable-content review, and mock publish/propose states.
 - Signal and executable authoring E2E.
 - Standard repository checks.
 
+## Mock implementation contract
+
+- The accepted M1 readiness card remains the route entry state. `Start proposal`
+  opens the authoring form without changing shared DAO board or detail state.
+- Forum fixtures are deterministic: `1001` publishes a Signal proposal, `1002`
+  fails publication, `1003` reaches wallet rejection, `1004` reaches proposal
+  revert, and `1005` publishes an executable proposal. `2002`, `404`, and `503`
+  exercise wrong-category, missing-topic, and unavailable-service validation.
+- Publication creates a deterministic mock content fingerprint before the
+  separate mocked wallet/proposal step. Publication failure keeps the draft and
+  never enters the wallet step.
+- Exact review content is locked after publication. Submitted proposals remain
+  pending while backend indexing, decoding, and simulation are represented as
+  post-submission work.
+- Eligibility fixtures expose wallet, proposal network, blacklist, voting
+  weight, cooldown, expected voting epoch, and all six shared affected reward
+  epochs as separate facts.
+
 ## Review
 
 Contract-format auditor and form/accessibility reviewer. May run alongside WP4;

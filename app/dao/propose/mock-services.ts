@@ -1,0 +1,264 @@
+import { keccak256, stringToHex, type Hex } from "viem";
+import type { DaoProposalContentV1, DaoScriptCheck } from "@/lib/clients/dao";
+
+const ALLOWED_PROPOSALS_CATEGORY_ID = 5;
+
+export type DaoForumTopic = {
+  topicId: number;
+  normalizedUrl: string;
+  title: string;
+  categoryId: number;
+  category: string;
+  author: string;
+  createdAt: number;
+};
+
+export type DaoForumValidationErrorCode =
+  | "INVALID_TOPIC_URL"
+  | "TOPIC_NOT_FOUND"
+  | "WRONG_CATEGORY"
+  | "FORUM_UNAVAILABLE";
+
+export type DaoForumValidationResult =
+  | { state: "valid"; topic: DaoForumTopic }
+  | {
+      state: "invalid";
+      error: {
+        code: DaoForumValidationErrorCode;
+        message: string;
+      };
+    };
+
+export type DaoAuthoringReview = {
+  topic: DaoForumTopic;
+  content: DaoProposalContentV1;
+  scriptCheck: DaoScriptCheck;
+};
+
+export type DaoPublishedContent = {
+  fingerprint: Hex;
+  publishedAt: number;
+};
+
+export type DaoPublicationResult =
+  | { state: "published"; publication: DaoPublishedContent }
+  | {
+      state: "failed";
+      error: {
+        code: "PUBLICATION_FAILED";
+        message: string;
+      };
+    };
+
+export type DaoProposalSubmissionResult =
+  | {
+      state: "submitted";
+      transactionHash: Hex;
+    }
+  | {
+      state: "failed";
+      error: {
+        code: "WALLET_REJECTED" | "PROPOSAL_REVERTED";
+        message: string;
+      };
+    };
+
+type MockTopicFixture = Omit<DaoForumTopic, "topicId" | "normalizedUrl">;
+
+const TOPIC_FIXTURES: Readonly<Record<number, MockTopicFixture>> = {
+  1001: {
+    title: "Fund protocol research",
+    categoryId: ALLOWED_PROPOSALS_CATEGORY_ID,
+    category: "Proposals",
+    author: "yearn-contributor",
+    createdAt: 1_722_470_400,
+  },
+  1002: {
+    title: "Improve treasury reporting",
+    categoryId: ALLOWED_PROPOSALS_CATEGORY_ID,
+    category: "Proposals",
+    author: "treasury-working-group",
+    createdAt: 1_723_420_800,
+  },
+  1003: {
+    title: "Update contributor budget",
+    categoryId: ALLOWED_PROPOSALS_CATEGORY_ID,
+    category: "Proposals",
+    author: "budget-steward",
+    createdAt: 1_724_889_600,
+  },
+  1004: {
+    title: "Renew operations mandate",
+    categoryId: ALLOWED_PROPOSALS_CATEGORY_ID,
+    category: "Proposals",
+    author: "operations-council",
+    createdAt: 1_726_531_200,
+  },
+  1005: {
+    title: "Deploy strategy safeguards",
+    categoryId: ALLOWED_PROPOSALS_CATEGORY_ID,
+    category: "Proposals",
+    author: "strategy-team",
+    createdAt: 1_728_000_000,
+  },
+  2002: {
+    title: "General governance question",
+    categoryId: 2,
+    category: "General",
+    author: "forum-member",
+    createdAt: 1_722_470_400,
+  },
+};
+
+const FORUM_ERROR_MESSAGES: Record<DaoForumValidationErrorCode, string> = {
+  INVALID_TOPIC_URL:
+    "Enter a full https://gov.yearn.fi/t/.../<topicId> topic URL.",
+  TOPIC_NOT_FOUND: "This forum topic could not be found.",
+  WRONG_CATEGORY:
+    "This topic is not in the configured Proposals category.",
+  FORUM_UNAVAILABLE:
+    "The forum topic could not be checked. Try again without changing your draft.",
+};
+
+export async function validateMockDaoForumTopic(
+  input: string,
+  latencyMs = 120
+): Promise<DaoForumValidationResult> {
+  await wait(latencyMs);
+  const parsed = parseForumTopicUrl(input);
+  if (!parsed) return forumError("INVALID_TOPIC_URL");
+  if (parsed.topicId === 503) return forumError("FORUM_UNAVAILABLE");
+
+  const fixture = TOPIC_FIXTURES[parsed.topicId];
+  if (!fixture || parsed.topicId === 404) return forumError("TOPIC_NOT_FOUND");
+  if (fixture.categoryId !== ALLOWED_PROPOSALS_CATEGORY_ID) {
+    return forumError("WRONG_CATEGORY");
+  }
+
+  const slug = slugify(fixture.title);
+  return {
+    state: "valid",
+    topic: {
+      topicId: parsed.topicId,
+      normalizedUrl: `https://gov.yearn.fi/t/${slug}/${parsed.topicId}`,
+      ...fixture,
+    },
+  };
+}
+
+export async function publishMockDaoProposalContent(
+  review: DaoAuthoringReview,
+  publishedAt: number,
+  latencyMs = 160
+): Promise<DaoPublicationResult> {
+  await wait(latencyMs);
+  if (review.topic.topicId === 1002) {
+    return {
+      state: "failed",
+      error: {
+        code: "PUBLICATION_FAILED",
+        message:
+          "Proposal content could not be published. Your full draft and review are unchanged.",
+      },
+    };
+  }
+
+  return {
+    state: "published",
+    publication: {
+      fingerprint: keccak256(stringToHex(canonicalReviewContent(review))),
+      publishedAt,
+    },
+  };
+}
+
+export async function submitMockDaoProposal(
+  review: DaoAuthoringReview,
+  publication: DaoPublishedContent,
+  latencyMs = 180
+): Promise<DaoProposalSubmissionResult> {
+  await wait(latencyMs);
+  if (review.topic.topicId === 1003) {
+    return {
+      state: "failed",
+      error: {
+        code: "WALLET_REJECTED",
+        message:
+          "The wallet request was cancelled. Published proposal content remains available for another attempt.",
+      },
+    };
+  }
+  if (review.topic.topicId === 1004) {
+    return {
+      state: "failed",
+      error: {
+        code: "PROPOSAL_REVERTED",
+        message:
+          "The proposal transaction reverted. Recheck current eligibility before trying again.",
+      },
+    };
+  }
+
+  return {
+    state: "submitted",
+    transactionHash: keccak256(
+      stringToHex(
+        `${publication.fingerprint}:${review.scriptCheck.scriptHash ?? "0x"}`
+      )
+    ),
+  };
+}
+
+function parseForumTopicUrl(input: string): { topicId: number } | null {
+  let url: URL;
+  try {
+    url = new URL(input.trim());
+  } catch {
+    return null;
+  }
+
+  if (
+    url.protocol !== "https:" ||
+    url.hostname !== "gov.yearn.fi" ||
+    url.port !== "" ||
+    url.username !== "" ||
+    url.password !== ""
+  ) {
+    return null;
+  }
+
+  const match = /^\/t\/[^/]+\/(\d+)\/?$/.exec(url.pathname);
+  if (!match) return null;
+  const topicId = Number(match[1]);
+  if (!Number.isSafeInteger(topicId) || topicId <= 0) return null;
+  return { topicId };
+}
+
+function forumError(
+  code: DaoForumValidationErrorCode
+): DaoForumValidationResult {
+  return {
+    state: "invalid",
+    error: { code, message: FORUM_ERROR_MESSAGES[code] },
+  };
+}
+
+function canonicalReviewContent(review: DaoAuthoringReview): string {
+  return JSON.stringify({
+    content: review.content,
+    script: review.scriptCheck.script,
+    scriptHash: review.scriptCheck.scriptHash,
+  });
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+async function wait(latencyMs: number): Promise<void> {
+  if (latencyMs <= 0) return;
+  await new Promise((resolve) => setTimeout(resolve, latencyMs));
+}
