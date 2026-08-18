@@ -54,6 +54,13 @@ describe("resolveHeaderPrimaryNav", () => {
     });
   });
 
+  it("keeps DAO Governance path-scoped on shared hosts", () => {
+    expect(resolveHeaderPrimaryNav("/dao/proposals/2", "dao")).toEqual({
+      label: "DAO Governance",
+      path: "/dao",
+    });
+  });
+
   it("falls back to pathname when segment is unavailable", () => {
     expect(resolveHeaderPrimaryNav("/veyfi/portfolio", null)).toEqual({
       label: "veYFI",
@@ -132,5 +139,15 @@ describe("resolveHeaderAppKey", () => {
       "veyfi"
     );
     expect(resolveHeaderAppKey("/yeth", null, "app.dao-ops.com")).toBe("yeth");
+    expect(resolveHeaderAppKey("/dao/propose", null, "app.dao-ops.com")).toBe(
+      "dao"
+    );
+  });
+
+  it("does not treat similarly named launcher paths as DAO routes", () => {
+    expect(resolveHeaderAppKey("/daoish", null, "app.dao-ops.com")).toBeNull();
+    expect(
+      resolveHeaderAppKey("/dao-governance", null, "app.dao-ops.com")
+    ).toBeNull();
   });
 });

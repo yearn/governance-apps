@@ -10,6 +10,16 @@ export function isProductionRuntime(
   return isProductionMode(env);
 }
 
+/**
+ * DAO stays available for local and preview review only until its production
+ * rollout package adds the final environment, host, and feed invariants.
+ */
+export function isDaoEnabled(
+  env: Record<string, string | undefined> = process.env
+) {
+  return !isProductionRuntime(env);
+}
+
 export function isYethEnabled(env: Record<string, string | undefined> = process.env) {
   return !isProductionRuntime(env) || isEnabled(env.NEXT_PUBLIC_ENABLE_YETH);
 }

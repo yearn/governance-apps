@@ -35,6 +35,7 @@ describe("resolveHostPrefix", () => {
 
   it("returns null for unknown or empty hosts", () => {
     expect(resolveHostPrefix("app.dao-ops.com")).toBeNull();
+    expect(resolveHostPrefix("dao.yearn.fi")).toBeNull();
     expect(resolveHostPrefix("")).toBeNull();
     expect(resolveHostPrefix("   ")).toBeNull();
   });
@@ -93,6 +94,7 @@ describe("resolveHeadProbePath", () => {
   });
 
   it("normalizes nested app paths to app roots", () => {
+    expect(resolveHeadProbePath("/dao/proposals/2", null)).toBe("/dao");
     expect(resolveHeadProbePath("/styfi/lasla", null)).toBe("/styfi");
     expect(resolveHeadProbePath("/veyfi/unknown", null)).toBe("/veyfi");
     expect(resolveHeadProbePath("/teams/security", null)).toBe("/teams");
