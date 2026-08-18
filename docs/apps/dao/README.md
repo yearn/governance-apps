@@ -1,6 +1,6 @@
 # DAO Governance
 
-Status: discovery accepted; mock implementation is next.
+Status: discovery accepted; M1 mock foundation is in progress.
 
 `DAO Governance` is the proposal, voting, and execution-review app for Yearn's
 onchain governance contracts.

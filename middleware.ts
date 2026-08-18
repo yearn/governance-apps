@@ -19,7 +19,7 @@ const PUBLIC_FILE =
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const IS_DEVELOPMENT = !IS_PRODUCTION;
-const STRICT_CSP_PATHS = ["/styfi", "/veyfi", "/yeth", "/ybc"];
+const STRICT_CSP_PATHS = ["/dao", "/styfi", "/veyfi", "/yeth", "/ybc"];
 const ADDITIONAL_CONNECT_SRC = resolveAdditionalConnectSrc();
 
 function isStrictCspPath(pathname: string, hostPrefix: string | null) {

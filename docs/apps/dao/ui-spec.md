@@ -341,3 +341,23 @@ Review at minimum:
 
 The M2 acceptance review must cover every state in the mock schema, not only the
 default proposal.
+
+## 10. M1 route shell boundary
+
+The first route package establishes production-shaped shells before the M2
+proposal interactions:
+
+- `/dao` reads the deterministic client and distinguishes loading, empty,
+  ready, error, and disconnected states.
+- `/dao/proposals/[id]` resolves numeric IDs against the active mock Voting
+  contract and distinguishes loading, ready, not-found, error, and disconnected
+  states.
+- `/dao/propose` reads proposer eligibility for a connected wallet and shows a
+  disconnected, loading, ready, or error shell without rendering the M2 form.
+- Every shell keeps `DAO Governance` as its header identity. The forum link is
+  labeled as a discussion surface and remains `gov.yearn.fi`.
+- The routes are available by path in development and preview. Production
+  runtime returns not found until the rollout package adds the final feature
+  flag and data invariants.
+- `dao.yearn.fi` is not registered for host routing, canonical metadata,
+  sitemap publication, or other discovery during M1.

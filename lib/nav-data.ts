@@ -8,6 +8,7 @@ import { LogoYearn } from "@/components/icons/LogoYearn";
 import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
 import { LogoYearnMark } from "@/components/icons/LogoYearnMark";
 import {
+  isDaoEnabled,
   isTeamsEnabled,
   isYbcEnabled,
   isYethEnabled,
@@ -245,8 +246,19 @@ const ybcLink: AppLink = {
   }),
 };
 
+const daoLink: AppLink = {
+  name: "DAO Governance",
+  href: "/dao",
+  icon: createElement(LogoYearnGlyph, {
+    className: "size-5",
+    backClassName: "text-yearn-blue",
+    frontClassName: "text-white",
+  }),
+};
+
 export const APP_LINKS: AppLink[] = [
   ...coreAppLinks,
+  ...(isDaoEnabled() ? [daoLink] : []),
   ...(isTeamsEnabled() ? [teamsLink] : []),
   ...(isYethEnabled() ? [yethLink] : []),
   ...(isYbcEnabled() ? [ybcLink] : []),

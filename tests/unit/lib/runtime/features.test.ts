@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isDaoEnabled,
   isDebugUiEnabled,
   isProductionRuntime,
   isTeamsEnabled,
@@ -19,6 +20,7 @@ describe("runtime feature flags", () => {
     };
 
     expect(isProductionRuntime(env)).toBe(false);
+    expect(isDaoEnabled(env)).toBe(true);
     expect(isTeamsEnabled(env)).toBe(true);
     expect(isYbcEnabled(env)).toBe(true);
     expect(isYethEnabled(env)).toBe(true);
@@ -35,6 +37,7 @@ describe("runtime feature flags", () => {
     };
 
     expect(isProductionRuntime(env)).toBe(true);
+    expect(isDaoEnabled(env)).toBe(false);
     expect(isTeamsEnabled(env)).toBe(false);
     expect(isYbcEnabled(env)).toBe(false);
     expect(isYethEnabled(env)).toBe(false);
@@ -51,6 +54,7 @@ describe("runtime feature flags", () => {
     };
 
     expect(isTeamsEnabled(env)).toBe(true);
+    expect(isDaoEnabled(env)).toBe(false);
     expect(isYbcEnabled(env)).toBe(true);
     expect(isYethEnabled(env)).toBe(true);
     expect(isDebugUiEnabled(env)).toBe(true);
@@ -67,6 +71,7 @@ describe("runtime feature flags", () => {
     };
 
     expect(isProductionRuntime(env)).toBe(false);
+    expect(isDaoEnabled(env)).toBe(true);
     expect(isTeamsEnabled(env)).toBe(true);
     expect(isYbcEnabled(env)).toBe(true);
     expect(isYethEnabled(env)).toBe(true);

@@ -4,12 +4,18 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Link from "next/link";
 import { homeCopy as copy } from "./messages";
-import { isTeamsEnabled, isYbcEnabled, isYethEnabled } from "@/lib/runtime/features";
+import {
+  isDaoEnabled,
+  isTeamsEnabled,
+  isYbcEnabled,
+  isYethEnabled,
+} from "@/lib/runtime/features";
 
 export default function Home() {
   const showTeams = isTeamsEnabled();
   const showYeth = isYethEnabled();
   const showYbc = isYbcEnabled();
+  const showDao = isDaoEnabled();
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center gap-6">
@@ -58,6 +64,14 @@ export default function Home() {
             className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
           >
             {copy.cta.ybc.label}
+          </Link>
+        )}
+        {showDao && (
+          <Link
+            href={copy.cta.dao.href}
+            className="rounded-md border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
+          >
+            {copy.cta.dao.label}
           </Link>
         )}
       </div>
