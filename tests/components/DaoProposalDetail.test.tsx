@@ -1,13 +1,13 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ProposalDetail } from "@/app/dao/proposals/[id]/ProposalDetail";
+import { formatUtcDateTime } from "@/lib/date";
 import {
   DAO_MOCK_FEED,
   type DaoDisplayStatus,
   type DaoProposal,
+  type DaoProposalReadEnvelope,
 } from "@/lib/clients/dao";
-
-const now = DAO_MOCK_FEED.canonicalBlock.timestamp;
 
 describe("DAO proposal detail", () => {
   it.each([
@@ -25,7 +25,7 @@ describe("DAO proposal detail", () => {
     (proposalId, displayStatus) => {
       const value = proposal(proposalId);
       const { unmount } = render(
-        <ProposalDetail feed={DAO_MOCK_FEED} now={now} proposal={value} />
+        <ProposalDetail envelope={envelope(value)} />
       );
 
       expect(
@@ -47,7 +47,7 @@ describe("DAO proposal detail", () => {
 
   it("presents an approved signal without implying execution", () => {
     render(
-      <ProposalDetail feed={DAO_MOCK_FEED} now={now} proposal={proposal(4n)} />
+      <ProposalDetail envelope={envelope(proposal(4n))} />
     );
 
     expect(screen.getAllByText("Approved", { exact: true }).length).toBeGreaterThan(0);
@@ -75,11 +75,7 @@ describe("DAO proposal detail", () => {
     "keeps the onchain record visible for content failure #%s",
     (proposalId, warningTitle, errorFragment) => {
       render(
-        <ProposalDetail
-          feed={DAO_MOCK_FEED}
-          now={now}
-          proposal={proposal(proposalId)}
-        />
+        <ProposalDetail envelope={envelope(proposal(proposalId))} />
       );
 
       expect(screen.getAllByText(warningTitle).length).toBeGreaterThan(0);
@@ -96,7 +92,7 @@ describe("DAO proposal detail", () => {
 
   it("renders pending analysis as pending without inventing calls", () => {
     render(
-      <ProposalDetail feed={DAO_MOCK_FEED} now={now} proposal={proposal(16n)} />
+      <ProposalDetail envelope={envelope(proposal(16n))} />
     );
 
     expect(screen.getByText("Analysis pending", { exact: true })).toBeVisible();
@@ -107,7 +103,7 @@ describe("DAO proposal detail", () => {
 
   it("shows verified provenance and raw data for a partially decoded script", () => {
     render(
-      <ProposalDetail feed={DAO_MOCK_FEED} now={now} proposal={proposal(17n)} />
+      <ProposalDetail envelope={envelope(proposal(17n))} />
     );
 
     expect(
@@ -120,12 +116,12 @@ describe("DAO proposal detail", () => {
     expect(screen.getByText("Selector")).toBeVisible();
     expect(screen.getByText("Calldata")).toBeVisible();
     expect(screen.getByText("Reference block")).toBeVisible();
-    expect(screen.getByText("Registry-v1")).toBeVisible();
+    expect(screen.getByText("yearn-dao-registry/v1")).toBeVisible();
   });
 
   it("keeps simulation failure separate from decoding", () => {
     render(
-      <ProposalDetail feed={DAO_MOCK_FEED} now={now} proposal={proposal(18n)} />
+      <ProposalDetail envelope={envelope(proposal(18n))} />
     );
 
     expect(screen.getAllByText("Simulation failed").length).toBeGreaterThan(0);
@@ -133,22 +129,74 @@ describe("DAO proposal detail", () => {
     expect(
       screen.getByText(/reverted in the recorded proposal-time simulation/i)
     ).toBeVisible();
-    expect(screen.getByText("Target reverted during atomic simulation.")).toBeVisible();
+    expect(
+      screen.getByText("Target call reverted during atomic simulation.")
+    ).toBeVisible();
   });
 
   it("keeps default analysis labels production-shaped", () => {
     render(
-      <ProposalDetail feed={DAO_MOCK_FEED} now={now} proposal={proposal(2n)} />
+      <ProposalDetail envelope={envelope(proposal(2n))} />
     );
 
-    expect(screen.queryByText(/mock|prototype/i)).not.toBeInTheDocument();
-    expect(screen.getByText("Anvil")).toBeVisible();
-    expect(screen.getAllByText("Registry-v1").length).toBeGreaterThan(0);
+    expect(
+      screen.queryByText(/\b(mock|fixture|prototype|qa|implementation)\b/i)
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("anvil")).toBeVisible();
+    expect(
+      screen.getAllByText("yearn-dao-registry/v1").length
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("GovernanceTarget").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("fallback()").length).toBeGreaterThan(0);
+  });
+
+  it("renders producer provenance verbatim without casing or marker rewrites", () => {
+    const feed = structuredClone(DAO_MOCK_FEED);
+    const value = feed.proposals.find(
+      (entry) => entry.ref.proposalId === 2n
+    );
+    if (!value) throw new Error("Missing proposal #2.");
+    value.analysis.proposalSimulation.engine = "reth/v1.2.3+prod";
+    value.analysis.calls[0] = {
+      ...value.analysis.calls[0],
+      contractName: "vaultFactory.v2",
+      functionSignature: "rebalance_v2()",
+      abiSource: "sourcify://mainnet/0xAbC",
+    };
+
+    render(<ProposalDetail envelope={envelope(value, feed)} />);
+
+    expect(screen.getByText("reth/v1.2.3+prod", { exact: true })).toBeVisible();
+    expect(screen.getByText("vaultFactory.v2", { exact: true })).toBeVisible();
+    expect(screen.getByText("rebalance_v2()", { exact: true })).toBeVisible();
+    expect(
+      screen.getByText("sourcify://mainnet/0xAbC", { exact: true })
+    ).toBeVisible();
+  });
+
+  it("labels canonical block time as the feed snapshot instead of generatedAt", () => {
+    const feed = structuredClone(DAO_MOCK_FEED);
+    feed.generatedAt = "2030-01-02T03:04:05Z";
+    feed.canonicalBlock.timestamp = DAO_MOCK_FEED.canonicalBlock.timestamp - 3_600;
+    const value = feed.proposals.find(
+      (entry) => entry.ref.proposalId === 17n
+    );
+    if (!value) throw new Error("Missing proposal #17.");
+
+    render(<ProposalDetail envelope={envelope(value, feed)} />);
+    fireEvent.click(screen.getByText("Technical details", { exact: true }));
+
+    expect(
+      screen.getByText(formatUtcDateTime(feed.canonicalBlock.timestamp), {
+        exact: true,
+      })
+    ).toBeVisible();
+    expect(screen.queryByText(feed.generatedAt)).not.toBeInTheDocument();
   });
 
   it("makes a script hash mismatch explicit", () => {
     render(
-      <ProposalDetail feed={DAO_MOCK_FEED} now={now} proposal={proposal(19n)} />
+      <ProposalDetail envelope={envelope(proposal(19n))} />
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(
@@ -158,7 +206,7 @@ describe("DAO proposal detail", () => {
 
   it("provides accessible rules and technical disclosures with copy controls", () => {
     const value = proposal(17n);
-    render(<ProposalDetail feed={DAO_MOCK_FEED} now={now} proposal={value} />);
+    render(<ProposalDetail envelope={envelope(value)} />);
 
     const rulesSummary = screen.getByText("Proposal rules").closest("summary");
     expect(rulesSummary).not.toBeNull();
@@ -192,6 +240,13 @@ function proposal(id: bigint): DaoProposal {
   );
   if (!value) throw new Error(`Missing DAO proposal #${id.toString()}.`);
   return value;
+}
+
+function envelope(
+  value: DaoProposal,
+  feed = DAO_MOCK_FEED
+): DaoProposalReadEnvelope {
+  return { feed, proposal: value };
 }
 
 function statusLabel(status: DaoDisplayStatus) {

@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AddressLink } from "@/components/ui/ExplorerLink";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
+import { UtcTime } from "@/components/ui/UtcTime";
 import type {
   DaoDisplayGroup,
   DaoProposal,
@@ -47,6 +49,14 @@ export function ProposalBoard({
         ),
     [filter, proposals]
   );
+  const earliestUpcomingVote = useMemo(() => {
+    const upcomingVoteStarts = proposals
+      .filter((proposal) => proposal.displayGroup === "upcoming")
+      .map((proposal) => proposal.voteStartsAt);
+    return upcomingVoteStarts.length > 0
+      ? Math.min(...upcomingVoteStarts)
+      : null;
+  }, [proposals]);
 
   return (
     <section aria-labelledby="dao-proposal-board-title" className="space-y-5">
@@ -113,7 +123,12 @@ export function ProposalBoard({
             ))}
           </Card>
         ) : (
-          <FilteredEmptyState filter={filter} />
+          <FilteredEmptyState
+            counts={counts}
+            earliestUpcomingVote={earliestUpcomingVote}
+            filter={filter}
+            onSelect={setFilter}
+          />
         )}
       </div>
     </section>
@@ -220,14 +235,67 @@ function ProposalWarnings({ proposal }: { proposal: DaoProposal }) {
   );
 }
 
-function FilteredEmptyState({ filter }: { filter: DaoDisplayGroup }) {
+function FilteredEmptyState({
+  counts,
+  earliestUpcomingVote,
+  filter,
+  onSelect,
+}: {
+  counts: Record<DaoDisplayGroup, number>;
+  earliestUpcomingVote: number | null;
+  filter: DaoDisplayGroup;
+  onSelect: (filter: DaoDisplayGroup) => void;
+}) {
   const empty = daoCopy.board.emptyByFilter[filter];
   return (
-    <Card variant="flat" className="space-y-2">
+    <Card variant="flat" className="space-y-4">
       <h3 className="text-balance text-lg font-bold">{empty.title}</h3>
       <p className="max-w-2xl text-pretty text-sm leading-6 text-text-secondary">
-        {empty.body} {daoCopy.board.viewOtherFilters}
+        {empty.body}
       </p>
+      {filter === "active" ? (
+        <>
+          {earliestUpcomingVote !== null ? (
+            <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-pretty text-sm text-text-secondary">
+              <span className="font-bold text-text-primary">
+                {daoCopy.board.nextScheduledVote}
+              </span>
+              <UtcTime
+                timestamp={earliestUpcomingVote}
+                className="font-number tabular-nums"
+              />
+            </p>
+          ) : null}
+          <div
+            role="group"
+            className="flex flex-wrap gap-2"
+            aria-label={daoCopy.board.otherFilterActions}
+          >
+            {(["upcoming", "closed"] as const).map((group) => (
+              <Button
+                key={group}
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="min-h-11 motion-reduce:transition-none motion-reduce:active:scale-100"
+                aria-label={daoCopy.board.viewFilter(group, counts[group])}
+                onClick={() => {
+                  onSelect(group);
+                }}
+              >
+                {daoCopy.board.filters[group]}{" "}
+                <span className="font-number tabular-nums">
+                  ({counts[group]})
+                </span>
+              </Button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="max-w-2xl text-pretty text-sm leading-6 text-text-secondary">
+          {daoCopy.board.viewOtherFilters}
+        </p>
+      )}
     </Card>
   );
 }

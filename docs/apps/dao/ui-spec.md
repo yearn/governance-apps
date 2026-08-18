@@ -370,6 +370,18 @@ stack on smaller screens. Status, title, timing, author, vote percentages, the
 `of votes cast` caption, proposal type, discussion provenance, and content
 failures stay visible without a wallet.
 
+When the active filter is empty, its empty state provides keyboard-accessible
+shortcuts to the upcoming and closed groups. It reports the earliest upcoming
+vote time only when an upcoming proposal supplies one; filter membership and
+counts continue to use the domain-provided `displayGroup` rather than
+recalculating lifecycle status in the UI.
+
+A refresh or synthetic feed error preserves the last successfully surfaced
+feed as a stale board beneath a restrained outage notice and retry control. The
+notice labels the last successful snapshot using `canonicalBlock.timestamp`.
+An initial request that has never surfaced a successful feed remains a distinct
+cold-start error and does not reveal an in-flight response as last-good data.
+
 The read-only detail surface keeps four trust layers distinct:
 
 1. immutable proposal content and its validation state;
@@ -377,12 +389,27 @@ The read-only detail surface keeps four trust layers distinct:
 3. producer-owned decoding and proposal-time simulation, including provenance;
 4. raw onchain identity and feed metadata in the technical disclosure.
 
+Proposal content and technical feed metadata render from one read envelope. A
+proposal is ready only when its serialized composite reference resolves inside
+that same surfaced feed; a proposal found by an older or hidden query is not
+combined with a newer empty or mismatched feed. The technical feed snapshot time
+comes from `canonicalBlock.timestamp`, independently of producer generation
+time.
+
+Producer-owned provenance values render verbatim. The read layer maps only
+explicitly supported producer error codes to public explanations; it does not
+rewrite arbitrary registry, engine, contract, function, ABI-source, or error
+text. Fixture source data uses production-shaped presentation values so the
+public route never explains its test implementation.
+
 Unavailable or invalid immutable content replaces only the content body. The
 proposal identity, status, timing, vote results, discussion state, lifecycle,
 and technical record remain available. Unknown calls retain target, selector,
 calldata, byte size, and the absence of a verified ABI source. Long identifiers,
 addresses, hashes, and scripts scroll or wrap inside their own regions rather
-than widening the page.
+than widening the page. Copy controls for Voting, Voter, Executor, and call
+target addresses stay visibly available with at least 40-pixel targets for
+coarse pointers while desktop explorer links retain their new-tab behavior.
 
 An approved signal uses `Approved` as its primary outcome and always pairs it
 with `No executable actions`, even when its raw contract status is `EXECUTED`.

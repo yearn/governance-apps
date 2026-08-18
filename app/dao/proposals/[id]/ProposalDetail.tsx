@@ -9,13 +9,14 @@ import { UtcTime } from "@/components/ui/UtcTime";
 import { IconCopy } from "@/components/icons/IconCopy";
 import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { copyTextToClipboard } from "@/lib/clipboard";
+import { formatUtcDateTime } from "@/lib/date";
 import {
-  formatDaoPublicAnalysisValue,
+  formatDaoPublicAnalysisError,
   serializeDaoProposalRef,
   type DaoAnalysis,
   type DaoDecodedCall,
-  type DaoFeedV1,
   type DaoProposal,
+  type DaoProposalReadEnvelope,
   type DaoProposalEvent,
   type DaoSimulation,
 } from "@/lib/clients/dao";
@@ -31,14 +32,12 @@ import {
 import { daoCopy } from "../../messages";
 
 export function ProposalDetail({
-  feed,
-  now,
-  proposal,
+  envelope,
 }: {
-  feed: DaoFeedV1 | null;
-  now: number;
-  proposal: DaoProposal;
+  envelope: DaoProposalReadEnvelope;
 }) {
+  const { feed, proposal } = envelope;
+  const now = feed.canonicalBlock.timestamp;
   const proposalId = proposal.ref.proposalId.toString();
   const title = proposal.content.value?.title ?? daoCopy.detail.eyebrow(proposalId);
   const summary = proposal.content.value?.summary;
@@ -417,8 +416,7 @@ function ExecutionAnalysis({ proposal }: { proposal: DaoProposal }) {
         </p>
         {analysis.error ? (
           <p className="break-words text-pretty text-sm font-bold text-error-700 [overflow-wrap:anywhere]">
-            {formatDaoPublicAnalysisValue(analysis.error) ??
-              daoCopy.detail.unavailableValue}
+            {formatDaoPublicAnalysisError(analysis.error)}
           </p>
         ) : null}
       </div>
@@ -480,10 +478,7 @@ function SimulationDetails({ simulation }: { simulation: DaoSimulation }) {
         <TechnicalFact
           label={daoCopy.detail.simulationEngine}
           value={
-            simulation.engine
-              ? (formatDaoPublicAnalysisValue(simulation.engine) ??
-                daoCopy.detail.unavailableValue)
-              : daoCopy.detail.unavailableValue
+            simulation.engine ?? daoCopy.detail.unavailableValue
           }
         />
         <TechnicalFact
@@ -507,8 +502,7 @@ function SimulationDetails({ simulation }: { simulation: DaoSimulation }) {
           <TechnicalFact
             label={daoCopy.detail.simulationError}
             value={
-              formatDaoPublicAnalysisValue(simulation.error) ??
-              daoCopy.detail.unavailableValue
+              formatDaoPublicAnalysisError(simulation.error)
             }
           />
         ) : null}
@@ -560,10 +554,7 @@ function DecodedCall({ call }: { call: DaoDecodedCall }) {
         <TechnicalFact
           label={daoCopy.detail.targetContract}
           value={
-            call.contractName
-              ? (formatDaoPublicAnalysisValue(call.contractName) ??
-                daoCopy.detail.unavailableValue)
-              : daoCopy.detail.unknownContract
+            call.contractName ?? daoCopy.detail.unknownContract
           }
         />
         <div className="min-w-0 space-y-1">
@@ -575,6 +566,7 @@ function DecodedCall({ call }: { call: DaoDecodedCall }) {
               address={call.target}
               variant="compact"
               copyLabel={daoCopy.detail.copyValue(daoCopy.detail.target)}
+              showCopyOnCoarsePointer
             />
           </dd>
         </div>
@@ -586,20 +578,14 @@ function DecodedCall({ call }: { call: DaoDecodedCall }) {
         <TechnicalFact
           label={daoCopy.detail.function}
           value={
-            call.functionSignature
-              ? (formatDaoPublicAnalysisValue(call.functionSignature) ??
-                daoCopy.detail.unavailableValue)
-              : daoCopy.detail.unavailableValue
+            call.functionSignature ?? daoCopy.detail.unavailableValue
           }
           code
         />
         <TechnicalFact
           label={daoCopy.detail.abiSource}
           value={
-            call.abiSource
-              ? (formatDaoPublicAnalysisValue(call.abiSource) ??
-                daoCopy.detail.unavailableValue)
-              : daoCopy.detail.noVerifiedAbi
+            call.abiSource ?? daoCopy.detail.noVerifiedAbi
           }
           code={call.abiSource !== null}
         />
@@ -639,10 +625,10 @@ function TechnicalDetails({
   feed,
   proposal,
 }: {
-  feed: DaoFeedV1 | null;
+  feed: DaoProposalReadEnvelope["feed"];
   proposal: DaoProposal;
 }) {
-  const contract = feed?.contracts.find(
+  const contract = feed.contracts.find(
     (entry) =>
       entry.votingAddress.toLowerCase() ===
       proposal.ref.votingAddress.toLowerCase()
@@ -751,13 +737,12 @@ function TechnicalDetails({
           <TechnicalDetailRow
             label={daoCopy.detail.feedSnapshotBlock}
             value={
-              feed?.canonicalBlock.number.toString() ??
-              daoCopy.detail.unavailableValue
+              feed.canonicalBlock.number.toString()
             }
           />
           <TechnicalDetailRow
             label={daoCopy.detail.feedSnapshotTime}
-            value={feed?.generatedAt ?? daoCopy.detail.unavailableValue}
+            value={formatUtcDateTime(feed.canonicalBlock.timestamp)}
           />
         </dl>
       </details>
@@ -809,6 +794,7 @@ function TechnicalLinkRow({
               address={value}
               variant="compact"
               copyLabel={daoCopy.detail.copyValue(label)}
+              showCopyOnCoarsePointer
             />
           ) : (
             <TransactionLink

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Address } from "viem";
 import {
@@ -8,6 +8,7 @@ import {
   createRuntimeMockDaoClient,
   getDaoMockSnapshot,
   resetDaoMockStore,
+  resolveDaoProposalReadEnvelope,
   setDaoMockAccountState,
   setDaoMockAnalysisState,
   setDaoMockAuthoringState,
@@ -90,13 +91,31 @@ export function resolveActiveDaoProposalRef(
 
 export function useDaoFeed(enabled = true) {
   const runtime = useDaoMockRuntime();
+  const queryClient = useQueryClient();
+  const surfaceBlocksRead =
+    runtime?.surface === "error" || runtime?.surface === "loading";
+  const canReadFeed = enabled && !surfaceBlocksRead;
   const query = useQuery({
     queryKey: daoKeys.feed(),
-    queryFn: () => getDaoRouteClient().getFeed(),
-    enabled,
+    queryFn: () => {
+      if (surfaceBlocksRead) {
+        throw new Error(
+          "DAO feed reads are paused while the surface is unavailable."
+        );
+      }
+      return getDaoRouteClient().getFeed();
+    },
+    enabled: canReadFeed,
     staleTime: Infinity,
   });
-  return applyDaoSurfaceState(query, runtime);
+  useEffect(() => {
+    if (!surfaceBlocksRead) return;
+    void queryClient.cancelQueries({
+      queryKey: daoKeys.feed(),
+      exact: true,
+    });
+  }, [queryClient, surfaceBlocksRead]);
+  return applyDaoSurfaceState(query, runtime, query.data);
 }
 
 export function useDaoProposal(proposalId: string) {
@@ -107,44 +126,42 @@ export function useDaoProposal(proposalId: string) {
     feedQuery.data,
     parsedProposalId
   );
-  const query = useQuery<DaoProposalLookup>({
-    queryKey: daoKeys.proposal(proposalRef),
-    queryFn: () => {
-      if (!proposalRef) {
-        throw new Error("DAO proposal identity is unavailable.");
-      }
-      return getDaoRouteClient().getProposal(proposalRef);
-    },
-    enabled: proposalRef !== null,
-    staleTime: Infinity,
-  });
-
   const activeContractMissing =
     parsedProposalId !== null && feedQuery.data !== undefined && !proposalRef;
   const activeContractError = activeContractMissing
     ? new Error("DAO proposal data has no active Voting contract.")
     : null;
+  const envelope =
+    proposalRef && feedQuery.data
+      ? resolveDaoProposalReadEnvelope(feedQuery.data, proposalRef)
+      : null;
+  const lookup: DaoProposalLookup | { state: "not_found" } | undefined =
+    invalidProposalId
+      ? { state: "not_found" }
+      : envelope
+        ? { state: "found", proposal: envelope.proposal }
+        : proposalRef && feedQuery.data
+          ? {
+              state: "not_found",
+              ref: proposalRef,
+              protocolStatus: "invalid",
+              displayStatus: "not_found",
+            }
+          : undefined;
 
   return {
-    ...query,
-    data:
-      invalidProposalId
-        ? ({ state: "not_found" } as const)
-        : query.data,
+    ...feedQuery,
+    data: lookup,
+    envelope,
     error: invalidProposalId
       ? null
-      : feedQuery.error ?? activeContractError ?? query.error,
+      : feedQuery.error ?? activeContractError,
     isError:
       !invalidProposalId &&
-      (feedQuery.isError || activeContractMissing || query.isError),
+      (feedQuery.isError || activeContractMissing),
     isPending:
-      invalidProposalId
-        ? false
-        : feedQuery.isPending || (proposalRef !== null && query.isPending),
-    refetch: () =>
-      feedQuery.isError || activeContractMissing
-        ? feedQuery.refetch()
-        : query.refetch(),
+      invalidProposalId ? false : feedQuery.isPending,
+    refetch: () => feedQuery.refetch(),
   };
 }
 
@@ -167,7 +184,11 @@ function applyDaoSurfaceState<
     isLoading: boolean;
     isPending: boolean;
   },
->(query: TResult, runtime: DaoMockRuntimeSnapshot | null): TResult {
+>(
+  query: TResult,
+  runtime: DaoMockRuntimeSnapshot | null,
+  lastGoodData?: TResult["data"]
+): TResult {
   if (runtime?.surface === "loading") {
     return {
       ...query,
@@ -181,7 +202,7 @@ function applyDaoSurfaceState<
   if (runtime?.surface === "error") {
     return {
       ...query,
-      data: undefined,
+      data: lastGoodData,
       error: new Error("DAO mock data is unavailable."),
       isError: true,
       isLoading: false,

@@ -19,6 +19,7 @@ export type ExplorerLinkProps = {
   label?: string;
   className?: string;
   copyLabel?: string;
+  showCopyOnCoarsePointer?: boolean;
   variant?: "default" | "compact" | "contract";
 };
 
@@ -46,6 +47,7 @@ export function ExplorerLink({
   label,
   className,
   copyLabel,
+  showCopyOnCoarsePointer = false,
   variant = "default",
 }: ExplorerLinkProps) {
   const [copied, setCopied] = useState(false);
@@ -174,7 +176,10 @@ export function ExplorerLink({
     return (
       <span
         className={cn(
-          "group/explorer relative inline-flex min-h-10 max-w-full min-w-0 items-center [@media(pointer:fine)]:pr-10",
+          "group/explorer relative inline-flex min-h-10 max-w-full min-w-0 items-center",
+          showCopyOnCoarsePointer
+            ? "pr-10"
+            : "[@media(pointer:fine)]:pr-10",
           className,
         )}
       >
@@ -202,7 +207,11 @@ export function ExplorerLink({
           onClick={() => {
             void copyValue();
           }}
-          className="pointer-events-none absolute right-0 top-1/2 z-20 hidden size-10 -translate-y-1/2 items-center justify-center rounded text-text-tertiary opacity-0 transition-[background-color,color,opacity] duration-150 ease-out [@media(pointer:fine)]:inline-flex group-hover/explorer:pointer-events-auto group-hover/explorer:opacity-100 group-focus-within/explorer:pointer-events-auto group-focus-within/explorer:opacity-100 hover:bg-surface-secondary hover:text-text-primary focus:pointer-events-auto focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+          className={cn(
+            "pointer-events-none absolute right-0 top-1/2 z-20 hidden size-10 -translate-y-1/2 items-center justify-center rounded text-text-tertiary opacity-0 transition-[background-color,color,opacity] duration-150 ease-out [@media(pointer:fine)]:inline-flex group-hover/explorer:pointer-events-auto group-hover/explorer:opacity-100 group-focus-within/explorer:pointer-events-auto group-focus-within/explorer:opacity-100 hover:bg-surface-secondary hover:text-text-primary focus:pointer-events-auto focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary",
+            showCopyOnCoarsePointer &&
+              "[@media(pointer:coarse)]:pointer-events-auto [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:opacity-100",
+          )}
           aria-describedby={statusId}
           aria-label={copyLabel ?? `Copy ${subject}`}
           title={copied ? "Copied" : copyLabel ?? `Copy ${subject}`}

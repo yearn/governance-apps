@@ -68,12 +68,147 @@ test("supports keyboard filters and reduced motion", async ({ page }) => {
   await expect(upcoming).toHaveCSS("transition-duration", "0s");
 });
 
+test("offers responsive keyboard shortcuts when Active has no proposals", async ({
+  page,
+}) => {
+  for (const viewport of VIEWPORTS) {
+    await page.setViewportSize(viewport);
+    await page.goto("/dao");
+    await page.evaluate(async () => {
+      if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+      await window.__TEST__.reset();
+      await window.__TEST__.setNow(
+        Math.floor(Date.now() / 1_000) + 60 * 86_400
+      );
+    });
+
+    await expect(
+      page.getByRole("heading", { name: "No active proposals" })
+    ).toBeVisible();
+    const upcoming = page.getByRole("button", {
+      name: /View upcoming proposals/,
+    });
+    const closed = page.getByRole("button", {
+      name: /View closed proposals/,
+    });
+    await expectMinimumHitArea(upcoming);
+    await expectMinimumHitArea(closed);
+    await expect(page.getByText("Next scheduled vote")).toHaveCount(0);
+
+    await upcoming.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("tab", { name: /Upcoming/ })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+
+    await page.getByRole("tab", { name: /Active/ }).click();
+    const refreshedClosed = page.getByRole("button", {
+      name: /View closed proposals/,
+    });
+    await refreshedClosed.focus();
+    await page.keyboard.press("Space");
+    await expect(page.getByRole("tab", { name: /Closed/ })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    await expectNoDocumentOverflow(page, `${viewport.name} Active-empty state`);
+  }
+});
+
+test("keeps the last-good board visible while preserving outage semantics", async ({
+  page,
+}) => {
+  await page.goto("/dao");
+  await expect(page.getByText("22 proposals are available.")).toBeVisible();
+
+  await page.evaluate(async () => {
+    if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+    await window.__TEST__.setDaoSurface?.("error");
+  });
+
+  const outage = page.getByRole("alert").filter({
+    hasText: "Proposal updates are unavailable",
+  });
+  await expect(outage).toBeVisible();
+  await expect(page.getByText("22 proposals are available.")).toBeVisible();
+  await expect(outage.getByText("Last successful snapshot")).toBeVisible();
+  await expect(outage.locator("time")).toHaveAttribute(
+    "datetime",
+    /^\d{4}-\d{2}-\d{2}T/
+  );
+  const retry = outage.getByRole("button", { name: "Retry proposal data" });
+  await expectMinimumHitArea(retry);
+  await retry.click();
+  await expect(outage).toBeVisible();
+  await expect(page.getByText("22 proposals are available.")).toBeVisible();
+
+  await page.evaluate(async () => {
+    if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+    await window.__TEST__.setDaoSurface?.("ready");
+  });
+  await expect(outage).toHaveCount(0);
+});
+
+test("keeps a synthetic cold error distinct from a last-good outage", async ({
+  page,
+}) => {
+  const coldPage = await page.context().newPage();
+  await coldPage.goto("/dao", { waitUntil: "commit" });
+  await coldPage.waitForFunction(() => Boolean(window.__TEST__));
+  await coldPage.evaluate(async () => {
+    if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+    await window.__TEST__.setDaoSurface?.("error");
+  });
+  await expect(
+    coldPage.getByRole("heading", { name: "Proposal data is unavailable" })
+  ).toBeVisible();
+  await expect(coldPage.getByText("Last successful snapshot")).toHaveCount(0);
+  await expect(coldPage.getByText(/proposals are available/)).toHaveCount(0);
+  await coldPage.waitForTimeout(400);
+  await expect(coldPage.getByText(/proposals are available/)).toHaveCount(0);
+  await coldPage.close();
+});
+
+test("does not retain a found detail outside the surfaced feed snapshot", async ({
+  page,
+}) => {
+  await page.goto("/dao/proposals/2");
+  await expect(
+    page.getByRole("heading", { name: "Fund protocol research" })
+  ).toBeVisible();
+
+  await page.evaluate(async () => {
+    if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+    await window.__TEST__.setDaoEmpty?.(true);
+  });
+
+  await expect(
+    page.getByRole("heading", { name: "Proposal not found" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Fund protocol research" })
+  ).toHaveCount(0);
+});
+
 test("contains proposal analysis and technical values at every review viewport", async ({
   page,
 }) => {
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
     await page.goto("/dao/proposals/17");
+    if (viewport.name === "tablet") {
+      await page.getByRole("button", { name: "Switch to Dark Mode" }).click();
+      await expect(
+        page.getByRole("button", { name: "Switch to Light Mode" })
+      ).toBeVisible();
+    }
+    if (viewport.name === "short desktop") {
+      await page.getByRole("button", { name: "Switch to Light Mode" }).click();
+      await expect(
+        page.getByRole("button", { name: "Switch to Dark Mode" })
+      ).toBeVisible();
+    }
 
     const immutableHeading = page.getByRole("heading", {
       name: "Immutable proposal content",
@@ -89,6 +224,11 @@ test("contains proposal analysis and technical values at every review viewport",
       page.getByText("No verified ABI source", { exact: true }),
     ).toBeVisible();
     await expect(page.getByText("Reference block", { exact: true })).toBeVisible();
+    await expect(page.getByText("anvil", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("yearn-dao-registry/v1", { exact: true })
+    ).toBeVisible();
+    await expectNoDeliveryLanguage(page);
 
     const technicalSummary = page.getByText("Technical details", {
       exact: true,
@@ -122,6 +262,48 @@ test("contains proposal analysis and technical values at every review viewport",
     }
     await expectNoDocumentOverflow(page, viewport.name);
   }
+});
+
+test("keeps technical address copy controls visible for coarse pointers", async ({
+  browser,
+}, testInfo) => {
+  const baseURL = testInfo.project.use.baseURL;
+  if (typeof baseURL !== "string") {
+    throw new Error("The Playwright project requires a base URL.");
+  }
+  const context = await browser.newContext({
+    baseURL,
+    hasTouch: true,
+    viewport: { width: 390, height: 844 },
+  });
+  const coarsePage = await context.newPage();
+  await coarsePage.goto("/dao/proposals/17");
+  expect(
+    await coarsePage.evaluate(() => matchMedia("(pointer: coarse)").matches)
+  ).toBe(true);
+  await coarsePage.getByText("Technical details", { exact: true }).click();
+
+  for (const name of [
+    "Copy voting contract",
+    "Copy voter contract",
+    "Copy executor contract",
+  ]) {
+    const control = coarsePage.getByRole("button", { name });
+    await expect(control).toBeVisible();
+    await expectMinimumHitArea(control);
+  }
+  const targetControl = coarsePage
+    .getByRole("button", { name: "Copy target" })
+    .first();
+  await expect(targetControl).toBeVisible();
+  await expectMinimumHitArea(targetControl);
+  await expect(
+    coarsePage
+      .getByRole("link", { name: /View Ethereum address .* on Etherscan/ })
+      .first()
+  ).toHaveAttribute("target", "_blank");
+  await expectNoDocumentOverflow(coarsePage, "coarse-pointer technical details");
+  await context.close();
 });
 
 test("renders every terminal fixture with explicit status and vote rule copy", async ({
@@ -211,4 +393,10 @@ async function expectMinimumHitArea(locator: Locator) {
   expect(box).not.toBeNull();
   expect(box!.width).toBeGreaterThanOrEqual(40);
   expect(box!.height).toBeGreaterThanOrEqual(40);
+}
+
+async function expectNoDeliveryLanguage(page: Page) {
+  await expect(
+    page.getByText(/\b(mock|fixture|prototype|qa|implementation)\b/i)
+  ).toHaveCount(0);
 }

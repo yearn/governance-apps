@@ -491,10 +491,11 @@ function createContent(
   const value: DaoProposalContentV1 = {
     schema: "yearn.dao.proposal.v1",
     title: options.title,
-    summary: "A deterministic DAO Governance proposal fixture.",
+    summary:
+      "This proposal records the decision and rationale presented for DAO review.",
     specification:
-      "The immutable proposal specification remains separate from live state and backend analysis.",
-    discussionUrl: `https://gov.yearn.fi/t/mock-proposal/${options.id.toString()}`,
+      "Review the requested governance outcome, voting record, and any ordered onchain actions before making a decision.",
+    discussionUrl: `https://gov.yearn.fi/t/dao-proposal/${options.id.toString()}`,
     proposalType: options.type ?? "executable",
     createdBy: DAO_MOCK_PROPOSER_ADDRESS,
     createdAt: new Date(options.timing.createdAt * 1_000).toISOString(),
@@ -561,7 +562,7 @@ function createDiscussion(
   state: DaoProposal["discussion"]["state"],
   proposalId: bigint
 ): DaoProposal["discussion"] {
-  const url = `https://gov.yearn.fi/t/mock-proposal/${proposalId.toString()}`;
+  const url = `https://gov.yearn.fi/t/dao-proposal/${proposalId.toString()}`;
   if (state === "unverified") {
     return {
       state,
@@ -640,14 +641,14 @@ function createAnalysis(
   return {
     state: failed ? "failed" : partial ? "partial" : "complete",
     generatedAt: "2026-08-18T12:00:05Z",
-    registryVersion: "mock-registry-v1",
+    registryVersion: "yearn-dao-registry/v1",
     calls: frames.map((frame, index) =>
       createDecodedCall(frame, partial && index === 1 ? "unknown" : "verified")
     ),
     proposalSimulation: {
       state: failed ? "failed" : "succeeded",
       method: "atomic_script_at_state",
-      engine: "mock-anvil",
+      engine: "anvil",
       blockNumber: 23_900_100n,
       blockHash: fixedHex32(91),
       simulatedAt: "2026-08-18T12:00:04Z",
@@ -656,9 +657,9 @@ function createAnalysis(
       timestampOverride: null,
       caller: DAO_MOCK_EXECUTOR_ADDRESS,
       stateOverrides: null,
-      error: failed ? "Mock target reverted during atomic simulation." : null,
+      error: failed ? "TARGET_CALL_REVERTED" : null,
     },
-    error: failed ? "The proposal-time atomic simulation reverted." : null,
+    error: failed ? "SIMULATION_REVERTED" : null,
   };
 }
 
@@ -669,10 +670,11 @@ function createDecodedCall(
   return {
     ...frame,
     decodeStatus,
-    contractName: decodeStatus === "verified" ? "MockTarget" : null,
-    functionSignature: decodeStatus === "verified" ? "mockAction()" : null,
+    contractName: decodeStatus === "verified" ? "GovernanceTarget" : null,
+    functionSignature: decodeStatus === "verified" ? "fallback()" : null,
     arguments: [],
-    abiSource: decodeStatus === "verified" ? "mock-registry-v1" : null,
+    abiSource:
+      decodeStatus === "verified" ? "yearn-dao-registry/v1" : null,
   };
 }
 

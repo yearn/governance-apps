@@ -1,5 +1,11 @@
 import { formatTokenAmount } from "@/lib/format";
-import type { DaoProposal, DaoProposalEvent } from "./types";
+import { serializeDaoProposalRef } from "./domain";
+import type {
+  DaoFeedV1,
+  DaoProposal,
+  DaoProposalEvent,
+  DaoProposalRef,
+} from "./types";
 
 const PERCENT_TENTHS = 1_000n;
 
@@ -34,15 +40,38 @@ export type DaoProposalTimingDisplay =
       event: DaoProposalEvent | null;
     };
 
+export type DaoProposalReadEnvelope = {
+  feed: DaoFeedV1;
+  proposal: DaoProposal;
+};
+
+const DAO_PUBLIC_ANALYSIS_ERRORS: Readonly<Record<string, string>> = {
+  SIMULATION_REVERTED: "The proposal-time atomic simulation reverted.",
+  TARGET_CALL_REVERTED: "Target call reverted during atomic simulation.",
+};
+
 /**
- * Mock producers use an internal marker in analysis labels. The read boundary
- * removes that marker while retaining the useful engine, contract, function,
- * and registry portions of those typed values.
+ * Producer provenance is rendered verbatim. Only stable, explicitly recognized
+ * error codes are converted into route-local explanatory copy.
  */
-export function formatDaoPublicAnalysisValue(value: string): string | null {
-  const withoutFixtureMarker = value.replace(/\bmock[-_]?/gi, "").trim();
-  if (!withoutFixtureMarker) return null;
-  return `${withoutFixtureMarker.charAt(0).toUpperCase()}${withoutFixtureMarker.slice(1)}`;
+export function formatDaoPublicAnalysisError(value: string): string {
+  return DAO_PUBLIC_ANALYSIS_ERRORS[value] ?? value;
+}
+
+/**
+ * Couples a proposal to the exact feed snapshot that surfaced it. Numeric IDs
+ * are insufficient because proposal identity also includes chain and Voting.
+ */
+export function resolveDaoProposalReadEnvelope(
+  feed: DaoFeedV1,
+  ref: DaoProposalRef
+): DaoProposalReadEnvelope | null {
+  const serializedRef = serializeDaoProposalRef(ref);
+  const proposal =
+    feed.proposals.find(
+      (candidate) => serializeDaoProposalRef(candidate.ref) === serializedRef
+    ) ?? null;
+  return proposal ? { feed, proposal } : null;
 }
 
 /**

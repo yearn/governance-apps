@@ -3,7 +3,8 @@ import {
   DAO_MOCK_FEED,
   deriveDaoProposalTimingDisplay,
   deriveDaoVoteDisplay,
-  formatDaoPublicAnalysisValue,
+  formatDaoPublicAnalysisError,
+  resolveDaoProposalReadEnvelope,
 } from "@/lib/clients/dao";
 
 function proposal(id: bigint) {
@@ -15,11 +16,66 @@ function proposal(id: bigint) {
 }
 
 describe("DAO read display facts", () => {
-  it("keeps internal fixture markers out of public analysis labels", () => {
-    expect(formatDaoPublicAnalysisValue("mock-anvil")).toBe("Anvil");
-    expect(formatDaoPublicAnalysisValue("MockTarget")).toBe("Target");
-    expect(formatDaoPublicAnalysisValue("mock-registry-v1")).toBe(
-      "Registry-v1"
+  it("maps only explicit producer error codes and preserves unknown messages", () => {
+    expect(formatDaoPublicAnalysisError("SIMULATION_REVERTED")).toBe(
+      "The proposal-time atomic simulation reverted."
+    );
+    expect(formatDaoPublicAnalysisError("TARGET_CALL_REVERTED")).toBe(
+      "Target call reverted during atomic simulation."
+    );
+    expect(formatDaoPublicAnalysisError("reth/v1 retained exact casing")).toBe(
+      "reth/v1 retained exact casing"
+    );
+  });
+
+  it("resolves detail data only through its serialized composite feed identity", () => {
+    const value = proposal(2n);
+    const envelope = resolveDaoProposalReadEnvelope(
+      DAO_MOCK_FEED,
+      value.ref
+    );
+    expect(envelope?.proposal).toBe(value);
+    expect(envelope?.feed).toBe(DAO_MOCK_FEED);
+
+    const mismatchedFeed = structuredClone(DAO_MOCK_FEED);
+    mismatchedFeed.proposals = mismatchedFeed.proposals.map((entry) =>
+      entry.ref.proposalId === value.ref.proposalId
+        ? {
+            ...entry,
+            ref: {
+              ...entry.ref,
+              votingAddress:
+                "0x9999999999999999999999999999999999999999",
+            },
+          }
+        : entry
+    );
+    expect(
+      resolveDaoProposalReadEnvelope(mismatchedFeed, value.ref)
+    ).toBeNull();
+  });
+
+  it("keeps every public fixture presentation field free of delivery language", () => {
+    const presentationValues = DAO_MOCK_FEED.proposals.flatMap((entry) => [
+      entry.content.value?.title,
+      entry.content.value?.summary,
+      entry.content.value?.specification,
+      entry.content.value?.discussionUrl,
+      entry.discussion.url,
+      entry.discussion.title,
+      entry.analysis.registryVersion,
+      entry.analysis.error,
+      entry.analysis.proposalSimulation.engine,
+      entry.analysis.proposalSimulation.error,
+      ...entry.analysis.calls.flatMap((call) => [
+        call.contractName,
+        call.functionSignature,
+        call.abiSource,
+      ]),
+    ]);
+
+    expect(presentationValues.filter(Boolean).join("\n")).not.toMatch(
+      /\b(mock|fixture|prototype|qa|implementation)\b/i
     );
   });
 

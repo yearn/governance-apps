@@ -98,7 +98,9 @@ test("renders the DAO proposal board shell", async ({ page }) => {
       name: "Open the Yearn discussion forum in a new tab",
     })
   ).toHaveAttribute("href", "https://gov.yearn.fi/");
-  await expect(page.getByText(/mock|prototype/i)).toHaveCount(0);
+  await expect(
+    page.getByText(/\b(mock|fixture|prototype|qa|implementation)\b/i)
+  ).toHaveCount(0);
 
   const proposalsLink = page.getByRole("link", { name: "Proposals" });
   const createProposalLink = page.getByRole("link", {
@@ -240,7 +242,9 @@ test("renders DAO proposal detail and not-found shells", async ({ page }) => {
       "rgb(82, 82, 82)"
     );
   }
-  await expect(page.getByText(/mock|prototype/i)).toHaveCount(0);
+  await expect(
+    page.getByText(/\b(mock|fixture|prototype|qa|implementation)\b/i)
+  ).toHaveCount(0);
 
   await page.goto("/dao/proposals/999");
   await expect(
@@ -264,7 +268,9 @@ test("renders the DAO proposal authoring shell without M2 form controls", async 
   ).toBeVisible();
   await expect(page.getByText("Your wallet can create a proposal")).toBeVisible();
   await expect(page.getByRole("textbox")).toHaveCount(0);
-  await expect(page.getByText(/mock|prototype/i)).toHaveCount(0);
+  await expect(
+    page.getByText(/\b(mock|fixture|prototype|qa|implementation)\b/i)
+  ).toHaveCount(0);
 });
 
 test("contains every DAO route at 390px", async ({ page }) => {

@@ -35,6 +35,10 @@ export const daoCopy = {
     errorTitle: "Proposal data is unavailable",
     errorBody:
       "The proposal list could not be loaded. Check your connection and try again.",
+    staleTitle: "Proposal updates are unavailable",
+    staleBody:
+      "New proposal data could not be loaded. The board below is the last successfully loaded snapshot.",
+    lastGoodSnapshot: "Last successful snapshot",
     retry: "Retry proposal data",
     filterLabel: "Filter proposals by lifecycle",
     filters: {
@@ -60,6 +64,10 @@ export const daoCopy = {
       },
     },
     viewOtherFilters: "Use the other filters to review the full proposal history.",
+    nextScheduledVote: "Next scheduled vote",
+    otherFilterActions: "View another proposal group",
+    viewFilter: (filter: "upcoming" | "closed", count: number) =>
+      `View ${filter} proposals (${count})`,
     proposalLink: (proposalId: string, title: string) =>
       `Open proposal #${proposalId}: ${title}`,
     proposer: "Proposed by",

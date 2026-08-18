@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ProposalBoard } from "@/app/dao/components/ProposalBoard";
 import { DAO_MOCK_FEED, type DaoDisplayGroup } from "@/lib/clients/dao";
@@ -115,6 +116,77 @@ describe("DAO proposal board", () => {
         );
       }
     }
+  });
+
+  it("offers keyboard-operable lifecycle shortcuts when Active is empty", async () => {
+    const user = userEvent.setup();
+    const proposals = DAO_MOCK_FEED.proposals.filter(
+      (proposal) => proposal.displayGroup !== "active"
+    );
+    render(<ProposalBoard now={now} proposals={proposals} />);
+
+    expect(
+      screen.getByRole("heading", { name: "No active proposals" })
+    ).toBeVisible();
+    const upcoming = screen.getByRole("button", {
+      name: /View upcoming proposals/,
+    });
+    const closed = screen.getByRole("button", {
+      name: /View closed proposals/,
+    });
+    expect(upcoming).toHaveClass("min-h-11");
+    expect(closed).toHaveClass("min-h-11");
+    expect(
+      screen.getByRole("group", { name: "View another proposal group" })
+    ).toBeVisible();
+    expect(
+      screen.getByText("Next scheduled vote", { exact: true })
+    ).toBeVisible();
+    expect(
+      document.querySelector(
+        `time[datetime="${new Date(
+          Math.min(
+            ...proposals
+              .filter((proposal) => proposal.displayGroup === "upcoming")
+              .map((proposal) => proposal.voteStartsAt)
+          ) * 1_000
+        ).toISOString()}"]`
+      )
+    ).not.toBeNull();
+
+    upcoming.focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("tab", { name: /Upcoming/ })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: /Active/ }));
+    const refreshedClosed = screen.getByRole("button", {
+      name: /View closed proposals/,
+    });
+    refreshedClosed.focus();
+    await user.keyboard("[Space]");
+    expect(screen.getByRole("tab", { name: /Closed/ })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+  });
+
+  it("omits next-vote timing when no upcoming proposal supplies one", () => {
+    render(
+      <ProposalBoard
+        now={now}
+        proposals={DAO_MOCK_FEED.proposals.filter(
+          (proposal) => proposal.displayGroup === "closed"
+        )}
+      />
+    );
+
+    expect(
+      screen.getByRole("button", { name: /View upcoming proposals/ })
+    ).toBeVisible();
+    expect(screen.queryByText("Next scheduled vote")).not.toBeInTheDocument();
   });
 });
 

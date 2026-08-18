@@ -1,11 +1,11 @@
 "use client";
 
 import { useAccount } from "wagmi";
-import type { DaoFeedV1, DaoProposal } from "@/lib/clients/dao";
+import type { DaoProposalReadEnvelope } from "@/lib/clients/dao";
 import { Card } from "@/components/ui/Card";
 import { getButtonClassName } from "@/components/ui/Button";
 import Link from "next/link";
-import { useDaoFeed, useDaoProposal } from "@/lib/hooks/useDao";
+import { useDaoProposal } from "@/lib/hooks/useDao";
 import {
   DaoErrorPanel,
   DaoLoadingPanel,
@@ -28,30 +28,24 @@ const PROPOSAL_EYEBROW_CLASS_NAME =
 
 export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
   const { isConnected } = useAccount();
-  const feedQuery = useDaoFeed();
   const proposalQuery = useDaoProposal(proposalId);
-  const proposal =
-    proposalQuery.data?.state === "found"
-      ? proposalQuery.data.proposal
-      : null;
+  const envelope = proposalQuery.envelope;
   const state: DaoProposalRouteState = proposalQuery.isPending
     ? "loading"
     : proposalQuery.isError
       ? "error"
-      : proposal
+      : envelope
         ? "ready"
         : "not_found";
 
   return (
     <>
       <DaoProposalView
-        feed={feedQuery.data ?? null}
+        envelope={envelope}
         isConnected={isConnected}
-        now={feedQuery.data?.canonicalBlock.timestamp ?? 0}
         onRetry={() => {
           void proposalQuery.refetch();
         }}
-        proposal={proposal}
         proposalId={proposalId}
         state={state}
       />
@@ -61,19 +55,15 @@ export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
 }
 
 export function DaoProposalView({
-  feed,
+  envelope,
   isConnected,
-  now,
   onRetry,
-  proposal,
   proposalId,
   state,
 }: {
-  feed: DaoFeedV1 | null;
+  envelope: DaoProposalReadEnvelope | null;
   isConnected: boolean;
-  now: number;
   onRetry: () => void;
-  proposal: DaoProposal | null;
   proposalId: string;
   state: DaoProposalRouteState;
 }) {
@@ -120,8 +110,8 @@ export function DaoProposalView({
         </Card>
       ) : null}
 
-      {state === "ready" && proposal ? (
-        <ProposalDetail feed={feed} now={now} proposal={proposal} />
+      {state === "ready" && envelope ? (
+        <ProposalDetail envelope={envelope} />
       ) : null}
     </DaoRouteFrame>
   );
