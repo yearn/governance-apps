@@ -1,0 +1,752 @@
+import { keccak256, sha256, toBytes, type Address, type Hex } from "viem";
+import { parseDaoFeedJson, serializeDaoFeedJson } from "./client";
+import {
+  assertDaoProposalInvariants,
+  DAO_EMPTY_SCRIPT_HASH,
+  deriveDaoDisplayGroup,
+  deriveDaoDisplayStatus,
+  deriveDaoProtocolStatus,
+  deriveDaoVotingWeight,
+} from "./domain";
+import { checkDaoExecutorScript } from "./script";
+import { DAO_EXECUTOR_VALID_SCRIPT_VECTORS } from "./script-vectors";
+import type {
+  DaoAccountProposalFacts,
+  DaoAffectedBoostEpoch,
+  DaoAnalysis,
+  DaoDecodedCall,
+  DaoFeedV1,
+  DaoMockFixture,
+  DaoMockFixtureId,
+  DaoProposal,
+  DaoProposalContentV1,
+  DaoProposalEvent,
+  DaoProposalRef,
+  DaoProposalType,
+  DaoProposerEligibilityInput,
+  DaoScriptFrame,
+} from "./types";
+
+export const DAO_MOCK_NOW = 1_787_054_400;
+export const DAO_MOCK_CHAIN_ID = 1;
+export const DAO_MOCK_VOTING_ADDRESS =
+  "0x1111111111111111111111111111111111111111" as Address;
+export const DAO_MOCK_VOTER_ADDRESS =
+  "0x2222222222222222222222222222222222222222" as Address;
+export const DAO_MOCK_EXECUTOR_ADDRESS =
+  "0x3333333333333333333333333333333333333333" as Address;
+export const DAO_MOCK_ACCOUNT_ADDRESS =
+  "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266" as Address;
+export const DAO_MOCK_PROPOSER_ADDRESS =
+  "0x4444444444444444444444444444444444444444" as Address;
+export const DAO_MOCK_OPERATOR_ADDRESS =
+  "0x5555555555555555555555555555555555555555" as Address;
+export const DAO_MOCK_GUARDIAN_ADDRESS =
+  "0x6666666666666666666666666666666666666666" as Address;
+
+const DAY = 86_400;
+const VALID_SCRIPT = DAO_EXECUTOR_VALID_SCRIPT_VECTORS.twoCalls.script as Hex;
+const VALID_SCRIPT_HASH = keccak256(VALID_SCRIPT);
+const MISMATCHED_SCRIPT_HASH = `0x${"ff".repeat(32)}` as Hex;
+
+type ProposalTimingFixture = {
+  createdAt: number;
+  voteStartsAt: number;
+  voteEndsAt: number;
+  executionStartsAt: number;
+  executionEndsAt: number;
+};
+
+const TIMING = {
+  discussion: {
+    createdAt: DAO_MOCK_NOW,
+    voteStartsAt: DAO_MOCK_NOW + 3 * DAY,
+    voteEndsAt: DAO_MOCK_NOW + 10 * DAY,
+    executionStartsAt: DAO_MOCK_NOW + 11 * DAY,
+    executionEndsAt: DAO_MOCK_NOW + 24 * DAY,
+  },
+  voting: {
+    createdAt: DAO_MOCK_NOW - 16 * DAY,
+    voteStartsAt: DAO_MOCK_NOW - 2 * DAY,
+    voteEndsAt: DAO_MOCK_NOW + 5 * DAY,
+    executionStartsAt: DAO_MOCK_NOW + 6 * DAY,
+    executionEndsAt: DAO_MOCK_NOW + 19 * DAY,
+  },
+  lateVoting: {
+    createdAt: DAO_MOCK_NOW - 20 * DAY,
+    voteStartsAt: DAO_MOCK_NOW - 6 * DAY,
+    voteEndsAt: DAO_MOCK_NOW + 6 * 60 * 60,
+    executionStartsAt: DAO_MOCK_NOW + DAY + 6 * 60 * 60,
+    executionEndsAt: DAO_MOCK_NOW + 14 * DAY + 6 * 60 * 60,
+  },
+  decision: {
+    createdAt: DAO_MOCK_NOW - 28 * DAY,
+    voteStartsAt: DAO_MOCK_NOW - 8 * DAY,
+    voteEndsAt: DAO_MOCK_NOW - DAY,
+    executionStartsAt: DAO_MOCK_NOW + DAY,
+    executionEndsAt: DAO_MOCK_NOW + 13 * DAY,
+  },
+  execution: {
+    createdAt: DAO_MOCK_NOW - 35 * DAY,
+    voteStartsAt: DAO_MOCK_NOW - 20 * DAY,
+    voteEndsAt: DAO_MOCK_NOW - 6 * DAY,
+    executionStartsAt: DAO_MOCK_NOW - 5 * DAY,
+    executionEndsAt: DAO_MOCK_NOW + 8 * DAY,
+  },
+  expired: {
+    createdAt: DAO_MOCK_NOW - 49 * DAY,
+    voteStartsAt: DAO_MOCK_NOW - 34 * DAY,
+    voteEndsAt: DAO_MOCK_NOW - 20 * DAY,
+    executionStartsAt: DAO_MOCK_NOW - 19 * DAY,
+    executionEndsAt: DAO_MOCK_NOW - 6 * DAY,
+  },
+} satisfies Record<string, ProposalTimingFixture>;
+
+type ProposalFixtureOptions = {
+  id: bigint;
+  title: string;
+  type?: DaoProposalType;
+  timing: ProposalTimingFixture;
+  thresholdBps?: number;
+  totalWeight?: bigint;
+  yeaWeight?: bigint;
+  retracted?: boolean;
+  executed?: boolean;
+  flagged?: boolean;
+  vetoed?: boolean;
+  contentState?: DaoProposal["content"]["state"];
+  discussionState?: DaoProposal["discussion"]["state"];
+  analysisState?: "default" | "pending" | "partial" | "failed";
+  hashMismatch?: boolean;
+};
+
+const proposals = [
+  createProposal({
+    id: 1n,
+    title: "Adopt the contributor budget policy",
+    type: "signal",
+    timing: TIMING.discussion,
+    totalWeight: 0n,
+    yeaWeight: 0n,
+  }),
+  createProposal({ id: 2n, title: "Fund protocol research", timing: TIMING.voting }),
+  createProposal({ id: 3n, title: "Renew security operations", timing: TIMING.lateVoting }),
+  createProposal({
+    id: 4n,
+    title: "Approve the contributor charter",
+    type: "signal",
+    timing: TIMING.expired,
+  }),
+  createProposal({ id: 5n, title: "Update treasury policy", timing: TIMING.decision }),
+  createProposal({
+    id: 6n,
+    title: "Execute the treasury migration",
+    timing: TIMING.execution,
+    executed: true,
+  }),
+  createProposal({
+    id: 7n,
+    title: "Increase the operations budget",
+    timing: TIMING.decision,
+    thresholdBps: 6_000,
+    totalWeight: 100n,
+    yeaWeight: 49n,
+  }),
+  createProposal({
+    id: 8n,
+    title: "Record a proposal with no votes",
+    type: "signal",
+    timing: TIMING.decision,
+    totalWeight: 0n,
+    yeaWeight: 0n,
+  }),
+  createProposal({ id: 9n, title: "Expired executable proposal", timing: TIMING.expired }),
+  createProposal({
+    id: 10n,
+    title: "Retracted contributor request",
+    type: "signal",
+    timing: TIMING.voting,
+    totalWeight: 0n,
+    yeaWeight: 0n,
+    retracted: true,
+  }),
+  createProposal({
+    id: 11n,
+    title: "Malformed proposal",
+    type: "signal",
+    timing: TIMING.voting,
+    totalWeight: 0n,
+    yeaWeight: 0n,
+    retracted: true,
+    flagged: true,
+  }),
+  createProposal({
+    id: 12n,
+    title: "Vetoed before participation",
+    type: "signal",
+    timing: TIMING.voting,
+    totalWeight: 0n,
+    yeaWeight: 0n,
+    retracted: true,
+    vetoed: true,
+  }),
+  createProposal({
+    id: 13n,
+    title: "Vetoed after participation began",
+    timing: TIMING.voting,
+    vetoed: true,
+  }),
+  createProposal({
+    id: 14n,
+    title: "Proposal with unavailable content",
+    timing: TIMING.voting,
+    contentState: "unavailable",
+  }),
+  createProposal({
+    id: 15n,
+    title: "Proposal with invalid content",
+    timing: TIMING.voting,
+    contentState: "invalid",
+  }),
+  createProposal({
+    id: 16n,
+    title: "Proposal awaiting analysis",
+    timing: TIMING.voting,
+    analysisState: "pending",
+  }),
+  createProposal({
+    id: 17n,
+    title: "Proposal with a partially decoded script",
+    timing: TIMING.execution,
+    analysisState: "partial",
+  }),
+  createProposal({
+    id: 18n,
+    title: "Proposal whose historical simulation failed",
+    timing: TIMING.execution,
+    analysisState: "failed",
+  }),
+  createProposal({
+    id: 19n,
+    title: "Proposal with a script hash mismatch",
+    timing: TIMING.execution,
+    hashMismatch: true,
+  }),
+  createProposal({
+    id: 20n,
+    title: "Direct-contract proposal",
+    type: "signal",
+    timing: TIMING.discussion,
+    discussionState: "unverified",
+    totalWeight: 0n,
+    yeaWeight: 0n,
+  }),
+  createProposal({ id: 21n, title: "Guarded executable proposal", timing: TIMING.execution }),
+  createProposal({
+    id: 22n,
+    title: "Permissionless executable proposal",
+    timing: TIMING.execution,
+  }),
+];
+
+for (const proposal of proposals) assertDaoProposalInvariants(proposal);
+
+export const DAO_MOCK_FEED: DaoFeedV1 = {
+  schemaVersion: 1,
+  chainId: DAO_MOCK_CHAIN_ID,
+  generatedAt: "2026-08-18T12:00:00Z",
+  canonicalBlock: {
+    number: 24_000_000n,
+    hash: fixedHex32(240),
+    timestamp: DAO_MOCK_NOW,
+  },
+  contracts: [
+    {
+      votingAddress: DAO_MOCK_VOTING_ADDRESS,
+      voterAddress: DAO_MOCK_VOTER_ADDRESS,
+      executorAddress: DAO_MOCK_EXECUTOR_ADDRESS,
+      deploymentBlock: 23_900_000n,
+      active: true,
+    },
+  ],
+  proposals,
+};
+
+export const DAO_MOCK_FEED_JSON = serializeDaoFeedJson(DAO_MOCK_FEED);
+const INTERNAL_DAO_MOCK_FEED_JSON = structuredClone(DAO_MOCK_FEED_JSON);
+
+const proposalById = new Map(
+  proposals.map((proposal) => [proposal.ref.proposalId, proposal])
+);
+
+const fixtureProposalIds: Record<DaoMockFixtureId, bigint> = {
+  discussion: 1n,
+  voting: 2n,
+  "late-voting": 3n,
+  "approved-signal": 4n,
+  "approved-executable": 5n,
+  executed: 6n,
+  rejected: 7n,
+  "no-votes": 8n,
+  expired: 9n,
+  retracted: 10n,
+  flagged: 11n,
+  "early-veto": 12n,
+  "post-vote-veto": 13n,
+  "content-unavailable": 14n,
+  "content-invalid": 15n,
+  "analysis-pending": 16n,
+  "partial-decode": 17n,
+  "simulation-failed": 18n,
+  "hash-mismatch": 19n,
+  "direct-proposal": 20n,
+  "guarded-execution": 21n,
+  "permissionless-execution": 22n,
+  "proposal-capacity-full": 1n,
+};
+
+const fixtureLabels: Record<DaoMockFixtureId, string> = {
+  discussion: "Discussion",
+  voting: "Voting",
+  "late-voting": "Late voting",
+  "approved-signal": "Approved signal",
+  "approved-executable": "Approved executable",
+  executed: "Executed",
+  rejected: "Rejected",
+  "no-votes": "No votes",
+  expired: "Expired",
+  retracted: "Retracted",
+  flagged: "Flagged",
+  "early-veto": "Early veto",
+  "post-vote-veto": "Post-vote veto",
+  "content-unavailable": "Content unavailable",
+  "content-invalid": "Content invalid",
+  "analysis-pending": "Analysis pending",
+  "partial-decode": "Partial decode",
+  "simulation-failed": "Simulation failed",
+  "hash-mismatch": "Hash mismatch",
+  "direct-proposal": "Direct proposal",
+  "guarded-execution": "Guarded execution",
+  "permissionless-execution": "Permissionless execution",
+  "proposal-capacity-full": "Proposal capacity full",
+};
+
+export const DAO_MOCK_FIXTURE_IDS = Object.keys(
+  fixtureProposalIds
+) as DaoMockFixtureId[];
+
+export function createDaoMockFeed(): DaoFeedV1 {
+  return parseDaoFeedJson(structuredClone(INTERNAL_DAO_MOCK_FEED_JSON));
+}
+
+export function getDaoMockFixture(id: DaoMockFixtureId): DaoMockFixture {
+  const proposal = getProposalById(fixtureProposalIds[id]);
+  const isAuthorFixture = id === "discussion" || id === "retracted";
+  const isGuardianFixture = id === "early-veto";
+  const isOperatorFixture = id === "guarded-execution";
+  const accountAddress = isAuthorFixture
+    ? DAO_MOCK_PROPOSER_ADDRESS
+    : isGuardianFixture
+      ? DAO_MOCK_GUARDIAN_ADDRESS
+      : isOperatorFixture
+        ? DAO_MOCK_OPERATOR_ADDRESS
+        : DAO_MOCK_ACCOUNT_ADDRESS;
+  const votingWeight = deriveDaoVotingWeight({
+    votingWeight: 100n * 10n ** 18n,
+    now: DAO_MOCK_NOW,
+    voteEndsAt: proposal.voteEndsAt,
+    decayLengthSeconds: id === "late-voting" ? DAY : 0,
+  });
+  const preflightSucceeded =
+    id === "guarded-execution" || id === "permissionless-execution";
+  const account: DaoAccountProposalFacts = {
+    address: accountAddress,
+    connected: true,
+    correctChain: true,
+    ...votingWeight,
+    hasVoted: false,
+    voteDirection: null,
+    isProposer: isAuthorFixture,
+    isOperator: isOperatorFixture,
+    isGuardian: isGuardianFixture,
+    executionPreflight: {
+      state: preflightSucceeded ? "succeeded" : "idle",
+      scriptHash: proposal.script.hash,
+      blockNumber: preflightSucceeded ? 24_000_001n : null,
+      simulatedAt: preflightSucceeded ? "2026-08-18T12:00:12Z" : null,
+      error: null,
+    },
+  };
+
+  return {
+    id,
+    label: fixtureLabels[id],
+    now: DAO_MOCK_NOW,
+    vetoEndsAt: getProposalPostVoteEnd(proposal),
+    proposalRef: { ...proposal.ref },
+    account,
+    proposer: createProposerInput(id === "proposal-capacity-full"),
+    executionGuard:
+      id === "permissionless-execution" ? "permissionless" : "guarded",
+  };
+}
+
+function createProposal(options: ProposalFixtureOptions): DaoProposal {
+  const type = options.type ?? "executable";
+  const thresholdBps = options.thresholdBps ?? 5_500;
+  const totalWeight = options.totalWeight ?? 250n * 10n ** 18n;
+  const yeaWeight = options.yeaWeight ?? 155n * 10n ** 18n;
+  const scriptBytes = type === "signal" ? ("0x" as Hex) : VALID_SCRIPT;
+  const scriptHash =
+    type === "signal"
+      ? DAO_EMPTY_SCRIPT_HASH
+      : options.hashMismatch
+        ? MISMATCHED_SCRIPT_HASH
+        : VALID_SCRIPT_HASH;
+  const lifecycle = {
+    exists: true,
+    now: DAO_MOCK_NOW,
+    voteStartsAt: options.timing.voteStartsAt,
+    voteEndsAt: options.timing.voteEndsAt,
+    postVoteEpochEndsAt: options.timing.executionEndsAt,
+    type,
+    thresholdBps,
+    totalWeight,
+    yeaWeight,
+    retracted: options.retracted ?? false,
+    executed: options.executed ?? false,
+    flagged: options.flagged ?? false,
+    vetoed: options.vetoed ?? false,
+  } as const;
+  const protocolStatus = deriveDaoProtocolStatus(lifecycle);
+  const displayStatus = deriveDaoDisplayStatus(protocolStatus, type);
+  const content = createContent(options);
+  const analysis = createAnalysis(options.analysisState ?? "default", type);
+  const flagReason = options.flagged ? "Malformed proposal content" : null;
+  const vetoReason = options.vetoed
+    ? totalWeight === 0n
+      ? "Guardian veto before the first vote"
+      : "Guardian veto after participation began"
+    : null;
+
+  return {
+    ref: createProposalRef(options.id),
+    proposer: DAO_MOCK_PROPOSER_ADDRESS,
+    votingEpoch: 100n + options.id,
+    createdAt: options.timing.createdAt,
+    voteStartsAt: options.timing.voteStartsAt,
+    voteEndsAt: options.timing.voteEndsAt,
+    executionStartsAt:
+      type === "signal" ? null : options.timing.executionStartsAt,
+    executionEndsAt: type === "signal" ? null : options.timing.executionEndsAt,
+    thresholdBps,
+    totalWeight,
+    yeaWeight,
+    nayWeight: totalWeight - yeaWeight,
+    protocolStatus,
+    displayStatus,
+    displayGroup: deriveDaoDisplayGroup(displayStatus, type),
+    type,
+    content,
+    discussion: createDiscussion(
+      options.discussionState ?? "verified",
+      options.id
+    ),
+    script: {
+      bytes: scriptBytes,
+      hash: scriptHash,
+      hashVerified: options.hashMismatch ? false : true,
+    },
+    analysis,
+    events: createEvents(options, totalWeight, yeaWeight, flagReason, vetoReason),
+    moderation: { flagReason, vetoReason },
+  };
+}
+
+function createContent(
+  options: ProposalFixtureOptions
+): DaoProposal["content"] {
+  const state = options.contentState ?? "available";
+  const value: DaoProposalContentV1 = {
+    schema: "yearn.dao.proposal.v1",
+    title: options.title,
+    summary: "A deterministic DAO Governance proposal fixture.",
+    specification:
+      "The immutable proposal specification remains separate from live state and backend analysis.",
+    discussionUrl: `https://gov.yearn.fi/t/mock-proposal/${options.id.toString()}`,
+    proposalType: options.type ?? "executable",
+    createdBy: DAO_MOCK_PROPOSER_ADDRESS,
+    createdAt: new Date(options.timing.createdAt * 1_000).toISOString(),
+    links: [],
+  };
+
+  return {
+    state,
+    cid:
+      state === "unavailable"
+        ? null
+        : "bafkreicn4tqy2vtegf4ekjkqsay6hkdcbtlhetxqb2jjrllc2goigoukt4",
+    digest: sha256(toBytes(JSON.stringify(value))),
+    value: state === "available" ? value : null,
+    error:
+      state === "unavailable"
+        ? "The content gateway did not return a response."
+        : state === "invalid"
+          ? "The immutable document does not match yearn.dao.proposal.v1."
+          : null,
+  };
+}
+
+function createDiscussion(
+  state: DaoProposal["discussion"]["state"],
+  proposalId: bigint
+): DaoProposal["discussion"] {
+  const url = `https://gov.yearn.fi/t/mock-proposal/${proposalId.toString()}`;
+  if (state === "unverified") {
+    return {
+      state,
+      url,
+      title: null,
+      categoryId: null,
+      category: null,
+      categorySlugPath: [],
+    };
+  }
+  return {
+    state,
+    url,
+    title: state === "verified" ? "Verified governance discussion" : null,
+    categoryId: state === "verified" ? 42 : null,
+    category: state === "verified" ? "Proposals" : null,
+    categorySlugPath: state === "verified" ? ["proposals"] : [],
+  };
+}
+
+function createAnalysis(
+  state: NonNullable<ProposalFixtureOptions["analysisState"]>,
+  type: DaoProposalType
+): DaoAnalysis {
+  if (state === "pending") {
+    return {
+      state: "pending",
+      generatedAt: null,
+      registryVersion: null,
+      calls: [],
+      proposalSimulation: {
+        state: "pending",
+        method: null,
+        engine: null,
+        blockNumber: null,
+        blockHash: null,
+        simulatedAt: null,
+        stateTimestamp: null,
+        timestampMode: null,
+        timestampOverride: null,
+        caller: null,
+        stateOverrides: null,
+        error: null,
+      },
+      error: null,
+    };
+  }
+
+  if (type === "signal") {
+    return {
+      state: "unavailable",
+      generatedAt: null,
+      registryVersion: null,
+      calls: [],
+      proposalSimulation: {
+        state: "unavailable",
+        method: null,
+        engine: null,
+        blockNumber: null,
+        blockHash: null,
+        simulatedAt: null,
+        stateTimestamp: null,
+        timestampMode: null,
+        timestampOverride: null,
+        caller: null,
+        stateOverrides: null,
+        error: "Signal proposals have no executable calls.",
+      },
+      error: null,
+    };
+  }
+
+  const frames = getValidScriptFrames();
+  const failed = state === "failed";
+  const partial = state === "partial";
+  return {
+    state: failed ? "failed" : partial ? "partial" : "complete",
+    generatedAt: "2026-08-18T12:00:05Z",
+    registryVersion: "mock-registry-v1",
+    calls: frames.map((frame, index) =>
+      createDecodedCall(frame, partial && index === 1 ? "unknown" : "verified")
+    ),
+    proposalSimulation: {
+      state: failed ? "failed" : "succeeded",
+      method: "atomic_script_at_state",
+      engine: "mock-anvil",
+      blockNumber: 23_900_100n,
+      blockHash: fixedHex32(91),
+      simulatedAt: "2026-08-18T12:00:04Z",
+      stateTimestamp: DAO_MOCK_NOW - 100,
+      timestampMode: "block",
+      timestampOverride: null,
+      caller: DAO_MOCK_EXECUTOR_ADDRESS,
+      stateOverrides: null,
+      error: failed ? "Mock target reverted during atomic simulation." : null,
+    },
+    error: failed ? "The proposal-time atomic simulation reverted." : null,
+  };
+}
+
+function createDecodedCall(
+  frame: DaoScriptFrame,
+  decodeStatus: DaoDecodedCall["decodeStatus"]
+): DaoDecodedCall {
+  return {
+    ...frame,
+    decodeStatus,
+    contractName: decodeStatus === "verified" ? "MockTarget" : null,
+    functionSignature: decodeStatus === "verified" ? "mockAction()" : null,
+    arguments: [],
+    abiSource: decodeStatus === "verified" ? "mock-registry-v1" : null,
+  };
+}
+
+function getValidScriptFrames(): DaoScriptFrame[] {
+  const check = checkDaoExecutorScript(VALID_SCRIPT, "executable");
+  if (check.state !== "valid") {
+    throw new Error("The deterministic Executor fixture must be valid.");
+  }
+  return check.frames;
+}
+
+function createEvents(
+  options: ProposalFixtureOptions,
+  totalWeight: bigint,
+  yeaWeight: bigint,
+  flagReason: string | null,
+  vetoReason: string | null
+): DaoProposalEvent[] {
+  const events: DaoProposalEvent[] = [
+    createEvent(options.id, 0, "propose", DAO_MOCK_PROPOSER_ADDRESS),
+  ];
+  const nayWeight = totalWeight - yeaWeight;
+  if (yeaWeight > 0n) {
+    events.push(
+      createEvent(options.id, 1, "vote", DAO_MOCK_ACCOUNT_ADDRESS, {
+        voteActorKind: "human",
+        direction: "yea",
+        weight: yeaWeight,
+      })
+    );
+  }
+  if (nayWeight > 0n) {
+    events.push(
+      createEvent(options.id, 2, "vote", DAO_MOCK_OPERATOR_ADDRESS, {
+        voteActorKind: "human",
+        direction: "nay",
+        weight: nayWeight,
+      })
+    );
+  }
+  if (options.flagged) {
+    events.push(
+      createEvent(options.id, 3, "flag", DAO_MOCK_OPERATOR_ADDRESS, {
+        reason: flagReason,
+      })
+    );
+  } else if (options.vetoed) {
+    events.push(
+      createEvent(options.id, 3, "veto", DAO_MOCK_GUARDIAN_ADDRESS, {
+        reason: vetoReason,
+      })
+    );
+  } else if (options.retracted) {
+    events.push(createEvent(options.id, 3, "retract", DAO_MOCK_PROPOSER_ADDRESS));
+  }
+  if (options.executed) {
+    events.push(createEvent(options.id, 4, "execute", DAO_MOCK_OPERATOR_ADDRESS));
+  }
+  return events;
+}
+
+function createEvent(
+  proposalId: bigint,
+  logIndex: number,
+  type: DaoProposalEvent["type"],
+  actor: Address,
+  overrides: Partial<
+    Pick<
+      DaoProposalEvent,
+      "voteActorKind" | "direction" | "weight" | "reason"
+    >
+  > = {}
+): DaoProposalEvent {
+  const seed = Number(proposalId) * 10 + logIndex;
+  return {
+    type,
+    log: {
+      blockNumber: 23_900_000n + proposalId * 10n + BigInt(logIndex),
+      blockHash: fixedHex32(seed),
+      transactionHash: fixedHex32(seed + 1_000),
+      transactionIndex: 1,
+      logIndex,
+    },
+    actor,
+    voteActorKind: overrides.voteActorKind ?? null,
+    direction: overrides.direction ?? null,
+    weight: overrides.weight ?? null,
+    reason: overrides.reason ?? null,
+  };
+}
+
+function createProposerInput(capacityFull: boolean): DaoProposerEligibilityInput {
+  const affectedBoostEpochs: DaoAffectedBoostEpoch[] = Array.from(
+    { length: 6 },
+    (_, index) => ({
+      epoch: 201n + BigInt(index),
+      currentProposalCount: capacityFull && index === 2 ? 64 : 12 + index,
+      proposalLimit: 64,
+    })
+  );
+  return {
+    address: DAO_MOCK_ACCOUNT_ADDRESS,
+    connected: true,
+    correctChain: true,
+    now: DAO_MOCK_NOW,
+    currentWeight: 10n * 10n ** 18n,
+    minimumWeight: 1n * 10n ** 18n,
+    blacklisted: false,
+    lastProposedAt: null,
+    cooldownSeconds: DAY,
+    expectedVotingEpoch: 201n,
+    affectedBoostEpochs,
+  };
+}
+
+function createProposalRef(proposalId: bigint): DaoProposalRef {
+  return {
+    chainId: DAO_MOCK_CHAIN_ID,
+    votingAddress: DAO_MOCK_VOTING_ADDRESS,
+    proposalId,
+  };
+}
+
+function getProposalById(proposalId: bigint): DaoProposal {
+  const proposal = proposalById.get(proposalId);
+  if (!proposal) throw new Error(`Unknown DAO mock proposal ${proposalId.toString()}.`);
+  return proposal;
+}
+
+function getProposalPostVoteEnd(proposal: DaoProposal): number {
+  if (proposal.executionEndsAt !== null) return proposal.executionEndsAt;
+  return proposal.voteEndsAt + 14 * DAY;
+}
+
+function fixedHex32(seed: number): Hex {
+  return `0x${BigInt(seed).toString(16).padStart(64, "0")}` as Hex;
+}

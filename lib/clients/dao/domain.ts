@@ -1,0 +1,569 @@
+import { keccak256 } from "viem";
+import type {
+  DaoCapabilities,
+  DaoCapabilityInput,
+  DaoDisplayGroup,
+  DaoDisplayStatus,
+  DaoProposal,
+  DaoProposalLifecycleInput,
+  DaoProposalRef,
+  DaoProposalTiming,
+  DaoProposalTimingInput,
+  DaoProposalType,
+  DaoProtocolStatus,
+  DaoProposerEligibilityInput,
+  DaoProposerState,
+  DaoVotingWeight,
+  DaoVotingWeightInput,
+} from "./types";
+
+export const DAO_BPS = 10_000;
+export const DAO_PROPOSAL_LIMIT = 64 as const;
+export const DAO_BOOST_EPOCH_COUNT = 6;
+export const DAO_EMPTY_SCRIPT_HASH =
+  "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470" as const;
+
+export const DAO_BLOCKED_REASONS = {
+  walletDisconnected: "Connect a wallet to continue.",
+  wrongNetwork: "Switch to the proposal network to continue.",
+  voteAlreadySubmitted: "This account has already voted on this proposal.",
+  voteNotOpen: "Voting has not opened yet.",
+  voteClosed: "Voting is closed.",
+  voteLifecycle: "This proposal no longer accepts votes.",
+  zeroVotingWeight: "Effective voting weight is zero.",
+  notProposer: "Only the proposal author can retract it.",
+  retractLifecycle: "This proposal can no longer be retracted.",
+  proposalHasVotes: "A proposal with votes cannot be retracted or flagged.",
+  notOperator: "Only the configured operator can flag this proposal.",
+  flagLifecycle: "This proposal can no longer be flagged.",
+  notGuardian: "Only the configured guardian can veto this proposal.",
+  vetoLifecycle: "This proposal can no longer be vetoed.",
+  signalExecution: "Signal proposals have no executable actions.",
+  executeLifecycle: "This proposal is not approved for execution.",
+  executionDelay: "The execution delay is still active.",
+  executionExpired: "The execution window has closed.",
+  guardedExecution: "Only the configured operator can execute this proposal.",
+  scriptUnavailable: "The exact event script is unavailable.",
+  scriptHashMismatch: "The event script does not match the stored script hash.",
+  executionSimulationRequired: "A fresh execution simulation is required.",
+  executionSimulationPending: "The fresh execution simulation is still running.",
+  executionSimulationFailed: "The fresh execution simulation failed.",
+  executionSimulationMismatch:
+    "The fresh execution simulation does not match this script.",
+  proposerBlacklisted: "This account is blocked from creating proposals.",
+  proposerWeight: "Proposal weight is below the current minimum.",
+  proposerCooldown: "The proposal cooldown is still active.",
+  proposerCapacity: "Proposal capacity is full.",
+} as const;
+
+export function serializeDaoProposalRef(ref: DaoProposalRef): string {
+  return `${ref.chainId}:${ref.votingAddress.toLowerCase()}:${ref.proposalId.toString()}`;
+}
+
+export function daoProposalPasses(
+  totalWeight: bigint,
+  yeaWeight: bigint,
+  thresholdBps: number
+): boolean {
+  assertBasisPoints(thresholdBps, "thresholdBps");
+  if (totalWeight < 0n || yeaWeight < 0n || yeaWeight > totalWeight) {
+    throw new Error("Vote weights must be non-negative and yea cannot exceed total.");
+  }
+
+  return (
+    totalWeight > 0n &&
+    yeaWeight * BigInt(DAO_BPS) >= totalWeight * BigInt(thresholdBps)
+  );
+}
+
+/**
+ * Mirrors the pinned Voting.status priority and epoch boundaries. The caller
+ * supplies the end of the epoch after voting because signal proposals do not
+ * expose an execution window in the view model.
+ */
+export function deriveDaoProtocolStatus(
+  input: DaoProposalLifecycleInput
+): DaoProtocolStatus {
+  assertLifecycleInput(input);
+
+  if (!input.exists) return "invalid";
+  if (input.executed) return "executed";
+  if (input.flagged) return "flagged";
+  if (input.vetoed) return "vetoed";
+  if (input.retracted) return "retracted";
+  if (input.now < input.voteStartsAt) return "proposed";
+  if (input.now < input.voteEndsAt) return "voting";
+  if (!daoProposalPasses(input.totalWeight, input.yeaWeight, input.thresholdBps)) {
+    return "failed";
+  }
+  if (input.now < input.postVoteEpochEndsAt) return "passed";
+  return input.type === "signal" ? "executed" : "expired";
+}
+
+export function deriveDaoDisplayStatus(
+  protocolStatus: DaoProtocolStatus,
+  proposalType: DaoProposalType
+): DaoDisplayStatus {
+  if (
+    proposalType === "signal" &&
+    (protocolStatus === "passed" || protocolStatus === "executed")
+  ) {
+    return "approved";
+  }
+
+  const statusMap: Record<DaoProtocolStatus, DaoDisplayStatus> = {
+    proposed: "discussion",
+    retracted: "retracted",
+    voting: "voting",
+    passed: "approved",
+    failed: "rejected",
+    executed: "executed",
+    expired: "expired",
+    invalid: "not_found",
+    flagged: "flagged",
+    vetoed: "vetoed",
+  };
+  return statusMap[protocolStatus];
+}
+
+export function deriveDaoDisplayGroup(
+  displayStatus: DaoDisplayStatus,
+  proposalType: DaoProposalType
+): DaoDisplayGroup {
+  if (displayStatus === "discussion") return "upcoming";
+  if (displayStatus === "voting") return "active";
+  if (displayStatus === "approved" && proposalType === "executable") {
+    return "active";
+  }
+  return "closed";
+}
+
+export function deriveDaoProposalTiming(
+  input: DaoProposalTimingInput
+): DaoProposalTiming {
+  assertFiniteInteger(input.genesis, "genesis");
+  assertFiniteInteger(input.createdAt, "createdAt");
+  assertPositiveInteger(input.epochLengthSeconds, "epochLengthSeconds");
+  assertFiniteInteger(input.voteStartOffsetSeconds, "voteStartOffsetSeconds");
+  assertFiniteInteger(input.executionDelaySeconds, "executionDelaySeconds");
+
+  if (input.createdAt < input.genesis) {
+    throw new Error("createdAt cannot be before genesis.");
+  }
+  if (
+    input.voteStartOffsetSeconds < 0 ||
+    input.voteStartOffsetSeconds >= input.epochLengthSeconds
+  ) {
+    throw new Error("voteStartOffsetSeconds must be inside the epoch.");
+  }
+  if (
+    input.executionDelaySeconds < 0 ||
+    input.executionDelaySeconds >= input.epochLengthSeconds
+  ) {
+    throw new Error("executionDelaySeconds must be inside the epoch.");
+  }
+
+  const createdEpoch = Math.floor(
+    (input.createdAt - input.genesis) / input.epochLengthSeconds
+  );
+  const votingEpochNumber = createdEpoch + 1;
+  const voteEpochStartsAt =
+    input.genesis + votingEpochNumber * input.epochLengthSeconds;
+  const voteEndsAt = voteEpochStartsAt + input.epochLengthSeconds;
+
+  return {
+    votingEpoch: BigInt(votingEpochNumber),
+    voteStartsAt: voteEpochStartsAt + input.voteStartOffsetSeconds,
+    voteEndsAt,
+    executionStartsAt: voteEndsAt + input.executionDelaySeconds,
+    executionEndsAt: voteEndsAt + input.epochLengthSeconds,
+  };
+}
+
+/** Mirrors Voter._vote's strict decay-start comparison and integer flooring. */
+export function deriveDaoVotingWeight(
+  input: DaoVotingWeightInput
+): DaoVotingWeight {
+  if (input.votingWeight < 0n) {
+    throw new Error("votingWeight cannot be negative.");
+  }
+  assertFiniteInteger(input.now, "now");
+  assertFiniteInteger(input.voteEndsAt, "voteEndsAt");
+  assertFiniteInteger(input.decayLengthSeconds, "decayLengthSeconds");
+  if (input.decayLengthSeconds < 0) {
+    throw new Error("decayLengthSeconds cannot be negative.");
+  }
+
+  const decayStartsAt = input.voteEndsAt - input.decayLengthSeconds;
+  let decayBps = DAO_BPS;
+
+  if (input.now >= input.voteEndsAt) {
+    decayBps = 0;
+  } else if (
+    input.decayLengthSeconds > 0 &&
+    input.now > decayStartsAt
+  ) {
+    decayBps = Math.floor(
+      (DAO_BPS * (input.voteEndsAt - input.now)) /
+        input.decayLengthSeconds
+    );
+  }
+
+  return {
+    votingWeight: input.votingWeight,
+    effectiveVotingWeight:
+      (input.votingWeight * BigInt(decayBps)) / BigInt(DAO_BPS),
+    decayBps,
+  };
+}
+
+export function deriveDaoProposerState(
+  input: DaoProposerEligibilityInput
+): DaoProposerState {
+  assertFiniteInteger(input.now, "now");
+  assertFiniteInteger(input.cooldownSeconds, "cooldownSeconds");
+  if (input.cooldownSeconds < 0) {
+    throw new Error("cooldownSeconds cannot be negative.");
+  }
+  if (input.currentWeight < 0n || input.minimumWeight < 0n) {
+    throw new Error("Proposal weights cannot be negative.");
+  }
+  if (input.affectedBoostEpochs.length !== DAO_BOOST_EPOCH_COUNT) {
+    throw new Error(
+      `Exactly ${DAO_BOOST_EPOCH_COUNT} affected boost epochs are required.`
+    );
+  }
+  for (const affected of input.affectedBoostEpochs) {
+    if (
+      !Number.isInteger(affected.currentProposalCount) ||
+      affected.currentProposalCount < 0 ||
+      affected.proposalLimit !== DAO_PROPOSAL_LIMIT
+    ) {
+      throw new Error("Affected boost epoch counts must use the shared limit of 64.");
+    }
+  }
+
+  const nextEligibleAt =
+    input.lastProposedAt === null
+      ? 0
+      : input.lastProposedAt + input.cooldownSeconds;
+  const capacityFull = input.affectedBoostEpochs.some(
+    (affected) => affected.currentProposalCount >= affected.proposalLimit
+  );
+
+  let proposeBlockedReason: string | null = null;
+  if (!input.connected) {
+    proposeBlockedReason = DAO_BLOCKED_REASONS.walletDisconnected;
+  } else if (!input.correctChain) {
+    proposeBlockedReason = DAO_BLOCKED_REASONS.wrongNetwork;
+  } else if (input.blacklisted) {
+    proposeBlockedReason = DAO_BLOCKED_REASONS.proposerBlacklisted;
+  } else if (input.currentWeight < input.minimumWeight) {
+    proposeBlockedReason = DAO_BLOCKED_REASONS.proposerWeight;
+  } else if (input.now < nextEligibleAt) {
+    proposeBlockedReason = DAO_BLOCKED_REASONS.proposerCooldown;
+  } else if (capacityFull) {
+    proposeBlockedReason = DAO_BLOCKED_REASONS.proposerCapacity;
+  }
+
+  return {
+    address: input.address,
+    connected: input.connected,
+    correctChain: input.correctChain,
+    canPropose: proposeBlockedReason === null,
+    proposeBlockedReason,
+    currentWeight: input.currentWeight,
+    minimumWeight: input.minimumWeight,
+    blacklisted: input.blacklisted,
+    lastProposedAt: input.lastProposedAt,
+    nextEligibleAt,
+    expectedVotingEpoch: input.expectedVotingEpoch,
+    affectedBoostEpochs: input.affectedBoostEpochs.map((affected) => ({
+      ...affected,
+    })),
+  };
+}
+
+export function deriveDaoCapabilities(
+  input: DaoCapabilityInput
+): DaoCapabilities {
+  const vote = deriveVoteCapability(input);
+  const retract = deriveRetractCapability(input);
+  const flag = deriveFlagCapability(input);
+  const veto = deriveVetoCapability(input);
+  const execute = deriveExecuteCapability(input);
+
+  return {
+    canVote: vote.reason === null,
+    votePurpose: vote.reason === null ? vote.purpose : null,
+    voteBlockedReason: vote.reason,
+    canRetract: retract === null,
+    retractBlockedReason: retract,
+    canFlag: flag === null,
+    flagBlockedReason: flag,
+    canVeto: veto === null,
+    vetoBlockedReason: veto,
+    canExecute: execute === null,
+    executeBlockedReason: execute,
+  };
+}
+
+export function assertDaoProposalInvariants(proposal: DaoProposal): void {
+  if (!Number.isSafeInteger(proposal.ref.chainId) || proposal.ref.chainId <= 0) {
+    throw new Error("Proposal chainId must be a positive safe integer.");
+  }
+  if (proposal.ref.proposalId < 0n || proposal.votingEpoch < 0n) {
+    throw new Error("Proposal identifiers and epochs cannot be negative.");
+  }
+  assertBasisPoints(proposal.thresholdBps, "thresholdBps");
+  if (
+    proposal.totalWeight < 0n ||
+    proposal.yeaWeight < 0n ||
+    proposal.nayWeight < 0n ||
+    proposal.totalWeight !== proposal.yeaWeight + proposal.nayWeight
+  ) {
+    throw new Error("Proposal vote totals are inconsistent.");
+  }
+  if (
+    proposal.createdAt > proposal.voteStartsAt ||
+    proposal.voteStartsAt >= proposal.voteEndsAt
+  ) {
+    throw new Error("Proposal voting timestamps are inconsistent.");
+  }
+  if (
+    proposal.executionStartsAt !== null &&
+    proposal.executionEndsAt !== null &&
+    (proposal.voteEndsAt > proposal.executionStartsAt ||
+      proposal.executionStartsAt >= proposal.executionEndsAt)
+  ) {
+    throw new Error("Proposal execution timestamps are inconsistent.");
+  }
+  if (
+    (proposal.executionStartsAt === null) !==
+    (proposal.executionEndsAt === null)
+  ) {
+    throw new Error("Proposal execution timestamps must both be present or absent.");
+  }
+  if (
+    (proposal.type === "signal" && proposal.executionStartsAt !== null) ||
+    (proposal.type === "executable" && proposal.executionStartsAt === null)
+  ) {
+    throw new Error("Proposal execution timestamps must match its script type.");
+  }
+  if (proposal.protocolStatus === "invalid" || proposal.displayStatus === "not_found") {
+    throw new Error("Not-found proposals cannot appear in feed history.");
+  }
+
+  const expectedDisplay = deriveDaoDisplayStatus(
+    proposal.protocolStatus,
+    proposal.type
+  );
+  if (proposal.displayStatus !== expectedDisplay) {
+    throw new Error("Proposal display status does not match protocol status and type.");
+  }
+  const expectedGroup = deriveDaoDisplayGroup(
+    proposal.displayStatus,
+    proposal.type
+  );
+  if (proposal.displayGroup !== expectedGroup) {
+    throw new Error("Proposal display group is inconsistent.");
+  }
+
+  if (proposal.type === "signal") {
+    if (
+      proposal.script.hash.toLowerCase() !== DAO_EMPTY_SCRIPT_HASH ||
+      (proposal.script.bytes !== null && proposal.script.bytes !== "0x")
+    ) {
+      throw new Error("Signal proposals must use the empty Executor script.");
+    }
+  } else if (proposal.script.bytes === "0x") {
+    throw new Error("Executable proposals cannot use an empty script.");
+  }
+
+  if (proposal.script.hashVerified === true) {
+    if (
+      proposal.script.bytes === null ||
+      keccak256(proposal.script.bytes).toLowerCase() !==
+        proposal.script.hash.toLowerCase()
+    ) {
+      throw new Error("A hash-verified script must match the stored script hash.");
+    }
+  }
+}
+
+function deriveVoteCapability(input: DaoCapabilityInput): {
+  purpose: "decision" | "participation_only";
+  reason: string | null;
+} {
+  if (!input.account.connected) {
+    return { purpose: "decision", reason: DAO_BLOCKED_REASONS.walletDisconnected };
+  }
+  if (!input.account.correctChain) {
+    return { purpose: "decision", reason: DAO_BLOCKED_REASONS.wrongNetwork };
+  }
+  if (input.account.hasVoted) {
+    return {
+      purpose: "decision",
+      reason: DAO_BLOCKED_REASONS.voteAlreadySubmitted,
+    };
+  }
+  if (input.now < input.proposal.voteStartsAt) {
+    return { purpose: "decision", reason: DAO_BLOCKED_REASONS.voteNotOpen };
+  }
+  if (input.now >= input.proposal.voteEndsAt) {
+    return { purpose: "decision", reason: DAO_BLOCKED_REASONS.voteClosed };
+  }
+
+  const participationOnly =
+    input.proposal.protocolStatus === "vetoed" &&
+    input.proposal.totalWeight > 0n;
+  if (
+    input.proposal.protocolStatus !== "voting" &&
+    !participationOnly
+  ) {
+    return { purpose: "decision", reason: DAO_BLOCKED_REASONS.voteLifecycle };
+  }
+  if (input.account.effectiveVotingWeight <= 0n) {
+    return {
+      purpose: participationOnly ? "participation_only" : "decision",
+      reason: DAO_BLOCKED_REASONS.zeroVotingWeight,
+    };
+  }
+
+  return {
+    purpose: participationOnly ? "participation_only" : "decision",
+    reason: null,
+  };
+}
+
+function deriveRetractCapability(input: DaoCapabilityInput): string | null {
+  const connectionReason = deriveConnectionReason(input);
+  if (connectionReason) return connectionReason;
+  if (!input.account.isProposer) return DAO_BLOCKED_REASONS.notProposer;
+  if (
+    input.now >= input.proposal.voteEndsAt ||
+    !["proposed", "voting"].includes(input.proposal.protocolStatus)
+  ) {
+    return DAO_BLOCKED_REASONS.retractLifecycle;
+  }
+  if (input.proposal.totalWeight > 0n) return DAO_BLOCKED_REASONS.proposalHasVotes;
+  return null;
+}
+
+function deriveFlagCapability(input: DaoCapabilityInput): string | null {
+  const connectionReason = deriveConnectionReason(input);
+  if (connectionReason) return connectionReason;
+  if (!input.account.isOperator) return DAO_BLOCKED_REASONS.notOperator;
+  if (
+    input.now >= input.proposal.voteEndsAt ||
+    !["proposed", "voting"].includes(input.proposal.protocolStatus)
+  ) {
+    return DAO_BLOCKED_REASONS.flagLifecycle;
+  }
+  if (input.proposal.totalWeight > 0n) return DAO_BLOCKED_REASONS.proposalHasVotes;
+  return null;
+}
+
+function deriveVetoCapability(input: DaoCapabilityInput): string | null {
+  const connectionReason = deriveConnectionReason(input);
+  if (connectionReason) return connectionReason;
+  if (!input.account.isGuardian) return DAO_BLOCKED_REASONS.notGuardian;
+  if (
+    input.now >= input.vetoEndsAt ||
+    ["executed", "expired", "retracted", "flagged", "vetoed", "invalid"].includes(
+      input.proposal.protocolStatus
+    )
+  ) {
+    return DAO_BLOCKED_REASONS.vetoLifecycle;
+  }
+  return null;
+}
+
+function deriveExecuteCapability(input: DaoCapabilityInput): string | null {
+  const connectionReason = deriveConnectionReason(input);
+  if (connectionReason) return connectionReason;
+  if (input.proposal.type === "signal") return DAO_BLOCKED_REASONS.signalExecution;
+  if (
+    input.proposal.executionStartsAt === null ||
+    input.proposal.executionEndsAt === null
+  ) {
+    return DAO_BLOCKED_REASONS.executeLifecycle;
+  }
+  if (input.now >= input.proposal.executionEndsAt) {
+    return DAO_BLOCKED_REASONS.executionExpired;
+  }
+  if (input.proposal.protocolStatus !== "passed") {
+    return DAO_BLOCKED_REASONS.executeLifecycle;
+  }
+  if (input.now < input.proposal.executionStartsAt) {
+    return DAO_BLOCKED_REASONS.executionDelay;
+  }
+  if (input.executionGuard === "guarded" && !input.account.isOperator) {
+    return DAO_BLOCKED_REASONS.guardedExecution;
+  }
+  if (input.proposal.script.bytes === null) {
+    return DAO_BLOCKED_REASONS.scriptUnavailable;
+  }
+  if (input.proposal.script.hashVerified !== true) {
+    return DAO_BLOCKED_REASONS.scriptHashMismatch;
+  }
+
+  const preflight = input.account.executionPreflight;
+  if (preflight.scriptHash.toLowerCase() !== input.proposal.script.hash.toLowerCase()) {
+    return DAO_BLOCKED_REASONS.executionSimulationMismatch;
+  }
+  if (preflight.state === "idle") {
+    return DAO_BLOCKED_REASONS.executionSimulationRequired;
+  }
+  if (preflight.state === "simulating") {
+    return DAO_BLOCKED_REASONS.executionSimulationPending;
+  }
+  if (preflight.state === "failed") {
+    return DAO_BLOCKED_REASONS.executionSimulationFailed;
+  }
+  return null;
+}
+
+function deriveConnectionReason(input: DaoCapabilityInput): string | null {
+  if (!input.account.connected) return DAO_BLOCKED_REASONS.walletDisconnected;
+  if (!input.account.correctChain) return DAO_BLOCKED_REASONS.wrongNetwork;
+  return null;
+}
+
+function assertLifecycleInput(input: DaoProposalLifecycleInput): void {
+  assertFiniteInteger(input.now, "now");
+  assertFiniteInteger(input.voteStartsAt, "voteStartsAt");
+  assertFiniteInteger(input.voteEndsAt, "voteEndsAt");
+  assertFiniteInteger(input.postVoteEpochEndsAt, "postVoteEpochEndsAt");
+  assertBasisPoints(input.thresholdBps, "thresholdBps");
+  if (
+    input.voteStartsAt >= input.voteEndsAt ||
+    input.voteEndsAt >= input.postVoteEpochEndsAt
+  ) {
+    throw new Error("Lifecycle timestamps are inconsistent.");
+  }
+  if (
+    input.totalWeight < 0n ||
+    input.yeaWeight < 0n ||
+    input.yeaWeight > input.totalWeight
+  ) {
+    throw new Error("Lifecycle vote weights are inconsistent.");
+  }
+}
+
+function assertBasisPoints(value: number, name: string): void {
+  if (!Number.isInteger(value) || value < 0 || value > DAO_BPS) {
+    throw new Error(`${name} must be an integer from 0 to ${DAO_BPS}.`);
+  }
+}
+
+function assertFiniteInteger(value: number, name: string): void {
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(`${name} must be a safe integer.`);
+  }
+}
+
+function assertPositiveInteger(value: number, name: string): void {
+  assertFiniteInteger(value, name);
+  if (value <= 0) throw new Error(`${name} must be positive.`);
+}
