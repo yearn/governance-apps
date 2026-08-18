@@ -41,8 +41,10 @@ Applies to:
   - `onTimeTravel(days)` for domain-local clock sync; shared invalidation waits for
     these hooks to settle before refetching query roots
   - `onReset()` for store reset and persistence cleanup
-- shared time travel invalidates every participating domain root;
-- existing root examples include `teamsKeys.all` and `ybcKeys.all`;
+- shared time travel invalidates every participating domain root, including
+  `teamsKeys.all`, `ybcKeys.all`, and `daoKeys.all`;
+- DAO clock synchronization is owned by the shared shell so it also runs on routes
+  where the DAO-specific section is not mounted;
 - new domains must add reset, time, query invalidation, and typed bridge support in
   the same package as their debug runtime.
 
@@ -59,6 +61,10 @@ When a new mature mock-backed domain joins the debug runtime:
 Existing domains must continue to reset alongside any new domain. Adding DAO, for
 example, must not break Teams or YBC invalidation.
 
+The shared shell synchronizes DAO state and invalidates `daoKeys.all` globally. The
+DAO route section must not duplicate that synchronization callback or invalidation
+root.
+
 ## E2E bridge rules
 
 - prefer domain-prefixed granular setters
@@ -69,16 +75,21 @@ example, must not break Teams or YBC invalidation.
 
 ### Current bridge seam
 
-- `lib/test-bridge.ts` defines `TeamsTestBridgeAdapter` and `YbcTestBridgeAdapter`
-- `components/TestBridgeListener.tsx` accepts optional `teams` and `ybc` adapters and
-  passes them into `createTestBridge`
-- shared `reset()` clears fixed mock time before it fans out to `resetTeams()` /
-  `resetYbc()`, so adapters that snapshot `nowSeconds()` rebuild from cleared time
+- `lib/test-bridge.ts` defines `TeamsTestBridgeAdapter`, `YbcTestBridgeAdapter`,
+  and `DaoTestBridgeAdapter`
+- `components/TestBridgeListener.tsx` accepts optional `teams`, `ybc`, and `dao`
+  adapters and passes them into `createTestBridge`
+- shared `reset()` clears fixed mock time before it fans out to `resetTeams()`,
+  `resetYbc()`, and `resetDao()`, so adapters that snapshot `nowSeconds()` rebuild
+  from cleared time
 - shared `setNow(timestamp)` fans out to adapter `onSetNow(timestamp)` hooks before
   invalidating queries
-- domain-prefixed adapter methods invalidate `teamsKeys.all` or `ybcKeys.all`
+- domain-prefixed adapter methods invalidate `teamsKeys.all`, `ybcKeys.all`, or
+  `daoKeys.all`
   automatically after mutation, so downstream packages should attach behavior through
   the adapter rather than replacing the bridge
+- the floating shell's full reset clears stYFI, veYFI, yETH, Teams, YBC, and DAO
+  stores regardless of which route currently mounts the shell
 
 ## Recommended naming pattern
 
@@ -107,6 +118,23 @@ YBC examples:
 - `patchYbcRewards`
 - `patchYbcAdmin`
 - `resetYbc`
+
+DAO examples:
+
+- `setDaoFixture`
+- `setDaoSelectedProposal`
+- `setDaoPersona`
+- `setDaoRole`
+- `setDaoContentState`
+- `setDaoLifecycle`
+- `setDaoVetoState`
+- `setDaoAnalysisState`
+- `setDaoAccountState`
+- `setDaoExecutionState`
+- `setDaoAuthoringState`
+- `setDaoProposalVotes`
+- `setDaoProposalTiming`
+- `resetDao`
 
 Exact names may evolve, but the contract intent should remain:
 

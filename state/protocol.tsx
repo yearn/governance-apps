@@ -44,6 +44,7 @@ import {
 } from "@/lib/clients/teams/mock";
 import type { TeamsViewerRole } from "@/lib/clients/teams/types";
 import { createYbcTestBridgeAdapter } from "@/lib/clients/ybc/store";
+import { createDaoTestBridgeAdapter } from "@/lib/clients/dao/store";
 
 assertProductionRuntimeInvariants("state/protocol");
 
@@ -186,6 +187,7 @@ export function ProtocolProvider({ children }: { children: ReactNode }) {
         yeth={value.yeth}
         teams={teams}
         ybc={createYbcTestBridgeAdapter()}
+        dao={createDaoTestBridgeAdapter()}
         enabled={process.env.NEXT_PUBLIC_E2E === "true"}
       />
     </ProtocolContext.Provider>

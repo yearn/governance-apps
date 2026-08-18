@@ -4,10 +4,29 @@ import { formatUnits, parseUnits } from "viem";
 import type { StyfiClient, StyfiStakeMode } from "@/lib/clients/styfi/client";
 import type { VeyfiClient } from "@/lib/clients/veyfi/client";
 import type { YethClient, YethDebugPreset } from "@/lib/clients/yeth";
+import type {
+  DaoExecutionGuard,
+  DaoMockAccountState,
+  DaoMockAnalysisState,
+  DaoMockAuthoringState,
+  DaoMockContentState,
+  DaoMockExecutionState,
+  DaoMockFixtureId,
+  DaoMockLifecycleState,
+  DaoMockPersona,
+  DaoMockProposalFlagsPatch,
+  DaoMockProposalTimingPatch,
+  DaoMockProposerState,
+  DaoMockRole,
+  DaoMockSurfaceState,
+  DaoMockVetoState,
+  DaoVoteDirection,
+} from "@/lib/clients/dao/types";
 import { GLOBAL_WORLD_STATE } from "@/lib/mocks/world-state";
 import { setFixedNow } from "@/lib/mocks/time";
 import { teamsKeys } from "@/lib/hooks/useTeams";
 import { ybcKeys } from "@/lib/hooks/useYbc";
+import { daoKeys } from "@/lib/hooks/daoKeys";
 import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
 import {
   resetMockVeyfiStore,
@@ -65,6 +84,48 @@ export interface YbcTestBridgeMethods {
   patchYbcAdmin?: (patch: BridgePatch) => Promise<void>;
 }
 
+export interface DaoTestBridgeMethods {
+  resetDao?: () => Promise<void>;
+  setDaoFixture?: (fixtureId: DaoMockFixtureId) => Promise<void>;
+  setDaoSelectedProposal?: (proposalId: string) => Promise<void>;
+  setDaoLoading?: (value: boolean) => Promise<void>;
+  setDaoEmpty?: (value: boolean) => Promise<void>;
+  setDaoSurface?: (surface: DaoMockSurfaceState) => Promise<void>;
+  setDaoPersona?: (persona: DaoMockPersona) => Promise<void>;
+  setDaoRole?: (role: DaoMockRole, enabled: boolean) => Promise<void>;
+  setDaoContentState?: (state: DaoMockContentState) => Promise<void>;
+  setDaoLifecycle?: (state: DaoMockLifecycleState) => Promise<void>;
+  setDaoVetoState?: (state: DaoMockVetoState) => Promise<void>;
+  setDaoAnalysisState?: (state: DaoMockAnalysisState) => Promise<void>;
+  setDaoAccountState?: (state: DaoMockAccountState) => Promise<void>;
+  setDaoAccountWeight?: (weight: string) => Promise<void>;
+  setDaoAlreadyVoted?: (
+    hasVoted: boolean,
+    direction?: DaoVoteDirection | null
+  ) => Promise<void>;
+  setDaoExecutionState?: (state: DaoMockExecutionState) => Promise<void>;
+  setDaoExecutionGuard?: (guard: DaoExecutionGuard) => Promise<void>;
+  setDaoAuthoringState?: (state: DaoMockAuthoringState) => Promise<void>;
+  setDaoProposerState?: (state: DaoMockProposerState) => Promise<void>;
+  setDaoProposalVotes?: (
+    totalWeight: string,
+    yeaWeight: string
+  ) => Promise<void>;
+  setDaoProposalThreshold?: (thresholdBps: number) => Promise<void>;
+  setDaoProposalFlags?: (flags: DaoMockProposalFlagsPatch) => Promise<void>;
+  setDaoProposalTiming?: (timing: DaoMockProposalTimingPatch) => Promise<void>;
+  setDaoProposerWeights?: (
+    currentWeight: string,
+    minimumWeight: string
+  ) => Promise<void>;
+  setDaoProposerBlacklist?: (blacklisted: boolean) => Promise<void>;
+  setDaoProposerCooldown?: (
+    lastProposedAt: number | null,
+    cooldownSeconds: number
+  ) => Promise<void>;
+  setDaoProposalCapacity?: (index: number, count: number) => Promise<void>;
+}
+
 type TestBridgeAdapterHooks = {
   onSetNow?: (timestamp: number) => Promise<void> | void;
 };
@@ -73,6 +134,9 @@ export type TeamsTestBridgeAdapter = TeamsTestBridgeMethods &
   TestBridgeAdapterHooks;
 
 export type YbcTestBridgeAdapter = YbcTestBridgeMethods &
+  TestBridgeAdapterHooks;
+
+export type DaoTestBridgeAdapter = DaoTestBridgeMethods &
   TestBridgeAdapterHooks;
 
 type TestStateSnapshot = {
@@ -95,7 +159,10 @@ type TestStateSnapshot = {
   isBlacklisted: boolean;
 };
 
-export interface TestBridge extends TeamsTestBridgeMethods, YbcTestBridgeMethods {
+export interface TestBridge
+  extends TeamsTestBridgeMethods,
+    YbcTestBridgeMethods,
+    DaoTestBridgeMethods {
   reset: () => Promise<void>;
   setNow: (timestamp: number) => Promise<void>;
   getState: (address: Address) => Promise<TestStateSnapshot>;
@@ -124,6 +191,7 @@ type TestBridgeDeps = {
   queryClient: QueryClient;
   teams?: TeamsTestBridgeAdapter;
   ybc?: YbcTestBridgeAdapter;
+  dao?: DaoTestBridgeAdapter;
 };
 
 const TOKEN_DECIMALS: Record<TokenSymbol, number> = {
@@ -193,6 +261,7 @@ export function createTestBridge({
   queryClient,
   teams,
   ybc,
+  dao,
 }: TestBridgeDeps): TestBridge {
   const debugSetStyfiBalance = requireDebugMethod(
     styfi.debugSetBalance?.bind(styfi),
@@ -232,20 +301,33 @@ export function createTestBridge({
       queryKey: ybcKeys.all,
       refetchType: "all",
     });
+  const invalidateDao = () =>
+    queryClient.invalidateQueries({
+      queryKey: daoKeys.all,
+      refetchType: "all",
+    });
 
   const reset = async () => {
     setFixedNow(null);
     resetMockStyfiStore();
     resetMockVeyfiStore();
     resetMockYethStore();
-    await Promise.all([teams?.resetTeams?.(), ybc?.resetYbc?.()]);
+    await Promise.all([
+      teams?.resetTeams?.(),
+      ybc?.resetYbc?.(),
+      dao?.resetDao?.(),
+    ]);
     GLOBAL_WORLD_STATE.reset();
     await queryClient.resetQueries();
   };
 
   const setNow = async (timestamp: number) => {
     setFixedNow(timestamp);
-    await Promise.all([teams?.onSetNow?.(timestamp), ybc?.onSetNow?.(timestamp)]);
+    await Promise.all([
+      teams?.onSetNow?.(timestamp),
+      ybc?.onSetNow?.(timestamp),
+      dao?.onSetNow?.(timestamp),
+    ]);
     await queryClient.invalidateQueries({ refetchType: "all" });
   };
 
@@ -437,5 +519,86 @@ export function createTestBridge({
     patchYbcProposal: wrapBridgeMutation(ybc?.patchYbcProposal, invalidateYbc),
     patchYbcRewards: wrapBridgeMutation(ybc?.patchYbcRewards, invalidateYbc),
     patchYbcAdmin: wrapBridgeMutation(ybc?.patchYbcAdmin, invalidateYbc),
+    resetDao: wrapBridgeMutation(dao?.resetDao, invalidateDao),
+    setDaoFixture: wrapBridgeMutation(dao?.setDaoFixture, invalidateDao),
+    setDaoSelectedProposal: wrapBridgeMutation(
+      dao?.setDaoSelectedProposal,
+      invalidateDao
+    ),
+    setDaoLoading: wrapBridgeMutation(dao?.setDaoLoading, invalidateDao),
+    setDaoEmpty: wrapBridgeMutation(dao?.setDaoEmpty, invalidateDao),
+    setDaoSurface: wrapBridgeMutation(dao?.setDaoSurface, invalidateDao),
+    setDaoPersona: wrapBridgeMutation(dao?.setDaoPersona, invalidateDao),
+    setDaoRole: wrapBridgeMutation(dao?.setDaoRole, invalidateDao),
+    setDaoContentState: wrapBridgeMutation(
+      dao?.setDaoContentState,
+      invalidateDao
+    ),
+    setDaoLifecycle: wrapBridgeMutation(dao?.setDaoLifecycle, invalidateDao),
+    setDaoVetoState: wrapBridgeMutation(dao?.setDaoVetoState, invalidateDao),
+    setDaoAnalysisState: wrapBridgeMutation(
+      dao?.setDaoAnalysisState,
+      invalidateDao
+    ),
+    setDaoAccountState: wrapBridgeMutation(
+      dao?.setDaoAccountState,
+      invalidateDao
+    ),
+    setDaoAccountWeight: wrapBridgeMutation(
+      dao?.setDaoAccountWeight,
+      invalidateDao
+    ),
+    setDaoAlreadyVoted: wrapBridgeMutation(
+      dao?.setDaoAlreadyVoted,
+      invalidateDao
+    ),
+    setDaoExecutionState: wrapBridgeMutation(
+      dao?.setDaoExecutionState,
+      invalidateDao
+    ),
+    setDaoExecutionGuard: wrapBridgeMutation(
+      dao?.setDaoExecutionGuard,
+      invalidateDao
+    ),
+    setDaoAuthoringState: wrapBridgeMutation(
+      dao?.setDaoAuthoringState,
+      invalidateDao
+    ),
+    setDaoProposerState: wrapBridgeMutation(
+      dao?.setDaoProposerState,
+      invalidateDao
+    ),
+    setDaoProposalVotes: wrapBridgeMutation(
+      dao?.setDaoProposalVotes,
+      invalidateDao
+    ),
+    setDaoProposalThreshold: wrapBridgeMutation(
+      dao?.setDaoProposalThreshold,
+      invalidateDao
+    ),
+    setDaoProposalFlags: wrapBridgeMutation(
+      dao?.setDaoProposalFlags,
+      invalidateDao
+    ),
+    setDaoProposalTiming: wrapBridgeMutation(
+      dao?.setDaoProposalTiming,
+      invalidateDao
+    ),
+    setDaoProposerWeights: wrapBridgeMutation(
+      dao?.setDaoProposerWeights,
+      invalidateDao
+    ),
+    setDaoProposerBlacklist: wrapBridgeMutation(
+      dao?.setDaoProposerBlacklist,
+      invalidateDao
+    ),
+    setDaoProposerCooldown: wrapBridgeMutation(
+      dao?.setDaoProposerCooldown,
+      invalidateDao
+    ),
+    setDaoProposalCapacity: wrapBridgeMutation(
+      dao?.setDaoProposalCapacity,
+      invalidateDao
+    ),
   };
 }

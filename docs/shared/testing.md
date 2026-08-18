@@ -68,11 +68,14 @@ await page.evaluate(async () => {
 - `setScenario(name)`: loads a predefined scenario (resets first).
 - `setYethPreset(address, preset)`: applies yETH mock account state (`claimable`, `recovery_position`, `empty`).
 
-Teams and YBC adapters show the pattern that new domains must follow:
+Teams, YBC, and DAO adapters show the pattern that new domains must follow:
 
-- `components/TestBridgeListener.tsx` accepts optional `teams` and `ybc` adapters
-- `lib/test-bridge.ts` exports `TeamsTestBridgeAdapter` and `YbcTestBridgeAdapter`
-- shared domain mutation methods invalidate `teamsKeys.all` or `ybcKeys.all`
+- `components/TestBridgeListener.tsx` accepts optional `teams`, `ybc`, and `dao`
+  adapters
+- `lib/test-bridge.ts` exports `TeamsTestBridgeAdapter`, `YbcTestBridgeAdapter`,
+  and `DaoTestBridgeAdapter`
+- shared domain mutation methods invalidate `teamsKeys.all`, `ybcKeys.all`, or
+  `daoKeys.all`
   automatically after the adapter mutation runs
 - shared `setNow(timestamp)` also calls adapter `onSetNow(timestamp)` hooks before the
   global query invalidation
@@ -85,6 +88,14 @@ Representative adapter methods already reserved by the shared contract:
 - YBC: `resetYbc`, `setYbcPerspective`, `setYbcLoading`, `setYbcEmptyRoster`,
   `setYbcEmptyBoard`, `setYbcEpoch`, `patchYbcMember`, `patchYbcProposal`,
   `patchYbcRewards`, `patchYbcAdmin`
+- DAO: `resetDao`, `setDaoFixture`, `setDaoSelectedProposal`, `setDaoPersona`,
+  `setDaoRole`, `setDaoContentState`, `setDaoLifecycle`, `setDaoVetoState`,
+  `setDaoAnalysisState`, `setDaoAccountState`, `setDaoExecutionState`,
+  `setDaoAuthoringState`, and granular proposal/proposer fact setters
+
+DAO bridge mutations wait for the adapter and then invalidate `daoKeys.all`.
+This is required because the route client is module-scoped and DAO queries use
+infinite stale times.
 
 Amounts passed to the bridge must be human-readable strings without commas (e.g. `\"100.5\"`).
 
@@ -110,7 +121,10 @@ All time logic must come from `lib/mocks/time.ts`:
 - In mock mode, UI epoch/cooldown timing is driven by local mock time only (not global-data/chain canonical sources), so debug time travel remains deterministic.
 - Debug time travel controls are expected to invalidate identity plus domain query keys and refetch active/inactive observers immediately.
 - Each domain exposes one root query-key entry point for shared reset and time
-  invalidation. Existing examples are `teamsKeys.all` and `ybcKeys.all`.
+  invalidation. Existing examples are `teamsKeys.all`, `ybcKeys.all`, and
+  `daoKeys.all`.
+- Shared debug time travel synchronizes the DAO runtime even when a non-DAO route
+  owns the mounted panel, then invalidates `daoKeys.all` with the other domain roots.
 
 Any logic that previously called `Date.now()` must use `nowSeconds()` instead.
 

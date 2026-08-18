@@ -10,6 +10,12 @@ import {
   DAO_MOCK_FIXTURE_IDS,
   getDaoMockFixture,
 } from "./fixtures";
+import {
+  readDaoMockAccountProposalState,
+  readDaoMockFeed,
+  readDaoMockProposal,
+  readDaoMockProposerState,
+} from "./store";
 import type {
   DaoAccountProposalState,
   DaoFeedV1,
@@ -132,6 +138,52 @@ export function createMockDaoClient(options?: {
   latencyMs?: number;
 }): MockDaoClient {
   return new MockDaoClient(options);
+}
+
+/**
+ * Route-facing adapter. The instance is safe to cache because every read pulls
+ * from the mutable DAO runtime store instead of snapshotting a fixture.
+ */
+export class RuntimeMockDaoClient implements DaoClient {
+  private readonly latencyMs: number;
+
+  constructor(options: { latencyMs?: number } = {}) {
+    this.latencyMs = options.latencyMs ?? 250;
+  }
+
+  async getFeed(): Promise<DaoFeedV1> {
+    await this.waitForLatency();
+    return readDaoMockFeed();
+  }
+
+  async getProposal(ref: DaoProposalRef): Promise<DaoProposalLookup> {
+    await this.waitForLatency();
+    return readDaoMockProposal(ref);
+  }
+
+  async getAccountProposalState(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<DaoAccountProposalState> {
+    await this.waitForLatency();
+    return readDaoMockAccountProposalState(ref, address);
+  }
+
+  async getProposerState(address: Address): Promise<DaoProposerState> {
+    await this.waitForLatency();
+    return readDaoMockProposerState(address);
+  }
+
+  private async waitForLatency(): Promise<void> {
+    if (this.latencyMs <= 0) return;
+    await new Promise((resolve) => setTimeout(resolve, this.latencyMs));
+  }
+}
+
+export function createRuntimeMockDaoClient(options?: {
+  latencyMs?: number;
+}): RuntimeMockDaoClient {
+  return new RuntimeMockDaoClient(options);
 }
 
 function findProposal(feed: DaoFeedV1, ref: DaoProposalRef): DaoProposal | null {
