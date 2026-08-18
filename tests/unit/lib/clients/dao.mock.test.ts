@@ -321,6 +321,60 @@ describe("DAO deterministic mock feed", () => {
     });
   });
 
+  it("groups each human vote and its aggregate rewrites in one transaction", () => {
+    const voting = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 2n
+    );
+    const voteEvents = voting?.events.filter((event) => event.type === "vote") ?? [];
+    const transactionGroups = [voteEvents.slice(0, 3), voteEvents.slice(3, 6)];
+
+    expect(voteEvents.map((event) => event.voteActorKind)).toEqual([
+      "human",
+      "styfix_aggregate",
+      "ybc_aggregate",
+      "human",
+      "styfix_aggregate",
+      "ybc_aggregate",
+    ]);
+    expect(voteEvents.map((event) => event.log.logIndex)).toEqual([
+      1, 2, 3, 4, 5, 6,
+    ]);
+    expect(
+      transactionGroups.map((group) => group[0]?.log.transactionIndex)
+    ).toEqual([1, 2]);
+    expect(
+      new Set(
+        transactionGroups.map((group) => group[0]?.log.transactionHash)
+      )
+    ).toHaveLength(2);
+
+    for (const group of transactionGroups) {
+      expect(group).toHaveLength(3);
+      expect(new Set(group.map((event) => event.log.blockNumber))).toHaveLength(1);
+      expect(new Set(group.map((event) => event.log.blockHash))).toHaveLength(1);
+      expect(new Set(group.map((event) => event.log.transactionHash))).toHaveLength(
+        1
+      );
+      expect(new Set(group.map((event) => event.log.transactionIndex))).toHaveLength(
+        1
+      );
+      for (const event of group) {
+        expect(event.log.blockNumber).toBeGreaterThan(0n);
+        expect(event.log.blockHash).toMatch(/^0x[0-9a-f]{64}$/);
+        expect(event.log.transactionHash).toMatch(/^0x[0-9a-f]{64}$/);
+      }
+    }
+
+    expect(
+      new Set(
+        voteEvents.map(
+          (event) =>
+            `${event.log.blockHash}:${event.log.transactionHash}:${event.log.transactionIndex}`
+        )
+      )
+    ).toHaveLength(2);
+  });
+
   it("round-trips every bigint through canonical decimal JSON strings", () => {
     const parsed = parseDaoFeedJson(DAO_MOCK_FEED_JSON);
 

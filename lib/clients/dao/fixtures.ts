@@ -700,8 +700,23 @@ function createEvents(
     if (totalWeight !== 11n * UNIT || yeaWeight !== (15n * UNIT) / 2n) {
       throw new Error("The aggregate vote fixture must retain its pinned totals.");
     }
+    const voteBlockNumber = 23_900_000n + options.id * 10n + 1n;
+    const voteBlockHash = fixedHex32(Number(options.id) * 10 + 1);
+    const yeaTransaction = {
+      blockNumber: voteBlockNumber,
+      blockHash: voteBlockHash,
+      transactionHash: fixedHex32(Number(options.id) * 10 + 1_001),
+      transactionIndex: 1,
+    };
+    const nayTransaction = {
+      blockNumber: voteBlockNumber,
+      blockHash: voteBlockHash,
+      transactionHash: fixedHex32(Number(options.id) * 10 + 1_002),
+      transactionIndex: 2,
+    };
     events.push(
       createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_ACCOUNT_ADDRESS, {
+        log: yeaTransaction,
         voteActorKind: "human",
         yeaBps: 10_000,
         direction: "yea",
@@ -713,6 +728,7 @@ function createEvents(
         "vote",
         DAO_MOCK_STYFIX_AGGREGATE_ADDRESS,
         {
+          log: yeaTransaction,
           voteActorKind: "styfix_aggregate",
           yeaBps: 10_000,
           weight: 4n * UNIT,
@@ -724,12 +740,14 @@ function createEvents(
         "vote",
         DAO_MOCK_YBC_AGGREGATE_ADDRESS,
         {
+          log: yeaTransaction,
           voteActorKind: "ybc_aggregate",
           yeaBps: 10_000,
           weight: 2n * UNIT,
         }
       ),
       createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_OPERATOR_ADDRESS, {
+        log: nayTransaction,
         voteActorKind: "human",
         yeaBps: 0,
         direction: "nay",
@@ -741,6 +759,7 @@ function createEvents(
         "vote",
         DAO_MOCK_STYFIX_AGGREGATE_ADDRESS,
         {
+          log: nayTransaction,
           voteActorKind: "styfix_aggregate",
           yeaBps: 7_500,
           weight: 4n * UNIT,
@@ -752,6 +771,7 @@ function createEvents(
         "vote",
         DAO_MOCK_YBC_AGGREGATE_ADDRESS,
         {
+          log: nayTransaction,
           voteActorKind: "ybc_aggregate",
           yeaBps: 7_500,
           weight: 2n * UNIT,
@@ -827,16 +847,21 @@ function createEvent(
       DaoProposalEvent,
       "voteActorKind" | "yeaBps" | "direction" | "weight" | "reason"
     >
-  > = {}
+  > & {
+    log?: Omit<DaoProposalEvent["log"], "logIndex">;
+  } = {}
 ): DaoProposalEvent {
   const seed = Number(proposalId) * 10 + logIndex;
   return {
     type,
     log: {
-      blockNumber: 23_900_000n + proposalId * 10n + BigInt(logIndex),
-      blockHash: fixedHex32(seed),
-      transactionHash: fixedHex32(seed + 1_000),
-      transactionIndex: 1,
+      blockNumber:
+        overrides.log?.blockNumber ??
+        23_900_000n + proposalId * 10n + BigInt(logIndex),
+      blockHash: overrides.log?.blockHash ?? fixedHex32(seed),
+      transactionHash:
+        overrides.log?.transactionHash ?? fixedHex32(seed + 1_000),
+      transactionIndex: overrides.log?.transactionIndex ?? 1,
       logIndex,
     },
     actor,
