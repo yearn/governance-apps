@@ -55,6 +55,26 @@ export const DAO_MOCK_YBC_AGGREGATE_ADDRESS =
 export const DAO_MOCK_STYFIX_AGGREGATE_ADDRESS =
   "0x8888888888888888888888888888888888888888" as Address;
 
+const DAO_PINNED_VOTING_ABI_SOURCE =
+  "yearn/stYFI@9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
+
+export const DAO_MOCK_VERIFIED_CALL_REGISTRY = [
+  {
+    target: DAO_MOCK_VOTING_ADDRESS,
+    selector: "0x900cf0cf" as Hex,
+    contractName: "Voting",
+    functionSignature: "epoch()",
+    abiSource: DAO_PINNED_VOTING_ABI_SOURCE,
+  },
+  {
+    target: DAO_MOCK_VOTING_ADDRESS,
+    selector: "0x42cde4e8" as Hex,
+    contractName: "Voting",
+    functionSignature: "threshold()",
+    abiSource: DAO_PINNED_VOTING_ABI_SOURCE,
+  },
+] as const;
+
 const DAY = 86_400;
 const UNIT = 10n ** 18n;
 const BASE32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
@@ -667,14 +687,35 @@ function createDecodedCall(
   frame: DaoScriptFrame,
   decodeStatus: DaoDecodedCall["decodeStatus"]
 ): DaoDecodedCall {
+  if (decodeStatus !== "verified") {
+    return {
+      ...frame,
+      decodeStatus,
+      contractName: null,
+      functionSignature: null,
+      arguments: [],
+      abiSource: null,
+    };
+  }
+
+  const registryEntry = DAO_MOCK_VERIFIED_CALL_REGISTRY.find(
+    (entry) =>
+      entry.target.toLowerCase() === frame.target.toLowerCase() &&
+      entry.selector === frame.selector
+  );
+  if (!registryEntry) {
+    throw new Error(
+      `No pinned DAO call provenance for ${frame.target}:${frame.selector ?? "none"}.`
+    );
+  }
+
   return {
     ...frame,
     decodeStatus,
-    contractName: decodeStatus === "verified" ? "GovernanceTarget" : null,
-    functionSignature: decodeStatus === "verified" ? "fallback()" : null,
+    contractName: registryEntry.contractName,
+    functionSignature: registryEntry.functionSignature,
     arguments: [],
-    abiSource:
-      decodeStatus === "verified" ? "yearn-dao-registry/v1" : null,
+    abiSource: registryEntry.abiSource,
   };
 }
 

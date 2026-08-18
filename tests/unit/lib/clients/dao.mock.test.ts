@@ -1,7 +1,13 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { sha256, toBytes, toHex, type Address } from "viem";
+import {
+  sha256,
+  toBytes,
+  toFunctionSelector,
+  toHex,
+  type Address,
+} from "viem";
 import {
   assertDaoProposalInvariants,
   countDaoHumanVoteEvents,
@@ -12,6 +18,7 @@ import {
   DAO_MOCK_FEED,
   DAO_MOCK_FEED_JSON,
   DAO_MOCK_FIXTURE_IDS,
+  DAO_MOCK_VERIFIED_CALL_REGISTRY,
   deriveDaoProposerState,
   getDaoMockFixture,
   parseDaoBigInt,
@@ -211,6 +218,42 @@ describe("DAO deterministic mock feed", () => {
     expect(byId.get(18n)?.analysis.proposalSimulation.state).toBe("failed");
     expect(byId.get(19n)?.script.hashVerified).toBe(false);
     expect(byId.get(20n)?.discussion.state).toBe("unverified");
+  });
+
+  it("keeps verified call provenance coherent with the pinned Voting source", () => {
+    const registry = new Map(
+      DAO_MOCK_VERIFIED_CALL_REGISTRY.map((entry) => [
+        `${entry.target.toLowerCase()}:${entry.selector}`,
+        entry,
+      ])
+    );
+
+    for (const entry of DAO_MOCK_VERIFIED_CALL_REGISTRY) {
+      expect(toFunctionSelector(entry.functionSignature)).toBe(entry.selector);
+    }
+
+    for (const proposal of DAO_MOCK_FEED.proposals) {
+      for (const call of proposal.analysis.calls) {
+        if (call.decodeStatus !== "verified") continue;
+        const entry = registry.get(
+          `${call.target.toLowerCase()}:${call.selector}`
+        );
+        expect(
+          entry,
+          `proposal ${proposal.ref.proposalId} call ${call.index}`
+        ).toBeDefined();
+        expect(call).toMatchObject(entry!);
+        expect(toFunctionSelector(call.functionSignature!)).toBe(call.selector);
+      }
+    }
+
+    const partial = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.analysis.state === "partial"
+    );
+    expect(partial?.analysis.calls.map((call) => call.decodeStatus)).toEqual([
+      "verified",
+      "unknown",
+    ]);
   });
 
   it("keeps every available content CID, digest, and byte sequence consistent", () => {

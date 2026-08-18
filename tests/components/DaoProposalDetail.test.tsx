@@ -9,6 +9,9 @@ import {
   type DaoProposalReadEnvelope,
 } from "@/lib/clients/dao";
 
+const PINNED_VOTING_ABI_SOURCE =
+  "yearn/stYFI@9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
+
 describe("DAO proposal detail", () => {
   it.each([
     [4n, "approved"],
@@ -116,7 +119,7 @@ describe("DAO proposal detail", () => {
     expect(screen.getByText("Selector")).toBeVisible();
     expect(screen.getByText("Calldata")).toBeVisible();
     expect(screen.getByText("Reference block")).toBeVisible();
-    expect(screen.getByText("yearn-dao-registry/v1")).toBeVisible();
+    expect(screen.getByText(PINNED_VOTING_ABI_SOURCE)).toBeVisible();
   });
 
   it("keeps simulation failure separate from decoding", () => {
@@ -143,11 +146,12 @@ describe("DAO proposal detail", () => {
       screen.queryByText(/\b(mock|fixture|prototype|qa|implementation)\b/i)
     ).not.toBeInTheDocument();
     expect(screen.getByText("anvil")).toBeVisible();
+    expect(screen.getAllByText("Voting").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("epoch()").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("threshold()").length).toBeGreaterThan(0);
     expect(
-      screen.getAllByText("yearn-dao-registry/v1").length
+      screen.getAllByText(PINNED_VOTING_ABI_SOURCE).length
     ).toBeGreaterThan(0);
-    expect(screen.getAllByText("GovernanceTarget").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("fallback()").length).toBeGreaterThan(0);
   });
 
   it("renders producer provenance verbatim without casing or marker rewrites", () => {

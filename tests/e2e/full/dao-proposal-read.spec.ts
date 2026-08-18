@@ -226,7 +226,10 @@ test("contains proposal analysis and technical values at every review viewport",
     await expect(page.getByText("Reference block", { exact: true })).toBeVisible();
     await expect(page.getByText("anvil", { exact: true })).toBeVisible();
     await expect(
-      page.getByText("yearn-dao-registry/v1", { exact: true })
+      page.getByText(
+        "yearn/stYFI@9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy",
+        { exact: true },
+      )
     ).toBeVisible();
     await expectNoDeliveryLanguage(page);
 
