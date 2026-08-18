@@ -7,8 +7,8 @@ package starts.
 
 ## Current state
 
-- Current milestone: M0 handoff
-- Next package: M1 WP1
+- Current milestone: M1 in progress
+- Next package: M1 WP2
 - Product gate: discovery accepted; mock UX not yet built
 - Required baseline tag: `integration/dao-m0`
 
@@ -17,6 +17,7 @@ package starts.
 | Package | Branch | Reviewed commits | Integration merge | Checks and evidence | Accepted risks | Next dependency |
 | --- | --- | --- | --- | --- | --- | --- |
 | M0 WP0 | `agent/data` | `a7a11b83ea89f9d9852b73c4a63b230fdd57de20`, `3d746e84b02d58bbe196525fb5a2510b4bfbce64` | Resolved by `integration/dao-m0` | Specification, link, shell, repository, and integration gates | Contract PR remains open; live addresses and CID convention are later inputs | M1 WP1 |
+| M1 WP1 | `agent/dao/m1/wp1` | Range `04224b3c930fd72efee6b65afa07f83c70369446..f2ce68485f935800b75a7226278534b1d0796b67`; tip `f2ce68485f935800b75a7226278534b1d0796b67`; commits `d9435b58955a7a0b60675cccda55940533c6aa40`, `78683e242ccd10af99e01361c7b841fb0c469c36`, `f2ce68485f935800b75a7226278534b1d0796b67` | `83f4932b19a663c599c5e59ff74e0630a253ee9d` | Independent reviewer and pinned-contract auditor approved; `npm run typecheck`; `npm run lint`; `npm run test` (118 files, 885 tests) | M5 execution-preflight freshness; unavailable-content CID semantics; `nextEligibleAt` sentinel presentation; PR #5 head advanced to `168a9957` while pin remains `9395d5e` | M1 WP2 |
 
 ## Gate ledger
 
