@@ -14,6 +14,9 @@ import { yethKeys } from "@/lib/hooks/useYeth";
 import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
 import { resetMockVeyfiStore } from "@/lib/clients/veyfi/mock";
 import { resetMockYethStore } from "@/lib/clients/yeth/mock";
+import { resetMockTeamsStore } from "@/lib/clients/teams/mock";
+import { resetYbcMockStore } from "@/lib/clients/ybc/store";
+import { resetDaoMockStore } from "@/lib/clients/dao/store";
 
 type DebugQueryKey = readonly unknown[];
 
@@ -48,6 +51,15 @@ async function invalidateDebugQueryKeys(
   );
 }
 
+export function resetAllDebugMockStores() {
+  resetMockStyfiStore();
+  resetMockVeyfiStore();
+  resetMockYethStore();
+  resetMockTeamsStore();
+  resetYbcMockStore();
+  resetDaoMockStore();
+}
+
 export function DebugControls({
   children,
   sections = [],
@@ -80,9 +92,7 @@ export function DebugControls({
         // best effort only
       }
 
-      resetMockStyfiStore();
-      resetMockVeyfiStore();
-      resetMockYethStore();
+      resetAllDebugMockStores();
       await Promise.all(
         sections.flatMap((section) => (section.onReset ? [section.onReset()] : []))
       );
@@ -109,7 +119,7 @@ export function DebugControls({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md bg-neutral-900 px-3 py-1 text-xs font-bold text-neutral-0 shadow-lg transition-all hover:bg-neutral-800"
+        className="fixed bottom-4 left-1/2 z-50 min-h-10 -translate-x-1/2 rounded-md bg-neutral-900 px-3 py-2 text-xs font-bold text-neutral-0 shadow-lg transition-[background-color,box-shadow,scale,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100"
       >
         🛠️ Debug
       </button>
@@ -124,7 +134,7 @@ export function DebugControls({
         </h4>
         <button
           onClick={() => setIsOpen(false)}
-          className="text-text-tertiary transition-colors hover:text-text-primary"
+          className="inline-flex size-10 items-center justify-center rounded-box text-text-tertiary transition-colors hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-surface"
           aria-label="Close debug controls"
         >
           ✕
@@ -166,7 +176,7 @@ export function DebugControls({
                   className="rounded-box border border-border bg-app/50 px-3 py-2"
                   open={sections.length === 1}
                 >
-                  <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
+                  <summary className="flex min-h-10 cursor-pointer items-center text-[11px] font-bold uppercase tracking-wide text-text-tertiary">
                     {section.title}
                   </summary>
                   <div className="pt-3">{section.content}</div>

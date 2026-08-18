@@ -16,6 +16,7 @@ import {
   daoRouteControlClassName,
 } from "../components/DaoRouteFrame";
 import { daoCopy } from "../messages";
+import { MockControls } from "../components/MockControls";
 
 export type DaoProposeRouteState =
   | "disconnected"
@@ -38,13 +39,16 @@ export function DaoProposePageClient() {
         : "ready";
 
   return (
-    <DaoProposeView
-      onRetry={() => {
-        void proposerQuery.refetch();
-      }}
-      proposer={proposerQuery.data ?? null}
-      state={state}
-    />
+    <>
+      <DaoProposeView
+        onRetry={() => {
+          void proposerQuery.refetch();
+        }}
+        proposer={proposerQuery.data ?? null}
+        state={state}
+      />
+      <MockControls />
+    </>
   );
 }
 

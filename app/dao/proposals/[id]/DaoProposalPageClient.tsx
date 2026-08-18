@@ -16,6 +16,7 @@ import {
   daoRouteControlClassName,
 } from "../../components/DaoRouteFrame";
 import { daoCopy } from "../../messages";
+import { MockControls } from "../../components/MockControls";
 
 export type DaoProposalRouteState =
   | "loading"
@@ -42,15 +43,18 @@ export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
         : "not_found";
 
   return (
-    <DaoProposalView
-      isConnected={isConnected}
-      onRetry={() => {
-        void proposalQuery.refetch();
-      }}
-      proposal={proposal}
-      proposalId={proposalId}
-      state={state}
-    />
+    <>
+      <DaoProposalView
+        isConnected={isConnected}
+        onRetry={() => {
+          void proposalQuery.refetch();
+        }}
+        proposal={proposal}
+        proposalId={proposalId}
+        state={state}
+      />
+      <MockControls />
+    </>
   );
 }
 

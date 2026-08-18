@@ -107,6 +107,13 @@ Every mature mock-backed route must avoid visible `mock` or `prototype` badges
 and route-shell implementation notes. Those review states belong in the floating
 panel or shared E2E bridge.
 
+DAO Governance uses this shared runtime in development and preview. Its controls
+cover route state, deterministic fixtures, personas and independent roles,
+content, lifecycle, veto, analysis, account, execution, and authoring facts. DAO
+time travel recomputes protocol status and capabilities through domain logic; it
+does not swap display labels. Production remains fail-closed and does not mount
+the DAO debug store or panel.
+
 For Teams specifically, the shared panel now owns preset bootstrapping, viewer/admin
 access, loading/empty coverage, workspace selection, current period, lifecycle,
 read-only access, revenue, funding, and bonus state changes.
@@ -134,7 +141,9 @@ clipping or covering the route.
     - _Note:_ stYFI balance injections can queue for the next wallet connection; other token injections require a connected wallet.
 
 3.  **Local State Tools:**
-    - `Reset App`: Full wipe of `localStorage`, `sessionStorage` (chain state), and query cache. Simulates a completely fresh install.
+    - `Reset App`: Full wipe of `localStorage`, `sessionStorage` (chain state),
+      every participating mock store (stYFI, veYFI, yETH, Teams, YBC, and DAO),
+      and the query cache. Simulates a completely fresh install.
 
 ## Scenario Presets
 

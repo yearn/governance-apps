@@ -8,8 +8,10 @@ import {
 import { setFixedNow } from "@/lib/mocks/time";
 import { teamsKeys } from "@/lib/hooks/useTeams";
 import { ybcKeys } from "@/lib/hooks/useYbc";
+import { daoKeys } from "@/lib/hooks/daoKeys";
 import {
   createTestBridge,
+  type DaoTestBridgeAdapter,
   type TeamsTestBridgeAdapter,
   type YbcTestBridgeAdapter,
 } from "@/lib/test-bridge";
@@ -41,7 +43,7 @@ describe("createTestBridge", () => {
     resetMockTeamsStore();
   });
 
-  it("wraps Teams and YBC bridge methods with domain-root invalidation", async () => {
+  it("wraps Teams, YBC, and DAO bridge methods with domain-root invalidation", async () => {
     const queryClient = new QueryClient();
     const invalidateQueries = vi
       .spyOn(queryClient, "invalidateQueries")
@@ -53,6 +55,9 @@ describe("createTestBridge", () => {
     const ybc: YbcTestBridgeAdapter = {
       patchYbcProposal: vi.fn().mockResolvedValue(undefined),
     };
+    const dao: DaoTestBridgeAdapter = {
+      setDaoPersona: vi.fn().mockResolvedValue(undefined),
+    };
     const bridge = createTestBridge({
       styfi: clients.styfi as never,
       veyfi: clients.veyfi as never,
@@ -60,15 +65,18 @@ describe("createTestBridge", () => {
       queryClient,
       teams,
       ybc,
+      dao,
     });
 
     await bridge.setTeamsViewerRole?.("admin");
     await bridge.patchYbcProposal?.("proposal-1", { status: "passed" });
+    await bridge.setDaoPersona?.("guardian");
 
     expect(teams.setTeamsViewerRole).toHaveBeenCalledWith("admin");
     expect(ybc.patchYbcProposal).toHaveBeenCalledWith("proposal-1", {
       status: "passed",
     });
+    expect(dao.setDaoPersona).toHaveBeenCalledWith("guardian");
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: teamsKeys.all,
       refetchType: "all",
@@ -77,9 +85,13 @@ describe("createTestBridge", () => {
       queryKey: ybcKeys.all,
       refetchType: "all",
     });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: daoKeys.all,
+      refetchType: "all",
+    });
   });
 
-  it("runs shared reset and time hooks for Teams and YBC adapters", async () => {
+  it("runs shared reset and time hooks for Teams, YBC, and DAO adapters", async () => {
     const queryClient = new QueryClient();
     const invalidateQueries = vi
       .spyOn(queryClient, "invalidateQueries")
@@ -96,6 +108,10 @@ describe("createTestBridge", () => {
       resetYbc: vi.fn().mockResolvedValue(undefined),
       onSetNow: vi.fn().mockResolvedValue(undefined),
     };
+    const dao: DaoTestBridgeAdapter = {
+      resetDao: vi.fn().mockResolvedValue(undefined),
+      onSetNow: vi.fn().mockResolvedValue(undefined),
+    };
     const bridge = createTestBridge({
       styfi: clients.styfi as never,
       veyfi: clients.veyfi as never,
@@ -103,6 +119,7 @@ describe("createTestBridge", () => {
       queryClient,
       teams,
       ybc,
+      dao,
     });
 
     await bridge.setNow(1_725_000_000);
@@ -110,10 +127,48 @@ describe("createTestBridge", () => {
 
     expect(teams.onSetNow).toHaveBeenCalledWith(1_725_000_000);
     expect(ybc.onSetNow).toHaveBeenCalledWith(1_725_000_000);
+    expect(dao.onSetNow).toHaveBeenCalledWith(1_725_000_000);
     expect(invalidateQueries).toHaveBeenCalledWith({ refetchType: "all" });
     expect(teams.resetTeams).toHaveBeenCalled();
     expect(ybc.resetYbc).toHaveBeenCalled();
+    expect(dao.resetDao).toHaveBeenCalled();
     expect(resetQueries).toHaveBeenCalled();
+  });
+
+  it("awaits a DAO mutation before invalidating its infinitely fresh queries", async () => {
+    const queryClient = new QueryClient();
+    const invalidateQueries = vi
+      .spyOn(queryClient, "invalidateQueries")
+      .mockResolvedValue(undefined);
+    const clients = createBridgeClients();
+    let finishMutation!: () => void;
+    const dao: DaoTestBridgeAdapter = {
+      setDaoAnalysisState: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finishMutation = resolve;
+          })
+      ),
+    };
+    const bridge = createTestBridge({
+      styfi: clients.styfi as never,
+      veyfi: clients.veyfi as never,
+      yeth: clients.yeth as never,
+      queryClient,
+      dao,
+    });
+
+    const mutation = bridge.setDaoAnalysisState?.("partial");
+    expect(dao.setDaoAnalysisState).toHaveBeenCalledWith("partial");
+    expect(invalidateQueries).not.toHaveBeenCalled();
+
+    finishMutation();
+    await mutation;
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: daoKeys.all,
+      refetchType: "all",
+    });
   });
 
   it("clears the shared clock before rebuilding Teams state on reset", async () => {

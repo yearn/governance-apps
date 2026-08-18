@@ -386,6 +386,15 @@ The DAO mock adapter must support:
 Presets seed state. Tests and the debug panel must also mutate individual facts so
 capability derivation is tested rather than bypassed.
 
+The M1 runtime implements this boundary through a lazy mutable store and a
+route-facing mock adapter. `window.__TEST__` exposes domain-prefixed async setters
+for fixture and proposal selection, surface state, persona and independent roles,
+content, lifecycle, veto, analysis, account, execution, authoring, votes,
+threshold, terminal flags, timing, proposer eligibility, and each affected
+epoch's capacity. Each bridge call waits for the mutation and then invalidates
+`daoKeys.all`. Shared time changes update the store clock before invalidation so
+status and capabilities are re-derived from facts.
+
 ## 11. Parser error catalogue
 
 At minimum:

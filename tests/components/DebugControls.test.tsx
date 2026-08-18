@@ -1,9 +1,18 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DebugControls } from "@/components/DebugControls";
+import {
+  DebugControls,
+  resetAllDebugMockStores,
+} from "@/components/DebugControls";
 import { teamsKeys } from "@/lib/hooks/useTeams";
 import { ybcKeys } from "@/lib/hooks/useYbc";
+import { resetMockStyfiStore } from "@/lib/clients/styfi/mock";
+import { resetMockVeyfiStore } from "@/lib/clients/veyfi/mock";
+import { resetMockYethStore } from "@/lib/clients/yeth/mock";
+import { resetMockTeamsStore } from "@/lib/clients/teams/mock";
+import { resetYbcMockStore } from "@/lib/clients/ybc/store";
+import { resetDaoMockStore } from "@/lib/clients/dao/store";
 
 const { debugAdvanceTime, disconnectAsync } = vi.hoisted(() => ({
   disconnectAsync: vi.fn(),
@@ -39,6 +48,27 @@ vi.mock("@/lib/clients/veyfi/mock", () => ({
 vi.mock("@/lib/clients/yeth/mock", () => ({
   resetMockYethStore: vi.fn(),
 }));
+
+vi.mock("@/lib/clients/teams/mock", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/lib/clients/teams/mock")
+  >();
+  return { ...actual, resetMockTeamsStore: vi.fn() };
+});
+
+vi.mock("@/lib/clients/ybc/store", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/lib/clients/ybc/store")
+  >();
+  return { ...actual, resetYbcMockStore: vi.fn() };
+});
+
+vi.mock("@/lib/clients/dao/store", async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import("@/lib/clients/dao/store")
+  >();
+  return { ...actual, resetDaoMockStore: vi.fn() };
+});
 
 describe("DebugControls", () => {
   beforeEach(() => {
@@ -105,5 +135,16 @@ describe("DebugControls", () => {
         refetchType: "all",
       });
     });
+  });
+
+  it("resets every participating mock domain from any route", () => {
+    resetAllDebugMockStores();
+
+    expect(resetMockStyfiStore).toHaveBeenCalledOnce();
+    expect(resetMockVeyfiStore).toHaveBeenCalledOnce();
+    expect(resetMockYethStore).toHaveBeenCalledOnce();
+    expect(resetMockTeamsStore).toHaveBeenCalledOnce();
+    expect(resetYbcMockStore).toHaveBeenCalledOnce();
+    expect(resetDaoMockStore).toHaveBeenCalledOnce();
   });
 });

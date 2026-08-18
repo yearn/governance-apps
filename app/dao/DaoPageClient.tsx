@@ -13,6 +13,7 @@ import {
   daoRouteControlClassName,
 } from "./components/DaoRouteFrame";
 import { daoCopy } from "./messages";
+import { MockControls } from "./components/MockControls";
 
 export type DaoBoardState = "loading" | "ready" | "empty" | "error";
 
@@ -29,14 +30,17 @@ export function DaoPageClient() {
         : "ready";
 
   return (
-    <DaoBoardView
-      isConnected={isConnected}
-      onRetry={() => {
-        void feedQuery.refetch();
-      }}
-      proposalCount={proposalCount}
-      state={state}
-    />
+    <>
+      <DaoBoardView
+        isConnected={isConnected}
+        onRetry={() => {
+          void feedQuery.refetch();
+        }}
+        proposalCount={proposalCount}
+        state={state}
+      />
+      <MockControls />
+    </>
   );
 }
 

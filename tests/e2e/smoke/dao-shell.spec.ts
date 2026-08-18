@@ -121,6 +121,79 @@ test("renders the DAO proposal board shell", async ({ page }) => {
   await expectMinimumHitArea(createProposalLink);
 });
 
+test("exposes the shared DAO debug section without route-local controls", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dao");
+
+  await page.getByRole("button", { name: /debug/i }).click();
+
+  await expect(page.getByText("Debug Controls", { exact: true })).toBeVisible();
+  await expect(page.getByText("App Specific", { exact: true })).toBeVisible();
+  for (const group of [
+    "Route state",
+    "Fixture",
+    "Persona and roles",
+    "Content",
+    "Lifecycle",
+    "Veto",
+    "Analysis",
+    "Account",
+    "Execution",
+    "Authoring",
+    "Proposer eligibility",
+  ]) {
+    await expect(page.getByText(group, { exact: true })).toBeVisible();
+  }
+  await expectNoDocumentOverflow(page);
+  await expectMinimumHitArea(
+    page.getByRole("button", { name: "Close debug controls" })
+  );
+});
+
+test("uses the typed bridge to mutate DAO facts and refresh infinitely fresh queries", async ({
+  page,
+}) => {
+  await page.goto("/dao");
+
+  await page.evaluate(async () => {
+    if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+    await window.__TEST__.reset();
+    await window.__TEST__.setDaoEmpty?.(true);
+  });
+  await expect(
+    page.getByRole("heading", { name: "No proposals yet", level: 2 })
+  ).toBeVisible();
+
+  await page.evaluate(async () => {
+    if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+    await window.__TEST__.setDaoEmpty?.(false);
+  });
+  await page.goto("/dao/proposals/13");
+  await page.evaluate(async () => {
+    if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+    await window.__TEST__.setDaoFixture?.("post-vote-veto");
+  });
+  await expect(page.getByText("Vetoed", { exact: true }).first()).toBeVisible();
+
+  await page.evaluate(async () => {
+    if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+    await window.__TEST__.setDaoPersona?.("guardian");
+    await window.__TEST__.setDaoRole?.("operator", true);
+    await window.__TEST__.setDaoContentState?.("unavailable");
+  });
+  await expect(page.getByText("Proposal content is unavailable.")).toBeVisible();
+
+  await page.goto("/dao/proposals/1");
+  await page.evaluate(async () => {
+    if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
+    await window.__TEST__.setDaoFixture?.("discussion");
+    await window.__TEST__.setNow(Math.floor(Date.now() / 1_000) + 4 * 86_400);
+  });
+  await expect(page.getByText("Voting", { exact: true }).first()).toBeVisible();
+});
+
 test("renders DAO proposal detail and not-found shells", async ({ page }) => {
   await page.goto("/dao/proposals/2");
 

@@ -431,3 +431,91 @@ export type DaoMockFixture = {
   proposer: DaoProposerEligibilityInput;
   executionGuard: DaoExecutionGuard;
 };
+
+export type DaoMockSurfaceState = "ready" | "loading" | "empty" | "error";
+export type DaoMockPersona =
+  | "observer"
+  | "voter"
+  | "proposer"
+  | "operator"
+  | "guardian";
+export type DaoMockContentState =
+  | "available"
+  | "unavailable"
+  | "invalid"
+  | "unverified-forum";
+export type DaoMockLifecycleState =
+  | "discussion"
+  | "voting"
+  | "approved"
+  | "rejected"
+  | "expired"
+  | "retracted"
+  | "flagged";
+export type DaoMockVetoState = "before-votes" | "after-votes";
+export type DaoMockAnalysisState =
+  | "pending"
+  | "decoded"
+  | "partial"
+  | "failed"
+  | "hash-mismatch";
+export type DaoMockAccountState =
+  | "weight"
+  | "no-weight"
+  | "already-voted"
+  | "late-decayed";
+export type DaoMockExecutionState =
+  | "signal"
+  | "executable"
+  | "guarded"
+  | "permissionless"
+  | "simulation-failure";
+export type DaoMockAuthoringState =
+  | "valid-signal"
+  | "valid-script"
+  | "invalid-frame"
+  | "too-many-calls"
+  | "too-large";
+export type DaoMockProposerState =
+  | "eligible"
+  | "blacklisted"
+  | "insufficient-weight"
+  | "cooldown"
+  | "capacity-full";
+export type DaoMockRole = "proposer" | "operator" | "guardian";
+
+export type DaoMockProposalFlagsPatch = Partial<{
+  retracted: boolean;
+  executed: boolean;
+  flagged: boolean;
+  vetoed: boolean;
+}>;
+
+export type DaoMockProposalTimingPatch = Partial<{
+  createdAt: DaoUnixSeconds;
+  voteStartsAt: DaoUnixSeconds;
+  voteEndsAt: DaoUnixSeconds;
+  executionStartsAt: DaoUnixSeconds | null;
+  executionEndsAt: DaoUnixSeconds | null;
+  postVoteEpochEndsAt: DaoUnixSeconds;
+  vetoEndsAt: DaoUnixSeconds;
+}>;
+
+export type DaoMockAuthoring = {
+  state: DaoMockAuthoringState;
+  proposalType: DaoProposalType;
+  scriptCheck: DaoScriptCheck;
+};
+
+export type DaoMockRuntimeSnapshot = {
+  surface: DaoMockSurfaceState;
+  selectedFixtureId: DaoMockFixtureId | null;
+  selectedProposalId: bigint;
+  persona: DaoMockPersona;
+  now: DaoUnixSeconds;
+  feed: DaoFeedV1;
+  account: DaoAccountProposalFacts;
+  proposer: DaoProposerEligibilityInput;
+  executionGuard: DaoExecutionGuard;
+  authoring: DaoMockAuthoring;
+};
