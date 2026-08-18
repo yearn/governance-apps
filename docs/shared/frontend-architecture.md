@@ -1,415 +1,183 @@
 # Frontend Architecture
 
-**Version 1.3 — 2026-02-06**  
-Scope: stYFI • stYFIx • veYFI • yETH  
-Status: Implemented for stYFI/veYFI, mock-first for yETH
+This document defines the current shared frontend boundaries for every app in
+this repository. App-specific behavior belongs in `docs/apps/<domain>`.
 
-This document defines the **frontend implementation architecture** for the governance apps under YIP-88.
+## 1. Domain-first layout
 
----
-
-## 1. High-Level Layout
-
-### 1.1 Route Structure (App Router)
-
-We use the Next.js App Router structure:
+New domains use this structure unless an existing route proves a smaller shape
+is enough:
 
 ```text
-/app
-  layout.tsx          // Root layout with Global Header
-  styfi/
-    page.tsx          // stYFI + stYFIx UI
-  veyfi/
-    page.tsx          // veYFI + LLYFI UI
-  yeth/
-    page.tsx          // yETH recovery UI
+app/<domain>/
+  page.tsx
+  <Domain>PageClient.tsx
+  messages.ts
+  components/
+
+lib/clients/<domain>/
+  types.ts
+  client.ts
+  mock.ts
+  onchain.ts
+  index.ts
+
+lib/hooks/
+  use<Domain>.ts
 ```
 
----
+- `page.tsx` is the App Router server entry and owns metadata and the route shell.
+- The page client owns interactive composition and consumes domain hooks.
+- Route components render typed values and lightweight formatting only.
+- Protocol math, status derivation, capability derivation, and transaction
+  preparation belong in the domain layer.
+- Route copy stays in `messages.ts`; shared components remain copy-agnostic.
 
-## 2. Global Header vs Domain Toolbar
+## 2. Data source boundaries
 
-### 2.1 Global Header (`app/layout.tsx`)
+Use the smallest authoritative source for each class of data.
 
-The Global Header is a **stable shell with local UI state** containing:
+### Global history and aggregates
 
-- Yearn wordmark/logo treatment and a route-aware `app_name` label (resolved via `resolveHeaderPrimaryNav`).
-- Desktop navigation menus: `Ecosystem` and `Resources` (via `HeaderNavMenu` and `DropdownPanel`).
-- Mobile navigation menu: full-screen drawer (`MobileNavMenu`) with accordion sections for Products, Information, Community, and Tools.
-- Wallet connect and theme controls (desktop in-header, mobile in drawer).
-- Shared nav/link datasets sourced from `lib/nav-data.ts` (used by both desktop and mobile nav).
+Large historical lists, event reductions, global snapshots, and expensive
+analysis come from versioned static feeds produced by `gov-apps-stats`. Browser
+code does not scan full historical logs.
 
-### 2.2 Domain Controls (Per-Route)
+### Connected-wallet state
 
-Domain-specific controls live inside the route itself.
+Current balances, allowances, voted state, roles, network, and write eligibility
+come from bounded live reads. Feed action labels may help presentation but do not
+authorize a wallet action.
 
-For `/styfi`:
+### Immutable external content
 
-- **Protocol Stats Bar:** A universal component for ecosystem health (Supply/Staked).
-- **AccountSummary:** Context area that renders ModeComparison (new users) or a positions list (returning users).
-- **StyfiCockpit:** StakeManageCard + RewardsCard; always visible.
-- **ContractsFooter:** Collapsible global contracts disclosure (progressive disclosure, Etherscan links).
+Fetch IPFS or other immutable content through a same-origin server boundary with
+timeouts, size limits, schema validation, integrity checks, and a last-good
+cache. Never render remote HTML as trusted application markup.
 
-For `/veyfi`:
+### Backend analysis
 
-- **VeyfiStatsBar:** Displays migration and boost health.
-- **ContractsFooter:** Collapsible global contracts disclosure (legacy veYFI + distributor + redemption facility).
+Contract decoding, event reconstruction, and stored simulations belong in the
+producer when they can be computed once for all users. Results carry provenance,
+reference block, timestamp, and failure state.
 
-For `/yeth`:
+## 3. Client contract
 
-- **RecoveryBanner:** Persistent retired notice + claim window status.
-- **RecoveryHero + ActionDeck + StatsGrid:** De-boxed, action-first unclaimed flow.
-- **TrustFooter:** Flat disclosures (contracts, vaults, risks, sources) in a minimal details footer.
-  - Contracts rows use the shared `ContractLink` primitive for truncated code-style addresses and explorer links.
-- **MockControls:** App-specific state presets and claim-window simulation.
+Each domain exposes explicit types and an interface that can be implemented by
+both mock and live clients. The UI should not branch throughout the component
+tree on backend mode.
 
----
+Recommended separation:
 
-## 3. View State (State-Driven)
-
-For stYFI, the **view state** is derived inside `StyfiPageClient` and does not rely on URL params or localStorage.
-
-- `selectedAsset`: `"stYFI" | "stYFIx"`.
-- Default selection uses on-chain balances:
-  - If `stYFIx` balance > `stYFI` balance → select `stYFIx`.
-  - Else if `stYFI` balance > `stYFIx` balance → select `stYFI`.
-  - Else → select `stYFIx`.
-- `isNewUser = totalBalance === 0`.
-
----
-
-## 4. SSR/CSR Boundary: `page.tsx` + Client Wrapper
-
-### 4.1 Pattern
-
-Each domain route follows this pattern:
-
-```tsx
-// app/styfi/page.tsx (Server Component)
-import { StyfiPageClient } from "./StyfiPageClient";
-
-export default function StyfiPage() {
-  return <StyfiPageClient />;
-}
+```ts
+type DomainClient = {
+  getGlobalState(): Promise<GlobalState>;
+  getAccountState(address: Address): Promise<AccountState>;
+  prepareAction(input: ActionInput): Promise<PreparedTransaction>;
+};
 ```
 
-```tsx
-// app/styfi/StyfiPageClient.tsx (Client Component)
-"use client";
+Not every domain needs these exact methods. Preserve the boundary:
 
-export function StyfiPageClient() {
-  return (
-    <>
-      <StatsBar />
-      <AccountSummary />
-      <StyfiCockpit />
-    </>
-  );
-}
-```
+- global and account data are explicit;
+- capability and blocked-reason values come from the client or pure domain
+  helpers;
+- prepared writes contain the exact request to be passed to the shared
+  transaction pipeline;
+- components do not call raw wagmi writes.
 
-**Responsibilities:**
+## 4. Query and invalidation rules
 
-- **Server (page.tsx):**
-  - Render the route shell.
-  - Defer all stYFI state to the client.
+- Each domain owns a query-key factory with one root key.
+- Shared reset and time travel invalidate the domain root.
+- Mutations invalidate the smallest affected keys, then allow feed refresh to
+  reconcile global history.
+- Live account facts may override a stale feed for immediate action safety.
+- Keep loading, stale, unavailable, incompatible, and last-good states distinct.
 
-- **Client (StyfiPageClient):**
-  - Derive `selectedAsset` and `isNewUser` from account state.
-  - Render AccountSummary + Cockpit without layout thrash.
+## 5. Mock-first runtime
 
-### 4.2 Avoiding Flicker
+Every new app starts with deterministic mock-backed rendering.
 
-State is resolved inside `StyfiPageClient` after account data loads. The summary/cockpit render without a drawer, so the layout stays stable for both new and returning users.
+- The mock client implements the production domain interface.
+- Time comes from the shared mock clock.
+- App-specific controls mount inside the shared floating debug panel.
+- The typed E2E bridge mutates the same mock store.
+- Default routes stay production-shaped; mock badges and route-local scenario
+  bars are transitional and must not survive acceptance.
+- Reset and time travel include every registered domain.
 
----
+See [`debug-runtime-contract.md`](debug-runtime-contract.md),
+[`mock-toggles.md`](mock-toggles.md), and [`testing.md`](testing.md).
 
-## 5. `/styfi` Implementation Architecture
+## 6. Transaction pipeline
 
-### 5.1 Overview
-
-`/styfi` route UI flow:
+All writes follow:
 
 ```text
-/styfi
-  ├── Global Header             (from app/layout.tsx)
-  └── StyfiPageClient
-       ├─ [StatsBar]            (Generic component injected with stYFI data)
-       └─ Main Container
-            ├─ [AccountSummary]      (ModeComparison or Positions list)
-            └─ [Cockpit]             (StakeManageCard + RewardsCard)
-            └─ [Mock Controls]       (Debug widget if usesMockBackend=true)
+domain eligibility -> prepare/simulate -> useTx -> receipt -> query invalidation
 ```
 
-Selecting a mode in the AccountSummary hero smooth-scrolls the user to the cockpit for action.
-
-### 5.2 Component Tree (Simplified)
-
-```text
-<StyfiPageClient>
-  <StatsBar />                   // Composed directly in StyfiPageClient
-  <main>
-     <AccountSummary />          // ModeComparison or positions list
-     <StyfiCockpit>
-       <StakeManageCard />       // Contains StakeTab and UnstakeTab
-       <RewardsCard />           // Yield & Rewards (APR + reward token APY + claimable payout)
-     </StyfiCockpit>
-     {usesMockBackend && <MockControls />}
-  </main>
-</StyfiPageClient>
-```
-
----
-
-## 6. Component & File Structure (stYFI)
-
-### 6.1 Directory Layout
-
-We group components by **feature**:
-
-```text
-app/
-  styfi/
-    page.tsx
-    StyfiPageClient.tsx
-
-    components/
-      AccountSummary.tsx         (Hero or positions list)
-      ModeComparison.tsx         (Shared comparison cards)
-      StyfiCockpit.tsx           (Layout for cards)
-      MockControls.tsx           (Debug tools)
-      types.ts
-
-      cards/
-        RewardsCard.tsx
-        StakeManageCard.tsx
-        stake/
-          StakeTab.tsx
-          UnstakeTab.tsx         (Unified Cooldown + Withdraw logic)
-```
-
-**Note:** `ProtocolStatsBar` was removed. We now compose the shared `StatsBar` directly inside `StyfiPageClient` using data hooks.
-
----
-
-## 7. Hooks & Data Dependencies
-
-The blueprint ([`architecture-blueprint.md`](architecture-blueprint.md)) defines domain hooks at a high level.
-Implementation-wise, we follow **granular hooks** per feature:
-
-### 7.1 Hooks for stYFI
-
-Under `/lib/hooks/useStyfi.ts`:
-
-1. `useStyfiAccount()`
-
-   - Source: `StyfiClient.getAccountState`
-   - Returns: Balances, Cooldowns, Rewards, Allowances.
-
-2. `useStyfiStats()`
-
-   - Source: `StyfiClient.getStats`
-   - Returns: `totalSupply`, `totalStaked`.
-   - Server/runtime global data is fetched directly from `NEXT_PUBLIC_GLOBAL_DATA_URL`; browser runtime reads the same payload through `/api/global-data`.
-
-3. `useStyfiApy()`
-
-   - Source: `StyfiClient.getApy`
-   - Returns: Protocol APY in basis points.
-
-4. `useEpoch()`
-
-   - **Shared hook** (not `/styfi`-specific).
-   - Source (non-mock): canonical epoch clock (latest block timestamp when connected, else global-data `meta.timestamp`, else local time).
-   - Source (mock mode): local mock clock only (`nowSeconds`) to support deterministic time travel for QA.
-   - Returns: `currentEpoch`, `epochStart`, `epochEnd`.
-
-5. Transaction flows use:
-   - `prepareStake`, `prepareStartCooldown`, `prepareWithdraw`, `prepareClaimRewards`
-   - `useTx()` from `/lib/tx/useTx.ts`
-
-### 7.2 Granularity & Re-renders
-
-Each card/component uses **only the hooks it needs**:
-
-- `StyfiPageClient` → `useStyfiStats`, `useStyfiApy`.
-- `AccountSummary` → `useStyfiAccount`.
-- `RewardsCard` → `useStyfiAccount`, `useStyfiApy`, `useRewardTokenInfo`.
-- `StakeTab` → `useStyfiAccount` (wallet balance) + `prepareStake`.
-- `UnstakeTab` → `useStyfiAccount` + `useEpoch` + `prepareWithdraw` + `prepareStartCooldown`.
-
----
-
-## 8. Error States, Skeletons & Loading
-
-### 8.1 Route-Level Loading
-
-We rely primarily on React Query loading states and inline skeletons in cards:
-
-- `AccountSummary`: placeholder rows for balances when needed.
-- `RewardsCard`: two-tier skeleton (context section + payout section).
-- `StakeManageCard`: disabled buttons + skeleton inputs if dependent data missing.
-
-We do **not** block the entire `/styfi` route on a single slow query.
-
-### 8.2 `StyfiPageClient` Loading
-
-`StyfiPageClient` derives view state from account data:
-
-- On mount, it compares `stYFI` vs `stYFIx` balances to pick a default asset.
-- `isNewUser` is derived from total balance and controls the AccountSummary view.
-- The UI renders the header/stats bar immediately and keeps layout stable for all users.
-- When a wallet is connected, the stats bar may prefer on-chain reads for fresher totals after transactions.
-
----
-
-## 9. `/veyfi` Implementation Architecture
-
-### 9.1 Overview
-
-`/veyfi` follows a **Registry** pattern (vertical list of assets) rather than a Dashboard pattern.
-
-```text
-/veyfi
-  ├── Global Header
-  └── VeyfiPageClient
-       ├─ [VeyfiStatsBar]       (Ecosystem health: Migration %, Boost, Staked %, optional State)
-       └─ Main Container
-            ├─ [MigrationCard]        (Conditionally visible: Action vs Info)
-            ├─ [LlyfiTokenTable]      (The Ledger)
-            │    └─ [LlyfiTokenRow]   (Expandable)
-            │         └─ [Cockpit]    (Stake | Unstake | Trade)
-            ├─ [InventoryCard]        (Global Redemption Intelligence)
-            └─ [VeyfiRewardsCard]     (Nav to stYFI)
-```
-
-### 9.2 Component Tree & Directory Structure
-
-```text
-app/
-  veyfi/
-    page.tsx
-    VeyfiPageClient.tsx
-    messages.ts
-
-    components/
-      VeyfiStatsBar.tsx
-      VeyfiCockpit.tsx           (Layout wrapper)
-
-      MigrationCard.tsx
-      InventoryCard.tsx          (Redemption/Inventory status)
-
-      LlyfiTokenTable.tsx
-      LlyfiTokenRow.tsx
-      LlyfiRowCockpit.tsx        (Tabs wrapper)
-
-      VeyfiRewardsCard.tsx       (Nav to stYFI)
-
-      tabs/
-        LlyfiStakeTab.tsx
-        LlyfiUnstakeTab.tsx
-        LlyfiTradeTab.tsx        (Mint / Redeem logic)
-```
-
-### 9.3 Hooks & Data Dependencies
-
-We follow the same granular hook pattern as stYFI.
-
-Under `/lib/hooks/useVeyfi.ts`:
-
-1.  `useVeyfiAccount()`
-
-    - Returns: `veYfi` migration state, `redemptionCaps`, `llyfiTokens` (user balances).
-    - Used by: `MigrationCard`, `LlyfiTokenTable`, `LlyfiTokenRow`.
-
-2.  `useRedemptionCaps()`
-
-    - Selector on `useVeyfiAccount`.
-    - Used by: `InventoryCard`, `LlyfiTradeTab` (for validation), `VeyfiStatsBar` (for Fee display).
-
-3.  `useVeyfiStats()`
-
-    - Source: `VeyfiClient.getGlobalStats`
-    - Returns: `migratedYfi`, `maxBoostMultiplier`, `totalStakedPercent`.
-    - Used by: `VeyfiStatsBar`.
-
-4.  `useLlyfiTokens()`
-    - Selector on `useVeyfiAccount`.
-    - Used by: `LlyfiTokenTable`.
-
-### 9.4 State Management
-
-- **Selection:** Unlike stYFI, there is no global "Mode". The user selects a token by expanding a row. This state is local to `LlyfiTokenTable` (or `LlyfiTokenRow`).
-- **Trade Mode:** "Buy" vs "Sell" state is local to `LlyfiTradeTab`.
-
----
-
-## 10. `/yeth` Implementation Architecture
-
-### 10.1 Overview
-
-`/yeth` is a state-driven recovery interface with onchain mode support and mock fallback.
-
-```text
-/yeth
-  ├── Global Header
-  └── YethPageClient
-       ├─ [RecoveryBanner]       (retired notice + claim window status)
-       └─ Main Container
-            ├─ [ConnectCard]             (wallet-gated entry)
-            ├─ [RecoveryHero]            (claimable state)
-            ├─ [ActionDeck]              (claim paths)
-            ├─ [StatsGrid]               (context metrics)
-            ├─ [PostClaimStayingCard]    (recovery vault holder settlement ticket)
-            ├─ [TrustFooter]             (collapsible disclosure sections with clear trigger)
-            └─ [Risk Modal]              (required for claim-and-stay)
-       └─ [MockControls]          (preset and claim-window debug controls)
-```
-
-### 10.2 Data Dependencies
-
-Under `/lib/hooks/useYeth.ts`:
-
-1. `useYethGlobalState()`
-2. `useYethAccountState()`
-3. `useYethClaimAndExit()`
-4. `useYethClaimAndStay()`
-5. `useYethRedeemToEth()`
-
-Data source is selected by `ProtocolProvider`:
-- mock mode -> `MockYethClient`
-- non-mock mode -> `OnchainYethClient`
-
-### 10.3 State Management
-
-- Route renders from observable account balances (`claimableNowEth`, `recoveryVaultShares`).
-- Claim window status is derived from `global.claimWindow` and current time.
-- In `claimableNowEth > 0`, the UI composes hero + action deck + stats grid.
-- If claim window is closed, hero metrics are replaced and action deck is hidden.
-- Risk consent is local component state and required before claim-and-stay write.
-- Staying-state emphasizes settlement: liquidation value and a dynamic cash-out CTA.
-
----
-
-## 11. Copy Guidelines
-
-- Each route/feature owns a co-located `messages.ts`.
-- Exports follow `<feature>Copy` (or `copy` when obvious).
-- Design system/shared components stay copy-agnostic.
-
----
-
-## 12. Summary
-
-This frontend architecture:
-
-- Keeps the **Global Header** simple.
-- Uses **StatsBar** for high-level ecosystem context.
-- Centralizes mode education in **AccountSummary + ModeComparison**.
-- Uses **client state** as the canonical view state.
-- Implements `/veyfi` as a **Registry** with nested **Cockpit** actions.
-- Implements `/yeth` as a state-driven recovery flow with explicit risk gating and trust verification.
-
----
-
-**End of `frontend-architecture.md`**
+- Domain clients encode arguments and preserve protocol-specific checks.
+- `useTx` owns signing, submitted/mining state, receipt, normalized errors, and
+  completion.
+- Approval and primary actions remain separate unless the protocol itself offers
+  one atomic operation.
+- Wrong-network and simulation failures block normal submission.
+- UI code never fabricates canonical history while a producer feed catches up.
+
+## 7. Server endpoints
+
+Use route handlers for server-owned credentials, same-origin remote fetches, and
+bounded validation. A handler must define:
+
+- accepted methods and input schema;
+- target allowlist or fixed upstream;
+- timeout and response-size limit;
+- cache behavior;
+- error model;
+- secret handling;
+- tests for hostile URLs and malformed upstream data when user input influences
+  the request.
+
+Do not turn the Next.js route into a historical indexer. Persistent producer work
+belongs in `gov-apps-stats`.
+
+## 8. UI composition
+
+Reuse `components/ui/*` and established route patterns before creating new
+primitives. Shared controls own behavior, not app copy.
+
+- Keep status and action capability separate.
+- Put persistent blocked reasons next to disabled actions.
+- Preserve at least 40-pixel hit areas.
+- Use tabular numerals for changing financial, timing, and governance values.
+- Avoid page overflow from addresses, scripts, and tables.
+- Respect reduced motion and visible focus.
+
+The root `PRODUCT.md` and `DESIGN.md` define product and visual principles.
+
+## 9. Runtime and rollout
+
+- `NEXT_PUBLIC_USE_MOCKS` is global and forbidden in production.
+- New public surfaces are path-routable before subdomain exposure.
+- Production app exposure is feature-gated.
+- Environment validation fails closed when a production-enabled app lacks
+  required feed, RPC, or deployment inputs.
+- A release package owns sitemap, discovery, host, monitoring, and rollback
+  decisions.
+
+## 10. Cross-repository order
+
+For a new feed-backed app:
+
+1. Accept mock product behavior.
+2. Define the consumer schema in `governance-apps`.
+3. Implement the producer in `gov-apps-stats`.
+4. Validate a real staging payload in `governance-apps`.
+5. Wire production reads.
+6. Add onchain writes through the shared pipeline.
+7. Prove the complete system on a fork.
+
+Do not reverse the consumer/producer contract order because the frontend owns the
+data needed to render accepted product states.

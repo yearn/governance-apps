@@ -20,11 +20,11 @@ readiness.
 ## Product Purpose
 
 Governance Apps is a suite of route-scoped operational surfaces for Yearn
-governance products. `/styfi`, `/veyfi`, and `/yeth` set the production quality
-bar; `/teams` and `/ybc` should reach the same standard while preserving their
-own domain workflows. Success means users can trust what is actionable, what is
-read-only, what is blocked, and why, without needing protocol context from
-outside the interface.
+governance products. `/styfi`, `/veyfi`, `/yeth`, `/teams`, and `/ybc` set the
+current product baseline. `/dao` adds proposal creation, voting, and execution
+review through the same domain-first, mock-first approach. Success means users
+can trust what is actionable, what is read-only, what is blocked, and why,
+without needing protocol context from outside the interface.
 
 ## Brand Personality
 
@@ -46,7 +46,7 @@ risk needs attention.
 
 1. Match the polished app family first. Reuse the route shell, shared UI
    primitives, neutral surfaces, 8px radius, and domain-local copy patterns
-   already proven by `/styfi`, `/veyfi`, and `/yeth`.
+   already proven across the existing routes.
 2. Let workflow shape the page. Dashboards, registries, recovery flows, team
    workspaces, and proposal boards can use different layouts, but they must
    share hierarchy, spacing, controls, and feedback behavior.

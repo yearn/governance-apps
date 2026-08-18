@@ -42,8 +42,8 @@ We expose a typed control surface for E2E tests. It is only injected when `NEXT_
 - Initialization: `components/TestBridgeListener.tsx` rendered inside `state/protocol.tsx`.
 - Guard: `if (process.env.NEXT_PUBLIC_E2E === "true")`.
 - All state mutations invalidate React Query for deterministic UI updates.
-- For the Teams and YBC `M2A` alignment work, `shared / WP0` owns this shared seam and
-  the domain runtime packages add their adapters against that contract.
+- Each mock-heavy domain adds a typed adapter to this shared seam rather than
+  creating a second test bridge.
 
 #### Usage from Playwright (example)
 
@@ -68,7 +68,7 @@ await page.evaluate(async () => {
 - `setScenario(name)`: loads a predefined scenario (resets first).
 - `setYethPreset(address, preset)`: applies yETH mock account state (`claimable`, `recovery_position`, `empty`).
 
-For `M2A`, Teams and YBC adapters extend the shared bridge instead of redefining it:
+Teams and YBC adapters show the pattern that new domains must follow:
 
 - `components/TestBridgeListener.tsx` accepts optional `teams` and `ybc` adapters
 - `lib/test-bridge.ts` exports `TeamsTestBridgeAdapter` and `YbcTestBridgeAdapter`
@@ -109,8 +109,8 @@ All time logic must come from `lib/mocks/time.ts`:
 - `setFixedNow(ts | null)` freezes or clears time.
 - In mock mode, UI epoch/cooldown timing is driven by local mock time only (not global-data/chain canonical sources), so debug time travel remains deterministic.
 - Debug time travel controls are expected to invalidate identity plus domain query keys and refetch active/inactive observers immediately.
-- For `M2A`, the shared debug runtime reserves `teamsKeys.all` and `ybcKeys.all` as
-  the Teams and YBC root invalidation entry points.
+- Each domain exposes one root query-key entry point for shared reset and time
+  invalidation. Existing examples are `teamsKeys.all` and `ybcKeys.all`.
 
 Any logic that previously called `Date.now()` must use `nowSeconds()` instead.
 
@@ -157,6 +157,9 @@ Do:
 - Keep default route chrome production-like and place mock-only controls behind debug APIs.
 - Prefer granular bridge setters that mutate live route state over scenario-only loading
   once a route has matured past initial prototype mode.
+- For each new mock-heavy domain, test its state-machine boundaries, typed bridge
+  controls, deterministic time behavior, reset behavior, main components, and
+  at least one smoke flow through the production-shaped route.
 
 Do not:
 

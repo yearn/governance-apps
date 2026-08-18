@@ -1,4 +1,7 @@
-# Polished App Baseline Audit
+# Historical Polished App Baseline Audit
+
+> Dated review evidence. Current design rules live in `PRODUCT.md`, `DESIGN.md`,
+> and `docs/shared/design-review-process.md`.
 
 **Date:** July 9, 2026
 **Branch:** `codex/design-baseline`

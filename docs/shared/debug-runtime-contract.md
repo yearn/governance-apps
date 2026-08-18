@@ -1,19 +1,14 @@
 # Debug Runtime Contract
 
-Purpose: freeze the shared debug-panel and E2E bridge contract for mature mock-backed
-routes so parallel work packages do not invent incompatible seams.
-
-Ownership for `M2A`:
-
-- `shared / WP0` owns `components/DebugControls.tsx` and `lib/test-bridge.ts`
-- `teams / WP7` and `ybc / WP6` consume that seam instead of redefining it
+Purpose: define the shared debug-panel and E2E bridge contract for mature
+mock-backed routes so app packages do not invent incompatible seams.
 
 Applies to:
 
 - `components/DebugControls.tsx`
 - `lib/test-bridge.ts`
 - route-specific `MockControls.tsx` implementations
-- mutable mock stores for `teams` and `ybc`
+- mutable mock stores for each participating domain
 
 ## Core rules
 
@@ -29,14 +24,15 @@ Applies to:
 - time travel controls stay at the top
 - app-specific controls mount inside the shared shell as route/domain sections
 - `Reset App` stays in the footer below app-specific sections
-- Teams and YBC should each expose their own `MockControls` section instead of adding
-  route-local hero cards or scenario bars
+- each domain exposes its own `MockControls` section instead of adding route-local
+  hero cards or scenario bars
 - the shell must stay viewport-bounded, scrollable, and readable on small screens
 - long domain control sets should use collapsible groups or equivalent progressive
   disclosure inside the shared shell
-- changing that top/middle/footer structure is shared-shell work owned by `shared / WP0`
+- changing that top/middle/footer structure requires a separate shared-shell work
+  package
 
-### Current `M2A` seam
+### Current shared seam
 
 - `components/DebugControls.tsx` exposes `DebugControlsSection` entries for domain-owned
   middle-panel sections
@@ -45,12 +41,10 @@ Applies to:
   - `onTimeTravel(days)` for domain-local clock sync; shared invalidation waits for
     these hooks to settle before refetching query roots
   - `onReset()` for store reset and persistence cleanup
-- shared time travel invalidates `styfi`, `veyfi`, `yeth`, `teamsKeys.all`, and
-  `ybcKeys.all`
-- the initial YBC root invalidation seam is `ybcKeys.all` from `lib/hooks/useYbc.ts`
-- the Teams section is expected to cover preset bootstrapping, viewer/admin access,
-  loading/empty coverage, workspace selection, current period, lifecycle/read-only,
-  revenue, funding, and bonus state mutation without adding route-local QA chrome
+- shared time travel invalidates every participating domain root;
+- existing root examples include `teamsKeys.all` and `ybcKeys.all`;
+- new domains must add reset, time, query invalidation, and typed bridge support in
+  the same package as their debug runtime.
 
 ## Time travel and reset requirements
 
@@ -62,13 +56,8 @@ When a new mature mock-backed domain joins the debug runtime:
 - `Reset App` must clear any persisted state for that domain in the same way as the
   existing mock-backed apps
 
-For Teams and YBC specifically:
-
-- `DebugControls` must invalidate the Teams root query key entry point
-  (`teamsKeys.all` at the time this contract was written)
-- `shared / WP0` must establish the YBC root invalidation seam consumed by
-  `DebugControls` and the test bridge before `ybc / WP6` depends on it
-- `Reset App` must reset the Teams and YBC mock stores alongside Styfi, veYFI, and yETH
+Existing domains must continue to reset alongside any new domain. Adding DAO, for
+example, must not break Teams or YBC invalidation.
 
 ## E2E bridge rules
 
@@ -78,7 +67,7 @@ For Teams and YBC specifically:
 - route-level scenarios may still exist as hidden bootstraps, but they are not the
   primary bridge interface for mature routes
 
-### Current `M2A` bridge seam
+### Current bridge seam
 
 - `lib/test-bridge.ts` defines `TeamsTestBridgeAdapter` and `YbcTestBridgeAdapter`
 - `components/TestBridgeListener.tsx` accepts optional `teams` and `ybc` adapters and
@@ -128,11 +117,7 @@ Exact names may evolve, but the contract intent should remain:
 
 ## Package ownership guidance
 
-For `M2A`:
-
-- `shared / WP0` owns the shared seam edits in `DebugControls` and `lib/test-bridge.ts`
-- `teams / WP7` and `ybc / WP6` should treat that seam as an input dependency, not a
-  place to redesign the shared shell
-- any expansion of the shared seam should preserve the naming and mutation model above
-- merge order remains: land `shared / WP0` first, then let `teams / WP7` and
-  `ybc / WP6` plug their runtime adapters into the established seam
+The package adding a new mock-heavy domain owns its adapter and the smallest
+shared-seam extension needed to register it. It must preserve the shell, naming,
+reset, and mutation model above. Broader debug-shell redesign belongs in a
+separate shared package.

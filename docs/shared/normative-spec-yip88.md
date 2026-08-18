@@ -1,5 +1,10 @@
 # YIP-88: Functional Requirements
 
+> Historical reference. This draft describes the stYFI and Snapshot-era
+> governance design. It is not an implementation source for DAO Governance.
+> The pinned governance contract reference and `docs/apps/dao` specifications
+> take precedence for `/dao`.
+
 **Normative Specification Draft**
 Version 0.5 — 2025-11-20
 Status: Draft
