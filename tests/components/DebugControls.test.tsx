@@ -5,6 +5,12 @@ import {
   DebugControls,
   resetAllDebugMockStores,
 } from "@/components/DebugControls";
+import {
+  MockControls as TeamsMockControls,
+} from "@/app/teams/components/MockControls";
+import {
+  MockControls as YbcMockControls,
+} from "@/app/ybc/components/MockControls";
 import { teamsKeys } from "@/lib/hooks/useTeams";
 import { ybcKeys } from "@/lib/hooks/useYbc";
 import { daoKeys } from "@/lib/hooks/daoKeys";
@@ -30,6 +36,11 @@ vi.mock("wagmi", async (importOriginal) => {
     ...actual,
     useDisconnect: () => ({
       disconnectAsync,
+    }),
+    useAccount: () => ({
+      address: undefined,
+      chainId: 1,
+      isConnected: false,
     }),
   };
 });
@@ -185,5 +196,51 @@ describe("DebugControls", () => {
     expect(resetMockTeamsStore).toHaveBeenCalledOnce();
     expect(resetYbcMockStore).toHaveBeenCalledOnce();
     expect(resetDaoMockStore).toHaveBeenCalledOnce();
+  });
+
+  it("resets each shared store once from the Teams route section", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TeamsMockControls />
+      </QueryClientProvider>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /debug/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reset App (Full Wipe)" })
+    );
+
+    await waitFor(() => {
+      expect(disconnectAsync).toHaveBeenCalledOnce();
+      expect(resetMockStyfiStore).toHaveBeenCalledOnce();
+      expect(resetMockVeyfiStore).toHaveBeenCalledOnce();
+      expect(resetMockYethStore).toHaveBeenCalledOnce();
+      expect(resetMockTeamsStore).toHaveBeenCalledOnce();
+      expect(resetYbcMockStore).toHaveBeenCalledOnce();
+      expect(resetDaoMockStore).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("resets each shared store once from the YBC route section", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <YbcMockControls />
+      </QueryClientProvider>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /debug/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reset App (Full Wipe)" })
+    );
+
+    await waitFor(() => {
+      expect(disconnectAsync).toHaveBeenCalledOnce();
+      expect(resetMockStyfiStore).toHaveBeenCalledOnce();
+      expect(resetMockVeyfiStore).toHaveBeenCalledOnce();
+      expect(resetMockYethStore).toHaveBeenCalledOnce();
+      expect(resetMockTeamsStore).toHaveBeenCalledOnce();
+      expect(resetYbcMockStore).toHaveBeenCalledOnce();
+      expect(resetDaoMockStore).toHaveBeenCalledOnce();
+    });
   });
 });
