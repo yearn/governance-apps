@@ -38,7 +38,7 @@ import {
 import { daoProposeCopy } from "./messages";
 
 const FIELD_CLASS_NAME =
-  "w-full rounded-box border border-border bg-surface px-3 text-base text-text-primary shadow-sm transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-text-tertiary focus:border-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app motion-reduce:transition-none";
+  "w-full rounded-box border border-border bg-surface px-3 text-base text-text-primary shadow-sm transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-text-secondary focus:border-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app motion-reduce:transition-none";
 const INPUT_CLASS_NAME = `${FIELD_CLASS_NAME} h-12`;
 const TEXTAREA_CLASS_NAME = `${FIELD_CLASS_NAME} min-h-32 py-3`;
 
@@ -108,6 +108,7 @@ function DaoProposalAuthoringFormState({
   const [publication, setPublication] = useState<PublicationState>({ state: "idle" });
   const [wallet, setWallet] = useState<WalletState>({ state: "idle" });
   const forumRequest = useRef(0);
+  const publicationLock = useRef(false);
   const forumInputRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLTextAreaElement>(null);
@@ -192,7 +193,13 @@ function DaoProposalAuthoringFormState({
   };
 
   const handleEdit = () => {
-    if (publication.state === "published") return;
+    if (
+      publicationLock.current ||
+      publication.state === "publishing" ||
+      publication.state === "published"
+    ) {
+      return;
+    }
     setReview(null);
     setConfirmed(false);
     setConfirmationError(null);
@@ -202,7 +209,7 @@ function DaoProposalAuthoringFormState({
   };
 
   const handlePublish = async () => {
-    if (!review || publication.state === "publishing") return;
+    if (!review || publicationLock.current) return;
     if (!confirmed) {
       setConfirmationError(daoProposeCopy.review.confirmRequired);
       return;
@@ -210,6 +217,7 @@ function DaoProposalAuthoringFormState({
     if (!proposer.canPropose) return;
 
     setConfirmationError(null);
+    publicationLock.current = true;
     setPublication({ state: "publishing" });
     setWallet({ state: "idle" });
     const result = await publishMockDaoProposalContent(
@@ -218,6 +226,7 @@ function DaoProposalAuthoringFormState({
       serviceLatencyMs
     );
     if (result.state === "failed") {
+      publicationLock.current = false;
       setPublication({ state: "failed", message: result.error.message });
       return;
     }
@@ -280,7 +289,11 @@ function DaoProposalAuthoringFormState({
         <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue">
           {daoProposeCopy.form.eyebrow}
         </p>
-        <h2 className="text-balance text-2xl font-bold md:text-3xl">
+        <h2
+          id="dao-proposal-authoring-heading"
+          tabIndex={-1}
+          className="w-fit max-w-full scroll-mt-24 rounded-box text-balance text-2xl font-bold outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app md:text-3xl"
+        >
           {daoProposeCopy.form.title}
         </h2>
         <p className="max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
@@ -497,7 +510,9 @@ function DaoFinalReview({
   review: DaoAuthoringReview;
   wallet: WalletState;
 }) {
-  const publicationLocked = publication.state === "published";
+  const publicationLocked =
+    publication.state === "publishing" || publication.state === "published";
+  const contentPublished = publication.state === "published";
   const walletFinished = wallet.state === "submitted";
 
   return (
@@ -519,14 +534,18 @@ function DaoFinalReview({
       </div>
 
       <ReviewSection title={daoProposeCopy.review.forum}>
+        <ReviewFact label={daoProposeCopy.discussion.topicTitle}>
+          {review.topic.title}
+        </ReviewFact>
         <ReviewFact label={daoProposeCopy.discussion.normalizedUrl}>
           <a
             href={review.topic.normalizedUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="break-all text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 focus:outline-none focus:ring-2 focus:ring-text-primary"
+            aria-label={`${review.topic.normalizedUrl} (${daoProposeCopy.discussion.newTab})`}
+            className="-mx-1 inline-flex min-h-10 max-w-full items-center rounded-box px-1 text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 focus:outline-none focus:ring-2 focus:ring-text-primary"
           >
-            {review.topic.normalizedUrl}
+            <span className="break-all">{review.topic.normalizedUrl}</span>
           </a>
         </ReviewFact>
         <ReviewFact label={daoProposeCopy.discussion.category}>
@@ -535,13 +554,19 @@ function DaoFinalReview({
         <ReviewFact label={daoProposeCopy.discussion.author}>
           {review.topic.author}
         </ReviewFact>
+        <ReviewFact label={daoProposeCopy.discussion.created} mono>
+          <UtcTime timestamp={review.topic.createdAt} />
+        </ReviewFact>
       </ReviewSection>
 
       <ReviewSection title={daoProposeCopy.review.immutableContent}>
         <ReviewFact label={daoProposeCopy.review.schema} mono>
           {review.content.schema}
         </ReviewFact>
-        <ReviewFact label={daoProposeCopy.review.titleLabel}>
+        <ReviewFact
+          label={daoProposeCopy.review.titleLabel}
+          preserveWhitespace
+        >
           {review.content.title}
         </ReviewFact>
         <ReviewFact label={daoProposeCopy.review.summary} preserveWhitespace>
@@ -619,7 +644,7 @@ function DaoFinalReview({
         </ol>
       </ReviewSection>
 
-      {!publicationLocked ? (
+      {!contentPublished ? (
         <div className="space-y-4 border-t border-border pt-6">
           <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-box bg-surface-secondary p-3 text-sm leading-6">
             <input
@@ -657,6 +682,7 @@ function DaoFinalReview({
             <Button
               type="button"
               variant="secondary"
+              disabled={publicationLocked}
               className="w-full motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
               onClick={onEdit}
             >
@@ -678,6 +704,11 @@ function DaoFinalReview({
                   : daoProposeCopy.publication.publish}
             </Button>
           </div>
+          {publication.state === "publishing" ? (
+            <p role="status" aria-live="polite" className="sr-only">
+              {daoProposeCopy.publication.publishing}
+            </p>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-5 border-t border-border pt-6">
@@ -725,7 +756,16 @@ function DaoFinalReview({
                   }
                 />
               ) : null}
-              <div className="flex justify-end">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled
+                  className="w-full motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
+                  onClick={onEdit}
+                >
+                  {daoProposeCopy.form.edit}
+                </Button>
                 <Button
                   type="button"
                   disabled={!proposer.canPropose}
@@ -742,6 +782,11 @@ function DaoFinalReview({
                       : daoProposeCopy.proposal.create}
                 </Button>
               </div>
+              {wallet.state === "waiting" ? (
+                <p role="status" aria-live="polite" className="sr-only">
+                  {daoProposeCopy.proposal.waiting}
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -776,7 +821,11 @@ export function DaoProposalEligibility({
       <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <EligibilityFact
           label={daoProposeCopy.eligibility.connected}
-          value={daoProposeCopy.eligibility.connectedValue}
+          value={
+            proposer.connected
+              ? daoProposeCopy.eligibility.connectedValue
+              : daoProposeCopy.eligibility.disconnectedValue
+          }
         />
         <EligibilityFact
           label={daoProposeCopy.eligibility.network}
@@ -941,6 +990,9 @@ function ForumStatus({
     <div id="dao-forum-status" role="status" className="space-y-3 rounded-box bg-green-50 p-4 text-sm text-green-950">
       <p className="font-bold">{daoProposeCopy.discussion.accepted}</p>
       <dl className="grid gap-2 sm:grid-cols-2">
+        <ForumFact label={daoProposeCopy.discussion.topicTitle}>
+          {state.topic.title}
+        </ForumFact>
         <ForumFact label={daoProposeCopy.discussion.normalizedUrl} mono>
           {state.topic.normalizedUrl}
         </ForumFact>
@@ -1210,7 +1262,10 @@ function ScriptFrames({ scriptCheck }: { scriptCheck: DaoScriptCheck }) {
 
 function ReviewSection({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="space-y-4 border-t border-border pt-6 first:border-0 first:pt-0">
+    <section
+      aria-label={title}
+      className="space-y-4 border-t border-border pt-6 first:border-0 first:pt-0"
+    >
       <h3 className="text-balance text-lg font-bold">{title}</h3>
       <div className="space-y-4">{children}</div>
     </section>

@@ -56,7 +56,9 @@ export function getButtonClassName({
 
 const Spinner = () => (
   <svg
-    className="animate-spin h-5 w-5 text-current"
+    aria-hidden="true"
+    focusable="false"
+    className="col-start-1 row-start-1 h-5 w-5 animate-spin text-current motion-reduce:animate-none"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
@@ -87,6 +89,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       children,
       static: isStatic,
+      "aria-busy": ariaBusy,
       ...props
     },
     ref
@@ -95,6 +98,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || isLoading}
+        aria-busy={isLoading ? true : ariaBusy}
         className={getButtonClassName({
           variant,
           size,
@@ -103,7 +107,16 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         })}
         {...props}
       >
-        {isLoading ? <Spinner /> : children}
+        {isLoading ? (
+          <span className="grid place-items-center">
+            <span className="col-start-1 row-start-1 opacity-0">
+              {children}
+            </span>
+            <Spinner />
+          </span>
+        ) : (
+          children
+        )}
       </button>
     );
   }

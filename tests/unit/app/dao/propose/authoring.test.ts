@@ -57,7 +57,7 @@ describe("DAO proposal authoring vectors", () => {
       createdAt: CREATED_AT,
       topic: forum,
       draft: {
-        title: "  Exact title  ",
+        title: "  Exact   title  ",
         summary: "Exact summary\nwith a second line.",
         specification: "1. Keep exact whitespace.\n2. Publish these bytes.",
         proposalType: "signal",
@@ -67,7 +67,7 @@ describe("DAO proposal authoring vectors", () => {
 
     expect(result.state).toBe("valid");
     if (result.state !== "valid") return;
-    expect(result.review.content.title).toBe("  Exact title  ");
+    expect(result.review.content.title).toBe("  Exact   title  ");
     expect(result.review.content.discussionUrl).toBe(forum.normalizedUrl);
     expect(result.review.content.createdBy).toBe(ADDRESS);
     expect(result.review.content.createdAt).toBe(

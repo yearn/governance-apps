@@ -1,5 +1,9 @@
+// @vitest-environment jsdom
+
+import { createElement } from "react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { getButtonClassName } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
 
 describe("getButtonClassName", () => {
   it("builds shared button classes from variant and size", () => {
@@ -30,5 +34,31 @@ describe("getButtonClassName", () => {
     const className = getButtonClassName({ static: true });
 
     expect(className).not.toContain("active:scale-[0.96]");
+  });
+
+  it("keeps its accessible name and exposes busy state while loading", () => {
+    render(createElement(Button, { isLoading: true }, "Save changes"));
+
+    const button = screen.getByRole("button", { name: "Save changes" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(button.querySelector("svg")).toHaveClass(
+      "motion-reduce:animate-none"
+    );
+  });
+
+  it("preserves caller busy semantics outside the loading state", () => {
+    render(
+      createElement(
+        Button,
+        { "aria-busy": "false", disabled: false },
+        "Continue"
+      )
+    );
+
+    const button = screen.getByRole("button", { name: "Continue" });
+    expect(button).toBeEnabled();
+    expect(button).toHaveAttribute("aria-busy", "false");
   });
 });

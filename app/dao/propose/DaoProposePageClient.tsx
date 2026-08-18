@@ -82,6 +82,26 @@ export function DaoProposeView({
 }) {
   const [isAuthoring, setIsAuthoring] = useState(false);
 
+  const handleStart = () => {
+    setIsAuthoring(true);
+    requestAnimationFrame(() => {
+      const heading = document.getElementById("dao-proposal-authoring-heading");
+      heading?.focus({ preventScroll: true });
+      heading?.scrollIntoView?.({ block: "start" });
+      if (heading) {
+        const stickyHeader = document.querySelector<HTMLElement>(
+          "header.sticky"
+        );
+        const minimumTop =
+          (stickyHeader?.getBoundingClientRect().bottom ?? 0) + 40;
+        const headingTop = heading.getBoundingClientRect().top;
+        if (headingTop < minimumTop) {
+          window.scrollBy({ top: headingTop - minimumTop });
+        }
+      }
+    });
+  };
+
   return (
     <DaoRouteFrame current="propose">
       {state === "disconnected" ? (
@@ -104,7 +124,7 @@ export function DaoProposeView({
       {state === "ready" && proposer && !isAuthoring ? (
         <ProposerSummary
           proposer={proposer}
-          onStart={() => setIsAuthoring(true)}
+          onStart={handleStart}
         />
       ) : null}
 

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import {
@@ -113,6 +113,67 @@ describe("DAO proposal authoring form", () => {
     ).toBeVisible();
   });
 
+  it("locks the exact review throughout publication and exposes complete forum facts", async () => {
+    const user = userEvent.setup();
+    const exactTitle = "  Exact   proposal title  ";
+    renderAuthoring(80);
+    await fillDraft(user, 1001, exactTitle);
+
+    const acceptedTopic = screen.getByRole("status", {
+      name: "",
+    });
+    expect(within(acceptedTopic).getByText("Fund protocol research")).toBeVisible();
+    expect(within(acceptedTopic).getByText("Proposals · ID 5")).toBeVisible();
+    expect(within(acceptedTopic).getByText("yearn-contributor")).toBeVisible();
+    expect(within(acceptedTopic).getByText("Aug 1, 2024, 12:00 AM UTC")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+
+    const immutable = screen.getByRole("region", { name: "Immutable content" });
+    const exactTitleValue = within(immutable).getByText(exactTitle, {
+      exact: true,
+      normalizer: (value) => value,
+    });
+    expect(exactTitleValue).toHaveClass("whitespace-pre-wrap");
+
+    const forum = screen.getByRole("region", { name: "Forum topic" });
+    expect(within(forum).getByText("Fund protocol research")).toBeVisible();
+    expect(within(forum).getByText("Proposals · ID 5")).toBeVisible();
+    expect(within(forum).getByText("yearn-contributor")).toBeVisible();
+    expect(within(forum).getByText("Aug 1, 2024, 12:00 AM UTC")).toBeVisible();
+    expect(
+      within(forum).getByRole("link", { name: /opens in a new tab/i })
+    ).toHaveAttribute("target", "_blank");
+
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /I reviewed the exact immutable content/i,
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Publish proposal content" })
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Publishing proposal content" })
+    ).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("status", { name: "" })).toHaveTextContent(
+      "Publishing proposal content"
+    );
+    const edit = screen.getByRole("button", { name: "Edit proposal" });
+    expect(edit).toBeDisabled();
+
+    edit.removeAttribute("disabled");
+    fireEvent.click(edit);
+    expect(
+      screen.getByRole("heading", { name: "Review the exact proposal" })
+    ).toBeVisible();
+
+    expect(await screen.findByText("Proposal content published")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit proposal" })).toBeDisabled();
+    expect(exactTitleValue.textContent).toBe(exactTitle);
+  });
+
   it("preserves every draft field when publication fails and never starts a wallet step", async () => {
     const user = userEvent.setup();
     renderAuthoring();
@@ -216,23 +277,46 @@ describe("DAO proposal eligibility presentation", () => {
     ).toHaveTextContent("system-wide capacity, not a per-user quota");
     expect(screen.getByText("64 / 64")).toBeVisible();
   });
+
+  it("shows the authoritative disconnected fact and keeps wallet priority", () => {
+    const base = proposerInput();
+    const proposer = deriveDaoProposerState({
+      ...base,
+      connected: false,
+      correctChain: false,
+      blacklisted: true,
+      currentWeight: 0n,
+      lastProposedAt: NOW,
+      affectedBoostEpochs: base.affectedBoostEpochs.map((epoch, index) => ({
+        ...epoch,
+        currentProposalCount: index === 0 ? epoch.proposalLimit : 0,
+      })),
+    });
+
+    render(<DaoProposalEligibility proposer={proposer} />);
+
+    expect(screen.getByText("Connect a wallet to continue.")).toBeVisible();
+    expect(screen.getByText("Disconnected")).toBeVisible();
+    expect(screen.queryByText("Connected")).not.toBeInTheDocument();
+  });
 });
 
-function renderAuthoring() {
+function renderAuthoring(serviceLatencyMs = 0) {
   const proposer = deriveDaoProposerState(proposerInput());
   return render(
     <DaoProposalAuthoringForm
       address={proposer.address}
       now={NOW}
       proposer={proposer}
-      serviceLatencyMs={0}
+      serviceLatencyMs={serviceLatencyMs}
     />
   );
 }
 
 async function fillDraft(
   user: ReturnType<typeof userEvent.setup>,
-  topicId: number
+  topicId: number,
+  title = "Exact proposal title"
 ) {
   await user.type(
     screen.getByRole("textbox", { name: "Forum discussion" }),
@@ -242,7 +326,7 @@ async function fillDraft(
   await screen.findByText("Forum topic accepted");
   await user.type(
     screen.getByRole("textbox", { name: "Title" }),
-    "Exact proposal title"
+    title
   );
   await user.type(
     screen.getByRole("textbox", { name: "Summary" }),

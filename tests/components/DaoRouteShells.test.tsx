@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   DAO_MOCK_FEED,
@@ -238,5 +238,26 @@ describe("DAO proposal authoring shell", () => {
     ).toBeVisible();
     expect(screen.getByText("Your wallet can create a proposal")).toBeVisible();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("moves focus to the authoring heading when proposal drafting starts", async () => {
+    const scrollBy = vi
+      .spyOn(window, "scrollBy")
+      .mockImplementation(() => undefined);
+    render(
+      <DaoProposeView
+        onRetry={vi.fn()}
+        proposer={proposer}
+        state="ready"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Start proposal" }));
+
+    const heading = screen.getByRole("heading", { name: "Create a proposal" });
+    expect(heading).toHaveAttribute("tabindex", "-1");
+    await waitFor(() => expect(heading).toHaveFocus());
+    expect(scrollBy).toHaveBeenCalled();
+    scrollBy.mockRestore();
   });
 });

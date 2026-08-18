@@ -103,6 +103,149 @@ test("authors an executable proposal from the full raw script", async ({
   await expectNoDocumentOverflow(page);
 });
 
+test("keeps the exact review locked and announces asynchronous progress", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await openAuthoring(page);
+
+  const specification = page.getByRole("textbox", { name: "Specification" });
+  const placeholderColor = await specification.evaluate(
+    (element) => getComputedStyle(element, "::placeholder").color
+  );
+  expect(placeholderColor).toBe("rgb(82, 82, 82)");
+
+  const exactTitle = "  Exact   proposal title  ";
+  await fillImmutableDraft(page, 1001, exactTitle);
+  const acceptedTopic = page.getByRole("status").filter({
+    hasText: "Forum topic accepted",
+  });
+  await expect(acceptedTopic.getByText("Fund protocol research")).toBeVisible();
+  await expect(acceptedTopic.getByText("Proposals · ID 5")).toBeVisible();
+  await expect(acceptedTopic.getByText("yearn-contributor")).toBeVisible();
+  await expect(acceptedTopic.locator("time")).toHaveAttribute(
+    "datetime",
+    "2024-08-01T00:00:00.000Z"
+  );
+
+  await page.getByRole("button", { name: "Review proposal" }).click();
+  const immutable = page.getByRole("region", { name: "Immutable content" });
+  const titleValue = immutable
+    .getByText("Title", { exact: true })
+    .locator("xpath=following-sibling::div");
+  await expect(titleValue).toHaveText(exactTitle, { useInnerText: false });
+  expect(await titleValue.evaluate((element) => element.textContent)).toBe(
+    exactTitle
+  );
+  expect(
+    await titleValue.evaluate((element) => (element as HTMLElement).innerText)
+  ).toBe(exactTitle);
+  expect(
+    await titleValue.evaluate((element) => getComputedStyle(element).whiteSpace)
+  ).toBe("pre-wrap");
+
+  const forum = page.getByRole("region", { name: "Forum topic" });
+  await expect(forum.getByText("Fund protocol research")).toBeVisible();
+  await expect(forum.getByText("Proposals · ID 5")).toBeVisible();
+  await expect(forum.getByText("yearn-contributor")).toBeVisible();
+  await expect(forum.locator("time")).toHaveAttribute(
+    "datetime",
+    "2024-08-01T00:00:00.000Z"
+  );
+  const forumLink = forum.getByRole("link", { name: /opens in a new tab/i });
+  await expect(forumLink).toHaveAttribute("target", "_blank");
+  await expectMinimumHitArea(forumLink);
+
+  await page.clock.install();
+  await page
+    .getByRole("checkbox", { name: /I reviewed the exact immutable content/i })
+    .check();
+  await page
+    .getByRole("button", { name: "Publish proposal content" })
+    .click();
+
+  const publishing = page.getByRole("button", {
+    name: "Publishing proposal content",
+  });
+  await expect(publishing).toBeDisabled();
+  await expect(publishing).toHaveAttribute("aria-busy", "true");
+  const publicationSpinner = publishing.locator("svg");
+  await expect(publicationSpinner).toHaveAttribute("aria-hidden", "true");
+  expect(
+    await publicationSpinner.evaluate(
+      (element) => getComputedStyle(element).animationName
+    )
+  ).toBe("none");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Publishing proposal content" })
+  ).toBeVisible();
+
+  const edit = page.getByRole("button", { name: "Edit proposal" });
+  await expect(edit).toBeDisabled();
+  await edit.evaluate((element) => {
+    element.removeAttribute("disabled");
+    (element as HTMLButtonElement).click();
+  });
+  await expect(
+    page.getByRole("heading", { name: "Review the exact proposal" })
+  ).toBeVisible();
+
+  await page.clock.fastForward(200);
+  await expect(page.getByText("Proposal content published")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit proposal" })).toBeDisabled();
+  expect(await titleValue.evaluate((element) => element.textContent)).toBe(
+    exactTitle
+  );
+
+  await page.getByRole("button", { name: "Create onchain proposal" }).click();
+  const waiting = page.getByRole("button", { name: "Waiting for wallet" });
+  await expect(waiting).toBeDisabled();
+  await expect(waiting).toHaveAttribute("aria-busy", "true");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Waiting for wallet" })
+  ).toBeVisible();
+  await page.clock.fastForward(250);
+  await expect(page.getByText("Proposal transaction submitted")).toBeVisible();
+  await expectNoDocumentOverflow(page);
+});
+
+test("starts authoring with keyboard focus below the sticky header", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1280, height: 560 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/dao/propose");
+    await waitForTestBridge(page);
+    await resetBridge(page);
+    await page.evaluate(async () => {
+      await window.__TEST__?.setDaoProposerState?.("eligible");
+      await window.__TEST__?.setDaoAuthoringState?.("valid-signal");
+    });
+
+    const start = page.getByRole("button", { name: "Start proposal" });
+    await start.focus();
+    await page.keyboard.press("Enter");
+
+    const heading = page.getByRole("heading", { name: "Create a proposal" });
+    await expect(heading).toBeFocused();
+    await expect(heading).toHaveAttribute("tabindex", "-1");
+    const placement = await heading.evaluate((element) => ({
+      bottom: element.getBoundingClientRect().bottom,
+      headerBottom:
+        document.querySelector("header")?.getBoundingClientRect().bottom ?? 0,
+      top: element.getBoundingClientRect().top,
+      viewportHeight: window.innerHeight,
+    }));
+    expect(placement.top).toBeGreaterThanOrEqual(placement.headerBottom);
+    expect(placement.bottom).toBeLessThanOrEqual(placement.viewportHeight);
+    await expectNoDocumentOverflow(page);
+  }
+});
+
 test("shows deterministic forum validation failures without clearing content", async ({
   page,
 }) => {
@@ -214,7 +357,11 @@ async function openAuthoring(page: Page) {
   ).toBeVisible();
 }
 
-async function fillImmutableDraft(page: Page, topicId: number) {
+async function fillImmutableDraft(
+  page: Page,
+  topicId: number,
+  title = "Exact proposal title"
+) {
   await page
     .getByRole("textbox", { name: "Forum discussion" })
     .fill(`https://gov.yearn.fi/t/topic/${topicId}`);
@@ -222,7 +369,7 @@ async function fillImmutableDraft(page: Page, topicId: number) {
   await expect(page.getByText("Forum topic accepted")).toBeVisible();
   await page
     .getByRole("textbox", { name: "Title" })
-    .fill("Exact proposal title");
+    .fill(title);
   await page
     .getByRole("textbox", { name: "Summary" })
     .fill("Exact summary");

@@ -64,6 +64,13 @@ structural checks, immutable-content review, and mock publish/propose states.
 - Exact review content is locked after publication. Submitted proposals remain
   pending while backend indexing, decoding, and simulation are represented as
   post-submission work.
+- The review lock begins when publication starts, preserves exact title
+  whitespace, and cannot be escaped by returning to the draft while the request
+  is in flight.
+- Accepted and reviewed forum facts include the normalized topic title, stable
+  category ID and label, author, and creation time.
+- Loading controls retain their action or progress name, expose busy state, and
+  stop decorative spinner motion when reduced motion is requested.
 - Eligibility fixtures expose wallet, proposal network, blacklist, voting
   weight, cooldown, expected voting epoch, and all six shared affected reward
   epochs as separate facts.
