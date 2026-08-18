@@ -156,6 +156,7 @@ export type DaoProposalEvent = {
   log: DaoLogRef;
   actor: Address;
   voteActorKind: "human" | "ybc_aggregate" | "styfix_aggregate" | null;
+  yeaBps: number | null;
   direction: DaoVoteDirection | null;
   weight: bigint | null;
   reason: string | null;

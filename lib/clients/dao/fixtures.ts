@@ -1,4 +1,11 @@
-import { keccak256, sha256, toBytes, type Address, type Hex } from "viem";
+import {
+  hexToBytes,
+  keccak256,
+  sha256,
+  toBytes,
+  type Address,
+  type Hex,
+} from "viem";
 import { parseDaoFeedJson, serializeDaoFeedJson } from "./client";
 import {
   assertDaoProposalInvariants,
@@ -43,8 +50,14 @@ export const DAO_MOCK_OPERATOR_ADDRESS =
   "0x5555555555555555555555555555555555555555" as Address;
 export const DAO_MOCK_GUARDIAN_ADDRESS =
   "0x6666666666666666666666666666666666666666" as Address;
+export const DAO_MOCK_YBC_AGGREGATE_ADDRESS =
+  "0x7777777777777777777777777777777777777777" as Address;
+export const DAO_MOCK_STYFIX_AGGREGATE_ADDRESS =
+  "0x8888888888888888888888888888888888888888" as Address;
 
 const DAY = 86_400;
+const UNIT = 10n ** 18n;
+const BASE32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
 const VALID_SCRIPT = DAO_EXECUTOR_VALID_SCRIPT_VECTORS.twoCalls.script as Hex;
 const VALID_SCRIPT_HASH = keccak256(VALID_SCRIPT);
 const MISMATCHED_SCRIPT_HASH = `0x${"ff".repeat(32)}` as Hex;
@@ -118,6 +131,7 @@ type ProposalFixtureOptions = {
   discussionState?: DaoProposal["discussion"]["state"];
   analysisState?: "default" | "pending" | "partial" | "failed";
   hashMismatch?: boolean;
+  aggregateVoteBlend?: boolean;
 };
 
 const proposals = [
@@ -129,7 +143,14 @@ const proposals = [
     totalWeight: 0n,
     yeaWeight: 0n,
   }),
-  createProposal({ id: 2n, title: "Fund protocol research", timing: TIMING.voting }),
+  createProposal({
+    id: 2n,
+    title: "Fund protocol research",
+    timing: TIMING.voting,
+    totalWeight: 11n * UNIT,
+    yeaWeight: (15n * UNIT) / 2n,
+    aggregateVoteBlend: true,
+  }),
   createProposal({ id: 3n, title: "Renew security operations", timing: TIMING.lateVoting }),
   createProposal({
     id: 4n,
@@ -479,14 +500,19 @@ function createContent(
     createdAt: new Date(options.timing.createdAt * 1_000).toISOString(),
     links: [],
   };
+  const contentBytes = toBytes(
+    JSON.stringify(
+      state === "invalid"
+        ? { ...value, schema: "yearn.dao.proposal.invalid" }
+        : value
+    )
+  );
+  const digest = sha256(contentBytes);
 
   return {
     state,
-    cid:
-      state === "unavailable"
-        ? null
-        : "bafkreicn4tqy2vtegf4ekjkqsay6hkdcbtlhetxqb2jjrllc2goigoukt4",
-    digest: sha256(toBytes(JSON.stringify(value))),
+    cid: state === "unavailable" ? null : createRawSha256Cid(digest),
+    digest,
     value: state === "available" ? value : null,
     error:
       state === "unavailable"
@@ -495,6 +521,40 @@ function createContent(
           ? "The immutable document does not match yearn.dao.proposal.v1."
           : null,
   };
+}
+
+function createRawSha256Cid(digest: Hex): string {
+  const digestBytes = hexToBytes(digest);
+  if (digestBytes.length !== 32) {
+    throw new Error("DAO content digests must contain 32 bytes.");
+  }
+
+  const cidBytes = new Uint8Array(4 + digestBytes.length);
+  cidBytes.set([0x01, 0x55, 0x12, 0x20]);
+  cidBytes.set(digestBytes, 4);
+  return `b${encodeBase32(cidBytes)}`;
+}
+
+function encodeBase32(bytes: Uint8Array): string {
+  let output = "";
+  let buffer = 0;
+  let bufferedBits = 0;
+
+  for (const byte of bytes) {
+    buffer = (buffer << 8) | byte;
+    bufferedBits += 8;
+
+    while (bufferedBits >= 5) {
+      bufferedBits -= 5;
+      output += BASE32_ALPHABET[(buffer >> bufferedBits) & 0x1f];
+    }
+    buffer &= (1 << bufferedBits) - 1;
+  }
+
+  if (bufferedBits > 0) {
+    output += BASE32_ALPHABET[(buffer << (5 - bufferedBits)) & 0x1f];
+  }
+  return output;
 }
 
 function createDiscussion(
@@ -634,42 +694,125 @@ function createEvents(
   const events: DaoProposalEvent[] = [
     createEvent(options.id, 0, "propose", DAO_MOCK_PROPOSER_ADDRESS),
   ];
-  const nayWeight = totalWeight - yeaWeight;
-  if (yeaWeight > 0n) {
+  let nextLogIndex = 1;
+
+  if (options.aggregateVoteBlend) {
+    if (totalWeight !== 11n * UNIT || yeaWeight !== (15n * UNIT) / 2n) {
+      throw new Error("The aggregate vote fixture must retain its pinned totals.");
+    }
     events.push(
-      createEvent(options.id, 1, "vote", DAO_MOCK_ACCOUNT_ADDRESS, {
+      createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_ACCOUNT_ADDRESS, {
         voteActorKind: "human",
+        yeaBps: 10_000,
         direction: "yea",
-        weight: yeaWeight,
-      })
-    );
-  }
-  if (nayWeight > 0n) {
-    events.push(
-      createEvent(options.id, 2, "vote", DAO_MOCK_OPERATOR_ADDRESS, {
+        weight: 3n * UNIT,
+      }),
+      createEvent(
+        options.id,
+        nextLogIndex++,
+        "vote",
+        DAO_MOCK_STYFIX_AGGREGATE_ADDRESS,
+        {
+          voteActorKind: "styfix_aggregate",
+          yeaBps: 10_000,
+          weight: 4n * UNIT,
+        }
+      ),
+      createEvent(
+        options.id,
+        nextLogIndex++,
+        "vote",
+        DAO_MOCK_YBC_AGGREGATE_ADDRESS,
+        {
+          voteActorKind: "ybc_aggregate",
+          yeaBps: 10_000,
+          weight: 2n * UNIT,
+        }
+      ),
+      createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_OPERATOR_ADDRESS, {
         voteActorKind: "human",
+        yeaBps: 0,
         direction: "nay",
-        weight: nayWeight,
-      })
+        weight: 2n * UNIT,
+      }),
+      createEvent(
+        options.id,
+        nextLogIndex++,
+        "vote",
+        DAO_MOCK_STYFIX_AGGREGATE_ADDRESS,
+        {
+          voteActorKind: "styfix_aggregate",
+          yeaBps: 7_500,
+          weight: 4n * UNIT,
+        }
+      ),
+      createEvent(
+        options.id,
+        nextLogIndex++,
+        "vote",
+        DAO_MOCK_YBC_AGGREGATE_ADDRESS,
+        {
+          voteActorKind: "ybc_aggregate",
+          yeaBps: 7_500,
+          weight: 2n * UNIT,
+        }
+      )
     );
+  } else {
+    const nayWeight = totalWeight - yeaWeight;
+    if (yeaWeight > 0n) {
+      events.push(
+        createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_ACCOUNT_ADDRESS, {
+          voteActorKind: "human",
+          yeaBps: 10_000,
+          direction: "yea",
+          weight: yeaWeight,
+        })
+      );
+    }
+    if (nayWeight > 0n) {
+      events.push(
+        createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_OPERATOR_ADDRESS, {
+          voteActorKind: "human",
+          yeaBps: 0,
+          direction: "nay",
+          weight: nayWeight,
+        })
+      );
+    }
   }
+
   if (options.flagged) {
     events.push(
-      createEvent(options.id, 3, "flag", DAO_MOCK_OPERATOR_ADDRESS, {
+      createEvent(options.id, nextLogIndex++, "flag", DAO_MOCK_OPERATOR_ADDRESS, {
         reason: flagReason,
       })
     );
   } else if (options.vetoed) {
     events.push(
-      createEvent(options.id, 3, "veto", DAO_MOCK_GUARDIAN_ADDRESS, {
+      createEvent(options.id, nextLogIndex++, "veto", DAO_MOCK_GUARDIAN_ADDRESS, {
         reason: vetoReason,
       })
     );
   } else if (options.retracted) {
-    events.push(createEvent(options.id, 3, "retract", DAO_MOCK_PROPOSER_ADDRESS));
+    events.push(
+      createEvent(
+        options.id,
+        nextLogIndex++,
+        "retract",
+        DAO_MOCK_PROPOSER_ADDRESS
+      )
+    );
   }
   if (options.executed) {
-    events.push(createEvent(options.id, 4, "execute", DAO_MOCK_OPERATOR_ADDRESS));
+    events.push(
+      createEvent(
+        options.id,
+        nextLogIndex,
+        "execute",
+        DAO_MOCK_OPERATOR_ADDRESS
+      )
+    );
   }
   return events;
 }
@@ -682,7 +825,7 @@ function createEvent(
   overrides: Partial<
     Pick<
       DaoProposalEvent,
-      "voteActorKind" | "direction" | "weight" | "reason"
+      "voteActorKind" | "yeaBps" | "direction" | "weight" | "reason"
     >
   > = {}
 ): DaoProposalEvent {
@@ -698,6 +841,7 @@ function createEvent(
     },
     actor,
     voteActorKind: overrides.voteActorKind ?? null,
+    yeaBps: overrides.yeaBps ?? null,
     direction: overrides.direction ?? null,
     weight: overrides.weight ?? null,
     reason: overrides.reason ?? null,

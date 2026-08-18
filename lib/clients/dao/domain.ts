@@ -5,6 +5,7 @@ import type {
   DaoDisplayGroup,
   DaoDisplayStatus,
   DaoProposal,
+  DaoProposalEvent,
   DaoProposalLifecycleInput,
   DaoProposalRef,
   DaoProposalTiming,
@@ -228,12 +229,26 @@ export function deriveDaoProposerState(
   if (input.currentWeight < 0n || input.minimumWeight < 0n) {
     throw new Error("Proposal weights cannot be negative.");
   }
+  if (input.expectedVotingEpoch < 0n) {
+    throw new Error("expectedVotingEpoch cannot be negative.");
+  }
   if (input.affectedBoostEpochs.length !== DAO_BOOST_EPOCH_COUNT) {
     throw new Error(
       `Exactly ${DAO_BOOST_EPOCH_COUNT} affected boost epochs are required.`
     );
   }
-  for (const affected of input.affectedBoostEpochs) {
+  for (const [index, affected] of input.affectedBoostEpochs.entries()) {
+    const expectedEpoch = input.expectedVotingEpoch + BigInt(index);
+    if (index === 0 && affected.epoch !== input.expectedVotingEpoch) {
+      throw new Error(
+        "The first affected boost epoch must match the expected voting epoch."
+      );
+    }
+    if (affected.epoch !== expectedEpoch) {
+      throw new Error(
+        "Affected boost epochs must be consecutive from the expected voting epoch."
+      );
+    }
     if (
       !Number.isInteger(affected.currentProposalCount) ||
       affected.currentProposalCount < 0 ||
@@ -308,6 +323,14 @@ export function deriveDaoCapabilities(
   };
 }
 
+export function countDaoHumanVoteEvents(
+  events: readonly DaoProposalEvent[]
+): number {
+  return events.filter(
+    (event) => event.type === "vote" && event.voteActorKind === "human"
+  ).length;
+}
+
 export function assertDaoProposalInvariants(proposal: DaoProposal): void {
   if (!Number.isSafeInteger(proposal.ref.chainId) || proposal.ref.chainId <= 0) {
     throw new Error("Proposal chainId must be a positive safe integer.");
@@ -376,8 +399,11 @@ export function assertDaoProposalInvariants(proposal: DaoProposal): void {
     ) {
       throw new Error("Signal proposals must use the empty Executor script.");
     }
-  } else if (proposal.script.bytes === "0x") {
-    throw new Error("Executable proposals cannot use an empty script.");
+  } else if (
+    proposal.script.bytes === "0x" ||
+    proposal.script.hash.toLowerCase() === DAO_EMPTY_SCRIPT_HASH
+  ) {
+    throw new Error("Executable proposals cannot use the empty Executor script.");
   }
 
   if (proposal.script.hashVerified === true) {
@@ -388,6 +414,49 @@ export function assertDaoProposalInvariants(proposal: DaoProposal): void {
     ) {
       throw new Error("A hash-verified script must match the stored script hash.");
     }
+  }
+
+  for (const event of proposal.events) assertDaoProposalEventInvariant(event);
+}
+
+function assertDaoProposalEventInvariant(event: DaoProposalEvent): void {
+  if (event.type !== "vote") {
+    if (
+      event.voteActorKind !== null ||
+      event.yeaBps !== null ||
+      event.direction !== null ||
+      event.weight !== null
+    ) {
+      throw new Error("Only vote events can carry vote facts.");
+    }
+    return;
+  }
+
+  if (
+    event.voteActorKind === null ||
+    event.yeaBps === null ||
+    event.weight === null
+  ) {
+    throw new Error("Vote events require actor kind, yeaBps, and weight.");
+  }
+  assertBasisPoints(event.yeaBps, "yeaBps");
+  if (event.weight < 0n) {
+    throw new Error("Vote event weight cannot be negative.");
+  }
+
+  if (event.voteActorKind === "human") {
+    if (event.yeaBps !== 0 && event.yeaBps !== DAO_BPS) {
+      throw new Error("Human vote events must use binary yeaBps.");
+    }
+    if (
+      event.direction !== null &&
+      ((event.direction === "yea" && event.yeaBps !== DAO_BPS) ||
+        (event.direction === "nay" && event.yeaBps !== 0))
+    ) {
+      throw new Error("Human vote direction must match yeaBps.");
+    }
+  } else if (event.direction !== null) {
+    throw new Error("Aggregate vote events cannot use a binary direction.");
   }
 }
 

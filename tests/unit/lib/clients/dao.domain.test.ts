@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Address } from "viem";
 import {
+  assertDaoProposalInvariants,
   DAO_BLOCKED_REASONS,
+  DAO_EMPTY_SCRIPT_HASH,
   DAO_MOCK_ACCOUNT_ADDRESS,
   DAO_MOCK_FEED,
   DAO_MOCK_NOW,
@@ -329,6 +331,28 @@ describe("DAO action capabilities", () => {
     );
   });
 
+  it("enforces the public Voter one-vote rule from hasVoted", () => {
+    const value = proposal(2n);
+    const account = capabilityAccount(value, {
+      hasVoted: true,
+      voteDirection: "yea",
+    });
+
+    const capabilities = deriveDaoCapabilities({
+      proposal: value,
+      account,
+      now: DAO_MOCK_NOW,
+      vetoEndsAt: value.executionEndsAt!,
+      executionGuard: "guarded",
+    });
+
+    expect(capabilities).toMatchObject({
+      canVote: false,
+      votePurpose: null,
+      voteBlockedReason: DAO_BLOCKED_REASONS.voteAlreadySubmitted,
+    });
+  });
+
   it("allows no-vote moderation during the voting epoch", () => {
     const discussion = proposal(1n);
     const roles = capabilityAccount(discussion, {
@@ -413,6 +437,51 @@ describe("DAO action capabilities", () => {
       }).executeBlockedReason
     ).toBe(DAO_BLOCKED_REASONS.executionExpired);
   });
+
+  it("rejects the empty-script hash for executables without retained bytes", () => {
+    const value = proposal(21n);
+    value.script = {
+      bytes: null,
+      hash: DAO_EMPTY_SCRIPT_HASH,
+      hashVerified: null,
+    };
+
+    expect(() => assertDaoProposalInvariants(value)).toThrow(/empty/i);
+  });
+
+  it("validates vote event yea basis points", () => {
+    for (const invalidYeaBps of [-1, 7_500.5, 10_001]) {
+      const value = proposal(2n);
+      const vote = value.events.find((event) => event.type === "vote");
+      if (!vote) throw new Error("Missing vote fixture.");
+      vote.yeaBps = invalidYeaBps;
+
+      expect(() => assertDaoProposalInvariants(value)).toThrow(/yeaBps/i);
+    }
+  });
+
+  it("keeps binary direction derived from human vote basis points only", () => {
+    const mismatchedHuman = proposal(2n);
+    const humanVote = mismatchedHuman.events.find(
+      (event) => event.type === "vote" && event.voteActorKind === "human"
+    );
+    if (!humanVote) throw new Error("Missing human vote fixture.");
+    humanVote.yeaBps = 0;
+    expect(() => assertDaoProposalInvariants(mismatchedHuman)).toThrow(
+      /direction must match/i
+    );
+
+    const directedAggregate = proposal(2n);
+    const aggregateVote = directedAggregate.events.find(
+      (event) =>
+        event.type === "vote" && event.voteActorKind === "ybc_aggregate"
+    );
+    if (!aggregateVote) throw new Error("Missing aggregate vote fixture.");
+    aggregateVote.direction = "yea";
+    expect(() => assertDaoProposalInvariants(directedAggregate)).toThrow(
+      /aggregate vote events/i
+    );
+  });
 });
 
 describe("DAO proposer eligibility", () => {
@@ -432,6 +501,29 @@ describe("DAO proposer eligibility", () => {
     expect(state.proposeBlockedReason).toBe(
       DAO_BLOCKED_REASONS.proposerCapacity
     );
+  });
+
+  it("requires affected boost epochs to start at the voting epoch", () => {
+    const affectedBoostEpochs = proposerInput().affectedBoostEpochs.map(
+      (affected) => ({ ...affected, epoch: affected.epoch + 1n })
+    );
+
+    expect(() =>
+      deriveDaoProposerState(proposerInput({ affectedBoostEpochs }))
+    ).toThrow(/expected voting epoch/i);
+  });
+
+  it("requires affected boost epochs to be consecutive", () => {
+    const affectedBoostEpochs = proposerInput().affectedBoostEpochs.map(
+      (affected, index) => ({
+        ...affected,
+        epoch: index === 3 ? affected.epoch + 1n : affected.epoch,
+      })
+    );
+
+    expect(() =>
+      deriveDaoProposerState(proposerInput({ affectedBoostEpochs }))
+    ).toThrow(/consecutive/i);
   });
 
   it("uses wallet, network, blacklist, weight, cooldown, then capacity priority", () => {

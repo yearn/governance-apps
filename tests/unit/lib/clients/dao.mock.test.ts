@@ -1,7 +1,10 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { Address } from "viem";
+import { sha256, toBytes, toHex, type Address } from "viem";
 import {
   assertDaoProposalInvariants,
+  countDaoHumanVoteEvents,
   createMockDaoClient,
   DAO_BLOCKED_REASONS,
   DAO_EMPTY_SCRIPT_HASH,
@@ -42,6 +45,41 @@ const requiredFixtures: DaoMockFixtureId[] = [
   "permissionless-execution",
   "proposal-capacity-full",
 ];
+
+const CANONICAL_CONTENT_DIGEST =
+  "0x4de4e18d566431784525509031e3a8620cd6724ef00e9298ad62d19c833a8a9f";
+const CANONICAL_CONTENT_CID =
+  "bafkreicn4tqy2vtegf4ekjkqsay6hkdcbtlhetxqb2jjrllc2goigoukt4";
+const BASE32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
+
+function decodeBase32(value: string): Uint8Array {
+  const bytes: number[] = [];
+  let buffer = 0;
+  let bufferedBits = 0;
+
+  for (const character of value) {
+    const digit = BASE32_ALPHABET.indexOf(character);
+    if (digit < 0) throw new Error(`Invalid Base32 character: ${character}`);
+    buffer = (buffer << 5) | digit;
+    bufferedBits += 5;
+
+    while (bufferedBits >= 8) {
+      bufferedBits -= 8;
+      bytes.push((buffer >> bufferedBits) & 0xff);
+    }
+    buffer &= (1 << bufferedBits) - 1;
+  }
+
+  return Uint8Array.from(bytes);
+}
+
+function decodeRawSha256Cid(cid: string): `0x${string}` {
+  if (!cid.startsWith("b")) throw new Error("Expected a Base32 CID.");
+  const bytes = decodeBase32(cid.slice(1));
+  expect(Array.from(bytes.slice(0, 4))).toEqual([0x01, 0x55, 0x12, 0x20]);
+  expect(bytes).toHaveLength(36);
+  return toHex(bytes.slice(4));
+}
 
 describe("DAO deterministic mock feed", () => {
   it("exposes every required fixture in stable order", () => {
@@ -175,6 +213,114 @@ describe("DAO deterministic mock feed", () => {
     expect(byId.get(20n)?.discussion.state).toBe("unverified");
   });
 
+  it("keeps every available content CID, digest, and byte sequence consistent", () => {
+    const available = DAO_MOCK_FEED.proposals.filter(
+      (proposal) => proposal.content.state === "available"
+    );
+
+    expect(available.length).toBeGreaterThan(1);
+    for (const proposal of available) {
+      expect(proposal.content.value).not.toBeNull();
+      const bytes = toBytes(JSON.stringify(proposal.content.value));
+      expect(sha256(bytes)).toBe(proposal.content.digest);
+      expect(decodeRawSha256Cid(proposal.content.cid!)).toBe(
+        proposal.content.digest
+      );
+    }
+  });
+
+  it("pins the canonical trailing-LF CIDv1 raw SHA-256 vector", () => {
+    const contentBytes = new Uint8Array(
+      readFileSync(
+        resolve(
+          process.cwd(),
+          "docs/apps/dao/examples/proposal-content.example.json"
+        )
+      )
+    );
+
+    expect(sha256(contentBytes)).toBe(CANONICAL_CONTENT_DIGEST);
+    expect(decodeRawSha256Cid(CANONICAL_CONTENT_CID)).toBe(
+      CANONICAL_CONTENT_DIGEST
+    );
+  });
+
+  it("retains invalid content as a distinct fixture", () => {
+    const invalid = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 15n
+    );
+
+    expect(invalid?.content).toMatchObject({
+      state: "invalid",
+      value: null,
+      cid: expect.stringMatching(/^bafk/),
+      error: expect.stringMatching(/does not match/i),
+    });
+  });
+
+  it("retains blended aggregate rewrites without inflating human participation", () => {
+    const voting = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 2n
+    );
+    const voteEvents = voting?.events.filter((event) => event.type === "vote") ?? [];
+    const humanVotes = voteEvents.filter(
+      (event) => event.voteActorKind === "human"
+    );
+    const aggregateVotes = voteEvents.filter(
+      (event) => event.voteActorKind !== "human"
+    );
+
+    expect(humanVotes).toHaveLength(2);
+    expect(countDaoHumanVoteEvents(voteEvents)).toBe(2);
+    expect(
+      humanVotes.map((event) => ({
+        direction: event.direction,
+        yeaBps: event.yeaBps,
+      }))
+    ).toEqual([
+      { direction: "yea", yeaBps: 10_000 },
+      { direction: "nay", yeaBps: 0 },
+    ]);
+    expect(aggregateVotes).toHaveLength(4);
+    expect(
+      aggregateVotes.map((event) => ({
+        actorKind: event.voteActorKind,
+        direction: event.direction,
+        yeaBps: event.yeaBps,
+        weight: event.weight,
+      }))
+    ).toEqual([
+      {
+        actorKind: "styfix_aggregate",
+        direction: null,
+        yeaBps: 10_000,
+        weight: 4n * 10n ** 18n,
+      },
+      {
+        actorKind: "ybc_aggregate",
+        direction: null,
+        yeaBps: 10_000,
+        weight: 2n * 10n ** 18n,
+      },
+      {
+        actorKind: "styfix_aggregate",
+        direction: null,
+        yeaBps: 7_500,
+        weight: 4n * 10n ** 18n,
+      },
+      {
+        actorKind: "ybc_aggregate",
+        direction: null,
+        yeaBps: 7_500,
+        weight: 2n * 10n ** 18n,
+      },
+    ]);
+    expect(voting).toMatchObject({
+      totalWeight: 11n * 10n ** 18n,
+      yeaWeight: (15n * 10n ** 18n) / 2n,
+    });
+  });
+
   it("round-trips every bigint through canonical decimal JSON strings", () => {
     const parsed = parseDaoFeedJson(DAO_MOCK_FEED_JSON);
 
@@ -186,9 +332,12 @@ describe("DAO deterministic mock feed", () => {
     );
   });
 
-  it("rejects ambiguous or signed bigint JSON values", () => {
-    expect(() => parseDaoBigInt("01")).toThrow(/canonical unsigned decimals/i);
-    expect(() => parseDaoBigInt("-1")).toThrow(/canonical unsigned decimals/i);
+  it("rejects non-canonical bigint JSON syntax", () => {
+    for (const value of ["01", "-1", " 1", "1 ", "+1", "1.0", "1e3"]) {
+      expect(() => parseDaoBigInt(value)).toThrow(
+        /canonical unsigned decimals/i
+      );
+    }
   });
 });
 

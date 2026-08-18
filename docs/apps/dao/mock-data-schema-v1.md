@@ -184,6 +184,7 @@ type DaoProposalEvent = {
   log: DaoLogRef;
   actor: Address;
   voteActorKind: "human" | "ybc_aggregate" | "styfix_aggregate" | null;
+  yeaBps: number | null;
   direction: "yea" | "nay" | null;
   weight: bigint | null;
   reason: string | null;
@@ -191,7 +192,10 @@ type DaoProposalEvent = {
 ```
 
 Every retained event carries canonical block, transaction, and log identity.
-Aggregate vote actors are never counted as additional human participation.
+`yeaBps` retains the `Voting.Vote.yea` value from 0 through 10,000, including
+blended YBC and stYFIx aggregate rewrites. `direction` is an optional derived
+label for binary human votes only: 10,000 is Yea and 0 is Nay. Aggregate vote
+actors are never counted as additional human participation.
 
 ## 6. Proposal view model
 
@@ -287,13 +291,16 @@ This is shared system capacity, not a per-account proposal count.
 ## 7. Domain invariants
 
 - `totalWeight === yeaWeight + nayWeight` and no weight is negative.
-- Threshold and decay values stay between 0 and 10,000 basis points.
+- Threshold, decay, and vote-event Yea values stay between 0 and 10,000 basis
+  points.
 - `createdAt <= voteStartsAt < voteEndsAt`. When both execution times exist,
   `voteEndsAt <= executionStartsAt < executionEndsAt`.
 - App type is derived from the event script: Signal has empty bytes and the
   empty-script hash; Executable has non-empty bytes. A conflicting IPFS
   `proposalType` is a content inconsistency, not the authoritative type.
 - `hashVerified` is true only when retained script bytes hash to the stored hash.
+- The six affected boost epochs start at `expectedVotingEpoch` and are
+  consecutive.
 - `invalid` and `not_found` are lookup results and never appear in feed history.
 - Upcoming contains discussion-phase proposals. Active contains voting proposals
   and approved executable proposals that have not executed or expired. Closed
