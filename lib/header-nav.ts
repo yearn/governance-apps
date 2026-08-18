@@ -33,7 +33,10 @@ export function resolveHeaderAppKey(
   }
 
   const normalizedPathname = pathname?.toLowerCase() ?? "";
-  if (normalizedPathname.startsWith(APP_NAV.dao.path)) {
+  if (
+    normalizedPathname === APP_NAV.dao.path ||
+    normalizedPathname.startsWith(`${APP_NAV.dao.path}/`)
+  ) {
     return "dao";
   }
   if (normalizedPathname.startsWith(APP_NAV.veyfi.path)) {

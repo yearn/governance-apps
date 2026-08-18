@@ -5,7 +5,9 @@ import type { Address } from "viem";
 import {
   createMockDaoClient,
   type DaoClient,
+  type DaoFeedV1,
   type DaoProposalLookup,
+  type DaoProposalRef,
 } from "@/lib/clients/dao";
 import { daoKeys } from "@/lib/hooks/daoKeys";
 import { isProductionRuntime } from "@/lib/runtime/features";
@@ -26,35 +28,55 @@ export function parseDaoProposalId(value: string): bigint | null {
   return BigInt(value);
 }
 
-export function useDaoFeed() {
+export function resolveActiveDaoProposalRef(
+  feed: DaoFeedV1 | undefined,
+  proposalId: bigint | null
+): DaoProposalRef | null {
+  if (!feed || proposalId === null) return null;
+
+  const activeContract = feed.contracts.find((contract) => contract.active);
+  if (!activeContract) return null;
+
+  return {
+    chainId: feed.chainId,
+    votingAddress: activeContract.votingAddress,
+    proposalId,
+  };
+}
+
+export function useDaoFeed(enabled = true) {
   return useQuery({
     queryKey: daoKeys.feed(),
     queryFn: () => getDaoRouteClient().getFeed(),
+    enabled,
     staleTime: Infinity,
   });
 }
 
 export function useDaoProposal(proposalId: string) {
   const parsedProposalId = parseDaoProposalId(proposalId);
+  const feedQuery = useDaoFeed(parsedProposalId !== null);
+  const proposalRef = resolveActiveDaoProposalRef(
+    feedQuery.data,
+    parsedProposalId
+  );
   const query = useQuery<DaoProposalLookup>({
-    queryKey: daoKeys.proposal(proposalId),
-    queryFn: async () => {
-      const client = getDaoRouteClient();
-      const feed = await client.getFeed();
-      const activeContract = feed.contracts.find((contract) => contract.active);
-      if (!activeContract) {
-        throw new Error("DAO proposal data has no active Voting contract.");
+    queryKey: daoKeys.proposal(proposalRef),
+    queryFn: () => {
+      if (!proposalRef) {
+        throw new Error("DAO proposal identity is unavailable.");
       }
-
-      return client.getProposal({
-        chainId: feed.chainId,
-        votingAddress: activeContract.votingAddress,
-        proposalId: parsedProposalId ?? 0n,
-      });
+      return getDaoRouteClient().getProposal(proposalRef);
     },
-    enabled: parsedProposalId !== null,
+    enabled: proposalRef !== null,
     staleTime: Infinity,
   });
+
+  const activeContractMissing =
+    parsedProposalId !== null && feedQuery.data !== undefined && !proposalRef;
+  const activeContractError = activeContractMissing
+    ? new Error("DAO proposal data has no active Voting contract.")
+    : null;
 
   return {
     ...query,
@@ -62,7 +84,16 @@ export function useDaoProposal(proposalId: string) {
       parsedProposalId === null
         ? ({ state: "not_found" } as const)
         : query.data,
-    isPending: parsedProposalId === null ? false : query.isPending,
+    error: feedQuery.error ?? activeContractError ?? query.error,
+    isError: feedQuery.isError || activeContractMissing || query.isError,
+    isPending:
+      parsedProposalId === null
+        ? false
+        : feedQuery.isPending || (proposalRef !== null && query.isPending),
+    refetch: () =>
+      feedQuery.isError || activeContractMissing
+        ? feedQuery.refetch()
+        : query.refetch(),
   };
 }
 

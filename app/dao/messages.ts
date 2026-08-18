@@ -51,6 +51,8 @@ export const daoCopy = {
     returnToBoard: "Return to proposals",
     contentUnavailable: "Proposal content is unavailable.",
     forumUnavailable: "No verified forum discussion",
+    forumAccessibleLabel:
+      "Open this proposal's forum discussion in a new tab",
   },
   propose: {
     title: "Before you propose",

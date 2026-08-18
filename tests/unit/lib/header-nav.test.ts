@@ -143,4 +143,11 @@ describe("resolveHeaderAppKey", () => {
       "dao"
     );
   });
+
+  it("does not treat similarly named launcher paths as DAO routes", () => {
+    expect(resolveHeaderAppKey("/daoish", null, "app.dao-ops.com")).toBeNull();
+    expect(
+      resolveHeaderAppKey("/dao-governance", null, "app.dao-ops.com")
+    ).toBeNull();
+  });
 });

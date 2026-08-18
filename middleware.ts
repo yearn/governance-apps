@@ -100,7 +100,19 @@ export function middleware(request: NextRequest) {
   if (isHeadRequest && !isSkippablePath) {
     const headUrl = url.clone();
     const probePath = resolveHeadProbePath(headUrl.pathname, prefix);
-    headUrl.pathname = applyHostPrefix(probePath, prefix);
+    const probeTargetPath = applyHostPrefix(probePath, prefix);
+
+    if (probeTargetPath === url.pathname) {
+      return withSecurityHeaders(
+        NextResponse.next({
+          request: { headers: requestHeaders },
+        }),
+        nonce,
+        securityOptions
+      );
+    }
+
+    headUrl.pathname = probeTargetPath;
     return withSecurityHeaders(
       NextResponse.rewrite(headUrl, {
         request: { headers: requestHeaders },

@@ -23,6 +23,9 @@ export type DaoProposalRouteState =
   | "not_found"
   | "error";
 
+const PROPOSAL_EYEBROW_CLASS_NAME =
+  "min-w-0 max-w-full break-words font-number text-xs font-bold tabular-nums text-text-secondary [overflow-wrap:anywhere]";
+
 export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
   const { isConnected } = useAccount();
   const proposalQuery = useDaoProposal(proposalId);
@@ -82,9 +85,9 @@ export function DaoProposalView({
       ) : null}
 
       {state === "not_found" ? (
-        <Card className="space-y-5">
-          <div className="space-y-2">
-            <p className="font-number text-xs font-bold tabular-nums text-text-tertiary">
+        <Card className="min-w-0 space-y-5 overflow-hidden">
+          <div className="min-w-0 space-y-2">
+            <p className={PROPOSAL_EYEBROW_CLASS_NAME}>
               {daoCopy.detail.eyebrow(proposalId)}
             </p>
             <h2 className="text-balance text-xl font-bold">
@@ -124,7 +127,7 @@ function ProposalSummary({ proposal }: { proposal: DaoProposal }) {
   return (
     <Card className="min-w-0 space-y-5 overflow-hidden">
       <div className="min-w-0 space-y-3">
-        <p className="font-number text-xs font-bold tabular-nums text-text-tertiary">
+        <p className={PROPOSAL_EYEBROW_CLASS_NAME}>
           {daoCopy.detail.eyebrow(proposal.ref.proposalId.toString())}
         </p>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -145,6 +148,7 @@ function ProposalSummary({ proposal }: { proposal: DaoProposal }) {
         <ProposalFact
           label={daoCopy.labels.proposalId}
           value={proposal.ref.proposalId.toString()}
+          numeric
         />
         <ProposalFact
           label={daoCopy.labels.status}
@@ -162,6 +166,7 @@ function ProposalSummary({ proposal }: { proposal: DaoProposal }) {
           href={proposal.discussion.url}
           target="_blank"
           rel="noopener noreferrer"
+          aria-label={daoCopy.detail.forumAccessibleLabel}
           className={getButtonClassName({
             variant: "secondary",
             size: "sm",
@@ -180,11 +185,23 @@ function ProposalSummary({ proposal }: { proposal: DaoProposal }) {
   );
 }
 
-function ProposalFact({ label, value }: { label: string; value: string }) {
+function ProposalFact({
+  label,
+  numeric = false,
+  value,
+}: {
+  label: string;
+  numeric?: boolean;
+  value: string;
+}) {
   return (
     <div className="min-w-0 space-y-1">
-      <dt className="text-xs font-bold text-text-tertiary">{label}</dt>
-      <dd className="break-words font-number text-sm tabular-nums [overflow-wrap:anywhere]">
+      <dt className="text-xs font-bold text-text-secondary">{label}</dt>
+      <dd
+        className={`break-words text-sm [overflow-wrap:anywhere] ${
+          numeric ? "font-number tabular-nums" : ""
+        }`}
+      >
         {value}
       </dd>
     </div>

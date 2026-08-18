@@ -111,6 +111,21 @@ describe("DAO proposal detail shell", () => {
     ).toBeVisible();
     expect(screen.getAllByText("Voting").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Executable").length).toBeGreaterThan(0);
+
+    const proposalIdLabel = screen.getByText("Proposal ID", { exact: true });
+    const statusLabel = screen.getByText("Status", { exact: true });
+    const typeLabel = screen.getByText("Type", { exact: true });
+    expect(proposalIdLabel).toHaveClass("text-text-secondary");
+    expect(statusLabel).toHaveClass("text-text-secondary");
+    expect(typeLabel).toHaveClass("text-text-secondary");
+    expect(proposalIdLabel.nextElementSibling).toHaveClass("font-number");
+    expect(statusLabel.nextElementSibling).not.toHaveClass("font-number");
+    expect(typeLabel.nextElementSibling).not.toHaveClass("font-number");
+    expect(
+      screen.getByRole("link", {
+        name: "Open this proposal's forum discussion in a new tab",
+      })
+    ).toHaveAttribute("target", "_blank");
   });
 
   it("renders loading and disconnected detail states together", () => {
