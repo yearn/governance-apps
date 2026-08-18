@@ -361,3 +361,30 @@ proposal interactions:
   flag and data invariants.
 - `dao.yearn.fi` is not registered for host routing, canonical metadata,
   sitemap publication, or other discovery during M1.
+
+## 11. M2 read-only mock behavior
+
+The proposal board consumes each proposal's domain-provided `displayGroup` for
+the `Active`, `Upcoming`, and `Closed` filters. Rows remain dense on desktop and
+stack on smaller screens. Status, title, timing, author, vote percentages, the
+`of votes cast` caption, proposal type, discussion provenance, and content
+failures stay visible without a wallet.
+
+The read-only detail surface keeps four trust layers distinct:
+
+1. immutable proposal content and its validation state;
+2. contract lifecycle, vote results, and terminal events;
+3. producer-owned decoding and proposal-time simulation, including provenance;
+4. raw onchain identity and feed metadata in the technical disclosure.
+
+Unavailable or invalid immutable content replaces only the content body. The
+proposal identity, status, timing, vote results, discussion state, lifecycle,
+and technical record remain available. Unknown calls retain target, selector,
+calldata, byte size, and the absence of a verified ABI source. Long identifiers,
+addresses, hashes, and scripts scroll or wrap inside their own regions rather
+than widening the page.
+
+An approved signal uses `Approved` as its primary outcome and always pairs it
+with `No executable actions`, even when its raw contract status is `EXECUTED`.
+The rules disclosure says `No minimum turnout is required.` without presenting
+that rule as an alert.

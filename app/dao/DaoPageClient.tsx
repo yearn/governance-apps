@@ -14,6 +14,8 @@ import {
 } from "./components/DaoRouteFrame";
 import { daoCopy } from "./messages";
 import { MockControls } from "./components/MockControls";
+import { ProposalBoard } from "./components/ProposalBoard";
+import type { DaoProposal } from "@/lib/clients/dao";
 
 export type DaoBoardState = "loading" | "ready" | "empty" | "error";
 
@@ -36,7 +38,8 @@ export function DaoPageClient() {
         onRetry={() => {
           void feedQuery.refetch();
         }}
-        proposalCount={proposalCount}
+        now={feedQuery.data?.canonicalBlock.timestamp ?? 0}
+        proposals={feedQuery.data?.proposals ?? []}
         state={state}
       />
       <MockControls />
@@ -46,13 +49,15 @@ export function DaoPageClient() {
 
 export function DaoBoardView({
   isConnected,
+  now,
   onRetry,
-  proposalCount,
+  proposals,
   state,
 }: {
   isConnected: boolean;
+  now: number;
   onRetry: () => void;
-  proposalCount: number;
+  proposals: DaoProposal[];
   state: DaoBoardState;
 }) {
   return (
@@ -95,19 +100,7 @@ export function DaoBoardView({
       ) : null}
 
       {state === "ready" ? (
-        <Card className="space-y-3">
-          <div className="space-y-2">
-            <h2 className="text-balance text-xl font-bold">
-              {daoCopy.board.title}
-            </h2>
-            <p className="max-w-2xl text-pretty text-sm leading-6 text-text-secondary">
-              {daoCopy.board.description}
-            </p>
-          </div>
-          <p className="font-number text-sm tabular-nums text-text-secondary">
-            {daoCopy.board.available(proposalCount)}
-          </p>
-        </Card>
+        <ProposalBoard now={now} proposals={proposals} />
       ) : null}
     </DaoRouteFrame>
   );

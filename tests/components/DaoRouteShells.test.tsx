@@ -14,8 +14,9 @@ describe("DAO proposal board shell", () => {
     render(
       <DaoBoardView
         isConnected={false}
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={vi.fn()}
-        proposalCount={0}
+        proposals={[]}
         state="loading"
       />
     );
@@ -32,8 +33,9 @@ describe("DAO proposal board shell", () => {
     render(
       <DaoBoardView
         isConnected
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={vi.fn()}
-        proposalCount={0}
+        proposals={[]}
         state="empty"
       />
     );
@@ -51,8 +53,9 @@ describe("DAO proposal board shell", () => {
     render(
       <DaoBoardView
         isConnected
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={onRetry}
-        proposalCount={0}
+        proposals={[]}
         state="error"
       />
     );
@@ -68,8 +71,9 @@ describe("DAO proposal board shell", () => {
     render(
       <DaoBoardView
         isConnected
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={vi.fn()}
-        proposalCount={22}
+        proposals={DAO_MOCK_FEED.proposals}
         state="ready"
       />
     );
@@ -98,7 +102,9 @@ describe("DAO proposal detail shell", () => {
   it("renders a minimal client-backed proposal summary", () => {
     render(
       <DaoProposalView
+        feed={DAO_MOCK_FEED}
         isConnected
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={vi.fn()}
         proposal={proposal}
         proposalId="2"
@@ -131,7 +137,9 @@ describe("DAO proposal detail shell", () => {
   it("renders loading and disconnected detail states together", () => {
     render(
       <DaoProposalView
+        feed={DAO_MOCK_FEED}
         isConnected={false}
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={vi.fn()}
         proposal={null}
         proposalId="2"
@@ -146,7 +154,9 @@ describe("DAO proposal detail shell", () => {
   it("renders a safe proposal not-found shell", () => {
     render(
       <DaoProposalView
+        feed={DAO_MOCK_FEED}
         isConnected
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={vi.fn()}
         proposal={null}
         proposalId="999"
@@ -167,7 +177,9 @@ describe("DAO proposal detail shell", () => {
     const onRetry = vi.fn();
     render(
       <DaoProposalView
+        feed={DAO_MOCK_FEED}
         isConnected
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={onRetry}
         proposal={null}
         proposalId="2"
