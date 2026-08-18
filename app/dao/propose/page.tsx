@@ -8,6 +8,7 @@ import {
 import { isDaoEnabled } from "@/lib/runtime/features";
 
 export const viewport = daoViewport;
+export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
   return isDaoEnabled()

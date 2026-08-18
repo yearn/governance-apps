@@ -55,7 +55,8 @@ export function useDaoFeed(enabled = true) {
 
 export function useDaoProposal(proposalId: string) {
   const parsedProposalId = parseDaoProposalId(proposalId);
-  const feedQuery = useDaoFeed(parsedProposalId !== null);
+  const invalidProposalId = parsedProposalId === null;
+  const feedQuery = useDaoFeed(!invalidProposalId);
   const proposalRef = resolveActiveDaoProposalRef(
     feedQuery.data,
     parsedProposalId
@@ -81,13 +82,17 @@ export function useDaoProposal(proposalId: string) {
   return {
     ...query,
     data:
-      parsedProposalId === null
+      invalidProposalId
         ? ({ state: "not_found" } as const)
         : query.data,
-    error: feedQuery.error ?? activeContractError ?? query.error,
-    isError: feedQuery.isError || activeContractMissing || query.isError,
+    error: invalidProposalId
+      ? null
+      : feedQuery.error ?? activeContractError ?? query.error,
+    isError:
+      !invalidProposalId &&
+      (feedQuery.isError || activeContractMissing || query.isError),
     isPending:
-      parsedProposalId === null
+      invalidProposalId
         ? false
         : feedQuery.isPending || (proposalRef !== null && query.isPending),
     refetch: () =>

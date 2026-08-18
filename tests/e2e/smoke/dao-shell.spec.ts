@@ -8,6 +8,50 @@ import {
 
 const EXPECT_PRODUCTION_FAIL_CLOSED =
   process.env.E2E_EXPECT_DAO_PRODUCTION_FAIL_CLOSED === "true";
+const EXPECT_PRODUCTION_COMPILED_PREVIEW =
+  process.env.E2E_EXPECT_DAO_PRODUCTION_COMPILED_PREVIEW === "true";
+
+test("hydrates interactive DAO routes in a production-compiled preview", async ({
+  page,
+}) => {
+  test.skip(!EXPECT_PRODUCTION_COMPILED_PREVIEW);
+
+  const cspViolations: string[] = [];
+  page.on("console", (message) => {
+    if (
+      message.type() === "error" &&
+      /content security policy|script-src|nonce/i.test(message.text())
+    ) {
+      cspViolations.push(message.text());
+    }
+  });
+
+  const routes = [
+    {
+      path: "/dao",
+      readyText: "22 proposals are available.",
+      focusLink: "Create proposal",
+    },
+    {
+      path: "/dao/propose",
+      readyText: "Your wallet can create a proposal",
+      focusLink: "Proposals",
+    },
+  ];
+
+  for (const route of routes) {
+    await page.goto(route.path);
+    await expect(page.getByText(route.readyText, { exact: true })).toBeVisible();
+
+    const link = page
+      .getByRole("navigation", { name: "DAO Governance" })
+      .getByRole("link", { name: route.focusLink });
+    await link.focus();
+    await expect(link).toBeFocused();
+  }
+
+  expect(cspViolations).toEqual([]);
+});
 
 test("answers preview DAO HEAD probes without self-proxying", async ({
   request,
