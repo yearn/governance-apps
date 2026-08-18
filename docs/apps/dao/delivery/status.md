@@ -16,7 +16,7 @@ package starts.
 
 | Package | Branch | Reviewed commits | Integration merge | Checks and evidence | Accepted risks | Next dependency |
 | --- | --- | --- | --- | --- | --- | --- |
-| M0 WP0 | `agent/data` | Filled in by the M0 handoff commit | Resolved by `integration/dao-m0` | Specification, link, shell, repository, and integration gates | Contract PR remains open; live addresses and CID convention are later inputs | M1 WP1 |
+| M0 WP0 | `agent/data` | `a7a11b83ea89f9d9852b73c4a63b230fdd57de20`, `3d746e84b02d58bbe196525fb5a2510b4bfbce64` | Resolved by `integration/dao-m0` | Specification, link, shell, repository, and integration gates | Contract PR remains open; live addresses and CID convention are later inputs | M1 WP1 |
 
 ## Gate ledger
 
