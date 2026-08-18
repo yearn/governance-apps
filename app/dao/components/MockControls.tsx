@@ -10,8 +10,6 @@ import { Button, getButtonClassName } from "@/components/ui/Button";
 import {
   DAO_MOCK_FIXTURE_IDS,
   getDaoMockFixture,
-  resetDaoMockStore,
-  syncDaoMockStoreToNow,
   type DaoMockAccountState,
   type DaoMockAnalysisState,
   type DaoMockAuthoringState,
@@ -24,8 +22,7 @@ import {
   type DaoMockSurfaceState,
   type DaoMockVetoState,
 } from "@/lib/clients/dao";
-import { daoKeys, useDaoDebugActions, useDaoMockRuntime } from "@/lib/hooks/useDao";
-import { nowSeconds } from "@/lib/mocks/time";
+import { useDaoDebugActions, useDaoMockRuntime } from "@/lib/hooks/useDao";
 import { daoCopy } from "../messages";
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
@@ -130,13 +127,6 @@ export function MockControls() {
   const section: DebugControlsSection = {
     id: "dao",
     title: daoCopy.debug.title,
-    queryKeys: [daoKeys.all],
-    onReset() {
-      resetDaoMockStore();
-    },
-    onTimeTravel() {
-      syncDaoMockStoreToNow(nowSeconds());
-    },
     content: (
       <div className="space-y-3 text-xs">
         <div className="rounded-box border border-border bg-app px-3 py-2">

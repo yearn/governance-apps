@@ -41,8 +41,10 @@ Applies to:
   - `onTimeTravel(days)` for domain-local clock sync; shared invalidation waits for
     these hooks to settle before refetching query roots
   - `onReset()` for store reset and persistence cleanup
-- shared time travel invalidates every participating domain root;
-- existing root examples include `teamsKeys.all` and `ybcKeys.all`;
+- shared time travel invalidates every participating domain root, including
+  `teamsKeys.all`, `ybcKeys.all`, and `daoKeys.all`;
+- DAO clock synchronization is owned by the shared shell so it also runs on routes
+  where the DAO-specific section is not mounted;
 - new domains must add reset, time, query invalidation, and typed bridge support in
   the same package as their debug runtime.
 
@@ -58,6 +60,10 @@ When a new mature mock-backed domain joins the debug runtime:
 
 Existing domains must continue to reset alongside any new domain. Adding DAO, for
 example, must not break Teams or YBC invalidation.
+
+The shared shell synchronizes DAO state and invalidates `daoKeys.all` globally. The
+DAO route section must not duplicate that synchronization callback or invalidation
+root.
 
 ## E2E bridge rules
 

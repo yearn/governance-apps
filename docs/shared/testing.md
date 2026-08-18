@@ -121,7 +121,10 @@ All time logic must come from `lib/mocks/time.ts`:
 - In mock mode, UI epoch/cooldown timing is driven by local mock time only (not global-data/chain canonical sources), so debug time travel remains deterministic.
 - Debug time travel controls are expected to invalidate identity plus domain query keys and refetch active/inactive observers immediately.
 - Each domain exposes one root query-key entry point for shared reset and time
-  invalidation. Existing examples are `teamsKeys.all` and `ybcKeys.all`.
+  invalidation. Existing examples are `teamsKeys.all`, `ybcKeys.all`, and
+  `daoKeys.all`.
+- Shared debug time travel synchronizes the DAO runtime even when a non-DAO route
+  owns the mounted panel, then invalidates `daoKeys.all` with the other domain roots.
 
 Any logic that previously called `Date.now()` must use `nowSeconds()` instead.
 

@@ -152,6 +152,30 @@ test("exposes the shared DAO debug section without route-local controls", async 
   );
 });
 
+test("moves debug-panel focus and removes its entrance animation for reduced motion", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/dao");
+
+  const trigger = page.getByRole("button", { name: /debug/i });
+  await trigger.focus();
+  await trigger.click();
+
+  const closeButton = page.getByRole("button", {
+    name: "Close debug controls",
+  });
+  await expect(closeButton).toBeFocused();
+  const panel = page
+    .getByText("Debug Controls", { exact: true })
+    .locator("../..");
+  await expect(panel).toHaveCSS("animation-name", "none");
+
+  await closeButton.click();
+  await expect(trigger).toBeFocused();
+});
+
 test("uses the typed bridge to mutate DAO facts and refresh infinitely fresh queries", async ({
   page,
 }) => {
