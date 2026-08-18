@@ -1,0 +1,498 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import { sha256, toBytes, toHex, type Address } from "viem";
+import {
+  assertDaoProposalInvariants,
+  countDaoHumanVoteEvents,
+  createMockDaoClient,
+  DAO_BLOCKED_REASONS,
+  DAO_EMPTY_SCRIPT_HASH,
+  DAO_MOCK_ACCOUNT_ADDRESS,
+  DAO_MOCK_FEED,
+  DAO_MOCK_FEED_JSON,
+  DAO_MOCK_FIXTURE_IDS,
+  deriveDaoProposerState,
+  getDaoMockFixture,
+  parseDaoBigInt,
+  parseDaoFeedJson,
+  serializeDaoFeedJson,
+  type DaoMockFixtureId,
+} from "@/lib/clients/dao";
+
+const requiredFixtures: DaoMockFixtureId[] = [
+  "discussion",
+  "voting",
+  "late-voting",
+  "approved-signal",
+  "approved-executable",
+  "executed",
+  "rejected",
+  "no-votes",
+  "expired",
+  "retracted",
+  "flagged",
+  "early-veto",
+  "post-vote-veto",
+  "content-unavailable",
+  "content-invalid",
+  "analysis-pending",
+  "partial-decode",
+  "simulation-failed",
+  "hash-mismatch",
+  "direct-proposal",
+  "guarded-execution",
+  "permissionless-execution",
+  "proposal-capacity-full",
+];
+
+const CANONICAL_CONTENT_DIGEST =
+  "0x4de4e18d566431784525509031e3a8620cd6724ef00e9298ad62d19c833a8a9f";
+const CANONICAL_CONTENT_CID =
+  "bafkreicn4tqy2vtegf4ekjkqsay6hkdcbtlhetxqb2jjrllc2goigoukt4";
+const BASE32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
+
+function decodeBase32(value: string): Uint8Array {
+  const bytes: number[] = [];
+  let buffer = 0;
+  let bufferedBits = 0;
+
+  for (const character of value) {
+    const digit = BASE32_ALPHABET.indexOf(character);
+    if (digit < 0) throw new Error(`Invalid Base32 character: ${character}`);
+    buffer = (buffer << 5) | digit;
+    bufferedBits += 5;
+
+    while (bufferedBits >= 8) {
+      bufferedBits -= 8;
+      bytes.push((buffer >> bufferedBits) & 0xff);
+    }
+    buffer &= (1 << bufferedBits) - 1;
+  }
+
+  return Uint8Array.from(bytes);
+}
+
+function decodeRawSha256Cid(cid: string): `0x${string}` {
+  if (!cid.startsWith("b")) throw new Error("Expected a Base32 CID.");
+  const bytes = decodeBase32(cid.slice(1));
+  expect(Array.from(bytes.slice(0, 4))).toEqual([0x01, 0x55, 0x12, 0x20]);
+  expect(bytes).toHaveLength(36);
+  return toHex(bytes.slice(4));
+}
+
+describe("DAO deterministic mock feed", () => {
+  it("exposes every required fixture in stable order", () => {
+    expect(DAO_MOCK_FIXTURE_IDS).toEqual(requiredFixtures);
+    expect(new Set(DAO_MOCK_FIXTURE_IDS).size).toBe(requiredFixtures.length);
+  });
+
+  it("keeps every feed proposal inside the domain invariants", () => {
+    expect(DAO_MOCK_FEED.schemaVersion).toBe(1);
+    expect(DAO_MOCK_FEED.proposals).toHaveLength(22);
+    for (const proposal of DAO_MOCK_FEED.proposals) {
+      expect(() => assertDaoProposalInvariants(proposal)).not.toThrow();
+    }
+    const thresholds = new Set(
+      DAO_MOCK_FEED.proposals.map((proposal) => proposal.thresholdBps)
+    );
+    expect(thresholds.size).toBeGreaterThan(1);
+  });
+
+  it("pins the early-veto and post-vote-veto distinctions", () => {
+    const early = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 12n
+    );
+    const afterVotes = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 13n
+    );
+
+    expect(early).toMatchObject({
+      protocolStatus: "vetoed",
+      totalWeight: 0n,
+    });
+    expect(afterVotes).toMatchObject({
+      protocolStatus: "vetoed",
+      totalWeight: 250n * 10n ** 18n,
+    });
+    expect(early?.events.at(-1)?.reason).toMatch(/before the first vote/i);
+    expect(afterVotes?.events.at(-1)?.reason).toMatch(/after participation/i);
+  });
+
+  it("pins lifecycle, timing, and vote distinctions in the selected proposals", () => {
+    const byId = new Map(
+      DAO_MOCK_FEED.proposals.map((proposal) => [
+        proposal.ref.proposalId,
+        proposal,
+      ])
+    );
+
+    expect(byId.get(1n)).toMatchObject({
+      createdAt: DAO_MOCK_FEED.canonicalBlock.timestamp,
+      protocolStatus: "proposed",
+      displayGroup: "upcoming",
+      totalWeight: 0n,
+    });
+    expect(byId.get(2n)?.protocolStatus).toBe("voting");
+    expect(byId.get(5n)).toMatchObject({
+      protocolStatus: "passed",
+      displayStatus: "approved",
+      displayGroup: "active",
+    });
+    expect(byId.get(5n)!.executionStartsAt).toBeGreaterThan(
+      DAO_MOCK_FEED.canonicalBlock.timestamp
+    );
+    expect(byId.get(6n)?.protocolStatus).toBe("executed");
+    expect(byId.get(6n)?.events.some((event) => event.type === "execute")).toBe(
+      true
+    );
+    expect(byId.get(7n)).toMatchObject({
+      protocolStatus: "failed",
+      thresholdBps: 6_000,
+      totalWeight: 100n,
+      yeaWeight: 49n,
+    });
+    expect(byId.get(8n)).toMatchObject({
+      protocolStatus: "failed",
+      totalWeight: 0n,
+    });
+    expect(byId.get(9n)?.protocolStatus).toBe("expired");
+    expect(byId.get(10n)?.protocolStatus).toBe("retracted");
+    expect(byId.get(11n)?.moderation.flagReason).toMatch(/malformed/i);
+  });
+
+  it("derives a decayed effective weight in the late-voting fixture", () => {
+    const late = getDaoMockFixture("late-voting");
+
+    expect(late.account.decayBps).toBeGreaterThan(0);
+    expect(late.account.decayBps).toBeLessThan(10_000);
+    expect(late.account.effectiveVotingWeight).toBeLessThan(
+      late.account.votingWeight
+    );
+  });
+
+  it("represents terminal signal approval without executable actions", () => {
+    const signal = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 4n
+    );
+
+    expect(signal).toMatchObject({
+      type: "signal",
+      protocolStatus: "executed",
+      displayStatus: "approved",
+      displayGroup: "closed",
+      script: {
+        bytes: "0x",
+        hash: DAO_EMPTY_SCRIPT_HASH,
+        hashVerified: true,
+      },
+    });
+  });
+
+  it("keeps content and analysis failure states distinct", () => {
+    const byId = new Map(
+      DAO_MOCK_FEED.proposals.map((proposal) => [
+        proposal.ref.proposalId,
+        proposal,
+      ])
+    );
+
+    expect(byId.get(14n)?.content.state).toBe("unavailable");
+    expect(byId.get(14n)?.discussion).toMatchObject({
+      state: "verified",
+      url: expect.stringContaining("gov.yearn.fi"),
+    });
+    expect(byId.get(15n)?.content.state).toBe("invalid");
+    expect(byId.get(16n)?.analysis.state).toBe("pending");
+    expect(byId.get(17n)?.analysis).toMatchObject({ state: "partial" });
+    expect(
+      byId.get(17n)?.analysis.calls.map((call) => call.decodeStatus)
+    ).toEqual(["verified", "unknown"]);
+    expect(byId.get(18n)?.analysis.proposalSimulation.state).toBe("failed");
+    expect(byId.get(19n)?.script.hashVerified).toBe(false);
+    expect(byId.get(20n)?.discussion.state).toBe("unverified");
+  });
+
+  it("keeps every available content CID, digest, and byte sequence consistent", () => {
+    const available = DAO_MOCK_FEED.proposals.filter(
+      (proposal) => proposal.content.state === "available"
+    );
+
+    expect(available.length).toBeGreaterThan(1);
+    for (const proposal of available) {
+      expect(proposal.content.value).not.toBeNull();
+      const bytes = toBytes(JSON.stringify(proposal.content.value));
+      expect(sha256(bytes)).toBe(proposal.content.digest);
+      expect(decodeRawSha256Cid(proposal.content.cid!)).toBe(
+        proposal.content.digest
+      );
+    }
+  });
+
+  it("pins the canonical trailing-LF CIDv1 raw SHA-256 vector", () => {
+    const contentBytes = new Uint8Array(
+      readFileSync(
+        resolve(
+          process.cwd(),
+          "docs/apps/dao/examples/proposal-content.example.json"
+        )
+      )
+    );
+
+    expect(sha256(contentBytes)).toBe(CANONICAL_CONTENT_DIGEST);
+    expect(decodeRawSha256Cid(CANONICAL_CONTENT_CID)).toBe(
+      CANONICAL_CONTENT_DIGEST
+    );
+  });
+
+  it("retains invalid content as a distinct fixture", () => {
+    const invalid = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 15n
+    );
+
+    expect(invalid?.content).toMatchObject({
+      state: "invalid",
+      value: null,
+      cid: expect.stringMatching(/^bafk/),
+      error: expect.stringMatching(/does not match/i),
+    });
+  });
+
+  it("retains blended aggregate rewrites without inflating human participation", () => {
+    const voting = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 2n
+    );
+    const voteEvents = voting?.events.filter((event) => event.type === "vote") ?? [];
+    const humanVotes = voteEvents.filter(
+      (event) => event.voteActorKind === "human"
+    );
+    const aggregateVotes = voteEvents.filter(
+      (event) => event.voteActorKind !== "human"
+    );
+
+    expect(humanVotes).toHaveLength(2);
+    expect(countDaoHumanVoteEvents(voteEvents)).toBe(2);
+    expect(
+      humanVotes.map((event) => ({
+        direction: event.direction,
+        yeaBps: event.yeaBps,
+      }))
+    ).toEqual([
+      { direction: "yea", yeaBps: 10_000 },
+      { direction: "nay", yeaBps: 0 },
+    ]);
+    expect(aggregateVotes).toHaveLength(4);
+    expect(
+      aggregateVotes.map((event) => ({
+        actorKind: event.voteActorKind,
+        direction: event.direction,
+        yeaBps: event.yeaBps,
+        weight: event.weight,
+      }))
+    ).toEqual([
+      {
+        actorKind: "styfix_aggregate",
+        direction: null,
+        yeaBps: 10_000,
+        weight: 4n * 10n ** 18n,
+      },
+      {
+        actorKind: "ybc_aggregate",
+        direction: null,
+        yeaBps: 10_000,
+        weight: 2n * 10n ** 18n,
+      },
+      {
+        actorKind: "styfix_aggregate",
+        direction: null,
+        yeaBps: 7_500,
+        weight: 4n * 10n ** 18n,
+      },
+      {
+        actorKind: "ybc_aggregate",
+        direction: null,
+        yeaBps: 7_500,
+        weight: 2n * 10n ** 18n,
+      },
+    ]);
+    expect(voting).toMatchObject({
+      totalWeight: 11n * 10n ** 18n,
+      yeaWeight: (15n * 10n ** 18n) / 2n,
+    });
+  });
+
+  it("groups each human vote and its aggregate rewrites in one transaction", () => {
+    const voting = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 2n
+    );
+    const voteEvents = voting?.events.filter((event) => event.type === "vote") ?? [];
+    const transactionGroups = [voteEvents.slice(0, 3), voteEvents.slice(3, 6)];
+
+    expect(voteEvents.map((event) => event.voteActorKind)).toEqual([
+      "human",
+      "styfix_aggregate",
+      "ybc_aggregate",
+      "human",
+      "styfix_aggregate",
+      "ybc_aggregate",
+    ]);
+    expect(voteEvents.map((event) => event.log.logIndex)).toEqual([
+      1, 2, 3, 4, 5, 6,
+    ]);
+    expect(
+      transactionGroups.map((group) => group[0]?.log.transactionIndex)
+    ).toEqual([1, 2]);
+    expect(
+      new Set(
+        transactionGroups.map((group) => group[0]?.log.transactionHash)
+      )
+    ).toHaveLength(2);
+
+    for (const group of transactionGroups) {
+      expect(group).toHaveLength(3);
+      expect(new Set(group.map((event) => event.log.blockNumber))).toHaveLength(1);
+      expect(new Set(group.map((event) => event.log.blockHash))).toHaveLength(1);
+      expect(new Set(group.map((event) => event.log.transactionHash))).toHaveLength(
+        1
+      );
+      expect(new Set(group.map((event) => event.log.transactionIndex))).toHaveLength(
+        1
+      );
+      for (const event of group) {
+        expect(event.log.blockNumber).toBeGreaterThan(0n);
+        expect(event.log.blockHash).toMatch(/^0x[0-9a-f]{64}$/);
+        expect(event.log.transactionHash).toMatch(/^0x[0-9a-f]{64}$/);
+      }
+    }
+
+    expect(
+      new Set(
+        voteEvents.map(
+          (event) =>
+            `${event.log.blockHash}:${event.log.transactionHash}:${event.log.transactionIndex}`
+        )
+      )
+    ).toHaveLength(2);
+  });
+
+  it("round-trips every bigint through canonical decimal JSON strings", () => {
+    const parsed = parseDaoFeedJson(DAO_MOCK_FEED_JSON);
+
+    expect(parsed).toEqual(DAO_MOCK_FEED);
+    expect(serializeDaoFeedJson(parsed)).toEqual(DAO_MOCK_FEED_JSON);
+    expect(typeof DAO_MOCK_FEED_JSON.proposals[0].ref.proposalId).toBe("string");
+    expect(typeof DAO_MOCK_FEED_JSON.proposals[0].events[0].log.blockNumber).toBe(
+      "string"
+    );
+  });
+
+  it("rejects non-canonical bigint JSON syntax", () => {
+    for (const value of ["01", "-1", " 1", "1 ", "+1", "1.0", "1e3"]) {
+      expect(() => parseDaoBigInt(value)).toThrow(
+        /canonical unsigned decimals/i
+      );
+    }
+  });
+});
+
+describe("MockDaoClient", () => {
+  it("returns clones so callers cannot mutate deterministic source fixtures", async () => {
+    const client = createMockDaoClient({ latencyMs: 0 });
+    const first = await client.getFeed();
+    first.proposals[0].content.error = "mutated";
+
+    const second = await client.getFeed();
+    expect(second.proposals[0].content.error).toBeNull();
+  });
+
+  it("looks proposals up by composite identity, not numeric id alone", async () => {
+    const client = createMockDaoClient({ latencyMs: 0 });
+    const ref = DAO_MOCK_FEED.proposals[0].ref;
+
+    await expect(client.getProposal(ref)).resolves.toMatchObject({
+      state: "found",
+      proposal: { ref: { proposalId: ref.proposalId } },
+    });
+    await expect(
+      client.getProposal({ ...ref, chainId: 10 })
+    ).resolves.toMatchObject({ state: "not_found" });
+    await expect(
+      client.getProposal({
+        ...ref,
+        votingAddress:
+          "0x9999999999999999999999999999999999999999" as Address,
+      })
+    ).resolves.toMatchObject({ state: "not_found" });
+  });
+
+  it("derives post-veto participation through the account overlay", async () => {
+    const client = createMockDaoClient({
+      fixtureId: "post-vote-veto",
+      latencyMs: 0,
+    });
+    const fixture = client.getFixture();
+
+    const state = await client.getAccountProposalState(
+      fixture.proposalRef,
+      DAO_MOCK_ACCOUNT_ADDRESS
+    );
+
+    expect(state.capabilities).toMatchObject({
+      canVote: true,
+      votePurpose: "participation_only",
+    });
+  });
+
+  it("keeps guarded and permissionless execution capability distinct", async () => {
+    const guarded = createMockDaoClient({
+      fixtureId: "guarded-execution",
+      latencyMs: 0,
+    });
+    const guardedFixture = guarded.getFixture();
+    const guardedState = await guarded.getAccountProposalState(
+      guardedFixture.proposalRef,
+      DAO_MOCK_ACCOUNT_ADDRESS
+    );
+    const guardedOperatorState = await guarded.getAccountProposalState(
+      guardedFixture.proposalRef,
+      guardedFixture.account.address
+    );
+
+    const permissionless = createMockDaoClient({
+      fixtureId: "permissionless-execution",
+      latencyMs: 0,
+    });
+    const permissionlessFixture = permissionless.getFixture();
+    const permissionlessState = await permissionless.getAccountProposalState(
+      permissionlessFixture.proposalRef,
+      permissionlessFixture.account.address
+    );
+
+    expect(guardedState.capabilities.executeBlockedReason).toBe(
+      DAO_BLOCKED_REASONS.guardedExecution
+    );
+    expect(guardedOperatorState.capabilities.canExecute).toBe(true);
+    expect(permissionlessState.capabilities.canExecute).toBe(true);
+  });
+
+  it("reports shared proposal capacity from all six affected epochs", async () => {
+    const client = createMockDaoClient({
+      fixtureId: "proposal-capacity-full",
+      latencyMs: 0,
+    });
+
+    const state = await client.getProposerState(DAO_MOCK_ACCOUNT_ADDRESS);
+
+    expect(state.affectedBoostEpochs).toHaveLength(6);
+    expect(state.affectedBoostEpochs.some((epoch) => epoch.currentProposalCount === 64)).toBe(
+      true
+    );
+    expect(state.canPropose).toBe(false);
+    expect(state.proposeBlockedReason).toBe(
+      DAO_BLOCKED_REASONS.proposerCapacity
+    );
+    expect(deriveDaoProposerState(getDaoMockFixture("discussion").proposer).canPropose).toBe(
+      true
+    );
+  });
+});

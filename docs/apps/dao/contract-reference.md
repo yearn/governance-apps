@@ -5,8 +5,9 @@ Status: reviewed against stYFI governance commit
 The source PR remains open, so this document is a pinned integration reference,
 not a claim that the contracts are deployed or final.
 
-Rechecked on August 18, 2026: PR #5 remained open and its head was still
-`9395d5e`.
+Rechecked on 2026-08-18: PR #5 remained open and its head was observed at
+`168a99570044e771e8e081b3f4f5d2b6dd59f79c`. This integration reference remains
+deliberately pinned to `9395d5e`.
 
 Primary contracts:
 

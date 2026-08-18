@@ -103,9 +103,9 @@ type DaoScriptFrame = {
 
 type DaoScriptCheck = {
   state: "empty" | "valid" | "invalid";
-  script: Hex;
-  scriptBytes: number;
-  scriptHash: Hex;
+  script: string;
+  scriptBytes: number | null;
+  scriptHash: Hex | null;
   frames: DaoScriptFrame[];
   error: { code: string; message: string; offset: number | null } | null;
 };
@@ -143,6 +143,12 @@ type DaoAnalysis = {
 };
 ```
 
+Raw author input remains a string until syntax validation succeeds. Invalid
+characters and odd nibble counts do not describe a byte sequence, so
+`scriptBytes` and `scriptHash` are `null` for those errors. Once the input is
+valid even-length hex, both values are present even when a later framing,
+size, call-count, or proposal-type check fails.
+
 The frontend parser produces `DaoScriptCheck`. Backend decoding and proposal-time
 simulation produce the decoded calls and stored simulation. Unknown decoding is
 independent from simulation success. `unavailable` means the producer could not
@@ -178,6 +184,7 @@ type DaoProposalEvent = {
   log: DaoLogRef;
   actor: Address;
   voteActorKind: "human" | "ybc_aggregate" | "styfix_aggregate" | null;
+  yeaBps: number | null;
   direction: "yea" | "nay" | null;
   weight: bigint | null;
   reason: string | null;
@@ -185,7 +192,10 @@ type DaoProposalEvent = {
 ```
 
 Every retained event carries canonical block, transaction, and log identity.
-Aggregate vote actors are never counted as additional human participation.
+`yeaBps` retains the `Voting.Vote.yea` value from 0 through 10,000, including
+blended YBC and stYFIx aggregate rewrites. `direction` is an optional derived
+label for binary human votes only: 10,000 is Yea and 0 is Nay. Aggregate vote
+actors are never counted as additional human participation.
 
 ## 6. Proposal view model
 
@@ -281,13 +291,16 @@ This is shared system capacity, not a per-account proposal count.
 ## 7. Domain invariants
 
 - `totalWeight === yeaWeight + nayWeight` and no weight is negative.
-- Threshold and decay values stay between 0 and 10,000 basis points.
+- Threshold, decay, and vote-event Yea values stay between 0 and 10,000 basis
+  points.
 - `createdAt <= voteStartsAt < voteEndsAt`. When both execution times exist,
   `voteEndsAt <= executionStartsAt < executionEndsAt`.
 - App type is derived from the event script: Signal has empty bytes and the
   empty-script hash; Executable has non-empty bytes. A conflicting IPFS
   `proposalType` is a content inconsistency, not the authoritative type.
 - `hashVerified` is true only when retained script bytes hash to the stored hash.
+- The six affected boost epochs start at `expectedVotingEpoch` and are
+  consecutive.
 - `invalid` and `not_found` are lookup results and never appear in feed history.
 - Upcoming contains discussion-phase proposals. Active contains voting proposals
   and approved executable proposals that have not executed or expired. Closed
@@ -321,7 +334,9 @@ type DaoFeedV1 = {
 ```
 
 When JSON is used, bigint values serialize as base-10 strings and adapters parse
-them at the domain boundary.
+them at the domain boundary. The v1 adapter accepts canonical unsigned decimal
+strings only: `0` or a non-zero digit followed by digits. Signs, whitespace,
+decimals, exponent notation, and leading zeroes are rejected.
 
 ## 9. Required deterministic fixtures
 
@@ -387,3 +402,23 @@ At minimum:
 
 Messages include the failing byte offset where one exists. Parser tests use
 fixed vectors rather than only generated examples.
+
+Error precedence and offsets are deterministic:
+
+| Error | Rule | Offset |
+| --- | --- | --- |
+| `INVALID_HEX` | Missing `0x` prefix or a non-hex character | Invalid byte when known; otherwise `null` |
+| `ODD_HEX_LENGTH` | The final nibble has no pair | Incomplete final byte |
+| `TOO_MANY_CALLS` | A structurally reachable 65th header exists | Start of the 65th header |
+| `SCRIPT_TOO_LARGE` | A script with at most 64 reachable calls exceeds 2,048 bytes | First byte beyond the limit |
+| `TRUNCATED_HEADER` | The first header contains fewer than 32 bytes | Start of the incomplete header |
+| `CALLDATA_OUT_OF_BOUNDS` | Declared calldata exceeds the remaining bytes | Start of the declared calldata |
+| `TRAILING_BYTES` | A complete call is followed by fewer than 32 bytes | First trailing byte |
+| `EMPTY_EXECUTABLE_SCRIPT` | Executable type uses `0x` | `0` |
+| `NON_EMPTY_SIGNAL_SCRIPT` | Signal type uses one or more structurally valid calls | `0` |
+
+Call-count validation precedes the total-byte limit so both contract limits are
+independently diagnosable: 65 empty 32-byte headers already occupy 2,080 bytes.
+All other inputs over 2,048 bytes report `SCRIPT_TOO_LARGE` before ordinary
+framing errors. Structural validation proves only framing; it never labels a
+script safe or verified.
