@@ -21,6 +21,7 @@ import type {
 export const DAO_BPS = 10_000;
 export const DAO_PROPOSAL_LIMIT = 64 as const;
 export const DAO_BOOST_EPOCH_COUNT = 6;
+export const DAO_MODERATION_REASON_MAX_BYTES = 256;
 export const DAO_EMPTY_SCRIPT_HASH =
   "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470" as const;
 
@@ -51,11 +52,33 @@ export const DAO_BLOCKED_REASONS = {
   executionSimulationFailed: "The fresh execution simulation failed.",
   executionSimulationMismatch:
     "The fresh execution simulation does not match this script.",
+  awaitingIndex:
+    "A confirmed proposal action is waiting for feed indexing.",
   proposerBlacklisted: "This account is blocked from creating proposals.",
   proposerWeight: "Proposal weight is below the current minimum.",
   proposerCooldown: "The proposal cooldown is still active.",
   proposerCapacity: "Proposal capacity is full.",
 } as const;
+
+export type DaoModerationReasonCheck = {
+  bytes: number;
+  error: string | null;
+  value: string;
+};
+
+export function validateDaoModerationReason(
+  reason: string
+): DaoModerationReasonCheck {
+  const value = reason.trim();
+  const bytes = new TextEncoder().encode(value).length;
+  const error =
+    value.length === 0
+      ? "Enter a reason."
+      : bytes > DAO_MODERATION_REASON_MAX_BYTES
+        ? `Reason must be at most ${DAO_MODERATION_REASON_MAX_BYTES} UTF-8 bytes.`
+        : null;
+  return { bytes, error, value };
+}
 
 export function serializeDaoProposalRef(ref: DaoProposalRef): string {
   return `${ref.chainId}:${ref.votingAddress.toLowerCase()}:${ref.proposalId.toString()}`;

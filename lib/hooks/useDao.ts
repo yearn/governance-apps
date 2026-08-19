@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Address } from "viem";
 import {
@@ -8,6 +8,8 @@ import {
   createRuntimeMockDaoClient,
   getDaoMockSnapshot,
   resetDaoMockStore,
+  clearDaoMockPendingAction,
+  indexDaoMockPendingAction,
   resolveDaoProposalReadEnvelope,
   setDaoMockAccountState,
   setDaoMockAnalysisState,
@@ -22,9 +24,11 @@ import {
   setDaoMockRole,
   setDaoMockSelectedProposal,
   setDaoMockSurface,
+  setDaoMockTransactionOutcome,
   setDaoMockVetoState,
   subscribeDaoMockStore,
   type DaoClient,
+  type DaoActionType,
   type DaoFeedV1,
   type DaoMockAccountState,
   type DaoMockAnalysisState,
@@ -38,12 +42,16 @@ import {
   type DaoMockRole,
   type DaoMockRuntimeSnapshot,
   type DaoMockSurfaceState,
+  type DaoMockTransactionOutcome,
   type DaoMockVetoState,
   type DaoProposalLookup,
   type DaoProposalRef,
+  type DaoVoteDirection,
 } from "@/lib/clients/dao";
 import { daoKeys } from "@/lib/hooks/daoKeys";
 import { isProductionRuntime } from "@/lib/runtime/features";
+import { useTx } from "@/lib/tx/useTx";
+import type { PreparedTransaction } from "@/lib/tx/types";
 
 let mockClient: DaoClient | null = null;
 
@@ -176,6 +184,98 @@ export function useDaoProposerState(address: Address | null) {
   return applyDaoSurfaceState(query, runtime);
 }
 
+export function useDaoAccountProposalState(
+  ref: DaoProposalRef | null,
+  address: Address | null
+) {
+  const runtime = useDaoMockRuntime();
+  const query = useQuery({
+    queryKey: daoKeys.account(ref, address),
+    queryFn: () =>
+      getDaoRouteClient().getAccountProposalState(
+        ref as DaoProposalRef,
+        address as Address
+      ),
+    enabled: ref !== null && address !== null,
+    staleTime: Infinity,
+  });
+  return applyDaoSurfaceState(query, runtime);
+}
+
+type DaoProposalActionOptions = {
+  submittedMessage: string;
+};
+
+export function useDaoProposalActions(
+  ref: DaoProposalRef,
+  address: Address | null,
+  options: DaoProposalActionOptions
+) {
+  const queryClient = useQueryClient();
+  const { execute, reset, state } = useTx();
+  const [activeAction, setActiveAction] = useState<DaoActionType | null>(null);
+  const invalidate = useCallback(
+    () => invalidateDaoQueries(queryClient),
+    [queryClient]
+  );
+
+  const requireAddress = useCallback(() => {
+    if (!address) throw new Error("Connect a wallet to continue.");
+    return address;
+  }, [address]);
+
+  const submit = useCallback(
+    async (
+      action: DaoActionType,
+      prepare: (client: DaoClient, account: Address) => Promise<PreparedTransaction>
+    ) => {
+      setActiveAction(action);
+      reset();
+      await execute(
+        async () => {
+          const prepared = await prepare(getDaoRouteClient(), requireAddress());
+          return prepared();
+        },
+        {
+          invalidate,
+          skipWaitForReceipt: true,
+          submittedMessage: options.submittedMessage,
+        }
+      );
+    },
+    [execute, invalidate, options.submittedMessage, requireAddress, reset]
+  );
+
+  return {
+    activeAction,
+    state,
+    reset: () => {
+      setActiveAction(null);
+      reset();
+    },
+    vote: (direction: DaoVoteDirection) =>
+      submit("vote", (client, account) =>
+        client.prepareVote(ref, account, direction)
+      ),
+    retract: () =>
+      submit("retract", (client, account) =>
+        client.prepareRetract(ref, account)
+      ),
+    flag: (reason: string) =>
+      submit("flag", (client, account) =>
+        client.prepareFlag(ref, account, reason)
+      ),
+    veto: (reason: string) =>
+      submit("veto", (client, account) =>
+        client.prepareVeto(ref, account, reason)
+      ),
+    executeProposal: () =>
+      submit("execute", (client, account) =>
+        client.prepareExecute(ref, account)
+      ),
+  };
+}
+
 function applyDaoSurfaceState<
   TResult extends {
     data: unknown;
@@ -260,6 +360,10 @@ export function useDaoDebugActions() {
       mutate(() => setDaoMockSelectedProposal(proposalId)),
     setSurface: (surface: DaoMockSurfaceState) =>
       mutate(() => setDaoMockSurface(surface)),
+    setTransactionOutcome: (outcome: DaoMockTransactionOutcome) =>
+      mutate(() => setDaoMockTransactionOutcome(outcome)),
+    indexPendingAction: () => mutate(() => indexDaoMockPendingAction()),
+    clearPendingAction: () => mutate(() => clearDaoMockPendingAction()),
     setVetoState: (vetoState: DaoMockVetoState) =>
       mutate(() => setDaoMockVetoState(vetoState)),
   };

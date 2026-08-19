@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import type { PreparedTransaction, TransactionHash } from "@/lib/tx/types";
 import type { DaoClient } from "./client";
 import {
   deriveDaoCapabilities,
@@ -15,6 +16,11 @@ import {
   readDaoMockFeed,
   readDaoMockProposal,
   readDaoMockProposerState,
+  prepareDaoMockExecute,
+  prepareDaoMockFlag,
+  prepareDaoMockRetract,
+  prepareDaoMockVeto,
+  prepareDaoMockVote,
 } from "./store";
 import type {
   DaoAccountProposalState,
@@ -25,7 +31,11 @@ import type {
   DaoProposalLookup,
   DaoProposalRef,
   DaoProposerState,
+  DaoVoteDirection,
 } from "./types";
+
+const STATIC_MOCK_TRANSACTION_HASH =
+  `0x${"ab".repeat(32)}` as TransactionHash;
 
 export type DaoMockFixtureCatalogEntry = {
   id: DaoMockFixtureId;
@@ -127,6 +137,62 @@ export class MockDaoClient implements DaoClient {
     });
   }
 
+  async prepareVote(
+    ref: DaoProposalRef,
+    address: Address,
+    direction: DaoVoteDirection
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    void direction;
+    await this.waitForLatency();
+    return async () => STATIC_MOCK_TRANSACTION_HASH;
+  }
+
+  async prepareRetract(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    await this.waitForLatency();
+    return async () => STATIC_MOCK_TRANSACTION_HASH;
+  }
+
+  async prepareFlag(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    void reason;
+    await this.waitForLatency();
+    return async () => STATIC_MOCK_TRANSACTION_HASH;
+  }
+
+  async prepareVeto(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    void reason;
+    await this.waitForLatency();
+    return async () => STATIC_MOCK_TRANSACTION_HASH;
+  }
+
+  async prepareExecute(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    await this.waitForLatency();
+    return async () => STATIC_MOCK_TRANSACTION_HASH;
+  }
+
   private async waitForLatency(): Promise<void> {
     if (this.latencyMs <= 0) return;
     await new Promise((resolve) => setTimeout(resolve, this.latencyMs));
@@ -172,6 +238,49 @@ export class RuntimeMockDaoClient implements DaoClient {
   async getProposerState(address: Address): Promise<DaoProposerState> {
     await this.waitForLatency();
     return readDaoMockProposerState(address);
+  }
+
+  async prepareVote(
+    ref: DaoProposalRef,
+    address: Address,
+    direction: DaoVoteDirection
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockVote(ref, address, direction);
+  }
+
+  async prepareRetract(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockRetract(ref, address);
+  }
+
+  async prepareFlag(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockFlag(ref, address, reason);
+  }
+
+  async prepareVeto(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockVeto(ref, address, reason);
+  }
+
+  async prepareExecute(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockExecute(ref, address);
   }
 
   private async waitForLatency(): Promise<void> {

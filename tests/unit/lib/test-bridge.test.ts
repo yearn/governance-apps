@@ -57,6 +57,8 @@ describe("createTestBridge", () => {
     };
     const dao: DaoTestBridgeAdapter = {
       setDaoPersona: vi.fn().mockResolvedValue(undefined),
+      setDaoTransactionOutcome: vi.fn().mockResolvedValue(undefined),
+      indexDaoPendingAction: vi.fn().mockResolvedValue(undefined),
     };
     const bridge = createTestBridge({
       styfi: clients.styfi as never,
@@ -71,12 +73,16 @@ describe("createTestBridge", () => {
     await bridge.setTeamsViewerRole?.("admin");
     await bridge.patchYbcProposal?.("proposal-1", { status: "passed" });
     await bridge.setDaoPersona?.("guardian");
+    await bridge.setDaoTransactionOutcome?.("revert");
+    await bridge.indexDaoPendingAction?.();
 
     expect(teams.setTeamsViewerRole).toHaveBeenCalledWith("admin");
     expect(ybc.patchYbcProposal).toHaveBeenCalledWith("proposal-1", {
       status: "passed",
     });
     expect(dao.setDaoPersona).toHaveBeenCalledWith("guardian");
+    expect(dao.setDaoTransactionOutcome).toHaveBeenCalledWith("revert");
+    expect(dao.indexDaoPendingAction).toHaveBeenCalled();
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: teamsKeys.all,
       refetchType: "all",

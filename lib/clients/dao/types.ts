@@ -3,6 +3,7 @@ import type { Address, Hex } from "viem";
 export type DaoUnixSeconds = number;
 export type DaoProposalType = "signal" | "executable";
 export type DaoVoteDirection = "yea" | "nay";
+export type DaoActionType = "vote" | "retract" | "flag" | "veto" | "execute";
 
 export type DaoProposalRef = {
   chainId: number;
@@ -463,7 +464,9 @@ export type DaoMockAccountState =
   | "weight"
   | "no-weight"
   | "already-voted"
-  | "late-decayed";
+  | "late-decayed"
+  | "disconnected"
+  | "wrong-network";
 export type DaoMockExecutionState =
   | "signal"
   | "executable"
@@ -483,6 +486,22 @@ export type DaoMockProposerState =
   | "cooldown"
   | "capacity-full";
 export type DaoMockRole = "proposer" | "operator" | "guardian";
+export type DaoMockTransactionOutcome =
+  | "success"
+  | "user-rejected"
+  | "revert"
+  | "network-error";
+
+export type DaoPendingAction = {
+  action: DaoActionType;
+  ref: DaoProposalRef;
+  actor: Address;
+  transactionHash: Hex;
+  submittedAt: DaoUnixSeconds;
+  direction: DaoVoteDirection | null;
+  effectiveVotingWeight: bigint | null;
+  reason: string | null;
+};
 
 export type DaoMockProposalFlagsPatch = Partial<{
   retracted: boolean;
@@ -518,4 +537,6 @@ export type DaoMockRuntimeSnapshot = {
   proposer: DaoProposerEligibilityInput;
   executionGuard: DaoExecutionGuard;
   authoring: DaoMockAuthoring;
+  transactionOutcome: DaoMockTransactionOutcome;
+  pendingAction: DaoPendingAction | null;
 };

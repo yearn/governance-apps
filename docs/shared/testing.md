@@ -91,7 +91,9 @@ Representative adapter methods already reserved by the shared contract:
 - DAO: `resetDao`, `setDaoFixture`, `setDaoSelectedProposal`, `setDaoPersona`,
   `setDaoRole`, `setDaoContentState`, `setDaoLifecycle`, `setDaoVetoState`,
   `setDaoAnalysisState`, `setDaoAccountState`, `setDaoExecutionState`,
-  `setDaoAuthoringState`, and granular proposal/proposer fact setters
+  `setDaoAuthoringState`, `setDaoTransactionOutcome`,
+  `indexDaoPendingAction`, `clearDaoPendingAction`, and granular
+  proposal/proposer fact setters
 
 DAO bridge mutations wait for the adapter and then invalidate `daoKeys.all`.
 This is required because the route client is module-scoped and DAO queries use

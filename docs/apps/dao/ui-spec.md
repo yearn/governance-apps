@@ -307,9 +307,11 @@ Required groups:
 - Lifecycle: discussion, voting, approved, rejected, expired, retracted, flagged
 - Veto: before votes, after votes
 - Analysis: pending, decoded, partial, failed, hash mismatch
-- Account: weight, no weight, already voted, late-decayed
+- Account: weight, no weight, already voted, late-decayed, disconnected, wrong network
 - Execution: signal, executable, guarded, permissionless, simulation failure
 - Authoring: valid signal, valid script, invalid frame, too many calls, too large
+- Transaction: success, wallet rejection, revert, network error, index pending,
+  clear pending
 
 Personas are presets, not exclusive role types. After loading a preset, QA can
 toggle proposer, operator, and guardian facts independently to cover combined
@@ -415,3 +417,41 @@ An approved signal uses `Approved` as its primary outcome and always pairs it
 with `No executable actions`, even when its raw contract status is `EXECUTED`.
 The rules disclosure says `No minimum turnout is required.` without presenting
 that rule as an alert.
+
+## 12. M2 mock action behavior
+
+The detail sidebar now places `Your action` before vote results. On phone and
+tablet widths the whole sidebar precedes immutable content; on desktop it stays
+in the right column without becoming a height-obscuring sticky panel.
+
+The action panel renders only account facts and capability reasons supplied by
+the DAO client. Yea and Nay start unselected. A vote review repeats the selected
+direction, proposal title, effective weight, original weight and decay when
+applicable, and the public-Voter irreversibility. A post-vote veto retains the
+same binary choices under the participation notice; an early veto exposes no
+vote choice.
+
+Unavailable immutable content requires one acknowledgement before voting.
+Invalid immutable content requires that acknowledgement plus a separate review
+of the available onchain record. These warnings do not alter client-supplied
+authorization.
+
+Retract, flag, and veto remain in the lifecycle disclosure. Their dialogs state
+the exact lifecycle effect; flag and veto reasons are required and limited to
+256 UTF-8 bytes. Execute is present only for executable proposals, stays disabled
+with the client-supplied reason until its supplied capability is true, and never
+appears for a signal. Its review uses the accepted script hash, guard, and
+current-state preflight facts already in the mock client. It does not perform a
+new simulation or submit an onchain transaction.
+
+All five actions prepare through the DAO client and execute through shared
+`useTx`. Normal route copy says `Transaction submitted.` and never exposes a
+mock label. A successful mock submission updates live account authorization and
+enters `awaiting proposal indexing`; canonical proposal totals, status,
+moderation, and event history remain unchanged until the debug indexer applies
+the pending event. Wallet rejection, revert, and network failure create no
+pending action.
+
+Confirmation dialogs are modal, trap focus, close with Escape or the backdrop,
+and restore focus to their trigger. Action targets remain at least 40 pixels,
+focus remains visible, and reduced-motion mode removes interactive transitions.

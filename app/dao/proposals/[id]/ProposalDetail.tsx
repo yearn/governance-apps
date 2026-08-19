@@ -32,8 +32,10 @@ import {
 import { daoCopy } from "../../messages";
 
 export function ProposalDetail({
+  actionPanel = null,
   envelope,
 }: {
+  actionPanel?: React.ReactNode;
   envelope: DaoProposalReadEnvelope;
 }) {
   const { feed, proposal } = envelope;
@@ -109,8 +111,12 @@ export function ProposalDetail({
       </Card>
 
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-        <aside className="order-first min-w-0 lg:order-last" aria-label={daoCopy.detail.voteResults}>
-          <Card className="min-w-0 space-y-5">
+        <aside
+          className="order-first min-w-0 space-y-5 lg:order-last"
+          aria-label={daoCopy.detail.actionSidebar}
+        >
+          {actionPanel}
+          <Card className="min-w-0 space-y-5" aria-label={daoCopy.detail.voteResults}>
             <div className="space-y-3">
               <h3 className="text-balance text-xl font-bold">
                 {daoCopy.detail.voteResults}
