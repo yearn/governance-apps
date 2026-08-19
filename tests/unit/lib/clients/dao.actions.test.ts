@@ -314,6 +314,31 @@ describe("DAO mock proposal actions", () => {
     expect(resetHash).toBe(firstHash);
   });
 
+  it("preserves an indexed block while runtime time moves within and beyond its slot", async () => {
+    const proposal = load("voting");
+    const before = getDaoMockSnapshot().feed.canonicalBlock;
+    await prepareDaoMockVote(
+      proposal.ref,
+      DAO_MOCK_ACCOUNT_ADDRESS,
+      "yea"
+    )();
+    indexDaoMockPendingAction();
+
+    const indexed = getDaoMockSnapshot().feed.canonicalBlock;
+    expect(indexed.number).toBe(before.number + 1n);
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 1);
+    expect(getDaoMockSnapshot().feed.canonicalBlock).toEqual(indexed);
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 12);
+    const nextBlock = getDaoMockSnapshot().feed.canonicalBlock;
+    expect(nextBlock).toMatchObject({
+      number: indexed.number + 1n,
+      timestamp: DAO_MOCK_NOW + 12,
+    });
+    expect(nextBlock.hash).not.toBe(indexed.hash);
+  });
+
   it("allows participation voting after a post-vote veto", async () => {
     const proposal = load("post-vote-veto");
     const account = readDaoMockAccountProposalState(

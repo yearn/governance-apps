@@ -175,7 +175,10 @@ export function DaoProposalActionPanelView({
           {daoCopy.actions.loading}
         </p>
       ) : accountError ? (
-        <p role="alert" className="text-pretty text-sm font-bold text-error-700">
+        <p
+          role="alert"
+          className="text-pretty text-sm font-bold text-error-700 dark:text-red-300"
+        >
           {daoCopy.actions.unavailable}
         </p>
       ) : (
@@ -759,7 +762,7 @@ function ReasonField({
         <span
           className={cn(
             reasonCheck.error
-              ? "font-bold text-error-700"
+              ? "font-bold text-error-700 dark:text-red-300"
               : "text-text-secondary"
           )}
         >

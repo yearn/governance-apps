@@ -121,6 +121,27 @@ describe("DAO proposal action panel", () => {
     expect(confirm).toBeEnabled();
   });
 
+  it("uses a dark-safe foreground for account load errors", () => {
+    renderFixture("voting", { account: null, accountError: true });
+
+    expect(
+      screen.getByText("Proposal actions are unavailable. Try again.")
+    ).toHaveClass("dark:text-red-300");
+  });
+
+  it("uses a dark-safe foreground for moderation errors", () => {
+    applyDaoMockFixture("discussion");
+    setDaoMockRole("operator", true);
+    renderSelected();
+
+    openLifecycleAction("Flag proposal");
+    expect(
+      within(screen.getByRole("dialog")).getByText("Enter a reason.", {
+        exact: true,
+      })
+    ).toHaveClass("dark:text-red-300");
+  });
+
   it("keeps participation voting open after veto and blocks an early veto", () => {
     renderFixture("post-vote-veto");
     expect(screen.getByText(/still vote to record your participation/i)).toBeVisible();

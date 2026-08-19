@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   applyDaoMockFixture,
   createRuntimeMockDaoClient,
+  createDaoTestBridgeAdapter,
   DAO_BLOCKED_REASONS,
   DAO_MOCK_ACCOUNT_ADDRESS,
   DAO_MOCK_FIXTURE_IDS,
@@ -107,6 +108,64 @@ describe("DAO mutable mock store", () => {
       number: before.number,
       hash: before.hash,
     });
+  });
+
+  it("keeps sub-block runtime time separate from coherent canonical block identity", () => {
+    const baseline = getDaoMockSnapshot().feed.canonicalBlock;
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 1);
+    const sameBlock = getDaoMockSnapshot().feed.canonicalBlock;
+
+    expect(sameBlock).toEqual(baseline);
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 12);
+    const nextBlock = getDaoMockSnapshot().feed.canonicalBlock;
+
+    expect(nextBlock.timestamp).toBe(DAO_MOCK_NOW + 12);
+    expect({ number: nextBlock.number, hash: nextBlock.hash }).not.toEqual({
+      number: sameBlock.number,
+      hash: sameBlock.hash,
+    });
+  });
+
+  it("relabels authoring capacity epochs from the fixed genesis when time changes", async () => {
+    const initial = applyDaoMockFixture("proposal-capacity-full");
+    const capacityFacts = initial.proposer.affectedBoostEpochs.map(
+      ({ currentProposalCount, proposalLimit }) => ({
+        currentProposalCount,
+        proposalLimit,
+      })
+    );
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 8 * DAY_SECONDS);
+
+    const advanced = getDaoMockSnapshot();
+    expect(advanced.proposer.expectedVotingEpoch).toBe(202n);
+    expect(
+      advanced.proposer.affectedBoostEpochs.map(({ epoch }) => epoch)
+    ).toEqual([202n, 203n, 204n, 205n, 206n, 207n]);
+    expect(
+      advanced.proposer.affectedBoostEpochs.map(
+        ({ currentProposalCount, proposalLimit }) => ({
+          currentProposalCount,
+          proposalLimit,
+        })
+      )
+    ).toEqual(capacityFacts);
+    expect(
+      capacityFacts.some(({ currentProposalCount }) => currentProposalCount === 64)
+    ).toBe(true);
+
+    const evidence = await createDaoTestBridgeAdapter().getDaoState?.();
+    expect(evidence?.proposer.expectedVotingEpoch).toBe("202");
+    expect(
+      evidence?.proposer.affectedBoostEpochs.map(({ epoch }) => epoch)
+    ).toEqual(["202", "203", "204", "205", "206", "207"]);
+    expect(
+      evidence?.proposer.affectedBoostEpochs.map(
+        ({ currentProposalCount }) => currentProposalCount
+      )
+    ).toEqual([12, 13, 64, 15, 16, 17]);
   });
 
   it("keeps pre-vote and post-vote veto capability pairs distinct", () => {

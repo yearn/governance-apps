@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { DaoMockFixtureId } from "@/lib/clients/dao";
+import { DAO_MOCK_NOW, type DaoMockFixtureId } from "@/lib/clients/dao";
 import { resetBridge, waitForTestBridge } from "../utils";
 
 const PROPOSAL_FIXTURES = [
@@ -394,6 +394,36 @@ test("reaches the non-visual proposal capacity fixture through the shared bridge
   ).toBeVisible();
   await expect(page.getByText("64 / 64")).toBeVisible();
   await expectNoDocumentOverflow(page, "proposal-capacity-full");
+
+  await page.evaluate(async (timestamp) => {
+    await window.__TEST__?.setNow(timestamp);
+  }, DAO_MOCK_NOW + 8 * 86_400);
+  const advancedEvidence = await page.evaluate(async () =>
+    window.__TEST__?.getDaoState?.()
+  );
+  expect(advancedEvidence?.proposer.expectedVotingEpoch).toBe("202");
+  expect(
+    advancedEvidence?.proposer.affectedBoostEpochs.map(({ epoch }) => epoch)
+  ).toEqual(["202", "203", "204", "205", "206", "207"]);
+  expect(
+    advancedEvidence?.proposer.affectedBoostEpochs.map(
+      ({ currentProposalCount }) => currentProposalCount
+    )
+  ).toEqual([12, 13, 64, 15, 16, 17]);
+  await expect(
+    page
+      .getByText("Expected voting epoch", { exact: true })
+      .locator("xpath=following-sibling::dd")
+  ).toHaveText("202");
+  const capacityTable = page.getByRole("table");
+  for (const epoch of ["202", "203", "204", "205", "206", "207"]) {
+    await expect(
+      capacityTable.getByRole("cell", { name: epoch, exact: true })
+    ).toBeVisible();
+  }
+  await expect(
+    page.getByText(/Reward epoch 204 has reached the shared rolling six-epoch limit/)
+  ).toBeVisible();
 });
 
 test("keeps core review and authoring surfaces contained with a 200% root font size", async ({
@@ -412,7 +442,7 @@ test("keeps core review and authoring surfaces contained with a 200% root font s
   }
 });
 
-test("keeps DAO brand and success text at AA contrast in both themes", async (
+test("keeps DAO status, purpose, and feedback text at AA contrast in both themes", async (
   { page },
   testInfo
 ) => {
@@ -446,6 +476,52 @@ test("keeps DAO brand and success text at AA contrast in both themes", async (
       `${theme} script integrity`
     );
 
+    await page.goto("/dao/proposals/13");
+    await page.evaluate(async () => {
+      await window.__TEST__?.setDaoFixture?.("post-vote-veto");
+    });
+    await measure(
+      page.getByText("Participation vote", { exact: true }),
+      `${theme} participation-purpose badge`
+    );
+
+    await page.goto("/dao/proposals/19");
+    await page.evaluate(async () => {
+      await window.__TEST__?.setDaoFixture?.("hash-mismatch");
+    });
+    await measure(
+      page.getByText("Event script does not match the stored script hash"),
+      `${theme} hash-mismatch error`
+    );
+
+    await page.goto("/dao/proposals/18");
+    await page.evaluate(async () => {
+      await window.__TEST__?.setDaoFixture?.("simulation-failed");
+    });
+    await measure(
+      page.getByText("The proposal-time atomic simulation reverted."),
+      `${theme} analysis error`
+    );
+
+    await page.goto("/dao");
+    await measure(
+      page.getByText("Content unavailable · onchain record shown").first(),
+      `${theme} board content warning`
+    );
+
+    await page.goto("/dao/proposals/1");
+    await page.evaluate(async () => {
+      await window.__TEST__?.setDaoFixture?.("discussion");
+      await window.__TEST__?.setDaoRole?.("operator", true);
+    });
+    await page.getByText("Lifecycle actions", { exact: true }).click();
+    await page.getByRole("button", { name: "Flag proposal" }).click();
+    await measure(
+      page.getByRole("dialog").getByText("Enter a reason.", { exact: true }),
+      `${theme} moderation error`
+    );
+    await page.keyboard.press("Escape");
+
     await page.goto("/dao/proposals/4");
     await page.evaluate(async () => {
       await window.__TEST__?.setDaoFixture?.("approved-signal");
@@ -464,6 +540,11 @@ test("keeps DAO brand and success text at AA contrast in both themes", async (
     await measure(
       page.getByText("1", { exact: true }).first(),
       `${theme} authoring step`
+    );
+    await page.getByRole("button", { name: "Review proposal" }).click();
+    await measure(
+      page.getByText("Validate a supported Yearn forum topic before review."),
+      `${theme} authoring validation error`
     );
 
     if (theme === "light") {

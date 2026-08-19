@@ -226,7 +226,7 @@ function ProposalWarnings({ proposal }: { proposal: DaoProposal }) {
   return (
     <p
       role="status"
-      className="max-w-2xl text-pretty text-xs font-bold text-error-700"
+      className="max-w-2xl text-pretty text-xs font-bold text-error-700 dark:text-red-300"
     >
       {proposal.content.state === "unavailable"
         ? daoCopy.board.contentUnavailable

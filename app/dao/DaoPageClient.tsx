@@ -50,7 +50,7 @@ export function DaoPageClient() {
         onRetry={() => {
           void feedQuery.refetch();
         }}
-        now={feedQuery.data?.canonicalBlock.timestamp ?? 0}
+        now={runtime?.now ?? feedQuery.data?.canonicalBlock.timestamp ?? 0}
         proposals={feedQuery.data?.proposals ?? []}
         state={state}
       />

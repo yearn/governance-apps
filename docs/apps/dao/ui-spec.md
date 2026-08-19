@@ -318,7 +318,10 @@ toggle proposer, operator, and guardian facts independently to cover combined
 roles.
 
 Reuse shared `+1 day`, `+7 days`, and `Reset App`. Time travel changes proposal
-capabilities through domain logic rather than swapping a display label.
+capabilities and recomputes authoring eligibility epoch labels from the fixed
+mock genesis through domain logic rather than swapping a display label. In mock
+runtime, lifecycle copy uses runtime time while snapshot labels continue to use
+canonical block provenance.
 
 ## 8. Responsive and accessibility requirements
 
@@ -485,10 +488,12 @@ and remove entrance and accordion transitions under reduced motion.
 
 The visual Yea/Nay bar is hidden from assistive technology because the adjacent
 text already exposes the same breakdown. DAO status badges, authoring eyebrow
-and step markers, script-integrity text, approved-signal text, and active
-purpose states use local light/dark foreground and background pairs that meet
-4.5:1 for small normal text. The vote-purpose badge retains the pinned
-high-contrast dark treatment.
+and step markers, script-integrity text, approved-signal text, active purpose
+states, and standalone error or warning feedback use local light/dark
+foreground and surface pairs that meet 4.5:1 for small normal text. This covers
+proposal hash and analysis failures, board content warnings, action loading and
+moderation errors, and authoring validation feedback. Both decision and
+participation purpose badges retain the pinned high-contrast dark treatment.
 
 Fixture UAT navigates to the target route before applying a fixture through the
 shared bridge, then reads back the selected fixture identity in the same

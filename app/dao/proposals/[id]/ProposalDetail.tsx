@@ -34,12 +34,14 @@ import { daoCopy } from "../../messages";
 export function ProposalDetail({
   actionPanel = null,
   envelope,
+  now: runtimeNow,
 }: {
   actionPanel?: React.ReactNode;
   envelope: DaoProposalReadEnvelope;
+  now?: number;
 }) {
   const { feed, proposal } = envelope;
-  const now = feed.canonicalBlock.timestamp;
+  const now = runtimeNow ?? feed.canonicalBlock.timestamp;
   const proposalId = proposal.ref.proposalId.toString();
   const title = proposal.content.value?.title ?? daoCopy.detail.eyebrow(proposalId);
   const summary = proposal.content.value?.summary;
@@ -217,7 +219,7 @@ function ContentWarning({ proposal }: { proposal: DaoProposal }) {
   return (
     <div
       role="status"
-      className="space-y-2 rounded-box bg-red-50 p-4 text-red-950"
+      className="space-y-2 rounded-box bg-red-50 p-4 text-red-950 dark:bg-red-950/40 dark:text-red-100"
     >
       <p className="text-pretty font-bold">{statusTitle}</p>
       <p className="max-w-3xl text-pretty text-sm leading-6">
@@ -416,7 +418,11 @@ function ExecutionAnalysis({ proposal }: { proposal: DaoProposal }) {
       <div className="space-y-2">
         <Badge
           variant={analysis.state === "failed" ? "error" : "neutral"}
-          className="font-sans"
+          className={cn(
+            "font-sans",
+            analysis.state === "failed" &&
+              "dark:bg-red-950 dark:text-red-200"
+          )}
         >
           {analysisLabel}
         </Badge>
@@ -424,7 +430,7 @@ function ExecutionAnalysis({ proposal }: { proposal: DaoProposal }) {
           {analysisBody}
         </p>
         {analysis.error ? (
-          <p className="break-words text-pretty text-sm font-bold text-error-700 [overflow-wrap:anywhere]">
+          <p className="break-words text-pretty text-sm font-bold text-error-700 dark:text-red-300 [overflow-wrap:anywhere]">
             {formatDaoPublicAnalysisError(analysis.error)}
           </p>
         ) : null}
@@ -450,7 +456,7 @@ function ScriptIntegrity({ proposal }: { proposal: DaoProposal }) {
       className={cn(
         "text-pretty text-sm font-bold",
         state === false
-          ? "text-error-700"
+          ? "text-error-700 dark:text-red-300"
           : state === true
             ? "text-success-700 dark:text-green-300"
             : "text-text-secondary"
@@ -474,7 +480,11 @@ function SimulationDetails({ simulation }: { simulation: DaoSimulation }) {
         </h4>
         <Badge
           variant={simulation.state === "failed" ? "error" : "neutral"}
-          className="font-sans"
+          className={cn(
+            "font-sans",
+            simulation.state === "failed" &&
+              "dark:bg-red-950 dark:text-red-200"
+          )}
         >
           {daoCopy.detail.simulationStates[simulation.state]}
         </Badge>

@@ -61,6 +61,7 @@ export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
         }
         envelope={envelope}
         isConnected={hasConnectedAccount}
+        now={runtime?.now ?? envelope?.feed.canonicalBlock.timestamp ?? 0}
         onRetry={() => {
           void proposalQuery.refetch();
         }}
@@ -76,6 +77,7 @@ export function DaoProposalView({
   actionPanel = null,
   envelope,
   isConnected,
+  now,
   onRetry,
   proposalId,
   state,
@@ -83,6 +85,7 @@ export function DaoProposalView({
   actionPanel?: ReactNode;
   envelope: DaoProposalReadEnvelope | null;
   isConnected: boolean;
+  now?: number;
   onRetry: () => void;
   proposalId: string;
   state: DaoProposalRouteState;
@@ -134,6 +137,7 @@ export function DaoProposalView({
         <ProposalDetail
           actionPanel={actionPanel}
           envelope={envelope}
+          now={now}
         />
       ) : null}
     </DaoRouteFrame>

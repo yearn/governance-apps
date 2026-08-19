@@ -304,7 +304,7 @@ function DaoProposalAuthoringFormState({
       {Object.keys(errors).length > 0 ? (
         <div
           role="alert"
-          className="rounded-box border border-red-300 bg-red-50 p-4 text-sm text-red-900"
+          className="rounded-box border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100"
         >
           <p className="font-bold">{daoProposeCopy.form.validationTitle}</p>
         </div>
@@ -657,7 +657,11 @@ function DaoFinalReview({
             <span>{daoProposeCopy.review.confirm}</span>
           </label>
           {confirmationError ? (
-            <p id="dao-confirmation-error" role="alert" className="text-sm text-red-800">
+            <p
+              id="dao-confirmation-error"
+              role="alert"
+              className="text-sm text-red-800 dark:text-red-300"
+            >
               {confirmationError}
             </p>
           ) : null}
@@ -886,7 +890,7 @@ export function DaoProposalEligibility({
           className={cn(
             "rounded-box border p-3 text-sm leading-6",
             fullEpoch
-              ? "border-amber-300 bg-amber-50 text-amber-950"
+              ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
               : "border-border bg-surface-secondary text-text-secondary"
           )}
         >
@@ -981,7 +985,11 @@ function ForumStatus({
   }
   if (state.state === "invalid" || error) {
     return (
-      <div id="dao-forum-status" role="alert" className="text-sm text-red-800">
+      <div
+        id="dao-forum-status"
+        role="alert"
+        className="text-sm text-red-800 dark:text-red-300"
+      >
         {state.state === "invalid" ? (
           <p>
             <span className="font-number font-bold">{state.code}</span> · {state.message}
@@ -1092,7 +1100,11 @@ const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextFiel
         className={INPUT_CLASS_NAME}
         onChange={(event) => onChange(event.target.value)}
       />
-      {error ? <p id={errorId} className="text-sm text-red-800">{error}</p> : null}
+      {error ? (
+        <p id={errorId} className="text-sm text-red-800 dark:text-red-300">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 });
@@ -1144,7 +1156,11 @@ const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>(
         className={TEXTAREA_CLASS_NAME}
         onChange={(event) => onChange(event.target.value)}
       />
-      {error ? <p id={errorId} className="text-sm text-red-800">{error}</p> : null}
+      {error ? (
+        <p id={errorId} className="text-sm text-red-800 dark:text-red-300">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
   }
@@ -1205,7 +1221,11 @@ function SignalScriptSummary({ scriptCheck }: { scriptCheck: DaoScriptCheck }) {
 function ScriptStatus({ scriptCheck }: { scriptCheck: DaoScriptCheck }) {
   if (scriptCheck.state === "invalid") {
     return (
-      <div id="dao-script-status" role="alert" className="space-y-2 rounded-box border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+      <div
+        id="dao-script-status"
+        role="alert"
+        className="space-y-2 rounded-box border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100"
+      >
         <p className="font-bold">{scriptCheck.error?.message}</p>
         <dl className="grid gap-2 sm:grid-cols-2">
           <ReviewFact label={daoProposeCopy.script.errorCode} mono>
@@ -1385,8 +1405,10 @@ function StateNotice({
 }) {
   const styles = {
     success: "border-green-300 bg-green-50 text-green-950",
-    warning: "border-amber-300 bg-amber-50 text-amber-950",
-    error: "border-red-300 bg-red-50 text-red-950",
+    warning:
+      "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100",
+    error:
+      "border-red-300 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100",
   };
   return (
     <div role={tone === "error" ? "alert" : "status"} className={cn("rounded-box border p-4 text-sm", styles[tone])}>

@@ -157,6 +157,14 @@ export type DaoTestStateSnapshot = {
     votePurpose: string | null;
     canExecute: boolean;
   };
+  proposer: {
+    expectedVotingEpoch: string;
+    affectedBoostEpochs: Array<{
+      epoch: string;
+      currentProposalCount: number;
+      proposalLimit: number;
+    }>;
+  };
   executionGuard: DaoExecutionGuard;
   canonicalBlock: {
     number: string;

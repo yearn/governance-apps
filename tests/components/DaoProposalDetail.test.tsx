@@ -205,6 +205,29 @@ describe("DAO proposal detail", () => {
     expect(screen.queryByText(feed.generatedAt)).not.toBeInTheDocument();
   });
 
+  it("uses runtime time for lifecycle copy without rewriting snapshot provenance", () => {
+    const feed = structuredClone(DAO_MOCK_FEED);
+    const value = feed.proposals.find(
+      (entry) => entry.ref.proposalId === 2n
+    );
+    if (!value) throw new Error("Missing proposal #2.");
+
+    render(
+      <ProposalDetail
+        envelope={envelope(value, feed)}
+        now={feed.canonicalBlock.timestamp + 3_600}
+      />
+    );
+
+    expect(screen.getByText("Voting ends in 5 hours")).toBeVisible();
+    fireEvent.click(screen.getByText("Technical details", { exact: true }));
+    expect(
+      screen.getByText(formatUtcDateTime(feed.canonicalBlock.timestamp), {
+        exact: true,
+      })
+    ).toBeVisible();
+  });
+
   it("makes a script hash mismatch explicit", () => {
     render(
       <ProposalDetail envelope={envelope(proposal(19n))} />

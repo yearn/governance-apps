@@ -17,6 +17,7 @@ import {
 import {
   createDaoMockFeed,
   DAO_MOCK_NOW,
+  deriveDaoMockExpectedVotingEpoch,
   getDaoMockFixture,
 } from "./fixtures";
 import {
@@ -192,7 +193,7 @@ function normalizeStoreState(next: DaoMockStoreState): DaoMockStoreState {
     return { ...runtime, proposal: normalizedProposal };
   });
 
-  next.proposer.now = next.now;
+  synchronizeProposerEpochs(next.proposer, next.now);
   next.feed = {
     ...next.feed,
     generatedAt: new Date(next.now * 1_000).toISOString(),
@@ -249,21 +250,34 @@ function deriveMockCanonicalBlock(
   baseline: DaoMockStoreState["feed"]["canonicalBlock"],
   timestamp: number
 ): DaoMockStoreState["feed"]["canonicalBlock"] {
-  if (timestamp === baseline.timestamp) return cloneValue(baseline);
   const deltaSeconds = timestamp - baseline.timestamp;
-  const blockDelta = BigInt(Math.ceil(Math.abs(deltaSeconds) / 12));
-  const number =
-    deltaSeconds > 0
-      ? baseline.number + blockDelta
-      : baseline.number - blockDelta;
+  const blockDelta = BigInt(Math.floor(deltaSeconds / 12));
+  if (blockDelta === 0n) return cloneValue(baseline);
+  const number = baseline.number + blockDelta;
   if (number < 0n) {
     throw new Error("DAO mock canonical block number cannot be negative.");
   }
+  const canonicalTimestamp = baseline.timestamp + Number(blockDelta) * 12;
   return {
     number,
-    hash: fixedMockHex(number),
-    timestamp,
+    hash: deriveMockBlockHash(number, canonicalTimestamp),
+    timestamp: canonicalTimestamp,
   };
+}
+
+function synchronizeProposerEpochs(
+  proposer: DaoProposerEligibilityInput,
+  now: number
+) {
+  const expectedVotingEpoch = deriveDaoMockExpectedVotingEpoch(now);
+  proposer.now = now;
+  proposer.expectedVotingEpoch = expectedVotingEpoch;
+  proposer.affectedBoostEpochs = proposer.affectedBoostEpochs.map(
+    (affected, index) => ({
+      ...affected,
+      epoch: expectedVotingEpoch + BigInt(index),
+    })
+  );
 }
 
 function createAnchoredProposalRuntimes(now: number): DaoMockProposalRuntime[] {
@@ -493,7 +507,7 @@ export function syncDaoMockStoreToNow(timestamp: number = nowSeconds()) {
   return updateStore((current) => {
     current.now = timestamp;
     current.feed.canonicalBlock = deriveMockCanonicalBlock(
-      createDaoMockFeed().canonicalBlock,
+      current.feed.canonicalBlock,
       timestamp
     );
   });
@@ -940,7 +954,7 @@ export function indexDaoMockPendingAction() {
     current.feed.canonicalBlock = {
       number: event.log.blockNumber,
       hash: event.log.blockHash,
-      timestamp: current.now,
+      timestamp: current.feed.canonicalBlock.timestamp,
     };
     current.selectedFixtureId = null;
     current.pendingAction = null;
@@ -1153,7 +1167,10 @@ function createIndexedActionEvent(
   pending: DaoPendingAction
 ): DaoProposalEvent {
   const blockNumber = current.feed.canonicalBlock.number + 1n;
-  const blockHash = fixedMockHex(blockNumber);
+  const blockHash = deriveMockBlockHash(
+    blockNumber,
+    current.feed.canonicalBlock.timestamp
+  );
   return {
     type: pending.action,
     log: {
@@ -1181,8 +1198,10 @@ function createIndexedActionEvent(
   };
 }
 
-function fixedMockHex(value: bigint): Hex {
-  return `0x${value.toString(16).padStart(64, "0")}` as Hex;
+function deriveMockBlockHash(blockNumber: bigint, timestamp: number): Hex {
+  return keccak256(
+    stringToHex(`dao-mock-block:${blockNumber.toString()}:${timestamp}`)
+  );
 }
 
 export function readDaoMockFeed() {
@@ -1322,6 +1341,16 @@ export function createDaoTestBridgeAdapter(): DaoTestBridgeAdapter {
           canVote: account.capabilities.canVote,
           votePurpose: account.capabilities.votePurpose,
           canExecute: account.capabilities.canExecute,
+        },
+        proposer: {
+          expectedVotingEpoch: current.proposer.expectedVotingEpoch.toString(),
+          affectedBoostEpochs: current.proposer.affectedBoostEpochs.map(
+            ({ epoch, currentProposalCount, proposalLimit }) => ({
+              epoch: epoch.toString(),
+              currentProposalCount,
+              proposalLimit,
+            })
+          ),
         },
         executionGuard: current.executionGuard,
         canonicalBlock: {

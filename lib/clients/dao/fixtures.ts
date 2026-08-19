@@ -920,14 +920,18 @@ function createEvent(
   };
 }
 
-function createProposerInput(capacityFull: boolean): DaoProposerEligibilityInput {
-  const expectedVotingEpoch = deriveDaoProposalTiming({
+export function deriveDaoMockExpectedVotingEpoch(createdAt: number): bigint {
+  return deriveDaoProposalTiming({
     genesis: DAO_MOCK_GENESIS,
-    createdAt: DAO_MOCK_NOW,
+    createdAt,
     epochLengthSeconds: DAO_MOCK_EPOCH_LENGTH_SECONDS,
     voteStartOffsetSeconds: DAO_MOCK_VOTE_START_OFFSET_SECONDS,
     executionDelaySeconds: DAO_MOCK_EXECUTION_DELAY_SECONDS,
   }).votingEpoch;
+}
+
+function createProposerInput(capacityFull: boolean): DaoProposerEligibilityInput {
+  const expectedVotingEpoch = deriveDaoMockExpectedVotingEpoch(DAO_MOCK_NOW);
   const affectedBoostEpochs: DaoAffectedBoostEpoch[] = Array.from(
     { length: 6 },
     (_, index) => ({
