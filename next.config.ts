@@ -21,6 +21,7 @@ interface WebpackConfig {
 const sendNoIndexHeader = shouldSendNoIndexHeader();
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["dao-beta.dao-ops.com"],
   output: "standalone",
   async headers() {
     const headers = [

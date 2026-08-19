@@ -61,6 +61,15 @@ describe("resolveHeaderPrimaryNav", () => {
     });
   });
 
+  it("uses clean root navigation on the guarded DAO beta host", () => {
+    expect(
+      resolveHeaderPrimaryNav("/proposals/2", null, "dao-beta.dao-ops.com")
+    ).toEqual({
+      label: "DAO Governance",
+      path: "/",
+    });
+  });
+
   it("falls back to pathname when segment is unavailable", () => {
     expect(resolveHeaderPrimaryNav("/veyfi/portfolio", null)).toEqual({
       label: "veYFI",
@@ -128,6 +137,9 @@ describe("resolveHeaderAppKey", () => {
     );
     expect(resolveHeaderAppKey("/", null, "yeth-beta.dao-ops.com")).toBe(
       "yeth"
+    );
+    expect(resolveHeaderAppKey("/propose", null, "dao-beta.dao-ops.com")).toBe(
+      "dao"
     );
   });
 

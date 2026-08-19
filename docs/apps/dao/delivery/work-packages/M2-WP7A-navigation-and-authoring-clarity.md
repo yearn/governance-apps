@@ -66,10 +66,14 @@ local UAT reliability without crossing the mock-product boundary.
   production workflow hardcodes `NEXT_PUBLIC_ENABLE_DAO=false`. Register only
   the preproduction custom domain and route it through the existing governance
   host/header seams.
+- Treat the flag as a shared preproduction-deployment gate, not hostname-level
+  isolation: other hosts on that Worker may reach `/dao` while it is true.
+  `dao-beta` is unlisted and noindex, but is not access-controlled unless
+  Cloudflare Access or an equivalent layer is configured.
 - Permit the DAO route-local mock client in production runtime only for the
-  guarded DAO beta-host configuration. Keep the shared global mock, E2E, debug,
-  preview-runtime, and other domain mock paths disabled. Hide DAO mock controls
-  unless the shared debug UI is explicitly enabled.
+  guarded preproduction deployment configuration. Keep the shared global mock,
+  E2E, debug, preview-runtime, and other domain mock paths disabled. Hide DAO
+  mock controls unless the shared debug UI is explicitly enabled.
 - Add workflow, feature, host, route-local runtime, and operator verification
   coverage. The runbook must cover DNS/custom-domain setup, preproduction
   environment configuration, deploy verification, rollback, and proof that

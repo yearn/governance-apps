@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   DAO_MOCK_FEED,
   DAO_MOCK_NOW,
@@ -9,7 +9,40 @@ import {
   setDaoMockSurface,
 } from "@/lib/clients/dao";
 import { daoKeys } from "@/lib/hooks/daoKeys";
-import { useDaoFeed, useDaoProposal } from "@/lib/hooks/useDao";
+import {
+  getDaoRouteClient,
+  useDaoFeed,
+  useDaoProposal,
+} from "@/lib/hooks/useDao";
+
+const originalRuntimeMode = process.env.NEXT_PUBLIC_RUNTIME_MODE;
+const originalDaoFlag = process.env.NEXT_PUBLIC_ENABLE_DAO;
+
+afterEach(() => {
+  process.env.NEXT_PUBLIC_RUNTIME_MODE = originalRuntimeMode;
+  process.env.NEXT_PUBLIC_ENABLE_DAO = originalDaoFlag;
+});
+
+describe("DAO production-mode mock-beta gate", () => {
+  it("refuses route-local mock reads while the DAO flag is false", () => {
+    process.env.NEXT_PUBLIC_RUNTIME_MODE = "production";
+    process.env.NEXT_PUBLIC_ENABLE_DAO = "false";
+
+    expect(() => getDaoRouteClient()).toThrow(
+      "DAO mock reads are unavailable when the DAO route is disabled."
+    );
+  });
+
+  it("hydrates deterministic route-local data when the DAO flag is true", async () => {
+    process.env.NEXT_PUBLIC_RUNTIME_MODE = "production";
+    process.env.NEXT_PUBLIC_ENABLE_DAO = "true";
+
+    await expect(getDaoRouteClient().getFeed()).resolves.toMatchObject({
+      schemaVersion: DAO_MOCK_FEED.schemaVersion,
+      chainId: DAO_MOCK_FEED.chainId,
+    });
+  });
+});
 
 describe("useDaoProposal", () => {
   beforeEach(() => {

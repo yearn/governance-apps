@@ -7,6 +7,10 @@ Branch: `agent/dao/m7/wp18`
 Validate the accepted system in preproduction, prepare monitoring and rollback,
 and expose production only after explicit approval.
 
+The M2 WP7A host is only an unaccepted, mock-backed review seam. This package
+must revalidate beta with the accepted live feed, forum/IPFS, wallet-write, and
+onchain system; it does not inherit mock-beta evidence as launch evidence.
+
 ## Depends on
 
 - User-accepted M6 fork evidence.

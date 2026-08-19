@@ -113,6 +113,9 @@ Production invariants (enforced when runtime mode resolves to `production`):
 
 Feature gating in production:
 
+- `NEXT_PUBLIC_ENABLE_DAO=true` is a temporary route-local mock exception for
+  the unaccepted internal preproduction review only. Public production
+  hardcodes it false; global mocks, E2E, and debug UI remain disabled.
 - `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Teams route/host.
 - `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC route/host.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH route/host.
@@ -129,6 +132,9 @@ Canonical discoverability metadata:
 - Only approved public production hosts publish sitemap entries. stYFI and veYFI are currently approved; Teams, YBC, and yETH remain excluded until their rollout decisions change.
 - Approved hosts publish a concise, host-specific `/llms.txt` generated from the same registry. It contains stable descriptions and canonical links only, avoiding live protocol values that could become stale.
 - Non-public, preview, local, and not-yet-approved hosts receive `X-Robots-Tag: noindex, nofollow`.
+- `dao-beta.dao-ops.com` remains noncanonical, noindex, and absent from sitemap
+  and `llms.txt`. Its custom domain is not an authentication boundary; use
+  Cloudflare Access separately when restricted access is required.
 - `robots.txt` leaves Next.js JavaScript and CSS assets crawlable while excluding API and debug routes.
 
 ## 4. Transaction Safety Controls

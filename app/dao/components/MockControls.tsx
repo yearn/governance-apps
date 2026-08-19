@@ -24,6 +24,7 @@ import {
   type DaoMockVetoState,
 } from "@/lib/clients/dao";
 import { useDaoDebugActions, useDaoMockRuntime } from "@/lib/hooks/useDao";
+import { isDebugUiEnabled } from "@/lib/runtime/features";
 import { daoCopy } from "../messages";
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
@@ -121,7 +122,7 @@ export function MockControls() {
   const runtime = useDaoMockRuntime();
   const actions = useDaoDebugActions();
 
-  if (!runtime) return null;
+  if (!isDebugUiEnabled() || !runtime) return null;
 
   const selectedProposal = runtime.feed.proposals.find(
     (proposal) => proposal.ref.proposalId === runtime.selectedProposalId

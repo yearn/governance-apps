@@ -35,6 +35,9 @@ describe("resolveGovernanceLinkSurface", () => {
     expect(resolveGovernanceLinkSurface("veyfi-beta.dao-ops.com")).toBe(
       "preprod-subdomain"
     );
+    expect(resolveGovernanceLinkSurface("dao-beta.dao-ops.com")).toBe(
+      "preprod-subdomain"
+    );
   });
 
   it("returns prod-subdomain for yearn subdomains", () => {

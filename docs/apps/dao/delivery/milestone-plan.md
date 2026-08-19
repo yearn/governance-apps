@@ -30,6 +30,8 @@ Exit checks:
 - raw-script authoring covers fixed parser vectors;
 - no-quorum and signal copy is accepted;
 - phone, tablet, desktop, keyboard, and focus reviews pass;
+- optional internal review uses a noncanonical, noindex mock-beta host while
+  public production remains hard-disabled;
 - user accepts the mock experience.
 
 ## M3: feed and backend analysis
@@ -86,6 +88,7 @@ Exit checks:
 
 ## M7: controlled rollout
 
-Validate shared-host and beta behavior, configure monitoring and rollback, then
-expose `dao.yearn.fi` only after production approval. Update stYFI Snapshot links
-as an explicit cutover step, not earlier.
+Revalidate shared-host and beta behavior against the accepted live feed/write
+system, verify M4 removed the temporary mock-beta exception, configure
+monitoring and rollback, then expose `dao.yearn.fi` only after production
+approval. Update stYFI Snapshot links as an explicit cutover step, not earlier.

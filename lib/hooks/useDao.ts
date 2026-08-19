@@ -49,15 +49,17 @@ import {
   type DaoVoteDirection,
 } from "@/lib/clients/dao";
 import { daoKeys } from "@/lib/hooks/daoKeys";
-import { isProductionRuntime } from "@/lib/runtime/features";
+import { isDaoMockRuntimeEnabled } from "@/lib/runtime/features";
 import { useTx } from "@/lib/tx/useTx";
 import type { PreparedTransaction } from "@/lib/tx/types";
 
 let mockClient: DaoClient | null = null;
 
-function getDaoRouteClient(): DaoClient {
-  if (isProductionRuntime()) {
-    throw new Error("DAO mock reads are unavailable in production runtime.");
+export function getDaoRouteClient(): DaoClient {
+  if (!isDaoMockRuntimeEnabled()) {
+    throw new Error(
+      "DAO mock reads are unavailable when the DAO route is disabled."
+    );
   }
 
   mockClient ??= createRuntimeMockDaoClient({ latencyMs: 250 });
@@ -68,7 +70,7 @@ const subscribeNoop = () => () => undefined;
 const getNullSnapshot = () => null;
 
 export function useDaoMockRuntime(enabled = true): DaoMockRuntimeSnapshot | null {
-  const mockRuntimeEnabled = enabled && !isProductionRuntime();
+  const mockRuntimeEnabled = enabled && isDaoMockRuntimeEnabled();
   return useSyncExternalStore(
     mockRuntimeEnabled ? subscribeDaoMockStore : subscribeNoop,
     mockRuntimeEnabled ? getDaoMockSnapshot : getNullSnapshot,
