@@ -15,6 +15,7 @@ export const daoCopy = {
     forum: "Discussion forum",
     forumHref: "https://gov.yearn.fi/",
     forumAccessibleLabel: "Open the Yearn discussion forum in a new tab",
+    hierarchyLabel: "Proposal hierarchy",
   },
   wallet: {
     disconnectedTitle: "Wallet not connected",
@@ -24,8 +25,8 @@ export const daoCopy = {
       "Connect a wallet from the header to check whether you can create a proposal.",
   },
   board: {
-    title: "Proposal board",
-    description: "Review active, upcoming, and closed proposals.",
+    title: "Proposals",
+    description: "Review upcoming, active, and closed DAO decisions.",
     available: (count: number) =>
       `${count} ${count === 1 ? "proposal is" : "proposals are"} available.`,
     loading: "Loading proposal data",

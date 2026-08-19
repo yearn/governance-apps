@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ProposalBoard } from "@/app/dao/components/ProposalBoard";
 import { DAO_MOCK_FEED, type DaoDisplayGroup } from "@/lib/clients/dao";
 
@@ -10,9 +10,6 @@ describe("DAO proposal board", () => {
   it("renders domain-provided active proposals with scanning facts", () => {
     render(<ProposalBoard now={now} proposals={DAO_MOCK_FEED.proposals} />);
 
-    expect(
-      screen.getByRole("heading", { name: "Proposal board" })
-    ).toBeVisible();
     const activeTab = screen.getByRole("tab", { name: /Active/ });
     expect(activeTab).toHaveAttribute("aria-selected", "true");
 
@@ -37,9 +34,17 @@ describe("DAO proposal board", () => {
   it("switches Upcoming and Closed with mouse and keyboard tab semantics", () => {
     render(<ProposalBoard now={now} proposals={DAO_MOCK_FEED.proposals} />);
 
+    expect(
+      screen.getAllByRole("tab").map((tab) => tab.textContent?.trim())
+    ).toEqual([
+      `Upcoming${countFor("upcoming")}`,
+      `Active${countFor("active")}`,
+      `Closed${countFor("closed")}`,
+    ]);
+
     const activeTab = screen.getByRole("tab", { name: /Active/ });
     activeTab.focus();
-    fireEvent.keyDown(activeTab, { key: "ArrowRight" });
+    fireEvent.keyDown(activeTab, { key: "ArrowLeft" });
 
     const upcomingTab = screen.getByRole("tab", { name: /Upcoming/ });
     expect(upcomingTab).toHaveFocus();
@@ -52,7 +57,7 @@ describe("DAO proposal board", () => {
       within(upcomingPanel).getByRole("link", {
         name: /Adopt the contributor budget policy/,
       })
-    ).toHaveAttribute("href", "/dao/proposals/1");
+    ).toHaveAttribute("href", "/dao/proposals/1?from=upcoming");
 
     fireEvent.click(screen.getByRole("tab", { name: /Closed/ }));
     const closedPanel = screen.getByRole("tabpanel", { name: /Closed/ });
@@ -85,7 +90,7 @@ describe("DAO proposal board", () => {
       within(unavailable).getByRole("link", {
         name: /Open proposal #14/,
       })
-    ).toHaveAttribute("href", "/dao/proposals/14");
+    ).toHaveAttribute("href", "/dao/proposals/14?from=active");
 
     const invalid = screen.getByRole("article", {
       name: /Proposal #15/,
@@ -120,10 +125,18 @@ describe("DAO proposal board", () => {
 
   it("offers keyboard-operable lifecycle shortcuts when Active is empty", async () => {
     const user = userEvent.setup();
+    const onSelectGroup = vi.fn();
     const proposals = DAO_MOCK_FEED.proposals.filter(
       (proposal) => proposal.displayGroup !== "active"
     );
-    render(<ProposalBoard now={now} proposals={proposals} />);
+    render(
+      <ProposalBoard
+        now={now}
+        proposals={proposals}
+        selectedGroup="active"
+        onSelectGroup={onSelectGroup}
+      />
+    );
 
     expect(
       screen.getByRole("heading", { name: "No active proposals" })
@@ -156,21 +169,14 @@ describe("DAO proposal board", () => {
 
     upcoming.focus();
     await user.keyboard("{Enter}");
-    expect(screen.getByRole("tab", { name: /Upcoming/ })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
+    expect(onSelectGroup).toHaveBeenCalledWith("upcoming");
 
-    fireEvent.click(screen.getByRole("tab", { name: /Active/ }));
     const refreshedClosed = screen.getByRole("button", {
       name: /View closed proposals/,
     });
     refreshedClosed.focus();
     await user.keyboard("[Space]");
-    expect(screen.getByRole("tab", { name: /Closed/ })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
+    expect(onSelectGroup).toHaveBeenCalledWith("closed");
   });
 
   it("omits next-vote timing when no upcoming proposal supplies one", () => {
@@ -180,6 +186,7 @@ describe("DAO proposal board", () => {
         proposals={DAO_MOCK_FEED.proposals.filter(
           (proposal) => proposal.displayGroup === "closed"
         )}
+        selectedGroup="active"
       />
     );
 
@@ -187,6 +194,71 @@ describe("DAO proposal board", () => {
       screen.getByRole("button", { name: /View upcoming proposals/ })
     ).toBeVisible();
     expect(screen.queryByText("Next scheduled vote")).not.toBeInTheDocument();
+  });
+
+  it("defaults to the first populated fallback when Active is absent", () => {
+    render(
+      <ProposalBoard
+        now={now}
+        proposals={DAO_MOCK_FEED.proposals.filter(
+          (proposal) => proposal.displayGroup !== "active"
+        )}
+      />
+    );
+
+    expect(screen.getByRole("tab", { name: /Upcoming/ })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+  });
+
+  it("uses a stretched native row link while nested address controls stay independent", () => {
+    render(
+      <ProposalBoard
+        now={now}
+        proposals={DAO_MOCK_FEED.proposals}
+        selectedGroup="active"
+      />
+    );
+
+    const openLink = screen.getByRole("link", {
+      name: /Open proposal #2: Fund protocol research/,
+    });
+    const row = openLink.closest("article");
+    expect(row).not.toBeNull();
+    expect(row).toHaveClass("relative", "cursor-pointer");
+    expect(row).not.toHaveAttribute("role");
+    expect(row).not.toHaveAttribute("tabindex");
+    expect(openLink).toHaveAttribute(
+      "href",
+      "/dao/proposals/2?from=active"
+    );
+    expect(openLink.className).toContain("after:absolute");
+
+    const explorerLink = within(row!).getByRole("link", {
+      name: /View Ethereum address .* on Etherscan/,
+    });
+    expect(explorerLink.closest("span.relative.z-10")).not.toBeNull();
+    expect(
+      within(row!).getByRole("button", { name: "Copy proposed by" })
+    ).toBeEnabled();
+  });
+
+  it("uses clean proposal paths on the guarded DAO beta host", () => {
+    render(
+      <ProposalBoard
+        hostname="dao-beta.dao-ops.com"
+        now={now}
+        proposals={DAO_MOCK_FEED.proposals}
+        selectedGroup="active"
+      />
+    );
+
+    expect(
+      screen.getByRole("link", {
+        name: /Open proposal #2: Fund protocol research/,
+      })
+    ).toHaveAttribute("href", "/proposals/2?from=active");
   });
 });
 

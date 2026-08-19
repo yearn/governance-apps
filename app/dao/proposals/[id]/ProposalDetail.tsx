@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { AddressLink, TransactionLink } from "@/components/ui/ExplorerLink";
@@ -22,7 +21,10 @@ import {
 } from "@/lib/clients/dao";
 import { getButtonClassName } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { daoRouteControlClassName } from "../../components/DaoRouteFrame";
+import {
+  DaoBreadcrumbs,
+  daoRouteControlClassName,
+} from "../../components/DaoRouteFrame";
 import {
   ProposalStatusBadge,
   ProposalTiming,
@@ -30,34 +32,50 @@ import {
   ProposalVoteSummary,
 } from "../../components/ProposalReadPrimitives";
 import { daoCopy } from "../../messages";
+import {
+  createDaoBoardGroupHref,
+  createDaoRootHref,
+  resolveDaoProposalOrigin,
+} from "../../route-state";
 
 export function ProposalDetail({
   actionPanel = null,
   envelope,
+  hostname,
   now: runtimeNow,
+  requestedOrigin = null,
 }: {
   actionPanel?: React.ReactNode;
   envelope: DaoProposalReadEnvelope;
+  hostname?: string;
   now?: number;
+  requestedOrigin?: string | null;
 }) {
   const { feed, proposal } = envelope;
   const now = runtimeNow ?? feed.canonicalBlock.timestamp;
   const proposalId = proposal.ref.proposalId.toString();
   const title = proposal.content.value?.title ?? daoCopy.detail.eyebrow(proposalId);
   const summary = proposal.content.value?.summary;
+  const origin = resolveDaoProposalOrigin(
+    requestedOrigin,
+    proposal.displayGroup
+  );
 
   return (
     <article className="min-w-0 space-y-5">
-      <Link
-        href="/dao"
-        className={getButtonClassName({
-          variant: "ghost",
-          size: "sm",
-          className: `${daoRouteControlClassName} -ml-3`,
-        })}
-      >
-        {daoCopy.detail.backToBoard}
-      </Link>
+      <DaoBreadcrumbs
+        items={[
+          {
+            href: createDaoRootHref(hostname),
+            label: daoCopy.navigation.proposals,
+          },
+          {
+            href: createDaoBoardGroupHref("/dao", origin, hostname),
+            label: daoCopy.board.filters[origin],
+          },
+          { label: title },
+        ]}
+      />
 
       <Card className="min-w-0 space-y-5 overflow-hidden">
         <div className="min-w-0 space-y-3">
@@ -68,9 +86,9 @@ export function ProposalDetail({
             <ProposalStatusBadge status={proposal.displayStatus} />
             <ProposalTypeBadge proposal={proposal} />
           </div>
-          <h2 className="text-balance text-2xl font-bold md:text-4xl">
+          <h1 className="text-balance text-2xl font-bold md:text-4xl">
             {title}
-          </h2>
+          </h1>
           {summary ? (
             <p className="max-w-3xl text-pretty text-base leading-7 text-text-secondary">
               {summary}

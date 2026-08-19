@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useAccount } from "wagmi";
 import {
   serializeDaoProposalRef,
   type DaoProposalReadEnvelope,
@@ -10,17 +9,23 @@ import { Card } from "@/components/ui/Card";
 import { getButtonClassName } from "@/components/ui/Button";
 import Link from "next/link";
 import { useDaoMockRuntime, useDaoProposal } from "@/lib/hooks/useDao";
+import { useHostname } from "@/lib/hooks/useHostname";
 import {
   DaoErrorPanel,
+  DaoBreadcrumbs,
   DaoLoadingPanel,
   DaoRouteFrame,
-  DaoWalletNotice,
   daoRouteControlClassName,
 } from "../../components/DaoRouteFrame";
 import { daoCopy } from "../../messages";
 import { MockControls } from "../../components/MockControls";
 import { ProposalDetail } from "./ProposalDetail";
 import { DaoProposalActionPanel } from "./DaoProposalActionPanel";
+import {
+  createDaoBoardGroupHref,
+  createDaoRootHref,
+  isDaoDisplayGroup,
+} from "../../route-state";
 
 export type DaoProposalRouteState =
   | "loading"
@@ -31,13 +36,18 @@ export type DaoProposalRouteState =
 const PROPOSAL_EYEBROW_CLASS_NAME =
   "min-w-0 max-w-full break-words font-number text-xs font-bold tabular-nums text-text-secondary [overflow-wrap:anywhere]";
 
-export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
-  const { isConnected } = useAccount();
+export function DaoProposalPageClient({
+  initialHostname,
+  proposalId,
+  requestedOrigin = null,
+}: {
+  initialHostname?: string;
+  proposalId: string;
+  requestedOrigin?: string | null;
+}) {
+  const browserHostname = useHostname();
+  const hostname = browserHostname ?? initialHostname;
   const runtime = useDaoMockRuntime();
-  const hasConnectedAccount =
-    process.env.NEXT_PUBLIC_E2E === "true" && runtime
-      ? runtime.account.connected
-      : isConnected;
   const proposalQuery = useDaoProposal(proposalId);
   const envelope = proposalQuery.envelope;
   const state: DaoProposalRouteState = proposalQuery.isPending
@@ -60,12 +70,13 @@ export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
           ) : null
         }
         envelope={envelope}
-        isConnected={hasConnectedAccount}
+        hostname={hostname}
         now={runtime?.now ?? envelope?.feed.canonicalBlock.timestamp ?? 0}
         onRetry={() => {
           void proposalQuery.refetch();
         }}
         proposalId={proposalId}
+        requestedOrigin={requestedOrigin}
         state={state}
       />
       <MockControls />
@@ -76,23 +87,54 @@ export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
 export function DaoProposalView({
   actionPanel = null,
   envelope,
-  isConnected,
+  hostname,
   now,
   onRetry,
   proposalId,
+  requestedOrigin = null,
   state,
 }: {
   actionPanel?: ReactNode;
   envelope: DaoProposalReadEnvelope | null;
-  isConnected: boolean;
+  hostname?: string;
   now?: number;
   onRetry: () => void;
   proposalId: string;
+  requestedOrigin?: string | null;
   state: DaoProposalRouteState;
 }) {
   return (
-    <DaoRouteFrame current="proposals">
-      {!isConnected ? <DaoWalletNotice /> : null}
+    <DaoRouteFrame>
+      {state !== "ready" ? (
+        <header className="space-y-2 border-b border-border pb-6">
+          <DaoBreadcrumbs
+            items={[
+              {
+                href: createDaoRootHref(hostname),
+                label: daoCopy.navigation.proposals,
+              },
+              ...(isDaoDisplayGroup(requestedOrigin)
+                ? [
+                    {
+                      href: createDaoBoardGroupHref(
+                        "/dao",
+                        requestedOrigin,
+                        hostname
+                      ),
+                      label: daoCopy.board.filters[requestedOrigin],
+                    },
+                  ]
+                : []),
+              { label: daoCopy.detail.eyebrow(proposalId) },
+            ]}
+          />
+          <h1 className="text-balance text-3xl font-bold md:text-4xl">
+            {state === "not_found"
+              ? daoCopy.detail.notFoundTitle
+              : daoCopy.detail.eyebrow(proposalId)}
+          </h1>
+        </header>
+      ) : null}
 
       {state === "loading" ? (
         <DaoLoadingPanel message={daoCopy.detail.loading} />
@@ -113,15 +155,12 @@ export function DaoProposalView({
             <p className={PROPOSAL_EYEBROW_CLASS_NAME}>
               {daoCopy.detail.eyebrow(proposalId)}
             </p>
-            <h2 className="text-balance text-xl font-bold">
-              {daoCopy.detail.notFoundTitle}
-            </h2>
             <p className="max-w-2xl text-pretty text-sm leading-6 text-text-secondary">
               {daoCopy.detail.notFoundBody}
             </p>
           </div>
           <Link
-            href="/dao"
+            href={createDaoRootHref(hostname)}
             className={getButtonClassName({
               variant: "secondary",
               size: "sm",
@@ -137,7 +176,9 @@ export function DaoProposalView({
         <ProposalDetail
           actionPanel={actionPanel}
           envelope={envelope}
+          hostname={hostname}
           now={now}
+          requestedOrigin={requestedOrigin}
         />
       ) : null}
     </DaoRouteFrame>

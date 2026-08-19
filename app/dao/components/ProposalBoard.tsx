@@ -11,6 +11,12 @@ import type {
   DaoDisplayGroup,
   DaoProposal,
 } from "@/lib/clients/dao";
+import {
+  createDaoProposalHref,
+  DAO_BOARD_GROUPS,
+  parseDaoBoardGroup,
+  type DaoBoardGroupCounts,
+} from "../route-state";
 import { daoCopy } from "../messages";
 import styles from "./ProposalBoard.module.css";
 import {
@@ -20,26 +26,37 @@ import {
   ProposalVoteSummary,
 } from "./ProposalReadPrimitives";
 
-const FILTERS: DaoDisplayGroup[] = ["active", "upcoming", "closed"];
-
 export function ProposalBoard({
+  hostname,
   now,
+  onSelectGroup,
   proposals,
+  selectedGroup,
 }: {
+  hostname?: string;
   now: number;
+  onSelectGroup?: (group: DaoDisplayGroup) => void;
   proposals: DaoProposal[];
+  selectedGroup?: DaoDisplayGroup;
 }) {
-  const [filter, setFilter] = useState<DaoDisplayGroup>("active");
-  const counts = useMemo(
+  const counts = useMemo<DaoBoardGroupCounts>(
     () =>
       Object.fromEntries(
-        FILTERS.map((group) => [
+        DAO_BOARD_GROUPS.map((group) => [
           group,
           proposals.filter((proposal) => proposal.displayGroup === group).length,
         ])
-      ) as Record<DaoDisplayGroup, number>,
+      ) as DaoBoardGroupCounts,
     [proposals]
   );
+  const fallbackGroup = parseDaoBoardGroup("/dao", counts);
+  const [localGroup, setLocalGroup] =
+    useState<DaoDisplayGroup>(fallbackGroup);
+  const filter = selectedGroup ?? localGroup;
+  const selectGroup = (group: DaoDisplayGroup) => {
+    if (selectedGroup === undefined) setLocalGroup(group);
+    onSelectGroup?.(group);
+  };
   const filteredProposals = useMemo(
     () =>
       proposals
@@ -59,44 +76,29 @@ export function ProposalBoard({
   }, [proposals]);
 
   return (
-    <section aria-labelledby="dao-proposal-board-title" className="space-y-5">
-      <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="min-w-0 space-y-2">
-          <h2
-            id="dao-proposal-board-title"
-            className="text-balance text-2xl font-bold md:text-3xl"
-          >
-            {daoCopy.board.title}
-          </h2>
-          <p className="max-w-2xl text-pretty text-sm leading-6 text-text-secondary">
-            {daoCopy.board.description}
-          </p>
-          <p className="font-number text-xs tabular-nums text-text-secondary">
-            {daoCopy.board.available(proposals.length)}
-          </p>
-        </div>
-
-        <div className="max-w-full overflow-x-auto pb-1">
-          <Tabs
-            aria-label={daoCopy.board.filterLabel}
-            activeTab={filter}
-            onChange={(nextFilter) => {
-              if (isDaoDisplayGroup(nextFilter)) setFilter(nextFilter);
-            }}
-            getPanelId={(id) => `dao-proposals-${id}`}
-            getTabId={(id) => `dao-proposals-${id}-tab`}
-            className={styles.filterTabs}
-            tabs={FILTERS.map((group) => ({
-              id: group,
-              label: daoCopy.board.filters[group],
-              badge: (
-                <span className="font-number text-[11px] tabular-nums">
-                  {counts[group]}
-                </span>
-              ),
-            }))}
-          />
-        </div>
+    <section aria-label={daoCopy.board.title} className="space-y-5">
+      <div className="max-w-full overflow-x-auto pb-1">
+        <Tabs
+          aria-label={daoCopy.board.filterLabel}
+          activeTab={filter}
+          onChange={(nextFilter) => {
+            if (DAO_BOARD_GROUPS.some((group) => group === nextFilter)) {
+              selectGroup(nextFilter as DaoDisplayGroup);
+            }
+          }}
+          getPanelId={(id) => `dao-proposals-${id}`}
+          getTabId={(id) => `dao-proposals-${id}-tab`}
+          className={styles.filterTabs}
+          tabs={DAO_BOARD_GROUPS.map((group) => ({
+            id: group,
+            label: daoCopy.board.filters[group],
+            badge: (
+              <span className="font-number text-[11px] tabular-nums">
+                {counts[group]}
+              </span>
+            ),
+          }))}
+        />
       </div>
 
       <div
@@ -119,6 +121,8 @@ export function ProposalBoard({
                 key={`${proposal.ref.votingAddress}:${proposal.ref.proposalId.toString()}`}
                 now={now}
                 proposal={proposal}
+                origin={filter}
+                hostname={hostname}
               />
             ))}
           </Card>
@@ -127,7 +131,7 @@ export function ProposalBoard({
             counts={counts}
             earliestUpcomingVote={earliestUpcomingVote}
             filter={filter}
-            onSelect={setFilter}
+            onSelect={selectGroup}
           />
         )}
       </div>
@@ -136,10 +140,14 @@ export function ProposalBoard({
 }
 
 function ProposalBoardRow({
+  hostname,
   now,
+  origin,
   proposal,
 }: {
+  hostname?: string;
   now: number;
+  origin: DaoDisplayGroup;
   proposal: DaoProposal;
 }) {
   const proposalId = proposal.ref.proposalId.toString();
@@ -148,7 +156,7 @@ function ProposalBoardRow({
   return (
     <article
       aria-labelledby={`dao-proposal-${proposalId}-title`}
-      className="min-w-0 p-4 transition-[background-color] duration-150 ease-out hover:bg-surface-secondary/40 motion-reduce:transition-none md:p-5"
+      className="relative min-w-0 cursor-pointer p-4 transition-[background-color] duration-150 ease-out hover:bg-surface-secondary/40 motion-reduce:transition-none md:p-5"
     >
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,21rem)] lg:items-center">
         <div className="min-w-0 space-y-3">
@@ -171,9 +179,9 @@ function ProposalBoardRow({
               className="text-balance text-lg font-bold md:text-xl"
             >
               <Link
-                href={`/dao/proposals/${proposalId}`}
+                href={createDaoProposalHref(proposalId, origin, hostname)}
                 aria-label={daoCopy.board.proposalLink(proposalId, title)}
-                className="inline-flex min-h-10 max-w-full items-center rounded py-1 text-left transition-[color] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:hover:text-blue-300"
+                className="inline-flex min-h-10 max-w-full items-center rounded py-1 text-left transition-[color] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:after:absolute focus-visible:after:inset-0 focus-visible:after:rounded-box focus-visible:after:ring-2 focus-visible:after:ring-text-primary focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-app after:absolute after:inset-0 after:rounded-box after:content-[''] motion-reduce:transition-none dark:hover:text-blue-300"
               >
                 <span className="break-words [overflow-wrap:anywhere]">{title}</span>
               </Link>
@@ -187,7 +195,7 @@ function ProposalBoardRow({
                 address={proposal.proposer}
                 variant="compact"
                 copyLabel={daoCopy.detail.copyValue(daoCopy.board.proposer)}
-                className="min-w-0"
+                className="relative z-10 min-w-0"
               />
             </span>
             <DiscussionState proposal={proposal} />
@@ -298,8 +306,4 @@ function FilteredEmptyState({
       )}
     </Card>
   );
-}
-
-function isDaoDisplayGroup(value: string): value is DaoDisplayGroup {
-  return FILTERS.some((group) => group === value);
 }

@@ -81,9 +81,25 @@ describe("DAO proposal authoring form", () => {
     expect(screen.getByText("Exact proposal title")).toBeVisible();
     expect(screen.getByText("Exact summary")).toBeVisible();
     expect(screen.getByText("Exact specification")).toBeVisible();
+    const submissionSteps = screen.getByRole("region", {
+      name: "Submission steps",
+    });
+    expect(within(submissionSteps).getByText("Current")).toBeVisible();
+    expect(within(submissionSteps).getByText("Upcoming")).toBeVisible();
+    expect(
+      within(submissionSteps).getByText(/Two actions are required/i)
+    ).toBeVisible();
+    expect(
+      within(submissionSteps).getByText(
+        /does not create the proposal or open your wallet/i
+      )
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Create onchain proposal" })
+    ).not.toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", { name: "Publish proposal content" })
+      screen.getByRole("button", { name: "Publish immutable content" })
     );
     expect(
       screen.getByText("Confirm the exact review before publication.")
@@ -95,22 +111,33 @@ describe("DAO proposal authoring form", () => {
       })
     );
     await user.click(
-      screen.getByRole("button", { name: "Publish proposal content" })
+      screen.getByRole("button", { name: "Publish immutable content" })
     );
 
+    expect(await screen.findByText("Immutable content published")).toBeVisible();
+    const proposalStep = await screen.findByRole("heading", {
+      name: "Content published — proposal not created yet",
+    });
+    expect(proposalStep).toHaveFocus();
+    const proposalStepRegion = proposalStep.closest("section");
+    expect(proposalStepRegion).not.toBeNull();
     expect(
-      await screen.findByText("Proposal content published")
+      within(proposalStepRegion!).getByText(/does not require republishing/i)
     ).toBeVisible();
-    expect(screen.getByText("The wallet step has not started yet.", { exact: false })).toBeVisible();
     await user.click(
       screen.getByRole("button", { name: "Create onchain proposal" })
     );
+    const completionHeading = await screen.findByRole("heading", {
+      name: "Proposal transaction submitted",
+    });
+    expect(completionHeading).toBeVisible();
+    expect(completionHeading).toHaveFocus();
     expect(
-      await screen.findByText("Proposal transaction submitted")
+      screen.getByText("Awaiting proposal indexing and analysis")
     ).toBeVisible();
-    expect(
-      screen.getByText(/Waiting for proposal indexing and backend decoding/i)
-    ).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Awaiting proposal indexing and analysis."
+    );
   });
 
   it("locks the exact review throughout publication and exposes complete forum facts", async () => {
@@ -151,14 +178,14 @@ describe("DAO proposal authoring form", () => {
       })
     );
     await user.click(
-      screen.getByRole("button", { name: "Publish proposal content" })
+      screen.getByRole("button", { name: "Publish immutable content" })
     );
 
     expect(
-      screen.getByRole("button", { name: "Publishing proposal content" })
+      screen.getByRole("button", { name: "Publishing immutable content" })
     ).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("status", { name: "" })).toHaveTextContent(
-      "Publishing proposal content"
+      "Publishing immutable content"
     );
     const edit = screen.getByRole("button", { name: "Edit proposal" });
     expect(edit).toBeDisabled();
@@ -169,7 +196,7 @@ describe("DAO proposal authoring form", () => {
       screen.getByRole("heading", { name: "Review the exact proposal" })
     ).toBeVisible();
 
-    expect(await screen.findByText("Proposal content published")).toBeVisible();
+    expect(await screen.findByText("Immutable content published")).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit proposal" })).toBeDisabled();
     expect(exactTitleValue.textContent).toBe(exactTitle);
   });
@@ -185,7 +212,7 @@ describe("DAO proposal authoring form", () => {
       })
     );
     await user.click(
-      screen.getByRole("button", { name: "Publish proposal content" })
+      screen.getByRole("button", { name: "Publish immutable content" })
     );
 
     expect(
@@ -228,15 +255,15 @@ describe("DAO proposal authoring form", () => {
       })
     );
     await user.click(
-      screen.getByRole("button", { name: "Publish proposal content" })
+      screen.getByRole("button", { name: "Publish immutable content" })
     );
-    await screen.findByText("Proposal content published");
+    await screen.findByText("Immutable content published");
     await user.click(
       screen.getByRole("button", { name: "Create onchain proposal" })
     );
 
     expect(await screen.findByText(title)).toBeVisible();
-    expect(screen.getByText("Proposal content published")).toBeVisible();
+    expect(screen.getByText("Immutable content published")).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Retry proposal creation" })
     ).toBeEnabled();
@@ -257,7 +284,11 @@ describe("DAO proposal eligibility presentation", () => {
     expect(screen.getByText("Current weight")).toBeVisible();
     expect(screen.getByText("Minimum weight")).toBeVisible();
     expect(screen.getByText("Expected voting epoch")).toBeVisible();
-    expect(screen.getAllByRole("row")).toHaveLength(7);
+    expect(screen.getByText("Affected reward epochs")).toBeVisible();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/capacity has room/i)
+    ).not.toBeInTheDocument();
   });
 
   it("names full reward capacity as a shared system rule, not a user quota", () => {
@@ -273,9 +304,13 @@ describe("DAO proposal eligibility presentation", () => {
     );
 
     expect(
-      screen.getByText(/Proposal capacity is full\. Reward epoch 203/i)
-    ).toHaveTextContent("system-wide capacity, not a per-user quota");
-    expect(screen.getByText("64 / 64")).toBeVisible();
+      screen.getByText("Proposal capacity is full in reward epoch 203.")
+    ).toBeVisible();
+    expect(
+      screen.getByText(/shared system-wide; it is not a per-user quota/i)
+    ).toHaveTextContent("reward epochs 201–206");
+    expect(screen.getByText("64 / 64 proposals")).toBeVisible();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
   it("shows the authoritative disconnected fact and keeps wallet priority", () => {

@@ -31,9 +31,13 @@ test("authors, reviews, publishes, and submits a Signal proposal", async ({
   await expect(
     page.getByText(/Backend decoding and simulation follow submission/i)
   ).toBeVisible();
+  const steps = page.getByRole("region", { name: "Submission steps" });
+  await expect(steps.getByText(/Two actions are required/i)).toBeVisible();
+  await expect(steps.getByText("Current")).toBeVisible();
+  await expect(steps.getByText("Upcoming")).toBeVisible();
 
   const publish = page.getByRole("button", {
-    name: "Publish proposal content",
+    name: "Publish immutable content",
   });
   await expectMinimumHitArea(publish);
   await page
@@ -41,14 +45,25 @@ test("authors, reviews, publishes, and submits a Signal proposal", async ({
     .check();
   await publish.click();
 
-  await expect(page.getByText("Proposal content published")).toBeVisible();
-  await expect(page.getByText("The wallet step has not started yet.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Immutable content published")).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Content published — proposal not created yet",
+    })
+  ).toBeFocused();
   const create = page.getByRole("button", {
     name: "Create onchain proposal",
   });
   await expectMinimumHitArea(create);
   await create.click();
-  await expect(page.getByText("Proposal transaction submitted")).toBeVisible();
+  const submitted = page.getByRole("heading", {
+    name: "Proposal transaction submitted",
+  });
+  await expect(submitted).toBeVisible();
+  await expect(submitted).toBeFocused();
+  await expect(page.getByRole("status")).toHaveText(
+    "Awaiting proposal indexing and analysis."
+  );
   await expect(
     page.getByText(/Waiting for proposal indexing and backend decoding/i)
   ).toBeVisible();
@@ -93,13 +108,15 @@ test("authors an executable proposal from the full raw script", async ({
     .getByRole("checkbox", { name: /I reviewed the exact immutable content/i })
     .check();
   await page
-    .getByRole("button", { name: "Publish proposal content" })
+    .getByRole("button", { name: "Publish immutable content" })
     .click();
-  await expect(page.getByText("Proposal content published")).toBeVisible();
+  await expect(page.getByText("Immutable content published")).toBeVisible();
   await page
     .getByRole("button", { name: "Create onchain proposal" })
     .click();
-  await expect(page.getByText("Proposal transaction submitted")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Proposal transaction submitted" })
+  ).toBeVisible();
   await expectNoDocumentOverflow(page);
 });
 
@@ -162,11 +179,11 @@ test("keeps the exact review locked and announces asynchronous progress", async 
     .getByRole("checkbox", { name: /I reviewed the exact immutable content/i })
     .check();
   await page
-    .getByRole("button", { name: "Publish proposal content" })
+    .getByRole("button", { name: "Publish immutable content" })
     .click();
 
   const publishing = page.getByRole("button", {
-    name: "Publishing proposal content",
+    name: "Publishing immutable content",
   });
   await expect(publishing).toBeDisabled();
   await expect(publishing).toHaveAttribute("aria-busy", "true");
@@ -178,7 +195,7 @@ test("keeps the exact review locked and announces asynchronous progress", async 
     )
   ).toBe("none");
   await expect(
-    page.getByRole("status").filter({ hasText: "Publishing proposal content" })
+    page.getByRole("status").filter({ hasText: "Publishing immutable content" })
   ).toBeVisible();
 
   const edit = page.getByRole("button", { name: "Edit proposal" });
@@ -192,7 +209,7 @@ test("keeps the exact review locked and announces asynchronous progress", async 
   ).toBeVisible();
 
   await page.clock.fastForward(200);
-  await expect(page.getByText("Proposal content published")).toBeVisible();
+  await expect(page.getByText("Immutable content published")).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit proposal" })).toBeDisabled();
   expect(await titleValue.evaluate((element) => element.textContent)).toBe(
     exactTitle
@@ -206,7 +223,9 @@ test("keeps the exact review locked and announces asynchronous progress", async 
     page.getByRole("status").filter({ hasText: "Waiting for wallet" })
   ).toBeVisible();
   await page.clock.fastForward(250);
-  await expect(page.getByText("Proposal transaction submitted")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Proposal transaction submitted" })
+  ).toBeVisible();
   await expectNoDocumentOverflow(page);
 });
 
@@ -230,7 +249,7 @@ test("starts authoring with keyboard focus below the sticky header", async ({
     await start.focus();
     await page.keyboard.press("Enter");
 
-    const heading = page.getByRole("heading", { name: "Create a proposal" });
+    const heading = page.getByRole("heading", { name: "Proposal details" });
     await expect(heading).toBeFocused();
     await expect(heading).toHaveAttribute("tabindex", "-1");
     const placement = await heading.evaluate((element) => ({
@@ -311,12 +330,12 @@ test("keeps publication after wallet rejection and proposal revert", async ({
     await openAuthoring(page);
     await fillImmutableDraft(page, topicId);
     await reviewAndPublish(page);
-    await expect(page.getByText("Proposal content published")).toBeVisible();
+    await expect(page.getByText("Immutable content published")).toBeVisible();
     await page
       .getByRole("button", { name: "Create onchain proposal" })
       .click();
     await expect(page.getByText(failureTitle)).toBeVisible();
-    await expect(page.getByText("Proposal content published")).toBeVisible();
+    await expect(page.getByText("Immutable content published")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Retry proposal creation" })
     ).toBeEnabled();
@@ -341,9 +360,21 @@ test("renders every mutable proposer blocker and the shared capacity rule", asyn
 
   await page.getByRole("button", { name: "Draft proposal" }).click();
   await expect(
-    page.getByText(/system-wide capacity, not a per-user quota/i)
+    page.getByText(/shared system-wide; it is not a per-user quota/i)
   ).toBeVisible();
-  await expect(page.getByText("64 / 64")).toBeVisible();
+  await expect(page.getByText("64 / 64 proposals")).toBeVisible();
+  await expect(page.getByText("Affected reward epochs")).toBeVisible();
+});
+
+test("keeps normal eligibility compact while retaining the six-epoch range", async ({
+  page,
+}) => {
+  await expect(page.getByText("Expected voting epoch")).toBeVisible();
+  await expect(page.getByText("Affected reward epochs")).toBeVisible();
+  await expect(page.getByText(/^\d+–\d+$/)).toBeVisible();
+  await expect(page.getByRole("table")).toHaveCount(0);
+  await expect(page.getByText(/64 \/ 64 proposals/)).toHaveCount(0);
+  await expect(page.getByText(/shared system-wide/i)).toHaveCount(0);
 });
 
 async function openAuthoring(page: Page) {
@@ -353,7 +384,7 @@ async function openAuthoring(page: Page) {
   await expect(start).toBeVisible();
   await start.click();
   await expect(
-    page.getByRole("heading", { name: "Create a proposal" })
+    page.getByRole("heading", { name: "Proposal details" })
   ).toBeVisible();
 }
 
@@ -384,7 +415,7 @@ async function reviewAndPublish(page: Page) {
     .getByRole("checkbox", { name: /I reviewed the exact immutable content/i })
     .check();
   await page
-    .getByRole("button", { name: "Publish proposal content" })
+    .getByRole("button", { name: "Publish immutable content" })
     .click();
 }
 

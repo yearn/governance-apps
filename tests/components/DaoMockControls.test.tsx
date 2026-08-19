@@ -66,7 +66,7 @@ describe("DAO MockControls", () => {
     );
     expect(
       screen.getByRole("link", { name: "Open selected proposal" })
-    ).toHaveAttribute("href", "/dao/proposals/2");
+    ).toHaveAttribute("href", "/dao/proposals/2?from=active");
   });
 
   it("mutates live DAO facts and invalidates the DAO query root", async () => {

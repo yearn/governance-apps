@@ -106,6 +106,10 @@ A clean, unopinionated table structure.
 - Rows are visually passive by default.
 - Use the `interactive` treatment only when a row has a real link or action. Styling
   does not supply link, click, or keyboard semantics.
+- When the full row is the primary destination, prefer a stretched native link
+  over a row `onClick` or synthetic role. Keep nested copy, explorer, menu, and
+  disclosure controls in a higher stacking context, and draw the link's visible
+  focus ring around the row.
 
 ### 4.5. `Tooltip`
 
@@ -158,7 +162,19 @@ Visual indicator for cooldowns or limits.
   which reveals secondary actions on fine-pointer hover or keyboard focus without
   moving or blurring the primary label.
 
-### 4.10. UTC dates and exact values
+### 4.10. Route hierarchy and sequential actions
+
+- Use one meaningful H1 per route. Keep global product identity in shared
+  header metadata; do not repeat a large product hero when the route title and
+  contextual breadcrumbs carry the hierarchy.
+- Breadcrumbs preserve list/filter context when users drill into a record and
+  remain semantic ordered-list items at narrow widths.
+- When a workflow requires two irreversible actions, show distinct numbered
+  current, upcoming, and complete surfaces. An unavailable later action must
+  explain what unlocks it. Move focus to the next current step after success and
+  to a stable completion target when the final button unmounts.
+
+### 4.11. UTC dates and exact values
 
 - Use `UtcTime` for user-facing Unix timestamps.
 - Use the shared bigint or decimal-string formatters for token and USD values.

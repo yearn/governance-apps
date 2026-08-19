@@ -15,7 +15,7 @@ large marketing heroes, and nested cards for every metadata group.
 ```text
 /dao
   proposal list
-  active/upcoming/closed filters
+  upcoming/active/closed filters
   proposal creation entry point
 
 /dao/proposals/[id]
@@ -38,9 +38,14 @@ large marketing heroes, and nested cards for every metadata group.
 
 ### Header
 
-- Title: `DAO Governance`
+- Title: `Proposals`
 - Supporting copy: `Review proposals and take part in Yearn DAO decisions.`
+- Supporting count: total proposals available when the feed is ready
+- Quiet action: open the Yearn discussion forum
 - Primary action: `Create proposal`
+- Product identity stays in global header metadata. Do not repeat a large
+  `DAO Governance` hero or permanent local `Proposals` / `Create proposal`
+  route toggle.
 - Do not call the product `Yearn Governance`; `gov.yearn.fi` already names the
   forum surface.
 
@@ -48,12 +53,15 @@ large marketing heroes, and nested cards for every metadata group.
 
 Use a compact segmented control or tabs:
 
-- Active
 - Upcoming
+- Active
 - Closed
 
-The default is `Active`. Preserve the selection in the URL only if an existing
-shared pattern already supports it cleanly.
+The order follows future to past. A valid `?group=` value always wins, even when
+that group is empty. Without a valid URL value, select populated `Active`, then
+populated `Upcoming`, then populated `Closed`; use `Active` when all are empty.
+Filter changes update the URL with history replacement, preserve unrelated
+query parameters, survive reload, and do not add Back-stack entries.
 
 ### Proposal row or card
 
@@ -72,6 +80,11 @@ Each item contains:
 Prefer a dense list on desktop and stacked rows on mobile. Do not create a large
 tile grid. Status, title, and timing must scan in that order.
 
+The whole row opens the proposal through a stretched native link. Do not add a
+row `onClick` or button role. Address explorer and copy controls remain real,
+independent controls above the stretched link. The row focus ring must remain
+visible. Proposal hrefs carry `?from=<group>`.
+
 ### Empty and error states
 
 - No active proposals: link to upcoming and closed proposals. Show the next
@@ -84,7 +97,10 @@ tile grid. Status, title, and timing must scan in that order.
 
 ### Header block
 
-Show:
+Start with `Proposals / <Group> / <proposal title>`. The group returns to the
+exact board filter. Browser Back restores the prior board URL; a direct detail
+visit derives the proposal's display group, and an invalid `from` value is
+ignored. Show the proposal title as the route's only H1, followed by:
 
 - proposal ID;
 - title;
@@ -275,15 +291,28 @@ Supporting copy:
 ### Section 5: review and submit
 
 Review exact forum data, immutable content, type, script, hash, calls, current
-eligibility, expected voting epoch, and the two submission steps.
+eligibility, expected voting epoch, and the two submission steps. Normal
+eligibility shows `Expected voting epoch` plus `Affected reward epochs N–N+5`;
+the six individual counts remain domain/debug facts. Do not show a capacity
+success table or notice. When capacity blocks submission, name the exact epoch,
+show `64 / 64`, repeat the affected range, and explain that capacity is shared
+system-wide rather than a user quota.
 
-Mock submission and follow-up steps:
+Two actions are required. Present them as distinct current/upcoming/complete
+surfaces rather than visually identical buttons:
 
 1. Publish proposal content
 2. Create onchain proposal
 3. Wait for proposal indexing and analysis
 
-Keep IPFS publication failure separate from wallet rejection or onchain revert.
+Before publication, Step 1 is current and Step 2 is unavailable; state that
+publishing immutable content neither creates the proposal nor opens a wallet.
+After publication, Step 1 shows its receipt/fingerprint and Step 2 receives
+focus with `Content published — proposal not created yet`. After submission,
+both steps are complete and the page announces the indexing/analysis wait.
+Keep publication failure separate from wallet rejection or onchain revert. A
+publication failure never exposes Step 2. Wallet rejection or revert preserves
+published content and retries Step 2 without republishing.
 
 ## 6. Lifecycle menus
 
@@ -359,22 +388,26 @@ proposal interactions:
 - `/dao` reads the deterministic client and distinguishes loading, empty,
   ready, error, and disconnected states.
 - `/dao/proposals/[id]` resolves numeric IDs against the active mock Voting
-  contract and distinguishes loading, ready, not-found, error, and disconnected
-  states.
+  contract and distinguishes loading, ready, not-found, and error states. A
+  disconnected wallet is handled inside the contextual action panel; the
+  detail shell does not repeat a wallet notice above its breadcrumb and title.
 - `/dao/propose` reads proposer eligibility for a connected wallet and shows a
   disconnected, loading, ready, or error shell without rendering the M2 form.
-- Every shell keeps `DAO Governance` as its header identity. The forum link is
-  labeled as a discussion surface and remains `gov.yearn.fi`.
+- This M1 shell originally repeated `DAO Governance` as a route hero. WP7A
+  supersedes that presentation with one contextual H1 per route while global
+  header metadata retains product identity. The forum link remains labeled as
+  a discussion surface and points to `gov.yearn.fi`.
 - The routes are available by path in development and preview. Production
   runtime returns not found until the rollout package adds the final feature
   flag and data invariants.
-- `dao.yearn.fi` is not registered for host routing, canonical metadata,
-  sitemap publication, or other discovery during M1.
+- M1 did not expose `dao.yearn.fi`. WP7A later reserves the hostname in the
+  internal routing map only; it remains absent from production Wrangler custom
+  domains, canonical metadata, sitemap publication, and other discovery.
 
 ## 11. M2 read-only mock behavior
 
 The proposal board consumes each proposal's domain-provided `displayGroup` for
-the `Active`, `Upcoming`, and `Closed` filters. Rows remain dense on desktop and
+the `Upcoming`, `Active`, and `Closed` filters. Rows remain dense on desktop and
 stack on smaller screens. Status, title, timing, author, vote percentages, the
 `of votes cast` caption, proposal type, discussion provenance, and content
 failures stay visible without a wallet.
@@ -505,3 +538,21 @@ document. Contract, action, and trust assertions—including permissionless
 execution and post-veto participation—prove the requested fixture rather than a
 default title or status. The 200% overflow check injects a 200% root font size;
 it is evidence for root-font scaling, not a browser-zoom claim.
+
+## 15. M2 WP7A guarded review runtime
+
+The shared path remains the primary development and preview surface.
+`dao-beta.dao-ops.com` provides clean `/`, `/propose`, and `/proposals/[id]`
+paths for the unaccepted mock review. Nested links and breadcrumbs are
+host-aware; cross-beta DAO links target that host rather than nesting `/dao`.
+
+In preproduction production-runtime builds, `NEXT_PUBLIC_ENABLE_DAO=true`
+permits only the route-local DAO mock client. Global mocks, E2E mode, preview
+runtime, and debug UI remain disabled. DAO controls appear only when the shared
+debug UI is independently enabled. The flag applies to the shared preproduction
+deployment, so `/dao` is also reachable through other hosts served by that
+Worker; `dao-beta` is the clean-path review host, not a hostname-level security
+boundary. The production workflow hardcodes the flag false. DAO remains absent
+from canonical metadata, sitemap, machine-readable discovery, and deployed
+production Wrangler host configuration. `dao.yearn.fi` is reserved in the
+internal routing registry only.

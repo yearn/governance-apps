@@ -1,85 +1,70 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { Card } from "@/components/ui/Card";
-import { Button, getButtonClassName } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { cn } from "@/lib/cn";
 import { daoCopy } from "../messages";
 
 type DaoRouteFrameProps = {
   children: ReactNode;
-  current: "proposals" | "propose";
 };
 
 const ROUTE_CONTROL_CLASS_NAME =
   "h-11 motion-reduce:transition-none motion-reduce:active:scale-100";
 
-export function DaoRouteFrame({ children, current }: DaoRouteFrameProps) {
+export function DaoRouteFrame({ children }: DaoRouteFrameProps) {
   return (
     <div className="min-w-0 bg-app text-text-primary">
-      <header className="border-b border-border bg-surface">
-        <div className="container mx-auto px-4 py-8 md:px-6 md:py-10">
-          <div className="max-w-3xl space-y-3">
-            <h1 className="text-balance text-3xl font-bold md:text-5xl">
-              {daoCopy.app.name}
-            </h1>
-            <p className="max-w-2xl text-pretty text-base leading-7 text-text-secondary">
-              {daoCopy.app.description}
-            </p>
-          </div>
-
-          <nav
-            aria-label={daoCopy.app.name}
-            className="mt-6 flex min-w-0 flex-wrap items-center gap-2"
-          >
-            <Link
-              href={daoCopy.app.route}
-              aria-current={current === "proposals" ? "page" : undefined}
-              className={getButtonClassName({
-                variant: "secondary",
-                size: "sm",
-                className: cn(
-                  ROUTE_CONTROL_CLASS_NAME,
-                  current === "proposals" &&
-                    "border-text-primary bg-surface-secondary"
-                ),
-              })}
-            >
-              {daoCopy.navigation.proposals}
-            </Link>
-            <Link
-              href="/dao/propose"
-              aria-current={current === "propose" ? "page" : undefined}
-              className={getButtonClassName({
-                size: "sm",
-                className: ROUTE_CONTROL_CLASS_NAME,
-              })}
-            >
-              {daoCopy.navigation.createProposal}
-            </Link>
-            <a
-              href={daoCopy.navigation.forumHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={daoCopy.navigation.forumAccessibleLabel}
-              className={getButtonClassName({
-                variant: "ghost",
-                size: "sm",
-                className: cn(ROUTE_CONTROL_CLASS_NAME, "gap-1.5"),
-              })}
-            >
-              <span>{daoCopy.navigation.forum}</span>
-              <IconLinkOut className="size-3.5" aria-hidden />
-            </a>
-          </nav>
-        </div>
-      </header>
-
       <div className="container mx-auto min-w-0 space-y-5 px-4 py-8 md:px-6 md:py-10">
         {children}
       </div>
     </div>
+  );
+}
+
+export function DaoBreadcrumbs({
+  items,
+}: {
+  items: readonly { href?: string; label: string }[];
+}) {
+  return (
+    <nav aria-label={daoCopy.navigation.hierarchyLabel}>
+      <ol className="flex min-h-10 min-w-0 max-w-full items-center overflow-hidden text-sm font-medium">
+        {items.map((item, index) => {
+          const isCurrent = index === items.length - 1;
+          return (
+            <li
+              key={`${item.label}:${index}`}
+              className={`flex min-w-0 items-center gap-1.5 ${
+                isCurrent ? "flex-1" : "shrink-0"
+              }`}
+            >
+              {index > 0 ? (
+                <span aria-hidden="true" className="select-none text-text-tertiary">
+                  /
+                </span>
+              ) : null}
+              {item.href && !isCurrent ? (
+                <Link
+                  href={item.href}
+                  className="inline-flex min-h-10 min-w-0 items-center rounded-md px-2 text-text-secondary transition-[background-color,color] duration-150 ease-out hover:bg-surface-secondary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none"
+                >
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              ) : (
+                <span
+                  aria-current={isCurrent ? "page" : undefined}
+                  className="block min-w-0 flex-1 truncate px-2 text-text-secondary"
+                  title={item.label}
+                >
+                  {item.label}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
 

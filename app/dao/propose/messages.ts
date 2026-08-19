@@ -1,4 +1,9 @@
 export const daoProposeCopy = {
+  page: {
+    title: "Create proposal",
+    description:
+      "Check eligibility, prepare the immutable content, then create the proposal onchain.",
+  },
   landing: {
     title: "Prepare a proposal",
     description:
@@ -17,7 +22,7 @@ export const daoProposeCopy = {
   },
   form: {
     eyebrow: "Proposal authoring",
-    title: "Create a proposal",
+    title: "Proposal details",
     description:
       "Complete each section on this page. Your draft stays in place if validation, publication, or proposal creation fails.",
     review: "Review proposal",
@@ -116,15 +121,14 @@ export const daoProposeCopy = {
     cooldownReady: "Eligible now",
     nextEligible: "Next eligible",
     votingEpoch: "Expected voting epoch",
-    capacity: "Shared proposal capacity",
-    capacityAvailable:
-      "Shared proposal capacity has room across all six affected reward epochs.",
-    capacityFull: (epoch: string) =>
-      `Proposal capacity is full. Reward epoch ${epoch} has reached the shared rolling six-epoch limit. This is system-wide capacity, not a per-user quota.`,
-    epoch: "Reward epoch",
-    proposals: "Proposals",
-    sharedRule:
-      "Every proposal counts against the same six affected reward epochs for all authors.",
+    affectedEpochs: "Affected reward epochs",
+    epochRange: (first: string, last: string) => `${first}–${last}`,
+    capacityFullTitle: (epoch: string) =>
+      `Proposal capacity is full in reward epoch ${epoch}.`,
+    capacityCount: (count: number, limit: number) =>
+      `${count} / ${limit} proposals`,
+    capacityFullBody: (first: string, last: string) =>
+      `This proposal would affect reward epochs ${first}–${last}. The 64-proposal limit is shared system-wide; it is not a per-user quota.`,
   },
   review: {
     eyebrow: "Final review",
@@ -145,17 +149,29 @@ export const daoProposeCopy = {
       "I reviewed the exact immutable content, proposal type, script, and script hash.",
     confirmRequired: "Confirm the exact review before publication.",
     submissionSteps: "Submission steps",
-    publishStep: "Publish proposal content",
+    submissionStepsBody:
+      "Two actions are required: publish the immutable content, then create the onchain proposal.",
+    current: "Current",
+    upcoming: "Upcoming",
+    complete: "Complete",
+    publishStep: "Publish immutable content",
+    publishStepBody:
+      "Publishing fixes the reviewed snapshot. It does not create the proposal or open your wallet.",
     proposeStep: "Create onchain proposal",
-    indexStep: "Wait for proposal indexing and analysis",
+    proposeStepUpcoming:
+      "This action becomes available only after the immutable content is published.",
+    proposeStepCurrent: "Content published — proposal not created yet",
+    proposeStepBody:
+      "Create the onchain proposal with the published content fingerprint. A wallet cancellation or revert does not require republishing.",
+    indexStatus: "Awaiting proposal indexing and analysis",
   },
   publication: {
-    publish: "Publish proposal content",
-    retry: "Retry publication",
-    publishing: "Publishing proposal content",
-    successTitle: "Proposal content published",
+    publish: "Publish immutable content",
+    retry: "Retry content publication",
+    publishing: "Publishing immutable content",
+    successTitle: "Immutable content published",
     successBody:
-      "The reviewed snapshot is fixed. The wallet step has not started yet.",
+      "Step 1 is complete. The reviewed snapshot is fixed and ready for proposal creation.",
     fingerprint: "Content fingerprint",
     failedTitle: "Proposal content was not published",
   },
