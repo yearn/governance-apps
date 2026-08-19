@@ -150,13 +150,13 @@ test("keeps the deterministic account presentation consistent across shared and 
   await resetBridge(page);
 
   await expect(page.getByText("22 proposals are available.")).toBeVisible();
-  const walletButton = page.getByRole("button", {
-    name: /0xf39f\.\.\.2266/i,
-  });
-  await expect(walletButton).toBeVisible();
-  const walletButtonBox = await walletButton.boundingBox();
-  expect(walletButtonBox).not.toBeNull();
-  expect(walletButtonBox!.height).toBeGreaterThanOrEqual(40);
+  const walletIdentity = page.getByTestId("dao-wallet-presentation");
+  await expect(walletIdentity).toHaveText(/0xf39f\.\.\.2266/i);
+  await expect(walletIdentity).toHaveAttribute("role", "status");
+  const walletIdentityBox = await walletIdentity.boundingBox();
+  expect(walletIdentityBox).not.toBeNull();
+  expect(walletIdentityBox!.height).toBeGreaterThanOrEqual(40);
+  await expect(walletIdentity.locator("button")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Connect wallet" })
   ).toHaveCount(0);
@@ -182,16 +182,121 @@ test("keeps the deterministic account presentation consistent across shared and 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dao");
   await page.getByRole("button", { name: "Open navigation menu" }).click();
-  const mobileWalletButton = page.getByRole("button", {
-    name: /0xf39f\.\.\.2266/i,
-  });
-  await expect(mobileWalletButton).toBeVisible();
-  const mobileWalletButtonBox = await mobileWalletButton.boundingBox();
-  expect(mobileWalletButtonBox).not.toBeNull();
-  expect(mobileWalletButtonBox!.height).toBeGreaterThanOrEqual(44);
+  const mobileWalletIdentity = page.getByTestId(
+    "dao-mobile-wallet-presentation"
+  );
+  await expect(mobileWalletIdentity).toHaveText(/0xf39f\.\.\.2266/i);
+  await expect(mobileWalletIdentity).toHaveAttribute("role", "status");
+  const mobileWalletIdentityBox = await mobileWalletIdentity.boundingBox();
+  expect(mobileWalletIdentityBox).not.toBeNull();
+  expect(mobileWalletIdentityBox!.height).toBeGreaterThanOrEqual(44);
+  await expect(mobileWalletIdentity.locator("button")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Connect Wallet" })
   ).toHaveCount(0);
+});
+
+test("synchronizes read-only E2E wallet truth for connected, disconnected, and wrong-network states", async ({
+  page,
+}) => {
+  await page.goto("/dao");
+  await waitForTestBridge(page);
+  await resetBridge(page);
+
+  for (const [state, label, notice] of [
+    ["weight", /0xf39f\.\.\.2266/i, null],
+    ["disconnected", /Wallet disconnected/i, "Wallet not connected"],
+    ["wrong-network", /Wrong network/i, null],
+  ] as const) {
+    await page.evaluate(async (accountState) => {
+      await window.__TEST__?.setDaoAccountState?.(accountState);
+    }, state);
+
+    const desktop = page.getByTestId("dao-wallet-presentation");
+    await expect(desktop).toHaveText(label);
+    await expect(desktop).toHaveAttribute("role", "status");
+    await expect(desktop.locator("button")).toHaveCount(0);
+    await desktop.click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    if (notice) {
+      await expect(page.getByRole("heading", { name: notice })).toBeVisible();
+    } else if (state === "weight") {
+      await expect(
+        page.getByRole("heading", { name: "Wallet not connected" })
+      ).toHaveCount(0);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    const opener = page.getByRole("button", { name: "Open navigation menu" });
+    await opener.click();
+    const mobile = page.getByTestId("dao-mobile-wallet-presentation");
+    await expect(mobile).toHaveText(label);
+    await expect(mobile).toHaveAttribute("role", "status");
+    await expect(mobile.locator("button")).toHaveCount(0);
+    await page.getByRole("button", { name: "Close navigation menu" }).click();
+    await page.setViewportSize({ width: 1_280, height: 900 });
+  }
+});
+
+test("makes the mobile menu a contained modal for every closure path", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  for (const height of [500, 844]) {
+    await page.setViewportSize({ width: 390, height });
+    await page.goto("/dao");
+    const opener = page.getByRole("button", { name: "Open navigation menu" });
+    await opener.click();
+    const dialog = page.getByRole("dialog", { name: "Navigation menu" });
+    const close = dialog.getByRole("button", { name: "Close navigation menu" });
+    await expect(dialog).toBeVisible();
+    await expect(close).toBeFocused();
+    await expect(dialog).toHaveCSS("animation-name", "none");
+    await page.getByRole("button", { name: "Products" }).click();
+    await expect(
+      page.getByTestId("mobile-navigation-section-products")
+    ).toHaveCSS("transition-duration", "0s");
+    await page.getByRole("button", { name: "Products" }).click();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+    expect(
+      await page.evaluate(() => {
+        const header = document.querySelector("header");
+        return Boolean(
+          header?.closest("[inert]") ||
+            header?.closest('[aria-hidden="true"]')
+        );
+      })
+    ).toBe(true);
+    await expectNoDocumentOverflow(page, `mobile menu 390x${height}`);
+
+    const focusable = dialog.locator(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    const count = await focusable.count();
+    await focusable.first().focus();
+    await page.keyboard.press("Shift+Tab");
+    await expect(focusable.nth(count - 1)).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(focusable.first()).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(opener).toBeFocused();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+
+    await opener.click();
+    await page.getByRole("button", { name: "Close navigation menu" }).click();
+    await expect(opener).toBeFocused();
+  }
+
+  await page.getByRole("button", { name: "Open navigation menu" }).click();
+  await page.getByRole("button", { name: "Products" }).click();
+  await page.getByRole("link", { name: /stYFI/i }).click();
+  await expect(page).toHaveURL(/\/styfi$/);
+  await expect(
+    page.getByRole("button", { name: "Open navigation menu" })
+  ).toBeFocused();
 });
 
 for (const [range, fixtures] of [
@@ -207,10 +312,17 @@ for (const [range, fixtures] of [
     await resetBridge(page);
 
     for (const fixture of fixtures) {
+      await page.goto(`/dao/proposals/${fixture.proposalId}`);
+      await waitForTestBridge(page);
       await page.evaluate(async (fixtureId) => {
         await window.__TEST__?.setDaoFixture?.(fixtureId);
       }, fixture.fixture);
-      await page.goto(`/dao/proposals/${fixture.proposalId}`);
+
+      const evidence = await page.evaluate(async () =>
+        window.__TEST__?.getDaoState?.()
+      );
+      expect(evidence?.selectedFixtureId).toBe(fixture.fixture);
+      expect(evidence?.selectedProposalId).toBe(fixture.proposalId.toString());
 
       await expect(
         page.getByRole("heading", { name: fixture.title, level: 2 })
@@ -222,6 +334,42 @@ for (const [range, fixtures] of [
         page.getByRole("heading", { name: "Your action" })
       ).toBeVisible();
       await expectNoDocumentOverflow(page, fixture.fixture);
+
+      if (fixture.fixture === "post-vote-veto") {
+        expect(evidence?.capabilities).toMatchObject({
+          canVote: true,
+          votePurpose: "participation_only",
+        });
+        await expect(
+          page.getByText(/still vote to record your participation/i)
+        ).toBeVisible();
+      }
+      if (fixture.fixture === "permissionless-execution") {
+        expect(evidence?.executionGuard).toBe("permissionless");
+        expect(evidence?.capabilities.canExecute).toBe(true);
+        const execute = page.getByRole("button", { name: "Execute proposal" });
+        await expect(execute).toBeEnabled();
+        await execute.click();
+        await expect(
+          page.getByRole("dialog").getByText(/Any eligible connected account/i)
+        ).toBeVisible();
+      }
+      if (fixture.fixture === "content-unavailable") {
+        expect(evidence?.proposal.contentState).toBe("unavailable");
+        await expect(
+          page
+            .getByText("Immutable content could not be retrieved", {
+              exact: true,
+            })
+            .last()
+        ).toBeVisible();
+      }
+      if (fixture.fixture === "hash-mismatch") {
+        expect(evidence?.proposal.scriptHashVerified).toBe(false);
+        await expect(
+          page.getByText("Event script does not match the stored script hash")
+        ).toBeVisible();
+      }
     }
   });
 }
@@ -236,7 +384,11 @@ test("reaches the non-visual proposal capacity fixture through the shared bridge
   await page.evaluate(async () => {
     await window.__TEST__?.setDaoFixture?.("proposal-capacity-full");
   });
+  const evidence = await page.evaluate(async () =>
+    window.__TEST__?.getDaoState?.()
+  );
 
+  expect(evidence?.selectedFixtureId).toBe("proposal-capacity-full");
   await expect(
     page.getByText("Proposal capacity is full.", { exact: true }).first()
   ).toBeVisible();
@@ -244,7 +396,7 @@ test("reaches the non-visual proposal capacity fixture through the shared bridge
   await expectNoDocumentOverflow(page, "proposal-capacity-full");
 });
 
-test("keeps core review and authoring surfaces contained at 200% text size", async ({
+test("keeps core review and authoring surfaces contained with a 200% root font size", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1_280, height: 900 });
@@ -256,7 +408,73 @@ test("keeps core review and authoring surfaces contained at 200% text size", asy
       content: "html { font-size: 200% !important; }",
     });
     await expect(page.locator("main")).toBeVisible();
-    await expectNoDocumentOverflow(page, `${route} at 200% text size`);
+    await expectNoDocumentOverflow(page, `${route} at 200% root font size`);
+  }
+});
+
+test("keeps DAO brand and success text at AA contrast in both themes", async (
+  { page },
+  testInfo
+) => {
+  const measurements: Array<{ context: string; ratio: number }> = [];
+  const measure = async (
+    locator: import("@playwright/test").Locator,
+    context: string
+  ) => {
+    const contrast = await expectTextContrast(locator, context);
+    measurements.push({ context, ratio: contrast.ratio });
+  };
+  await page.setViewportSize({ width: 1_280, height: 900 });
+  await page.goto("/dao/proposals/2");
+  await waitForTestBridge(page);
+  await resetBridge(page);
+
+  for (const theme of ["light", "dark"] as const) {
+    if (theme === "dark") {
+      await page.getByRole("button", { name: "Switch to Dark Mode" }).click();
+    }
+    await measure(
+      page.getByTestId("dao-proposal-status").first(),
+      `${theme} voting status`
+    );
+    await measure(
+      page.getByText("Decision vote", { exact: true }),
+      `${theme} decision-purpose badge`
+    );
+    await measure(
+      page.getByText("Event script matches the stored script hash"),
+      `${theme} script integrity`
+    );
+
+    await page.goto("/dao/proposals/4");
+    await page.evaluate(async () => {
+      await window.__TEST__?.setDaoFixture?.("approved-signal");
+    });
+    await measure(
+      page.getByTestId("dao-approved-signal"),
+      `${theme} approved signal`
+    );
+
+    await page.goto("/dao/propose");
+    await page.getByRole("button", { name: "Start proposal" }).click();
+    await measure(
+      page.getByText("Proposal authoring", { exact: true }),
+      `${theme} authoring eyebrow`
+    );
+    await measure(
+      page.getByText("1", { exact: true }).first(),
+      `${theme} authoring step`
+    );
+
+    if (theme === "light") {
+      await page.goto("/dao/proposals/2");
+    }
+  }
+  for (const measurement of measurements) {
+    testInfo.annotations.push({
+      type: "contrast",
+      description: `${measurement.context}: ${measurement.ratio.toFixed(2)}:1`,
+    });
   }
 });
 
@@ -272,4 +490,93 @@ async function expectNoDocumentOverflow(
     widths.scrollWidth,
     `${context} should remain contained inside the viewport`
   ).toBeLessThanOrEqual(widths.clientWidth + 1);
+}
+
+async function expectTextContrast(
+  locator: import("@playwright/test").Locator,
+  context: string
+) {
+  await expect(locator).toBeVisible();
+  const contrast = await locator.evaluate((element) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context2d = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context2d) throw new Error("Canvas color parsing is unavailable.");
+    const parse = (color: string) => {
+      context2d.clearRect(0, 0, 1, 1);
+      context2d.fillStyle = color;
+      context2d.fillRect(0, 0, 1, 1);
+      const channels = context2d.getImageData(0, 0, 1, 1).data;
+      return {
+        red: channels[0],
+        green: channels[1],
+        blue: channels[2],
+        alpha: channels[3] / 255,
+      };
+    };
+    const foreground = parse(getComputedStyle(element).color);
+    let backgroundElement: Element | null = element;
+    const backgroundLayers: ReturnType<typeof parse>[] = [];
+    while (backgroundElement) {
+      const candidate = parse(
+        getComputedStyle(backgroundElement).backgroundColor
+      );
+      if (candidate.alpha > 0) backgroundLayers.push(candidate);
+      backgroundElement = backgroundElement.parentElement;
+    }
+    const composite = (
+      foregroundLayer: ReturnType<typeof parse>,
+      backgroundLayer: ReturnType<typeof parse>
+    ) => {
+      const alpha =
+        foregroundLayer.alpha +
+        backgroundLayer.alpha * (1 - foregroundLayer.alpha);
+      const channel = (foregroundChannel: number, backgroundChannel: number) =>
+        alpha === 0
+          ? 0
+          : (foregroundChannel * foregroundLayer.alpha +
+              backgroundChannel *
+                backgroundLayer.alpha *
+                (1 - foregroundLayer.alpha)) /
+            alpha;
+      return {
+        red: channel(foregroundLayer.red, backgroundLayer.red),
+        green: channel(foregroundLayer.green, backgroundLayer.green),
+        blue: channel(foregroundLayer.blue, backgroundLayer.blue),
+        alpha,
+      };
+    };
+    let background = parse("rgb(255, 255, 255)");
+    for (const layer of backgroundLayers.reverse()) {
+      background = composite(layer, background);
+    }
+    const luminance = ({ red, green, blue }: typeof foreground) => {
+      const convert = (channel: number) => {
+        const normalized = channel / 255;
+        return normalized <= 0.04045
+          ? normalized / 12.92
+          : ((normalized + 0.055) / 1.055) ** 2.4;
+      };
+      return (
+        0.2126 * convert(red) +
+        0.7152 * convert(green) +
+        0.0722 * convert(blue)
+      );
+    };
+    const foregroundLuminance = luminance(foreground);
+    const backgroundLuminance = luminance(background);
+    return {
+      background,
+      foreground,
+      ratio:
+        (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
+        (Math.min(foregroundLuminance, backgroundLuminance) + 0.05),
+    };
+  });
+  expect(
+    contrast.ratio,
+    `${context} contrast (${JSON.stringify(contrast)})`
+  ).toBeGreaterThanOrEqual(4.5);
+  return contrast;
 }

@@ -22,13 +22,19 @@ user explicitly accepts the assembled mock UX.
   focus handling were reviewed separately.
 - Automated coverage used the shared typed test bridge. No alternate DAO-only
   test control or route was introduced.
+- Fixture coverage navigated to each proposal route first, reacquired the
+  document-local bridge, applied the fixture, and read back its selected
+  identity before checking fixture-specific contract, action, or trust facts.
 - Every screenshot ran a document-width assertion before capture.
 
 ## Fixture checklist
 
-Every proposal fixture was selected through `setDaoFixture` and rendered at the
-390-by-844 phone viewport. Each row passed its expected title or safe fallback,
-display status, action-panel reachability, and horizontal-containment check.
+Every proposal fixture was selected through `setDaoFixture` in the same document
+as its target route and rendered at the 390-by-844 phone viewport. Each row
+passed selected-fixture and selected-proposal identity, its expected title or
+safe fallback, display status, action-panel reachability, and horizontal
+containment. The sweep also pins unavailable-content trust, hash mismatch,
+post-veto participation voting, and permissionless execution facts.
 
 | Fixture | Proposal | Expected presentation | Result |
 | --- | ---: | --- | --- |
@@ -56,8 +62,10 @@ display status, action-panel reachability, and horizontal-containment check.
 | `permissionless-execution` | 22 | Approved · eligible-account execution | Pass |
 | `proposal-capacity-full` | N/A | authoring blocker and `64 / 64` shared capacity | Pass |
 
-The capacity fixture is an authoring eligibility state, not another proposal ID.
-The focused sweep is in `tests/e2e/full/dao-mock-uat.spec.ts`.
+The capacity fixture is an authoring eligibility state, not another proposal ID;
+its selected-fixture identity, blocker copy, and `64 / 64` fact are checked after
+same-document mutation. The focused sweep is in
+`tests/e2e/full/dao-mock-uat.spec.ts`.
 
 ## Surface and recovery checklist
 
@@ -68,7 +76,9 @@ The focused sweep is in `tests/e2e/full/dao-mock-uat.spec.ts`.
 | Content trust | available, unavailable, invalid, analysis pending, partial decode, simulation failure, hash mismatch, unverified discussion | `dao-proposal-read.spec.ts`, `dao-actions.spec.ts` | Pass |
 | Proposal rules | no quorum, approval threshold, `of votes cast`, signal/non-executable, decay, veto participation | `dao-proposal-read.spec.ts`, `dao-actions.spec.ts` | Pass |
 | Shared debug controls | fixture/persona/account/role/guard/outcome, loading/empty/error, time, pending indexing, reset | live browser, `dao-shell.spec.ts`, action and authoring specs | Pass |
-| Normal-route language | no mock, fixture, prototype, QA, or implementation copy | static scan and `dao-proposal-read.spec.ts` | Pass |
+| Debug time provenance | every runtime-time change advances canonical block identity with its timestamp | `dao.store.test.ts`, bridge fixture evidence | Pass |
+| Account identity | roles and one-vote overlays are normalized to the exact queried actor | `dao.actions.test.ts`, `dao-actions.spec.ts` | Pass |
+| Normal-route language | no internal mock, fixture, prototype, QA, or implementation-status copy | static scan and `dao-proposal-read.spec.ts` | Pass |
 | Production boundary | DAO remains path-only in preview and fails closed in production runtime | `dao-shell.spec.ts`, runtime invariant tests | Pass |
 
 ## Action and outcome checklist
@@ -77,11 +87,12 @@ The focused sweep is in `tests/e2e/full/dao-mock-uat.spec.ts`.
 | --- | --- | --- |
 | Vote | Yea/Nay selection, review, no selection, zero weight, already voted, disconnected, wrong network, closed, late-vote decay | Pass |
 | Content confirmation | one acknowledgement for unavailable content; two for invalid content | Pass |
-| Veto behavior | early veto blocks voting; post-vote veto preserves participation voting | Pass |
+| Veto behavior | early veto blocks voting; open post-vote veto preserves participation voting; closed-window copy does not claim voting remains open | Pass |
 | Lifecycle actions | retract, flag with reason, veto with reason, permissionless execute, guarded execute | Pass |
 | Transaction lifecycle | submitted, wallet rejection, revert, network error, awaiting indexing, deterministic index | Pass |
 | Canonical read model | totals, status, and events stay unchanged until the pending action is indexed | Pass |
-| Dialog behavior | focus trap, Tab, Shift-Tab, Escape, backdrop/cancel, trigger focus restoration | Pass |
+| Action dialog behavior | focus trap, Tab, Shift-Tab, Escape, backdrop/cancel, trigger focus restoration | Pass |
+| Mobile navigation dialog | label, initial focus, Tab/Shift-Tab trap, Escape/Close/navigation restoration, inert background, scroll lock | Pass |
 
 Automated action evidence is in `tests/e2e/full/dao-actions.spec.ts`. Live browser
 review repeated the short-height vote dialog keyboard path.
@@ -105,14 +116,23 @@ Automated authoring evidence is in `tests/e2e/smoke/dao-authoring.spec.ts`.
 | Review condition | Routes and controls | Result |
 | --- | --- | --- |
 | 390 × 844 phone | board, all proposal fixtures, vote action, authoring, dialog, mobile navigation, debug panel | Pass |
+| 390 × 500 phone | mobile navigation header/footer containment and scrollable body | Pass |
 | 768 × 1024 tablet | detail/action hierarchy, dark theme, post-veto participation | Pass |
 | 1280 × 900 desktop | board, detail columns, authoring review, light and dark themes | Pass |
 | 1280 × 600 short desktop | non-sticky side panel, scrollable dialog, execution action | Pass |
 | Keyboard | board tabs, authoring entry, dialog Tab/Shift-Tab/Escape, focus restoration | Pass |
-| Reduced motion | board, action controls, dialogs, authoring progress | Pass |
+| Reduced motion | board, action controls, dialogs, mobile entrance and accordion, authoring progress | Pass |
 | Coarse pointer | technical copy controls and explorer links | Pass |
-| 200% text size | board, proposal 17, and authoring without document overflow | Pass |
-| Touch targets | board filters, copy controls, authoring actions, header wallet control, dialog actions at least 40 px | Pass |
+| 200% root font size | CSS root-font scaling on board, proposal 17, and authoring without document overflow; not a browser-zoom claim | Pass |
+| Touch targets and identity height | board filters, copy controls, authoring and dialog actions at least 40 px; read-only header identity 40 px desktop/44 px mobile | Pass |
+| Assistive technology | one textual Yea/Nay breakdown; duplicate visual bar hidden; mobile background isolated | Pass |
+| Contrast | computed effective foreground/background in both themes for DAO brand, authoring, script-integrity, and approved-signal text | Pass |
+
+The browser-computed light/dark contrast ratios were 5.62/10.30 for voting
+status, 4.82/5.62 for the decision-purpose badge, 5.31/12.42 for script
+integrity, 7.13/12.42 for the approved signal, 5.62/9.60 for the authoring
+eyebrow, and 5.62/10.30 for the active authoring step. Every measured pair is
+at least 4.5:1.
 
 ## Screenshots
 
@@ -126,16 +146,36 @@ Automated authoring evidence is in `tests/e2e/smoke/dao-authoring.spec.ts`.
 
 ## Accepted polish findings
 
-1. The deterministic E2E account was actionable on detail and authoring routes,
-   while the board and detail shell still announced that no wallet was
-   connected. Board and detail now treat the E2E account consistently.
-2. The global desktop wallet control and mobile navigation still showed
-   `Connect wallet` while DAO eligibility used the deterministic E2E account.
-   Both shared presentations now display that account in E2E only, while real
-   non-E2E wallet behavior is unchanged.
-3. The affected header wallet target measured 32 pixels high. Its disconnected,
-   wrong-network, and connected presentations now retain at least a 40-pixel
-   target. The touched opacity transition was narrowed from `transition-all`.
+1. Fixture UAT used to set state before navigation, allowing a new document to
+   recreate the default store. It now navigates first, applies state in that
+   document, reads back exact fixture/proposal identity, and asserts distinguishing
+   contract, action, and trust facts.
+2. Proposer, operator, and guardian booleans used to survive an address
+   replacement. Role and capability reads now scope those facts to the exact
+   normalized actor; authorized indexed events retain that actor, while
+   permissionless execution remains permissionless.
+3. Hand-authored proposal epochs and timings were replaced by one genesis and a
+   derived 14-day `N` to `N + 1` geometry. Authoring uses the same derivation,
+   equal voting windows share one voting epoch, and boundary tests pin it.
+4. Mobile navigation now has a dialog name, initial focus, a bidirectional focus
+   trap, Escape/Close/navigation focus restoration, inert background, scroll
+   lock, short-height containment, and reduced-motion overrides.
+5. E2E fallback wallet identity is now explicitly read-only. DAO desktop and
+   mobile presentations use the same actor, connection, and network facts as
+   the current route without changing real non-E2E wallet semantics.
+6. Unsafe small-text Yearn-blue and success-green pairs were replaced locally
+   for status, authoring, script-integrity, approved-signal, and active states.
+   Browser-computed effective contrast is checked in both themes.
+7. The decorative vote bar is hidden from assistive technology because the
+   adjacent textual breakdown already exposes the same semantic value.
+8. Debug time travel no longer rewrites a canonical timestamp beneath an
+   unchanged number and hash; all three block provenance fields advance
+   coherently.
+9. Post-veto confirmation claims participation stays open only during an open
+   voting window. Closed-window copy says the window ended and is not reopened.
+10. The evidence ledger now states exactly what was exercised: same-document
+    fixture proof and 200% root-font scaling. Changed production-shaped views
+    were recaptured and checked for dimensions, overflow, and hidden debug UI.
 
 ## Validation record
 
@@ -146,19 +186,12 @@ The complete assembled branch diff produced these results:
 | Interface detector and static scans | Pass: detector returned `[]`; diff, normal-route language, and touched-transition scans were clean |
 | `npm run typecheck` | Pass |
 | `npm run lint` | Pass |
-| `npm run test` | Pass: 132 files, 1,036 tests |
-| Focused WP7 and shared-header E2E | Pass: 5 WP7 cases and 1 unchanged non-DAO onboarding case |
+| `npm run test` | Pass: 132 files, 1,042 tests |
+| Focused WP7 E2E | Pass: 6 of 6 fixture, wallet, mobile-dialog, and computed-contrast cases |
 | `npm run test:e2e` | Pass: 36 tests, 2 intentional environment-scoped skips, 0 failures |
-| `npm run test:e2e:full` | Pass in the authoritative serial run: 28 of 28 tests in 3.8 minutes |
-| `npm run build` | Pass with preview screenshot flags and with the unflagged default production configuration |
-
-The default parallel full-E2E attempts produced only Playwright navigation
-aborts: 26 tests passed with 2 aborts, then 25 passed with 3 aborts. No product
-assertion failed. The exact two initially affected cases passed 2 of 2 when
-rerun serially, and the complete serial suite passed 28 of 28. This is the same
-parallel-only classification recorded for the exact accepted base
-`fe846a673caaee4a28e56ecc42acab1daf48db04`; no test or worker setting was
-weakened.
+| `npm run test:e2e:full` | Pass in the authoritative serial run: 31 of 31 tests in 4.1 minutes |
+| `npm run build` | Pass with the unflagged default production configuration and the flagged preview/evidence configuration |
+| Production screenshot capture | Pass: 5 production-compiled artifacts, exact dimensions, no horizontal overflow, hidden debug UI |
 
 Expected local review noise is limited to absent-local-RPC `eth_accounts`
 warnings from the shared wallet stack. DAO state remains deterministic and
