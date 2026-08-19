@@ -4,6 +4,7 @@ import {
   DAO_MOCK_FEED,
   deriveDaoProposerState,
   getDaoMockFixture,
+  type DaoProposalReadEnvelope,
 } from "@/lib/clients/dao";
 import { DaoBoardView } from "@/app/dao/DaoPageClient";
 import { DaoProposalView } from "@/app/dao/proposals/[id]/DaoProposalPageClient";
@@ -14,8 +15,9 @@ describe("DAO proposal board shell", () => {
     render(
       <DaoBoardView
         isConnected={false}
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={vi.fn()}
-        proposalCount={0}
+        proposals={[]}
         state="loading"
       />
     );
@@ -32,8 +34,9 @@ describe("DAO proposal board shell", () => {
     render(
       <DaoBoardView
         isConnected
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={vi.fn()}
-        proposalCount={0}
+        proposals={[]}
         state="empty"
       />
     );
@@ -51,8 +54,9 @@ describe("DAO proposal board shell", () => {
     render(
       <DaoBoardView
         isConnected
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={onRetry}
-        proposalCount={0}
+        proposals={[]}
         state="error"
       />
     );
@@ -62,14 +66,52 @@ describe("DAO proposal board shell", () => {
     );
     expect(onRetry).toHaveBeenCalledOnce();
     expect(screen.queryByText(/Error:/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Proposal board" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the last successful proposal board visible during an outage", () => {
+    const onRetry = vi.fn();
+    render(
+      <DaoBoardView
+        isConnected
+        isStale
+        lastGoodSnapshotTimestamp={DAO_MOCK_FEED.canonicalBlock.timestamp}
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
+        onRetry={onRetry}
+        proposals={DAO_MOCK_FEED.proposals}
+        state="ready"
+      />
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Proposal updates are unavailable" })
+    ).toBeVisible();
+    expect(screen.getByText("22 proposals are available.")).toBeVisible();
+    expect(
+      screen.getByText("Last successful snapshot", { exact: true })
+    ).toBeVisible();
+    expect(
+      document.querySelector(
+        `time[datetime="${new Date(
+          DAO_MOCK_FEED.canonicalBlock.timestamp * 1_000
+        ).toISOString()}"]`
+      )
+    ).not.toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry proposal data" })
+    );
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 
   it("renders the typed ready count and forum navigation", () => {
     render(
       <DaoBoardView
         isConnected
+        now={DAO_MOCK_FEED.canonicalBlock.timestamp}
         onRetry={vi.fn()}
-        proposalCount={22}
+        proposals={DAO_MOCK_FEED.proposals}
         state="ready"
       />
     );
@@ -98,9 +140,9 @@ describe("DAO proposal detail shell", () => {
   it("renders a minimal client-backed proposal summary", () => {
     render(
       <DaoProposalView
+        envelope={detailEnvelope(proposal)}
         isConnected
         onRetry={vi.fn()}
-        proposal={proposal}
         proposalId="2"
         state="ready"
       />
@@ -131,9 +173,9 @@ describe("DAO proposal detail shell", () => {
   it("renders loading and disconnected detail states together", () => {
     render(
       <DaoProposalView
+        envelope={null}
         isConnected={false}
         onRetry={vi.fn()}
-        proposal={null}
         proposalId="2"
         state="loading"
       />
@@ -146,9 +188,9 @@ describe("DAO proposal detail shell", () => {
   it("renders a safe proposal not-found shell", () => {
     render(
       <DaoProposalView
+        envelope={null}
         isConnected
         onRetry={vi.fn()}
-        proposal={null}
         proposalId="999"
         state="not_found"
       />
@@ -167,9 +209,9 @@ describe("DAO proposal detail shell", () => {
     const onRetry = vi.fn();
     render(
       <DaoProposalView
+        envelope={null}
         isConnected
         onRetry={onRetry}
-        proposal={null}
         proposalId="2"
         state="error"
       />
@@ -181,6 +223,12 @@ describe("DAO proposal detail shell", () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
 });
+
+function detailEnvelope(
+  proposal: DaoProposalReadEnvelope["proposal"]
+): DaoProposalReadEnvelope {
+  return { feed: DAO_MOCK_FEED, proposal };
+}
 
 describe("DAO proposal authoring shell", () => {
   const proposer = deriveDaoProposerState(

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { Card } from "@/components/ui/Card";
-import { getButtonClassName } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
+import { UtcTime } from "@/components/ui/UtcTime";
 import { useDaoFeed } from "@/lib/hooks/useDao";
 import {
   DaoErrorPanel,
@@ -14,6 +15,8 @@ import {
 } from "./components/DaoRouteFrame";
 import { daoCopy } from "./messages";
 import { MockControls } from "./components/MockControls";
+import { ProposalBoard } from "./components/ProposalBoard";
+import type { DaoProposal } from "@/lib/clients/dao";
 
 export type DaoBoardState = "loading" | "ready" | "empty" | "error";
 
@@ -21,9 +24,11 @@ export function DaoPageClient() {
   const { isConnected } = useAccount();
   const feedQuery = useDaoFeed();
   const proposalCount = feedQuery.data?.proposals.length ?? 0;
-  const state: DaoBoardState = feedQuery.isPending
+  const isStale = feedQuery.isError && feedQuery.data !== undefined;
+  const state: DaoBoardState =
+    feedQuery.isPending && feedQuery.data === undefined
     ? "loading"
-    : feedQuery.isError
+    : feedQuery.isError && feedQuery.data === undefined
       ? "error"
       : proposalCount === 0
         ? "empty"
@@ -33,10 +38,15 @@ export function DaoPageClient() {
     <>
       <DaoBoardView
         isConnected={isConnected}
+        isStale={isStale}
+        lastGoodSnapshotTimestamp={
+          isStale ? (feedQuery.data?.canonicalBlock.timestamp ?? null) : null
+        }
         onRetry={() => {
           void feedQuery.refetch();
         }}
-        proposalCount={proposalCount}
+        now={feedQuery.data?.canonicalBlock.timestamp ?? 0}
+        proposals={feedQuery.data?.proposals ?? []}
         state={state}
       />
       <MockControls />
@@ -46,18 +56,31 @@ export function DaoPageClient() {
 
 export function DaoBoardView({
   isConnected,
+  isStale = false,
+  lastGoodSnapshotTimestamp = null,
+  now,
   onRetry,
-  proposalCount,
+  proposals,
   state,
 }: {
   isConnected: boolean;
+  isStale?: boolean;
+  lastGoodSnapshotTimestamp?: number | null;
+  now: number;
   onRetry: () => void;
-  proposalCount: number;
+  proposals: DaoProposal[];
   state: DaoBoardState;
 }) {
   return (
     <DaoRouteFrame current="proposals">
       {!isConnected ? <DaoWalletNotice /> : null}
+
+      {isStale && lastGoodSnapshotTimestamp !== null ? (
+        <StaleFeedNotice
+          onRetry={onRetry}
+          snapshotTimestamp={lastGoodSnapshotTimestamp}
+        />
+      ) : null}
 
       {state === "loading" ? (
         <DaoLoadingPanel message={daoCopy.board.loading} />
@@ -95,20 +118,45 @@ export function DaoBoardView({
       ) : null}
 
       {state === "ready" ? (
-        <Card className="space-y-3">
-          <div className="space-y-2">
-            <h2 className="text-balance text-xl font-bold">
-              {daoCopy.board.title}
-            </h2>
-            <p className="max-w-2xl text-pretty text-sm leading-6 text-text-secondary">
-              {daoCopy.board.description}
-            </p>
-          </div>
-          <p className="font-number text-sm tabular-nums text-text-secondary">
-            {daoCopy.board.available(proposalCount)}
-          </p>
-        </Card>
+        <ProposalBoard now={now} proposals={proposals} />
       ) : null}
     </DaoRouteFrame>
+  );
+}
+
+function StaleFeedNotice({
+  onRetry,
+  snapshotTimestamp,
+}: {
+  onRetry: () => void;
+  snapshotTimestamp: number;
+}) {
+  return (
+    <Card role="alert" className="space-y-4">
+      <div className="space-y-2">
+        <h2 className="text-balance text-xl font-bold">
+          {daoCopy.board.staleTitle}
+        </h2>
+        <p className="max-w-2xl text-pretty text-sm leading-6 text-text-secondary">
+          {daoCopy.board.staleBody}
+        </p>
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
+          <span className="font-bold">{daoCopy.board.lastGoodSnapshot}</span>
+          <UtcTime
+            timestamp={snapshotTimestamp}
+            className="font-number tabular-nums text-text-secondary"
+          />
+        </p>
+      </div>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className={daoRouteControlClassName}
+        onClick={onRetry}
+      >
+        {daoCopy.board.retry}
+      </Button>
+    </Card>
   );
 }

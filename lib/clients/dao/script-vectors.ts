@@ -1,13 +1,16 @@
 import type { DaoProposalType, DaoScriptErrorCode } from "./types";
 
 const ZERO_TARGET = "00".repeat(20);
+const MOCK_VOTING_TARGET = "11".repeat(20);
 
-function header(calldataBytes: number): string {
-  return `${ZERO_TARGET}${BigInt(calldataBytes).toString(16).padStart(24, "0")}`;
+function header(calldataBytes: number, target = ZERO_TARGET): string {
+  return `${target}${BigInt(calldataBytes).toString(16).padStart(24, "0")}`;
 }
 
 const EMPTY_CALL = header(0);
 const FOUR_BYTE_CALL = `${header(4)}12345678`;
+const VOTING_EPOCH_CALL = `${header(4, MOCK_VOTING_TARGET)}900cf0cf`;
+const VOTING_THRESHOLD_CALL = `${header(4, MOCK_VOTING_TARGET)}42cde4e8`;
 
 export const DAO_EXECUTOR_VALID_SCRIPT_VECTORS = {
   emptySignal: {
@@ -19,7 +22,7 @@ export const DAO_EXECUTOR_VALID_SCRIPT_VECTORS = {
     proposalType: "executable" as const,
   },
   twoCalls: {
-    script: `0x${FOUR_BYTE_CALL}${EMPTY_CALL}`,
+    script: `0x${VOTING_EPOCH_CALL}${VOTING_THRESHOLD_CALL}`,
     proposalType: "executable" as const,
   },
 } as const;

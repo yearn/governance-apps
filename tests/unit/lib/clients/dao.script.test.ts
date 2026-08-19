@@ -43,7 +43,15 @@ describe("DAO Executor script parser", () => {
 
     expect(result.state).toBe("valid");
     expect(result.frames.map((frame) => frame.offset)).toEqual([0, 36]);
-    expect(result.frames.map((frame) => frame.calldataBytes)).toEqual([4, 0]);
+    expect(result.frames.map((frame) => frame.calldataBytes)).toEqual([4, 4]);
+    expect(result.frames.map((frame) => frame.target)).toEqual([
+      "0x1111111111111111111111111111111111111111",
+      "0x1111111111111111111111111111111111111111",
+    ]);
+    expect(result.frames.map((frame) => frame.selector)).toEqual([
+      "0x900cf0cf",
+      "0x42cde4e8",
+    ]);
   });
 
   it("accepts exactly 64 empty calls and rejects a 65th call", () => {
