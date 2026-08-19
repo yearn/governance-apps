@@ -1,7 +1,11 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useAccount } from "wagmi";
-import type { DaoProposalReadEnvelope } from "@/lib/clients/dao";
+import {
+  serializeDaoProposalRef,
+  type DaoProposalReadEnvelope,
+} from "@/lib/clients/dao";
 import { Card } from "@/components/ui/Card";
 import { getButtonClassName } from "@/components/ui/Button";
 import Link from "next/link";
@@ -16,6 +20,7 @@ import {
 import { daoCopy } from "../../messages";
 import { MockControls } from "../../components/MockControls";
 import { ProposalDetail } from "./ProposalDetail";
+import { DaoProposalActionPanel } from "./DaoProposalActionPanel";
 
 export type DaoProposalRouteState =
   | "loading"
@@ -41,6 +46,14 @@ export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
   return (
     <>
       <DaoProposalView
+        actionPanel={
+          envelope ? (
+            <DaoProposalActionPanel
+              key={serializeDaoProposalRef(envelope.proposal.ref)}
+              proposal={envelope.proposal}
+            />
+          ) : null
+        }
         envelope={envelope}
         isConnected={isConnected}
         onRetry={() => {
@@ -55,12 +68,14 @@ export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
 }
 
 export function DaoProposalView({
+  actionPanel = null,
   envelope,
   isConnected,
   onRetry,
   proposalId,
   state,
 }: {
+  actionPanel?: ReactNode;
   envelope: DaoProposalReadEnvelope | null;
   isConnected: boolean;
   onRetry: () => void;
@@ -111,7 +126,10 @@ export function DaoProposalView({
       ) : null}
 
       {state === "ready" && envelope ? (
-        <ProposalDetail envelope={envelope} />
+        <ProposalDetail
+          actionPanel={actionPanel}
+          envelope={envelope}
+        />
       ) : null}
     </DaoRouteFrame>
   );

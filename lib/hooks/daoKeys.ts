@@ -13,6 +13,13 @@ export const daoKeys = {
       "proposal",
       ref === null ? null : serializeDaoProposalRef(ref),
     ] as const,
+  account: (ref: DaoProposalRef | null, address: Address | null) =>
+    [
+      ...daoKeys.all,
+      "account",
+      ref === null ? null : serializeDaoProposalRef(ref),
+      address?.toLowerCase() ?? null,
+    ] as const,
   proposer: (address: Address | null) =>
     [...daoKeys.all, "proposer", address?.toLowerCase() ?? null] as const,
 };

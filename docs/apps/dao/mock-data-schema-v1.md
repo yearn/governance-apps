@@ -288,6 +288,49 @@ type DaoProposerState = {
 `canPropose` is false if any affected reward epoch is already at 64 proposals.
 This is shared system capacity, not a per-account proposal count.
 
+Confirmed mock writes use a live overlay until the corresponding event is
+indexed:
+
+```ts
+type DaoActionType = "vote" | "retract" | "flag" | "veto" | "execute";
+
+type DaoPendingAction = {
+  action: DaoActionType;
+  ref: DaoProposalRef;
+  actor: Address;
+  transactionHash: Hex;
+  submittedAt: number;
+  direction: "yea" | "nay" | null;
+  effectiveVotingWeight: bigint | null;
+  reason: string | null;
+};
+
+type DaoMockTransactionOutcome =
+  | "success"
+  | "user-rejected"
+  | "revert"
+  | "network-error";
+```
+
+`DaoPendingAction` is not canonical feed history. A confirmed vote updates
+`hasVoted` and `voteDirection` only for the full serialized proposal reference
+and normalized actor address, so the same wallet may vote on another proposal
+and another wallet may vote on the same proposal. That one-vote overlay blocks
+an exact duplicate immediately while proposal weights and events stay
+unchanged. Indexing applies the pending record once, advances the canonical
+block, and clears the pending action; the submitted-vote fact remains until a
+fixture or app reset rebuilds the mock store. Every successful submission gets
+a deterministic unique transaction hash, and the prepared result, pending
+record, and indexed event retain that exact hash. Failed outcomes create no
+pending action. Flag and veto reasons are trimmed, required, and limited to 256
+UTF-8 bytes both when preparing and when calling the prepared transaction.
+
+`createMockDaoClient` is an immutable fixture-snapshot reader and rejects all
+five prepared-write methods with a stable read-only error. It must not imply
+that a snapshot-only client can consume one-vote or lifecycle authorization.
+Mock routes use `RuntimeMockDaoClient`, backed by the mutable store above, as the
+only mock client that prepares and submits actions.
+
 ## 7. Domain invariants
 
 - `totalWeight === yeaWeight + nayWeight` and no weight is negative.
@@ -378,6 +421,8 @@ The DAO mock adapter must support:
 - patch proposal booleans, votes, threshold, timing, and script state;
 - set account weight and voted state;
 - set guard mode and roles;
+- choose success, wallet-rejection, revert, or network transaction outcomes;
+- index or clear a confirmed pending action;
 - set proposer blacklist, cooldown, minimum/current weight, and each affected
   epoch's proposal count;
 - advance deterministic time;
@@ -391,9 +436,11 @@ route-facing mock adapter. `window.__TEST__` exposes domain-prefixed async sette
 for fixture and proposal selection, surface state, persona and independent roles,
 content, lifecycle, veto, analysis, account, execution, authoring, votes,
 threshold, terminal flags, timing, proposer eligibility, and each affected
-epoch's capacity. Each bridge call waits for the mutation and then invalidates
-`daoKeys.all`. Shared time changes update the store clock before invalidation so
-status and capabilities are re-derived from facts.
+epoch's capacity. It also exposes transaction outcome, pending-action indexing,
+and pending-action clearing. Each bridge call waits for the mutation and then
+invalidates `daoKeys.all`. Shared time changes update the store clock before
+invalidation so status and capabilities are re-derived from facts. Reset
+restores the success outcome and removes any pending action.
 
 ## 11. Parser error catalogue
 

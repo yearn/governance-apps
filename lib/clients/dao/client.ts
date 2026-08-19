@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import type { PreparedTransaction } from "@/lib/tx/types";
 import type {
   DaoAccountProposalState,
   DaoAnalysis,
@@ -13,6 +14,7 @@ import type {
   DaoProposalLookup,
   DaoProposalRef,
   DaoProposerState,
+  DaoVoteDirection,
 } from "./types";
 
 export interface DaoClient {
@@ -23,6 +25,29 @@ export interface DaoClient {
     address: Address
   ): Promise<DaoAccountProposalState>;
   getProposerState(address: Address): Promise<DaoProposerState>;
+  prepareVote(
+    ref: DaoProposalRef,
+    address: Address,
+    direction: DaoVoteDirection
+  ): Promise<PreparedTransaction>;
+  prepareRetract(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction>;
+  prepareFlag(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction>;
+  prepareVeto(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction>;
+  prepareExecute(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction>;
 }
 
 export function parseDaoFeedJson(feed: DaoFeedV1Json): DaoFeedV1 {

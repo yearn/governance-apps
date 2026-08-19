@@ -120,6 +120,7 @@ export const daoCopy = {
       "This proposal has a forum URL, but it is not a verified Proposals-category topic.",
     discussionUnavailable: "No forum discussion URL is available.",
     voteResults: "Vote results",
+    actionSidebar: "Proposal actions and vote results",
     voteBreakdown: (yea: string, nay: string) => `${yea} Yea · ${nay} Nay`,
     voteCaption: (threshold: string) =>
       `of votes cast · ${threshold} approval threshold`,
@@ -231,6 +232,101 @@ export const daoCopy = {
     copyValue: (label: string) => `Copy ${label.toLowerCase()}`,
     copiedValue: (label: string) => `${label} copied`,
   },
+  actions: {
+    title: "Your action",
+    description:
+      "Eligibility comes from the current account and proposal facts.",
+    loading: "Checking proposal actions",
+    unavailable: "Proposal actions are unavailable. Try again.",
+    voteTitle: "Vote",
+    chooseDirection: "Choose Yea or Nay",
+    yea: "Yea",
+    nay: "Nay",
+    selected: "Selected",
+    votingWeight: "Voting weight",
+    originalWeight: "Original weight",
+    effectiveWeight: "Effective weight now",
+    decayRemaining: (percent: string) => `${percent} of original weight remains`,
+    alreadyVoted: (direction: string) => `Vote recorded: ${direction}`,
+    reviewVote: "Review vote",
+    participationNotice:
+      "This proposal has been vetoed and cannot be approved or executed. You may still vote to record your participation.",
+    participationLabel: "Participation vote",
+    decisionLabel: "Decision vote",
+    voteDialogTitle: "Confirm your vote",
+    voteDialogDescription: "Review the exact vote before sending it.",
+    voteDirection: "Direction",
+    proposal: "Proposal",
+    irreversibility:
+      "Your vote is submitted through the public Voter and cannot be changed.",
+    unavailableAcknowledgement:
+      "I understand the immutable proposal content could not be retrieved.",
+    invalidAcknowledgement:
+      "I understand the immutable proposal content did not pass validation.",
+    onchainAcknowledgement:
+      "I reviewed the available onchain record and still want to vote.",
+    contentWarningUnavailable:
+      "The immutable content is unavailable. The contract still permits voting.",
+    contentWarningInvalid:
+      "The immutable content failed validation. The contract still permits voting.",
+    submitVote: (direction: string) => `Vote ${direction}`,
+    lifecycleTitle: "Lifecycle actions",
+    lifecycleDescription:
+      "These actions change whether the proposal can continue.",
+    retract: "Retract proposal",
+    retractDialogTitle: "Confirm proposal retraction",
+    retractDialogDescription:
+      "Review how retraction changes this proposal before signing.",
+    retractEffect:
+      "Retraction stops this no-vote proposal. It does not reset the proposal cooldown.",
+    flag: "Flag proposal",
+    flagDialogTitle: "Confirm proposal flag",
+    flagDialogDescription:
+      "Give the onchain reason and review the moderation effect.",
+    flagEffect:
+      "Flagging marks this proposal as invalid or spam, retracts it, disables voting, and removes it from participation accounting.",
+    veto: "Veto proposal",
+    vetoDialogTitle: "Confirm proposal veto",
+    vetoDialogDescription:
+      "Give the onchain reason and review how voting changes.",
+    earlyVetoEffect:
+      "This proposal has no votes. Vetoing also retracts it, disables voting, and removes it from participation accounting.",
+    postVoteVetoEffect:
+      "This proposal has votes. Vetoing blocks approval and execution, but participation voting stays open until the voting window ends.",
+    reason: "Reason",
+    reasonPlaceholder: "State the contract-recorded reason",
+    reasonBytes: (bytes: number) => `${bytes} of 256 UTF-8 bytes`,
+    execute: "Execute proposal",
+    executeDialogTitle: "Confirm proposal execution",
+    executeDialogDescription:
+      "Review the exact execution evidence before signing.",
+    executeEffect:
+      "The exact hash-matched event script will run in order and atomically. One failed call reverts the whole transaction.",
+    currentSimulation: "Current-state simulation",
+    decay: "Late-vote decay",
+    simulationReference: "Simulation reference",
+    simulationSucceeded: "Succeeded",
+    simulationBlock: (block: string) => `Reference block ${block}`,
+    guardPermissionless: "Any eligible connected account may execute.",
+    guardOperator: "The configured operator is required to execute.",
+    scriptHash: "Event script hash",
+    cancel: "Cancel",
+    confirmRetract: "Retract proposal",
+    confirmFlag: "Flag proposal",
+    confirmVeto: "Veto proposal",
+    confirmExecute: "Execute proposal",
+    transaction: {
+      submittedToast: "Transaction submitted.",
+      checking: "Checking transaction",
+      signing: "Confirm in wallet",
+      pending: "Transaction pending",
+      confirmed: "Transaction confirmed",
+      awaitingIndex: "Transaction confirmed · awaiting proposal indexing",
+      awaitingIndexBody:
+        "Live authorization has updated. Proposal history will update after the confirmed event is indexed.",
+      failed: "Transaction failed",
+    },
+  },
   timing: {
     votingOpens: (duration: string) => `Voting opens in ${duration}`,
     votingEnds: (duration: string) => `Voting ends in ${duration}`,
@@ -306,5 +402,6 @@ export const daoCopy = {
     authoring: "Authoring",
     eligibility: "Proposer eligibility",
     custom: "Custom facts",
+    transaction: "Transaction result",
   },
 } as const;

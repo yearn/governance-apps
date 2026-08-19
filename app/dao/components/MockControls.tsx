@@ -20,6 +20,7 @@ import {
   type DaoMockProposerState,
   type DaoMockRole,
   type DaoMockSurfaceState,
+  type DaoMockTransactionOutcome,
   type DaoMockVetoState,
 } from "@/lib/clients/dao";
 import { useDaoDebugActions, useDaoMockRuntime } from "@/lib/hooks/useDao";
@@ -80,6 +81,14 @@ const ACCOUNT_STATES: readonly [DaoMockAccountState, string][] = [
   ["no-weight", "No weight"],
   ["already-voted", "Already voted"],
   ["late-decayed", "Late-decayed"],
+  ["disconnected", "Disconnected"],
+  ["wrong-network", "Wrong network"],
+];
+const TRANSACTION_OUTCOMES: readonly [DaoMockTransactionOutcome, string][] = [
+  ["success", "Success"],
+  ["user-rejected", "Rejected"],
+  ["revert", "Revert"],
+  ["network-error", "Network error"],
 ];
 const EXECUTION_STATES: readonly [DaoMockExecutionState, string][] = [
   ["signal", "Signal"],
@@ -262,6 +271,49 @@ export function MockControls() {
           values={EXECUTION_STATES}
           onSelect={actions.setExecutionState}
         />
+
+        <ControlGroup label={daoCopy.debug.transaction}>
+          <ButtonGrid>
+            {TRANSACTION_OUTCOMES.map(([outcome, label]) => (
+              <ToggleButton
+                key={outcome}
+                active={runtime.transactionOutcome === outcome}
+                onClick={() => {
+                  void actions.setTransactionOutcome(outcome);
+                }}
+              >
+                {label}
+              </ToggleButton>
+            ))}
+          </ButtonGrid>
+          {runtime.pendingAction ? (
+            <div className="space-y-2">
+              <p className="text-pretty text-text-secondary">
+                {runtime.pendingAction.action} awaiting indexing
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    void actions.indexPendingAction();
+                  }}
+                >
+                  Index action
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    void actions.clearPendingAction();
+                  }}
+                >
+                  Clear pending
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </ControlGroup>
 
         <ControlGroup label={daoCopy.debug.authoring}>
           <ButtonGrid>

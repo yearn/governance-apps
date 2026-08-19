@@ -19,6 +19,7 @@ import {
   DAO_MOCK_FEED_JSON,
   DAO_MOCK_FIXTURE_IDS,
   DAO_MOCK_VERIFIED_CALL_REGISTRY,
+  DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR,
   deriveDaoProposerState,
   getDaoMockFixture,
   parseDaoBigInt,
@@ -517,6 +518,52 @@ describe("MockDaoClient", () => {
     expect(guardedOperatorState.capabilities.canExecute).toBe(true);
     expect(permissionlessState.capabilities.canExecute).toBe(true);
   });
+
+  it.each([
+    ["vote", "voting"],
+    ["retract", "discussion"],
+    ["flag", "discussion"],
+    ["veto", "discussion"],
+    ["execute", "permissionless-execution"],
+  ] as const)(
+    "rejects snapshot %s preparation with the stable read-only error",
+    async (action, fixtureId) => {
+      const client = createMockDaoClient({ fixtureId, latencyMs: 0 });
+      const fixture = client.getFixture();
+      const preparation =
+        action === "vote"
+          ? client.prepareVote(
+              fixture.proposalRef,
+              fixture.account.address,
+              "yea"
+            )
+          : action === "retract"
+            ? client.prepareRetract(
+                fixture.proposalRef,
+                fixture.account.address
+              )
+            : action === "flag"
+              ? client.prepareFlag(
+                  fixture.proposalRef,
+                  fixture.account.address,
+                  "é".repeat(129)
+                )
+              : action === "veto"
+                ? client.prepareVeto(
+                    fixture.proposalRef,
+                    fixture.account.address,
+                    " "
+                  )
+                : client.prepareExecute(
+                    fixture.proposalRef,
+                    fixture.account.address
+                  );
+
+      await expect(preparation).rejects.toThrow(
+        DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR
+      );
+    }
+  );
 
   it("reports shared proposal capacity from all six affected epochs", async () => {
     const client = createMockDaoClient({

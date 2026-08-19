@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import type { PreparedTransaction } from "@/lib/tx/types";
 import type { DaoClient } from "./client";
 import {
   deriveDaoCapabilities,
@@ -15,6 +16,11 @@ import {
   readDaoMockFeed,
   readDaoMockProposal,
   readDaoMockProposerState,
+  prepareDaoMockExecute,
+  prepareDaoMockFlag,
+  prepareDaoMockRetract,
+  prepareDaoMockVeto,
+  prepareDaoMockVote,
 } from "./store";
 import type {
   DaoAccountProposalState,
@@ -25,6 +31,7 @@ import type {
   DaoProposalLookup,
   DaoProposalRef,
   DaoProposerState,
+  DaoVoteDirection,
 } from "./types";
 
 export type DaoMockFixtureCatalogEntry = {
@@ -33,6 +40,14 @@ export type DaoMockFixtureCatalogEntry = {
   proposalRef: DaoProposalRef;
 };
 
+export const DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR =
+  "Snapshot DAO mock clients are read-only and cannot prepare transactions.";
+
+/**
+ * Immutable fixture reader for deterministic domain snapshots. It implements
+ * the shared client shape for read consumers, but deliberately rejects every
+ * prepared write because it has no mutable authorization or indexing state.
+ */
 export class MockDaoClient implements DaoClient {
   private readonly fixtureId: DaoMockFixtureId;
   private readonly latencyMs: number;
@@ -81,41 +96,7 @@ export class MockDaoClient implements DaoClient {
     address: Address
   ): Promise<DaoAccountProposalState> {
     await this.waitForLatency();
-    const feed = createDaoMockFeed();
-    const proposal = findProposal(feed, ref);
-    if (!proposal) {
-      throw new Error(`Unknown DAO proposal ${serializeDaoProposalRef(ref)}.`);
-    }
-
-    const fixture = getDaoMockFixture(this.fixtureId);
-    const account = {
-      ...structuredClone(fixture.account),
-      address,
-      isProposer:
-        fixture.account.isProposer &&
-        address.toLowerCase() === fixture.account.address.toLowerCase(),
-      isOperator:
-        fixture.account.isOperator &&
-        address.toLowerCase() === fixture.account.address.toLowerCase(),
-      isGuardian:
-        fixture.account.isGuardian &&
-        address.toLowerCase() === fixture.account.address.toLowerCase(),
-    };
-    const vetoEndsAt =
-      proposal.ref.proposalId === fixture.proposalRef.proposalId
-        ? fixture.vetoEndsAt
-        : proposal.executionEndsAt ?? proposal.voteEndsAt + 14 * 86_400;
-
-    return {
-      ...account,
-      capabilities: deriveDaoCapabilities({
-        proposal,
-        account,
-        now: fixture.now,
-        vetoEndsAt,
-        executionGuard: fixture.executionGuard,
-      }),
-    };
+    return createImmutableAccountProposalState(this.fixtureId, ref, address);
   }
 
   async getProposerState(address: Address): Promise<DaoProposerState> {
@@ -127,12 +108,116 @@ export class MockDaoClient implements DaoClient {
     });
   }
 
+  async prepareVote(
+    ref: DaoProposalRef,
+    address: Address,
+    direction: DaoVoteDirection
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    void direction;
+    await this.waitForLatency();
+    return rejectSnapshotClientWrite();
+  }
+
+  async prepareRetract(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    await this.waitForLatency();
+    return rejectSnapshotClientWrite();
+  }
+
+  async prepareFlag(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    void reason;
+    await this.waitForLatency();
+    return rejectSnapshotClientWrite();
+  }
+
+  async prepareVeto(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    void reason;
+    await this.waitForLatency();
+    return rejectSnapshotClientWrite();
+  }
+
+  async prepareExecute(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    await this.waitForLatency();
+    return rejectSnapshotClientWrite();
+  }
+
   private async waitForLatency(): Promise<void> {
     if (this.latencyMs <= 0) return;
     await new Promise((resolve) => setTimeout(resolve, this.latencyMs));
   }
 }
 
+function rejectSnapshotClientWrite(): never {
+  throw new Error(DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR);
+}
+
+function createImmutableAccountProposalState(
+  fixtureId: DaoMockFixtureId,
+  ref: DaoProposalRef,
+  address: Address
+): DaoAccountProposalState {
+  const proposal = findProposal(createDaoMockFeed(), ref);
+  if (!proposal) {
+    throw new Error(`Unknown DAO proposal ${serializeDaoProposalRef(ref)}.`);
+  }
+
+  const fixture = getDaoMockFixture(fixtureId);
+  const sameFixtureActor =
+    address.toLowerCase() === fixture.account.address.toLowerCase();
+  const account = {
+    ...structuredClone(fixture.account),
+    address,
+    hasVoted: sameFixtureActor && fixture.account.hasVoted,
+    voteDirection:
+      sameFixtureActor && fixture.account.hasVoted
+        ? fixture.account.voteDirection
+        : null,
+    isProposer: fixture.account.isProposer && sameFixtureActor,
+    isOperator: fixture.account.isOperator && sameFixtureActor,
+    isGuardian: fixture.account.isGuardian && sameFixtureActor,
+  };
+  const vetoEndsAt =
+    serializeDaoProposalRef(proposal.ref) ===
+    serializeDaoProposalRef(fixture.proposalRef)
+      ? fixture.vetoEndsAt
+      : proposal.executionEndsAt ?? proposal.voteEndsAt + 14 * 86_400;
+
+  return {
+    ...account,
+    capabilities: deriveDaoCapabilities({
+      proposal,
+      account,
+      now: fixture.now,
+      vetoEndsAt,
+      executionGuard: fixture.executionGuard,
+    }),
+  };
+}
+
+/** Creates a read-only client over immutable fixture snapshots. */
 export function createMockDaoClient(options?: {
   fixtureId?: DaoMockFixtureId;
   latencyMs?: number;
@@ -141,8 +226,9 @@ export function createMockDaoClient(options?: {
 }
 
 /**
- * Route-facing adapter. The instance is safe to cache because every read pulls
- * from the mutable DAO runtime store instead of snapshotting a fixture.
+ * Route-facing adapter and the sole mock client with prepared-write support.
+ * The instance is safe to cache because every read and write pulls from the
+ * mutable DAO runtime store instead of snapshotting a fixture.
  */
 export class RuntimeMockDaoClient implements DaoClient {
   private readonly latencyMs: number;
@@ -172,6 +258,49 @@ export class RuntimeMockDaoClient implements DaoClient {
   async getProposerState(address: Address): Promise<DaoProposerState> {
     await this.waitForLatency();
     return readDaoMockProposerState(address);
+  }
+
+  async prepareVote(
+    ref: DaoProposalRef,
+    address: Address,
+    direction: DaoVoteDirection
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockVote(ref, address, direction);
+  }
+
+  async prepareRetract(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockRetract(ref, address);
+  }
+
+  async prepareFlag(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockFlag(ref, address, reason);
+  }
+
+  async prepareVeto(
+    ref: DaoProposalRef,
+    address: Address,
+    reason: string
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockVeto(ref, address, reason);
+  }
+
+  async prepareExecute(
+    ref: DaoProposalRef,
+    address: Address
+  ): Promise<PreparedTransaction> {
+    await this.waitForLatency();
+    return prepareDaoMockExecute(ref, address);
   }
 
   private async waitForLatency(): Promise<void> {

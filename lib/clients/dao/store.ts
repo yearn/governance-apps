@@ -1,8 +1,10 @@
-import type { Address } from "viem";
+import { keccak256, stringToHex, type Address, type Hex } from "viem";
 import type { DaoTestBridgeAdapter } from "@/lib/test-bridge";
 import { nowSeconds } from "@/lib/mocks/time";
+import type { PreparedTransaction, TransactionHash } from "@/lib/tx/types";
 import {
   assertDaoProposalInvariants,
+  DAO_BLOCKED_REASONS,
   deriveDaoCapabilities,
   deriveDaoDisplayGroup,
   deriveDaoDisplayStatus,
@@ -10,6 +12,7 @@ import {
   deriveDaoProposerState,
   deriveDaoVotingWeight,
   serializeDaoProposalRef,
+  validateDaoModerationReason,
 } from "./domain";
 import {
   createDaoMockFeed,
@@ -24,6 +27,7 @@ import { checkDaoExecutorScript } from "./script";
 import type {
   DaoAccountProposalFacts,
   DaoAccountProposalState,
+  DaoActionType,
   DaoExecutionGuard,
   DaoMockAccountState,
   DaoMockAnalysisState,
@@ -40,12 +44,16 @@ import type {
   DaoMockRole,
   DaoMockRuntimeSnapshot,
   DaoMockSurfaceState,
+  DaoMockTransactionOutcome,
   DaoMockVetoState,
+  DaoPendingAction,
   DaoProposal,
+  DaoProposalEvent,
   DaoProposalLookup,
   DaoProposalRef,
   DaoProposerEligibilityInput,
   DaoProposerState,
+  DaoVoteDirection,
 } from "./types";
 
 const DAY_SECONDS = 86_400;
@@ -77,6 +85,11 @@ type DaoMockStoreState = {
   proposer: DaoProposerEligibilityInput;
   executionGuard: DaoExecutionGuard;
   authoring: DaoMockAuthoring;
+  transactionOutcome: DaoMockTransactionOutcome;
+  pendingAction: DaoPendingAction | null;
+  baselineVotes: Record<string, DaoVoteDirection>;
+  submittedVotes: Record<string, DaoVoteDirection>;
+  nextTransactionNonce: bigint;
 };
 
 const listeners = new Set<Listener>();
@@ -123,6 +136,11 @@ function createStoreState(
   if (proposer.lastProposedAt !== null) {
     proposer.lastProposedAt += delta;
   }
+  const baselineVotes: Record<string, DaoVoteDirection> = {};
+  if (fixture.account.hasVoted) {
+    baselineVotes[daoVoteIdentity(fixture.proposalRef, fixture.account.address)] =
+      fixture.account.voteDirection ?? "yea";
+  }
 
   return {
     surface: "ready",
@@ -137,6 +155,11 @@ function createStoreState(
     proposer,
     executionGuard: fixture.executionGuard,
     authoring: createAuthoringState("valid-signal"),
+    transactionOutcome: "success",
+    pendingAction: null,
+    baselineVotes,
+    submittedVotes: {},
+    nextTransactionNonce: 0n,
   };
 }
 
@@ -187,7 +210,11 @@ function normalizeStoreState(next: DaoMockStoreState): DaoMockStoreState {
     voteEndsAt: selected.proposal.voteEndsAt,
     decayLengthSeconds: next.accountDecayLengthSeconds,
   });
-  next.account = { ...next.account, ...weight };
+  next.account = {
+    ...next.account,
+    ...weight,
+    ...readVoteFacts(next, selected.proposal.ref, next.account.address),
+  };
   return next;
 }
 
@@ -206,6 +233,8 @@ function createSnapshot(current: DaoMockStoreState): DaoMockRuntimeSnapshot {
     proposer: current.proposer,
     executionGuard: current.executionGuard,
     authoring: current.authoring,
+    transactionOutcome: current.transactionOutcome,
+    pendingAction: current.pendingAction,
   });
 }
 
@@ -295,6 +324,40 @@ function getProposalRuntimeByRef(
       (runtime) => serializeDaoProposalRef(runtime.proposal.ref) === key
     ) ?? null
   );
+}
+
+function daoVoteIdentity(ref: DaoProposalRef, address: Address): string {
+  return `${serializeDaoProposalRef(ref)}:${address.toLowerCase()}`;
+}
+
+function readVoteFacts(
+  current: DaoMockStoreState,
+  ref: DaoProposalRef,
+  address: Address
+): Pick<DaoAccountProposalFacts, "hasVoted" | "voteDirection"> {
+  const identity = daoVoteIdentity(ref, address);
+  const direction =
+    current.submittedVotes[identity] ??
+    current.baselineVotes[identity] ??
+    null;
+  return {
+    hasVoted: direction !== null,
+    voteDirection: direction,
+  };
+}
+
+function setBaselineVote(
+  current: DaoMockStoreState,
+  hasVoted: boolean,
+  direction: DaoVoteDirection | null
+) {
+  const ref = getSelectedProposalRuntime(current).proposal.ref;
+  const identity = daoVoteIdentity(ref, current.account.address);
+  if (hasVoted) {
+    current.baselineVotes[identity] = direction ?? "yea";
+  } else {
+    delete current.baselineVotes[identity];
+  }
 }
 
 function replaceSelectedProposal(
@@ -455,8 +518,7 @@ export function setDaoMockPersona(persona: DaoMockPersona) {
     current.account.isProposer = persona === "proposer";
     current.account.isOperator = persona === "operator";
     current.account.isGuardian = persona === "guardian";
-    current.account.hasVoted = false;
-    current.account.voteDirection = null;
+    setBaselineVote(current, false, null);
     current.account.votingWeight = persona === "observer" ? 0n : DEFAULT_WEIGHT;
     current.accountDecayLengthSeconds = 0;
     current.proposer.connected = persona !== "observer";
@@ -568,13 +630,17 @@ export function setDaoMockAnalysisState(analysisState: DaoMockAnalysisState) {
 
 export function setDaoMockAccountState(accountState: DaoMockAccountState) {
   return updateStore((current) => {
-    current.account.connected = true;
-    current.account.correctChain = true;
-    current.account.hasVoted = accountState === "already-voted";
-    current.account.voteDirection =
-      accountState === "already-voted" ? "yea" : null;
+    current.account.connected = accountState !== "disconnected";
+    current.account.correctChain = accountState !== "wrong-network";
+    setBaselineVote(
+      current,
+      accountState === "already-voted",
+      accountState === "already-voted" ? "yea" : null
+    );
     current.account.votingWeight =
-      accountState === "no-weight" ? 0n : DEFAULT_WEIGHT;
+      accountState === "no-weight" || accountState === "disconnected"
+        ? 0n
+        : DEFAULT_WEIGHT;
     current.accountDecayLengthSeconds =
       accountState === "late-decayed" ? DAY_SECONDS : 0;
     if (accountState === "late-decayed") {
@@ -597,8 +663,7 @@ export function setDaoMockAlreadyVoted(
   direction: "yea" | "nay" | null = hasVoted ? "yea" : null
 ) {
   return updateStore((current) => {
-    current.account.hasVoted = hasVoted;
-    current.account.voteDirection = hasVoted ? direction ?? "yea" : null;
+    setBaselineVote(current, hasVoted, direction);
   });
 }
 
@@ -804,6 +869,304 @@ export function setDaoMockProposalCapacity(index: number, count: number) {
   });
 }
 
+export function setDaoMockTransactionOutcome(
+  outcome: DaoMockTransactionOutcome
+) {
+  return updateStore((current) => {
+    current.transactionOutcome = outcome;
+  });
+}
+
+export function clearDaoMockPendingAction() {
+  return updateStore((current) => {
+    current.pendingAction = null;
+  });
+}
+
+export function indexDaoMockPendingAction() {
+  return updateStore((current) => {
+    const pending = current.pendingAction;
+    if (!pending) return;
+    const runtime = getProposalRuntimeByRef(current, pending.ref);
+    if (!runtime) {
+      throw new Error(
+        `Unknown DAO proposal ${serializeDaoProposalRef(pending.ref)}.`
+      );
+    }
+
+    if (pending.action === "vote") {
+      const weight = pending.effectiveVotingWeight;
+      const direction = pending.direction;
+      if (weight === null || direction === null) {
+        throw new Error("Pending DAO vote is missing its submitted facts.");
+      }
+      runtime.proposal.totalWeight += weight;
+      if (direction === "yea") runtime.proposal.yeaWeight += weight;
+      else runtime.proposal.nayWeight += weight;
+    } else if (pending.action === "retract") {
+      runtime.retracted = true;
+    } else if (pending.action === "flag") {
+      runtime.flagged = true;
+      runtime.retracted = true;
+      runtime.proposal.moderation.flagReason = pending.reason;
+    } else if (pending.action === "veto") {
+      runtime.vetoed = true;
+      if (runtime.proposal.totalWeight === 0n) runtime.retracted = true;
+      runtime.proposal.moderation.vetoReason = pending.reason;
+    } else {
+      runtime.executed = true;
+    }
+
+    const event = createIndexedActionEvent(current, pending);
+    runtime.proposal.events.push(event);
+    current.feed.canonicalBlock = {
+      number: event.log.blockNumber,
+      hash: event.log.blockHash,
+      timestamp: current.now,
+    };
+    current.selectedFixtureId = null;
+    current.pendingAction = null;
+  });
+}
+
+export function prepareDaoMockVote(
+  ref: DaoProposalRef,
+  address: Address,
+  direction: DaoVoteDirection
+): PreparedTransaction {
+  assertDaoMockActionAllowed("vote", ref, address);
+  return createPreparedDaoMockAction({
+    action: "vote",
+    ref,
+    address,
+    direction,
+    reason: null,
+  });
+}
+
+export function prepareDaoMockRetract(
+  ref: DaoProposalRef,
+  address: Address
+): PreparedTransaction {
+  assertDaoMockActionAllowed("retract", ref, address);
+  return createPreparedDaoMockAction({
+    action: "retract",
+    ref,
+    address,
+    direction: null,
+    reason: null,
+  });
+}
+
+export function prepareDaoMockFlag(
+  ref: DaoProposalRef,
+  address: Address,
+  reason: string
+): PreparedTransaction {
+  const checked = validateDaoModerationReason(reason);
+  if (checked.error) throw new Error(checked.error);
+  assertDaoMockActionAllowed("flag", ref, address);
+  return createPreparedDaoMockAction({
+    action: "flag",
+    ref,
+    address,
+    direction: null,
+    reason: checked.value,
+  });
+}
+
+export function prepareDaoMockVeto(
+  ref: DaoProposalRef,
+  address: Address,
+  reason: string
+): PreparedTransaction {
+  const checked = validateDaoModerationReason(reason);
+  if (checked.error) throw new Error(checked.error);
+  assertDaoMockActionAllowed("veto", ref, address);
+  return createPreparedDaoMockAction({
+    action: "veto",
+    ref,
+    address,
+    direction: null,
+    reason: checked.value,
+  });
+}
+
+export function prepareDaoMockExecute(
+  ref: DaoProposalRef,
+  address: Address
+): PreparedTransaction {
+  assertDaoMockActionAllowed("execute", ref, address);
+  return createPreparedDaoMockAction({
+    action: "execute",
+    ref,
+    address,
+    direction: null,
+    reason: null,
+  });
+}
+
+type PreparedDaoMockActionInput = {
+  action: DaoActionType;
+  ref: DaoProposalRef;
+  address: Address;
+  direction: DaoVoteDirection | null;
+  reason: string | null;
+};
+
+function createPreparedDaoMockAction(
+  input: PreparedDaoMockActionInput
+): PreparedTransaction {
+  const ref = cloneValue(input.ref);
+  return async () => {
+    assertDaoMockActionAllowed(input.action, ref, input.address);
+    const checkedReason = validatePreparedModerationReason(
+      input.action,
+      input.reason
+    );
+    const current = getState();
+    throwForMockTransactionOutcome(current.transactionOutcome);
+    const account = readDaoMockAccountProposalState(ref, input.address);
+    const transactionHash = createMockTransactionHash(
+      input.action,
+      ref,
+      input.address,
+      current.nextTransactionNonce
+    );
+    const pending: DaoPendingAction = {
+      action: input.action,
+      ref,
+      actor: input.address,
+      transactionHash,
+      submittedAt: current.now,
+      direction: input.direction,
+      effectiveVotingWeight:
+        input.action === "vote" ? account.effectiveVotingWeight : null,
+      reason: checkedReason,
+    };
+    updateStore((next) => {
+      if (next.pendingAction) {
+        throw new Error("A confirmed proposal action is already awaiting indexing.");
+      }
+      next.pendingAction = pending;
+      if (input.action === "vote") {
+        if (input.direction === null) {
+          throw new Error("A pending DAO vote requires a direction.");
+        }
+        next.submittedVotes[daoVoteIdentity(ref, input.address)] =
+          input.direction;
+      }
+      next.nextTransactionNonce += 1n;
+    });
+    return transactionHash;
+  };
+}
+
+function validatePreparedModerationReason(
+  action: DaoActionType,
+  reason: string | null
+): string | null {
+  if (action !== "flag" && action !== "veto") return null;
+  const checked = validateDaoModerationReason(reason ?? "");
+  if (checked.error) throw new Error(checked.error);
+  return checked.value;
+}
+
+function createMockTransactionHash(
+  action: DaoActionType,
+  ref: DaoProposalRef,
+  address: Address,
+  nonce: bigint
+): TransactionHash {
+  return keccak256(
+    stringToHex(
+      [
+        serializeDaoProposalRef(ref),
+        address.toLowerCase(),
+        action,
+        nonce.toString(),
+      ].join("|")
+    )
+  ) as TransactionHash;
+}
+
+function assertDaoMockActionAllowed(
+  action: DaoActionType,
+  ref: DaoProposalRef,
+  address: Address
+) {
+  const account = readDaoMockAccountProposalState(ref, address);
+  const capability: readonly [boolean, string | null] =
+    action === "vote"
+      ? [account.capabilities.canVote, account.capabilities.voteBlockedReason]
+      : action === "retract"
+        ? [
+            account.capabilities.canRetract,
+            account.capabilities.retractBlockedReason,
+          ]
+        : action === "flag"
+          ? [account.capabilities.canFlag, account.capabilities.flagBlockedReason]
+          : action === "veto"
+            ? [account.capabilities.canVeto, account.capabilities.vetoBlockedReason]
+            : [
+                account.capabilities.canExecute,
+                account.capabilities.executeBlockedReason,
+              ];
+  if (!capability[0]) {
+    throw new Error(capability[1] ?? "This proposal action is unavailable.");
+  }
+}
+
+function throwForMockTransactionOutcome(outcome: DaoMockTransactionOutcome) {
+  if (outcome === "success") return;
+  if (outcome === "user-rejected") {
+    const error = new Error("User rejected the request.");
+    error.name = "UserRejectedRequestError";
+    throw error;
+  }
+  if (outcome === "revert") {
+    throw new Error("Mock proposal transaction reverted.");
+  }
+  throw new Error("Mock proposal transaction failed because of a network issue.");
+}
+
+function createIndexedActionEvent(
+  current: DaoMockStoreState,
+  pending: DaoPendingAction
+): DaoProposalEvent {
+  const blockNumber = current.feed.canonicalBlock.number + 1n;
+  const blockHash = fixedMockHex(blockNumber);
+  return {
+    type: pending.action,
+    log: {
+      blockNumber,
+      blockHash,
+      transactionHash: pending.transactionHash,
+      transactionIndex: 0,
+      logIndex: 0,
+    },
+    actor: pending.actor,
+    voteActorKind: pending.action === "vote" ? "human" : null,
+    yeaBps:
+      pending.action === "vote"
+        ? pending.direction === "yea"
+          ? 10_000
+          : 0
+        : null,
+    direction: pending.action === "vote" ? pending.direction : null,
+    weight:
+      pending.action === "vote" ? pending.effectiveVotingWeight : null,
+    reason:
+      pending.action === "flag" || pending.action === "veto"
+        ? pending.reason
+        : null,
+  };
+}
+
+function fixedMockHex(value: bigint): Hex {
+  return `0x${value.toString(16).padStart(64, "0")}` as Hex;
+}
+
 export function readDaoMockFeed() {
   return cloneValue(getDaoMockSnapshot().feed);
 }
@@ -841,16 +1204,47 @@ export function readDaoMockAccountProposalState(
     ...cloneValue(current.account),
     ...weight,
     address,
+    ...readVoteFacts(current, ref, address),
   };
+  const capabilities = deriveDaoCapabilities({
+    proposal: runtime.proposal,
+    account,
+    now: current.now,
+    vetoEndsAt: runtime.vetoEndsAt,
+    executionGuard: current.executionGuard,
+  });
+  const pendingMatchesProposal =
+    current.pendingAction !== null &&
+    serializeDaoProposalRef(current.pendingAction.ref) ===
+      serializeDaoProposalRef(ref);
+  const pendingBlocksAccount =
+    pendingMatchesProposal &&
+    (current.pendingAction?.action !== "vote" ||
+      current.pendingAction.actor.toLowerCase() === address.toLowerCase());
   return {
     ...account,
-    capabilities: deriveDaoCapabilities({
-      proposal: runtime.proposal,
-      account,
-      now: current.now,
-      vetoEndsAt: runtime.vetoEndsAt,
-      executionGuard: current.executionGuard,
-    }),
+    capabilities: pendingBlocksAccount
+      ? {
+          canVote: false,
+          votePurpose: null,
+          voteBlockedReason:
+            current.pendingAction?.action === "vote"
+              ? capabilities.voteBlockedReason
+              : DAO_BLOCKED_REASONS.awaitingIndex,
+          canRetract: false,
+          retractBlockedReason:
+            DAO_BLOCKED_REASONS.awaitingIndex,
+          canFlag: false,
+          flagBlockedReason:
+            DAO_BLOCKED_REASONS.awaitingIndex,
+          canVeto: false,
+          vetoBlockedReason:
+            DAO_BLOCKED_REASONS.awaitingIndex,
+          canExecute: false,
+          executeBlockedReason:
+            DAO_BLOCKED_REASONS.awaitingIndex,
+        }
+      : capabilities,
   };
 }
 
@@ -943,6 +1337,15 @@ export function createDaoTestBridgeAdapter(): DaoTestBridgeAdapter {
     },
     setDaoProposalCapacity: async (index, count) => {
       setDaoMockProposalCapacity(index, count);
+    },
+    setDaoTransactionOutcome: async (outcome) => {
+      setDaoMockTransactionOutcome(outcome);
+    },
+    indexDaoPendingAction: async () => {
+      indexDaoMockPendingAction();
+    },
+    clearDaoPendingAction: async () => {
+      clearDaoMockPendingAction();
     },
     onSetNow: async (timestamp) => {
       syncDaoMockStoreToNow(timestamp);

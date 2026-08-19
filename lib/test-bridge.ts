@@ -19,6 +19,7 @@ import type {
   DaoMockProposerState,
   DaoMockRole,
   DaoMockSurfaceState,
+  DaoMockTransactionOutcome,
   DaoMockVetoState,
   DaoVoteDirection,
 } from "@/lib/clients/dao/types";
@@ -124,6 +125,11 @@ export interface DaoTestBridgeMethods {
     cooldownSeconds: number
   ) => Promise<void>;
   setDaoProposalCapacity?: (index: number, count: number) => Promise<void>;
+  setDaoTransactionOutcome?: (
+    outcome: DaoMockTransactionOutcome
+  ) => Promise<void>;
+  indexDaoPendingAction?: () => Promise<void>;
+  clearDaoPendingAction?: () => Promise<void>;
 }
 
 type TestBridgeAdapterHooks = {
@@ -598,6 +604,18 @@ export function createTestBridge({
     ),
     setDaoProposalCapacity: wrapBridgeMutation(
       dao?.setDaoProposalCapacity,
+      invalidateDao
+    ),
+    setDaoTransactionOutcome: wrapBridgeMutation(
+      dao?.setDaoTransactionOutcome,
+      invalidateDao
+    ),
+    indexDaoPendingAction: wrapBridgeMutation(
+      dao?.indexDaoPendingAction,
+      invalidateDao
+    ),
+    clearDaoPendingAction: wrapBridgeMutation(
+      dao?.clearDaoPendingAction,
       invalidateDao
     ),
   };

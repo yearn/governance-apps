@@ -134,6 +134,9 @@ DAO examples:
 - `setDaoAuthoringState`
 - `setDaoProposalVotes`
 - `setDaoProposalTiming`
+- `setDaoTransactionOutcome`
+- `indexDaoPendingAction`
+- `clearDaoPendingAction`
 - `resetDao`
 
 Exact names may evolve, but the contract intent should remain:
