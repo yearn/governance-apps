@@ -67,6 +67,13 @@ describe("DAO proposal detail", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("exposes the vote breakdown once to assistive technology", () => {
+    render(<ProposalDetail envelope={envelope(proposal(2n))} />);
+
+    expect(screen.queryByRole("img", { name: /Yea.*Nay/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/Yea.*Nay/i)).toBeVisible();
+  });
+
   it.each([
     [14n, "Immutable content could not be retrieved", "Content gateway"],
     [

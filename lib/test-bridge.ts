@@ -87,6 +87,7 @@ export interface YbcTestBridgeMethods {
 
 export interface DaoTestBridgeMethods {
   resetDao?: () => Promise<void>;
+  getDaoState?: () => Promise<DaoTestStateSnapshot>;
   setDaoFixture?: (fixtureId: DaoMockFixtureId) => Promise<void>;
   setDaoSelectedProposal?: (proposalId: string) => Promise<void>;
   setDaoLoading?: (value: boolean) => Promise<void>;
@@ -131,6 +132,38 @@ export interface DaoTestBridgeMethods {
   indexDaoPendingAction?: () => Promise<void>;
   clearDaoPendingAction?: () => Promise<void>;
 }
+
+export type DaoTestStateSnapshot = {
+  selectedFixtureId: DaoMockFixtureId | null;
+  selectedProposalId: string;
+  account: {
+    address: Address;
+    connected: boolean;
+    correctChain: boolean;
+    isProposer: boolean;
+    isOperator: boolean;
+    isGuardian: boolean;
+  };
+  proposal: {
+    type: "signal" | "executable";
+    protocolStatus: string;
+    displayStatus: string;
+    contentState: string;
+    scriptHashVerified: boolean | null;
+    analysisState: string;
+  };
+  capabilities: {
+    canVote: boolean;
+    votePurpose: string | null;
+    canExecute: boolean;
+  };
+  executionGuard: DaoExecutionGuard;
+  canonicalBlock: {
+    number: string;
+    hash: string;
+    timestamp: number;
+  };
+};
 
 type TestBridgeAdapterHooks = {
   onSetNow?: (timestamp: number) => Promise<void> | void;
@@ -526,6 +559,7 @@ export function createTestBridge({
     patchYbcRewards: wrapBridgeMutation(ybc?.patchYbcRewards, invalidateYbc),
     patchYbcAdmin: wrapBridgeMutation(ybc?.patchYbcAdmin, invalidateYbc),
     resetDao: wrapBridgeMutation(dao?.resetDao, invalidateDao),
+    getDaoState: dao?.getDaoState,
     setDaoFixture: wrapBridgeMutation(dao?.setDaoFixture, invalidateDao),
     setDaoSelectedProposal: wrapBridgeMutation(
       dao?.setDaoSelectedProposal,

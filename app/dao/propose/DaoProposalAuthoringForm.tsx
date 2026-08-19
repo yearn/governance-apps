@@ -286,7 +286,7 @@ function DaoProposalAuthoringFormState({
   return (
     <Card className="min-w-0 space-y-8 overflow-hidden p-4 sm:p-6">
       <div className="space-y-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue">
+        <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue dark:text-blue-300">
           {daoProposeCopy.form.eyebrow}
         </p>
         <h2
@@ -518,7 +518,7 @@ function DaoFinalReview({
   return (
     <Card className="min-w-0 space-y-8 overflow-hidden p-4 sm:p-6">
       <div className="space-y-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue">
+        <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue dark:text-blue-300">
           {daoProposeCopy.review.eyebrow}
         </p>
         <h2
@@ -543,7 +543,7 @@ function DaoFinalReview({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`${review.topic.normalizedUrl} (${daoProposeCopy.discussion.newTab})`}
-            className="-mx-1 inline-flex min-h-10 max-w-full items-center rounded-box px-1 text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 focus:outline-none focus:ring-2 focus:ring-text-primary"
+            className="-mx-1 inline-flex min-h-10 max-w-full items-center rounded-box px-1 text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 focus:outline-none focus:ring-2 focus:ring-text-primary dark:text-blue-300 dark:decoration-blue-300/50"
           >
             <span className="break-all">{review.topic.normalizedUrl}</span>
           </a>
@@ -594,7 +594,7 @@ function DaoFinalReview({
             {daoProposeCopy.script.emptyTitle}
           </p>
         ) : (
-          <p className="text-pretty text-sm font-bold text-green-800">
+          <p className="text-pretty text-sm font-bold text-green-800 dark:text-green-300">
             {daoProposeCopy.script.valid}
           </p>
         )}
@@ -805,7 +805,14 @@ export function DaoProposalEligibility({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={proposer.canPropose ? "success" : "warning"}>
+        <Badge
+          variant={proposer.canPropose ? "success" : "warning"}
+          className={
+            proposer.canPropose
+              ? "dark:bg-green-950 dark:text-green-200"
+              : "dark:bg-amber-950 dark:text-amber-200"
+          }
+        >
           {proposer.canPropose
             ? daoProposeCopy.landing.eligibleLabel
             : daoProposeCopy.landing.unavailableLabel}
@@ -940,7 +947,7 @@ function AuthoringSection({
       <div className="grid gap-3 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
         <span
           aria-hidden="true"
-          className="flex size-10 items-center justify-center rounded-full bg-yearn-blue/10 font-number text-sm font-bold tabular-nums text-yearn-blue"
+          className="flex size-10 items-center justify-center rounded-full bg-yearn-blue font-number text-sm font-bold tabular-nums text-white dark:bg-blue-950 dark:text-blue-200"
         >
           {number}
         </span>
@@ -1356,8 +1363,8 @@ function SubmissionStep({
         className={cn(
           "flex size-8 shrink-0 items-center justify-center rounded-full font-number text-xs font-bold tabular-nums",
           complete
-            ? "bg-green-100 text-green-900"
-            : "bg-neutral-100 text-neutral-900"
+            ? "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-200"
+            : "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100"
         )}
       >
         {number}

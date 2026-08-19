@@ -127,7 +127,10 @@ export function ProposalDetail({
             {proposal.type === "signal" &&
             proposal.displayStatus === "approved" ? (
               <div className="space-y-1 border-t border-border pt-4">
-                <p className="text-lg font-bold text-success-700">
+                <p
+                  className="text-lg font-bold text-green-800 dark:text-green-300"
+                  data-testid="dao-approved-signal"
+                >
                   {daoCopy.detail.approvedSignal}
                 </p>
                 <p className="text-pretty text-sm font-bold text-text-secondary">
@@ -137,7 +140,7 @@ export function ProposalDetail({
             ) : null}
 
             <details className="group border-t border-border pt-2">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded py-2 text-sm font-bold transition-[color] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded py-2 text-sm font-bold transition-[color] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:hover:text-blue-300 [&::-webkit-details-marker]:hidden">
                 <span>{daoCopy.detail.rules}</span>
                 <span
                   aria-hidden="true"
@@ -257,7 +260,7 @@ function ImmutableContent({ proposal }: { proposal: DaoProposal }) {
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded text-sm font-bold text-yearn-blue transition-[color] duration-150 ease-out hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none"
+                      className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded text-sm font-bold text-yearn-blue transition-[color] duration-150 ease-out hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:text-blue-300 dark:hover:text-blue-200"
                     >
                       <span className="truncate">{link.label}</span>
                       <IconLinkOut className="size-3.5 shrink-0" aria-hidden />
@@ -449,7 +452,7 @@ function ScriptIntegrity({ proposal }: { proposal: DaoProposal }) {
         state === false
           ? "text-error-700"
           : state === true
-            ? "text-success-700"
+            ? "text-success-700 dark:text-green-300"
             : "text-text-secondary"
       )}
     >
@@ -551,7 +554,11 @@ function DecodedCall({ call }: { call: DaoDecodedCall }) {
         </p>
         <Badge
           variant={call.decodeStatus === "verified" ? "success" : "warning"}
-          className="font-sans"
+          className={cn(
+            "font-sans",
+            call.decodeStatus === "verified" &&
+              "dark:bg-green-950 dark:text-green-200"
+          )}
         >
           {stateLabel}
         </Badge>

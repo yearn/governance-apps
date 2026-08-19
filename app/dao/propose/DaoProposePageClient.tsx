@@ -39,10 +39,15 @@ export type DaoProposeRouteState =
 export function DaoProposePageClient() {
   const { address, isConnected } = useAccount();
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
-  const effectiveAddress = address ?? (isE2E ? E2E_MOCK_ADDRESS : null);
-  const hasConnectedAccount = (isConnected || isE2E) && effectiveAddress !== null;
-  const proposerQuery = useDaoProposerState(effectiveAddress);
   const runtime = useDaoMockRuntime();
+  const effectiveAddress = isE2E
+    ? (runtime?.proposer.address ?? E2E_MOCK_ADDRESS)
+    : (address ?? null);
+  const hasConnectedAccount =
+    isE2E && runtime
+      ? runtime.proposer.connected && effectiveAddress !== null
+      : isConnected && effectiveAddress !== null;
+  const proposerQuery = useDaoProposerState(effectiveAddress);
   const state: DaoProposeRouteState = !hasConnectedAccount
     ? "disconnected"
     : proposerQuery.isPending
@@ -157,7 +162,14 @@ function ProposerSummary({
   return (
     <Card className="space-y-5">
       <div className="space-y-3">
-        <Badge variant={proposer.canPropose ? "success" : "warning"}>
+        <Badge
+          variant={proposer.canPropose ? "success" : "warning"}
+          className={
+            proposer.canPropose
+              ? "dark:bg-green-950 dark:text-green-200"
+              : "dark:bg-amber-950 dark:text-amber-200"
+          }
+        >
           {proposer.canPropose
             ? daoCopy.propose.eligibleLabel
             : daoCopy.propose.unavailableLabel}

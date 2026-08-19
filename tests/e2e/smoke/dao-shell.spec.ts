@@ -215,7 +215,7 @@ test("uses the typed bridge to mutate DAO facts and refresh infinitely fresh que
   await page.evaluate(async () => {
     if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
     await window.__TEST__.setDaoFixture?.("discussion");
-    await window.__TEST__.setNow(Math.floor(Date.now() / 1_000) + 4 * 86_400);
+    await window.__TEST__.setNow(Math.floor(Date.now() / 1_000) + 8 * 86_400);
   });
   await expect(page.getByText("Voting", { exact: true }).first()).toBeVisible();
 });

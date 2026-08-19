@@ -97,6 +97,32 @@ describe("createTestBridge", () => {
     });
   });
 
+  it("passes read-only DAO evidence through without invalidating queries", async () => {
+    const queryClient = new QueryClient();
+    const invalidateQueries = vi
+      .spyOn(queryClient, "invalidateQueries")
+      .mockResolvedValue(undefined);
+    const clients = createBridgeClients();
+    const evidence = {
+      selectedFixtureId: "permissionless-execution",
+      selectedProposalId: "22",
+    } as never;
+    const dao: DaoTestBridgeAdapter = {
+      getDaoState: vi.fn().mockResolvedValue(evidence),
+    };
+    const bridge = createTestBridge({
+      styfi: clients.styfi as never,
+      veyfi: clients.veyfi as never,
+      yeth: clients.yeth as never,
+      queryClient,
+      dao,
+    });
+
+    await expect(bridge.getDaoState?.()).resolves.toBe(evidence);
+    expect(dao.getDaoState).toHaveBeenCalledOnce();
+    expect(invalidateQueries).not.toHaveBeenCalled();
+  });
+
   it("runs shared reset and time hooks for Teams, YBC, and DAO adapters", async () => {
     const queryClient = new QueryClient();
     const invalidateQueries = vi

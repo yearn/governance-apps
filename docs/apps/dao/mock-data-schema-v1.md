@@ -383,6 +383,15 @@ decimals, exponent notation, and leading zeroes are rejected.
 
 ## 9. Required deterministic fixtures
 
+All proposal times are derived from one mock genesis and the contract timing
+helper. The mock epoch is 14 days, voting is assigned to creation epoch `N + 1`,
+and the vote starts halfway through that voting epoch. Fixtures may supply a
+historical execution-delay input to cover both waiting and open execution
+states, but they do not hand-author voting epochs or output timestamps. The
+authoring eligibility fixture derives `expectedVotingEpoch` from the same
+genesis and timing configuration. Equal voting windows therefore always carry
+the same `votingEpoch`.
+
 The mock store must provide at least:
 
 | Fixture | Required distinction |
@@ -437,10 +446,14 @@ for fixture and proposal selection, surface state, persona and independent roles
 content, lifecycle, veto, analysis, account, execution, authoring, votes,
 threshold, terminal flags, timing, proposer eligibility, and each affected
 epoch's capacity. It also exposes transaction outcome, pending-action indexing,
-and pending-action clearing. Each bridge call waits for the mutation and then
-invalidates `daoKeys.all`. Shared time changes update the store clock before
-invalidation so status and capabilities are re-derived from facts. Reset
-restores the success outcome and removes any pending action.
+pending-action clearing, plus a read-only JSON-safe DAO evidence snapshot. Each
+mutation waits for completion and then invalidates `daoKeys.all`; the evidence
+read does not invalidate. Shared time changes update the runtime clock and a
+coherent canonical block number, hash, and timestamp before invalidation, so
+status and capabilities are re-derived without rewriting provenance under an
+unchanged block identity. Account roles apply only when the normalized queried
+address equals the role-bearing fixture actor. Reset restores the success
+outcome and removes any pending action.
 
 ## 11. Parser error catalogue
 

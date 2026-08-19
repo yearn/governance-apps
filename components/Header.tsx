@@ -1,7 +1,10 @@
 "use client";
 
 import { usePathname, useSelectedLayoutSegments } from "next/navigation";
-import { WalletButton } from "@/components/WalletButton";
+import {
+  WalletButton,
+  type E2EWalletPresentation,
+} from "@/components/WalletButton";
 import { IconMenu } from "@/components/icons/IconMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useEpochClock } from "@/lib/hooks/useEpochClock";
@@ -9,13 +12,14 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useGlobalData } from "@/lib/hooks/useGlobalData";
 import { useProtocol } from "@/state/protocol";
 import { resolveHeaderAppKey, resolveHeaderPrimaryNav } from "@/lib/header-nav";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
 import { HeaderNavMenu } from "@/components/header/HeaderNavMenu";
 import { MobileNavMenu } from "@/components/header/MobileNavMenu";
 import { useHostname } from "@/lib/hooks/useHostname";
 import { STYFI_SNAPSHOT_SPACE_URL } from "@/lib/clients/styfi/snapshot";
 import { styfiCopy } from "@/app/styfi/messages";
+import { useDaoMockRuntime } from "@/lib/hooks/useDao";
 
 export function Header() {
   const pathname = usePathname();
@@ -33,6 +37,21 @@ export function Header() {
   );
   const { publicClient } = useProtocol();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const daoRuntime = useDaoMockRuntime(
+    appKey === "dao" && process.env.NEXT_PUBLIC_E2E === "true"
+  );
+  const daoIdentity = pathname?.startsWith("/dao/propose")
+    ? daoRuntime?.proposer
+    : daoRuntime?.account;
+  const e2eWalletPresentation: E2EWalletPresentation | undefined =
+    process.env.NEXT_PUBLIC_E2E === "true" && appKey === "dao" && daoIdentity
+      ? {
+          address: daoIdentity.address,
+          connected: daoIdentity.connected,
+          correctChain: daoIdentity.correctChain,
+        }
+      : undefined;
 
   // Resolve current app name (stYFI, veYFI, etc)
   const primaryNav = resolveHeaderPrimaryNav(pathname, segment, hostname);
@@ -76,12 +95,13 @@ export function Header() {
             ) : null}
             <div className="hidden items-center gap-2 md:flex">
               <ThemeToggle />
-              <WalletButton />
+              <WalletButton e2ePresentation={e2eWalletPresentation} />
             </div>
             <button
+              ref={mobileMenuTriggerRef}
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="inline-flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary md:hidden"
+              className="inline-flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary motion-reduce:transition-none md:hidden"
               aria-label="Open navigation menu"
               aria-expanded={isMobileMenuOpen}
             >
@@ -93,6 +113,8 @@ export function Header() {
       <MobileNavMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
+        returnFocusRef={mobileMenuTriggerRef}
+        e2eWalletPresentation={e2eWalletPresentation}
         snapshotVotingLink={snapshotVotingLink}
       />
     </>

@@ -67,8 +67,8 @@ function getDaoRouteClient(): DaoClient {
 const subscribeNoop = () => () => undefined;
 const getNullSnapshot = () => null;
 
-export function useDaoMockRuntime(): DaoMockRuntimeSnapshot | null {
-  const mockRuntimeEnabled = !isProductionRuntime();
+export function useDaoMockRuntime(enabled = true): DaoMockRuntimeSnapshot | null {
+  const mockRuntimeEnabled = enabled && !isProductionRuntime();
   return useSyncExternalStore(
     mockRuntimeEnabled ? subscribeDaoMockStore : subscribeNoop,
     mockRuntimeEnabled ? getDaoMockSnapshot : getNullSnapshot,

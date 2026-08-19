@@ -173,7 +173,7 @@ function ProposalBoardRow({
               <Link
                 href={`/dao/proposals/${proposalId}`}
                 aria-label={daoCopy.board.proposalLink(proposalId, title)}
-                className="inline-flex min-h-10 max-w-full items-center rounded py-1 text-left transition-[color] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none"
+                className="inline-flex min-h-10 max-w-full items-center rounded py-1 text-left transition-[color] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:hover:text-blue-300"
               >
                 <span className="break-words [overflow-wrap:anywhere]">{title}</span>
               </Link>

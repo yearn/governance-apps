@@ -40,8 +40,10 @@ type DialogAction = DaoActionType | null;
 export function DaoProposalActionPanel({ proposal }: { proposal: DaoProposal }) {
   const { address } = useAccount();
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
-  const effectiveAddress = address ?? (isE2E ? E2E_MOCK_ADDRESS : null);
   const runtime = useDaoMockRuntime();
+  const effectiveAddress = isE2E
+    ? (runtime?.account.address ?? E2E_MOCK_ADDRESS)
+    : (address ?? null);
   const accountQuery = useDaoAccountProposalState(
     proposal.ref,
     effectiveAddress
@@ -433,7 +435,7 @@ function LifecycleActions({
   if (rows.length === 0) return null;
   return (
     <details className="group border-t border-border pt-2">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded py-2 text-sm font-bold transition-[color] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded py-2 text-sm font-bold transition-[color] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:hover:text-blue-300 [&::-webkit-details-marker]:hidden">
         <span>{daoCopy.actions.lifecycleTitle}</span>
         <span
           aria-hidden="true"
@@ -553,7 +555,9 @@ function ActionConfirmationDialog({
             <ConfirmationCopy>
               {proposal.totalWeight === 0n
                 ? daoCopy.actions.earlyVetoEffect
-                : daoCopy.actions.postVoteVetoEffect}
+                : proposal.protocolStatus === "voting"
+                  ? daoCopy.actions.postVoteVetoEffect
+                  : daoCopy.actions.postVoteVetoClosedEffect}
             </ConfirmationCopy>
             <ReasonField
               onChange={onReason}

@@ -11,8 +11,19 @@ import { cn } from "@/lib/cn";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { formatAddress } from "@/lib/format";
 import { MAINNET_CHAIN_ID } from "@/lib/tx/network";
+import type { Address } from "viem";
 
-export function WalletButton() {
+export type E2EWalletPresentation = {
+  address: Address;
+  connected: boolean;
+  correctChain: boolean;
+};
+
+export function WalletButton({
+  e2ePresentation,
+}: {
+  e2ePresentation?: E2EWalletPresentation;
+} = {}) {
   const { address, chainId, isConnected } = useAccount();
   const { openAccountModal } = useAccountModal();
   const { openConnectModal } = useConnectModal();
@@ -32,6 +43,40 @@ export function WalletButton() {
 
   if (!mounted) {
     return <div className="h-9 w-24 animate-pulse rounded-full bg-surface-secondary" />;
+  }
+
+  if (process.env.NEXT_PUBLIC_E2E === "true" && e2ePresentation) {
+    const label = getE2EWalletLabel(e2ePresentation);
+    return (
+      <div
+        role="status"
+        aria-label={`Read-only test wallet: ${label}`}
+        data-testid="dao-wallet-presentation"
+        className={cn(
+          "inline-flex min-h-10 items-center rounded-lg px-3 py-1.5 text-sm font-medium",
+          !e2ePresentation.connected
+            ? "bg-surface-secondary text-text-secondary"
+            : !e2ePresentation.correctChain
+              ? "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-200"
+              : "bg-surface-secondary text-text-secondary"
+        )}
+      >
+        {label}
+      </div>
+    );
+  }
+
+  if (usesE2EFallback && effectiveAddress) {
+    const label = formatAddress(effectiveAddress);
+    return (
+      <div
+        role="status"
+        aria-label={`Read-only test wallet: ${label}`}
+        className="inline-flex min-h-10 items-center rounded-lg bg-surface-secondary px-3 py-1.5 text-sm font-medium text-text-secondary"
+      >
+        {label}
+      </div>
+    );
   }
 
   if (!hasConnectedAccount || !effectiveAddress) {
@@ -71,4 +116,12 @@ export function WalletButton() {
       </button>
     </div>
   );
+}
+
+export function getE2EWalletLabel(
+  presentation: E2EWalletPresentation
+): string {
+  if (!presentation.connected) return "Wallet disconnected";
+  if (!presentation.correctChain) return "Wrong network";
+  return formatAddress(presentation.address);
 }

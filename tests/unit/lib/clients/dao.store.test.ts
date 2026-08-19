@@ -76,7 +76,7 @@ describe("DAO mutable mock store", () => {
         .canVote
     ).toBe(false);
 
-    syncDaoMockStoreToNow(DAO_MOCK_NOW + 4 * DAY_SECONDS);
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 8 * DAY_SECONDS);
 
     const voting = getDaoMockSnapshot();
     expect(
@@ -88,12 +88,25 @@ describe("DAO mutable mock store", () => {
       readDaoMockAccountProposalState(ref, DAO_MOCK_ACCOUNT_ADDRESS).capabilities
     ).toMatchObject({ canVote: true, votePurpose: "decision" });
 
-    syncDaoMockStoreToNow(DAO_MOCK_NOW + 11 * DAY_SECONDS);
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 15 * DAY_SECONDS);
     expect(
       getDaoMockSnapshot().feed.proposals.find(
         (proposal) => proposal.ref.proposalId === 1n
       )?.displayStatus
     ).toBe("rejected");
+  });
+
+  it("advances canonical block provenance when deterministic time changes", () => {
+    const before = getDaoMockSnapshot().feed.canonicalBlock;
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + DAY_SECONDS);
+
+    const after = getDaoMockSnapshot().feed.canonicalBlock;
+    expect(after.timestamp).toBe(DAO_MOCK_NOW + DAY_SECONDS);
+    expect({ number: after.number, hash: after.hash }).not.toEqual({
+      number: before.number,
+      hash: before.hash,
+    });
   });
 
   it("keeps pre-vote and post-vote veto capability pairs distinct", () => {

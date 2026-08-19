@@ -9,7 +9,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { getButtonClassName } from "@/components/ui/Button";
 import Link from "next/link";
-import { useDaoProposal } from "@/lib/hooks/useDao";
+import { useDaoMockRuntime, useDaoProposal } from "@/lib/hooks/useDao";
 import {
   DaoErrorPanel,
   DaoLoadingPanel,
@@ -33,8 +33,11 @@ const PROPOSAL_EYEBROW_CLASS_NAME =
 
 export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
   const { isConnected } = useAccount();
+  const runtime = useDaoMockRuntime();
   const hasConnectedAccount =
-    isConnected || process.env.NEXT_PUBLIC_E2E === "true";
+    process.env.NEXT_PUBLIC_E2E === "true" && runtime
+      ? runtime.account.connected
+      : isConnected;
   const proposalQuery = useDaoProposal(proposalId);
   const envelope = proposalQuery.envelope;
   const state: DaoProposalRouteState = proposalQuery.isPending

@@ -429,7 +429,9 @@ the DAO client. Yea and Nay start unselected. A vote review repeats the selected
 direction, proposal title, effective weight, original weight and decay when
 applicable, and the public-Voter irreversibility. A post-vote veto retains the
 same binary choices under the participation notice; an early veto exposes no
-vote choice.
+vote choice. Veto confirmation says participation voting stays open only while
+the current voting window is actually open; a closed-window veto says that the
+window has ended and is not reopened.
 
 Unavailable immutable content requires one acknowledgement before voting.
 Invalid immutable content requires that acknowledgement plus a separate review
@@ -459,12 +461,38 @@ focus remains visible, and reduced-motion mode removes interactive transitions.
 ## 13. M2 assembled mock account presentation
 
 The deterministic E2E account is presented consistently across the global
-wallet control, proposal board, proposal detail, action panel, and authoring
-eligibility. In E2E mode, a missing connector account uses the same typed mock
-address as the DAO client and is treated as connected by the read shells. A real
-connector address still takes precedence, and preview or production sessions
-without `NEXT_PUBLIC_E2E=true` retain the normal wallet connection behavior.
+wallet area, proposal board, proposal detail, action panel, and authoring
+eligibility. In E2E mode, the DAO header follows the same typed runtime actor,
+connection, and network facts as the current DAO route. The fallback identity
+is an explicitly read-only status, not a wallet-action button; disconnected and
+wrong-network states update the desktop and mobile presentations together.
+Preview or production sessions without `NEXT_PUBLIC_E2E=true` retain the normal
+RainbowKit connection, account, and chain behavior.
 
-The global wallet control keeps a minimum 40-pixel target in its disconnected,
-wrong-network, and connected presentations. This shared presentation change does
-not expose DAO fixtures or delivery language on normal routes.
+The read-only desktop presentation is at least 40 pixels high and the mobile
+presentation is at least 44 pixels high. This E2E-only presentation does not
+expose DAO fixtures or delivery language on normal routes.
+
+## 14. M2 follow-up accessibility and evidence behavior
+
+The mobile navigation is a named modal dialog rendered above and isolated from
+the page. Opening it moves focus to Close, locks body scrolling, and makes the
+background inert and hidden from assistive technology. Tab and Shift-Tab wrap
+inside the dialog. Escape, Close, and internal navigation all restore focus to
+the opener when it remains mounted. The 390 × 500 and 390 × 844 layouts keep the
+header and footer fixed within `100dvh`, leave the navigation body scrollable,
+and remove entrance and accordion transitions under reduced motion.
+
+The visual Yea/Nay bar is hidden from assistive technology because the adjacent
+text already exposes the same breakdown. DAO status badges, authoring eyebrow
+and step markers, script-integrity text, approved-signal text, and active
+purpose states use local light/dark foreground and background pairs that meet
+4.5:1 for small normal text. The vote-purpose badge retains the pinned
+high-contrast dark treatment.
+
+Fixture UAT navigates to the target route before applying a fixture through the
+shared bridge, then reads back the selected fixture identity in the same
+document. Contract, action, and trust assertions—including permissionless
+execution and post-veto participation—prove the requested fixture rather than a
+default title or status. The 200% overflow check injects a 200% root font size;
+it is evidence for root-font scaling, not a browser-zoom claim.

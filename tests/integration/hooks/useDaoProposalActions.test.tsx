@@ -98,8 +98,9 @@ describe("useDaoProposalActions", () => {
       applyDaoMockFixture(fixture);
       if (role) setDaoMockRole(role, true);
       const proposal = selectedProposal();
+      const actor = getDaoMockSnapshot().account.address;
       const { result } = renderHookWithProviders(() =>
-        useDaoProposalActions(proposal.ref, DAO_MOCK_ACCOUNT_ADDRESS, {
+        useDaoProposalActions(proposal.ref, actor, {
           submittedMessage: "Transaction submitted.",
         })
       );

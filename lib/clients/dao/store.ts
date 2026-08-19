@@ -196,10 +196,6 @@ function normalizeStoreState(next: DaoMockStoreState): DaoMockStoreState {
   next.feed = {
     ...next.feed,
     generatedAt: new Date(next.now * 1_000).toISOString(),
-    canonicalBlock: {
-      ...next.feed.canonicalBlock,
-      timestamp: next.now,
-    },
     proposals: next.proposals.map((runtime) => cloneValue(runtime.proposal)),
   };
 
@@ -244,11 +240,29 @@ function createAnchoredFeed(now: number) {
   return {
     ...feed,
     generatedAt: new Date(now * 1_000).toISOString(),
-    canonicalBlock: {
-      ...feed.canonicalBlock,
-      timestamp: now,
-    },
+    canonicalBlock: deriveMockCanonicalBlock(feed.canonicalBlock, now),
     proposals: feed.proposals.map((proposal) => shiftProposal(proposal, delta)),
+  };
+}
+
+function deriveMockCanonicalBlock(
+  baseline: DaoMockStoreState["feed"]["canonicalBlock"],
+  timestamp: number
+): DaoMockStoreState["feed"]["canonicalBlock"] {
+  if (timestamp === baseline.timestamp) return cloneValue(baseline);
+  const deltaSeconds = timestamp - baseline.timestamp;
+  const blockDelta = BigInt(Math.ceil(Math.abs(deltaSeconds) / 12));
+  const number =
+    deltaSeconds > 0
+      ? baseline.number + blockDelta
+      : baseline.number - blockDelta;
+  if (number < 0n) {
+    throw new Error("DAO mock canonical block number cannot be negative.");
+  }
+  return {
+    number,
+    hash: fixedMockHex(number),
+    timestamp,
   };
 }
 
@@ -478,6 +492,10 @@ export function syncDaoMockStoreToNow(timestamp: number = nowSeconds()) {
   }
   return updateStore((current) => {
     current.now = timestamp;
+    current.feed.canonicalBlock = deriveMockCanonicalBlock(
+      createDaoMockFeed().canonicalBlock,
+      timestamp
+    );
   });
 }
 
@@ -1205,6 +1223,15 @@ export function readDaoMockAccountProposalState(
     ...weight,
     address,
     ...readVoteFacts(current, ref, address),
+    isProposer:
+      current.account.isProposer &&
+      current.account.address.toLowerCase() === address.toLowerCase(),
+    isOperator:
+      current.account.isOperator &&
+      current.account.address.toLowerCase() === address.toLowerCase(),
+    isGuardian:
+      current.account.isGuardian &&
+      current.account.address.toLowerCase() === address.toLowerCase(),
   };
   const capabilities = deriveDaoCapabilities({
     proposal: runtime.proposal,
@@ -1259,6 +1286,50 @@ export function createDaoTestBridgeAdapter(): DaoTestBridgeAdapter {
   return {
     resetDao: async () => {
       resetDaoMockStore();
+    },
+    getDaoState: async () => {
+      const current = getDaoMockSnapshot();
+      const proposal = current.feed.proposals.find(
+        (candidate) => candidate.ref.proposalId === current.selectedProposalId
+      );
+      if (!proposal) {
+        throw new Error("Selected DAO proposal is unavailable.");
+      }
+      const account = readDaoMockAccountProposalState(
+        proposal.ref,
+        current.account.address
+      );
+      return {
+        selectedFixtureId: current.selectedFixtureId,
+        selectedProposalId: current.selectedProposalId.toString(),
+        account: {
+          address: account.address,
+          connected: account.connected,
+          correctChain: account.correctChain,
+          isProposer: account.isProposer,
+          isOperator: account.isOperator,
+          isGuardian: account.isGuardian,
+        },
+        proposal: {
+          type: proposal.type,
+          protocolStatus: proposal.protocolStatus,
+          displayStatus: proposal.displayStatus,
+          contentState: proposal.content.state,
+          scriptHashVerified: proposal.script.hashVerified,
+          analysisState: proposal.analysis.state,
+        },
+        capabilities: {
+          canVote: account.capabilities.canVote,
+          votePurpose: account.capabilities.votePurpose,
+          canExecute: account.capabilities.canExecute,
+        },
+        executionGuard: current.executionGuard,
+        canonicalBlock: {
+          number: current.feed.canonicalBlock.number.toString(),
+          hash: current.feed.canonicalBlock.hash,
+          timestamp: current.feed.canonicalBlock.timestamp,
+        },
+      };
     },
     setDaoFixture: async (fixtureId) => {
       applyDaoMockFixture(fixtureId);

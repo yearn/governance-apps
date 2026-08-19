@@ -293,6 +293,8 @@ export const daoCopy = {
       "This proposal has no votes. Vetoing also retracts it, disables voting, and removes it from participation accounting.",
     postVoteVetoEffect:
       "This proposal has votes. Vetoing blocks approval and execution, but participation voting stays open until the voting window ends.",
+    postVoteVetoClosedEffect:
+      "This proposal has votes and its voting window has ended. Vetoing blocks approval and execution without reopening participation voting.",
     reason: "Reason",
     reasonPlaceholder: "State the contract-recorded reason",
     reasonBytes: (bytes: number) => `${bytes} of 256 UTF-8 bytes`,

@@ -1,6 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactElement,
+  type RefObject,
+} from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   useAccountModal,
@@ -35,10 +45,16 @@ import {
   type NavItem,
 } from "@/lib/nav-data";
 import { MobileNavTile } from "./MobileNavTile";
+import {
+  getE2EWalletLabel,
+  type E2EWalletPresentation,
+} from "@/components/WalletButton";
 
 type MobileNavMenuProps = {
   isOpen: boolean;
   onClose: () => void;
+  returnFocusRef: RefObject<HTMLButtonElement | null>;
+  e2eWalletPresentation?: E2EWalletPresentation;
   snapshotVotingLink?: {
     href: string;
     label: string;
@@ -63,11 +79,13 @@ function getInitialExpandedState(): Record<TSectionId, boolean> {
 }
 
 const LIST_BUTTON_CLASS =
-  "relative flex min-h-[44px] w-full items-center gap-3 rounded-lg px-4 text-left text-lg font-medium text-text-primary transition-colors hover:bg-surface-tertiary";
+  "relative flex min-h-[44px] w-full items-center gap-3 rounded-lg px-4 text-left text-lg font-medium text-text-primary transition-colors hover:bg-surface-tertiary motion-reduce:transition-none";
 
 export function MobileNavMenu({
+  e2eWalletPresentation,
   isOpen,
   onClose,
+  returnFocusRef,
   snapshotVotingLink,
 }: MobileNavMenuProps): ReactElement | null {
   const pathname = usePathname();
@@ -80,6 +98,8 @@ export function MobileNavMenu({
   const currentAppLabel = resolveHeaderPrimaryNav(pathname, null, hostname).label;
   const hasCurrentAppLabel = currentAppLabel.length > 0;
   const currentApp = APP_LINKS.find((app) => app.name === currentAppLabel);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const handleClose = useCallback(() => {
     setExpandedSections(getInitialExpandedState());
     onClose();
@@ -114,52 +134,93 @@ export function MobileNavMenu({
   useEffect(() => {
     if (!isOpen) return;
     const previousOverflow = document.body.style.overflow;
+    const returnFocus = returnFocusRef.current;
     document.body.style.overflow = "hidden";
+    const dialog = dialogRef.current;
+    const background = Array.from(document.body.children).filter(
+      (element): element is HTMLElement =>
+        element instanceof HTMLElement &&
+        element !== dialog &&
+        !element.contains(dialog)
+    );
+    const previousBackgroundState = background.map((element) => ({
+      element,
+      ariaHidden: element.getAttribute("aria-hidden"),
+      inert: element.inert,
+    }));
+    for (const element of background) {
+      element.inert = true;
+      element.setAttribute("aria-hidden", "true");
+    }
+    closeButtonRef.current?.focus({ preventScroll: true });
 
     return () => {
       document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function onEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        handleClose();
+      for (const previous of previousBackgroundState) {
+        previous.element.inert = previous.inert;
+        if (previous.ariaHidden === null) {
+          previous.element.removeAttribute("aria-hidden");
+        } else {
+          previous.element.setAttribute("aria-hidden", previous.ariaHidden);
+        }
       }
-    }
-
-    window.addEventListener("keydown", onEscape);
-    return () => {
-      window.removeEventListener("keydown", onEscape);
+      returnFocus?.focus({ preventScroll: true });
     };
-  }, [handleClose, isOpen]);
+  }, [isOpen, returnFocusRef]);
+
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleClose();
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const focusable = getFocusableElements(event.currentTarget);
+    if (focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex flex-col bg-app text-text-primary animate-in fade-in slide-in-from-bottom-4 duration-300 md:hidden"
+      ref={dialogRef}
+      data-testid="mobile-navigation-dialog"
+      className="fixed inset-0 z-[100] flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden bg-app text-text-primary animate-in fade-in slide-in-from-bottom-4 duration-300 motion-reduce:animate-none motion-reduce:transition-none md:hidden"
       role="dialog"
       aria-modal="true"
+      aria-label="Navigation menu"
+      onKeyDown={handleDialogKeyDown}
     >
-      <div className="flex h-16 items-center justify-between border-b border-border px-4">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
         <TypeMarkYearn
           className="h-8 w-auto text-yearn-blue dark:text-text-primary"
           color="currentColor"
         />
         <button
+          ref={closeButtonRef}
           type="button"
           onClick={handleClose}
-          className="inline-flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary"
+          className="inline-flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary motion-reduce:transition-none"
           aria-label="Close navigation menu"
         >
           <IconClose className="size-5" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
         <div className="space-y-5">
           <div className="space-y-1">
             {hasCurrentAppLabel ? (
@@ -177,7 +238,10 @@ export function MobileNavMenu({
                 <span className="truncate text-lg font-medium">{currentAppLabel}</span>
               </div>
             ) : null}
-            <MobileWalletButton onSelect={handleClose} />
+            <MobileWalletButton
+              e2ePresentation={e2eWalletPresentation}
+              onSelect={handleClose}
+            />
             <button
               type="button"
               onClick={toggleTheme}
@@ -205,21 +269,24 @@ export function MobileNavMenu({
                         [section.id]: !previous[section.id],
                       }))
                     }
-                    className="flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-4 text-left text-lg font-medium text-text-primary transition-colors hover:bg-surface-tertiary"
+                    className="flex min-h-[44px] w-full items-center justify-between gap-2 rounded-lg px-4 text-left text-lg font-medium text-text-primary transition-colors hover:bg-surface-tertiary motion-reduce:transition-none"
                     aria-expanded={isExpanded}
                   >
                     <span className="truncate">{section.title}</span>
                     <IconChevron
                       className={cn(
-                        "size-5 shrink-0 text-text-secondary transition-transform duration-200",
+                        "size-5 shrink-0 text-text-secondary transition-transform duration-200 motion-reduce:duration-0 motion-reduce:transition-none",
                         isExpanded && "rotate-180",
                       )}
                     />
                   </button>
 
                   <div
+                    aria-hidden={!isExpanded}
+                    data-testid={`mobile-navigation-section-${section.id}`}
+                    inert={isExpanded ? undefined : true}
                     className={cn(
-                      "grid transition-[grid-template-rows] duration-200 ease-out",
+                      "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:duration-0 motion-reduce:transition-none",
                       isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
                     )}
                   >
@@ -262,7 +329,7 @@ export function MobileNavMenu({
         </div>
       </div>
 
-      <footer className="border-t border-border px-4 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-6">
+      <footer className="shrink-0 border-t border-border px-4 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-6">
         <div className="flex items-center justify-center gap-3">
           <SocialLink href="https://x.com/yearnfi" label="Yearn on X">
             <IconTwitter className="size-5" />
@@ -275,11 +342,18 @@ export function MobileNavMenu({
           </SocialLink>
         </div>
       </footer>
-    </div>
+    </div>,
+    document.body
   );
 }
 
-function MobileWalletButton({ onSelect }: { onSelect: () => void }): ReactElement {
+function MobileWalletButton({
+  e2ePresentation,
+  onSelect,
+}: {
+  e2ePresentation?: E2EWalletPresentation;
+  onSelect: () => void;
+}): ReactElement {
   const { address, chainId, isConnected } = useAccount();
   const { openAccountModal } = useAccountModal();
   const { openChainModal } = useChainModal();
@@ -299,6 +373,43 @@ function MobileWalletButton({ onSelect }: { onSelect: () => void }): ReactElemen
 
   if (!mounted) {
     return <div className="h-[44px] w-full animate-pulse rounded-lg bg-surface-secondary" />;
+  }
+
+  if (process.env.NEXT_PUBLIC_E2E === "true" && e2ePresentation) {
+    const label = getE2EWalletLabel(e2ePresentation);
+    return (
+      <div
+        role="status"
+        aria-label={`Read-only test wallet: ${label}`}
+        data-testid="dao-mobile-wallet-presentation"
+        className={cn(
+          LIST_BUTTON_CLASS,
+          "cursor-default",
+          !e2ePresentation.connected
+            ? "text-text-secondary"
+            : !e2ePresentation.correctChain
+              ? "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-200"
+              : "text-text-secondary"
+        )}
+      >
+        <IconWallet className="size-5 shrink-0" />
+        <span className="truncate">{label}</span>
+      </div>
+    );
+  }
+
+  if (usesE2EFallback && effectiveAddress) {
+    const label = formatAddress(effectiveAddress);
+    return (
+      <div
+        role="status"
+        aria-label={`Read-only test wallet: ${label}`}
+        className={cn(LIST_BUTTON_CLASS, "cursor-default text-text-secondary")}
+      >
+        <IconWallet className="size-5 shrink-0" />
+        <span className="truncate">{label}</span>
+      </div>
+    );
   }
 
   if (!hasConnectedAccount || !effectiveAddress) {
@@ -353,6 +464,21 @@ function MobileWalletButton({ onSelect }: { onSelect: () => void }): ReactElemen
   );
 }
 
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )
+  ).filter((element) => {
+    const style = getComputedStyle(element);
+    return (
+      !element.closest("[inert]") &&
+      style.visibility !== "hidden" &&
+      style.display !== "none"
+    );
+  });
+}
+
 function SocialLink({
   href,
   label,
@@ -368,7 +494,7 @@ function SocialLink({
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className="inline-flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary"
+      className="inline-flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary motion-reduce:transition-none"
     >
       {children}
     </a>
