@@ -19,6 +19,7 @@ import {
   DAO_MOCK_FEED_JSON,
   DAO_MOCK_FIXTURE_IDS,
   DAO_MOCK_VERIFIED_CALL_REGISTRY,
+  DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR,
   deriveDaoProposerState,
   getDaoMockFixture,
   parseDaoBigInt,
@@ -518,72 +519,51 @@ describe("MockDaoClient", () => {
     expect(permissionlessState.capabilities.canExecute).toBe(true);
   });
 
-  it("enforces immutable-client action capabilities and moderation bounds", async () => {
-    const earlyVeto = createMockDaoClient({
-      fixtureId: "early-veto",
-      latencyMs: 0,
-    });
-    const earlyVetoFixture = earlyVeto.getFixture();
-    await expect(
-      earlyVeto.prepareVote(
-        earlyVetoFixture.proposalRef,
-        earlyVetoFixture.account.address,
-        "yea"
-      )
-    ).rejects.toThrow(DAO_BLOCKED_REASONS.voteLifecycle);
+  it.each([
+    ["vote", "voting"],
+    ["retract", "discussion"],
+    ["flag", "discussion"],
+    ["veto", "discussion"],
+    ["execute", "permissionless-execution"],
+  ] as const)(
+    "rejects snapshot %s preparation with the stable read-only error",
+    async (action, fixtureId) => {
+      const client = createMockDaoClient({ fixtureId, latencyMs: 0 });
+      const fixture = client.getFixture();
+      const preparation =
+        action === "vote"
+          ? client.prepareVote(
+              fixture.proposalRef,
+              fixture.account.address,
+              "yea"
+            )
+          : action === "retract"
+            ? client.prepareRetract(
+                fixture.proposalRef,
+                fixture.account.address
+              )
+            : action === "flag"
+              ? client.prepareFlag(
+                  fixture.proposalRef,
+                  fixture.account.address,
+                  "é".repeat(129)
+                )
+              : action === "veto"
+                ? client.prepareVeto(
+                    fixture.proposalRef,
+                    fixture.account.address,
+                    " "
+                  )
+                : client.prepareExecute(
+                    fixture.proposalRef,
+                    fixture.account.address
+                  );
 
-    const voting = createMockDaoClient({ fixtureId: "voting", latencyMs: 0 });
-    const votingFixture = voting.getFixture();
-    await expect(
-      voting.prepareRetract(
-        votingFixture.proposalRef,
-        votingFixture.account.address
-      )
-    ).rejects.toThrow(DAO_BLOCKED_REASONS.notProposer);
-    await expect(
-      voting.prepareExecute(
-        votingFixture.proposalRef,
-        votingFixture.account.address
-      )
-    ).rejects.toThrow(DAO_BLOCKED_REASONS.executeLifecycle);
-    await expect(
-      voting.prepareFlag(
-        votingFixture.proposalRef,
-        votingFixture.account.address,
-        "é".repeat(129)
-      )
-    ).rejects.toThrow("Reason must be at most 256 UTF-8 bytes.");
-
-    const vote = await voting.prepareVote(
-      votingFixture.proposalRef,
-      votingFixture.account.address,
-      "nay"
-    );
-    const firstVoteHash = await vote();
-    await expect(vote()).resolves.not.toBe(firstVoteHash);
-
-    const discussion = createMockDaoClient({
-      fixtureId: "discussion",
-      latencyMs: 0,
-    });
-    const discussionFixture = discussion.getFixture();
-    const retract = await discussion.prepareRetract(
-      discussionFixture.proposalRef,
-      discussionFixture.account.address
-    );
-    await expect(retract()).resolves.toMatch(/^0x[0-9a-f]{64}$/);
-
-    const permissionless = createMockDaoClient({
-      fixtureId: "permissionless-execution",
-      latencyMs: 0,
-    });
-    const permissionlessFixture = permissionless.getFixture();
-    const execute = await permissionless.prepareExecute(
-      permissionlessFixture.proposalRef,
-      permissionlessFixture.account.address
-    );
-    await expect(execute()).resolves.toMatch(/^0x[0-9a-f]{64}$/);
-  });
+      await expect(preparation).rejects.toThrow(
+        DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR
+      );
+    }
+  );
 
   it("reports shared proposal capacity from all six affected epochs", async () => {
     const client = createMockDaoClient({

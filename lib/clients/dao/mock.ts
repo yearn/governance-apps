@@ -1,11 +1,10 @@
-import { keccak256, stringToHex, type Address } from "viem";
-import type { PreparedTransaction, TransactionHash } from "@/lib/tx/types";
+import type { Address } from "viem";
+import type { PreparedTransaction } from "@/lib/tx/types";
 import type { DaoClient } from "./client";
 import {
   deriveDaoCapabilities,
   deriveDaoProposerState,
   serializeDaoProposalRef,
-  validateDaoModerationReason,
 } from "./domain";
 import {
   createDaoMockFeed,
@@ -25,7 +24,6 @@ import {
 } from "./store";
 import type {
   DaoAccountProposalState,
-  DaoActionType,
   DaoFeedV1,
   DaoMockFixture,
   DaoMockFixtureId,
@@ -42,10 +40,17 @@ export type DaoMockFixtureCatalogEntry = {
   proposalRef: DaoProposalRef;
 };
 
+export const DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR =
+  "Snapshot DAO mock clients are read-only and cannot prepare transactions.";
+
+/**
+ * Immutable fixture reader for deterministic domain snapshots. It implements
+ * the shared client shape for read consumers, but deliberately rejects every
+ * prepared write because it has no mutable authorization or indexing state.
+ */
 export class MockDaoClient implements DaoClient {
   private readonly fixtureId: DaoMockFixtureId;
   private readonly latencyMs: number;
-  private nextTransactionNonce = 0n;
 
   constructor(
     options: { fixtureId?: DaoMockFixtureId; latencyMs?: number } = {}
@@ -108,16 +113,21 @@ export class MockDaoClient implements DaoClient {
     address: Address,
     direction: DaoVoteDirection
   ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    void direction;
     await this.waitForLatency();
-    return this.prepareAction("vote", ref, address, direction, null);
+    return rejectSnapshotClientWrite();
   }
 
   async prepareRetract(
     ref: DaoProposalRef,
     address: Address
   ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
     await this.waitForLatency();
-    return this.prepareAction("retract", ref, address, null, null);
+    return rejectSnapshotClientWrite();
   }
 
   async prepareFlag(
@@ -125,9 +135,11 @@ export class MockDaoClient implements DaoClient {
     address: Address,
     reason: string
   ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    void reason;
     await this.waitForLatency();
-    const checkedReason = assertImmutableModerationReason("flag", reason);
-    return this.prepareAction("flag", ref, address, null, checkedReason);
+    return rejectSnapshotClientWrite();
   }
 
   async prepareVeto(
@@ -135,54 +147,31 @@ export class MockDaoClient implements DaoClient {
     address: Address,
     reason: string
   ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
+    void reason;
     await this.waitForLatency();
-    const checkedReason = assertImmutableModerationReason("veto", reason);
-    return this.prepareAction("veto", ref, address, null, checkedReason);
+    return rejectSnapshotClientWrite();
   }
 
   async prepareExecute(
     ref: DaoProposalRef,
     address: Address
   ): Promise<PreparedTransaction> {
+    void ref;
+    void address;
     await this.waitForLatency();
-    return this.prepareAction("execute", ref, address, null, null);
-  }
-
-  private prepareAction(
-    action: DaoActionType,
-    ref: DaoProposalRef,
-    address: Address,
-    direction: DaoVoteDirection | null,
-    reason: string | null
-  ): PreparedTransaction {
-    const snapshot = createImmutableAccountProposalState(
-      this.fixtureId,
-      ref,
-      address
-    );
-    assertImmutableActionAllowed(action, snapshot);
-    const capturedRef = structuredClone(ref);
-    return async () => {
-      assertImmutableActionAllowed(action, snapshot);
-      const checkedReason = assertImmutableModerationReason(action, reason);
-      const nonce = this.nextTransactionNonce;
-      const transactionHash = createImmutableTransactionHash(
-        action,
-        capturedRef,
-        address,
-        nonce,
-        direction,
-        checkedReason
-      );
-      this.nextTransactionNonce += 1n;
-      return transactionHash;
-    };
+    return rejectSnapshotClientWrite();
   }
 
   private async waitForLatency(): Promise<void> {
     if (this.latencyMs <= 0) return;
     await new Promise((resolve) => setTimeout(resolve, this.latencyMs));
   }
+}
+
+function rejectSnapshotClientWrite(): never {
+  throw new Error(DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR);
 }
 
 function createImmutableAccountProposalState(
@@ -228,63 +217,7 @@ function createImmutableAccountProposalState(
   };
 }
 
-function assertImmutableActionAllowed(
-  action: DaoActionType,
-  account: DaoAccountProposalState
-) {
-  const capability: readonly [boolean, string | null] =
-    action === "vote"
-      ? [account.capabilities.canVote, account.capabilities.voteBlockedReason]
-      : action === "retract"
-        ? [
-            account.capabilities.canRetract,
-            account.capabilities.retractBlockedReason,
-          ]
-        : action === "flag"
-          ? [account.capabilities.canFlag, account.capabilities.flagBlockedReason]
-          : action === "veto"
-            ? [account.capabilities.canVeto, account.capabilities.vetoBlockedReason]
-            : [
-                account.capabilities.canExecute,
-                account.capabilities.executeBlockedReason,
-              ];
-  if (!capability[0]) {
-    throw new Error(capability[1] ?? "This proposal action is unavailable.");
-  }
-}
-
-function assertImmutableModerationReason(
-  action: DaoActionType,
-  reason: string | null
-): string | null {
-  if (action !== "flag" && action !== "veto") return null;
-  const checked = validateDaoModerationReason(reason ?? "");
-  if (checked.error) throw new Error(checked.error);
-  return checked.value;
-}
-
-function createImmutableTransactionHash(
-  action: DaoActionType,
-  ref: DaoProposalRef,
-  address: Address,
-  nonce: bigint,
-  direction: DaoVoteDirection | null,
-  reason: string | null
-): TransactionHash {
-  return keccak256(
-    stringToHex(
-      [
-        serializeDaoProposalRef(ref),
-        address.toLowerCase(),
-        action,
-        direction ?? "",
-        reason ?? "",
-        nonce.toString(),
-      ].join("|")
-    )
-  ) as TransactionHash;
-}
-
+/** Creates a read-only client over immutable fixture snapshots. */
 export function createMockDaoClient(options?: {
   fixtureId?: DaoMockFixtureId;
   latencyMs?: number;
@@ -293,8 +226,9 @@ export function createMockDaoClient(options?: {
 }
 
 /**
- * Route-facing adapter. The instance is safe to cache because every read pulls
- * from the mutable DAO runtime store instead of snapshotting a fixture.
+ * Route-facing adapter and the sole mock client with prepared-write support.
+ * The instance is safe to cache because every read and write pulls from the
+ * mutable DAO runtime store instead of snapshotting a fixture.
  */
 export class RuntimeMockDaoClient implements DaoClient {
   private readonly latencyMs: number;

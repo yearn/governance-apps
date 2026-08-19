@@ -325,6 +325,12 @@ record, and indexed event retain that exact hash. Failed outcomes create no
 pending action. Flag and veto reasons are trimmed, required, and limited to 256
 UTF-8 bytes both when preparing and when calling the prepared transaction.
 
+`createMockDaoClient` is an immutable fixture-snapshot reader and rejects all
+five prepared-write methods with a stable read-only error. It must not imply
+that a snapshot-only client can consume one-vote or lifecycle authorization.
+Mock routes use `RuntimeMockDaoClient`, backed by the mutable store above, as the
+only mock client that prepares and submits actions.
+
 ## 7. Domain invariants
 
 - `totalWeight === yeaWeight + nayWeight` and no weight is negative.
