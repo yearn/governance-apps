@@ -9,7 +9,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { getButtonClassName } from "@/components/ui/Button";
 import Link from "next/link";
-import { useDaoProposal } from "@/lib/hooks/useDao";
+import { useDaoMockRuntime, useDaoProposal } from "@/lib/hooks/useDao";
 import {
   DaoErrorPanel,
   DaoLoadingPanel,
@@ -33,6 +33,11 @@ const PROPOSAL_EYEBROW_CLASS_NAME =
 
 export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
   const { isConnected } = useAccount();
+  const runtime = useDaoMockRuntime();
+  const hasConnectedAccount =
+    process.env.NEXT_PUBLIC_E2E === "true" && runtime
+      ? runtime.account.connected
+      : isConnected;
   const proposalQuery = useDaoProposal(proposalId);
   const envelope = proposalQuery.envelope;
   const state: DaoProposalRouteState = proposalQuery.isPending
@@ -55,7 +60,8 @@ export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
           ) : null
         }
         envelope={envelope}
-        isConnected={isConnected}
+        isConnected={hasConnectedAccount}
+        now={runtime?.now ?? envelope?.feed.canonicalBlock.timestamp ?? 0}
         onRetry={() => {
           void proposalQuery.refetch();
         }}
@@ -71,6 +77,7 @@ export function DaoProposalView({
   actionPanel = null,
   envelope,
   isConnected,
+  now,
   onRetry,
   proposalId,
   state,
@@ -78,6 +85,7 @@ export function DaoProposalView({
   actionPanel?: ReactNode;
   envelope: DaoProposalReadEnvelope | null;
   isConnected: boolean;
+  now?: number;
   onRetry: () => void;
   proposalId: string;
   state: DaoProposalRouteState;
@@ -129,6 +137,7 @@ export function DaoProposalView({
         <ProposalDetail
           actionPanel={actionPanel}
           envelope={envelope}
+          now={now}
         />
       ) : null}
     </DaoRouteFrame>

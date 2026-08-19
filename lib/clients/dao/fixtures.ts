@@ -12,6 +12,7 @@ import {
   DAO_EMPTY_SCRIPT_HASH,
   deriveDaoDisplayGroup,
   deriveDaoDisplayStatus,
+  deriveDaoProposalTiming,
   deriveDaoProtocolStatus,
   deriveDaoVotingWeight,
 } from "./domain";
@@ -35,6 +36,16 @@ import type {
 } from "./types";
 
 export const DAO_MOCK_NOW = 1_787_054_400;
+export const DAO_MOCK_EPOCH_LENGTH_SECONDS = 14 * 86_400;
+export const DAO_MOCK_VOTE_START_OFFSET_SECONDS =
+  DAO_MOCK_EPOCH_LENGTH_SECONDS / 2;
+export const DAO_MOCK_EXECUTION_DELAY_SECONDS = 86_400;
+export const DAO_MOCK_CURRENT_EPOCH = 200;
+const DAO_MOCK_CURRENT_EPOCH_OFFSET = 13 * 86_400 + 18 * 60 * 60;
+export const DAO_MOCK_GENESIS =
+  DAO_MOCK_NOW -
+  DAO_MOCK_CURRENT_EPOCH * DAO_MOCK_EPOCH_LENGTH_SECONDS -
+  DAO_MOCK_CURRENT_EPOCH_OFFSET;
 export const DAO_MOCK_CHAIN_ID = 1;
 export const DAO_MOCK_VOTING_ADDRESS =
   "0x1111111111111111111111111111111111111111" as Address;
@@ -54,6 +65,15 @@ export const DAO_MOCK_YBC_AGGREGATE_ADDRESS =
   "0x7777777777777777777777777777777777777777" as Address;
 export const DAO_MOCK_STYFIX_AGGREGATE_ADDRESS =
   "0x8888888888888888888888888888888888888888" as Address;
+
+export function deriveDaoMockBlockHash(
+  blockNumber: bigint,
+  timestamp: number
+): Hex {
+  return keccak256(
+    toBytes(`dao-mock-block:${blockNumber.toString()}:${timestamp}`)
+  );
+}
 
 const DAO_PINNED_VOTING_ABI_SOURCE =
   "yearn/stYFI@9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
@@ -84,6 +104,7 @@ const MISMATCHED_SCRIPT_HASH = `0x${"ff".repeat(32)}` as Hex;
 
 type ProposalTimingFixture = {
   createdAt: number;
+  votingEpoch: bigint;
   voteStartsAt: number;
   voteEndsAt: number;
   executionStartsAt: number;
@@ -91,49 +112,41 @@ type ProposalTimingFixture = {
 };
 
 const TIMING = {
-  discussion: {
-    createdAt: DAO_MOCK_NOW,
-    voteStartsAt: DAO_MOCK_NOW + 3 * DAY,
-    voteEndsAt: DAO_MOCK_NOW + 10 * DAY,
-    executionStartsAt: DAO_MOCK_NOW + 11 * DAY,
-    executionEndsAt: DAO_MOCK_NOW + 24 * DAY,
-  },
-  voting: {
-    createdAt: DAO_MOCK_NOW - 16 * DAY,
-    voteStartsAt: DAO_MOCK_NOW - 2 * DAY,
-    voteEndsAt: DAO_MOCK_NOW + 5 * DAY,
-    executionStartsAt: DAO_MOCK_NOW + 6 * DAY,
-    executionEndsAt: DAO_MOCK_NOW + 19 * DAY,
-  },
-  lateVoting: {
-    createdAt: DAO_MOCK_NOW - 20 * DAY,
-    voteStartsAt: DAO_MOCK_NOW - 6 * DAY,
-    voteEndsAt: DAO_MOCK_NOW + 6 * 60 * 60,
-    executionStartsAt: DAO_MOCK_NOW + DAY + 6 * 60 * 60,
-    executionEndsAt: DAO_MOCK_NOW + 14 * DAY + 6 * 60 * 60,
-  },
-  decision: {
-    createdAt: DAO_MOCK_NOW - 28 * DAY,
-    voteStartsAt: DAO_MOCK_NOW - 8 * DAY,
-    voteEndsAt: DAO_MOCK_NOW - DAY,
-    executionStartsAt: DAO_MOCK_NOW + DAY,
-    executionEndsAt: DAO_MOCK_NOW + 13 * DAY,
-  },
-  execution: {
-    createdAt: DAO_MOCK_NOW - 35 * DAY,
-    voteStartsAt: DAO_MOCK_NOW - 20 * DAY,
-    voteEndsAt: DAO_MOCK_NOW - 6 * DAY,
-    executionStartsAt: DAO_MOCK_NOW - 5 * DAY,
-    executionEndsAt: DAO_MOCK_NOW + 8 * DAY,
-  },
-  expired: {
-    createdAt: DAO_MOCK_NOW - 49 * DAY,
-    voteStartsAt: DAO_MOCK_NOW - 34 * DAY,
-    voteEndsAt: DAO_MOCK_NOW - 20 * DAY,
-    executionStartsAt: DAO_MOCK_NOW - 19 * DAY,
-    executionEndsAt: DAO_MOCK_NOW - 6 * DAY,
-  },
+  discussion: createProposalTiming(
+    DAO_MOCK_CURRENT_EPOCH,
+    DAO_MOCK_CURRENT_EPOCH_OFFSET
+  ),
+  voting: createProposalTiming(DAO_MOCK_CURRENT_EPOCH - 1, 10 * DAY),
+  lateVoting: createProposalTiming(DAO_MOCK_CURRENT_EPOCH - 1, 9 * DAY),
+  decision: createProposalTiming(
+    DAO_MOCK_CURRENT_EPOCH - 2,
+    10 * DAY,
+    13 * DAY + 21 * 60 * 60
+  ),
+  execution: createProposalTiming(DAO_MOCK_CURRENT_EPOCH - 2, 8 * DAY),
+  expired: createProposalTiming(DAO_MOCK_CURRENT_EPOCH - 3, 8 * DAY),
 } satisfies Record<string, ProposalTimingFixture>;
+
+function createProposalTiming(
+  createdEpoch: number,
+  createdEpochOffset: number,
+  executionDelaySeconds = DAO_MOCK_EXECUTION_DELAY_SECONDS
+): ProposalTimingFixture {
+  const createdAt =
+    DAO_MOCK_GENESIS +
+    createdEpoch * DAO_MOCK_EPOCH_LENGTH_SECONDS +
+    createdEpochOffset;
+  return {
+    createdAt,
+    ...deriveDaoProposalTiming({
+      genesis: DAO_MOCK_GENESIS,
+      createdAt,
+      epochLengthSeconds: DAO_MOCK_EPOCH_LENGTH_SECONDS,
+      voteStartOffsetSeconds: DAO_MOCK_VOTE_START_OFFSET_SECONDS,
+      executionDelaySeconds,
+    }),
+  };
+}
 
 type ProposalFixtureOptions = {
   id: bigint;
@@ -298,7 +311,7 @@ export const DAO_MOCK_FEED: DaoFeedV1 = {
   generatedAt: "2026-08-18T12:00:00Z",
   canonicalBlock: {
     number: 24_000_000n,
-    hash: fixedHex32(240),
+    hash: deriveDaoMockBlockHash(24_000_000n, DAO_MOCK_NOW),
     timestamp: DAO_MOCK_NOW,
   },
   contracts: [
@@ -473,7 +486,7 @@ function createProposal(options: ProposalFixtureOptions): DaoProposal {
   return {
     ref: createProposalRef(options.id),
     proposer: DAO_MOCK_PROPOSER_ADDRESS,
-    votingEpoch: 100n + options.id,
+    votingEpoch: options.timing.votingEpoch,
     createdAt: options.timing.createdAt,
     voteStartsAt: options.timing.voteStartsAt,
     voteEndsAt: options.timing.voteEndsAt,
@@ -916,11 +929,22 @@ function createEvent(
   };
 }
 
+export function deriveDaoMockExpectedVotingEpoch(createdAt: number): bigint {
+  return deriveDaoProposalTiming({
+    genesis: DAO_MOCK_GENESIS,
+    createdAt,
+    epochLengthSeconds: DAO_MOCK_EPOCH_LENGTH_SECONDS,
+    voteStartOffsetSeconds: DAO_MOCK_VOTE_START_OFFSET_SECONDS,
+    executionDelaySeconds: DAO_MOCK_EXECUTION_DELAY_SECONDS,
+  }).votingEpoch;
+}
+
 function createProposerInput(capacityFull: boolean): DaoProposerEligibilityInput {
+  const expectedVotingEpoch = deriveDaoMockExpectedVotingEpoch(DAO_MOCK_NOW);
   const affectedBoostEpochs: DaoAffectedBoostEpoch[] = Array.from(
     { length: 6 },
     (_, index) => ({
-      epoch: 201n + BigInt(index),
+      epoch: expectedVotingEpoch + BigInt(index),
       currentProposalCount: capacityFull && index === 2 ? 64 : 12 + index,
       proposalLimit: 64,
     })
@@ -935,7 +959,7 @@ function createProposerInput(capacityFull: boolean): DaoProposerEligibilityInput
     blacklisted: false,
     lastProposedAt: null,
     cooldownSeconds: DAY,
-    expectedVotingEpoch: 201n,
+    expectedVotingEpoch,
     affectedBoostEpochs,
   };
 }

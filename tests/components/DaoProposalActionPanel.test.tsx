@@ -121,6 +121,27 @@ describe("DAO proposal action panel", () => {
     expect(confirm).toBeEnabled();
   });
 
+  it("uses a dark-safe foreground for account load errors", () => {
+    renderFixture("voting", { account: null, accountError: true });
+
+    expect(
+      screen.getByText("Proposal actions are unavailable. Try again.")
+    ).toHaveClass("dark:text-red-300");
+  });
+
+  it("uses a dark-safe foreground for moderation errors", () => {
+    applyDaoMockFixture("discussion");
+    setDaoMockRole("operator", true);
+    renderSelected();
+
+    openLifecycleAction("Flag proposal");
+    expect(
+      within(screen.getByRole("dialog")).getByText("Enter a reason.", {
+        exact: true,
+      })
+    ).toHaveClass("dark:text-red-300");
+  });
+
   it("keeps participation voting open after veto and blocks an early veto", () => {
     renderFixture("post-vote-veto");
     expect(screen.getByText(/still vote to record your participation/i)).toBeVisible();
@@ -199,6 +220,19 @@ describe("DAO proposal action panel", () => {
     expect(
       within(dialog).getByText(/participation voting stays open/i)
     ).toBeVisible();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    applyDaoMockFixture("approved-executable");
+    setDaoMockRole("guardian", true);
+    renderSelected();
+    openLifecycleAction("Veto proposal");
+    dialog = screen.getByRole("dialog", { name: "Confirm proposal veto" });
+    expect(
+      within(dialog).getByText(/voting window has ended/i)
+    ).toBeVisible();
+    expect(
+      within(dialog).queryByText(/participation voting stays open/i)
+    ).not.toBeInTheDocument();
   });
 
   it("confirms only eligible executable proposals and never gives a signal an execute CTA", () => {
@@ -302,7 +336,7 @@ function renderSelected(overrides: RenderOverrides = {}) {
     overrides.account === undefined
       ? readDaoMockAccountProposalState(
           proposal.ref,
-          DAO_MOCK_ACCOUNT_ADDRESS
+          runtime.account.address
         )
       : overrides.account;
   const view = render(

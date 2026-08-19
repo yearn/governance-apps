@@ -5,7 +5,7 @@ import { useAccount } from "wagmi";
 import { Card } from "@/components/ui/Card";
 import { Button, getButtonClassName } from "@/components/ui/Button";
 import { UtcTime } from "@/components/ui/UtcTime";
-import { useDaoFeed } from "@/lib/hooks/useDao";
+import { useDaoFeed, useDaoMockRuntime } from "@/lib/hooks/useDao";
 import {
   DaoErrorPanel,
   DaoLoadingPanel,
@@ -22,6 +22,11 @@ export type DaoBoardState = "loading" | "ready" | "empty" | "error";
 
 export function DaoPageClient() {
   const { isConnected } = useAccount();
+  const runtime = useDaoMockRuntime();
+  const hasConnectedAccount =
+    process.env.NEXT_PUBLIC_E2E === "true" && runtime
+      ? runtime.account.connected
+      : isConnected;
   const feedQuery = useDaoFeed();
   const proposalCount = feedQuery.data?.proposals.length ?? 0;
   const isStale = feedQuery.isError && feedQuery.data !== undefined;
@@ -37,7 +42,7 @@ export function DaoPageClient() {
   return (
     <>
       <DaoBoardView
-        isConnected={isConnected}
+        isConnected={hasConnectedAccount}
         isStale={isStale}
         lastGoodSnapshotTimestamp={
           isStale ? (feedQuery.data?.canonicalBlock.timestamp ?? null) : null
@@ -45,7 +50,7 @@ export function DaoPageClient() {
         onRetry={() => {
           void feedQuery.refetch();
         }}
-        now={feedQuery.data?.canonicalBlock.timestamp ?? 0}
+        now={runtime?.now ?? feedQuery.data?.canonicalBlock.timestamp ?? 0}
         proposals={feedQuery.data?.proposals ?? []}
         state={state}
       />

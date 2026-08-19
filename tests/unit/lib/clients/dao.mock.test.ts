@@ -15,12 +15,19 @@ import {
   DAO_BLOCKED_REASONS,
   DAO_EMPTY_SCRIPT_HASH,
   DAO_MOCK_ACCOUNT_ADDRESS,
+  DAO_MOCK_CURRENT_EPOCH,
+  DAO_MOCK_EPOCH_LENGTH_SECONDS,
+  DAO_MOCK_EXECUTION_DELAY_SECONDS,
   DAO_MOCK_FEED,
   DAO_MOCK_FEED_JSON,
   DAO_MOCK_FIXTURE_IDS,
+  DAO_MOCK_GENESIS,
+  DAO_MOCK_NOW,
+  DAO_MOCK_VOTE_START_OFFSET_SECONDS,
   DAO_MOCK_VERIFIED_CALL_REGISTRY,
   DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR,
   deriveDaoProposerState,
+  deriveDaoProposalTiming,
   getDaoMockFixture,
   parseDaoBigInt,
   parseDaoFeedJson,
@@ -105,6 +112,69 @@ describe("DAO deterministic mock feed", () => {
       DAO_MOCK_FEED.proposals.map((proposal) => proposal.thresholdBps)
     );
     expect(thresholds.size).toBeGreaterThan(1);
+  });
+
+  it("uses one coherent 14-day epoch geometry for proposal creation and voting", () => {
+    const epochLength = DAO_MOCK_EPOCH_LENGTH_SECONDS;
+    const genesisLowerBounds: number[] = [];
+    const genesisUpperBounds: number[] = [];
+    const votingEpochsByWindow = new Map<string, Set<bigint>>();
+
+    for (const proposal of DAO_MOCK_FEED.proposals) {
+      const createdEpoch = Number(proposal.votingEpoch - 1n);
+      genesisLowerBounds.push(
+        proposal.createdAt - (createdEpoch + 1) * epochLength + 1
+      );
+      genesisUpperBounds.push(proposal.createdAt - createdEpoch * epochLength);
+
+      const windowKey = `${proposal.voteStartsAt}:${proposal.voteEndsAt}`;
+      const epochs = votingEpochsByWindow.get(windowKey) ?? new Set<bigint>();
+      epochs.add(proposal.votingEpoch);
+      votingEpochsByWindow.set(windowKey, epochs);
+    }
+
+    expect(Math.max(...genesisLowerBounds)).toBeLessThanOrEqual(
+      Math.min(...genesisUpperBounds)
+    );
+    for (const epochs of votingEpochsByWindow.values()) {
+      expect(epochs.size).toBe(1);
+    }
+
+    const discussion = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 1n
+    );
+    expect(discussion).toBeDefined();
+    expect(discussion!.voteStartsAt - discussion!.createdAt).toBeGreaterThanOrEqual(
+      epochLength / 2
+    );
+
+    for (const proposal of DAO_MOCK_FEED.proposals) {
+      const createdEpoch = Math.floor(
+        (proposal.createdAt - DAO_MOCK_GENESIS) / epochLength
+      );
+      expect(proposal.votingEpoch).toBe(BigInt(createdEpoch + 1));
+      expect(proposal.voteStartsAt).toBe(
+        DAO_MOCK_GENESIS +
+          Number(proposal.votingEpoch) * epochLength +
+          DAO_MOCK_VOTE_START_OFFSET_SECONDS
+      );
+      expect(proposal.voteEndsAt).toBe(
+        DAO_MOCK_GENESIS +
+          (Number(proposal.votingEpoch) + 1) * epochLength
+      );
+    }
+
+    const expectedAuthoringEpoch = deriveDaoProposalTiming({
+      genesis: DAO_MOCK_GENESIS,
+      createdAt: DAO_MOCK_NOW,
+      epochLengthSeconds: DAO_MOCK_EPOCH_LENGTH_SECONDS,
+      voteStartOffsetSeconds: DAO_MOCK_VOTE_START_OFFSET_SECONDS,
+      executionDelaySeconds: DAO_MOCK_EXECUTION_DELAY_SECONDS,
+    }).votingEpoch;
+    expect(expectedAuthoringEpoch).toBe(BigInt(DAO_MOCK_CURRENT_EPOCH + 1));
+    expect(getDaoMockFixture("discussion").proposer.expectedVotingEpoch).toBe(
+      expectedAuthoringEpoch
+    );
   });
 
   it("pins the early-veto and post-vote-veto distinctions", () => {

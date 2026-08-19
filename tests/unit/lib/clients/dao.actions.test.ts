@@ -155,6 +155,68 @@ describe("DAO mock proposal actions", () => {
     ).toMatchObject({ hasVoted: false, voteDirection: null });
   });
 
+  it("scopes lifecycle roles to the exact actor and records the authorized author", async () => {
+    const proposal = load("discussion");
+    const author = getDaoMockSnapshot().account.address;
+
+    expect(
+      readDaoMockAccountProposalState(proposal.ref, author)
+    ).toMatchObject({
+      isProposer: true,
+      capabilities: { canRetract: true },
+    });
+    expect(
+      readDaoMockAccountProposalState(proposal.ref, SECOND_ACCOUNT)
+    ).toMatchObject({
+      isProposer: false,
+      isOperator: false,
+      isGuardian: false,
+      capabilities: { canRetract: false },
+    });
+    expect(() => prepareDaoMockRetract(proposal.ref, SECOND_ACCOUNT)).toThrow(
+      DAO_BLOCKED_REASONS.notProposer
+    );
+
+    await prepareDaoMockRetract(proposal.ref, author)();
+    indexDaoMockPendingAction();
+
+    expect(selectedProposal().events.at(-1)).toMatchObject({
+      type: "retract",
+      actor: author,
+    });
+  });
+
+  it("keeps operator and guardian roles actor-scoped without narrowing permissionless execution", () => {
+    const guarded = load("guarded-execution");
+    const operator = getDaoMockSnapshot().account.address;
+    expect(
+      readDaoMockAccountProposalState(guarded.ref, operator)
+    ).toMatchObject({ isOperator: true, capabilities: { canExecute: true } });
+    expect(
+      readDaoMockAccountProposalState(guarded.ref, SECOND_ACCOUNT)
+    ).toMatchObject({
+      isOperator: false,
+      capabilities: { canExecute: false },
+    });
+
+    const earlyVeto = load("early-veto");
+    const guardian = getDaoMockSnapshot().account.address;
+    expect(
+      readDaoMockAccountProposalState(earlyVeto.ref, guardian)
+    ).toMatchObject({ isGuardian: true });
+    expect(
+      readDaoMockAccountProposalState(earlyVeto.ref, SECOND_ACCOUNT)
+    ).toMatchObject({ isGuardian: false, capabilities: { canVeto: false } });
+
+    const permissionless = load("permissionless-execution");
+    expect(
+      readDaoMockAccountProposalState(permissionless.ref, SECOND_ACCOUNT)
+    ).toMatchObject({
+      isOperator: false,
+      capabilities: { canExecute: true },
+    });
+  });
+
   it("rechecks capability after preparation and before submission", async () => {
     const proposal = load("voting");
     const prepared = prepareDaoMockVote(
@@ -250,6 +312,31 @@ describe("DAO mock proposal actions", () => {
       "yea"
     )();
     expect(resetHash).toBe(firstHash);
+  });
+
+  it("preserves an indexed block while runtime time moves within and beyond its slot", async () => {
+    const proposal = load("voting");
+    const before = getDaoMockSnapshot().feed.canonicalBlock;
+    await prepareDaoMockVote(
+      proposal.ref,
+      DAO_MOCK_ACCOUNT_ADDRESS,
+      "yea"
+    )();
+    indexDaoMockPendingAction();
+
+    const indexed = getDaoMockSnapshot().feed.canonicalBlock;
+    expect(indexed.number).toBe(before.number + 1n);
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 1);
+    expect(getDaoMockSnapshot().feed.canonicalBlock).toEqual(indexed);
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 12);
+    const nextBlock = getDaoMockSnapshot().feed.canonicalBlock;
+    expect(nextBlock).toMatchObject({
+      number: indexed.number + 1n,
+      timestamp: DAO_MOCK_NOW + 12,
+    });
+    expect(nextBlock.hash).not.toBe(indexed.hash);
   });
 
   it("allows participation voting after a post-vote veto", async () => {
@@ -446,22 +533,23 @@ function prepareAction(
   proposal: DaoProposal,
   reason: string | null
 ) {
+  const actor = getDaoMockSnapshot().account.address;
   if (action === "retract") {
-    return prepareDaoMockRetract(proposal.ref, DAO_MOCK_ACCOUNT_ADDRESS);
+    return prepareDaoMockRetract(proposal.ref, actor);
   }
   if (action === "flag") {
     return prepareDaoMockFlag(
       proposal.ref,
-      DAO_MOCK_ACCOUNT_ADDRESS,
+      actor,
       reason ?? "Flag"
     );
   }
   if (action === "veto") {
     return prepareDaoMockVeto(
       proposal.ref,
-      DAO_MOCK_ACCOUNT_ADDRESS,
+      actor,
       reason ?? "Veto"
     );
   }
-  return prepareDaoMockExecute(proposal.ref, DAO_MOCK_ACCOUNT_ADDRESS);
+  return prepareDaoMockExecute(proposal.ref, actor);
 }

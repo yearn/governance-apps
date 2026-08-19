@@ -187,6 +187,29 @@ describe("DebugControls", () => {
     });
   });
 
+  it("advances DAO time relative to its deterministic baseline while preserving the shared clock", async () => {
+    const queryClient = new QueryClient();
+    setFixedNow(DAO_MOCK_NOW + 100 * 24 * 60 * 60);
+    resetDaoMockStore();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <DebugControls />
+      </QueryClientProvider>
+    );
+
+    expect(getDaoMockSnapshot().now).toBe(DAO_MOCK_NOW);
+    fireEvent.click(screen.getByRole("button", { name: /debug/i }));
+    fireEvent.click(screen.getByRole("button", { name: "+1 Day" }));
+
+    await waitFor(() => {
+      expect(nowSeconds()).toBe(DAO_MOCK_NOW + 101 * 24 * 60 * 60);
+      expect(getDaoMockSnapshot().now).toBe(
+        DAO_MOCK_NOW + 1 * 24 * 60 * 60
+      );
+    });
+  });
+
   it("resets every participating mock domain from any route", () => {
     resetAllDebugMockStores();
 

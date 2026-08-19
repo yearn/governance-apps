@@ -383,6 +383,22 @@ decimals, exponent notation, and leading zeroes are rejected.
 
 ## 9. Required deterministic fixtures
 
+All proposal times are derived once from one mock genesis and the contract timing
+helper. The mock epoch is 14 days, voting is assigned to creation epoch `N + 1`,
+and the vote starts halfway through that voting epoch. Fixtures may supply a
+historical execution-delay input to cover both waiting and open execution
+states, but they do not hand-author voting epochs or output timestamps. Runtime
+initialization, reset, fixture selection, and fact replacement never translate
+those immutable proposal or content timestamps to wall-clock time. No-argument
+initialization and reset start at `DAO_MOCK_NOW`; runtime time then moves across
+the fixed proposal schedule to derive lifecycle state and capabilities.
+
+The authoring eligibility fixture derives `expectedVotingEpoch` from the same
+genesis and timing configuration. Store normalization recomputes that epoch and
+the six consecutive affected boost-epoch labels whenever runtime time changes,
+while retaining the fixture's proposal counts and limits. Equal voting windows
+therefore always carry the same `votingEpoch`.
+
 The mock store must provide at least:
 
 | Fixture | Required distinction |
@@ -437,10 +453,26 @@ for fixture and proposal selection, surface state, persona and independent roles
 content, lifecycle, veto, analysis, account, execution, authoring, votes,
 threshold, terminal flags, timing, proposer eligibility, and each affected
 epoch's capacity. It also exposes transaction outcome, pending-action indexing,
-and pending-action clearing. Each bridge call waits for the mutation and then
-invalidates `daoKeys.all`. Shared time changes update the store clock before
-invalidation so status and capabilities are re-derived from facts. Reset
-restores the success outcome and removes any pending action.
+pending-action clearing, plus a read-only JSON-safe DAO evidence snapshot. Each
+mutation waits for completion and then invalidates `daoKeys.all`; the evidence
+read does not invalidate. Runtime time is distinct from feed provenance. The
+canonical timestamp is quantized to a 12-second block slot: time changes within
+the current slot preserve the complete block number, hash, and timestamp tuple,
+while crossing a slot derives a new coherent tuple. Indexing advances the block
+number and binds its hash to that number and canonical timestamp. The initial
+fixture block uses the same hash derivation, so advancing and rewinding to an
+exact slot restores the identical tuple. Route lifecycle copy uses runtime time;
+the canonical timestamp remains snapshot provenance.
+
+The shared `+1 day` and `+7 days` controls continue advancing the global mock
+clock and every participating domain, but apply the selected delta to the DAO
+store's own deterministic runtime baseline. Explicit bridge `setNow(timestamp)`
+remains absolute. Shared DAO time changes also recompute proposer epoch labels
+from the fixed genesis before invalidation, so status, capabilities, and
+authoring eligibility use one clock.
+Account roles apply only when the normalized queried address equals the
+role-bearing fixture actor. Reset restores the success outcome and removes any
+pending action.
 
 ## 11. Parser error catalogue
 

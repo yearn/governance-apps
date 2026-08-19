@@ -67,6 +67,13 @@ describe("DAO proposal detail", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("exposes the vote breakdown once to assistive technology", () => {
+    render(<ProposalDetail envelope={envelope(proposal(2n))} />);
+
+    expect(screen.queryByRole("img", { name: /Yea.*Nay/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/Yea.*Nay/i)).toBeVisible();
+  });
+
   it.each([
     [14n, "Immutable content could not be retrieved", "Content gateway"],
     [
@@ -196,6 +203,29 @@ describe("DAO proposal detail", () => {
       })
     ).toBeVisible();
     expect(screen.queryByText(feed.generatedAt)).not.toBeInTheDocument();
+  });
+
+  it("uses runtime time for lifecycle copy without rewriting snapshot provenance", () => {
+    const feed = structuredClone(DAO_MOCK_FEED);
+    const value = feed.proposals.find(
+      (entry) => entry.ref.proposalId === 2n
+    );
+    if (!value) throw new Error("Missing proposal #2.");
+
+    render(
+      <ProposalDetail
+        envelope={envelope(value, feed)}
+        now={feed.canonicalBlock.timestamp + 3_600}
+      />
+    );
+
+    expect(screen.getByText("Voting ends in 5 hours")).toBeVisible();
+    fireEvent.click(screen.getByText("Technical details", { exact: true }));
+    expect(
+      screen.getByText(formatUtcDateTime(feed.canonicalBlock.timestamp), {
+        exact: true,
+      })
+    ).toBeVisible();
   });
 
   it("makes a script hash mismatch explicit", () => {

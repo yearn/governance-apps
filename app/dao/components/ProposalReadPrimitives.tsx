@@ -26,13 +26,24 @@ const STATUS_VARIANTS: Record<
   not_found: "neutral",
 };
 
+const STATUS_DARK_CLASS_NAMES: Partial<Record<DaoDisplayStatus, string>> = {
+  voting:
+    "bg-yearn-blue text-white dark:bg-blue-950 dark:text-blue-200",
+  approved: "dark:bg-green-950 dark:text-green-200",
+  executed: "dark:bg-green-950 dark:text-green-200",
+};
+
 export function ProposalStatusBadge({
   status,
 }: {
   status: DaoDisplayStatus;
 }) {
   return (
-    <Badge variant={STATUS_VARIANTS[status]} className="font-sans">
+    <Badge
+      variant={STATUS_VARIANTS[status]}
+      className={cn("font-sans", STATUS_DARK_CLASS_NAMES[status])}
+      data-testid="dao-proposal-status"
+    >
       {daoCopy.status[status]}
     </Badge>
   );
@@ -87,11 +98,7 @@ export function ProposalVoteSummary({
   return (
     <div className="min-w-0 space-y-2">
       <div
-        role="img"
-        aria-label={daoCopy.detail.voteBreakdown(
-          vote.yeaPercent,
-          vote.nayPercent
-        )}
+        aria-hidden="true"
         className="flex h-2.5 w-full overflow-hidden rounded-full bg-neutral-200"
       >
         <span

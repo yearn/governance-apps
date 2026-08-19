@@ -286,7 +286,7 @@ function DaoProposalAuthoringFormState({
   return (
     <Card className="min-w-0 space-y-8 overflow-hidden p-4 sm:p-6">
       <div className="space-y-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue">
+        <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue dark:text-blue-300">
           {daoProposeCopy.form.eyebrow}
         </p>
         <h2
@@ -304,7 +304,7 @@ function DaoProposalAuthoringFormState({
       {Object.keys(errors).length > 0 ? (
         <div
           role="alert"
-          className="rounded-box border border-red-300 bg-red-50 p-4 text-sm text-red-900"
+          className="rounded-box border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100"
         >
           <p className="font-bold">{daoProposeCopy.form.validationTitle}</p>
         </div>
@@ -518,7 +518,7 @@ function DaoFinalReview({
   return (
     <Card className="min-w-0 space-y-8 overflow-hidden p-4 sm:p-6">
       <div className="space-y-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue">
+        <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue dark:text-blue-300">
           {daoProposeCopy.review.eyebrow}
         </p>
         <h2
@@ -543,7 +543,7 @@ function DaoFinalReview({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`${review.topic.normalizedUrl} (${daoProposeCopy.discussion.newTab})`}
-            className="-mx-1 inline-flex min-h-10 max-w-full items-center rounded-box px-1 text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 focus:outline-none focus:ring-2 focus:ring-text-primary"
+            className="-mx-1 inline-flex min-h-10 max-w-full items-center rounded-box px-1 text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 focus:outline-none focus:ring-2 focus:ring-text-primary dark:text-blue-300 dark:decoration-blue-300/50"
           >
             <span className="break-all">{review.topic.normalizedUrl}</span>
           </a>
@@ -594,7 +594,7 @@ function DaoFinalReview({
             {daoProposeCopy.script.emptyTitle}
           </p>
         ) : (
-          <p className="text-pretty text-sm font-bold text-green-800">
+          <p className="text-pretty text-sm font-bold text-green-800 dark:text-green-300">
             {daoProposeCopy.script.valid}
           </p>
         )}
@@ -657,7 +657,11 @@ function DaoFinalReview({
             <span>{daoProposeCopy.review.confirm}</span>
           </label>
           {confirmationError ? (
-            <p id="dao-confirmation-error" role="alert" className="text-sm text-red-800">
+            <p
+              id="dao-confirmation-error"
+              role="alert"
+              className="text-sm text-red-800 dark:text-red-300"
+            >
               {confirmationError}
             </p>
           ) : null}
@@ -805,7 +809,14 @@ export function DaoProposalEligibility({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={proposer.canPropose ? "success" : "warning"}>
+        <Badge
+          variant={proposer.canPropose ? "success" : "warning"}
+          className={
+            proposer.canPropose
+              ? "dark:bg-green-950 dark:text-green-200"
+              : "dark:bg-amber-950 dark:text-amber-200"
+          }
+        >
           {proposer.canPropose
             ? daoProposeCopy.landing.eligibleLabel
             : daoProposeCopy.landing.unavailableLabel}
@@ -879,7 +890,7 @@ export function DaoProposalEligibility({
           className={cn(
             "rounded-box border p-3 text-sm leading-6",
             fullEpoch
-              ? "border-amber-300 bg-amber-50 text-amber-950"
+              ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
               : "border-border bg-surface-secondary text-text-secondary"
           )}
         >
@@ -940,7 +951,7 @@ function AuthoringSection({
       <div className="grid gap-3 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
         <span
           aria-hidden="true"
-          className="flex size-10 items-center justify-center rounded-full bg-yearn-blue/10 font-number text-sm font-bold tabular-nums text-yearn-blue"
+          className="flex size-10 items-center justify-center rounded-full bg-yearn-blue font-number text-sm font-bold tabular-nums text-white dark:bg-blue-950 dark:text-blue-200"
         >
           {number}
         </span>
@@ -974,7 +985,11 @@ function ForumStatus({
   }
   if (state.state === "invalid" || error) {
     return (
-      <div id="dao-forum-status" role="alert" className="text-sm text-red-800">
+      <div
+        id="dao-forum-status"
+        role="alert"
+        className="text-sm text-red-800 dark:text-red-300"
+      >
         {state.state === "invalid" ? (
           <p>
             <span className="font-number font-bold">{state.code}</span> · {state.message}
@@ -1085,7 +1100,11 @@ const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextFiel
         className={INPUT_CLASS_NAME}
         onChange={(event) => onChange(event.target.value)}
       />
-      {error ? <p id={errorId} className="text-sm text-red-800">{error}</p> : null}
+      {error ? (
+        <p id={errorId} className="text-sm text-red-800 dark:text-red-300">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 });
@@ -1137,7 +1156,11 @@ const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>(
         className={TEXTAREA_CLASS_NAME}
         onChange={(event) => onChange(event.target.value)}
       />
-      {error ? <p id={errorId} className="text-sm text-red-800">{error}</p> : null}
+      {error ? (
+        <p id={errorId} className="text-sm text-red-800 dark:text-red-300">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
   }
@@ -1198,7 +1221,11 @@ function SignalScriptSummary({ scriptCheck }: { scriptCheck: DaoScriptCheck }) {
 function ScriptStatus({ scriptCheck }: { scriptCheck: DaoScriptCheck }) {
   if (scriptCheck.state === "invalid") {
     return (
-      <div id="dao-script-status" role="alert" className="space-y-2 rounded-box border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+      <div
+        id="dao-script-status"
+        role="alert"
+        className="space-y-2 rounded-box border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100"
+      >
         <p className="font-bold">{scriptCheck.error?.message}</p>
         <dl className="grid gap-2 sm:grid-cols-2">
           <ReviewFact label={daoProposeCopy.script.errorCode} mono>
@@ -1356,8 +1383,8 @@ function SubmissionStep({
         className={cn(
           "flex size-8 shrink-0 items-center justify-center rounded-full font-number text-xs font-bold tabular-nums",
           complete
-            ? "bg-green-100 text-green-900"
-            : "bg-neutral-100 text-neutral-900"
+            ? "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-200"
+            : "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100"
         )}
       >
         {number}
@@ -1378,8 +1405,10 @@ function StateNotice({
 }) {
   const styles = {
     success: "border-green-300 bg-green-50 text-green-950",
-    warning: "border-amber-300 bg-amber-50 text-amber-950",
-    error: "border-red-300 bg-red-50 text-red-950",
+    warning:
+      "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100",
+    error:
+      "border-red-300 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100",
   };
   return (
     <div role={tone === "error" ? "alert" : "status"} className={cn("rounded-box border p-4 text-sm", styles[tone])}>

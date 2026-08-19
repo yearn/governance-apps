@@ -1,4 +1,4 @@
-import { keccak256, stringToHex, type Address, type Hex } from "viem";
+import { keccak256, stringToHex, type Address } from "viem";
 import type { DaoTestBridgeAdapter } from "@/lib/test-bridge";
 import { nowSeconds } from "@/lib/mocks/time";
 import type { PreparedTransaction, TransactionHash } from "@/lib/tx/types";
@@ -17,6 +17,8 @@ import {
 import {
   createDaoMockFeed,
   DAO_MOCK_NOW,
+  deriveDaoMockBlockHash,
+  deriveDaoMockExpectedVotingEpoch,
   getDaoMockFixture,
 } from "./fixtures";
 import {
@@ -106,7 +108,7 @@ function emit() {
 
 function getState(): DaoMockStoreState {
   if (state === null) {
-    commit(createStoreState(nowSeconds(), DEFAULT_FIXTURE_ID), false);
+    commit(createStoreState(DAO_MOCK_NOW, DEFAULT_FIXTURE_ID), false);
   }
   return state as DaoMockStoreState;
 }
@@ -129,7 +131,8 @@ function createStoreState(
   fixtureId: DaoMockFixtureId
 ): DaoMockStoreState {
   const fixture = getDaoMockFixture(fixtureId);
-  const proposals = createAnchoredProposalRuntimes(now);
+  const feed = createRuntimeFeed(now);
+  const proposals = createProposalRuntimes(feed.proposals);
   const delta = now - fixture.now;
   const proposer = cloneValue(fixture.proposer);
   proposer.now = now;
@@ -148,7 +151,7 @@ function createStoreState(
     selectedProposalId: fixture.proposalRef.proposalId,
     persona: resolveFixturePersona(fixtureId),
     now,
-    feed: createAnchoredFeed(now),
+    feed,
     proposals,
     account: cloneValue(fixture.account),
     accountDecayLengthSeconds: fixtureId === "late-voting" ? DAY_SECONDS : 0,
@@ -192,14 +195,10 @@ function normalizeStoreState(next: DaoMockStoreState): DaoMockStoreState {
     return { ...runtime, proposal: normalizedProposal };
   });
 
-  next.proposer.now = next.now;
+  synchronizeProposerEpochs(next.proposer, next.now);
   next.feed = {
     ...next.feed,
     generatedAt: new Date(next.now * 1_000).toISOString(),
-    canonicalBlock: {
-      ...next.feed.canonicalBlock,
-      timestamp: next.now,
-    },
     proposals: next.proposals.map((runtime) => cloneValue(runtime.proposal)),
   };
 
@@ -238,22 +237,53 @@ function createSnapshot(current: DaoMockStoreState): DaoMockRuntimeSnapshot {
   });
 }
 
-function createAnchoredFeed(now: number) {
+function createRuntimeFeed(now: number) {
   const feed = createDaoMockFeed();
-  const delta = now - DAO_MOCK_NOW;
   return {
     ...feed,
     generatedAt: new Date(now * 1_000).toISOString(),
-    canonicalBlock: {
-      ...feed.canonicalBlock,
-      timestamp: now,
-    },
-    proposals: feed.proposals.map((proposal) => shiftProposal(proposal, delta)),
+    canonicalBlock: deriveMockCanonicalBlock(feed.canonicalBlock, now),
   };
 }
 
-function createAnchoredProposalRuntimes(now: number): DaoMockProposalRuntime[] {
-  return createAnchoredFeed(now).proposals.map((proposal) => ({
+function deriveMockCanonicalBlock(
+  baseline: DaoMockStoreState["feed"]["canonicalBlock"],
+  timestamp: number
+): DaoMockStoreState["feed"]["canonicalBlock"] {
+  const deltaSeconds = timestamp - baseline.timestamp;
+  const blockDelta = BigInt(Math.floor(deltaSeconds / 12));
+  if (blockDelta === 0n) return cloneValue(baseline);
+  const number = baseline.number + blockDelta;
+  if (number < 0n) {
+    throw new Error("DAO mock canonical block number cannot be negative.");
+  }
+  const canonicalTimestamp = baseline.timestamp + Number(blockDelta) * 12;
+  return {
+    number,
+    hash: deriveDaoMockBlockHash(number, canonicalTimestamp),
+    timestamp: canonicalTimestamp,
+  };
+}
+
+function synchronizeProposerEpochs(
+  proposer: DaoProposerEligibilityInput,
+  now: number
+) {
+  const expectedVotingEpoch = deriveDaoMockExpectedVotingEpoch(now);
+  proposer.now = now;
+  proposer.expectedVotingEpoch = expectedVotingEpoch;
+  proposer.affectedBoostEpochs = proposer.affectedBoostEpochs.map(
+    (affected, index) => ({
+      ...affected,
+      epoch: expectedVotingEpoch + BigInt(index),
+    })
+  );
+}
+
+function createProposalRuntimes(
+  proposals: DaoProposal[] = createDaoMockFeed().proposals
+): DaoMockProposalRuntime[] {
+  return proposals.map((proposal) => ({
     proposal,
     retracted:
       proposal.protocolStatus === "retracted" ||
@@ -267,36 +297,6 @@ function createAnchoredProposalRuntimes(now: number): DaoMockProposalRuntime[] {
     vetoEndsAt:
       proposal.executionEndsAt ?? proposal.voteEndsAt + 14 * DAY_SECONDS,
   }));
-}
-
-function shiftProposal(proposal: DaoProposal, delta: number): DaoProposal {
-  return {
-    ...proposal,
-    createdAt: proposal.createdAt + delta,
-    voteStartsAt: proposal.voteStartsAt + delta,
-    voteEndsAt: proposal.voteEndsAt + delta,
-    executionStartsAt:
-      proposal.executionStartsAt === null
-        ? null
-        : proposal.executionStartsAt + delta,
-    executionEndsAt:
-      proposal.executionEndsAt === null
-        ? null
-        : proposal.executionEndsAt + delta,
-    content: {
-      ...proposal.content,
-      value:
-        proposal.content.value === null
-          ? null
-          : {
-              ...proposal.content.value,
-              createdAt: new Date(
-                (Date.parse(proposal.content.value.createdAt) / 1_000 + delta) *
-                  1_000
-              ).toISOString(),
-            },
-    },
-  };
 }
 
 function getSelectedProposalRuntime(
@@ -366,7 +366,7 @@ function replaceSelectedProposal(
 ) {
   const target = getSelectedProposalRuntime(current);
   const sourceId = getDaoMockFixture(fixtureId).proposalRef.proposalId;
-  const source = createAnchoredProposalRuntimes(current.now).find(
+  const source = createProposalRuntimes().find(
     (runtime) => runtime.proposal.ref.proposalId === sourceId
   );
   if (!source) throw new Error(`Unknown DAO fixture proposal: ${fixtureId}.`);
@@ -459,7 +459,7 @@ export function resetDaoMockStore(
 ) {
   commit(
     createStoreState(
-      options.now ?? nowSeconds(),
+      options.now ?? DAO_MOCK_NOW,
       options.fixtureId ?? DEFAULT_FIXTURE_ID
     )
   );
@@ -478,6 +478,10 @@ export function syncDaoMockStoreToNow(timestamp: number = nowSeconds()) {
   }
   return updateStore((current) => {
     current.now = timestamp;
+    current.feed.canonicalBlock = deriveMockCanonicalBlock(
+      current.feed.canonicalBlock,
+      timestamp
+    );
   });
 }
 
@@ -548,7 +552,7 @@ export function setDaoMockContentState(contentState: DaoMockContentState) {
             ? "direct-proposal"
             : "voting";
     const sourceId = getDaoMockFixture(sourceFixture).proposalRef.proposalId;
-    const source = createAnchoredProposalRuntimes(current.now).find(
+    const source = createProposalRuntimes().find(
       (runtime) => runtime.proposal.ref.proposalId === sourceId
     );
     if (!source) throw new Error(`Unknown DAO content fixture: ${sourceFixture}.`);
@@ -589,7 +593,7 @@ export function setDaoMockAnalysisState(analysisState: DaoMockAnalysisState) {
   return updateStore((current) => {
     if (analysisState === "hash-mismatch") {
       const sourceId = getDaoMockFixture("hash-mismatch").proposalRef.proposalId;
-      const source = createAnchoredProposalRuntimes(current.now).find(
+      const source = createProposalRuntimes().find(
         (runtime) => runtime.proposal.ref.proposalId === sourceId
       );
       if (!source) throw new Error("Missing DAO hash mismatch fixture.");
@@ -615,7 +619,7 @@ export function setDaoMockAnalysisState(analysisState: DaoMockAnalysisState) {
     const sourceId = getDaoMockFixture(
       fixtureByAnalysis[analysisState]
     ).proposalRef.proposalId;
-    const source = createAnchoredProposalRuntimes(current.now).find(
+    const source = createProposalRuntimes().find(
       (runtime) => runtime.proposal.ref.proposalId === sourceId
     );
     if (!source) throw new Error(`Unknown DAO analysis state: ${analysisState}.`);
@@ -671,7 +675,7 @@ export function setDaoMockExecutionState(executionState: DaoMockExecutionState) 
   return updateStore((current) => {
     if (executionState === "signal") {
       const sourceId = getDaoMockFixture("approved-signal").proposalRef.proposalId;
-      const source = createAnchoredProposalRuntimes(current.now).find(
+      const source = createProposalRuntimes().find(
         (runtime) => runtime.proposal.ref.proposalId === sourceId
       );
       if (!source) throw new Error("Missing DAO signal fixture.");
@@ -691,7 +695,7 @@ export function setDaoMockExecutionState(executionState: DaoMockExecutionState) 
 
     if (executionState === "executable") {
       const sourceId = getDaoMockFixture("voting").proposalRef.proposalId;
-      const source = createAnchoredProposalRuntimes(current.now).find(
+      const source = createProposalRuntimes().find(
         (runtime) => runtime.proposal.ref.proposalId === sourceId
       );
       if (!source) throw new Error("Missing DAO executable fixture.");
@@ -922,7 +926,7 @@ export function indexDaoMockPendingAction() {
     current.feed.canonicalBlock = {
       number: event.log.blockNumber,
       hash: event.log.blockHash,
-      timestamp: current.now,
+      timestamp: current.feed.canonicalBlock.timestamp,
     };
     current.selectedFixtureId = null;
     current.pendingAction = null;
@@ -1135,7 +1139,10 @@ function createIndexedActionEvent(
   pending: DaoPendingAction
 ): DaoProposalEvent {
   const blockNumber = current.feed.canonicalBlock.number + 1n;
-  const blockHash = fixedMockHex(blockNumber);
+  const blockHash = deriveDaoMockBlockHash(
+    blockNumber,
+    current.feed.canonicalBlock.timestamp
+  );
   return {
     type: pending.action,
     log: {
@@ -1161,10 +1168,6 @@ function createIndexedActionEvent(
         ? pending.reason
         : null,
   };
-}
-
-function fixedMockHex(value: bigint): Hex {
-  return `0x${value.toString(16).padStart(64, "0")}` as Hex;
 }
 
 export function readDaoMockFeed() {
@@ -1205,6 +1208,15 @@ export function readDaoMockAccountProposalState(
     ...weight,
     address,
     ...readVoteFacts(current, ref, address),
+    isProposer:
+      current.account.isProposer &&
+      current.account.address.toLowerCase() === address.toLowerCase(),
+    isOperator:
+      current.account.isOperator &&
+      current.account.address.toLowerCase() === address.toLowerCase(),
+    isGuardian:
+      current.account.isGuardian &&
+      current.account.address.toLowerCase() === address.toLowerCase(),
   };
   const capabilities = deriveDaoCapabilities({
     proposal: runtime.proposal,
@@ -1259,6 +1271,60 @@ export function createDaoTestBridgeAdapter(): DaoTestBridgeAdapter {
   return {
     resetDao: async () => {
       resetDaoMockStore();
+    },
+    getDaoState: async () => {
+      const current = getDaoMockSnapshot();
+      const proposal = current.feed.proposals.find(
+        (candidate) => candidate.ref.proposalId === current.selectedProposalId
+      );
+      if (!proposal) {
+        throw new Error("Selected DAO proposal is unavailable.");
+      }
+      const account = readDaoMockAccountProposalState(
+        proposal.ref,
+        current.account.address
+      );
+      return {
+        selectedFixtureId: current.selectedFixtureId,
+        selectedProposalId: current.selectedProposalId.toString(),
+        account: {
+          address: account.address,
+          connected: account.connected,
+          correctChain: account.correctChain,
+          isProposer: account.isProposer,
+          isOperator: account.isOperator,
+          isGuardian: account.isGuardian,
+        },
+        proposal: {
+          type: proposal.type,
+          protocolStatus: proposal.protocolStatus,
+          displayStatus: proposal.displayStatus,
+          contentState: proposal.content.state,
+          scriptHashVerified: proposal.script.hashVerified,
+          analysisState: proposal.analysis.state,
+        },
+        capabilities: {
+          canVote: account.capabilities.canVote,
+          votePurpose: account.capabilities.votePurpose,
+          canExecute: account.capabilities.canExecute,
+        },
+        proposer: {
+          expectedVotingEpoch: current.proposer.expectedVotingEpoch.toString(),
+          affectedBoostEpochs: current.proposer.affectedBoostEpochs.map(
+            ({ epoch, currentProposalCount, proposalLimit }) => ({
+              epoch: epoch.toString(),
+              currentProposalCount,
+              proposalLimit,
+            })
+          ),
+        },
+        executionGuard: current.executionGuard,
+        canonicalBlock: {
+          number: current.feed.canonicalBlock.number.toString(),
+          hash: current.feed.canonicalBlock.hash,
+          timestamp: current.feed.canonicalBlock.timestamp,
+        },
+      };
     },
     setDaoFixture: async (fixtureId) => {
       applyDaoMockFixture(fixtureId);
