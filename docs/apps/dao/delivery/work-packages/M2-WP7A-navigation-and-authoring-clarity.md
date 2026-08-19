@@ -19,7 +19,9 @@ local UAT reliability without crossing the mock-product boundary.
 - DAO board, detail, and authoring route hierarchy
 - typed board route-state helpers and proposal return context
 - deterministic E2E wagmi connector behavior
-- route-local copy, regressions, UAT evidence, and canonical behavior docs
+- guarded DAO beta-host runtime behavior
+- route-local copy, regressions, UAT evidence, operator runbook, and canonical
+  behavior docs
 
 ## Scope
 
@@ -58,14 +60,31 @@ local UAT reliability without crossing the mock-product boundary.
   `eth_accounts` locally and delegates every other request. Preserve the fixed
   connected account and reconnect-on-mount behavior. Non-E2E RainbowKit,
   wallet, RPC, preview, and production behavior must not change.
+- Expose the mock-backed DAO route on the internal preproduction host
+  `dao-beta.dao-ops.com`. The preproduction workflow supplies
+  `NEXT_PUBLIC_ENABLE_DAO=true` from its preproduction environment while the
+  production workflow hardcodes `NEXT_PUBLIC_ENABLE_DAO=false`. Register only
+  the preproduction custom domain and route it through the existing governance
+  host/header seams.
+- Permit the DAO route-local mock client in production runtime only for the
+  guarded DAO beta-host configuration. Keep the shared global mock, E2E, debug,
+  preview-runtime, and other domain mock paths disabled. Hide DAO mock controls
+  unless the shared debug UI is explicitly enabled.
+- Add workflow, feature, host, route-local runtime, and operator verification
+  coverage. The runbook must cover DNS/custom-domain setup, preproduction
+  environment configuration, deploy verification, rollback, and proof that
+  production remains disabled.
 
 ## Non-goals
 
 - No M3 feed schema, producer, backend, or live read work.
 - No real forum validation, IPFS publication, wallet write, or onchain proposal.
-- No rollout, host registration, global navigation redesign, or new dependency.
+- No public production rollout, discoverability, canonical-host promotion,
+  sitemap publication, global navigation redesign, or new dependency.
 - No change to DAO protocol math, the six-epoch domain contract, or shared
   reconnect semantics.
+- No global `NEXT_PUBLIC_USE_MOCKS`, `NEXT_PUBLIC_E2E`, debug-UI, or preview-mode
+  override in preproduction.
 
 ## Acceptance criteria
 
@@ -87,6 +106,12 @@ local UAT reliability without crossing the mock-product boundary.
   E2E UAT emits no failed or unhandled `eth_accounts` request on `/dao`, a
   proposal detail route, or `/dao/propose`. Non-E2E connector behavior remains
   unchanged.
+- `dao-beta.dao-ops.com` serves the flagged mock DAO experience through the
+  preproduction deployment only. The production workflow pins the DAO flag to
+  false, the host remains outside canonical/discoverability/sitemap registries,
+  and other production mock paths remain fail-closed.
+- DAO mock controls are absent from the guarded beta route unless the shared
+  debug UI is also enabled.
 - Required copy and behavior docs, regression tests, and fresh visual evidence
   cover the changed states.
 
@@ -104,6 +129,9 @@ local UAT reliability without crossing the mock-product boundary.
 - `npm run typecheck`, `npm run lint`, `npm run test`, `npm run test:e2e`,
   serial `npm run test:e2e:full`, default `npm run build`, and a flagged
   production-shaped preview/evidence build.
+- Static and runtime assertions for the preproduction and production workflow
+  flags, custom-domain mapping, DAO feature predicate, route-local mock
+  exception, hidden debug controls, and production fail-closed behavior.
 
 ## Review
 
