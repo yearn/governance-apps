@@ -67,8 +67,11 @@ its selected-fixture identity, blocker copy, and `64 / 64` fact are checked afte
 same-document mutation. Advancing runtime time by eight days also proves expected
 voting epoch `202` and the six labels `202` through `207` across the store,
 shared bridge, and rendered authoring table without changing the capacity facts.
-The focused sweep is in
-`tests/e2e/full/dao-mock-uat.spec.ts`.
+After that advance and fixture reapplication, all 22 proposal creation, voting,
+execution, and content timestamps remain identical to the fixed fixture records;
+each proposal's epoch and windows validate through the shared timing helper. The
+browser sweep is in `tests/e2e/full/dao-mock-uat.spec.ts`; the immutable schedule
+and capacity-fact regression is in `tests/unit/lib/clients/dao.store.test.ts`.
 
 ## Surface and recovery checklist
 
@@ -78,8 +81,8 @@ The focused sweep is in
 | Proposal detail | ready, loading, not found, missing-from-current-feed, error, disconnected | `DaoRouteShells.test.tsx`, `dao-shell.spec.ts`, `dao-proposal-read.spec.ts` | Pass |
 | Content trust | available, unavailable, invalid, analysis pending, partial decode, simulation failure, hash mismatch, unverified discussion | `dao-proposal-read.spec.ts`, `dao-actions.spec.ts` | Pass |
 | Proposal rules | no quorum, approval threshold, `of votes cast`, signal/non-executable, decay, veto participation | `dao-proposal-read.spec.ts`, `dao-actions.spec.ts` | Pass |
-| Shared debug controls | fixture/persona/account/role/guard/outcome, loading/empty/error, time, pending indexing, reset | live browser, `dao-shell.spec.ts`, action and authoring specs | Pass |
-| Debug time provenance | runtime time drives lifecycle copy separately; sub-12-second changes preserve the full canonical tuple, while slot crossings and indexing advance coherent identity | `dao.store.test.ts`, `dao.actions.test.ts`, bridge fixture evidence | Pass |
+| Shared debug controls | fixture/persona/account/role/guard/outcome, loading/empty/error, DAO-relative `+1`/`+7` time, pending indexing, deterministic reset | live browser, `DebugControls.test.tsx`, `dao-shell.spec.ts`, action and authoring specs | Pass |
+| Debug time provenance | immutable proposal schedule; runtime time drives lifecycle copy separately; sub-12-second changes preserve the full canonical tuple, while slot crossings and indexing advance coherent identity; exact-slot rewind restores the initial tuple | `dao.store.test.ts`, `dao.actions.test.ts`, bridge fixture evidence | Pass |
 | Account identity | roles and one-vote overlays are normalized to the exact queried actor | `dao.actions.test.ts`, `dao-actions.spec.ts` | Pass |
 | Normal-route language | no internal mock, fixture, prototype, QA, or implementation-status copy | static scan and `dao-proposal-read.spec.ts` | Pass |
 | Production boundary | DAO remains path-only in preview and fails closed in production runtime | `dao-shell.spec.ts`, runtime invariant tests | Pass |
@@ -148,6 +151,10 @@ and 8.36/9.07 for authoring validation. Every measured pair is at least 4.5:1.
 | [`execution-short-desktop-light.png`](screenshots/execution-short-desktop-light.png) | proposal 22 content, lifecycle, and execute action | 1280 × 600, light |
 | [`authoring-review-desktop-light.png`](screenshots/authoring-review-desktop-light.png) | validated forum and exact immutable review | 1280 × 900, light |
 
+The final fixed-genesis timing correction does not change any captured default
+fixture, copy, layout, or theme state. These five dimension-checked production
+artifacts therefore remain the applicable evidence and were not regenerated.
+
 ## Accepted polish findings
 
 1. Fixture UAT used to set state before navigation, allowing a new document to
@@ -162,7 +169,10 @@ and 8.36/9.07 for authoring validation. Every measured pair is at least 4.5:1.
    derived 14-day `N` to `N + 1` geometry. Authoring uses the same derivation,
    recomputes its expected epoch and six capacity labels whenever runtime time
    changes, preserves capacity facts, and keeps equal voting windows in one
-   voting epoch.
+   voting epoch. Runtime initialization, reset, fixture selection, and fact
+   replacement keep proposal records on that immutable schedule rather than
+   translating them to wall-clock time. No-argument reset starts at the fixed
+   fixture epoch, and shared day controls advance DAO time from that baseline.
 4. Mobile navigation now has a dialog name, initial focus, a bidirectional focus
    trap, Escape/Close/navigation focus restoration, inert background, scroll
    lock, short-height containment, and reduced-motion overrides.
@@ -178,7 +188,9 @@ and 8.36/9.07 for authoring validation. Every measured pair is at least 4.5:1.
 8. Debug time travel no longer rewrites a canonical timestamp beneath an
    unchanged number and hash. Runtime time remains separate, sub-block changes
    preserve the complete tuple, lifecycle copy uses the runtime clock, and
-   12-second slot crossings or indexing derive coherent provenance.
+   12-second slot crossings or indexing derive coherent provenance. The initial
+   block uses that same hash derivation, so an exact-slot advance and rewind
+   restores the identical tuple.
 9. Post-veto confirmation claims participation stays open only during an open
    voting window. Closed-window copy says the window ended and is not reopened.
 10. The evidence ledger now states exactly what was exercised: same-document
@@ -194,7 +206,7 @@ The complete assembled branch diff produced these results:
 | Interface detector and static scans | Pass: detector returned `[]`; diff, normal-route language, and touched-transition scans were clean |
 | `npm run typecheck` | Pass |
 | `npm run lint` | Pass |
-| `npm run test` | Pass: 132 files, 1,048 tests |
+| `npm run test` | Pass: 132 files, 1,052 tests |
 | Focused WP7 E2E | Pass: 8 of 8 fixture, wallet, mobile-dialog, and computed-contrast cases |
 | `npm run test:e2e` | Pass: 36 tests, 2 intentional environment-scoped skips, 0 failures |
 | `npm run test:e2e:full` | Pass in the authoritative serial run: 31 of 31 tests in 4.4 minutes |

@@ -317,11 +317,15 @@ Personas are presets, not exclusive role types. After loading a preset, QA can
 toggle proposer, operator, and guardian facts independently to cover combined
 roles.
 
-Reuse shared `+1 day`, `+7 days`, and `Reset App`. Time travel changes proposal
-capabilities and recomputes authoring eligibility epoch labels from the fixed
-mock genesis through domain logic rather than swapping a display label. In mock
-runtime, lifecycle copy uses runtime time while snapshot labels continue to use
-canonical block provenance.
+Reuse shared `+1 day`, `+7 days`, and `Reset App`. A no-argument DAO reset starts
+at the deterministic `DAO_MOCK_NOW`; the shared day controls then add their delta
+to that stored DAO baseline while continuing to advance the global clock and
+other participating domains normally. Explicit test-bridge timestamps remain
+absolute. Time travel never re-anchors immutable proposal timestamps. It changes
+proposal capabilities and recomputes authoring eligibility epoch labels from the
+fixed mock genesis through domain logic rather than swapping a display label. In
+mock runtime, lifecycle copy uses runtime time while snapshot labels continue to
+use canonical block provenance.
 
 ## 8. Responsive and accessibility requirements
 

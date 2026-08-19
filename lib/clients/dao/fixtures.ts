@@ -66,6 +66,15 @@ export const DAO_MOCK_YBC_AGGREGATE_ADDRESS =
 export const DAO_MOCK_STYFIX_AGGREGATE_ADDRESS =
   "0x8888888888888888888888888888888888888888" as Address;
 
+export function deriveDaoMockBlockHash(
+  blockNumber: bigint,
+  timestamp: number
+): Hex {
+  return keccak256(
+    toBytes(`dao-mock-block:${blockNumber.toString()}:${timestamp}`)
+  );
+}
+
 const DAO_PINNED_VOTING_ABI_SOURCE =
   "yearn/stYFI@9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
 
@@ -302,7 +311,7 @@ export const DAO_MOCK_FEED: DaoFeedV1 = {
   generatedAt: "2026-08-18T12:00:00Z",
   canonicalBlock: {
     number: 24_000_000n,
-    hash: fixedHex32(240),
+    hash: deriveDaoMockBlockHash(24_000_000n, DAO_MOCK_NOW),
     timestamp: DAO_MOCK_NOW,
   },
   contracts: [

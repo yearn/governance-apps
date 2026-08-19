@@ -1,12 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyDaoMockFixture,
   createRuntimeMockDaoClient,
   createDaoTestBridgeAdapter,
   DAO_BLOCKED_REASONS,
   DAO_MOCK_ACCOUNT_ADDRESS,
+  DAO_MOCK_EPOCH_LENGTH_SECONDS,
+  DAO_MOCK_EXECUTION_DELAY_SECONDS,
   DAO_MOCK_FIXTURE_IDS,
+  DAO_MOCK_GENESIS,
   DAO_MOCK_NOW,
+  DAO_MOCK_VOTE_START_OFFSET_SECONDS,
+  deriveDaoProposalTiming,
   getDaoMockSnapshot,
   readDaoMockAccountProposalState,
   readDaoMockProposerState,
@@ -128,8 +133,49 @@ describe("DAO mutable mock store", () => {
     });
   });
 
+  it("restores the identical canonical tuple after advancing and rewinding time", () => {
+    const initial = getDaoMockSnapshot().feed.canonicalBlock;
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 12);
+    syncDaoMockStoreToNow(DAO_MOCK_NOW);
+
+    expect(getDaoMockSnapshot().feed.canonicalBlock).toEqual(initial);
+  });
+
+  it("uses the deterministic fixture epoch for no-argument resets", () => {
+    setFixedNow(DAO_MOCK_NOW + 8 * DAY_SECONDS);
+
+    const reset = resetDaoMockStore();
+
+    expect(reset.now).toBe(DAO_MOCK_NOW);
+    expect(reset.feed.generatedAt).toBe("2026-08-18T12:00:00.000Z");
+  });
+
+  it("uses the deterministic fixture epoch for lazy initialization", async () => {
+    vi.resetModules();
+    const freshTime = await import("@/lib/mocks/time");
+    freshTime.setFixedNow(DAO_MOCK_NOW + 8 * DAY_SECONDS);
+
+    try {
+      const freshStore = await import("@/lib/clients/dao/store");
+      expect(freshStore.getDaoMockSnapshot().now).toBe(DAO_MOCK_NOW);
+    } finally {
+      freshTime.setFixedNow(null);
+    }
+  });
+
   it("relabels authoring capacity epochs from the fixed genesis when time changes", async () => {
     const initial = applyDaoMockFixture("proposal-capacity-full");
+    const initialProposalTimes = initial.feed.proposals.map((proposal) => ({
+      proposalId: proposal.ref.proposalId,
+      votingEpoch: proposal.votingEpoch,
+      createdAt: proposal.createdAt,
+      voteStartsAt: proposal.voteStartsAt,
+      voteEndsAt: proposal.voteEndsAt,
+      executionStartsAt: proposal.executionStartsAt,
+      executionEndsAt: proposal.executionEndsAt,
+      contentCreatedAt: proposal.content.value?.createdAt ?? null,
+    }));
     const capacityFacts = initial.proposer.affectedBoostEpochs.map(
       ({ currentProposalCount, proposalLimit }) => ({
         currentProposalCount,
@@ -138,8 +184,42 @@ describe("DAO mutable mock store", () => {
     );
 
     syncDaoMockStoreToNow(DAO_MOCK_NOW + 8 * DAY_SECONDS);
+    applyDaoMockFixture("proposal-capacity-full");
 
     const advanced = getDaoMockSnapshot();
+    expect(
+      advanced.feed.proposals.map((proposal) => ({
+        proposalId: proposal.ref.proposalId,
+        votingEpoch: proposal.votingEpoch,
+        createdAt: proposal.createdAt,
+        voteStartsAt: proposal.voteStartsAt,
+        voteEndsAt: proposal.voteEndsAt,
+        executionStartsAt: proposal.executionStartsAt,
+        executionEndsAt: proposal.executionEndsAt,
+        contentCreatedAt: proposal.content.value?.createdAt ?? null,
+      }))
+    ).toEqual(initialProposalTimes);
+    for (const proposal of advanced.feed.proposals) {
+      const executionDelaySeconds =
+        proposal.executionStartsAt === null
+          ? DAO_MOCK_EXECUTION_DELAY_SECONDS
+          : proposal.executionStartsAt - proposal.voteEndsAt;
+      const timing = deriveDaoProposalTiming({
+        genesis: DAO_MOCK_GENESIS,
+        createdAt: proposal.createdAt,
+        epochLengthSeconds: DAO_MOCK_EPOCH_LENGTH_SECONDS,
+        voteStartOffsetSeconds: DAO_MOCK_VOTE_START_OFFSET_SECONDS,
+        executionDelaySeconds,
+      });
+
+      expect(proposal.votingEpoch).toBe(timing.votingEpoch);
+      expect(proposal.voteStartsAt).toBe(timing.voteStartsAt);
+      expect(proposal.voteEndsAt).toBe(timing.voteEndsAt);
+      if (proposal.executionStartsAt !== null) {
+        expect(proposal.executionStartsAt).toBe(timing.executionStartsAt);
+        expect(proposal.executionEndsAt).toBe(timing.executionEndsAt);
+      }
+    }
     expect(advanced.proposer.expectedVotingEpoch).toBe(202n);
     expect(
       advanced.proposer.affectedBoostEpochs.map(({ epoch }) => epoch)

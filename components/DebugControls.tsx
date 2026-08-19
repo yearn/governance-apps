@@ -24,6 +24,7 @@ import { resetMockYethStore } from "@/lib/clients/yeth/mock";
 import { resetMockTeamsStore } from "@/lib/clients/teams/mock";
 import { resetYbcMockStore } from "@/lib/clients/ybc/store";
 import {
+  getDaoMockSnapshot,
   resetDaoMockStore,
   syncDaoMockStoreToNow,
 } from "@/lib/clients/dao/store";
@@ -98,8 +99,9 @@ export function DebugControls({
   }, [isOpen]);
 
   const handleTimeTravel = async (days: number) => {
+    const daoNow = getDaoMockSnapshot().now;
     debugAdvanceTime(days * 24 * 60 * 60);
-    syncDaoMockStoreToNow();
+    syncDaoMockStoreToNow(daoNow + days * 24 * 60 * 60);
     await Promise.all(
       sections.flatMap((section) =>
         section.onTimeTravel ? [section.onTimeTravel(days)] : []
