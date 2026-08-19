@@ -1,12 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { useAccount } from "wagmi";
-import type { DaoProposerState } from "@/lib/clients/dao";
+import type {
+  DaoMockAuthoring,
+  DaoProposerState,
+} from "@/lib/clients/dao";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { getButtonClassName } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
 import { IconLinkOut } from "@/components/icons/IconLinkOut";
-import { useDaoProposerState } from "@/lib/hooks/useDao";
+import {
+  useDaoMockRuntime,
+  useDaoProposerState,
+} from "@/lib/hooks/useDao";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import {
   DaoErrorPanel,
@@ -17,6 +24,11 @@ import {
 } from "../components/DaoRouteFrame";
 import { daoCopy } from "../messages";
 import { MockControls } from "../components/MockControls";
+import {
+  DaoProposalAuthoringForm,
+  DaoProposalEligibility,
+} from "./DaoProposalAuthoringForm";
+import { daoProposeCopy } from "./messages";
 
 export type DaoProposeRouteState =
   | "disconnected"
@@ -30,6 +42,7 @@ export function DaoProposePageClient() {
   const effectiveAddress = address ?? (isE2E ? E2E_MOCK_ADDRESS : null);
   const hasConnectedAccount = (isConnected || isE2E) && effectiveAddress !== null;
   const proposerQuery = useDaoProposerState(effectiveAddress);
+  const runtime = useDaoMockRuntime();
   const state: DaoProposeRouteState = !hasConnectedAccount
     ? "disconnected"
     : proposerQuery.isPending
@@ -44,6 +57,8 @@ export function DaoProposePageClient() {
         onRetry={() => {
           void proposerQuery.refetch();
         }}
+        authoring={runtime?.authoring ?? null}
+        now={runtime?.now ?? 0}
         proposer={proposerQuery.data ?? null}
         state={state}
       />
@@ -53,14 +68,40 @@ export function DaoProposePageClient() {
 }
 
 export function DaoProposeView({
+  authoring = null,
+  now = 0,
   onRetry,
   proposer,
   state,
 }: {
+  authoring?: DaoMockAuthoring | null;
+  now?: number;
   onRetry: () => void;
   proposer: DaoProposerState | null;
   state: DaoProposeRouteState;
 }) {
+  const [isAuthoring, setIsAuthoring] = useState(false);
+
+  const handleStart = () => {
+    setIsAuthoring(true);
+    requestAnimationFrame(() => {
+      const heading = document.getElementById("dao-proposal-authoring-heading");
+      heading?.focus({ preventScroll: true });
+      heading?.scrollIntoView?.({ block: "start" });
+      if (heading) {
+        const stickyHeader = document.querySelector<HTMLElement>(
+          "header.sticky"
+        );
+        const minimumTop =
+          (stickyHeader?.getBoundingClientRect().bottom ?? 0) + 40;
+        const headingTop = heading.getBoundingClientRect().top;
+        if (headingTop < minimumTop) {
+          window.scrollBy({ top: headingTop - minimumTop });
+        }
+      }
+    });
+  };
+
   return (
     <DaoRouteFrame current="propose">
       {state === "disconnected" ? (
@@ -80,14 +121,32 @@ export function DaoProposeView({
         />
       ) : null}
 
-      {state === "ready" && proposer ? (
-        <ProposerSummary proposer={proposer} />
+      {state === "ready" && proposer && !isAuthoring ? (
+        <ProposerSummary
+          proposer={proposer}
+          onStart={handleStart}
+        />
+      ) : null}
+
+      {state === "ready" && proposer && isAuthoring ? (
+        <DaoProposalAuthoringForm
+          address={proposer.address}
+          authoringPreset={authoring}
+          now={now}
+          proposer={proposer}
+        />
       ) : null}
     </DaoRouteFrame>
   );
 }
 
-function ProposerSummary({ proposer }: { proposer: DaoProposerState }) {
+function ProposerSummary({
+  onStart,
+  proposer,
+}: {
+  onStart: () => void;
+  proposer: DaoProposerState;
+}) {
   const title = proposer.canPropose
     ? daoCopy.propose.eligibleTitle
     : daoCopy.propose.blockedTitle;
@@ -118,20 +177,34 @@ function ProposerSummary({ proposer }: { proposer: DaoProposerState }) {
         </p>
       </div>
 
-      <a
-        href={daoCopy.navigation.forumHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={daoCopy.navigation.forumAccessibleLabel}
-        className={getButtonClassName({
-          variant: "secondary",
-          size: "sm",
-          className: `${daoRouteControlClassName} gap-1.5`,
-        })}
-      >
-        <span>{daoCopy.navigation.forum}</span>
-        <IconLinkOut className="size-3.5" aria-hidden />
-      </a>
+      <DaoProposalEligibility proposer={proposer} />
+
+      <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center">
+        <Button
+          type="button"
+          className={`${daoRouteControlClassName} w-full motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto`}
+          onClick={onStart}
+        >
+          {proposer.canPropose
+            ? daoProposeCopy.landing.start
+            : daoProposeCopy.landing.draft}
+        </Button>
+
+        <a
+          href={daoCopy.navigation.forumHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={daoCopy.navigation.forumAccessibleLabel}
+          className={getButtonClassName({
+            variant: "secondary",
+            size: "sm",
+            className: `${daoRouteControlClassName} w-full gap-1.5 motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto`,
+          })}
+        >
+          <span>{daoCopy.navigation.forum}</span>
+          <IconLinkOut className="size-3.5" aria-hidden />
+        </a>
+      </div>
     </Card>
   );
 }

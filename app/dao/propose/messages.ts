@@ -1,0 +1,173 @@
+export const daoProposeCopy = {
+  landing: {
+    title: "Prepare a proposal",
+    description:
+      "Check your proposal eligibility, then prepare the forum topic and immutable proposal snapshot.",
+    eligibleTitle: "Your wallet can create a proposal",
+    eligibleFacts: "Current proposal requirements are met.",
+    eligibleBody:
+      "Start with a public discussion in the Proposals category, then review the exact content before publication.",
+    blockedTitle: "Your wallet cannot create a proposal",
+    blockedFallback:
+      "The connected wallet does not meet the current proposal requirements.",
+    eligibleLabel: "Eligible",
+    unavailableLabel: "Unavailable",
+    start: "Start proposal",
+    draft: "Draft proposal",
+  },
+  form: {
+    eyebrow: "Proposal authoring",
+    title: "Create a proposal",
+    description:
+      "Complete each section on this page. Your draft stays in place if validation, publication, or proposal creation fails.",
+    review: "Review proposal",
+    edit: "Edit proposal",
+    validationTitle: "Review the highlighted fields",
+  },
+  discussion: {
+    step: "1",
+    title: "Forum discussion",
+    description:
+      "Link a public topic from the Yearn forum Proposals category. The forum can continue to change after submission.",
+    label: "Forum discussion",
+    placeholder: "https://gov.yearn.fi/t/proposal-topic/1001",
+    validate: "Validate topic",
+    validating: "Validating topic",
+    accepted: "Forum topic accepted",
+    topicTitle: "Topic title",
+    normalizedUrl: "Normalized topic",
+    category: "Category",
+    author: "Topic author",
+    created: "Topic created",
+    newTab: "opens in a new tab",
+    required: "Validate a supported Yearn forum topic before review.",
+  },
+  content: {
+    step: "2",
+    title: "Immutable proposal content",
+    description:
+      "Title, summary, specification, forum URL, and proposal type become the immutable proposal snapshot.",
+    titleLabel: "Title",
+    titlePlaceholder: "A concise proposal title",
+    summaryLabel: "Summary",
+    summaryPlaceholder: "State the decision and its intended outcome.",
+    specificationLabel: "Specification",
+    specificationPlaceholder:
+      "Describe the complete proposal, constraints, and implementation details.",
+    titleRequired: "Enter a proposal title.",
+    titleTooLong: (limit: number) =>
+      `Keep the proposal title to ${limit} characters or fewer.`,
+    summaryRequired: "Enter a proposal summary.",
+    summaryTooLong: (limit: number) =>
+      `Keep the proposal summary to ${limit} characters or fewer.`,
+    specificationRequired: "Enter a proposal specification.",
+    specificationTooLong: (limit: number) =>
+      `Keep the proposal specification to ${limit} characters or fewer.`,
+  },
+  type: {
+    step: "3",
+    title: "Proposal type",
+    description: "Choose the onchain effect of this proposal.",
+    signal: "Signal",
+    signalDescription: "Records a DAO decision without executable calls.",
+    executable: "Executable",
+    executableDescription:
+      "Includes an onchain script prepared with development tools.",
+  },
+  script: {
+    step: "4",
+    title: "Execution script",
+    description:
+      "Paste the full 0x-prefixed Executor script. The browser checks framing and contract limits only.",
+    label: "Full Executor script",
+    placeholder: "0x...",
+    valid: "Script structure is valid",
+    emptyTitle: "No executable actions",
+    emptyBody: "Signal proposals use the empty Executor script.",
+    errorCode: "Error code",
+    byteOffset: "Byte offset",
+    scriptHash: "Script hash",
+    scriptBytes: "Script bytes",
+    callCount: "Call count",
+    calls: "Parsed calls",
+    call: (index: number) => `Call ${index + 1}`,
+    target: "Target",
+    calldataBytes: "Calldata bytes",
+    backendAnalysis:
+      "Backend decoding and simulation follow submission on the proposal page.",
+  },
+  eligibility: {
+    step: "5",
+    title: "Proposal eligibility",
+    description:
+      "Eligibility comes from current wallet, network, blacklist, weight, cooldown, and shared-capacity facts.",
+    connected: "Wallet",
+    connectedValue: "Connected",
+    disconnectedValue: "Disconnected",
+    network: "Network",
+    correctNetwork: "Proposal network",
+    wrongNetwork: "Wrong network",
+    blacklist: "Blacklist",
+    clear: "Clear",
+    blocked: "Blocked",
+    currentWeight: "Current weight",
+    minimumWeight: "Minimum weight",
+    cooldown: "Cooldown",
+    cooldownReady: "Eligible now",
+    nextEligible: "Next eligible",
+    votingEpoch: "Expected voting epoch",
+    capacity: "Shared proposal capacity",
+    capacityAvailable:
+      "Shared proposal capacity has room across all six affected reward epochs.",
+    capacityFull: (epoch: string) =>
+      `Proposal capacity is full. Reward epoch ${epoch} has reached the shared rolling six-epoch limit. This is system-wide capacity, not a per-user quota.`,
+    epoch: "Reward epoch",
+    proposals: "Proposals",
+    sharedRule:
+      "Every proposal counts against the same six affected reward epochs for all authors.",
+  },
+  review: {
+    eyebrow: "Final review",
+    title: "Review the exact proposal",
+    description:
+      "Publication fixes this content. Confirm every field and the exact script before continuing.",
+    forum: "Forum topic",
+    immutableContent: "Immutable content",
+    schema: "Schema",
+    creator: "Created by",
+    createdAt: "Snapshot time",
+    proposalType: "Proposal type",
+    titleLabel: "Title",
+    summary: "Summary",
+    specification: "Specification",
+    exactScript: "Exact script",
+    confirm:
+      "I reviewed the exact immutable content, proposal type, script, and script hash.",
+    confirmRequired: "Confirm the exact review before publication.",
+    submissionSteps: "Submission steps",
+    publishStep: "Publish proposal content",
+    proposeStep: "Create onchain proposal",
+    indexStep: "Wait for proposal indexing and analysis",
+  },
+  publication: {
+    publish: "Publish proposal content",
+    retry: "Retry publication",
+    publishing: "Publishing proposal content",
+    successTitle: "Proposal content published",
+    successBody:
+      "The reviewed snapshot is fixed. The wallet step has not started yet.",
+    fingerprint: "Content fingerprint",
+    failedTitle: "Proposal content was not published",
+  },
+  proposal: {
+    create: "Create onchain proposal",
+    retry: "Retry proposal creation",
+    waiting: "Waiting for wallet",
+    submittedTitle: "Proposal transaction submitted",
+    submittedBody:
+      "Waiting for proposal indexing and backend decoding and simulation.",
+    transaction: "Transaction hash",
+    rejectedTitle: "Wallet request cancelled",
+    revertedTitle: "Proposal creation failed",
+  },
+} as const;
