@@ -50,7 +50,7 @@ Create a package only after its dependencies are merged into integration.
 
 ```text
 M1: WP1 -> WP2 -> WP3
-M2: WP4 -> WP6 -> WP5 -> WP7 -> user gate
+M2: WP4 -> WP6 -> WP5 -> WP7 -> user gate -> WP7A when changes are returned -> user gate
 M3: WP8 -> WP9 (gov-apps-stats) -> WP10
 M4: WP11 -> WP12
 M5: WP13 -> WP14 -> WP15
@@ -107,6 +107,7 @@ without re-review.
 - [`M2-WP5-voting-and-lifecycle-actions.md`](work-packages/M2-WP5-voting-and-lifecycle-actions.md)
 - [`M2-WP6-proposal-authoring.md`](work-packages/M2-WP6-proposal-authoring.md)
 - [`M2-WP7-mock-uat.md`](work-packages/M2-WP7-mock-uat.md)
+- [`M2-WP7A-navigation-and-authoring-clarity.md`](work-packages/M2-WP7A-navigation-and-authoring-clarity.md)
 
 ### M3
 
