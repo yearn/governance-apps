@@ -1,6 +1,7 @@
 # DAO Governance Delivery Plan
 
-Status: M0 specification complete; M1 is next.
+Status: M2 WP7A implementation and evidence complete; renewed user acceptance
+is next.
 
 This plan is the task source for implementing DAO Governance. It uses the shared
 workflow in [`docs/shared/codex-usage-guide.md`](../../../shared/codex-usage-guide.md)
@@ -108,6 +109,8 @@ without re-review.
 - [`M2-WP6-proposal-authoring.md`](work-packages/M2-WP6-proposal-authoring.md)
 - [`M2-WP7-mock-uat.md`](work-packages/M2-WP7-mock-uat.md)
 - [`M2-WP7A-navigation-and-authoring-clarity.md`](work-packages/M2-WP7A-navigation-and-authoring-clarity.md)
+- [`M2-WP7A evidence`](evidence/M2-WP7A/README.md)
+- [`DAO beta operator runbook`](dao-beta-runbook.md)
 
 ### M3
 
