@@ -28,6 +28,18 @@ const expectedRuntimeEnv: Record<string, string> = {
     "${{ secrets.NEXT_PUBLIC_RPC_URLS || vars.NEXT_PUBLIC_RPC_URLS }}",
 };
 
+const preprodDaoFlag =
+  "${{ vars.NEXT_PUBLIC_ENABLE_DAO || secrets.NEXT_PUBLIC_ENABLE_DAO || 'false' }}";
+
+function expectedRuntimeEnvFor(relativePath: string) {
+  return {
+    ...expectedRuntimeEnv,
+    NEXT_PUBLIC_ENABLE_DAO: relativePath.includes("preprod")
+      ? preprodDaoFlag
+      : '"false"',
+  };
+}
+
 function parseEnvLines(linesBlock: string) {
   const result: Record<string, string> = {};
   const lines = linesBlock.trimEnd().split("\n");
@@ -70,19 +82,19 @@ describe("deploy workflow env wiring", () => {
 
     it(`${relativePath} keeps production runtime env on validation step`, () => {
       expect(parseStepEnvByRun(workflowPath, "npm run validate:prod-env")).toEqual(
-        expectedRuntimeEnv
+        expectedRuntimeEnvFor(relativePath)
       );
     });
 
     it(`${relativePath} keeps production runtime env on build step`, () => {
       expect(parseStepEnvByRun(workflowPath, "npm run worker:build")).toEqual(
-        expectedRuntimeEnv
+        expectedRuntimeEnvFor(relativePath)
       );
     });
 
     it(`${relativePath} keeps runtime env and Cloudflare creds on deploy step`, () => {
       expect(parseStepEnvByRun(workflowPath, deployCommand)).toEqual({
-        ...expectedRuntimeEnv,
+        ...expectedRuntimeEnvFor(relativePath),
         CLOUDFLARE_ACCOUNT_ID: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
         CLOUDFLARE_API_TOKEN: "${{ secrets.CLOUDFLARE_API_TOKEN }}",
       });
@@ -103,9 +115,19 @@ describe("preprod worker routes", () => {
       "teams-beta.dao-ops.com",
       "yeth-beta.dao-ops.com",
       "ybc-beta.dao-ops.com",
+      "dao-beta.dao-ops.com",
     ]) {
       expect(wranglerConfig).toContain(`"pattern": "${host}"`);
     }
+  });
+
+  it("does not register the reserved DAO production host", () => {
+    const wranglerConfig = readFileSync(
+      path.resolve(process.cwd(), "wrangler.jsonc"),
+      "utf8"
+    );
+
+    expect(wranglerConfig).not.toContain('"pattern": "dao.yearn.fi"');
   });
 });
 

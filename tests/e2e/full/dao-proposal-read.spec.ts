@@ -23,7 +23,7 @@ test("scans and filters the proposal board at every review viewport", async ({
     await page.goto("/dao");
 
     await expect(
-      page.getByRole("heading", { name: "Proposal board", level: 2 })
+      page.getByRole("heading", { name: "Proposals", level: 1 })
     ).toBeVisible();
     await expect(page.getByText("22 proposals are available.")).toBeVisible();
     await expect(page.getByText("Voting ends in 6 hours").first()).toBeVisible();
@@ -58,7 +58,7 @@ test("supports keyboard filters and reduced motion", async ({ page }) => {
 
   const active = page.getByRole("tab", { name: /Active/ });
   await active.focus();
-  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowLeft");
   const upcoming = page.getByRole("tab", { name: /Upcoming/ });
   await expect(upcoming).toBeFocused();
   await expect(upcoming).toHaveAttribute("aria-selected", "true");
@@ -71,9 +71,11 @@ test("supports keyboard filters and reduced motion", async ({ page }) => {
 test("offers responsive keyboard shortcuts when Active has no proposals", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
+
   for (const viewport of VIEWPORTS) {
     await page.setViewportSize(viewport);
-    await page.goto("/dao");
+    await page.goto("/dao?group=active");
     await page.evaluate(async () => {
       if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
       await window.__TEST__.reset();

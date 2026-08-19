@@ -11,8 +11,11 @@ flowchart TD
   WP4 --> WP7["M2 WP7: mock UAT"]
   WP5 --> WP7
   WP6 --> WP7
-  WP7 --> GateM2{"User accepts mock UX"}
-  GateM2 --> WP8["M3 WP8: feed schema"]
+  WP7 --> GateM2Initial{"User accepts mock UX"}
+  GateM2Initial -->|"Changes returned"| WP7A["M2 WP7A: navigation and authoring clarity"]
+  WP7A --> GateM2{"User accepts revised mock UX"}
+  GateM2Initial -->|"Accepted"| WP8["M3 WP8: feed schema"]
+  GateM2 --> WP8
   WP8 --> WP9["M3 WP9: gov-apps-stats producer"]
   WP9 --> WP10["M3 WP10: producer contract validation"]
   WP10 --> WP11["M4 WP11: feed-backed reads"]

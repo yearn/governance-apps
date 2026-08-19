@@ -106,6 +106,10 @@ Every new app starts with deterministic mock-backed rendering.
 - Default routes stay production-shaped; mock badges and route-local scenario
   bars are transitional and must not survive acceptance.
 - Reset and time travel include every registered domain.
+- The unaccepted DAO M2 beta is a temporary, explicitly approved exception that
+  may mount only its route-local mock client in a production-runtime preprod
+  build. It does not enable global mocks, E2E, debug UI, or a general per-app
+  mock/live pattern.
 
 See [`debug-runtime-contract.md`](debug-runtime-contract.md),
 [`mock-toggles.md`](mock-toggles.md), and [`testing.md`](testing.md).
@@ -160,6 +164,9 @@ The root `PRODUCT.md` and `DESIGN.md` define product and visual principles.
 ## 9. Runtime and rollout
 
 - `NEXT_PUBLIC_USE_MOCKS` is global and forbidden in production.
+- The temporary DAO review exception is controlled by
+  `NEXT_PUBLIC_ENABLE_DAO`, remains mock-only and nonpublic, and is hard-disabled
+  by the production workflow.
 - New public surfaces are path-routable before subdomain exposure.
 - Production app exposure is feature-gated.
 - Environment validation fails closed when a production-enabled app lacks

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { DaoProposePageClient } from "./DaoProposePageClient";
 import {
   createDaoRouteMetadata,
@@ -6,6 +7,7 @@ import {
   daoViewport,
 } from "../metadata";
 import { isDaoEnabled } from "@/lib/runtime/features";
+import { resolveRequestHostname } from "@/lib/runtime/request-host";
 
 export const viewport = daoViewport;
 export const dynamic = "force-dynamic";
@@ -16,10 +18,13 @@ export function generateMetadata() {
     : daoNotFoundMetadata;
 }
 
-export default function DaoProposePage() {
+export default async function DaoProposePage() {
   if (!isDaoEnabled()) {
     notFound();
   }
 
-  return <DaoProposePageClient />;
+  const requestHeaders = await headers();
+  const initialHostname = resolveRequestHostname(requestHeaders, "");
+
+  return <DaoProposePageClient initialHostname={initialHostname} />;
 }

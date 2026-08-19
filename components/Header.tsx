@@ -41,7 +41,10 @@ export function Header() {
   const daoRuntime = useDaoMockRuntime(
     appKey === "dao" && process.env.NEXT_PUBLIC_E2E === "true"
   );
-  const daoIdentity = pathname?.startsWith("/dao/propose")
+  const isDaoProposeRoute =
+    appKey === "dao" &&
+    (pathname === "/propose" || pathname?.startsWith("/dao/propose"));
+  const daoIdentity = isDaoProposeRoute
     ? daoRuntime?.proposer
     : daoRuntime?.account;
   const e2eWalletPresentation: E2EWalletPresentation | undefined =

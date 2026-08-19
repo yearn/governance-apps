@@ -325,7 +325,7 @@ for (const [range, fixtures] of [
       expect(evidence?.selectedProposalId).toBe(fixture.proposalId.toString());
 
       await expect(
-        page.getByRole("heading", { name: fixture.title, level: 2 })
+        page.getByRole("heading", { name: fixture.title, level: 1 })
       ).toBeVisible();
       await expect(
         page.getByText(fixture.status, { exact: true }).first()
@@ -392,7 +392,7 @@ test("reaches the non-visual proposal capacity fixture through the shared bridge
   await expect(
     page.getByText("Proposal capacity is full.", { exact: true }).first()
   ).toBeVisible();
-  await expect(page.getByText("64 / 64")).toBeVisible();
+  await expect(page.getByText("64 / 64 proposals")).toBeVisible();
   await expectNoDocumentOverflow(page, "proposal-capacity-full");
 
   await page.evaluate(async (timestamp) => {
@@ -415,14 +415,18 @@ test("reaches the non-visual proposal capacity fixture through the shared bridge
       .getByText("Expected voting epoch", { exact: true })
       .locator("xpath=following-sibling::dd")
   ).toHaveText("202");
-  const capacityTable = page.getByRole("table");
-  for (const epoch of ["202", "203", "204", "205", "206", "207"]) {
-    await expect(
-      capacityTable.getByRole("cell", { name: epoch, exact: true })
-    ).toBeVisible();
-  }
   await expect(
-    page.getByText(/Reward epoch 204 has reached the shared rolling six-epoch limit/)
+    page
+      .getByText("Affected reward epochs", { exact: true })
+      .locator("xpath=following-sibling::dd")
+  ).toHaveText("202–207");
+  await expect(page.getByRole("table")).toHaveCount(0);
+  await expect(
+    page.getByText("Proposal capacity is full in reward epoch 204.")
+  ).toBeVisible();
+  await expect(page.getByText("64 / 64 proposals")).toBeVisible();
+  await expect(
+    page.getByText(/64-proposal limit is shared system-wide/i)
   ).toBeVisible();
 });
 

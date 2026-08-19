@@ -13,6 +13,7 @@ describe("resolveHostPrefix", () => {
     expect(resolveHostPrefix("teams.yearn.fi")).toBe("/teams");
     expect(resolveHostPrefix("yeth.yearn.fi")).toBe("/yeth");
     expect(resolveHostPrefix("ybc.yearn.fi")).toBe("/ybc");
+    expect(resolveHostPrefix("dao.yearn.fi")).toBe("/dao");
   });
 
   it("resolves beta hostnames to app prefixes", () => {
@@ -21,6 +22,7 @@ describe("resolveHostPrefix", () => {
     expect(resolveHostPrefix("teams-beta.dao-ops.com")).toBe("/teams");
     expect(resolveHostPrefix("yeth-beta.dao-ops.com")).toBe("/yeth");
     expect(resolveHostPrefix("ybc-beta.dao-ops.com")).toBe("/ybc");
+    expect(resolveHostPrefix("dao-beta.dao-ops.com")).toBe("/dao");
   });
 
   it("normalizes hostname casing and whitespace", () => {
@@ -35,7 +37,6 @@ describe("resolveHostPrefix", () => {
 
   it("returns null for unknown or empty hosts", () => {
     expect(resolveHostPrefix("app.dao-ops.com")).toBeNull();
-    expect(resolveHostPrefix("dao.yearn.fi")).toBeNull();
     expect(resolveHostPrefix("")).toBeNull();
     expect(resolveHostPrefix("   ")).toBeNull();
   });

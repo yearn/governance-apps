@@ -44,6 +44,11 @@ The baseline is:
 
 4. Run the interface polish pass.
    - Check hierarchy, spacing, alignment, and responsive behavior.
+   - Confirm each route has one meaningful H1 and that breadcrumbs preserve the
+     list/filter context without replacing native list semantics.
+   - For stretched-row links, test a blank row point plus every nested control.
+   - For sequential actions, verify current/upcoming/complete distinction and
+     focus placement after each action succeeds.
    - Confirm touch targets are at least 40x40px, with 44x44px where practical.
    - Prefer explicit transition properties over `transition-all`.
    - Use `text-balance` for short headings and `text-pretty` for short body

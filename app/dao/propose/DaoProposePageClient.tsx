@@ -15,14 +15,17 @@ import {
   useDaoProposerState,
 } from "@/lib/hooks/useDao";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
+import { useHostname } from "@/lib/hooks/useHostname";
 import {
   DaoErrorPanel,
+  DaoBreadcrumbs,
   DaoLoadingPanel,
   DaoRouteFrame,
   DaoWalletNotice,
   daoRouteControlClassName,
 } from "../components/DaoRouteFrame";
 import { daoCopy } from "../messages";
+import { createDaoRootHref } from "../route-state";
 import { MockControls } from "../components/MockControls";
 import {
   DaoProposalAuthoringForm,
@@ -36,7 +39,13 @@ export type DaoProposeRouteState =
   | "ready"
   | "error";
 
-export function DaoProposePageClient() {
+export function DaoProposePageClient({
+  initialHostname,
+}: {
+  initialHostname?: string;
+}) {
+  const browserHostname = useHostname();
+  const hostname = browserHostname ?? initialHostname;
   const { address, isConnected } = useAccount();
   const isE2E = process.env.NEXT_PUBLIC_E2E === "true";
   const runtime = useDaoMockRuntime();
@@ -63,6 +72,7 @@ export function DaoProposePageClient() {
           void proposerQuery.refetch();
         }}
         authoring={runtime?.authoring ?? null}
+        hostname={hostname}
         now={runtime?.now ?? 0}
         proposer={proposerQuery.data ?? null}
         state={state}
@@ -74,12 +84,14 @@ export function DaoProposePageClient() {
 
 export function DaoProposeView({
   authoring = null,
+  hostname,
   now = 0,
   onRetry,
   proposer,
   state,
 }: {
   authoring?: DaoMockAuthoring | null;
+  hostname?: string;
   now?: number;
   onRetry: () => void;
   proposer: DaoProposerState | null;
@@ -108,7 +120,25 @@ export function DaoProposeView({
   };
 
   return (
-    <DaoRouteFrame current="propose">
+    <DaoRouteFrame>
+      <header className="space-y-2 border-b border-border pb-6">
+        <DaoBreadcrumbs
+          items={[
+            {
+              href: createDaoRootHref(hostname),
+              label: daoCopy.navigation.proposals,
+            },
+            { label: daoProposeCopy.page.title },
+          ]}
+        />
+        <h1 className="text-balance text-3xl font-bold md:text-4xl">
+          {daoProposeCopy.page.title}
+        </h1>
+        <p className="max-w-2xl text-pretty text-sm leading-6 text-text-secondary">
+          {daoProposeCopy.page.description}
+        </p>
+      </header>
+
       {state === "disconnected" ? (
         <DaoWalletNotice context="propose" />
       ) : null}

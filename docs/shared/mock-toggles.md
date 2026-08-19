@@ -38,6 +38,9 @@
 ## Production Feature Gates
 
 - `NEXT_PUBLIC_RUNTIME_MODE=production` enables production gating behavior.
+- `NEXT_PUBLIC_ENABLE_DAO=true` permits the temporary route-local DAO mock
+  review candidate in production runtime. The preproduction workflow may read
+  this protected flag; the production workflow hardcodes it false.
 - `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Team Finances in production runtime.
 - `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC in production runtime.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH in production runtime.
@@ -111,8 +114,14 @@ DAO Governance uses this shared runtime in development and preview. Its controls
 cover route state, deterministic fixtures, personas and independent roles,
 content, lifecycle, veto, analysis, account, execution, and authoring facts. DAO
 time travel recomputes protocol status and capabilities through domain logic; it
-does not swap display labels. Production remains fail-closed and does not mount
-the DAO debug store or panel.
+does not swap display labels.
+
+The M2 internal review is the one temporary production-runtime exception:
+`NEXT_PUBLIC_ENABLE_DAO=true` may mount the route-local DAO mock client while
+global `NEXT_PUBLIC_USE_MOCKS`, E2E, and debug UI stay false. MockControls still
+requires `isDebugUiEnabled`, so no DAO control surface appears on the guarded
+beta by default. This is not a reusable per-app mock/live switch. Public
+production hardcodes the DAO flag false.
 
 For Teams specifically, the shared panel now owns preset bootstrapping, viewer/admin
 access, loading/empty coverage, workspace selection, current period, lifecycle,

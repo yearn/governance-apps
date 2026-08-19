@@ -1,6 +1,6 @@
 # DAO Governance
 
-Status: discovery accepted; M1 mock foundation is in progress.
+Status: M2 mock product assembled; WP7A revision is awaiting explicit user acceptance.
 
 `DAO Governance` is the proposal, voting, and execution-review app for Yearn's
 onchain governance contracts.
@@ -11,6 +11,8 @@ onchain governance contracts.
 - Shared-host route: `/dao`
 - Proposal detail: `/dao/proposals/[id]`
 - Proposal creation: `/dao/propose`
+- Internal preproduction review host: `dao-beta.dao-ops.com` (unlisted,
+  `noindex`, and noncanonical)
 - Planned production host: `dao.yearn.fi`
 - Forum: `gov.yearn.fi`, shown as the discussion site rather than the app name
 
@@ -48,6 +50,9 @@ contract revision as equivalent.
 - Execution requires the exact event script, hash verification, and a fresh
   current-state simulation.
 - The app is mock-first. Feed and onchain work starts only after mock UX review.
+- The guarded preproduction review remains mock-backed and is not production
+  approval. A custom domain does not make the host access-controlled; operators
+  must add Cloudflare Access separately if authenticated access is required.
 
 ## Documentation map
 
@@ -62,6 +67,7 @@ contract revision as equivalent.
 
 ## Current gate
 
-The next session begins at M1, the deterministic mock foundation. It may proceed
-through the M2 mock product, then must stop for user review before starting the
-feed, backend, or onchain milestones.
+M2 WP7A is the current product gate. The revised mock UX may be reviewed on the
+shared `/dao` path or guarded preproduction host, but it remains unaccepted.
+Do not begin M3, backend feeds, real forum validation, IPFS publication, onchain
+reads/writes, or public production rollout until the user explicitly accepts it.

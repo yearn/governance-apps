@@ -74,10 +74,19 @@ it does not grant authority based on labels from the feed.
 - a quiet indication when a proposal has executable actions;
 - verified discussion availability or its absence.
 
+Each item has one stretched native proposal link so the full row is the primary
+target. Nested address explorer and copy controls remain independent. Proposal
+links carry the selected source group for contextual detail navigation.
+
 ### DAO-FR-002: filters
 
-The list supports at least `Active`, `Upcoming`, and `Closed`. Filtering uses
-domain-provided display groups, not duplicate status math in the component.
+The list orders `Upcoming`, `Active`, and `Closed`. A valid `?group=` selection
+wins even when empty. Otherwise it defaults to populated `Active`, then
+`Upcoming`, then `Closed`, and finally `Active` when all are empty. Filtering
+uses domain-provided display groups, not duplicate status math in the component.
+Selection replaces URL state without growing history. Reload and browser Back
+preserve the board group. Detail breadcrumbs use
+`Proposals / <Group> / <proposal title>` and reject invalid origin values.
 
 ### DAO-FR-003: stable identity
 
@@ -180,6 +189,12 @@ epoch, and the current proposal count for each of the six affected reward
 epochs. Proposal capacity is shared across all authors and is full if any
 affected epoch already contains 64 proposals.
 
+Normal UI shows the expected voting epoch and one `Affected reward epochs
+N–N+5` range, not six capacity rows or a success notice. The six epoch counts
+remain available to domain logic and debug tooling. Only a capacity block names
+the exact full epoch, shows `64 / 64`, repeats the range, and states that the
+limit is system-wide rather than a per-user quota.
+
 Wallet and network failures take priority, followed by blacklist, weight,
 cooldown, and shared capacity. The review may show every relevant fact even when
 one primary reason controls the action.
@@ -231,6 +246,14 @@ The final confirmation shows:
 - current proposer weight and cooldown eligibility;
 - expected voting epoch;
 - publication and transaction steps.
+
+The review states that two separate actions are required. Step 2 stays visibly
+upcoming and unavailable until immutable content is published, and publication
+copy says it neither creates a proposal nor opens a wallet. After publication,
+Step 1 retains its fingerprint receipt and focus moves to a distinct current
+Step 2 surface. After submission, both steps are complete and indexing/analysis
+is pending. Publication failure never exposes Step 2. Wallet rejection or
+onchain revert preserves the published content and retries without republishing.
 
 ### DAO-FR-036: backend analysis
 
@@ -316,10 +339,15 @@ a voting veto.
 
 - Mock mode uses deterministic state, shared time controls, reset, and typed test
   bridge methods.
-- Production mode never instantiates DAO mock state.
+- Production mode instantiates DAO mock state only for the temporary,
+  route-local M2 review exception when `NEXT_PUBLIC_ENABLE_DAO=true`. This does
+  not enable global mocks, E2E, or debug UI.
 - `/dao` ships on shared hosts before subdomain exposure.
-- Production requires an explicit `NEXT_PUBLIC_ENABLE_DAO`-style feature gate,
-  subject to the naming conventions present when the rollout package starts.
+- The preproduction workflow reads `NEXT_PUBLIC_ENABLE_DAO` from its protected
+  environment and defaults it false. The production workflow hardcodes it
+  false. `dao-beta.dao-ops.com` is noncanonical and `noindex`; the reserved
+  `dao.yearn.fi` hostname exists only in the internal routing registry and
+  remains absent from production Wrangler custom domains and discoverability.
 - Snapshot-era stYFI links remain unchanged until the production cutover package.
 
 ## 12. Quality requirements

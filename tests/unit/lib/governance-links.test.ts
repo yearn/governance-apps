@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   resolveGovernanceAppHref,
+  resolveGovernanceAppPathHref,
   resolveGovernanceHref,
 } from "@/lib/governance-links";
 
@@ -11,6 +12,7 @@ describe("resolveGovernanceAppHref", () => {
     expect(resolveGovernanceAppHref("teams", "app.dao-ops.com")).toBe("/teams");
     expect(resolveGovernanceAppHref("yeth", "app.dao-ops.com")).toBe("/yeth");
     expect(resolveGovernanceAppHref("ybc", "app.dao-ops.com")).toBe("/ybc");
+    expect(resolveGovernanceAppHref("dao", "app.dao-ops.com")).toBe("/dao");
   });
 
   it("resolves canonical app subdomains on production hosts", () => {
@@ -28,6 +30,9 @@ describe("resolveGovernanceAppHref", () => {
     );
     expect(resolveGovernanceAppHref("ybc", "styfi.yearn.fi")).toBe(
       "https://ybc.yearn.fi"
+    );
+    expect(resolveGovernanceAppHref("dao", "styfi.yearn.fi")).toBe(
+      "https://dao.yearn.fi"
     );
   });
 
@@ -47,11 +52,48 @@ describe("resolveGovernanceAppHref", () => {
     expect(resolveGovernanceAppHref("ybc", "styfi-beta.dao-ops.com")).toBe(
       "https://ybc-beta.dao-ops.com"
     );
+    expect(resolveGovernanceAppHref("dao", "styfi-beta.dao-ops.com")).toBe(
+      "https://dao-beta.dao-ops.com"
+    );
   });
 
   it("falls back to path links when hostname is unknown", () => {
     expect(resolveGovernanceAppHref("styfi")).toBe("/styfi");
     expect(resolveGovernanceAppHref("styfi", "example.com")).toBe("/styfi");
+  });
+});
+
+describe("resolveGovernanceAppPathHref", () => {
+  it("keeps DAO nested paths under /dao on shared and local hosts", () => {
+    expect(
+      resolveGovernanceAppPathHref("dao", "/proposals/2?from=active", "localhost")
+    ).toBe("/dao/proposals/2?from=active");
+    expect(
+      resolveGovernanceAppPathHref("dao", "/propose", "app.dao-ops.com")
+    ).toBe("/dao/propose");
+  });
+
+  it("uses clean nested paths on the DAO beta host", () => {
+    expect(
+      resolveGovernanceAppPathHref(
+        "dao",
+        "/proposals/2?from=closed",
+        "dao-beta.dao-ops.com"
+      )
+    ).toBe("/proposals/2?from=closed");
+    expect(
+      resolveGovernanceAppPathHref("dao", "/", "dao-beta.dao-ops.com")
+    ).toBe("/");
+  });
+
+  it("cross-links from another beta surface to the DAO beta host", () => {
+    expect(
+      resolveGovernanceAppPathHref(
+        "dao",
+        "/propose",
+        "teams-beta.dao-ops.com"
+      )
+    ).toBe("https://dao-beta.dao-ops.com/propose");
   });
 });
 

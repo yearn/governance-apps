@@ -2,10 +2,12 @@
 
 import {
   forwardRef,
+  useEffect,
   useRef,
   useState,
   type FormEvent,
   type ReactNode,
+  type RefObject,
 } from "react";
 import type { Address } from "viem";
 import { Badge } from "@/components/ui/Badge";
@@ -114,10 +116,26 @@ function DaoProposalAuthoringFormState({
   const summaryRef = useRef<HTMLTextAreaElement>(null);
   const specificationRef = useRef<HTMLTextAreaElement>(null);
   const scriptRef = useRef<HTMLTextAreaElement>(null);
+  const proposalStepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const proposalCompleteHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const exactScript = proposalType === "signal" ? "0x" : executableScript;
   const scriptCheck = checkDaoExecutorScript(exactScript, proposalType);
   const topic = forumState.state === "valid" ? forumState.topic : null;
+
+  useEffect(() => {
+    if (publication.state !== "published") return;
+
+    proposalStepHeadingRef.current?.focus({ preventScroll: true });
+    proposalStepHeadingRef.current?.scrollIntoView?.({ block: "center" });
+  }, [publication.state]);
+
+  useEffect(() => {
+    if (wallet.state !== "submitted") return;
+
+    proposalCompleteHeadingRef.current?.focus({ preventScroll: true });
+    proposalCompleteHeadingRef.current?.scrollIntoView?.({ block: "center" });
+  }, [wallet.state]);
 
   const handleForumInput = (value: string) => {
     forumRequest.current += 1;
@@ -277,6 +295,8 @@ function DaoProposalAuthoringFormState({
         onPublish={handlePublish}
         proposer={proposer}
         publication={publication}
+        proposalCompleteHeadingRef={proposalCompleteHeadingRef}
+        proposalStepHeadingRef={proposalStepHeadingRef}
         review={review}
         wallet={wallet}
       />
@@ -496,6 +516,8 @@ function DaoFinalReview({
   onPublish,
   proposer,
   publication,
+  proposalCompleteHeadingRef,
+  proposalStepHeadingRef,
   review,
   wallet,
 }: {
@@ -507,6 +529,8 @@ function DaoFinalReview({
   onPublish: () => Promise<void>;
   proposer: DaoProposerState;
   publication: PublicationState;
+  proposalCompleteHeadingRef: RefObject<HTMLHeadingElement | null>;
+  proposalStepHeadingRef: RefObject<HTMLHeadingElement | null>;
   review: DaoAuthoringReview;
   wallet: WalletState;
 }) {
@@ -625,27 +649,54 @@ function DaoFinalReview({
       </ReviewSection>
 
       <ReviewSection title={daoProposeCopy.review.submissionSteps}>
-        <ol className="space-y-3 text-sm">
+        <p className="max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
+          {daoProposeCopy.review.submissionStepsBody}
+        </p>
+        <ol className="grid gap-3 text-sm md:grid-cols-2">
           <SubmissionStep
             number="1"
             label={daoProposeCopy.review.publishStep}
-            complete={publication.state === "published"}
+            description={daoProposeCopy.review.publishStepBody}
+            status={contentPublished ? "complete" : "current"}
           />
           <SubmissionStep
             number="2"
             label={daoProposeCopy.review.proposeStep}
-            complete={wallet.state === "submitted"}
-          />
-          <SubmissionStep
-            number="3"
-            label={daoProposeCopy.review.indexStep}
-            complete={false}
+            description={
+              contentPublished
+                ? daoProposeCopy.review.proposeStepBody
+                : daoProposeCopy.review.proposeStepUpcoming
+            }
+            status={
+              walletFinished
+                ? "complete"
+                : contentPublished
+                  ? "current"
+                  : "upcoming"
+            }
           />
         </ol>
       </ReviewSection>
 
       {!contentPublished ? (
-        <div className="space-y-4 border-t border-border pt-6">
+        <section
+          aria-labelledby="dao-publication-step-heading"
+          className="space-y-4 rounded-box border border-yearn-blue/40 bg-yearn-blue/5 p-4 sm:p-5 dark:border-blue-700 dark:bg-blue-950/30"
+        >
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue dark:text-blue-300">
+              {daoProposeCopy.review.current}
+            </p>
+            <h3
+              id="dao-publication-step-heading"
+              className="text-balance text-xl font-bold"
+            >
+              {daoProposeCopy.review.publishStep}
+            </h3>
+            <p className="max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
+              {daoProposeCopy.review.publishStepBody}
+            </p>
+          </div>
           <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-box bg-surface-secondary p-3 text-sm leading-6">
             <input
               type="checkbox"
@@ -713,86 +764,145 @@ function DaoFinalReview({
               {daoProposeCopy.publication.publishing}
             </p>
           ) : null}
-        </div>
+        </section>
       ) : (
-        <div className="space-y-5 border-t border-border pt-6">
-          <StateNotice
-            tone="success"
-            title={daoProposeCopy.publication.successTitle}
-            body={daoProposeCopy.publication.successBody}
-          />
-          <ReviewFact label={daoProposeCopy.publication.fingerprint} mono>
-            {publication.publication.fingerprint}
-          </ReviewFact>
+        <div className="space-y-4">
+          <section
+            aria-labelledby="dao-publication-receipt-heading"
+            className="space-y-3 rounded-box border border-green-300 bg-green-50 p-4 text-green-950 sm:p-5 dark:border-green-900 dark:bg-green-950/35 dark:text-green-100"
+          >
+            <p className="text-xs font-bold uppercase tracking-wide">
+              {daoProposeCopy.review.complete}
+            </p>
+            <h3
+              id="dao-publication-receipt-heading"
+              className="text-balance text-xl font-bold"
+            >
+              {daoProposeCopy.publication.successTitle}
+            </h3>
+            <p className="max-w-3xl text-pretty text-sm leading-6">
+              {daoProposeCopy.publication.successBody}
+            </p>
+            <ReviewFact label={daoProposeCopy.publication.fingerprint} mono>
+              {publication.publication.fingerprint}
+            </ReviewFact>
+          </section>
 
-          {wallet.state === "failed" ? (
-            <StateNotice
-              tone="error"
-              title={
-                wallet.code === "WALLET_REJECTED"
-                  ? daoProposeCopy.proposal.rejectedTitle
-                  : daoProposeCopy.proposal.revertedTitle
-              }
-              body={wallet.message}
-            />
-          ) : null}
-          {wallet.state === "submitted" ? (
-            <div className="space-y-4">
-              <StateNotice
-                tone="success"
-                title={daoProposeCopy.proposal.submittedTitle}
-                body={daoProposeCopy.proposal.submittedBody}
-              />
+          {!walletFinished ? (
+            <section
+              aria-labelledby="dao-proposal-step-heading"
+              className="space-y-4 rounded-box border border-yearn-blue/50 bg-surface p-4 shadow-sm sm:p-5 dark:border-blue-700"
+            >
+              <div className="space-y-1">
+                <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue dark:text-blue-300">
+                  {daoProposeCopy.review.current}
+                </p>
+                <h3
+                  ref={proposalStepHeadingRef}
+                  id="dao-proposal-step-heading"
+                  tabIndex={-1}
+                  className="w-fit max-w-full rounded-box text-balance text-xl font-bold outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app"
+                >
+                  {daoProposeCopy.review.proposeStepCurrent}
+                </h3>
+                <p className="text-sm font-bold">
+                  {daoProposeCopy.review.proposeStep}
+                </p>
+                <p className="max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
+                  {daoProposeCopy.review.proposeStepBody}
+                </p>
+              </div>
+
+              {wallet.state === "failed" ? (
+                <StateNotice
+                  tone="error"
+                  title={
+                    wallet.code === "WALLET_REJECTED"
+                      ? daoProposeCopy.proposal.rejectedTitle
+                      : daoProposeCopy.proposal.revertedTitle
+                  }
+                  body={wallet.message}
+                />
+              ) : null}
+
+              <div className="space-y-3">
+                {!proposer.canPropose ? (
+                  <StateNotice
+                    tone="warning"
+                    title={daoProposeCopy.landing.blockedTitle}
+                    body={
+                      proposer.proposeBlockedReason ??
+                      daoProposeCopy.landing.blockedFallback
+                    }
+                  />
+                ) : null}
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled
+                    className="w-full motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
+                    onClick={onEdit}
+                  >
+                    {daoProposeCopy.form.edit}
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={!proposer.canPropose}
+                    isLoading={wallet.state === "waiting"}
+                    className="w-full motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
+                    onClick={() => {
+                      void onCreateProposal();
+                    }}
+                  >
+                    {wallet.state === "failed"
+                      ? daoProposeCopy.proposal.retry
+                      : wallet.state === "waiting"
+                        ? daoProposeCopy.proposal.waiting
+                        : daoProposeCopy.proposal.create}
+                  </Button>
+                </div>
+                {wallet.state === "waiting" ? (
+                  <p role="status" aria-live="polite" className="sr-only">
+                    {daoProposeCopy.proposal.waiting}
+                  </p>
+                ) : null}
+              </div>
+            </section>
+          ) : (
+            <section
+              aria-labelledby="dao-proposal-complete-heading"
+              className="space-y-4 rounded-box border border-green-300 bg-green-50 p-4 text-green-950 sm:p-5 dark:border-green-900 dark:bg-green-950/35 dark:text-green-100"
+            >
+              <p className="text-xs font-bold uppercase tracking-wide">
+                {daoProposeCopy.review.complete}
+              </p>
+              <h3
+                ref={proposalCompleteHeadingRef}
+                id="dao-proposal-complete-heading"
+                tabIndex={-1}
+                className="w-fit max-w-full rounded-box text-balance text-xl font-bold outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app"
+              >
+                {daoProposeCopy.proposal.submittedTitle}
+              </h3>
+              <p role="status" aria-live="polite" className="sr-only">
+                {daoProposeCopy.review.indexStatus}.
+              </p>
               <ReviewFact label={daoProposeCopy.proposal.transaction} mono>
                 {wallet.transactionHash}
               </ReviewFact>
-            </div>
-          ) : null}
-          {!walletFinished ? (
-            <div className="space-y-3">
-              {!proposer.canPropose ? (
-                <StateNotice
-                  tone="warning"
-                  title={daoProposeCopy.landing.blockedTitle}
-                  body={
-                    proposer.proposeBlockedReason ??
-                    daoProposeCopy.landing.blockedFallback
-                  }
-                />
-              ) : null}
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled
-                  className="w-full motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
-                  onClick={onEdit}
-                >
-                  {daoProposeCopy.form.edit}
-                </Button>
-                <Button
-                  type="button"
-                  disabled={!proposer.canPropose}
-                  isLoading={wallet.state === "waiting"}
-                  className="w-full motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
-                  onClick={() => {
-                    void onCreateProposal();
-                  }}
-                >
-                  {wallet.state === "failed"
-                    ? daoProposeCopy.proposal.retry
-                    : wallet.state === "waiting"
-                      ? daoProposeCopy.proposal.waiting
-                      : daoProposeCopy.proposal.create}
-                </Button>
-              </div>
-              {wallet.state === "waiting" ? (
-                <p role="status" aria-live="polite" className="sr-only">
-                  {daoProposeCopy.proposal.waiting}
+              <div
+                className="rounded-box bg-surface p-4 text-text-primary shadow-sm"
+              >
+                <p className="font-bold">
+                  {daoProposeCopy.review.indexStatus}
                 </p>
-              ) : null}
-            </div>
-          ) : null}
+                <p className="mt-1 max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
+                  {daoProposeCopy.proposal.submittedBody}
+                </p>
+              </div>
+            </section>
+          )}
         </div>
       )}
     </Card>
@@ -805,6 +915,12 @@ export function DaoProposalEligibility({
   proposer: DaoProposerState;
 }) {
   const fullEpoch = findFirstFullDaoCapacityEpoch(proposer.affectedBoostEpochs);
+  const firstAffectedEpoch = proposer.affectedBoostEpochs[0];
+  const lastAffectedEpoch = proposer.affectedBoostEpochs.at(-1);
+  const firstEpochLabel =
+    firstAffectedEpoch?.epoch.toString() ??
+    proposer.expectedVotingEpoch.toString();
+  const lastEpochLabel = lastAffectedEpoch?.epoch.toString() ?? firstEpochLabel;
 
   return (
     <div className="space-y-4">
@@ -883,53 +999,40 @@ export function DaoProposalEligibility({
           value={proposer.expectedVotingEpoch.toString()}
           mono
         />
+        <EligibilityFact
+          label={daoProposeCopy.eligibility.affectedEpochs}
+          value={daoProposeCopy.eligibility.epochRange(
+            firstEpochLabel,
+            lastEpochLabel
+          )}
+          mono
+        />
       </dl>
 
-      <div className="space-y-3">
+      {fullEpoch ? (
         <div
-          className={cn(
-            "rounded-box border p-3 text-sm leading-6",
-            fullEpoch
-              ? "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
-              : "border-border bg-surface-secondary text-text-secondary"
-          )}
+          role="alert"
+          className="rounded-box border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
         >
           <p className="text-pretty font-bold">
-            {fullEpoch
-              ? daoProposeCopy.eligibility.capacityFull(fullEpoch.epoch.toString())
-              : daoProposeCopy.eligibility.capacityAvailable}
+            {daoProposeCopy.eligibility.capacityFullTitle(
+              fullEpoch.epoch.toString()
+            )}
+          </p>
+          <p className="mt-1 font-number font-bold tabular-nums">
+            {daoProposeCopy.eligibility.capacityCount(
+              fullEpoch.currentProposalCount,
+              fullEpoch.proposalLimit
+            )}
           </p>
           <p className="mt-1 text-pretty">
-            {daoProposeCopy.eligibility.sharedRule}
+            {daoProposeCopy.eligibility.capacityFullBody(
+              firstEpochLabel,
+              lastEpochLabel
+            )}
           </p>
         </div>
-        <div className="max-w-full overflow-x-auto rounded-box border border-border">
-          <table className="w-full min-w-[32rem] border-collapse text-left text-sm">
-            <thead className="bg-surface-secondary text-xs uppercase tracking-wide text-text-secondary">
-              <tr>
-                <th scope="col" className="px-3 py-2 font-bold">
-                  {daoProposeCopy.eligibility.epoch}
-                </th>
-                <th scope="col" className="px-3 py-2 text-right font-bold">
-                  {daoProposeCopy.eligibility.proposals}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {proposer.affectedBoostEpochs.map((affected) => (
-                <tr key={affected.epoch.toString()} className="border-t border-border">
-                  <td className="px-3 py-2 font-number tabular-nums">
-                    {affected.epoch.toString()}
-                  </td>
-                  <td className="px-3 py-2 text-right font-number tabular-nums">
-                    {affected.currentProposalCount} / {affected.proposalLimit}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -1369,27 +1472,54 @@ function EligibilityFact({
 }
 
 function SubmissionStep({
-  complete,
+  description,
   label,
   number,
+  status,
 }: {
-  complete: boolean;
+  description: string;
   label: string;
   number: string;
+  status: "complete" | "current" | "upcoming";
 }) {
+  const statusLabel =
+    status === "complete"
+      ? daoProposeCopy.review.complete
+      : status === "current"
+        ? daoProposeCopy.review.current
+        : daoProposeCopy.review.upcoming;
   return (
-    <li className="flex min-h-10 items-center gap-3">
+    <li
+      className={cn(
+        "flex min-h-24 items-start gap-3 rounded-box border p-4",
+        status === "complete" &&
+          "border-green-300 bg-green-50 dark:border-green-900 dark:bg-green-950/35",
+        status === "current" &&
+          "border-yearn-blue/50 bg-yearn-blue/5 dark:border-blue-700 dark:bg-blue-950/30",
+        status === "upcoming" && "border-border bg-surface-secondary"
+      )}
+    >
       <span
         className={cn(
           "flex size-8 shrink-0 items-center justify-center rounded-full font-number text-xs font-bold tabular-nums",
-          complete
-            ? "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-200"
-            : "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100"
+          status === "complete"
+            ? "bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-100"
+            : status === "current"
+              ? "bg-yearn-blue text-white dark:bg-blue-800"
+              : "bg-neutral-200 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100"
         )}
       >
         {number}
       </span>
-      <span>{label}</span>
+      <span className="min-w-0 space-y-1">
+        <span className="block text-xs font-bold uppercase tracking-wide text-text-secondary">
+          {statusLabel}
+        </span>
+        <span className="block font-bold">{label}</span>
+        <span className="block text-pretty text-xs leading-5 text-text-secondary">
+          {description}
+        </span>
+      </span>
     </li>
   );
 }

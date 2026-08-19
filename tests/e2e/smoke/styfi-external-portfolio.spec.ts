@@ -20,7 +20,9 @@ test("shows external portfolio and opens veYFI in a new tab", async ({
     page.getByText(/other governance positions/i)
   ).toBeVisible();
 
-  const veyfiRow = page.getByRole("link", { name: /veyfi/i }).first();
+  const veyfiRow = page
+    .getByTestId("external-position-row")
+    .filter({ hasText: /veyfi/i });
   await expect(veyfiRow).toBeVisible();
 
   const [newPage] = await Promise.all([

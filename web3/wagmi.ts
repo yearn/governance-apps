@@ -7,11 +7,12 @@ import {
   safeWallet,
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
-import { createConfig, mock } from "wagmi";
+import { createConfig } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { defineChain, http, fallback } from "viem";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { assertProductionRuntimeInvariants } from "@/lib/runtime/invariants";
+import { createE2EMockConnector } from "./e2e-mock-connector";
 
 assertProductionRuntimeInvariants("web3/wagmi");
 
@@ -85,7 +86,7 @@ export const wagmiConfig = isE2E
       transports,
       ssr: true,
       connectors: [
-        mock({
+        createE2EMockConnector({
           accounts: [E2E_MOCK_ADDRESS],
           features: {
             defaultConnected: true,

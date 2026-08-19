@@ -23,8 +23,9 @@ describe("DAO proposal board shell", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "DAO Governance", level: 1 })
+      screen.getByRole("heading", { name: "Proposals", level: 1 })
     ).toBeVisible();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByText("Wallet not connected")).toBeVisible();
     expect(screen.getByText("Loading proposal data")).toBeVisible();
     expect(screen.queryByText(/mock|prototype/i)).not.toBeInTheDocument();
@@ -141,7 +142,6 @@ describe("DAO proposal detail shell", () => {
     render(
       <DaoProposalView
         envelope={detailEnvelope(proposal)}
-        isConnected
         onRetry={vi.fn()}
         proposalId="2"
         state="ready"
@@ -149,8 +149,22 @@ describe("DAO proposal detail shell", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "Fund protocol research" })
+      screen.getByRole("heading", {
+        name: "Fund protocol research",
+        level: 1,
+      })
     ).toBeVisible();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    const hierarchy = screen.getByRole("navigation", {
+      name: "Proposal hierarchy",
+    });
+    expect(
+      hierarchy.querySelectorAll("li").length
+    ).toBe(3);
+    expect(hierarchy.querySelector("li.contents")).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Active" })
+    ).toHaveAttribute("href", "/dao?group=active");
     expect(screen.getAllByText("Voting").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Executable").length).toBeGreaterThan(0);
 
@@ -170,18 +184,39 @@ describe("DAO proposal detail shell", () => {
     ).toHaveAttribute("target", "_blank");
   });
 
-  it("renders loading and disconnected detail states together", () => {
+  it("keeps detail hierarchy navigation clean on the DAO beta host", () => {
+    render(
+      <DaoProposalView
+        envelope={detailEnvelope(proposal)}
+        hostname="dao-beta.dao-ops.com"
+        onRetry={vi.fn()}
+        proposalId="2"
+        requestedOrigin="closed"
+        state="ready"
+      />
+    );
+
+    expect(screen.getByRole("link", { name: "Proposals" })).toHaveAttribute(
+      "href",
+      "/"
+    );
+    expect(screen.getByRole("link", { name: "Closed" })).toHaveAttribute(
+      "href",
+      "/?group=closed"
+    );
+  });
+
+  it("keeps route hierarchy ahead of the contextual action connection state", () => {
     render(
       <DaoProposalView
         envelope={null}
-        isConnected={false}
         onRetry={vi.fn()}
         proposalId="2"
         state="loading"
       />
     );
 
-    expect(screen.getByText("Wallet not connected")).toBeVisible();
+    expect(screen.queryByText("Wallet not connected")).not.toBeInTheDocument();
     expect(screen.getByText("Loading proposal details")).toBeVisible();
   });
 
@@ -189,7 +224,6 @@ describe("DAO proposal detail shell", () => {
     render(
       <DaoProposalView
         envelope={null}
-        isConnected
         onRetry={vi.fn()}
         proposalId="999"
         state="not_found"
@@ -197,9 +231,9 @@ describe("DAO proposal detail shell", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "Proposal not found" })
+      screen.getByRole("heading", { name: "Proposal not found", level: 1 })
     ).toBeVisible();
-    expect(screen.getByText("Proposal #999")).toBeVisible();
+    expect(screen.getAllByText("Proposal #999")).not.toHaveLength(0);
     expect(
       screen.getByRole("link", { name: "Return to proposals" })
     ).toHaveAttribute("href", "/dao");
@@ -210,7 +244,6 @@ describe("DAO proposal detail shell", () => {
     render(
       <DaoProposalView
         envelope={null}
-        isConnected
         onRetry={onRetry}
         proposalId="2"
         state="error"
@@ -284,6 +317,10 @@ describe("DAO proposal authoring shell", () => {
     expect(
       screen.getByRole("heading", { name: "Before you propose" })
     ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Create proposal", level: 1 })
+    ).toBeVisible();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByText("Your wallet can create a proposal")).toBeVisible();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
@@ -302,7 +339,7 @@ describe("DAO proposal authoring shell", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start proposal" }));
 
-    const heading = screen.getByRole("heading", { name: "Create a proposal" });
+    const heading = screen.getByRole("heading", { name: "Proposal details" });
     expect(heading).toHaveAttribute("tabindex", "-1");
     await waitFor(() => expect(heading).toHaveFocus());
     expect(scrollBy).toHaveBeenCalled();

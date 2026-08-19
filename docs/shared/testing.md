@@ -137,8 +137,22 @@ When `NEXT_PUBLIC_E2E=true`, wagmi uses a `mock` connector with a fixed address:
 - Default E2E address: `0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266`
 - Location: `lib/constants.ts`
 
-This means E2E tests are instantly “connected” and do not rely on wallet UI flows.
-The mock connector is for testing only and should never be enabled in real user environments.
+This means E2E tests are instantly “connected” and do not rely on wallet UI
+flows. The E2E-only wrapper resolves exactly `eth_accounts` from that local
+deterministic account and delegates every other provider request to wagmi's mock
+connector. Wagmi reconnect reaches the connected account without network fetch;
+after an explicit disconnect, reconnect preserves the disconnected state. Do
+not disable reconnect-on-mount to hide RPC failures.
+
+The mock connector is for testing only and should never be enabled in real user
+environments.
+
+DAO RPC regression coverage deliberately points local E2E at the dead sentinel
+`http://127.0.0.1:8546`. Board, detail, and authoring tests wait for hydrated
+route state and assert zero `eth_accounts` request bodies, loopback requests,
+request failures, page errors, and console errors. Chromium maps
+`dao-beta.dao-ops.com` to loopback only when `E2E_BASE_URL` is local; remote and
+preproduction runs never receive that resolver rule.
 
 ## Parallelism
 

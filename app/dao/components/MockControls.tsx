@@ -24,7 +24,10 @@ import {
   type DaoMockVetoState,
 } from "@/lib/clients/dao";
 import { useDaoDebugActions, useDaoMockRuntime } from "@/lib/hooks/useDao";
+import { useHostname } from "@/lib/hooks/useHostname";
+import { isDebugUiEnabled } from "@/lib/runtime/features";
 import { daoCopy } from "../messages";
+import { createDaoProposalHref } from "../route-state";
 
 const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -118,10 +121,11 @@ const ROLES: readonly [DaoMockRole, string][] = [
 ];
 
 export function MockControls() {
+  const hostname = useHostname();
   const runtime = useDaoMockRuntime();
   const actions = useDaoDebugActions();
 
-  if (!runtime) return null;
+  if (!isDebugUiEnabled() || !runtime) return null;
 
   const selectedProposal = runtime.feed.proposals.find(
     (proposal) => proposal.ref.proposalId === runtime.selectedProposalId
@@ -201,7 +205,11 @@ export function MockControls() {
             ))}
           </select>
           <Link
-            href={`/dao/proposals/${selectedProposalId}`}
+            href={createDaoProposalHref(
+              selectedProposalId,
+              selectedProposal?.displayGroup ?? "active",
+              hostname
+            )}
             className={getButtonClassName({
               size: "sm",
               variant: "secondary",

@@ -93,6 +93,17 @@ the surrounding UI makes the action fully obvious and there is no better compact
 label. Use exact governance or protocol verbs when they are the real action, for
 example "Execute proposal".
 
+When two actions are required, say so before the first action and name both
+verbs. State what the first action does *not* do when users could reasonably
+mistake it for completion. After Step 1, describe the incomplete state directly
+(for example, `Content published — proposal not created yet`) and label the
+remaining CTA with the actual Step 2 action. Preserve completed-work receipts
+when a later wallet action is cancelled or fails.
+
+For shared capacity, avoid quota language that implies ownership by the current
+user. In normal states, show the affected range compactly. Only a blocked state
+needs the exact full unit, count, range, and system-wide rule.
+
 ### Empty and Loading States
 
 Empty states should explain whether the state is normal, blocked, or waiting

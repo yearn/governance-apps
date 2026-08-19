@@ -10,6 +10,14 @@ connecting a wallet so I can understand current DAO decisions.
 Acceptance:
 
 - list status and timing are readable at a glance;
+- filters run `Upcoming`, `Active`, then `Closed`, while a populated Active
+  group remains the normal default;
+- the selected group survives URL replacement, reload, detail navigation, and
+  browser Back;
+- detail breadcrumbs return to the exact source group and direct visits derive
+  a safe group from proposal data;
+- the whole row opens the proposal while nested address copy and explorer
+  controls keep their own behavior;
 - Yea/Nay percentages say `of votes cast`;
 - signal and executable proposals are distinguishable;
 - missing proposal content does not remove the onchain record.
@@ -100,6 +108,10 @@ Acceptance:
 
 - the forum topic is validated and normalized;
 - the final IPFS content is reviewed before signing;
+- the review says two actions are required and publication alone does not
+  create the proposal or open a wallet;
+- Step 2 becomes available only after Step 1 succeeds, and publication failure
+  never reveals the wallet action;
 - the script is empty;
 - the review says `No executable actions`.
 
@@ -115,6 +127,8 @@ Acceptance:
 - the UI shows calls, bytes, targets, sizes, and script hash;
 - a passing structural check never claims the script is safe;
 - detailed decoding and simulation are expected after submission.
+- wallet rejection or revert preserves the published content so Step 2 can be
+  retried without republishing.
 
 ### DAO-US-22: understand why I cannot propose
 
@@ -125,6 +139,10 @@ Acceptance:
 
 - the client supplies one primary blocked reason and relevant facts;
 - the UI does not infer eligibility from a feed label;
+- normal eligibility shows the expected voting epoch and affected six-epoch
+  range without a capacity table or success notice;
+- a full-capacity state names the exact epoch, `64 / 64`, the affected range,
+  and the system-wide limit;
 - cooldown remains visible after retraction or moderation.
 
 ### DAO-US-23: retract my proposal
@@ -214,6 +232,14 @@ forum or current Snapshot links early.
 Acceptance:
 
 - shared-host route is accepted before `dao.yearn.fi`;
+- the unaccepted mock candidate can be reviewed at noncanonical,
+  `noindex` `dao-beta.dao-ops.com` with clean nested paths;
+- preproduction reads `NEXT_PUBLIC_ENABLE_DAO` from its protected environment,
+  while production hardcodes the flag false;
+- global mocks, E2E, and debug UI stay disabled; DAO controls require the
+  independent shared debug gate;
+- operators understand that the shared preprod flag is deployment-wide and
+  that a custom domain is not access control without Cloudflare Access;
 - feed, IPFS, decode, and simulation health are monitored;
 - disabling the app does not lose indexed proposal data;
 - Snapshot cutover occurs only in the final approved rollout package.

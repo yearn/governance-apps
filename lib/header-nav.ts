@@ -56,6 +56,7 @@ export function resolveHeaderAppKey(
   }
 
   const hostPrefix = hostname ? resolveHostPrefix(hostname) : null;
+  if (hostPrefix === APP_NAV.dao.path) return "dao";
   if (hostPrefix === APP_NAV.styfi.path) return "styfi";
   if (hostPrefix === APP_NAV.veyfi.path) return "veyfi";
   if (hostPrefix === APP_NAV.teams.path) return "teams";

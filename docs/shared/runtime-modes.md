@@ -30,6 +30,9 @@ sitemap or `llms.txt` discovery content.
 
 In `production` mode:
 
+- `NEXT_PUBLIC_ENABLE_DAO=true` exposes the temporary route-local DAO mock
+  review candidate. This exception is permitted only in the preproduction
+  workflow; the production workflow hardcodes it false.
 - `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Team Finances routes.
 - `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC routes.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH routes.
@@ -61,6 +64,29 @@ Before deploying production:
 13. No app-specific mock or write-only flags are set for Teams/YBC
 14. Run `npm run validate:prod-env`
 
+`NEXT_PUBLIC_ENABLE_DAO` must be false in the public production workflow. It is
+not an approved production app flag in this checklist.
+
+## DAO internal preproduction review checklist
+
+The temporary M2 review candidate is production-shaped but mock-backed:
+
+1. `NEXT_PUBLIC_RUNTIME_MODE=production`
+2. Protected preproduction environment sets `NEXT_PUBLIC_ENABLE_DAO=true`
+3. `NEXT_PUBLIC_USE_MOCKS=false`
+4. `NEXT_PUBLIC_E2E=false`
+5. `NEXT_PUBLIC_ENABLE_DEBUG_UI=false`
+6. WalletConnect, global-data, and HTTPS RPC inputs satisfy production
+   validation; never use loopback RPC URLs
+7. `dao-beta.dao-ops.com` serves clean DAO paths and returns
+   `X-Robots-Tag: noindex, nofollow`
+8. DAO stays absent from canonical metadata, sitemap, and `llms.txt`
+
+The DAO flag applies to the shared preproduction deployment, not only the beta
+hostname. Other hosts served by the same Worker can reach `/dao` while it is
+true. The custom domain is unlisted, not authenticated; require Cloudflare
+Access separately if “internal” must mean access-controlled.
+
 ## Preview checklist
 
 For preview deployments:
@@ -82,5 +108,6 @@ For normal local dev:
 ## Troubleshooting
 
 - If production behavior appears locally: check `NEXT_PUBLIC_RUNTIME_MODE` first.
-- If Team Finances, YBC, yETH, or debug routes are unexpectedly hidden: check mode and corresponding `NEXT_PUBLIC_ENABLE_*` flags.
+- If DAO, Team Finances, YBC, yETH, or debug routes are unexpectedly hidden:
+  check mode and the corresponding `NEXT_PUBLIC_ENABLE_*` flag.
 - If startup/build fails with invariant errors: confirm production checklist values above.

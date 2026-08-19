@@ -24,6 +24,8 @@ vi.mock("wagmi", async (importOriginal) => {
 
 describe("DAO MockControls", () => {
   const originalRuntimeMode = process.env.NEXT_PUBLIC_RUNTIME_MODE;
+  const originalDaoFlag = process.env.NEXT_PUBLIC_ENABLE_DAO;
+  const originalDebugFlag = process.env.NEXT_PUBLIC_ENABLE_DEBUG_UI;
 
   beforeEach(() => {
     process.env.NEXT_PUBLIC_RUNTIME_MODE = "development";
@@ -34,6 +36,8 @@ describe("DAO MockControls", () => {
 
   afterEach(() => {
     process.env.NEXT_PUBLIC_RUNTIME_MODE = originalRuntimeMode;
+    process.env.NEXT_PUBLIC_ENABLE_DAO = originalDaoFlag;
+    process.env.NEXT_PUBLIC_ENABLE_DEBUG_UI = originalDebugFlag;
     setFixedNow(null);
   });
 
@@ -62,7 +66,7 @@ describe("DAO MockControls", () => {
     );
     expect(
       screen.getByRole("link", { name: "Open selected proposal" })
-    ).toHaveAttribute("href", "/dao/proposals/2");
+    ).toHaveAttribute("href", "/dao/proposals/2?from=active");
   });
 
   it("mutates live DAO facts and invalidates the DAO query root", async () => {
@@ -110,6 +114,8 @@ describe("DAO MockControls", () => {
 
   it("does not expose DAO mock controls in production runtime", () => {
     process.env.NEXT_PUBLIC_RUNTIME_MODE = "production";
+    process.env.NEXT_PUBLIC_ENABLE_DAO = "true";
+    process.env.NEXT_PUBLIC_ENABLE_DEBUG_UI = "false";
     renderControls(new QueryClient());
 
     expect(screen.queryByRole("button", { name: /debug/i })).not.toBeInTheDocument();
