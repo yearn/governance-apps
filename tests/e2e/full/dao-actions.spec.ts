@@ -36,6 +36,17 @@ test("keeps the action panel reachable, responsive, and keyboard safe", async ({
 
     if (viewport.name === "tablet") {
       await page.getByRole("button", { name: "Switch to Dark Mode" }).click();
+      const purposeBadge = page.getByText("Decision vote", { exact: true });
+      const colors = await purposeBadge.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          background: style.backgroundColor,
+          foreground: style.color,
+        };
+      });
+      expect(
+        contrastRatio(colors.foreground, colors.background)
+      ).toBeGreaterThanOrEqual(4.5);
     }
 
     const actionHeading = page.getByRole("heading", { name: "Your action" });
@@ -72,6 +83,26 @@ test("keeps the action panel reachable, responsive, and keyboard safe", async ({
   await review.focus();
   await review.click();
   const dialog = page.getByRole("dialog", { name: "Confirm your vote" });
+  await expect(dialog).toBeVisible();
+  const cancel = dialog.getByRole("button", { name: "Cancel" });
+  const confirm = dialog.getByRole("button", { name: "Vote Yea" });
+  await expect(cancel).toHaveCSS("transition-property", "none");
+  await expect(confirm).toHaveCSS("transition-property", "none");
+  const cancelBox = await cancel.boundingBox();
+  expect(cancelBox).not.toBeNull();
+  await page.mouse.move(
+    cancelBox!.x + cancelBox!.width / 2,
+    cancelBox!.y + cancelBox!.height / 2
+  );
+  await page.mouse.down();
+  expect(await cancel.evaluate((element) => getComputedStyle(element).scale)).toBe(
+    "1"
+  );
+  await page.mouse.up();
+  await expect(dialog).toHaveCount(0);
+  await expect(review).toBeFocused();
+
+  await review.click();
   await expect(dialog).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
@@ -372,4 +403,31 @@ async function expectNoDocumentOverflow(page: Page, context: string) {
     sizes.scrollWidth,
     `${context} should not overflow horizontally`
   ).toBeLessThanOrEqual(sizes.clientWidth + 1);
+}
+
+function contrastRatio(foreground: string, background: string) {
+  const foregroundLuminance = relativeLuminance(parseRgb(foreground));
+  const backgroundLuminance = relativeLuminance(parseRgb(background));
+  return (
+    (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
+    (Math.min(foregroundLuminance, backgroundLuminance) + 0.05)
+  );
+}
+
+function parseRgb(value: string): [number, number, number] {
+  const channels = value.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+  if (!channels || channels.length !== 3) {
+    throw new Error(`Expected an RGB color, received ${value}.`);
+  }
+  return channels as [number, number, number];
+}
+
+function relativeLuminance([red, green, blue]: [number, number, number]) {
+  const [r, g, b] = [red, green, blue].map((channel) => {
+    const normalized = channel / 255;
+    return normalized <= 0.04045
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }

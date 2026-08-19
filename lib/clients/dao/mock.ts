@@ -1,10 +1,11 @@
-import type { Address } from "viem";
+import { keccak256, stringToHex, type Address } from "viem";
 import type { PreparedTransaction, TransactionHash } from "@/lib/tx/types";
 import type { DaoClient } from "./client";
 import {
   deriveDaoCapabilities,
   deriveDaoProposerState,
   serializeDaoProposalRef,
+  validateDaoModerationReason,
 } from "./domain";
 import {
   createDaoMockFeed,
@@ -24,6 +25,7 @@ import {
 } from "./store";
 import type {
   DaoAccountProposalState,
+  DaoActionType,
   DaoFeedV1,
   DaoMockFixture,
   DaoMockFixtureId,
@@ -34,9 +36,6 @@ import type {
   DaoVoteDirection,
 } from "./types";
 
-const STATIC_MOCK_TRANSACTION_HASH =
-  `0x${"ab".repeat(32)}` as TransactionHash;
-
 export type DaoMockFixtureCatalogEntry = {
   id: DaoMockFixtureId;
   label: string;
@@ -46,6 +45,7 @@ export type DaoMockFixtureCatalogEntry = {
 export class MockDaoClient implements DaoClient {
   private readonly fixtureId: DaoMockFixtureId;
   private readonly latencyMs: number;
+  private nextTransactionNonce = 0n;
 
   constructor(
     options: { fixtureId?: DaoMockFixtureId; latencyMs?: number } = {}
@@ -91,41 +91,7 @@ export class MockDaoClient implements DaoClient {
     address: Address
   ): Promise<DaoAccountProposalState> {
     await this.waitForLatency();
-    const feed = createDaoMockFeed();
-    const proposal = findProposal(feed, ref);
-    if (!proposal) {
-      throw new Error(`Unknown DAO proposal ${serializeDaoProposalRef(ref)}.`);
-    }
-
-    const fixture = getDaoMockFixture(this.fixtureId);
-    const account = {
-      ...structuredClone(fixture.account),
-      address,
-      isProposer:
-        fixture.account.isProposer &&
-        address.toLowerCase() === fixture.account.address.toLowerCase(),
-      isOperator:
-        fixture.account.isOperator &&
-        address.toLowerCase() === fixture.account.address.toLowerCase(),
-      isGuardian:
-        fixture.account.isGuardian &&
-        address.toLowerCase() === fixture.account.address.toLowerCase(),
-    };
-    const vetoEndsAt =
-      proposal.ref.proposalId === fixture.proposalRef.proposalId
-        ? fixture.vetoEndsAt
-        : proposal.executionEndsAt ?? proposal.voteEndsAt + 14 * 86_400;
-
-    return {
-      ...account,
-      capabilities: deriveDaoCapabilities({
-        proposal,
-        account,
-        now: fixture.now,
-        vetoEndsAt,
-        executionGuard: fixture.executionGuard,
-      }),
-    };
+    return createImmutableAccountProposalState(this.fixtureId, ref, address);
   }
 
   async getProposerState(address: Address): Promise<DaoProposerState> {
@@ -142,21 +108,16 @@ export class MockDaoClient implements DaoClient {
     address: Address,
     direction: DaoVoteDirection
   ): Promise<PreparedTransaction> {
-    void ref;
-    void address;
-    void direction;
     await this.waitForLatency();
-    return async () => STATIC_MOCK_TRANSACTION_HASH;
+    return this.prepareAction("vote", ref, address, direction, null);
   }
 
   async prepareRetract(
     ref: DaoProposalRef,
     address: Address
   ): Promise<PreparedTransaction> {
-    void ref;
-    void address;
     await this.waitForLatency();
-    return async () => STATIC_MOCK_TRANSACTION_HASH;
+    return this.prepareAction("retract", ref, address, null, null);
   }
 
   async prepareFlag(
@@ -164,11 +125,9 @@ export class MockDaoClient implements DaoClient {
     address: Address,
     reason: string
   ): Promise<PreparedTransaction> {
-    void ref;
-    void address;
-    void reason;
     await this.waitForLatency();
-    return async () => STATIC_MOCK_TRANSACTION_HASH;
+    const checkedReason = assertImmutableModerationReason("flag", reason);
+    return this.prepareAction("flag", ref, address, null, checkedReason);
   }
 
   async prepareVeto(
@@ -176,27 +135,154 @@ export class MockDaoClient implements DaoClient {
     address: Address,
     reason: string
   ): Promise<PreparedTransaction> {
-    void ref;
-    void address;
-    void reason;
     await this.waitForLatency();
-    return async () => STATIC_MOCK_TRANSACTION_HASH;
+    const checkedReason = assertImmutableModerationReason("veto", reason);
+    return this.prepareAction("veto", ref, address, null, checkedReason);
   }
 
   async prepareExecute(
     ref: DaoProposalRef,
     address: Address
   ): Promise<PreparedTransaction> {
-    void ref;
-    void address;
     await this.waitForLatency();
-    return async () => STATIC_MOCK_TRANSACTION_HASH;
+    return this.prepareAction("execute", ref, address, null, null);
+  }
+
+  private prepareAction(
+    action: DaoActionType,
+    ref: DaoProposalRef,
+    address: Address,
+    direction: DaoVoteDirection | null,
+    reason: string | null
+  ): PreparedTransaction {
+    const snapshot = createImmutableAccountProposalState(
+      this.fixtureId,
+      ref,
+      address
+    );
+    assertImmutableActionAllowed(action, snapshot);
+    const capturedRef = structuredClone(ref);
+    return async () => {
+      assertImmutableActionAllowed(action, snapshot);
+      const checkedReason = assertImmutableModerationReason(action, reason);
+      const nonce = this.nextTransactionNonce;
+      const transactionHash = createImmutableTransactionHash(
+        action,
+        capturedRef,
+        address,
+        nonce,
+        direction,
+        checkedReason
+      );
+      this.nextTransactionNonce += 1n;
+      return transactionHash;
+    };
   }
 
   private async waitForLatency(): Promise<void> {
     if (this.latencyMs <= 0) return;
     await new Promise((resolve) => setTimeout(resolve, this.latencyMs));
   }
+}
+
+function createImmutableAccountProposalState(
+  fixtureId: DaoMockFixtureId,
+  ref: DaoProposalRef,
+  address: Address
+): DaoAccountProposalState {
+  const proposal = findProposal(createDaoMockFeed(), ref);
+  if (!proposal) {
+    throw new Error(`Unknown DAO proposal ${serializeDaoProposalRef(ref)}.`);
+  }
+
+  const fixture = getDaoMockFixture(fixtureId);
+  const sameFixtureActor =
+    address.toLowerCase() === fixture.account.address.toLowerCase();
+  const account = {
+    ...structuredClone(fixture.account),
+    address,
+    hasVoted: sameFixtureActor && fixture.account.hasVoted,
+    voteDirection:
+      sameFixtureActor && fixture.account.hasVoted
+        ? fixture.account.voteDirection
+        : null,
+    isProposer: fixture.account.isProposer && sameFixtureActor,
+    isOperator: fixture.account.isOperator && sameFixtureActor,
+    isGuardian: fixture.account.isGuardian && sameFixtureActor,
+  };
+  const vetoEndsAt =
+    serializeDaoProposalRef(proposal.ref) ===
+    serializeDaoProposalRef(fixture.proposalRef)
+      ? fixture.vetoEndsAt
+      : proposal.executionEndsAt ?? proposal.voteEndsAt + 14 * 86_400;
+
+  return {
+    ...account,
+    capabilities: deriveDaoCapabilities({
+      proposal,
+      account,
+      now: fixture.now,
+      vetoEndsAt,
+      executionGuard: fixture.executionGuard,
+    }),
+  };
+}
+
+function assertImmutableActionAllowed(
+  action: DaoActionType,
+  account: DaoAccountProposalState
+) {
+  const capability: readonly [boolean, string | null] =
+    action === "vote"
+      ? [account.capabilities.canVote, account.capabilities.voteBlockedReason]
+      : action === "retract"
+        ? [
+            account.capabilities.canRetract,
+            account.capabilities.retractBlockedReason,
+          ]
+        : action === "flag"
+          ? [account.capabilities.canFlag, account.capabilities.flagBlockedReason]
+          : action === "veto"
+            ? [account.capabilities.canVeto, account.capabilities.vetoBlockedReason]
+            : [
+                account.capabilities.canExecute,
+                account.capabilities.executeBlockedReason,
+              ];
+  if (!capability[0]) {
+    throw new Error(capability[1] ?? "This proposal action is unavailable.");
+  }
+}
+
+function assertImmutableModerationReason(
+  action: DaoActionType,
+  reason: string | null
+): string | null {
+  if (action !== "flag" && action !== "veto") return null;
+  const checked = validateDaoModerationReason(reason ?? "");
+  if (checked.error) throw new Error(checked.error);
+  return checked.value;
+}
+
+function createImmutableTransactionHash(
+  action: DaoActionType,
+  ref: DaoProposalRef,
+  address: Address,
+  nonce: bigint,
+  direction: DaoVoteDirection | null,
+  reason: string | null
+): TransactionHash {
+  return keccak256(
+    stringToHex(
+      [
+        serializeDaoProposalRef(ref),
+        address.toLowerCase(),
+        action,
+        direction ?? "",
+        reason ?? "",
+        nonce.toString(),
+      ].join("|")
+    )
+  ) as TransactionHash;
 }
 
 export function createMockDaoClient(options?: {

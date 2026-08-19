@@ -254,7 +254,10 @@ function VoteAction({
           {daoCopy.actions.voteTitle}
         </h4>
         {canVote ? (
-          <Badge variant="brand" className="font-sans">
+          <Badge
+            variant="brand"
+            className="font-sans dark:bg-yearn-blue dark:text-white"
+          >
             {capabilities.votePurpose === "participation_only"
               ? daoCopy.actions.participationLabel
               : daoCopy.actions.decisionLabel}
@@ -568,10 +571,19 @@ function ActionConfirmationDialog({
         ) : null}
 
         <div className="grid grid-cols-2 gap-3 border-t border-border pt-5">
-          <Button variant="secondary" onClick={onClose}>
+          <Button
+            variant="secondary"
+            className="motion-reduce:transition-none motion-reduce:active:scale-100"
+            onClick={onClose}
+          >
             {daoCopy.actions.cancel}
           </Button>
-          <Button data-autofocus disabled={confirmationBlocked} onClick={onConfirm}>
+          <Button
+            data-autofocus
+            className="motion-reduce:transition-none motion-reduce:active:scale-100"
+            disabled={confirmationBlocked}
+            onClick={onConfirm}
+          >
             {confirmLabel(action, direction)}
           </Button>
         </div>

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import type { Address } from "viem";
 import {
   applyDaoMockFixture,
   DAO_BLOCKED_REASONS,
@@ -14,13 +15,18 @@ import {
   readDaoMockAccountProposalState,
   resetDaoMockStore,
   setDaoMockAccountState,
+  setDaoMockAlreadyVoted,
   setDaoMockRole,
   setDaoMockTransactionOutcome,
+  syncDaoMockStoreToNow,
   validateDaoModerationReason,
   type DaoActionType,
   type DaoMockFixtureId,
   type DaoProposal,
 } from "@/lib/clients/dao";
+
+const SECOND_ACCOUNT =
+  "0x9999999999999999999999999999999999999999" as Address;
 
 describe("DAO mock proposal actions", () => {
   beforeEach(() => {
@@ -80,6 +86,170 @@ describe("DAO mock proposal actions", () => {
       weight: 100n * 10n ** 18n,
     });
     expect(getDaoMockSnapshot().pendingAction).toBeNull();
+  });
+
+  it("scopes the live one-vote overlay to the full proposal and actor identity", async () => {
+    const firstProposal = load("voting");
+    const secondProposal = proposalById(14n);
+
+    await prepareDaoMockVote(
+      firstProposal.ref,
+      DAO_MOCK_ACCOUNT_ADDRESS,
+      "yea"
+    )();
+
+    expect(
+      readDaoMockAccountProposalState(
+        firstProposal.ref,
+        DAO_MOCK_ACCOUNT_ADDRESS
+      )
+    ).toMatchObject({ hasVoted: true, voteDirection: "yea" });
+    expect(
+      readDaoMockAccountProposalState(
+        secondProposal.ref,
+        DAO_MOCK_ACCOUNT_ADDRESS
+      )
+    ).toMatchObject({
+      hasVoted: false,
+      voteDirection: null,
+      capabilities: { canVote: true },
+    });
+    expect(
+      readDaoMockAccountProposalState(firstProposal.ref, SECOND_ACCOUNT)
+    ).toMatchObject({
+      hasVoted: false,
+      voteDirection: null,
+      capabilities: { canVote: true },
+    });
+    indexDaoMockPendingAction();
+
+    expect(
+      readDaoMockAccountProposalState(firstProposal.ref, SECOND_ACCOUNT)
+    ).toMatchObject({
+      hasVoted: false,
+      voteDirection: null,
+      capabilities: { canVote: true },
+    });
+    expect(() =>
+      prepareDaoMockVote(
+        firstProposal.ref,
+        DAO_MOCK_ACCOUNT_ADDRESS,
+        "nay"
+      )
+    ).toThrow(DAO_BLOCKED_REASONS.voteAlreadySubmitted);
+
+    syncDaoMockStoreToNow(DAO_MOCK_NOW + 60);
+    expect(
+      readDaoMockAccountProposalState(
+        firstProposal.ref,
+        DAO_MOCK_ACCOUNT_ADDRESS
+      ).hasVoted
+    ).toBe(true);
+
+    applyDaoMockFixture("voting");
+    expect(
+      readDaoMockAccountProposalState(
+        selectedProposal().ref,
+        DAO_MOCK_ACCOUNT_ADDRESS
+      )
+    ).toMatchObject({ hasVoted: false, voteDirection: null });
+  });
+
+  it("rechecks capability after preparation and before submission", async () => {
+    const proposal = load("voting");
+    const prepared = prepareDaoMockVote(
+      proposal.ref,
+      DAO_MOCK_ACCOUNT_ADDRESS,
+      "yea"
+    );
+
+    setDaoMockAlreadyVoted(true, "nay");
+
+    await expect(prepared()).rejects.toThrow(
+      DAO_BLOCKED_REASONS.voteAlreadySubmitted
+    );
+    expect(getDaoMockSnapshot().pendingAction).toBeNull();
+  });
+
+  it("keeps fixture vote facts identity-scoped and rechecks time at submission", async () => {
+    const proposal = load("voting");
+    const otherProposal = proposalById(14n);
+    setDaoMockAlreadyVoted(true, "nay");
+
+    expect(
+      readDaoMockAccountProposalState(
+        proposal.ref,
+        DAO_MOCK_ACCOUNT_ADDRESS
+      )
+    ).toMatchObject({ hasVoted: true, voteDirection: "nay" });
+    expect(
+      readDaoMockAccountProposalState(
+        otherProposal.ref,
+        DAO_MOCK_ACCOUNT_ADDRESS
+      ).hasVoted
+    ).toBe(false);
+    expect(
+      readDaoMockAccountProposalState(proposal.ref, SECOND_ACCOUNT).hasVoted
+    ).toBe(false);
+
+    setDaoMockAlreadyVoted(false);
+    const prepared = prepareDaoMockVote(
+      proposal.ref,
+      DAO_MOCK_ACCOUNT_ADDRESS,
+      "yea"
+    );
+    syncDaoMockStoreToNow(proposal.voteEndsAt);
+
+    await expect(prepared()).rejects.toThrow(DAO_BLOCKED_REASONS.voteClosed);
+    expect(getDaoMockSnapshot().pendingAction).toBeNull();
+  });
+
+  it("assigns every submission unique deterministic provenance and indexes once", async () => {
+    const proposal = load("voting");
+    const firstHash = await prepareDaoMockVote(
+      proposal.ref,
+      DAO_MOCK_ACCOUNT_ADDRESS,
+      "yea"
+    )();
+    expect(getDaoMockSnapshot().pendingAction?.transactionHash).toBe(firstHash);
+
+    indexDaoMockPendingAction();
+    const firstIndexed = selectedProposal();
+    const firstEvent = firstIndexed.events.at(-1)!;
+    expect(firstEvent.log).toMatchObject({
+      transactionHash: firstHash,
+      transactionIndex: 0,
+      logIndex: 0,
+    });
+    const firstEventCount = firstIndexed.events.length;
+    indexDaoMockPendingAction();
+    expect(selectedProposal().events).toHaveLength(firstEventCount);
+
+    const secondHash = await prepareDaoMockVote(
+      proposal.ref,
+      SECOND_ACCOUNT,
+      "nay"
+    )();
+    expect(secondHash).not.toBe(firstHash);
+    expect(getDaoMockSnapshot().pendingAction?.transactionHash).toBe(secondHash);
+
+    indexDaoMockPendingAction();
+    const secondEvent = selectedProposal().events.at(-1)!;
+    expect(secondEvent.log).toMatchObject({
+      transactionHash: secondHash,
+      transactionIndex: 0,
+      logIndex: 0,
+    });
+    expect(secondEvent.log.blockNumber).toBe(firstEvent.log.blockNumber + 1n);
+    expect(secondEvent.log.blockHash).not.toBe(firstEvent.log.blockHash);
+
+    resetDaoMockStore({ now: DAO_MOCK_NOW });
+    const resetHash = await prepareDaoMockVote(
+      selectedProposal().ref,
+      DAO_MOCK_ACCOUNT_ADDRESS,
+      "yea"
+    )();
+    expect(resetHash).toBe(firstHash);
   });
 
   it("allows participation voting after a post-vote veto", async () => {
@@ -258,6 +428,16 @@ function selectedProposal(): DaoProposal {
     (candidate) => candidate.ref.proposalId === runtime.selectedProposalId
   );
   if (!proposal) throw new Error("Selected DAO proposal is unavailable.");
+  return proposal;
+}
+
+function proposalById(proposalId: bigint): DaoProposal {
+  const proposal = getDaoMockSnapshot().feed.proposals.find(
+    (candidate) => candidate.ref.proposalId === proposalId
+  );
+  if (!proposal) {
+    throw new Error(`DAO proposal ${proposalId.toString()} is unavailable.`);
+  }
   return proposal;
 }
 

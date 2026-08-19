@@ -312,12 +312,18 @@ type DaoMockTransactionOutcome =
   | "network-error";
 ```
 
-`DaoPendingAction` is not canonical feed history. A confirmed vote updates the
-live account's `hasVoted` and `voteDirection` immediately so a duplicate is
-blocked, while proposal weights and events stay unchanged. Indexing applies the
-recorded action once, advances the canonical block, and clears the overlay.
-Failed outcomes create no pending action. Flag and veto reasons are trimmed,
-required, and limited to 256 UTF-8 bytes before transaction preparation.
+`DaoPendingAction` is not canonical feed history. A confirmed vote updates
+`hasVoted` and `voteDirection` only for the full serialized proposal reference
+and normalized actor address, so the same wallet may vote on another proposal
+and another wallet may vote on the same proposal. That one-vote overlay blocks
+an exact duplicate immediately while proposal weights and events stay
+unchanged. Indexing applies the pending record once, advances the canonical
+block, and clears the pending action; the submitted-vote fact remains until a
+fixture or app reset rebuilds the mock store. Every successful submission gets
+a deterministic unique transaction hash, and the prepared result, pending
+record, and indexed event retain that exact hash. Failed outcomes create no
+pending action. Flag and veto reasons are trimmed, required, and limited to 256
+UTF-8 bytes both when preparing and when calling the prepared transaction.
 
 ## 7. Domain invariants
 
