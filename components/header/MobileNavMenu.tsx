@@ -20,6 +20,7 @@ import { IconWallet } from "@/components/icons/IconWallet";
 import { LogoGithub } from "@/components/icons/LogoGithub";
 import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
 import { cn } from "@/lib/cn";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { formatAddress } from "@/lib/format";
 import { resolveHeaderPrimaryNav } from "@/lib/header-nav";
 import { useHostname } from "@/lib/hooks/useHostname";
@@ -290,11 +291,17 @@ function MobileWalletButton({ onSelect }: { onSelect: () => void }): ReactElemen
     return () => clearTimeout(timer);
   }, []);
 
+  const usesE2EFallback =
+    process.env.NEXT_PUBLIC_E2E === "true" && address === undefined;
+  const effectiveAddress =
+    address ?? (usesE2EFallback ? E2E_MOCK_ADDRESS : undefined);
+  const hasConnectedAccount = isConnected || usesE2EFallback;
+
   if (!mounted) {
     return <div className="h-[44px] w-full animate-pulse rounded-lg bg-surface-secondary" />;
   }
 
-  if (!isConnected || !address) {
+  if (!hasConnectedAccount || !effectiveAddress) {
     return (
       <button
         type="button"
@@ -310,7 +317,8 @@ function MobileWalletButton({ onSelect }: { onSelect: () => void }): ReactElemen
     );
   }
 
-  const isWrongNetwork = !!chainId && chainId !== MAINNET_CHAIN_ID;
+  const isWrongNetwork =
+    !usesE2EFallback && !!chainId && chainId !== MAINNET_CHAIN_ID;
 
   if (isWrongNetwork) {
     return (
@@ -328,7 +336,7 @@ function MobileWalletButton({ onSelect }: { onSelect: () => void }): ReactElemen
     );
   }
 
-  const identityLabel = formatAddress(address);
+  const identityLabel = formatAddress(effectiveAddress);
 
   return (
     <button

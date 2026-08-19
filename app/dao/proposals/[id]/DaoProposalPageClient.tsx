@@ -33,6 +33,8 @@ const PROPOSAL_EYEBROW_CLASS_NAME =
 
 export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
   const { isConnected } = useAccount();
+  const hasConnectedAccount =
+    isConnected || process.env.NEXT_PUBLIC_E2E === "true";
   const proposalQuery = useDaoProposal(proposalId);
   const envelope = proposalQuery.envelope;
   const state: DaoProposalRouteState = proposalQuery.isPending
@@ -55,7 +57,7 @@ export function DaoProposalPageClient({ proposalId }: { proposalId: string }) {
           ) : null
         }
         envelope={envelope}
-        isConnected={isConnected}
+        isConnected={hasConnectedAccount}
         onRetry={() => {
           void proposalQuery.refetch();
         }}

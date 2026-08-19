@@ -455,3 +455,16 @@ pending action.
 Confirmation dialogs are modal, trap focus, close with Escape or the backdrop,
 and restore focus to their trigger. Action targets remain at least 40 pixels,
 focus remains visible, and reduced-motion mode removes interactive transitions.
+
+## 13. M2 assembled mock account presentation
+
+The deterministic E2E account is presented consistently across the global
+wallet control, proposal board, proposal detail, action panel, and authoring
+eligibility. In E2E mode, a missing connector account uses the same typed mock
+address as the DAO client and is treated as connected by the read shells. A real
+connector address still takes precedence, and preview or production sessions
+without `NEXT_PUBLIC_E2E=true` retain the normal wallet connection behavior.
+
+The global wallet control keeps a minimum 40-pixel target in its disconnected,
+wrong-network, and connected presentations. This shared presentation change does
+not expose DAO fixtures or delivery language on normal routes.

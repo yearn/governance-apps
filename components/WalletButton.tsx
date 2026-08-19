@@ -8,6 +8,7 @@ import {
 } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { cn } from "@/lib/cn";
+import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { formatAddress } from "@/lib/format";
 import { MAINNET_CHAIN_ID } from "@/lib/tx/network";
 
@@ -23,28 +24,35 @@ export function WalletButton() {
     return () => clearTimeout(timer);
   }, []);
 
+  const usesE2EFallback =
+    process.env.NEXT_PUBLIC_E2E === "true" && address === undefined;
+  const effectiveAddress =
+    address ?? (usesE2EFallback ? E2E_MOCK_ADDRESS : undefined);
+  const hasConnectedAccount = isConnected || usesE2EFallback;
+
   if (!mounted) {
     return <div className="h-9 w-24 animate-pulse rounded-full bg-surface-secondary" />;
   }
 
-  if (!isConnected || !address) {
+  if (!hasConnectedAccount || !effectiveAddress) {
     return (
       <button
         onClick={() => openConnectModal?.()}
-        className="relative hidden h-8 cursor-pointer items-center justify-center rounded-xl border border-transparent bg-text-primary px-3 text-xs font-normal text-surface transition-all hover:opacity-90 md:flex"
+        className="relative hidden h-10 cursor-pointer items-center justify-center rounded-xl border border-transparent bg-text-primary px-3 text-xs font-normal text-surface transition-[opacity] hover:opacity-90 md:flex"
       >
         Connect wallet
       </button>
     );
   }
 
-  const isWrongNetwork = !!chainId && chainId !== MAINNET_CHAIN_ID;
+  const isWrongNetwork =
+    !usesE2EFallback && !!chainId && chainId !== MAINNET_CHAIN_ID;
 
   if (isWrongNetwork) {
     return (
       <button
         onClick={() => (openChainModal ?? openConnectModal)?.()}
-        className="flex h-9 items-center rounded-full bg-red-100 px-4 text-xs font-bold text-red-600 transition-colors hover:bg-red-200"
+        className="flex h-10 items-center rounded-full bg-red-100 px-4 text-xs font-bold text-red-600 transition-colors hover:bg-red-200"
       >
         Wrong Network
       </button>
@@ -56,10 +64,10 @@ export function WalletButton() {
       <button
         onClick={() => openAccountModal?.()}
         className={cn(
-          "inline-flex items-center gap-2 rounded-lg bg-surface-secondary font-medium text-text-secondary text-sm px-3 py-1.5 hover:text-text-primary transition-colors",
+          "inline-flex min-h-10 items-center gap-2 rounded-lg bg-surface-secondary px-3 py-1.5 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary",
         )}
       >
-        <span>{formatAddress(address)}</span>
+        <span>{formatAddress(effectiveAddress)}</span>
       </button>
     </div>
   );

@@ -22,6 +22,8 @@ export type DaoBoardState = "loading" | "ready" | "empty" | "error";
 
 export function DaoPageClient() {
   const { isConnected } = useAccount();
+  const hasConnectedAccount =
+    isConnected || process.env.NEXT_PUBLIC_E2E === "true";
   const feedQuery = useDaoFeed();
   const proposalCount = feedQuery.data?.proposals.length ?? 0;
   const isStale = feedQuery.isError && feedQuery.data !== undefined;
@@ -37,7 +39,7 @@ export function DaoPageClient() {
   return (
     <>
       <DaoBoardView
-        isConnected={isConnected}
+        isConnected={hasConnectedAccount}
         isStale={isStale}
         lastGoodSnapshotTimestamp={
           isStale ? (feedQuery.data?.canonicalBlock.timestamp ?? null) : null
