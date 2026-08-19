@@ -37,6 +37,12 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_E2E: process.env.NEXT_PUBLIC_E2E ?? "true",
       NEXT_PUBLIC_USE_MOCKS: process.env.NEXT_PUBLIC_USE_MOCKS ?? "true",
+      ...(isLocalE2E
+        ? {
+            NEXT_PUBLIC_RPC_URLS:
+              process.env.NEXT_PUBLIC_RPC_URLS ?? "http://127.0.0.1:8546",
+          }
+        : {}),
     },
   },
   projects: [
