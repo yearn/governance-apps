@@ -249,7 +249,8 @@ validated AST renderer as proposal detail. Show the current UTF-8 byte count and
 the 32 KiB limit. Validation messages name the failed grammar rule. On review
 failure, focus the editor and place the caret or selection at the first known
 source location; when no source location exists, focus the controlling field or
-error summary.
+error summary. If Preview is active, switch to Write, wait for the textarea to
+mount, then focus, place the UTF-16 caret, and scroll the control into view.
 
 Forum discussion, proposal type, and executable script stay separate protocol
 controls. Preserve signal/executable behavior, script checks, proposer
@@ -401,7 +402,9 @@ hash, transaction index, and log index in Technical details.
 
 Reuse shared explorer, copy, UTC formatting, focus, coarse-pointer, and
 host/network helpers. Links and buttons keep visible focus and at least 40px
-targets, with 44px used where practical.
+targets, with 44px used where practical. Proposal rules and verified-source
+controls include their `0.96` press scale in an explicit property-specific
+transition; reduced motion removes the transition and press scale.
 
 ### 8. Replace ABI strings with structured verified sources
 

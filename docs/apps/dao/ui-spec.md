@@ -299,8 +299,8 @@ Show one tabular UTF-8 byte counter against the 32,768-byte limit and the stable
 domain errors below the editor. Tabs use `tablist`, `tab`, and `tabpanel`, with
 Arrow, Home, and End keyboard behavior. A failed Review while Preview is active
 returns to Write, focuses the textarea, sets the deterministic UTF-16 caret to
-the first located error, and scrolls it into view. Do not intercept Tab inside
-the textarea.
+the first located error, and scrolls it into view. Focus waits until the Write
+textarea is mounted. Do not intercept Tab inside the textarea.
 
 Preview, final review, and detail share one safe AST renderer. Raw HTML and
 unsupported nodes never render, and `dangerouslySetInnerHTML` is forbidden.
@@ -414,7 +414,9 @@ use canonical block provenance.
 - Dynamic weights, percentages, epochs, and timers use tabular numerals.
 - Respect reduced motion. Interactive transitions are short and interruptible.
 - Use property-specific transitions and a `0.96` press scale for active controls;
-  reduced motion removes both. Do not animate preview content on each edit.
+  reduced motion removes both. Proposal rules and verified-source controls must
+  include scale in their explicit transition. Do not animate preview content on
+  each edit.
 - Do not use `transition-all`.
 - Confirmation dialogs restore focus to their trigger when closed.
 - Script errors connect to the textarea with accessible description attributes.
