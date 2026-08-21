@@ -156,7 +156,9 @@ test("proves the production-compiled DAO-enabled boundary", async ({
       width: 1_280,
     });
     const technical = await openTechnicalDetails(page);
-    await technical.scrollIntoViewIfNeeded();
+    await technical
+      .getByText(CREATED_PROPOSAL_REF, { exact: true })
+      .scrollIntoViewIfNeeded();
     metadata.push(
       await captureScreenshot(page, {
         attachmentRequestCount: attachmentRequests.length,
@@ -351,7 +353,9 @@ async function captureEnabledScreenshots(
     width: 1_280,
   });
   const pendingTechnical = await openTechnicalDetails(page);
-  await pendingTechnical.scrollIntoViewIfNeeded();
+  await pendingTechnical
+    .getByText(CREATED_PROPOSAL_REF, { exact: true })
+    .scrollIntoViewIfNeeded();
   metadata.push(
     await captureScreenshot(page, {
       attachmentRequestCount: attachmentRequests.length,
