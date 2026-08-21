@@ -149,6 +149,10 @@ function DaoProposalAuthoringFormState({
   const forumInputRef = useRef<HTMLInputElement>(null);
   const markdownRef = useRef<HTMLTextAreaElement>(null);
   const scriptRef = useRef<HTMLTextAreaElement>(null);
+  const pendingErrorFocusRef = useRef<{
+    field: keyof DaoAuthoringErrors;
+    offset: number | null;
+  } | null>(null);
   const proposalStepHeadingRef = useRef<HTMLHeadingElement>(null);
   const proposalCompleteHeadingRef = useRef<HTMLHeadingElement>(null);
 
@@ -192,6 +196,35 @@ function DaoProposalAuthoringFormState({
     proposalCompleteHeadingRef.current?.focus({ preventScroll: true });
     proposalCompleteHeadingRef.current?.scrollIntoView?.({ block: "center" });
   }, [transactionHash]);
+
+  useEffect(() => {
+    const pending = pendingErrorFocusRef.current;
+    if (!pending || (pending.field === "markdown" && editorMode !== "write")) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      const refs = {
+        forum: forumInputRef,
+        markdown: markdownRef,
+        script: scriptRef,
+      } as const;
+      const control = refs[pending.field].current;
+      if (!control) return;
+
+      control.focus({ preventScroll: true });
+      if (
+        pending.field === "markdown" &&
+        control instanceof HTMLTextAreaElement &&
+        pending.offset !== null
+      ) {
+        const offset = Math.min(pending.offset, control.value.length);
+        control.setSelectionRange(offset, offset);
+      }
+      control.scrollIntoView?.({ block: "center" });
+      pendingErrorFocusRef.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editorMode, errors]);
 
   const handleForumInput = (value: string) => {
     forumRequest.current += 1;
@@ -256,25 +289,13 @@ function DaoProposalAuthoringFormState({
     nextErrors: DaoAuthoringErrors,
     contentError: { offset: number | null } | null
   ) => {
-    const refs = {
-      forum: forumInputRef,
-      markdown: markdownRef,
-      script: scriptRef,
-    } as const;
     const first = (Object.keys(nextErrors) as (keyof DaoAuthoringErrors)[])[0];
-    requestAnimationFrame(() => {
-      const control = refs[first]?.current;
-      control?.focus();
-      if (
-        first === "markdown" &&
-        control instanceof HTMLTextAreaElement &&
-        contentError?.offset !== null &&
-        contentError?.offset !== undefined
-      ) {
-        const offset = Math.min(contentError.offset, control.value.length);
-        control.setSelectionRange(offset, offset);
-      }
-    });
+    if (!first) return;
+    pendingErrorFocusRef.current = {
+      field: first,
+      offset: first === "markdown" ? (contentError?.offset ?? null) : null,
+    };
+    if (first === "markdown") setEditorMode("write");
   };
 
   const handleEditorTabKeyDown = (

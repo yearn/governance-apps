@@ -61,6 +61,59 @@ describe("DAO proposal authoring form", () => {
     expect(markdown).toHaveProperty("selectionStart", 0);
   });
 
+  it("returns Preview to Write before focusing the located Markdown error", async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    renderAuthoring();
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Forum discussion" }),
+      "https://gov.yearn.fi/t/topic/1001"
+    );
+    await user.click(screen.getByRole("button", { name: "Validate topic" }));
+    await screen.findByText("Forum topic accepted", {
+      selector: "#dao-forum-status p",
+    });
+    await user.click(
+      screen.getByRole("radio", { name: /^ExecutableIncludes/i })
+    );
+    const script = screen.getByRole("textbox", {
+      name: "Full Executor script",
+    });
+    await user.clear(script);
+    await user.type(script, "not-hex");
+    const markdown = screen.getByRole("textbox", { name: "Proposal Markdown" });
+    await user.clear(markdown);
+    await user.type(markdown, "Summary without a title.");
+    await user.click(screen.getByRole("tab", { name: "Preview" }));
+    expect(screen.getByRole("tab", { name: "Preview" })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Write" })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      )
+    );
+    const mountedMarkdown = screen.getByRole("textbox", {
+      name: "Proposal Markdown",
+    });
+    await waitFor(() => expect(mountedMarkdown).toHaveFocus());
+    expect(mountedMarkdown).toHaveProperty("selectionStart", 0);
+    expect(mountedMarkdown).toHaveProperty("selectionEnd", 0);
+    expect(screen.getByText("MISSING_H1")).toBeVisible();
+    expect(screen.getByText("INVALID_HEX")).toBeVisible();
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" });
+  });
+
   it("shows fixed parser code, byte offset, counts, targets, and hash", async () => {
     const user = userEvent.setup();
     renderAuthoring();
