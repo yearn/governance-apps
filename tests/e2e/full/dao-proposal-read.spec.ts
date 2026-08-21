@@ -369,9 +369,16 @@ test("renders every terminal fixture with explicit status and vote rule copy", a
   ).toHaveAttribute("rel", /noopener/);
 
   await page.goto("/dao/proposals/20");
-  await expect(page.getByText("Time unavailable", { exact: true })).toBeVisible();
+  const lifecycle = page
+    .getByRole("heading", { name: "Lifecycle" })
+    .locator(
+      "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' rounded-box ')][1]"
+    );
   await expect(
-    page.getByText("Transaction unavailable", { exact: true })
+    lifecycle.getByText("Time unavailable", { exact: true })
+  ).toBeVisible();
+  await expect(
+    lifecycle.getByText("Transaction unavailable", { exact: true })
   ).toBeVisible();
 });
 
@@ -383,9 +390,16 @@ test("keeps onchain records and trust failures explicit", async ({ page }) => {
     page.getByText("Immutable content could not be retrieved").first()
   ).toBeVisible();
   await expect(page.getByText(/onchain proposal remains visible/).first()).toBeVisible();
-  await page.getByText("Technical details", { exact: true }).click();
-  await expect(page.getByText("Voting contract")).toBeVisible();
-  await expect(page.getByText("Raw contract status")).toBeVisible();
+  const technicalDetails = page
+    .getByText("Technical details", { exact: true })
+    .locator("xpath=ancestor::details");
+  await technicalDetails.getByText("Technical details", { exact: true }).click();
+  await expect(
+    technicalDetails.getByText("Voting contract", { exact: true })
+  ).toBeVisible();
+  await expect(
+    technicalDetails.getByText("Raw contract status", { exact: true })
+  ).toBeVisible();
 
   await page.goto("/dao/proposals/15");
   await expect(
