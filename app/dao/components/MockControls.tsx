@@ -25,7 +25,14 @@ import {
 } from "@/lib/clients/dao";
 import { useDaoDebugActions, useDaoMockRuntime } from "@/lib/hooks/useDao";
 import { useHostname } from "@/lib/hooks/useHostname";
-import { isDebugUiEnabled } from "@/lib/runtime/features";
+import {
+  isDaoReviewControlsEnabled,
+  isDebugUiEnabled,
+} from "@/lib/runtime/features";
+import {
+  GOVERNANCE_APP_PREPROD_HOSTS,
+  normalizeGovernanceHostname,
+} from "@/lib/runtime/governance-hosts";
 import { daoCopy } from "../messages";
 import { createDaoProposalHref } from "../route-state";
 
@@ -125,7 +132,12 @@ export function MockControls() {
   const runtime = useDaoMockRuntime();
   const actions = useDaoDebugActions();
 
-  if (!isDebugUiEnabled() || !runtime) return null;
+  const showGlobalDebug = isDebugUiEnabled();
+  const showDaoBetaReviewControls =
+    isDaoReviewControlsEnabled() &&
+    normalizeGovernanceHostname(hostname) === GOVERNANCE_APP_PREPROD_HOSTS.dao;
+
+  if ((!showGlobalDebug && !showDaoBetaReviewControls) || !runtime) return null;
 
   const selectedProposal = runtime.feed.proposals.find(
     (proposal) => proposal.ref.proposalId === runtime.selectedProposalId

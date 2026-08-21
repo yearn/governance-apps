@@ -26,15 +26,24 @@ mutation, or M3/backend/IPFS/onchain work by itself.
    `custom_domain: true` and is absent from `wrangler.jsonc`.
 2. In the protected GitHub `preprod` environment, set the variable
    `NEXT_PUBLIC_ENABLE_DAO=true`.
-3. Keep these values false:
+3. To expose the DAO fixture controls on `dao-beta.dao-ops.com`, set
+   `NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS=true`. This flag is DAO-only and
+   does not expose the controls on another beta hostname.
+4. Keep these values false:
    - `NEXT_PUBLIC_USE_MOCKS`
    - `NEXT_PUBLIC_E2E`
    - `NEXT_PUBLIC_ENABLE_DEBUG_UI`
-4. Supply valid production-shaped `NEXT_PUBLIC_WC_PROJECT_ID`,
+5. Supply valid production-shaped `NEXT_PUBLIC_WC_PROJECT_ID`,
    `NEXT_PUBLIC_GLOBAL_DATA_URL`, and comma-separated HTTPS
    `NEXT_PUBLIC_RPC_URLS`. Never use localhost or loopback RPC values.
-5. Decide whether the review needs access control. If yes, configure and test a
+6. Decide whether the review needs access control. If yes, configure and test a
    Cloudflare Access policy before sharing the hostname.
+
+Set the public flags in the protected GitHub `preprod` environment before the
+workflow build. `NEXT_PUBLIC_*` values are compiled into browser JavaScript;
+changing variables later in the Cloudflare Worker dashboard cannot rewrite the
+deployed client bundle. Do not use the Worker dashboard to turn on global mock,
+E2E, or debug flags.
 
 Wrangler custom-domain deployment provisions the hostname routing and managed
 TLS within the configured Cloudflare zone. Confirm DNS ownership, certificate
@@ -51,8 +60,9 @@ issuance, and policy status in Cloudflare before UAT.
 4. Record the workflow run, commit SHA, Worker version, operator, and timestamp
    in the WP7A evidence ledger.
 
-The workflow compiles production runtime with route-local DAO enabled, while
-global mocks, E2E, and debug UI remain disabled. Do not override the workflow
+The workflow compiles production runtime with route-local DAO data enabled and,
+when requested, DAO-only beta review controls. Global mocks, E2E, the global
+debug route, and the Test Bridge remain disabled. Do not override the workflow
 with preview runtime or global mock flags.
 
 ## Verify after deployment
@@ -66,7 +76,10 @@ Check both `GET` and `HEAD` where applicable:
 - nested copy and Etherscan controls work without opening the proposal.
 - authoring shows separate publish and create steps; normal eligibility has one
   affected range, and blocked capacity names the exact full epoch.
-- no DAO debug control or Test Bridge is present.
+- the `Debug` control is present on `dao-beta.dao-ops.com` when
+  `NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS=true`, and is absent from other beta
+  hosts.
+- no E2E Test Bridge or deterministic E2E wallet is present.
 - response headers include CSP, HSTS, and `X-Robots-Tag: noindex, nofollow`.
 - there is no DAO canonical link or JSON-LD, and DAO is absent from sitemap and
   `llms.txt`.
@@ -90,9 +103,24 @@ canonical absence, and clean server-rendered hrefs; use development-host E2E
 for hydrated clean-path navigation; then repeat the complete gate against the
 deployed managed-HTTPS hostname.
 
+## Troubleshooting
+
+If the DAO shell renders but changes from loading to **Proposal data is
+unavailable**, the Worker route and browser bundle were built with different
+DAO flag values. Set both `NEXT_PUBLIC_ENABLE_DAO=true` and, if desired,
+`NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS=true` in the protected GitHub
+`preprod` environment, then run a new `Deploy Preprod` build for the exact
+candidate SHA. A Worker-dashboard-only change cannot fix the browser bundle.
+
+If the route loads but `Debug` is absent, confirm the DAO review-controls flag
+was present during the GitHub build and that the browser hostname is exactly
+`dao-beta.dao-ops.com`. Keep `NEXT_PUBLIC_USE_MOCKS`, `NEXT_PUBLIC_E2E`, and
+`NEXT_PUBLIC_ENABLE_DEBUG_UI` false.
+
 ## Roll back
 
 1. Set the protected preproduction `NEXT_PUBLIC_ENABLE_DAO` value to `false`.
+   Set `NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS=false` as well.
 2. Re-dispatch `Deploy Preprod` for the approved rollback commit/ref.
 3. Verify DAO root, authoring, and detail requests return 404 and that the other
    preproduction apps remain healthy.

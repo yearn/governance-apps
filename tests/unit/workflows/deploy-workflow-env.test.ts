@@ -30,12 +30,17 @@ const expectedRuntimeEnv: Record<string, string> = {
 
 const preprodDaoFlag =
   "${{ vars.NEXT_PUBLIC_ENABLE_DAO || secrets.NEXT_PUBLIC_ENABLE_DAO || 'false' }}";
+const preprodDaoReviewControlsFlag =
+  "${{ vars.NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS || secrets.NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS || 'false' }}";
 
 function expectedRuntimeEnvFor(relativePath: string) {
   return {
     ...expectedRuntimeEnv,
     NEXT_PUBLIC_ENABLE_DAO: relativePath.includes("preprod")
       ? preprodDaoFlag
+      : '"false"',
+    NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS: relativePath.includes("preprod")
+      ? preprodDaoReviewControlsFlag
       : '"false"',
   };
 }

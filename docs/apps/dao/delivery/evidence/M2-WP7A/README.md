@@ -126,7 +126,7 @@ every combination is represented by a saved PNG.
 | Serial full E2E | Pass: 31 / 31, serial, 9.0 minutes; stale pre-WP7A H2 and valid-empty-group assertions corrected before the authoritative run |
 | Default build | Pass: unflagged `npm run build` |
 | Flagged preview/evidence build | Pass: production-compiled preview artifact; four mutable-state captures; Debug/dev chrome absent from every saved frame |
-| Production runtime DAO=true | Pass: shared routes hydrated; Debug absent; beta Host 200/noindex/no canonical/clean SSR hrefs |
+| Production runtime DAO=true | Pass for the WP7A capture configuration: shared routes hydrated; the then-disabled DAO review controls were absent; beta Host 200/noindex/no canonical/clean SSR hrefs |
 | Production runtime DAO=false | Pass: GET and HEAD return 404 for root/create/detail; beta Host returns 404 |
 
 ## Rollout boundary
@@ -137,3 +137,27 @@ deployment, GitHub/Cloudflare state change, DNS change, push, public production
 route, canonical promotion, M3, backend feed, real forum/IPFS, or onchain work is
 part of this package. The user must explicitly accept the revised mock UX before
 the integration lane can tag M2 or begin M3.
+
+The later beta deployment follow-up adds a separately gated DAO-only review
+control on `dao-beta.dao-ops.com`. It does not change the provenance or contents
+of the seven WP7A screenshots above.
+
+## 2026-08-20 beta deployment follow-up
+
+An operator deployment rendered the DAO shell but failed client proposal reads.
+The deployed Worker had the DAO route enabled at runtime while the browser
+bundle had been compiled without `NEXT_PUBLIC_ENABLE_DAO=true`. Setting
+`NEXT_PUBLIC_USE_MOCKS` or `NEXT_PUBLIC_E2E` in the Worker dashboard could not
+repair the already-built browser JavaScript, and those global flags remain
+intentionally false in the production-shaped preproduction workflow.
+
+The follow-up propagates `NEXT_PUBLIC_ENABLE_DAO` through the protected GitHub
+preproduction build and adds the independent
+`NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS` flag. The latter exposes only the DAO
+fixture controls on `dao-beta.dao-ops.com`; global debug, E2E wiring, and the
+Test Bridge remain off. Public production hardcodes both DAO flags false.
+
+Follow-up gates: typecheck and lint passed; Vitest passed 134 files / 1,080
+tests; serial smoke passed 41 tests with 2 production-only skips; the
+production-shaped flagged build embedded DAO and review-controls `true` while
+global debug remained `false`; and the final unflagged production build passed.

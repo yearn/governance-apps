@@ -10,8 +10,9 @@ import {
 import { daoKeys } from "@/lib/hooks/daoKeys";
 import { setFixedNow } from "@/lib/mocks/time";
 
-const { disconnectAsync } = vi.hoisted(() => ({
+const { disconnectAsync, useHostnameMock } = vi.hoisted(() => ({
   disconnectAsync: vi.fn(),
+  useHostnameMock: vi.fn(() => "localhost"),
 }));
 
 vi.mock("wagmi", async (importOriginal) => {
@@ -22,9 +23,15 @@ vi.mock("wagmi", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/hooks/useHostname", () => ({
+  useHostname: useHostnameMock,
+}));
+
 describe("DAO MockControls", () => {
   const originalRuntimeMode = process.env.NEXT_PUBLIC_RUNTIME_MODE;
   const originalDaoFlag = process.env.NEXT_PUBLIC_ENABLE_DAO;
+  const originalDaoReviewControlsFlag =
+    process.env.NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS;
   const originalDebugFlag = process.env.NEXT_PUBLIC_ENABLE_DEBUG_UI;
 
   beforeEach(() => {
@@ -32,11 +39,14 @@ describe("DAO MockControls", () => {
     setFixedNow(DAO_MOCK_NOW);
     resetDaoMockStore();
     vi.clearAllMocks();
+    useHostnameMock.mockReturnValue("localhost");
   });
 
   afterEach(() => {
     process.env.NEXT_PUBLIC_RUNTIME_MODE = originalRuntimeMode;
     process.env.NEXT_PUBLIC_ENABLE_DAO = originalDaoFlag;
+    process.env.NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS =
+      originalDaoReviewControlsFlag;
     process.env.NEXT_PUBLIC_ENABLE_DEBUG_UI = originalDebugFlag;
     setFixedNow(null);
   });
@@ -116,6 +126,30 @@ describe("DAO MockControls", () => {
     process.env.NEXT_PUBLIC_RUNTIME_MODE = "production";
     process.env.NEXT_PUBLIC_ENABLE_DAO = "true";
     process.env.NEXT_PUBLIC_ENABLE_DEBUG_UI = "false";
+    renderControls(new QueryClient());
+
+    expect(screen.queryByRole("button", { name: /debug/i })).not.toBeInTheDocument();
+  });
+
+  it("exposes DAO-only review controls on the beta host", () => {
+    process.env.NEXT_PUBLIC_RUNTIME_MODE = "production";
+    process.env.NEXT_PUBLIC_ENABLE_DAO = "true";
+    process.env.NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS = "true";
+    process.env.NEXT_PUBLIC_ENABLE_DEBUG_UI = "false";
+    useHostnameMock.mockReturnValue("dao-beta.dao-ops.com");
+
+    renderControls(new QueryClient());
+
+    expect(screen.getByRole("button", { name: /debug/i })).toBeInTheDocument();
+  });
+
+  it("does not expose DAO-only review controls on another preprod host", () => {
+    process.env.NEXT_PUBLIC_RUNTIME_MODE = "production";
+    process.env.NEXT_PUBLIC_ENABLE_DAO = "true";
+    process.env.NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS = "true";
+    process.env.NEXT_PUBLIC_ENABLE_DEBUG_UI = "false";
+    useHostnameMock.mockReturnValue("styfi-beta.dao-ops.com");
+
     renderControls(new QueryClient());
 
     expect(screen.queryByRole("button", { name: /debug/i })).not.toBeInTheDocument();

@@ -10,7 +10,12 @@ package starts.
 - Current milestone: M2 engineering and revised mock UAT complete through WP7A
 - Next package: none; stop for user local and guarded-beta UAT of the revised assembled mock UX
 - Product gate: revised assembled mock UX ready for presentation but explicitly unaccepted
-- Preproduction readiness: guarded `dao-beta.dao-ops.com` code and operator runbook are integrated, but no deployment, DNS, GitHub, or Cloudflare state was changed
+- Preproduction readiness: an operator deployed `dao-beta.dao-ops.com` and
+  reported a server/client feature-flag split that left proposal reads
+  unavailable. The integration follow-up compiles the route-local DAO flag from
+  the protected GitHub preproduction environment and adds DAO-only beta review
+  controls; a new exact-SHA deployment and remote verification remain operator
+  gates. This repository task did not mutate GitHub, Cloudflare, or DNS state.
 - Accepted milestone baseline: `integration/dao-m1` after the final M1 gate
 
 ## Package ledger

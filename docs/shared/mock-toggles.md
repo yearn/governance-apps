@@ -41,6 +41,9 @@
 - `NEXT_PUBLIC_ENABLE_DAO=true` permits the temporary route-local DAO mock
   review candidate in production runtime. The preproduction workflow may read
   this protected flag; the production workflow hardcodes it false.
+- `NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS=true` permits the DAO fixture controls
+  on `dao-beta.dao-ops.com` when the DAO route is enabled. It does not enable
+  global mocks, E2E wiring, `/debug/ui`, or controls on another beta host.
 - `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Team Finances in production runtime.
 - `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC in production runtime.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH in production runtime.
@@ -118,10 +121,11 @@ does not swap display labels.
 
 The M2 internal review is the one temporary production-runtime exception:
 `NEXT_PUBLIC_ENABLE_DAO=true` may mount the route-local DAO mock client while
-global `NEXT_PUBLIC_USE_MOCKS`, E2E, and debug UI stay false. MockControls still
-requires `isDebugUiEnabled`, so no DAO control surface appears on the guarded
-beta by default. This is not a reusable per-app mock/live switch. Public
-production hardcodes the DAO flag false.
+global `NEXT_PUBLIC_USE_MOCKS`, E2E, and debug UI stay false. The separate
+`NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS=true` flag may expose only the DAO
+controls on `dao-beta.dao-ops.com`; it does not expose the E2E Test Bridge or a
+global debug surface. This is not a reusable per-app mock/live switch. Public
+production hardcodes both DAO flags false.
 
 For Teams specifically, the shared panel now owns preset bootstrapping, viewer/admin
 access, loading/empty coverage, workspace selection, current period, lifecycle,
