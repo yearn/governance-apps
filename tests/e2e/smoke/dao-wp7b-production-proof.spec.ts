@@ -12,6 +12,7 @@ import {
   serializeDaoProposalJson,
   serializeDaoProposalRef,
   DAO_CREATED_PROPOSALS_STORAGE_KEY,
+  DAO_EXECUTOR_VALID_SCRIPT_VECTORS,
   type DaoDecodedProposeIdentity,
   type DaoProposalContent,
 } from "@/lib/clients/dao";
@@ -115,7 +116,9 @@ test("proves the production-compiled DAO-enabled boundary", async ({
   await expect(
     page.getByRole("heading", { name: "Session proposal", level: 1 })
   ).toBeVisible();
-  await expect(page.getByText("Analysis unavailable", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Partially decoded · simulation succeeded", { exact: true })
+  ).toBeVisible();
   await assertProposalIdentity(page, CREATED_PROPOSAL_REF);
 
   if (CAPTURE_SCREENSHOTS) {
@@ -431,9 +434,10 @@ async function captureEnabledScreenshots(
 function createStoredCreatedProposalRecords() {
   const content: DaoProposalContent = {
     schema: "yearn.dao.proposal.v1",
-    markdown: "# Session proposal\n\nThis route preserves one receipt-derived identity.\n",
+    markdown:
+      "# Session proposal\n\nThis route preserves one receipt-derived identity.\n\n## Specification\n\nVerify the same composite identity before and after indexing.\n",
     discussionUrl: "https://gov.yearn.fi/t/session-proposal/1001",
-    proposalType: "signal",
+    proposalType: "executable",
     createdBy: PROPOSER,
     createdAt: "2026-08-18T12:00:00.000Z",
     assets: [],
@@ -444,7 +448,7 @@ function createStoredCreatedProposalRecords() {
     proposer: PROPOSER,
     votingEpoch: 205n,
     contentDigest: contentIdentity.digest,
-    script: "0x",
+    script: DAO_EXECUTOR_VALID_SCRIPT_VECTORS.twoCalls.script,
     blockTimestamp: 1_787_054_412,
     log: {
       blockNumber: 24_000_001n,
