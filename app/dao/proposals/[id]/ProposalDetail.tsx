@@ -308,7 +308,7 @@ function ProposalRules({ proposal }: { proposal: DaoProposal }) {
   const threshold = formatDaoBasisPoints(rules.approvalThresholdBps);
   return (
     <details className="group border-t border-border pt-2">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded py-2 text-sm font-bold transition-[color] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 dark:hover:text-blue-300 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded py-2 text-sm font-bold transition-[color,scale] duration-150 ease-out hover:text-yearn-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 dark:hover:text-blue-300 [&::-webkit-details-marker]:hidden">
         <span>{daoCopy.detail.rules}</span>
         <span
           aria-hidden="true"
@@ -921,7 +921,7 @@ function VerifiedSourceLink({ source }: { source: DaoVerifiedSource }) {
       href={source.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded text-sm font-bold text-yearn-blue transition-[color] duration-150 ease-out hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 dark:text-blue-300 dark:hover:text-blue-200"
+      className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded text-sm font-bold text-yearn-blue transition-[color,scale] duration-150 ease-out hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 dark:text-blue-300 dark:hover:text-blue-200"
     >
       <span className="min-w-0 break-words [overflow-wrap:anywhere]">
         {source.label}

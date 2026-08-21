@@ -324,6 +324,8 @@ describe("DAO proposal detail", () => {
 
     const rulesSummary = screen.getByText("Proposal rules").closest("summary");
     expect(rulesSummary).not.toBeNull();
+    expect(rulesSummary).toHaveClass("transition-[color,scale]");
+    expect(rulesSummary).toHaveClass("motion-reduce:transition-none");
     fireEvent.click(rulesSummary!);
     expect(screen.getByText("No minimum turnout is required.")).toBeVisible();
     expect(screen.getByText("50% of votes cast", { exact: true })).toBeVisible();
@@ -335,6 +337,17 @@ describe("DAO proposal detail", () => {
           name: "Voting.vy at pinned stYFI revision",
         })
         .every((link) => link.getAttribute("href") === PINNED_VOTING_SOURCE_URL)
+    ).toBe(true);
+    expect(
+      screen
+        .getAllByRole("link", {
+          name: "Voting.vy at pinned stYFI revision",
+        })
+        .every(
+          (link) =>
+            link.classList.contains("transition-[color,scale]") &&
+            link.classList.contains("motion-reduce:transition-none")
+        )
     ).toBe(true);
 
     const technicalSummary = screen
