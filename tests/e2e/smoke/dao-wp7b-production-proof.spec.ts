@@ -542,7 +542,7 @@ async function assertProposalIdentity(page: Page, expected: string) {
 async function openTechnicalDetails(page: Page) {
   const summary = page.getByText("Technical details", { exact: true });
   const details = summary.locator("xpath=ancestor::details");
-  if (!(await details.getAttribute("open"))) await summary.click();
+  if ((await details.getAttribute("open")) === null) await summary.click();
   await summary.focus();
   return details;
 }
