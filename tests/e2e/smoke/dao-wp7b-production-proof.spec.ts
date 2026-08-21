@@ -57,6 +57,28 @@ test("proves the production-compiled DAO-enabled boundary", async ({
     baseURL,
     viewport: { width: 1_280, height: 900 },
   });
+  const bridgedBetaRequests: string[] = [];
+  await context.route(
+    /^https:\/\/dao-beta\.dao-ops\.com(?::\d+)?\/.*/,
+    async (route) => {
+      const request = route.request();
+      const upstreamUrl = new URL(request.url());
+      const localUrl = new URL(baseURL);
+      upstreamUrl.protocol = localUrl.protocol;
+      upstreamUrl.hostname = localUrl.hostname;
+      upstreamUrl.port = localUrl.port;
+      bridgedBetaRequests.push(request.url());
+      const response = await route.fetch({
+        headers: {
+          ...request.headers(),
+          host: "dao-beta.dao-ops.com",
+          "x-forwarded-host": "dao-beta.dao-ops.com",
+        },
+        url: upstreamUrl.toString(),
+      });
+      await route.fulfill({ response });
+    }
+  );
   await context.addInitScript(
     ({ key, value }) => {
       if (window.location.protocol === "about:") return;
@@ -149,17 +171,25 @@ test("proves the production-compiled DAO-enabled boundary", async ({
     await writeMetadata("production-enabled-metadata.json", metadata);
   }
 
-  const betaResponse = await context.request.get("/", {
-    headers: {
-      host: "dao-beta.dao-ops.com",
-      "x-forwarded-host": "dao-beta.dao-ops.com",
-    },
-  });
-  expect(betaResponse.status()).toBe(200);
-  expect(betaResponse.headers()["x-robots-tag"]).toBe("noindex, nofollow");
-  const betaHtml = await betaResponse.text();
-  expect(betaHtml).toContain('href="/propose"');
-  expect(betaHtml).not.toMatch(/rel="canonical"/i);
+  const betaUrl = new URL(baseURL);
+  betaUrl.protocol = "https:";
+  betaUrl.hostname = "dao-beta.dao-ops.com";
+  betaUrl.pathname = "/";
+  const betaResponse = await page.goto(betaUrl.toString());
+  expect(betaResponse?.status()).toBe(200);
+  expect(betaResponse?.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+  expect(betaResponse?.headers()["content-security-policy"]).toContain(
+    "upgrade-insecure-requests"
+  );
+  await expect(
+    page.getByRole("heading", { name: "Proposals", level: 1 })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Create proposal" })
+  ).toHaveAttribute("href", "/propose");
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+  expect(new URL(page.url()).pathname).toBe("/");
+  expect(bridgedBetaRequests.length).toBeGreaterThan(0);
 
   expect(attachmentRequests).toEqual([]);
   expect(forbiddenRequests).toEqual([]);
