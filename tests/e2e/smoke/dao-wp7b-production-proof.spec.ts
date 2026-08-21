@@ -166,7 +166,8 @@ test("proves the production-compiled DAO-enabled boundary", async ({
         fixture: "browser-local created proposal, indexed",
         focus: "Technical details summary",
         reducedMotion: "default",
-        runtime: "production; DAO on; E2E, global mocks, debug off",
+        runtime:
+          "production runtime; DAO=true; E2E=false; global mocks=false; debug=false",
         theme: "light",
       })
     );
@@ -363,7 +364,8 @@ async function captureEnabledScreenshots(
       fixture: "browser-local created proposal, awaiting index",
       focus: "Technical details summary",
       reducedMotion: "reduce",
-      runtime: "production; DAO on; E2E, global mocks, debug off",
+      runtime:
+        "production runtime; DAO=true; E2E=false; global mocks=false; debug=false",
       theme: "dark",
     })
   );
@@ -382,7 +384,8 @@ async function captureEnabledScreenshots(
       fixture: "relative authenticated attachment and exact source",
       focus: "Exact Markdown source region",
       reducedMotion: "reduce",
-      runtime: "production; DAO on; E2E, global mocks, debug off",
+      runtime:
+        "production runtime; DAO=true; E2E=false; global mocks=false; debug=false",
       theme: "dark",
     })
   );
@@ -425,7 +428,8 @@ async function captureEnabledScreenshots(
         fixture: capture.fixture,
         focus: "none",
         reducedMotion: "reduce",
-        runtime: "production; DAO on; E2E, global mocks, debug off",
+        runtime:
+          "production runtime; DAO=true; E2E=false; global mocks=false; debug=false",
         theme: capture.theme,
       })
     );
@@ -463,7 +467,8 @@ async function captureEnabledScreenshots(
         fixture: capture.fixture,
         focus: "Proposal rules summary",
         reducedMotion: "reduce",
-        runtime: "production; DAO on; E2E, global mocks, debug off",
+        runtime:
+          "production runtime; DAO=true; E2E=false; global mocks=false; debug=false",
         theme: capture.theme,
       })
     );
