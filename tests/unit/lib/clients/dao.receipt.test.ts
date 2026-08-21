@@ -191,4 +191,89 @@ describe("DAO Propose receipt decoding", () => {
       error: { code: "PROPOSE_LOG_MALFORMED" },
     });
   });
+
+  it.each([
+    [
+      "a fifth topic",
+      () => {
+        const log = receipt().logs[0]!;
+        return {
+          log: {
+            ...log,
+            topics: [...log.topics, `0x${"00".repeat(32)}` as Hex],
+          },
+          expected: expectation(),
+        };
+      },
+    ],
+    [
+      "noncanonical indexed-address padding",
+      () => {
+        const log = receipt().logs[0]!;
+        const topics = [...log.topics];
+        topics[2] = `0x01${"00".repeat(11)}${PROPOSER.slice(2)}` as Hex;
+        return { log: { ...log, topics }, expected: expectation() };
+      },
+    ],
+    [
+      "a trailing ABI word",
+      () => {
+        const log = receipt().logs[0]!;
+        return {
+          log: {
+            ...log,
+            data: `${log.data}${"00".repeat(32)}` as Hex,
+          },
+          expected: expectation(),
+        };
+      },
+    ],
+    [
+      "a noncanonical dynamic offset",
+      () => {
+        const log = receipt().logs[0]!;
+        const word = (value: string) => value.padStart(64, "0");
+        return {
+          log: {
+            ...log,
+            data: `0x${DIGEST.slice(2)}${word("60")}${word("0")}${word("0")}` as Hex,
+          },
+          expected: expectation(),
+        };
+      },
+    ],
+    [
+      "nonzero dynamic padding",
+      () => {
+        const log = encodeDaoProposeLog({
+          address: VOTING,
+          proposalId: PROPOSAL_ID,
+          proposer: PROPOSER,
+          votingEpoch: VOTING_EPOCH,
+          contentDigest: DIGEST,
+          script: "0x01",
+          logIndex: 7,
+        });
+        return {
+          log: {
+            ...log,
+            data: `${log.data.slice(0, -2)}01` as Hex,
+          },
+          expected: expectation({ script: "0x01" }),
+        };
+      },
+    ],
+  ] as const)("rejects %s as a noncanonical log", (_label, makeVector) => {
+    const { log, expected } = makeVector();
+    const result = decodeDaoProposeReceipt(receipt({ logs: [log] }), expected);
+
+    expect(result).toEqual({
+      state: "invalid",
+      error: {
+        code: "PROPOSE_LOG_MALFORMED",
+        message: "The matching Propose event could not be decoded exactly.",
+      },
+    });
+    expect(result).not.toHaveProperty("identity");
+  });
 });

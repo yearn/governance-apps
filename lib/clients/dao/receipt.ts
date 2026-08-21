@@ -134,6 +134,12 @@ export function decodeDaoProposeReceipt(
   if (!log) {
     return invalid("PROPOSE_LOG_MISSING", "The Propose event is unavailable.");
   }
+  if (log.topics.length !== 4) {
+    return invalid(
+      "PROPOSE_LOG_MALFORMED",
+      "The matching Propose event could not be decoded exactly."
+    );
+  }
 
   let args: {
     idx: bigint;
@@ -152,6 +158,36 @@ export function decodeDaoProposeReceipt(
     });
     args = decoded.args;
   } catch {
+    return invalid(
+      "PROPOSE_LOG_MALFORMED",
+      "The matching Propose event could not be decoded exactly."
+    );
+  }
+
+  let canonicalLog: DaoReceiptLog;
+  try {
+    canonicalLog = encodeDaoProposeLog({
+      address: log.address,
+      contentDigest: args.ipfs,
+      logIndex: log.logIndex,
+      proposalId: args.idx,
+      proposer: args.proposer,
+      script: args.script,
+      votingEpoch: args.epoch,
+    });
+  } catch {
+    return invalid(
+      "PROPOSE_LOG_MALFORMED",
+      "The matching Propose event could not be decoded exactly."
+    );
+  }
+  if (
+    canonicalLog.topics.length !== log.topics.length ||
+    canonicalLog.topics.some(
+      (topic, index) => !sameHex(topic, log.topics[index] ?? "0x")
+    ) ||
+    !sameHex(canonicalLog.data, log.data)
+  ) {
     return invalid(
       "PROPOSE_LOG_MALFORMED",
       "The matching Propose event could not be decoded exactly."
