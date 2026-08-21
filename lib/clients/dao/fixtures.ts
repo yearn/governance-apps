@@ -1,12 +1,12 @@
-import {
-  hexToBytes,
-  keccak256,
-  sha256,
-  toBytes,
-  type Address,
-  type Hex,
-} from "viem";
+import { keccak256, sha256, toBytes, type Address, type Hex } from "viem";
 import { parseDaoFeedJson, serializeDaoFeedJson } from "./client";
+import {
+  createDaoRawSha256Cid,
+  deriveDaoProposalContentIdentity,
+  parseDaoProposalContent,
+  validateDaoVerifiedSource,
+} from "./content";
+import { DAO_PINNED_VOTING_SOURCE } from "./provenance";
 import {
   assertDaoProposalInvariants,
   DAO_EMPTY_SCRIPT_HASH,
@@ -27,7 +27,8 @@ import type {
   DaoMockFixture,
   DaoMockFixtureId,
   DaoProposal,
-  DaoProposalContentV1,
+  DaoProposalAsset,
+  DaoProposalContent,
   DaoProposalEvent,
   DaoProposalRef,
   DaoProposalType,
@@ -65,6 +66,20 @@ export const DAO_MOCK_YBC_AGGREGATE_ADDRESS =
   "0x7777777777777777777777777777777777777777" as Address;
 export const DAO_MOCK_STYFIX_AGGREGATE_ADDRESS =
   "0x8888888888888888888888888888888888888888" as Address;
+export const DAO_MOCK_GOVERNANCE_FLOW_ASSET_DIGEST =
+  "0x63786be28dedc9bab6de44a52c8124dc237dfc650e203779da5a03aed873a209" as Hex;
+export const DAO_MOCK_GOVERNANCE_FLOW_ASSET_CID = createDaoRawSha256Cid(
+  DAO_MOCK_GOVERNANCE_FLOW_ASSET_DIGEST
+);
+
+const DAO_MOCK_GOVERNANCE_FLOW_ASSET: DaoProposalAsset = {
+  path: "./assets/governance-flow.svg",
+  mediaType: "image/svg+xml",
+  byteLength: 660,
+  digest: DAO_MOCK_GOVERNANCE_FLOW_ASSET_DIGEST,
+  width: 1_280,
+  height: 720,
+};
 
 export function deriveDaoMockBlockHash(
   blockNumber: bigint,
@@ -75,8 +90,7 @@ export function deriveDaoMockBlockHash(
   );
 }
 
-const DAO_PINNED_VOTING_ABI_SOURCE =
-  "yearn/stYFI@9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
+const DAO_PINNED_VOTING_SOURCE_PATH = "contracts/governance/Voting.vy";
 
 export const DAO_MOCK_VERIFIED_CALL_REGISTRY = [
   {
@@ -84,23 +98,26 @@ export const DAO_MOCK_VERIFIED_CALL_REGISTRY = [
     selector: "0x900cf0cf" as Hex,
     contractName: "Voting",
     functionSignature: "epoch()",
-    abiSource: DAO_PINNED_VOTING_ABI_SOURCE,
+    verifiedSource: DAO_PINNED_VOTING_SOURCE,
+    sourcePath: DAO_PINNED_VOTING_SOURCE_PATH,
   },
   {
     target: DAO_MOCK_VOTING_ADDRESS,
     selector: "0x42cde4e8" as Hex,
     contractName: "Voting",
     functionSignature: "threshold()",
-    abiSource: DAO_PINNED_VOTING_ABI_SOURCE,
+    verifiedSource: DAO_PINNED_VOTING_SOURCE,
+    sourcePath: DAO_PINNED_VOTING_SOURCE_PATH,
   },
 ] as const;
 
 const DAY = 86_400;
 const UNIT = 10n ** 18n;
-const BASE32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
 const VALID_SCRIPT = DAO_EXECUTOR_VALID_SCRIPT_VECTORS.twoCalls.script as Hex;
 const VALID_SCRIPT_HASH = keccak256(VALID_SCRIPT);
 const MISMATCHED_SCRIPT_HASH = `0x${"ff".repeat(32)}` as Hex;
+const DAO_MOCK_LONG_MARKDOWN_TOKEN =
+  "governance-verification-evidence-" + "a".repeat(192);
 
 type ProposalTimingFixture = {
   createdAt: number;
@@ -165,6 +182,8 @@ type ProposalFixtureOptions = {
   analysisState?: "default" | "pending" | "partial" | "failed";
   hashMismatch?: boolean;
   aggregateVoteBlend?: boolean;
+  executionGuard?: "guarded" | "permissionless";
+  unavailableProposeProvenance?: boolean;
 };
 
 const proposals = [
@@ -294,12 +313,14 @@ const proposals = [
     discussionState: "unverified",
     totalWeight: 0n,
     yeaWeight: 0n,
+    unavailableProposeProvenance: true,
   }),
   createProposal({ id: 21n, title: "Guarded executable proposal", timing: TIMING.execution }),
   createProposal({
     id: 22n,
     title: "Permissionless executable proposal",
     timing: TIMING.execution,
+    executionGuard: "permissionless",
   }),
 ];
 
@@ -447,7 +468,7 @@ export function getDaoMockFixture(id: DaoMockFixtureId): DaoMockFixture {
 
 function createProposal(options: ProposalFixtureOptions): DaoProposal {
   const type = options.type ?? "executable";
-  const thresholdBps = options.thresholdBps ?? 5_500;
+  const thresholdBps = options.thresholdBps ?? 5_000;
   const totalWeight = options.totalWeight ?? 250n * 10n ** 18n;
   const yeaWeight = options.yeaWeight ?? 155n * 10n ** 18n;
   const scriptBytes = type === "signal" ? ("0x" as Hex) : VALID_SCRIPT;
@@ -501,6 +522,25 @@ function createProposal(options: ProposalFixtureOptions): DaoProposal {
     displayStatus,
     displayGroup: deriveDaoDisplayGroup(displayStatus, type),
     type,
+    rules: {
+      approvalThresholdBps: thresholdBps,
+      thresholdSnapshottedAtCreation: true,
+      minimumTurnout: null,
+      passageRequiresPositiveTotal: true,
+      proposalType: type,
+      votingPeriodSeconds:
+        options.timing.voteEndsAt - options.timing.voteStartsAt,
+      executionDelaySeconds:
+        type === "signal"
+          ? null
+          : options.timing.executionStartsAt - options.timing.voteEndsAt,
+      executionGuard:
+        type === "signal" ? null : options.executionGuard ?? "guarded",
+      votingAddress: DAO_MOCK_VOTING_ADDRESS,
+      votingSource: { ...validateDaoVerifiedSource(DAO_PINNED_VOTING_SOURCE) },
+      votingSourcePath: DAO_PINNED_VOTING_SOURCE_PATH,
+      observationBlockNumber: 24_000_000n,
+    },
     content,
     discussion: createDiscussion(
       options.discussionState ?? "verified",
@@ -521,31 +561,44 @@ function createContent(
   options: ProposalFixtureOptions
 ): DaoProposal["content"] {
   const state = options.contentState ?? "available";
-  const value: DaoProposalContentV1 = {
+  const assets: DaoProposalAsset[] =
+    options.id === 1n || options.id === 2n
+      ? [{ ...DAO_MOCK_GOVERNANCE_FLOW_ASSET }]
+      : [];
+  const attachment =
+    options.id === 1n
+      ? "\n\n![Governance flow diagram](./assets/governance-flow.svg)"
+      : options.id === 2n
+        ? `\n\n![Governance flow diagram](ipfs://${DAO_MOCK_GOVERNANCE_FLOW_ASSET_CID})`
+        : "";
+  const markdown =
+    options.id === 21n
+      ? `# ${options.title}\n\nThis proposal records the decision and rationale presented for DAO review.\n\n## Interoperability evidence ${DAO_MOCK_LONG_MARKDOWN_TOKEN}\n\nReview the [${DAO_MOCK_LONG_MARKDOWN_TOKEN}](https://example.com/governance/${DAO_MOCK_LONG_MARKDOWN_TOKEN}) before execution.\n\n| Evidence | Exact value |\n| --- | --- |\n| Canonical manifest | ${DAO_MOCK_LONG_MARKDOWN_TOKEN} |\n\n\`\`\`text\n${DAO_MOCK_LONG_MARKDOWN_TOKEN}\n\`\`\`\n`
+      : `# ${options.title}\n\nThis proposal records the decision and rationale presented for DAO review.\n\n## Specification\n\nReview the requested governance outcome, voting record, and any ordered onchain actions before making a decision.${attachment}\n`;
+  const value: DaoProposalContent = {
     schema: "yearn.dao.proposal.v1",
-    title: options.title,
-    summary:
-      "This proposal records the decision and rationale presented for DAO review.",
-    specification:
-      "Review the requested governance outcome, voting record, and any ordered onchain actions before making a decision.",
+    markdown,
     discussionUrl: `https://gov.yearn.fi/t/dao-proposal/${options.id.toString()}`,
     proposalType: options.type ?? "executable",
     createdBy: DAO_MOCK_PROPOSER_ADDRESS,
     createdAt: new Date(options.timing.createdAt * 1_000).toISOString(),
-    links: [],
+    assets,
   };
-  const contentBytes = toBytes(
-    JSON.stringify(
-      state === "invalid"
-        ? { ...value, schema: "yearn.dao.proposal.invalid" }
-        : value
-    )
+  const validation = parseDaoProposalContent(value);
+  if (validation.errors.length > 0) {
+    throw new Error(
+      `Invalid deterministic DAO content: ${validation.errors[0]?.code ?? "UNKNOWN"}`
+    );
+  }
+  const identity = deriveDaoProposalContentIdentity(value);
+  const invalidBytes = toBytes(
+    `${JSON.stringify({ ...value, schema: "yearn.dao.proposal.invalid" })}\n`
   );
-  const digest = sha256(contentBytes);
+  const digest = state === "invalid" ? sha256(invalidBytes) : identity.digest;
 
   return {
     state,
-    cid: state === "unavailable" ? null : createRawSha256Cid(digest),
+    cid: state === "unavailable" ? null : createDaoRawSha256Cid(digest),
     digest,
     value: state === "available" ? value : null,
     error:
@@ -555,40 +608,6 @@ function createContent(
           ? "The immutable document does not match yearn.dao.proposal.v1."
           : null,
   };
-}
-
-function createRawSha256Cid(digest: Hex): string {
-  const digestBytes = hexToBytes(digest);
-  if (digestBytes.length !== 32) {
-    throw new Error("DAO content digests must contain 32 bytes.");
-  }
-
-  const cidBytes = new Uint8Array(4 + digestBytes.length);
-  cidBytes.set([0x01, 0x55, 0x12, 0x20]);
-  cidBytes.set(digestBytes, 4);
-  return `b${encodeBase32(cidBytes)}`;
-}
-
-function encodeBase32(bytes: Uint8Array): string {
-  let output = "";
-  let buffer = 0;
-  let bufferedBits = 0;
-
-  for (const byte of bytes) {
-    buffer = (buffer << 8) | byte;
-    bufferedBits += 8;
-
-    while (bufferedBits >= 5) {
-      bufferedBits -= 5;
-      output += BASE32_ALPHABET[(buffer >> bufferedBits) & 0x1f];
-    }
-    buffer &= (1 << bufferedBits) - 1;
-  }
-
-  if (bufferedBits > 0) {
-    output += BASE32_ALPHABET[(buffer << (5 - bufferedBits)) & 0x1f];
-  }
-  return output;
 }
 
 function createDiscussion(
@@ -707,7 +726,8 @@ function createDecodedCall(
       contractName: null,
       functionSignature: null,
       arguments: [],
-      abiSource: null,
+      verifiedSource: null,
+      sourcePath: null,
     };
   }
 
@@ -728,7 +748,10 @@ function createDecodedCall(
     contractName: registryEntry.contractName,
     functionSignature: registryEntry.functionSignature,
     arguments: [],
-    abiSource: registryEntry.abiSource,
+    verifiedSource: {
+      ...validateDaoVerifiedSource(registryEntry.verifiedSource),
+    },
+    sourcePath: registryEntry.sourcePath,
   };
 }
 
@@ -748,7 +771,7 @@ function createEvents(
   vetoReason: string | null
 ): DaoProposalEvent[] {
   const events: DaoProposalEvent[] = [
-    createEvent(options.id, 0, "propose", DAO_MOCK_PROPOSER_ADDRESS),
+    createEvent(options, 0, "propose", DAO_MOCK_PROPOSER_ADDRESS),
   ];
   let nextLogIndex = 1;
 
@@ -761,17 +784,19 @@ function createEvents(
     const yeaTransaction = {
       blockNumber: voteBlockNumber,
       blockHash: voteBlockHash,
+      timestamp: options.timing.voteStartsAt + 300,
       transactionHash: fixedHex32(Number(options.id) * 10 + 1_001),
       transactionIndex: 1,
     };
     const nayTransaction = {
       blockNumber: voteBlockNumber,
       blockHash: voteBlockHash,
+      timestamp: options.timing.voteStartsAt + 600,
       transactionHash: fixedHex32(Number(options.id) * 10 + 1_002),
       transactionIndex: 2,
     };
     events.push(
-      createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_ACCOUNT_ADDRESS, {
+      createEvent(options, nextLogIndex++, "vote", DAO_MOCK_ACCOUNT_ADDRESS, {
         log: yeaTransaction,
         voteActorKind: "human",
         yeaBps: 10_000,
@@ -779,7 +804,7 @@ function createEvents(
         weight: 3n * UNIT,
       }),
       createEvent(
-        options.id,
+        options,
         nextLogIndex++,
         "vote",
         DAO_MOCK_STYFIX_AGGREGATE_ADDRESS,
@@ -791,7 +816,7 @@ function createEvents(
         }
       ),
       createEvent(
-        options.id,
+        options,
         nextLogIndex++,
         "vote",
         DAO_MOCK_YBC_AGGREGATE_ADDRESS,
@@ -802,7 +827,7 @@ function createEvents(
           weight: 2n * UNIT,
         }
       ),
-      createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_OPERATOR_ADDRESS, {
+      createEvent(options, nextLogIndex++, "vote", DAO_MOCK_OPERATOR_ADDRESS, {
         log: nayTransaction,
         voteActorKind: "human",
         yeaBps: 0,
@@ -810,7 +835,7 @@ function createEvents(
         weight: 2n * UNIT,
       }),
       createEvent(
-        options.id,
+        options,
         nextLogIndex++,
         "vote",
         DAO_MOCK_STYFIX_AGGREGATE_ADDRESS,
@@ -822,7 +847,7 @@ function createEvents(
         }
       ),
       createEvent(
-        options.id,
+        options,
         nextLogIndex++,
         "vote",
         DAO_MOCK_YBC_AGGREGATE_ADDRESS,
@@ -838,7 +863,7 @@ function createEvents(
     const nayWeight = totalWeight - yeaWeight;
     if (yeaWeight > 0n) {
       events.push(
-        createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_ACCOUNT_ADDRESS, {
+        createEvent(options, nextLogIndex++, "vote", DAO_MOCK_ACCOUNT_ADDRESS, {
           voteActorKind: "human",
           yeaBps: 10_000,
           direction: "yea",
@@ -848,7 +873,7 @@ function createEvents(
     }
     if (nayWeight > 0n) {
       events.push(
-        createEvent(options.id, nextLogIndex++, "vote", DAO_MOCK_OPERATOR_ADDRESS, {
+        createEvent(options, nextLogIndex++, "vote", DAO_MOCK_OPERATOR_ADDRESS, {
           voteActorKind: "human",
           yeaBps: 0,
           direction: "nay",
@@ -860,20 +885,20 @@ function createEvents(
 
   if (options.flagged) {
     events.push(
-      createEvent(options.id, nextLogIndex++, "flag", DAO_MOCK_OPERATOR_ADDRESS, {
+      createEvent(options, nextLogIndex++, "flag", DAO_MOCK_OPERATOR_ADDRESS, {
         reason: flagReason,
       })
     );
   } else if (options.vetoed) {
     events.push(
-      createEvent(options.id, nextLogIndex++, "veto", DAO_MOCK_GUARDIAN_ADDRESS, {
+      createEvent(options, nextLogIndex++, "veto", DAO_MOCK_GUARDIAN_ADDRESS, {
         reason: vetoReason,
       })
     );
   } else if (options.retracted) {
     events.push(
       createEvent(
-        options.id,
+        options,
         nextLogIndex++,
         "retract",
         DAO_MOCK_PROPOSER_ADDRESS
@@ -883,7 +908,7 @@ function createEvents(
   if (options.executed) {
     events.push(
       createEvent(
-        options.id,
+        options,
         nextLogIndex,
         "execute",
         DAO_MOCK_OPERATOR_ADDRESS
@@ -894,7 +919,7 @@ function createEvents(
 }
 
 function createEvent(
-  proposalId: bigint,
+  options: ProposalFixtureOptions,
   logIndex: number,
   type: DaoProposalEvent["type"],
   actor: Address,
@@ -904,9 +929,10 @@ function createEvent(
       "voteActorKind" | "yeaBps" | "direction" | "weight" | "reason"
     >
   > & {
-    log?: Omit<DaoProposalEvent["log"], "logIndex">;
+    log?: Partial<Omit<DaoProposalEvent["log"], "logIndex">>;
   } = {}
 ): DaoProposalEvent {
+  const proposalId = options.id;
   const seed = Number(proposalId) * 10 + logIndex;
   return {
     type,
@@ -915,8 +941,15 @@ function createEvent(
         overrides.log?.blockNumber ??
         23_900_000n + proposalId * 10n + BigInt(logIndex),
       blockHash: overrides.log?.blockHash ?? fixedHex32(seed),
+      timestamp:
+        options.unavailableProposeProvenance && type === "propose"
+          ? null
+          : overrides.log?.timestamp ??
+            createEventTimestamp(options, type, logIndex),
       transactionHash:
-        overrides.log?.transactionHash ?? fixedHex32(seed + 1_000),
+        options.unavailableProposeProvenance && type === "propose"
+          ? null
+          : overrides.log?.transactionHash ?? fixedHex32(seed + 1_000),
       transactionIndex: overrides.log?.transactionIndex ?? 1,
       logIndex,
     },
@@ -927,6 +960,27 @@ function createEvent(
     weight: overrides.weight ?? null,
     reason: overrides.reason ?? null,
   };
+}
+
+function createEventTimestamp(
+  options: ProposalFixtureOptions,
+  type: DaoProposalEvent["type"],
+  logIndex: number
+): number {
+  if (type === "propose") return options.timing.createdAt;
+  if (type === "vote") {
+    return Math.min(
+      options.timing.voteEndsAt - 1,
+      options.timing.voteStartsAt + 300 + logIndex * 60
+    );
+  }
+  if (type === "execute") {
+    return Math.min(
+      DAO_MOCK_NOW - 60,
+      options.timing.executionStartsAt + 3_600
+    );
+  }
+  return Math.min(DAO_MOCK_NOW - 60, options.timing.voteEndsAt - 1);
 }
 
 export function deriveDaoMockExpectedVotingEpoch(createdAt: number): bigint {

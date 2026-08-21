@@ -107,6 +107,15 @@ Prefer calling `reset()` at the start of each E2E test to avoid leaked state.
 New domains with substantial mock state should add app-specific bridge methods instead of
 requiring visible route-local scenario controls for QA.
 
+DAO proposal-content tests pin exact canonical JSON bytes, including the final
+LF, plus SHA-256 digest and CIDv1/raw/SHA-256/Base32 vectors. A committed raw
+asset fixture must match manifest byte length, digest, media type, dimensions,
+and derived CID. Component and Playwright coverage must prove that attachment
+cards make zero automatic asset requests and that only a user-activated Open
+uses the validated suffix-free raw-CID URL. Creation-flow tests keep transaction
+hash, receipt-derived composite identity, awaiting-index, and indexed states
+separate and assert that the identity never changes.
+
 Available scenarios:
 
 - `standard`: baseline mock state.

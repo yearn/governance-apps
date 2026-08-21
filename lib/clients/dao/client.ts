@@ -16,6 +16,7 @@ import type {
   DaoProposerState,
   DaoVoteDirection,
 } from "./types";
+import { validateDaoVerifiedSource } from "./content";
 
 export interface DaoClient {
   getFeed(): Promise<DaoFeedV1>;
@@ -98,7 +99,7 @@ export function serializeDaoBigInt(value: bigint): DaoBigIntJson {
   return value.toString() as DaoBigIntJson;
 }
 
-function parseDaoProposalJson(proposal: DaoProposalJson): DaoProposal {
+export function parseDaoProposalJson(proposal: DaoProposalJson): DaoProposal {
   return {
     ...proposal,
     ref: {
@@ -116,7 +117,7 @@ function parseDaoProposalJson(proposal: DaoProposalJson): DaoProposal {
           ? null
           : {
               ...proposal.content.value,
-              links: proposal.content.value.links.map((link) => ({ ...link })),
+              assets: proposal.content.value.assets.map((asset) => ({ ...asset })),
             },
     },
     discussion: {
@@ -127,10 +128,19 @@ function parseDaoProposalJson(proposal: DaoProposalJson): DaoProposal {
     analysis: parseDaoAnalysisJson(proposal.analysis),
     events: proposal.events.map(parseDaoProposalEventJson),
     moderation: { ...proposal.moderation },
+    rules: {
+      ...proposal.rules,
+      votingSource: {
+        ...validateDaoVerifiedSource(proposal.rules.votingSource),
+      },
+      observationBlockNumber: parseDaoBigInt(
+        proposal.rules.observationBlockNumber
+      ),
+    },
   };
 }
 
-function serializeDaoProposalJson(proposal: DaoProposal): DaoProposalJson {
+export function serializeDaoProposalJson(proposal: DaoProposal): DaoProposalJson {
   return {
     ...proposal,
     ref: {
@@ -148,7 +158,7 @@ function serializeDaoProposalJson(proposal: DaoProposal): DaoProposalJson {
           ? null
           : {
               ...proposal.content.value,
-              links: proposal.content.value.links.map((link) => ({ ...link })),
+              assets: proposal.content.value.assets.map((asset) => ({ ...asset })),
             },
     },
     discussion: {
@@ -159,6 +169,13 @@ function serializeDaoProposalJson(proposal: DaoProposal): DaoProposalJson {
     analysis: serializeDaoAnalysisJson(proposal.analysis),
     events: proposal.events.map(serializeDaoProposalEventJson),
     moderation: { ...proposal.moderation },
+    rules: {
+      ...proposal.rules,
+      votingSource: { ...proposal.rules.votingSource },
+      observationBlockNumber: serializeDaoBigInt(
+        proposal.rules.observationBlockNumber
+      ),
+    },
   };
 }
 
@@ -168,6 +185,10 @@ function parseDaoAnalysisJson(analysis: DaoAnalysisJson): DaoAnalysis {
     calls: analysis.calls.map((call) => ({
       ...call,
       arguments: call.arguments.map((argument) => ({ ...argument })),
+      verifiedSource:
+        call.verifiedSource === null
+          ? null
+          : { ...validateDaoVerifiedSource(call.verifiedSource) },
     })),
     proposalSimulation: {
       ...analysis.proposalSimulation,
@@ -185,6 +206,8 @@ function serializeDaoAnalysisJson(analysis: DaoAnalysis): DaoAnalysisJson {
     calls: analysis.calls.map((call) => ({
       ...call,
       arguments: call.arguments.map((argument) => ({ ...argument })),
+      verifiedSource:
+        call.verifiedSource === null ? null : { ...call.verifiedSource },
     })),
     proposalSimulation: {
       ...analysis.proposalSimulation,

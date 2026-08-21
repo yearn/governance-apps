@@ -51,23 +51,16 @@ export const daoProposeCopy = {
     step: "2",
     title: "Immutable proposal content",
     description:
-      "Title, summary, specification, forum URL, and proposal type become the immutable proposal snapshot.",
-    titleLabel: "Title",
-    titlePlaceholder: "A concise proposal title",
-    summaryLabel: "Summary",
-    summaryPlaceholder: "State the decision and its intended outcome.",
-    specificationLabel: "Specification",
-    specificationPlaceholder:
-      "Describe the complete proposal, constraints, and implementation details.",
-    titleRequired: "Enter a proposal title.",
-    titleTooLong: (limit: number) =>
-      `Keep the proposal title to ${limit} characters or fewer.`,
-    summaryRequired: "Enter a proposal summary.",
-    summaryTooLong: (limit: number) =>
-      `Keep the proposal summary to ${limit} characters or fewer.`,
-    specificationRequired: "Enter a proposal specification.",
-    specificationTooLong: (limit: number) =>
-      `Keep the proposal specification to ${limit} characters or fewer.`,
+      "Write one Markdown document. Its first H1 is the title, the next paragraph is the summary, and body content follows.",
+    markdownLabel: "Proposal Markdown",
+    write: "Write",
+    preview: "Preview",
+    byteCount: (count: number, limit: number) =>
+      `${count.toLocaleString("en-US")} / ${limit.toLocaleString("en-US")} UTF-8 bytes`,
+    grammar:
+      "Use one H1, then one summary paragraph, followed by meaningful body content. Later headings use H2 through H4.",
+    validation: "Markdown validation",
+    valid: "Document structure is valid",
   },
   type: {
     step: "3",
@@ -141,9 +134,7 @@ export const daoProposeCopy = {
     creator: "Created by",
     createdAt: "Snapshot time",
     proposalType: "Proposal type",
-    titleLabel: "Title",
-    summary: "Summary",
-    specification: "Specification",
+    markdown: "Exact Markdown",
     exactScript: "Exact script",
     confirm:
       "I reviewed the exact immutable content, proposal type, script, and script hash.",
@@ -164,6 +155,7 @@ export const daoProposeCopy = {
     proposeStepBody:
       "Create the onchain proposal with the published content fingerprint. A wallet cancellation or revert does not require republishing.",
     indexStatus: "Awaiting proposal indexing and analysis",
+    indexedStatus: "Proposal indexed",
   },
   publication: {
     publish: "Publish immutable content",
@@ -180,9 +172,24 @@ export const daoProposeCopy = {
     retry: "Retry proposal creation",
     waiting: "Waiting for wallet",
     submittedTitle: "Proposal transaction submitted",
+    receiptPending: "Waiting for transaction confirmation",
+    identityConfirmed: "Proposal identity confirmed",
+    identityUnavailableTitle: "Proposal identity unavailable",
+    awaitingIndex: "Proposal confirmed — awaiting indexing",
+    indexedTitle: "Proposal ready",
+    indexedBody:
+      "The confirmed proposal is indexed at the same proposal address.",
+    indexingDelayedTitle: "Proposal indexing is delayed",
+    indexingDelayedBody:
+      "The confirmed proposal address remains available while indexing catches up.",
     submittedBody:
-      "Waiting for proposal indexing and backend decoding and simulation.",
+      "The transaction hash is known. Proposal actions appear after the confirmed receipt supplies its identity.",
     transaction: "Transaction hash",
+    proposalIdentity: "Proposal identity",
+    open: "Open proposal",
+    copy: "Copy proposal link",
+    copied: "Proposal link copied",
+    viewTransaction: "View transaction",
     rejectedTitle: "Wallet request cancelled",
     revertedTitle: "Proposal creation failed",
   },

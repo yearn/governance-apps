@@ -1,7 +1,7 @@
 # DAO Governance Delivery Plan
 
-Status: M2 WP7A implementation and evidence complete; renewed user acceptance
-is next.
+Status: M2 WP7B is the active follow-up package; renewed user acceptance remains
+the next gate.
 
 This plan is the task source for implementing DAO Governance. It uses the shared
 workflow in [`docs/shared/codex-usage-guide.md`](../../../shared/codex-usage-guide.md)
@@ -51,7 +51,7 @@ Create a package only after its dependencies are merged into integration.
 
 ```text
 M1: WP1 -> WP2 -> WP3
-M2: WP4 -> WP6 -> WP5 -> WP7 -> user gate -> WP7A when changes are returned -> user gate
+M2: WP4 -> WP6 -> WP5 -> WP7 -> user gate -> WP7A -> user gate -> WP7B -> user gate
 M3: WP8 -> WP9 (gov-apps-stats) -> WP10
 M4: WP11 -> WP12
 M5: WP13 -> WP14 -> WP15
@@ -110,6 +110,8 @@ without re-review.
 - [`M2-WP7-mock-uat.md`](work-packages/M2-WP7-mock-uat.md)
 - [`M2-WP7A-navigation-and-authoring-clarity.md`](work-packages/M2-WP7A-navigation-and-authoring-clarity.md)
 - [`M2-WP7A evidence`](evidence/M2-WP7A/README.md)
+- [`M2-WP7B-proposal-content-and-lifecycle-clarity.md`](work-packages/M2-WP7B-proposal-content-and-lifecycle-clarity.md)
+- [`M2-WP7B evidence`](evidence/M2-WP7B/README.md)
 - [`DAO beta operator runbook`](dao-beta-runbook.md)
 
 ### M3

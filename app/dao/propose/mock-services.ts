@@ -1,5 +1,23 @@
-import { keccak256, stringToHex, type Hex } from "viem";
-import type { DaoProposalContentV1, DaoScriptCheck } from "@/lib/clients/dao";
+import { isHex, keccak256, stringToHex, type Hex } from "viem";
+import {
+  createDaoAwaitingIndexProposal,
+  decodeDaoProposeReceipt,
+  deriveDaoProposalContentIdentity,
+  deriveDaoMockBlockHash,
+  encodeDaoProposeLog,
+  indexDaoMockCreatedProposal,
+  registerDaoMockCreatedProposal,
+  DAO_MOCK_CHAIN_ID,
+  DAO_MOCK_VOTING_ADDRESS,
+  type DaoCreatedProposalRecord,
+  type DaoDecodedProposeIdentity,
+  type DaoParsedProposalContent,
+  type DaoProposalContent,
+  type DaoProposeReceiptDecodeResult,
+  type DaoProposalRef,
+  type DaoScriptCheck,
+  type DaoTransactionReceipt,
+} from "@/lib/clients/dao";
 
 const ALLOWED_PROPOSALS_CATEGORY_ID = 5;
 
@@ -31,12 +49,15 @@ export type DaoForumValidationResult =
 
 export type DaoAuthoringReview = {
   topic: DaoForumTopic;
-  content: DaoProposalContentV1;
+  content: DaoProposalContent;
+  parsedContent: DaoParsedProposalContent;
   scriptCheck: DaoScriptCheck;
 };
 
 export type DaoPublishedContent = {
   fingerprint: Hex;
+  cid: string;
+  canonicalBytes: Uint8Array;
   publishedAt: number;
 };
 
@@ -62,6 +83,12 @@ export type DaoProposalSubmissionResult =
         message: string;
       };
     };
+
+export type DaoProposalReceiptResult = {
+  state: "confirmed";
+  receipt: DaoTransactionReceipt;
+  decoded: DaoProposeReceiptDecodeResult;
+};
 
 type MockTopicFixture = Omit<DaoForumTopic, "topicId" | "normalizedUrl">;
 
@@ -163,10 +190,13 @@ export async function publishMockDaoProposalContent(
     };
   }
 
+  const identity = deriveDaoProposalContentIdentity(review.content);
   return {
     state: "published",
     publication: {
-      fingerprint: keccak256(stringToHex(canonicalReviewContent(review))),
+      fingerprint: identity.digest,
+      cid: identity.cid,
+      canonicalBytes: identity.bytes,
       publishedAt,
     },
   };
@@ -209,6 +239,96 @@ export async function submitMockDaoProposal(
   };
 }
 
+export async function confirmMockDaoProposalReceipt(
+  review: DaoAuthoringReview,
+  publication: DaoPublishedContent,
+  transactionHash: Hex,
+  votingEpoch: bigint,
+  latencyMs = 180
+): Promise<DaoProposalReceiptResult> {
+  await wait(latencyMs);
+  const script = review.scriptCheck.script;
+  if (!isHex(script)) {
+    throw new Error("A mock Propose receipt requires a valid exact script.");
+  }
+
+  const proposalId = deriveMockProposalId(transactionHash);
+  const blockNumber = 24_000_001n + (proposalId % 10_000n);
+  const receipt: DaoTransactionReceipt = {
+    status: "success",
+    transactionHash,
+    blockNumber,
+    blockHash: deriveDaoMockBlockHash(blockNumber, publication.publishedAt),
+    blockTimestamp: publication.publishedAt,
+    transactionIndex: 0,
+    logs:
+      review.topic.topicId === 1005
+        ? []
+        : [
+            encodeDaoProposeLog({
+              address: DAO_MOCK_VOTING_ADDRESS,
+              proposalId,
+              proposer: review.content.createdBy,
+              votingEpoch,
+              contentDigest: publication.fingerprint,
+              script,
+              logIndex: 0,
+            }),
+          ],
+  };
+
+  return {
+    state: "confirmed",
+    receipt,
+    decoded: decodeDaoProposeReceipt(receipt, {
+      chainId: DAO_MOCK_CHAIN_ID,
+      votingAddress: DAO_MOCK_VOTING_ADDRESS,
+      transactionHash,
+      proposer: review.content.createdBy,
+      votingEpoch,
+      contentDigest: publication.fingerprint,
+      script,
+    }),
+  };
+}
+
+export async function registerMockDaoProposalAwaitingIndex(
+  review: DaoAuthoringReview,
+  publication: DaoPublishedContent,
+  identity: DaoDecodedProposeIdentity,
+  latencyMs = 100
+): Promise<DaoCreatedProposalRecord> {
+  const proposal = createDaoAwaitingIndexProposal({
+    identity,
+    content: review.content,
+    contentCid: publication.cid,
+    discussion: {
+      state: "verified",
+      url: review.topic.normalizedUrl,
+      title: review.topic.title,
+      categoryId: review.topic.categoryId,
+      category: review.topic.category,
+      categorySlugPath: ["proposals"],
+    },
+  });
+  const record: DaoCreatedProposalRecord = {
+    stage: "awaiting_index",
+    proposal,
+  };
+  registerDaoMockCreatedProposal(record);
+  await wait(latencyMs);
+  return record;
+}
+
+export async function completeMockDaoProposalIndex(
+  ref: DaoProposalRef,
+  indexedAt: number,
+  latencyMs = 180
+): Promise<DaoCreatedProposalRecord | null> {
+  await wait(latencyMs);
+  return indexDaoMockCreatedProposal(ref, indexedAt);
+}
+
 function parseForumTopicUrl(input: string): { topicId: number } | null {
   let url: URL;
   try {
@@ -243,19 +363,15 @@ function forumError(
   };
 }
 
-function canonicalReviewContent(review: DaoAuthoringReview): string {
-  return JSON.stringify({
-    content: review.content,
-    script: review.scriptCheck.script,
-    scriptHash: review.scriptCheck.scriptHash,
-  });
-}
-
 function slugify(value: string): string {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function deriveMockProposalId(transactionHash: Hex): bigint {
+  return BigInt(`0x${transactionHash.slice(2, 18)}`) + 1_000n;
 }
 
 async function wait(latencyMs: number): Promise<void> {

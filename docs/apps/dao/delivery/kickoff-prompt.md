@@ -15,11 +15,13 @@ Integration worktree:
 Start by reading AGENTS.md, docs/shared/codex-usage-guide.md, the canonical
 product documents listed in docs/apps/dao/README.md, and
 docs/apps/dao/delivery/README.md. Read the active work-package file and all of
-its dependencies in full before assigning work. Verify that
-3d746e84b02d58bbe196525fb5a2510b4bfbce64 is an ancestor of agent/integration
-and that the annotated tag integration/dao-m0 resolves there. Stop and report
-the mismatch if either check fails. Do not redo discovery unless repository code
-or a newer pinned contract revision contradicts the specification.
+its dependencies in full before assigning work. Verify that the annotated tag
+integration/dao-m0 peels to 04224b3c930fd72efee6b65afa07f83c70369446, that
+3d746e84b02d58bbe196525fb5a2510b4bfbce64 is an ancestor of that merge, and that
+the merge is an ancestor of the accepted agent/integration base for the run.
+Stop and report the mismatch if any check fails. Do not redo discovery unless
+repository code or a newer pinned contract revision contradicts the
+specification.
 
 Act as the root orchestrator. Use sub-agents for implementation, independent
 review, specialist auditing, fixes, and integration. Use one branch and worktree

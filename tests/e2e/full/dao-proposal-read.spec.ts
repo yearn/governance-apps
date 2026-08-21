@@ -1,4 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { DAO_MOCK_GOVERNANCE_FLOW_ASSET_CID } from "@/lib/clients/dao";
+
+const PINNED_VOTING_SOURCE_URL =
+  "https://github.com/yearn/stYFI/blob/9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
 
 const VIEWPORTS = [
   { name: "phone", width: 390, height: 844 },
@@ -28,7 +32,7 @@ test("scans and filters the proposal board at every review viewport", async ({
     await expect(page.getByText("22 proposals are available.")).toBeVisible();
     await expect(page.getByText("Voting ends in 6 hours").first()).toBeVisible();
     await expect(
-      page.getByText("of votes cast · 55% approval threshold").first()
+      page.getByText("of votes cast · 50% approval threshold").first()
     ).toBeVisible();
 
     for (const filter of ["Active", "Upcoming", "Closed"]) {
@@ -223,16 +227,15 @@ test("contains proposal analysis and technical values at every review viewport",
     ).toBeVisible();
     await expect(page.getByText("Unknown call")).toBeVisible();
     await expect(
-      page.getByText("No verified ABI source", { exact: true }),
+      page.getByText("No verified source", { exact: true }),
     ).toBeVisible();
     await expect(page.getByText("Reference block", { exact: true })).toBeVisible();
     await expect(page.getByText("anvil", { exact: true })).toBeVisible();
     await expect(
-      page.getByText(
-        "yearn/stYFI@9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy",
-        { exact: true },
-      )
-    ).toBeVisible();
+      page
+        .getByRole("link", { name: "Voting.vy at pinned stYFI revision" })
+        .first()
+    ).toHaveAttribute("href", PINNED_VOTING_SOURCE_URL);
     await expectNoDeliveryLanguage(page);
 
     const technicalSummary = page.getByText("Technical details", {
@@ -334,6 +337,12 @@ test("renders every terminal fixture with explicit status and vote rule copy", a
     await page.getByText("Proposal rules", { exact: true }).click();
     await expect(page.getByText("No minimum turnout is required.")).toBeVisible();
     await expect(
+      page.getByText(
+        fixture.id === 7 ? "60% of votes cast" : "50% of votes cast",
+        { exact: true }
+      )
+    ).toBeVisible();
+    await expect(
       page.getByRole("heading", { name: "Lifecycle" })
     ).toBeVisible();
     await expectNoDocumentOverflow(page, `terminal proposal ${fixture.id}`);
@@ -342,6 +351,35 @@ test("renders every terminal fixture with explicit status and vote rule copy", a
   await page.goto("/dao/proposals/4");
   await expect(page.getByText("Approved", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("No executable actions").first()).toBeVisible();
+
+  await page.goto("/dao/proposals/11");
+  await expect(page.getByText("Flagged by operator", { exact: true })).toBeVisible();
+  await expect(page.getByText("No community result", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/moderation, not a community vote result/i)).toBeVisible();
+
+  await page.goto("/dao/proposals/12");
+  await expect(page.getByText(/vetoed before participation began/i)).toBeVisible();
+  await page.goto("/dao/proposals/13");
+  await expect(page.getByText(/Participation voting remains available/)).toBeVisible();
+
+  await page.goto("/dao/proposals/6");
+  await expect(page.getByText(/Executed .+ UTC/).first()).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /View Ethereum transaction/ }).first()
+  ).toHaveAttribute("rel", /noopener/);
+
+  await page.goto("/dao/proposals/20");
+  const lifecycle = page
+    .getByRole("heading", { name: "Lifecycle" })
+    .locator(
+      "xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' rounded-box ')][1]"
+    );
+  await expect(
+    lifecycle.getByText("Time unavailable", { exact: true })
+  ).toBeVisible();
+  await expect(
+    lifecycle.getByText("Transaction unavailable", { exact: true })
+  ).toBeVisible();
 });
 
 test("keeps onchain records and trust failures explicit", async ({ page }) => {
@@ -352,9 +390,16 @@ test("keeps onchain records and trust failures explicit", async ({ page }) => {
     page.getByText("Immutable content could not be retrieved").first()
   ).toBeVisible();
   await expect(page.getByText(/onchain proposal remains visible/).first()).toBeVisible();
-  await page.getByText("Technical details", { exact: true }).click();
-  await expect(page.getByText("Voting contract")).toBeVisible();
-  await expect(page.getByText("Raw contract status")).toBeVisible();
+  const technicalDetails = page
+    .getByText("Technical details", { exact: true })
+    .locator("xpath=ancestor::details");
+  await technicalDetails.getByText("Technical details", { exact: true }).click();
+  await expect(
+    technicalDetails.getByText("Voting contract", { exact: true })
+  ).toBeVisible();
+  await expect(
+    technicalDetails.getByText("Raw contract status", { exact: true })
+  ).toBeVisible();
 
   await page.goto("/dao/proposals/15");
   await expect(
@@ -382,6 +427,78 @@ test("keeps onchain records and trust failures explicit", async ({ page }) => {
   await expectNoDocumentOverflow(page, "trust failure fixtures");
 });
 
+test("contains long immutable Markdown at 200% text scaling", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dao/proposals/21");
+  await page.addStyleTag({ content: "html { font-size: 200%; }" });
+
+  await expect(
+    page.getByRole("heading", { name: /Interoperability evidence/ })
+  ).toBeVisible();
+  const longLink = page.getByRole("link", {
+    name: /governance-verification-evidence-/,
+  });
+  await expect(longLink).toHaveAttribute("target", "_blank");
+  await expect(longLink).toHaveAttribute("rel", "noopener noreferrer");
+
+  const table = page.getByRole("region", { name: "Proposal Markdown table" });
+  const code = page.getByRole("region", {
+    name: "Proposal Markdown code block",
+  });
+  await expect(table).toBeVisible();
+  await expect(code).toBeVisible();
+  await expectHorizontallyScrollable(table);
+  await expectHorizontallyScrollable(code);
+
+  await page.getByText("View Markdown source").click();
+  const source = page.getByRole("region", { name: "Exact Markdown source" });
+  await expect(source).toBeVisible();
+  await expectHorizontallyScrollable(source);
+  await expectNoDocumentOverflow(page, "200% immutable Markdown");
+});
+
+test("loads an authenticated attachment only after explicit activation", async ({
+  page,
+}) => {
+  const gatewayUrl = `https://ipfs.io/ipfs/${DAO_MOCK_GOVERNANCE_FLOW_ASSET_CID}`;
+  const gatewayRequests: string[] = [];
+  const context = page.context();
+  context.on("request", (request) => {
+    if (request.url().startsWith("https://ipfs.io/ipfs/")) {
+      gatewayRequests.push(request.url());
+    }
+  });
+  await context.route(gatewayUrl, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/plain",
+      body: "authenticated raw block",
+    });
+  });
+
+  for (const id of [1, 2]) {
+    await page.goto(`/dao/proposals/${id}`);
+    const attachment = page.getByRole("complementary", {
+      name: "Attachment: Governance flow diagram",
+    });
+    await expect(attachment).toBeVisible();
+    await expect(attachment.locator("img, picture, source, video")).toHaveCount(0);
+    const open = attachment.getByRole("link", { name: "Open attachment" });
+    await expect(open).toHaveAttribute("href", gatewayUrl);
+    await expect(open).toHaveAttribute("target", "_blank");
+    await expect(open).toHaveAttribute("rel", "noopener noreferrer");
+    await attachment.getByRole("button", { name: "Copy immutable link" }).click();
+    await expect.poll(() => gatewayRequests).toEqual([]);
+  }
+
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByRole("link", { name: "Open attachment" }).click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState("domcontentloaded");
+  await expect.poll(() => gatewayRequests).toEqual([gatewayUrl]);
+  await popup.close();
+});
+
 async function expectNoDocumentOverflow(page: Page, context: string) {
   const widths = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -398,6 +515,14 @@ async function expectMinimumHitArea(locator: Locator) {
   expect(box).not.toBeNull();
   expect(box!.width).toBeGreaterThanOrEqual(40);
   expect(box!.height).toBeGreaterThanOrEqual(40);
+}
+
+async function expectHorizontallyScrollable(locator: Locator) {
+  const widths = await locator.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(widths.scrollWidth).toBeGreaterThan(widths.clientWidth);
 }
 
 async function expectNoDeliveryLanguage(page: Page) {

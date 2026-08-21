@@ -1,5 +1,6 @@
 import { Badge, type BadgeProps } from "@/components/ui/Badge";
 import { UtcTime } from "@/components/ui/UtcTime";
+import { TransactionLink } from "@/components/ui/ExplorerLink";
 import {
   deriveDaoProposalTimingDisplay,
   deriveDaoVoteDisplay,
@@ -177,20 +178,27 @@ function ProposalTimingText({
     );
   }
 
-  const eventLabel =
-    timing.kind === "executed_recorded"
-      ? daoCopy.timing.executedRecorded
-      : timing.kind === "retracted_recorded"
-        ? daoCopy.timing.retractedRecorded
-        : timing.kind === "flagged_recorded"
-          ? daoCopy.timing.flaggedRecorded
-          : daoCopy.timing.vetoedRecorded;
+  const event = timing.event;
+  if (!event) {
+    return daoCopy.detail.timeUnavailable;
+  }
   return (
     <>
-      {eventLabel}
-      {timing.event
-        ? ` ${daoCopy.timing.atBlock(timing.event.log.blockNumber.toString())}`
-        : null}
+      {daoCopy.detail.eventVerbs[event.type]}{" "}
+      <UtcTime
+        timestamp={event.log.timestamp}
+        fallback={daoCopy.detail.timeUnavailable}
+      />{" "}
+      <span aria-hidden="true">·</span>{" "}
+      {event.log.transactionHash ? (
+        <TransactionLink
+          hash={event.log.transactionHash}
+          label={daoCopy.detail.viewTransaction}
+          variant="compact"
+        />
+      ) : (
+        daoCopy.detail.transactionUnavailable
+      )}
     </>
   );
 }

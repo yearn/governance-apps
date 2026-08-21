@@ -91,6 +91,28 @@ Rules:
 - npm does not currently provide per-package release-age exclusions, so this override disables the age gate for the install run; reviewers must treat the lockfile diff as part of the exception review.
 - Remove the override once the package version is older than 7 days or the emergency is resolved.
 
+### 2.5 DAO immutable attachment boundary
+
+DAO proposal content uses one authenticated-manifest model. The onchain
+`bytes32` is the SHA-256 digest of the exact fixed-order canonical content JSON,
+including its required final LF; the content
+CID is its CIDv1/raw/SHA-256/Base32 representation. Each asset digest names and
+authenticates one independent raw block. A `./assets/...` target is an exact
+relative manifest attachment lookup, never a child path under the content CID.
+A direct `ipfs://` target accepts one exact canonical raw asset CID with no
+path, slash, query, or fragment and must match one unique manifest digest.
+Duplicate normalized paths or digests fail. Both target forms resolve only to
+`https://ipfs.io/ipfs/<assetCid>` with no suffix.
+
+The manifest permits at most 16 assets, 512 UTF-8 path bytes, 127 UTF-8 media
+type bytes, 2,097,152 bytes per asset, and 33,554,432 aggregate declared bytes.
+Image metadata permits at most 8,192 px per dimension and 33,554,432 pixels.
+The 2 MiB per-asset limit keeps each attachment in one raw block for the
+intended block-exchange and pinning paths. The browser renders cards only and
+makes no asset request until the user opens one. A card is accepted only for a
+sole image token in a top-level body paragraph after the summary; nested or
+mixed image contexts fail. It never renders SVG inline.
+
 ## 3. Production Runtime Invariants
 
 Validation script: `/scripts/validate-prod-env.mjs`

@@ -11,6 +11,7 @@ import type {
   DaoDisplayGroup,
   DaoProposal,
 } from "@/lib/clients/dao";
+import { parseDaoProposalContent } from "@/lib/clients/dao";
 import {
   createDaoProposalHref,
   DAO_BOARD_GROUPS,
@@ -151,7 +152,10 @@ function ProposalBoardRow({
   proposal: DaoProposal;
 }) {
   const proposalId = proposal.ref.proposalId.toString();
-  const title = proposal.content.value?.title ?? daoCopy.detail.eyebrow(proposalId);
+  const parsed = proposal.content.value
+    ? parseDaoProposalContent(proposal.content.value)
+    : null;
+  const title = parsed?.title ?? daoCopy.detail.eyebrow(proposalId);
 
   return (
     <article

@@ -167,6 +167,7 @@ export function DaoProposeView({
         <DaoProposalAuthoringForm
           address={proposer.address}
           authoringPreset={authoring}
+          hostname={hostname}
           now={now}
           proposer={proposer}
         />

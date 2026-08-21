@@ -113,15 +113,20 @@ The detail page separates:
 
 ### DAO-FR-011: lifecycle
 
-The page shows discussion, voting, decision, execution, and terminal timing as
-applicable. It must represent retracted, flagged, vetoed, rejected, expired, and
-executed outcomes without forcing them into a single happy-path timeline.
+The page presents raw lifecycle status, community vote result, moderation, and
+execution as separate facts. It must represent retracted, flagged, vetoed,
+rejected, expired, and executed outcomes without forcing them into a single
+happy-path timeline. Flagged proposals have no community result. Early and
+post-participation vetoes state their different voting effects.
 
 ### DAO-FR-012: threshold and no quorum
 
 Vote percentages use `of votes cast`. Proposal rules say `No minimum turnout is
 required`. The detail page shows the proposal's snapshotted approval threshold,
-not the current global threshold.
+not the current global threshold. Rules also show the supplied proposal type,
+voting period, execution delay and guard where applicable, Voting contract,
+verified source, and the block where mutable configuration was observed. The
+normal fixture uses 5,000 basis points and an alternate fixture retains 6,000.
 
 ### DAO-FR-013: signal display
 
@@ -135,9 +140,19 @@ The technical disclosure may show the raw contract status.
 
 ### DAO-FR-014: analysis provenance
 
-Decoded actions show whether their address and ABI source is verified. Unknown
-calls remain visible as target, selector, calldata, and size. A proposal-time
-simulation shows its reference block and never claims to guarantee execution.
+Decoded actions use a structured, validated HTTPS source record with kind,
+label, URL, revision, and source path. A source can prove the pinned decoder
+input but cannot prove a mock deployment. Unknown calls remain visible as
+target, selector, calldata, and size. A proposal-time simulation shows its
+reference block and never claims to guarantee execution.
+
+### DAO-FR-015: event provenance
+
+Each retained event exposes the producer-owned canonical block time, actor and
+role, block number and hash, transaction hash when available, transaction
+index, and log index. User-facing time never substitutes the browser clock.
+Missing time or transaction data has an explicit fallback; Technical details
+still retains every available raw identity field.
 
 ## 6. Voting
 
@@ -213,9 +228,34 @@ Direct-contract proposals that bypass this rule still appear in history with
 
 ### DAO-FR-031: immutable content
 
-The author supplies title, summary, specification, discussion URL, and declared
-proposal type. The published IPFS document is the immutable voting snapshot;
-the linked forum may continue changing.
+The author supplies one Markdown document, discussion URL, and declared proposal
+type. The first and only H1 is the title, the next paragraph is the summary,
+and body content follows. Title, summary, AST, and attachment resolutions are
+derived results and are never copied into the wire object. The editor preserves
+the exact Markdown source, including whitespace, line endings, and its trailing
+newline. There is one in-place `yearn.dao.proposal.v1` contract and no legacy or
+compatibility parser.
+
+Only CommonMark plus GFM tables are enabled. Raw HTML, unsupported nodes,
+unsafe links, unpaired surrogates, NUL/control characters, and invalid or
+ambiguous attachments fail closed with located errors. Markdown is limited to
+32,768 UTF-8 bytes, 4,096 nodes, depth 32, and 1,024 table cells. Title and
+summary limits count graphemes with `Intl.Segmenter`. Source bytes are bounded
+before parsing; iterative validation checks every heading and work bound. A
+work-limit failure exposes an empty safe AST. The only accepted image context is
+one sole image in a top-level body paragraph after the summary.
+
+The canonical content JSON uses the fixed field order and one final LF. Its
+SHA-256 digest is the onchain `bytes32`; its CID is CIDv1/raw/SHA-256/Base32.
+The linked forum may continue changing.
+
+An image token renders an informative attachment card, never an image-producing
+element. A relative `./assets/...` target matches one exact authenticated
+manifest entry; a direct `ipfs://` target contains one exact canonical raw CID
+and matches one unique digest. Both derive the same suffix-free trusted gateway
+URL and make no request until Open is activated. Images nested in headings,
+links, emphasis, lists, quotes, tables, or mixed inline content are rejected.
+SVG is never rendered inline.
 
 ### DAO-FR-032: signal
 
@@ -236,7 +276,8 @@ sizes. A successful result says `Script structure is valid`; it never says
 
 ### DAO-FR-035: final review
 
-The final confirmation shows:
+The final confirmation uses the same validated AST renderer as Preview and
+detail. It shows:
 
 - normalized forum topic;
 - exact immutable proposal content;
@@ -251,9 +292,16 @@ The review states that two separate actions are required. Step 2 stays visibly
 upcoming and unavailable until immutable content is published, and publication
 copy says it neither creates a proposal nor opens a wallet. After publication,
 Step 1 retains its fingerprint receipt and focus moves to a distinct current
-Step 2 surface. After submission, both steps are complete and indexing/analysis
-is pending. Publication failure never exposes Step 2. Wallet rejection or
-onchain revert preserves the published content and retries without republishing.
+Step 2 surface. When the transaction hash is known, View transaction appears
+before any proposal action. A successful receipt must bind the exact expected
+Voting address, transaction hash, proposer, voting epoch, content digest, and
+script to exactly one matching `Propose` log. That log must have four canonical
+topics, and its decoded topics and non-indexed data must re-encode byte for byte
+with no trailing or dirty padding. Open proposal and Copy link appear only after
+that receipt supplies the composite identity. Receipt confirmation,
+awaiting-index, and indexed states retain the same identity. Publication failure
+never exposes Step 2. Wallet rejection or onchain revert preserves the published
+content and retries without republishing.
 
 ### DAO-FR-036: backend analysis
 
@@ -270,7 +318,7 @@ not treat a time-gated `Voting.execute` call at the proposal block as useful
 evidence. The result records the method, engine, block number and hash, simulated
 timestamp, caller, state or time overrides, atomic result, and failure reason.
 
-Unknown ABI decoding does not force simulation failure. If an
+Unknown call decoding does not force simulation failure. If an
 execution-equivalent context cannot be established, analysis is `Unavailable`
 rather than successful.
 
@@ -332,8 +380,9 @@ a voting veto.
   execution simulation.
 - The UI does not own protocol math.
 - Feed-provided action labels are hints, not wallet authorization.
-- Backend decoding uses a maintained address/ABI registry. Proposer metadata may
-  add descriptions but cannot establish verified decoding.
+- Backend decoding uses a maintained address/source registry. Structured source
+  provenance can establish the pinned decoder input; proposer metadata and mock
+  fixtures cannot establish a deployed contract identity.
 
 ## 11. Runtime and rollout
 
@@ -359,5 +408,15 @@ a voting veto.
 - Timers and changing weights use tabular numerals.
 - Mobile layouts preserve readable scripts, addresses, and vote controls without
   horizontal page overflow.
+- Long Markdown headings and links wrap; tables, fenced code, and exact source
+  scroll inside their own labelled regions at 390, 768, and 1,280 pixels and at
+  200% root text.
+- Attachment cards contain no image-producing element, preload, metadata probe,
+  or automatic request. Only user-activated Open navigates to the validated raw
+  CID URL.
+- Write/Preview tabs use native tab semantics and keyboard navigation. A located
+  validation error returns to Write, focuses the textarea, and selects the
+  deterministic UTF-16 caret offset.
+- Authoring uses one polite atomic live region for asynchronous progress.
 - No component calls raw wagmi writes.
 - Tests cover every capability/status mismatch, especially vetoed-but-votable.

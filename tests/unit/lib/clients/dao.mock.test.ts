@@ -3,7 +3,6 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   sha256,
-  toBytes,
   toFunctionSelector,
   toHex,
   type Address,
@@ -26,13 +25,19 @@ import {
   DAO_MOCK_VOTE_START_OFFSET_SECONDS,
   DAO_MOCK_VERIFIED_CALL_REGISTRY,
   DAO_SNAPSHOT_CLIENT_READ_ONLY_ERROR,
+  canonicalizeDaoProposalContent,
+  createDaoRawSha256Cid,
+  deriveDaoProposalContentIdentity,
   deriveDaoProposerState,
   deriveDaoProposalTiming,
   getDaoMockFixture,
   parseDaoBigInt,
   parseDaoFeedJson,
+  parseDaoProposalContent,
   serializeDaoFeedJson,
+  type DaoFeedV1Json,
   type DaoMockFixtureId,
+  type DaoProposalContent,
 } from "@/lib/clients/dao";
 
 const requiredFixtures: DaoMockFixtureId[] = [
@@ -62,9 +67,9 @@ const requiredFixtures: DaoMockFixtureId[] = [
 ];
 
 const CANONICAL_CONTENT_DIGEST =
-  "0x4de4e18d566431784525509031e3a8620cd6724ef00e9298ad62d19c833a8a9f";
+  "0x3c67b58a3ea4c8fd5d6c9a56dfa7322853967b4b85c700c4592e3cf68bb2f867";
 const CANONICAL_CONTENT_CID =
-  "bafkreicn4tqy2vtegf4ekjkqsay6hkdcbtlhetxqb2jjrllc2goigoukt4";
+  "bafkreib4m62yupvezd6v23e2k3p2omrikolhws4fy4amiwjoht3ixmxym4";
 const BASE32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
 
 function decodeBase32(value: string): Uint8Array {
@@ -327,6 +332,45 @@ describe("DAO deterministic mock feed", () => {
     ]);
   });
 
+  it("carries proposal-specific rule snapshots and mutable-fact observation blocks", () => {
+    const normal = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 2n
+    );
+    const alternate = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 7n
+    );
+    const permissionless = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 22n
+    );
+
+    expect(normal?.rules).toMatchObject({
+      approvalThresholdBps: 5_000,
+      thresholdSnapshottedAtCreation: true,
+      minimumTurnout: null,
+      passageRequiresPositiveTotal: true,
+      executionGuard: "guarded",
+      observationBlockNumber: 24_000_000n,
+    });
+    expect(alternate?.rules.approvalThresholdBps).toBe(6_000);
+    expect(permissionless?.rules.executionGuard).toBe("permissionless");
+  });
+
+  it("keeps missing event time and transaction availability explicit", () => {
+    const direct = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 20n
+    );
+    const event = direct?.events.find((candidate) => candidate.type === "propose");
+    expect(event?.log.timestamp).toBeNull();
+    expect(event?.log.transactionHash).toBeNull();
+
+    const canonicalEvents = DAO_MOCK_FEED.proposals
+      .filter((proposal) => proposal.ref.proposalId !== 20n)
+      .flatMap((proposal) => proposal.events);
+    expect(canonicalEvents.every((candidate) => candidate.log.timestamp !== null)).toBe(
+      true
+    );
+  });
+
   it("keeps every available content CID, digest, and byte sequence consistent", () => {
     const available = DAO_MOCK_FEED.proposals.filter(
       (proposal) => proposal.content.state === "available"
@@ -335,12 +379,50 @@ describe("DAO deterministic mock feed", () => {
     expect(available.length).toBeGreaterThan(1);
     for (const proposal of available) {
       expect(proposal.content.value).not.toBeNull();
-      const bytes = toBytes(JSON.stringify(proposal.content.value));
+      const bytes = canonicalizeDaoProposalContent(proposal.content.value!);
       expect(sha256(bytes)).toBe(proposal.content.digest);
       expect(decodeRawSha256Cid(proposal.content.cid!)).toBe(
         proposal.content.digest
       );
     }
+  });
+
+  it("pins the deterministic asset manifest to exact committed raw bytes", () => {
+    const assetBytes = new Uint8Array(
+      readFileSync(
+        resolve(
+          process.cwd(),
+          "docs/apps/dao/examples/assets/governance-flow.svg"
+        )
+      )
+    );
+    const proposal = DAO_MOCK_FEED.proposals.find(
+      (candidate) => candidate.ref.proposalId === 1n
+    );
+    const manifestAsset = proposal?.content.value?.assets[0];
+
+    expect(manifestAsset).toMatchObject({
+      path: "./assets/governance-flow.svg",
+      mediaType: "image/svg+xml",
+      width: 1_280,
+      height: 720,
+    });
+    expect(manifestAsset?.byteLength).toBe(assetBytes.byteLength);
+    expect(manifestAsset?.digest).toBe(sha256(assetBytes));
+    expect(createDaoRawSha256Cid(manifestAsset!.digest)).toBe(
+      "bafkreiddpbv6fdpnzg5lnxseuuwicjg4en67yzioea3xtws2aoxnq45cbe"
+    );
+  });
+
+  it("keeps direct raw-CID attachments reachable through a typed fixture", () => {
+    const proposal = DAO_MOCK_FEED.proposals.find(
+      (candidate) => candidate.ref.proposalId === 2n
+    );
+    const asset = proposal?.content.value?.assets[0];
+    const assetCid = asset ? createDaoRawSha256Cid(asset.digest) : null;
+
+    expect(assetCid).not.toBeNull();
+    expect(proposal?.content.value?.markdown).toContain(`ipfs://${assetCid}`);
   });
 
   it("pins the canonical trailing-LF CIDv1 raw SHA-256 vector", () => {
@@ -353,10 +435,32 @@ describe("DAO deterministic mock feed", () => {
       )
     );
 
+    const content = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(contentBytes)
+    ) as DaoProposalContent;
+    const identity = deriveDaoProposalContentIdentity(content);
+
+    expect(parseDaoProposalContent(content).errors).toEqual([]);
+    expect(canonicalizeDaoProposalContent(content)).toEqual(contentBytes);
+    expect(identity.digest).toBe(CANONICAL_CONTENT_DIGEST);
+    expect(identity.cid).toBe(CANONICAL_CONTENT_CID);
     expect(sha256(contentBytes)).toBe(CANONICAL_CONTENT_DIGEST);
     expect(decodeRawSha256Cid(CANONICAL_CONTENT_CID)).toBe(
       CANONICAL_CONTENT_DIGEST
     );
+  });
+
+  it("parses the committed feed example through the real ingestion boundary", () => {
+    const example = readFileSync(
+      resolve(process.cwd(), "docs/apps/dao/examples/mock-data.example.json"),
+      "utf8"
+    );
+    const feed = parseDaoFeedJson(JSON.parse(example) as DaoFeedV1Json);
+
+    expect(feed.proposals).toHaveLength(1);
+    expect(feed.proposals[0]?.thresholdBps).toBe(5_000);
+    expect(feed.proposals[0]?.rules.approvalThresholdBps).toBe(5_000);
+    expect(feed.proposals[0]?.events[0]?.log.timestamp).toBe(1_787_054_400);
   });
 
   it("retains invalid content as a distinct fixture", () => {
@@ -466,6 +570,7 @@ describe("DAO deterministic mock feed", () => {
       expect(group).toHaveLength(3);
       expect(new Set(group.map((event) => event.log.blockNumber))).toHaveLength(1);
       expect(new Set(group.map((event) => event.log.blockHash))).toHaveLength(1);
+      expect(new Set(group.map((event) => event.log.timestamp))).toHaveLength(1);
       expect(new Set(group.map((event) => event.log.transactionHash))).toHaveLength(
         1
       );
@@ -506,6 +611,12 @@ describe("DAO deterministic mock feed", () => {
         /canonical unsigned decimals/i
       );
     }
+  });
+
+  it("rejects unvalidated verified-source URLs at the feed boundary", () => {
+    const invalid = structuredClone(DAO_MOCK_FEED_JSON);
+    invalid.proposals[0].rules.votingSource.url = "ipfs://not-an-https-source";
+    expect(() => parseDaoFeedJson(invalid)).toThrow(/complete HTTPS URL/i);
   });
 });
 

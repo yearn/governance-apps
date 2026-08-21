@@ -69,25 +69,47 @@ separate facts. In particular, `protocolStatus: "vetoed"` may coexist with
 
 ## 3. Proposal content
 
-Recommended immutable content shape:
+Final immutable content shape:
 
 ```ts
-type DaoProposalContentV1 = {
+type DaoProposalAsset = {
+  path: string;
+  mediaType: string;
+  byteLength: number;
+  digest: Hex;
+  width: number | null;
+  height: number | null;
+};
+
+type DaoProposalContent = {
   schema: "yearn.dao.proposal.v1";
-  title: string;
-  summary: string;
-  specification: string;
+  markdown: string;
   discussionUrl: string;
   proposalType: "signal" | "executable";
   createdBy: Address;
   createdAt: string;
-  links: Array<{ label: string; url: string }>;
+  assets: DaoProposalAsset[];
 };
 ```
 
-The final wire schema must set string bounds and URL rules before IPFS
-publication. Consumers verify bytes and parse the declared version; they do not
-re-serialize a parsed object to decide what the CID should be.
+The exact canonical JSON bytes hash to the onchain SHA-256 `bytes32`. Their
+CIDv1/raw/SHA-256/Base32 form is the content CID. Consumers verify those bytes
+and parse the declared version; they do not reserialize a parsed object to
+choose its digest.
+
+Each manifest digest authenticates one independent raw asset block. A relative
+manifest attachment is an exact `./assets/...` path lookup, never a descendant
+of the content CID; derive its canonical raw CID from the matching digest. A
+direct `ipfs://<assetCid>` accepts no path, slash, query, or fragment and must
+match one unique manifest digest. Both forms resolve to
+`https://ipfs.io/ipfs/<assetCid>` with no suffix. Duplicate normalized paths or
+digests fail.
+
+Manifest limits are 16 assets, 512 UTF-8 bytes per path, 127 UTF-8 bytes per
+media type, 2,097,152 bytes per asset, and 33,554,432 declared bytes in total.
+Image metadata is limited to 8,192 px in either dimension and 33,554,432
+pixels. The 2 MiB asset limit preserves one-raw-block interoperability across
+the intended IPFS implementations.
 
 ## 4. Script and analysis
 
@@ -110,12 +132,20 @@ type DaoScriptCheck = {
   error: { code: string; message: string; offset: number | null } | null;
 };
 
+type DaoVerifiedSource = {
+  kind: "github" | "sourcify" | "explorer";
+  label: string;
+  url: string;
+  revision: string | null;
+};
+
 type DaoDecodedCall = DaoScriptFrame & {
   decodeStatus: "verified" | "unknown" | "failed";
   contractName: string | null;
   functionSignature: string | null;
   arguments: Array<{ name: string; type: string; value: string }>;
-  abiSource: string | null;
+  verifiedSource: DaoVerifiedSource | null;
+  sourcePath: string | null;
 };
 
 type DaoSimulation = {
@@ -150,7 +180,10 @@ valid even-length hex, both values are present even when a later framing,
 size, call-count, or proposal-type check fails.
 
 The frontend parser produces `DaoScriptCheck`. Backend decoding and proposal-time
-simulation produce the decoded calls and stored simulation. Unknown decoding is
+simulation produce the decoded calls and stored simulation. A structured source
+must be complete, use HTTPS without credentials, and retain its revision and
+path separately. It can prove the exact decoder source but cannot prove that a
+mock address is deployed. Unknown decoding has no verified source and remains
 independent from simulation success. `unavailable` means the producer could not
 establish an execution-equivalent context; `failed` means the atomic script ran
 in that context and reverted.
@@ -174,7 +207,8 @@ type DaoExecutionPreflight = {
 type DaoLogRef = {
   blockNumber: bigint;
   blockHash: Hex;
-  transactionHash: Hex;
+  timestamp: number | null;
+  transactionHash: Hex | null;
   transactionIndex: number;
   logIndex: number;
 };
@@ -191,7 +225,11 @@ type DaoProposalEvent = {
 };
 ```
 
-Every retained event carries canonical block, transaction, and log identity.
+Every retained event carries canonical block and log identity. Its timestamp is
+the block producer's canonical UTC time, never a browser-clock substitute.
+Transaction hash may be absent for a truthful direct-contract or incomplete
+historical record; presentation uses explicit fallbacks without discarding the
+remaining block, transaction-index, or log-index provenance.
 `yeaBps` retains the `Voting.Vote.yea` value from 0 through 10,000, including
 blended YBC and stYFIx aggregate rewrites. `direction` is an optional derived
 label for binary human votes only: 10,000 is Yea and 0 is Nay. Aggregate vote
@@ -200,6 +238,43 @@ actors are never counted as additional human participation.
 ## 6. Proposal view model
 
 ```ts
+type DaoLifecycleFacts = {
+  status: DaoProtocolStatus;
+  voteResult: "approved" | "rejected" | null;
+  moderation: {
+    kind: "flagged" | "vetoed" | null;
+    phase: "before_participation" | "after_participation" | null;
+    reason: string | null;
+    votingAvailable: boolean;
+    executionBlocked: boolean;
+  };
+  execution: {
+    state:
+      | "no_actions"
+      | "scheduled"
+      | "executable"
+      | "executed"
+      | "blocked"
+      | "expired";
+    guard: "guarded" | "permissionless" | null;
+  };
+};
+
+type DaoProposalRules = {
+  approvalThresholdBps: number;
+  thresholdSnapshottedAtCreation: true;
+  minimumTurnout: null;
+  passageRequiresPositiveTotal: true;
+  proposalType: "signal" | "executable";
+  votingPeriodSeconds: number;
+  executionDelaySeconds: number | null;
+  executionGuard: "guarded" | "permissionless" | null;
+  votingAddress: Address;
+  votingSource: DaoVerifiedSource;
+  votingSourcePath: string;
+  observationBlockNumber: bigint;
+};
+
 type DaoProposal = {
   ref: DaoProposalRef;
   proposer: Address;
@@ -217,11 +292,12 @@ type DaoProposal = {
   displayStatus: DaoDisplayStatus;
   displayGroup: DaoDisplayGroup;
   type: "signal" | "executable";
+  rules: DaoProposalRules;
   content: {
     state: "available" | "unavailable" | "invalid";
     cid: string | null;
     digest: Hex;
-    value: DaoProposalContentV1 | null;
+    value: DaoProposalContent | null;
     error: string | null;
   };
   discussion: {
@@ -245,6 +321,17 @@ type DaoProposal = {
   };
 };
 ```
+
+`deriveDaoLifecycleFacts` keeps raw status, community vote result, moderation,
+and execution separate. A flagged proposal has no community result. An early
+veto blocks voting, while a veto after participation can leave voting available
+until the window closes. An empty-script raw `executed` signal has an approved
+vote result and `no_actions` execution state.
+
+Rules belong to the proposal. The constructor/default fixture uses 5,000 basis
+points; a retained alternate snapshot uses 6,000. Mutable voting period, delay,
+guard, and global threshold observations carry their observation block. The UI
+formats these supplied facts and does not reconstruct protocol rules.
 
 Connected-wallet state is not part of the global proposal feed:
 
@@ -292,6 +379,31 @@ Confirmed mock writes use a live overlay until the corresponding event is
 indexed:
 
 ```ts
+type DaoTransactionReceipt = {
+  status: "success" | "reverted";
+  transactionHash: Hex;
+  blockNumber: bigint;
+  blockHash: Hex;
+  blockTimestamp: number | null;
+  transactionIndex: number;
+  logs: DaoReceiptLog[];
+};
+
+type DaoDecodedProposeIdentity = {
+  ref: DaoProposalRef;
+  proposer: Address;
+  votingEpoch: bigint;
+  contentDigest: Hex;
+  script: Hex;
+  blockTimestamp: number | null;
+  log: DaoLogRef;
+};
+
+type DaoCreatedProposalRecord = {
+  stage: "awaiting_index" | "indexed";
+  proposal: DaoProposal;
+};
+
 type DaoActionType = "vote" | "retract" | "flag" | "veto" | "execute";
 
 type DaoPendingAction = {
@@ -325,6 +437,19 @@ record, and indexed event retain that exact hash. Failed outcomes create no
 pending action. Flag and veto reasons are trimmed, required, and limited to 256
 UTF-8 bytes both when preparing and when calling the prepared transaction.
 
+Proposal creation does not guess the next numeric ID. Chain context is supplied
+separately from the receipt. The decoder requires a successful receipt with the
+exact submitted transaction hash and exactly one `Propose` log from the expected
+Voting address. Proposer, voting epoch, content digest, and exact script must
+match the submitted values. The log has exactly four canonical topics. Its
+decoded topics and non-indexed content digest and script must re-encode to the
+exact receipt bytes, with no extra topic, trailing word, alternate offset, or
+dirty padding. A missing, duplicate, malformed, wrong-contract, or mismatched
+log yields no proposal ref. Once decoded, the same composite ref is
+used for the receipt-confirmed view, browser-local `awaiting_index` overlay, and
+indexed fixture. That local overlay intentionally does not survive another
+browser session.
+
 `createMockDaoClient` is an immutable fixture-snapshot reader and rejects all
 five prepared-write methods with a stable read-only error. It must not imply
 that a snapshot-only client can consume one-vote or lifecycle authorization.
@@ -350,10 +475,21 @@ only mock client that prepares and submits actions.
   contains terminal outcomes and approved signals.
 - Verified forum status requires an allowed stable category ID. A matching
   display label alone is insufficient.
+- `rules.approvalThresholdBps === thresholdBps`; proposal type, Voting address,
+  timing, delay, and guard agree with the proposal record.
+- Every structured source passes the HTTPS provenance validator. Unknown calls
+  have no verified source.
+- Event time and transaction availability remain nullable facts. Events from
+  one transaction/block share the same producer-owned timestamp.
 
 The exact canonical content vector is
 [`examples/proposal-content.example.json`](examples/proposal-content.example.json).
-Its trailing LF is part of the bytes used by the example digest and CID.
+It is the exact fixed-order encoder output; its trailing LF is part of the bytes
+used by the example digest and CID. The manifest entry is bound to the exact raw
+bytes in
+[`examples/assets/governance-flow.svg`](examples/assets/governance-flow.svg),
+including its 660-byte length, SHA-256 digest, raw CID, media type, and
+1,280-by-720 dimensions.
 
 ## 8. Feed envelope
 
@@ -426,6 +562,11 @@ The mock store must provide at least:
 | Guarded execution | Only operator can execute |
 | Permissionless execution | Any eligible connected account can execute |
 | Proposal capacity full | At least one of the six affected reward epochs is at 64 |
+
+Proposal 1 reaches the relative manifest attachment. Proposal 2 reaches the
+same committed raw asset through its direct `ipfs://` CID. Proposal 20 retains
+missing event time and transaction provenance. The 5,000-basis-point default
+and 6,000-basis-point alternate rule snapshots are both reachable.
 
 ## 10. Mutable debug state
 
@@ -504,6 +645,21 @@ Error precedence and offsets are deterministic:
 | `TRAILING_BYTES` | A complete call is followed by fewer than 32 bytes | First trailing byte |
 | `EMPTY_EXECUTABLE_SCRIPT` | Executable type uses `0x` | `0` |
 | `NON_EMPTY_SIGNAL_SCRIPT` | Signal type uses one or more structurally valid calls | `0` |
+
+The content parser first rejects non-round-tripping Unicode and NUL/control
+characters before `TextEncoder`, then enforces the 32,768-byte source limit
+before parsing. Bounded iterative walks enforce AST node/depth/table-cell work
+bounds, exactly one H1 across the tree, later H2-H4 order, the summary paragraph,
+non-empty body, the node allowlist, the raw-HTML block, safe links, and attachment
+rules. A work-limit failure returns an empty safe AST. An attachment is valid
+only when it is the sole image in a top-level body paragraph after the summary;
+title, summary, heading, link, mixed-inline, and nested image contexts fail.
+Located document errors are reported in stable source order before manifest
+errors. Manifest errors are ordered by manifest index and fixed rule priority;
+an earlier bad entry precedes the index-16 too-many-assets sentinel, and a
+duplicate path precedes a duplicate digest at one index. Duplicate normalized
+paths and duplicate digests fail before attachment lookup; direct-CID lookup
+must resolve to exactly one digest.
 
 Call-count validation precedes the total-byte limit so both contract limits are
 independently diagnosable: 65 empty 32-byte headers already occupy 2,080 bytes.

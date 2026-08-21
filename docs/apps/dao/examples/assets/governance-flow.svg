@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title description">
+  <title id="title">DAO proposal flow</title>
+  <desc id="description">A proposal moves from discussion to voting and then to an approved or rejected outcome.</desc>
+  <rect width="1280" height="720" fill="#f5f7ff"/>
+  <path d="M320 360h240m160 0h240" fill="none" stroke="#0657f9" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="240" cy="360" r="96" fill="#0657f9"/>
+  <circle cx="640" cy="360" r="96" fill="#ffffff" stroke="#0657f9" stroke-width="20"/>
+  <circle cx="1040" cy="360" r="96" fill="#16a34a"/>
+</svg>

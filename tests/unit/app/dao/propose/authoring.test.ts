@@ -6,6 +6,7 @@ import {
 } from "@/lib/clients/dao";
 import {
   createDaoAuthoringReview,
+  DAO_PROPOSAL_MARKDOWN_TEMPLATE,
   findFirstFullDaoCapacityEpoch,
 } from "@/app/dao/propose/authoring";
 import {
@@ -24,7 +25,7 @@ describe("DAO proposal authoring vectors", () => {
       0
     );
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       state: "valid",
       topic: expect.objectContaining({
         topicId: 1001,
@@ -44,7 +45,7 @@ describe("DAO proposal authoring vectors", () => {
     ["https://gov.yearn.fi/t/topic/503", "FORUM_UNAVAILABLE"],
   ])("returns %s as %s", async (url, expectedCode) => {
     const result = await validateMockDaoForumTopic(url, 0);
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       state: "invalid",
       error: expect.objectContaining({ code: expectedCode }),
     });
@@ -57,9 +58,8 @@ describe("DAO proposal authoring vectors", () => {
       createdAt: CREATED_AT,
       topic: forum,
       draft: {
-        title: "  Exact   title  ",
-        summary: "Exact summary\nwith a second line.",
-        specification: "1. Keep exact whitespace.\n2. Publish these bytes.",
+        markdown:
+          "#   Exact   title  \n\nExact summary with a second line.\n\n## Specification\n\n1. Keep exact whitespace.\n2. Publish these bytes.\n",
         proposalType: "signal",
         executableScript: DAO_EXECUTOR_VALID_SCRIPT_VECTORS.oneCall.script,
       },
@@ -67,7 +67,10 @@ describe("DAO proposal authoring vectors", () => {
 
     expect(result.state).toBe("valid");
     if (result.state !== "valid") return;
-    expect(result.review.content.title).toBe("  Exact   title  ");
+    expect(result.review.content.markdown).toBe(
+      "#   Exact   title  \n\nExact summary with a second line.\n\n## Specification\n\n1. Keep exact whitespace.\n2. Publish these bytes.\n"
+    );
+    expect(result.review.parsedContent.title).toBe("Exact   title");
     expect(result.review.content.discussionUrl).toBe(forum.normalizedUrl);
     expect(result.review.content.createdBy).toBe(ADDRESS);
     expect(result.review.content.createdAt).toBe(
@@ -88,15 +91,13 @@ describe("DAO proposal authoring vectors", () => {
       createdAt: CREATED_AT,
       topic: forum,
       draft: {
-        title: "Executable proposal",
-        summary: "A complete summary.",
-        specification: "A complete specification.",
+        markdown: DAO_PROPOSAL_MARKDOWN_TEMPLATE,
         proposalType: "executable",
         executableScript: `0x${"00".repeat(31)}`,
       },
     });
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       state: "invalid",
       errors: expect.objectContaining({
         script: "The first Executor header is incomplete.",
@@ -111,15 +112,13 @@ describe("DAO proposal authoring vectors", () => {
     });
   });
 
-  it("rejects missing immutable fields and an empty executable script", async () => {
+  it("rejects invalid document structure and an empty executable script", async () => {
     const result = createDaoAuthoringReview({
       address: ADDRESS,
       createdAt: CREATED_AT,
       topic: null,
       draft: {
-        title: " ",
-        summary: "",
-        specification: "",
+        markdown: "Summary without a title.",
         proposalType: "executable",
         executableScript: "0x",
       },
@@ -130,15 +129,19 @@ describe("DAO proposal authoring vectors", () => {
     expect(result.errors).toEqual(
       expect.objectContaining({
         forum: expect.any(String),
-        title: expect.any(String),
-        summary: expect.any(String),
-        specification: expect.any(String),
+        markdown: expect.any(String),
         script: "Executable proposals require at least one call.",
       })
     );
     expect(result.scriptCheck.error).toMatchObject({
       code: "EMPTY_EXECUTABLE_SCRIPT",
       offset: 0,
+    });
+    expect(result.contentValidation.errors[0]).toMatchObject({
+      code: "MISSING_H1",
+      offset: 0,
+      line: 1,
+      column: 1,
     });
   });
 
@@ -232,9 +235,7 @@ async function validReview(topicId: number) {
     createdAt: CREATED_AT,
     topic,
     draft: {
-      title: "Executable proposal",
-      summary: "A complete summary.",
-      specification: "A complete specification.",
+      markdown: DAO_PROPOSAL_MARKDOWN_TEMPLATE,
       proposalType: "executable",
       executableScript: DAO_EXECUTOR_VALID_SCRIPT_VECTORS.oneCall.script,
     },

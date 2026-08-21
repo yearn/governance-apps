@@ -20,6 +20,18 @@ function normalizePath(path: string): string {
   return normalized || "/";
 }
 
+function normalizeAppPath(path: string): `/${string}` {
+  const queryIndex = path.indexOf("?");
+  const fragmentIndex = path.indexOf("#");
+  const stateIndex = [queryIndex, fragmentIndex]
+    .filter((index) => index >= 0)
+    .reduce((first, index) => Math.min(first, index), path.length);
+  const pathname = path.slice(0, stateIndex);
+  const state = path.slice(stateIndex);
+  const normalizedPathname = `/${pathname.replace(/^\/+/, "")}`;
+  return `${normalizedPathname}${state}` as `/${string}`;
+}
+
 export type { GovernanceApp };
 
 export function resolveGovernanceAppHref(
@@ -45,12 +57,14 @@ export function resolveGovernanceAppPathHref(
 ): string {
   const linkSurface = resolveGovernanceLinkSurface(hostname);
   const normalizedHostname = normalizeGovernanceHostname(hostname);
-  const path = appPath || "/";
+  const path = normalizeAppPath(appPath || "/");
 
   if (linkSurface === "path-scoped") {
-    return path === "/"
-      ? GOVERNANCE_APP_PATHS[app]
-      : `${GOVERNANCE_APP_PATHS[app]}${path}`;
+    if (path === "/") return GOVERNANCE_APP_PATHS[app];
+    if (path.startsWith("/?") || path.startsWith("/#")) {
+      return `${GOVERNANCE_APP_PATHS[app]}${path.slice(1)}`;
+    }
+    return `${GOVERNANCE_APP_PATHS[app]}${path}`;
   }
 
   const targetHostname =

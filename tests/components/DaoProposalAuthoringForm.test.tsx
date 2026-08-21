@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DAO_EXECUTOR_VALID_SCRIPT_VECTORS,
   deriveDaoProposerState,
   getDaoMockFixture,
+  resetDaoMockStore,
   type DaoProposerEligibilityInput,
 } from "@/lib/clients/dao";
 import {
@@ -15,6 +16,10 @@ import {
 const NOW = getDaoMockFixture("discussion").now;
 
 describe("DAO proposal authoring form", () => {
+  beforeEach(() => {
+    resetDaoMockStore();
+  });
+
   it("connects accessible field errors and focuses the first invalid field", async () => {
     const user = userEvent.setup();
     renderAuthoring();
@@ -33,10 +38,80 @@ describe("DAO proposal authoring form", () => {
       "aria-invalid",
       "true"
     );
-    expect(screen.getByRole("textbox", { name: "Title" })).toHaveAttribute(
+    expect(
+      screen.getByRole("textbox", { name: "Proposal Markdown" })
+    ).toHaveAttribute(
       "aria-describedby",
-      "dao-proposal-title-help dao-proposal-title-error"
+      "dao-markdown-byte-count dao-markdown-grammar dao-markdown-validation"
     );
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Forum discussion" }),
+      "https://gov.yearn.fi/t/topic/1001"
+    );
+    await user.click(screen.getByRole("button", { name: "Validate topic" }));
+    await screen.findByText("Forum topic accepted", {
+      selector: "#dao-forum-status p",
+    });
+    const markdown = screen.getByRole("textbox", { name: "Proposal Markdown" });
+    await user.clear(markdown);
+    await user.type(markdown, "Summary without a title.");
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+    await waitFor(() => expect(markdown).toHaveFocus());
+    expect(markdown).toHaveProperty("selectionStart", 0);
+  });
+
+  it("returns Preview to Write before focusing the located Markdown error", async () => {
+    const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    renderAuthoring();
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Forum discussion" }),
+      "https://gov.yearn.fi/t/topic/1001"
+    );
+    await user.click(screen.getByRole("button", { name: "Validate topic" }));
+    await screen.findByText("Forum topic accepted", {
+      selector: "#dao-forum-status p",
+    });
+    await user.click(
+      screen.getByRole("radio", { name: /^ExecutableIncludes/i })
+    );
+    const script = screen.getByRole("textbox", {
+      name: "Full Executor script",
+    });
+    await user.clear(script);
+    await user.type(script, "not-hex");
+    const markdown = screen.getByRole("textbox", { name: "Proposal Markdown" });
+    await user.clear(markdown);
+    await user.type(markdown, "Summary without a title.");
+    await user.click(screen.getByRole("tab", { name: "Preview" }));
+    expect(screen.getByRole("tab", { name: "Preview" })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: "Write" })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      )
+    );
+    const mountedMarkdown = screen.getByRole("textbox", {
+      name: "Proposal Markdown",
+    });
+    await waitFor(() => expect(mountedMarkdown).toHaveFocus());
+    expect(mountedMarkdown).toHaveProperty("selectionStart", 0);
+    expect(mountedMarkdown).toHaveProperty("selectionEnd", 0);
+    expect(screen.getByText("MISSING_H1")).toBeVisible();
+    expect(screen.getByText("INVALID_HEX")).toBeVisible();
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "center" });
   });
 
   it("shows fixed parser code, byte offset, counts, targets, and hash", async () => {
@@ -114,7 +189,11 @@ describe("DAO proposal authoring form", () => {
       screen.getByRole("button", { name: "Publish immutable content" })
     );
 
-    expect(await screen.findByText("Immutable content published")).toBeVisible();
+    expect(
+      await screen.findByRole("heading", {
+        name: "Immutable content published",
+      })
+    ).toBeVisible();
     const proposalStep = await screen.findByRole("heading", {
       name: "Content published — proposal not created yet",
     });
@@ -128,16 +207,117 @@ describe("DAO proposal authoring form", () => {
       screen.getByRole("button", { name: "Create onchain proposal" })
     );
     const completionHeading = await screen.findByRole("heading", {
-      name: "Proposal transaction submitted",
+      name: "Proposal ready",
     });
     expect(completionHeading).toBeVisible();
     expect(completionHeading).toHaveFocus();
     expect(
-      screen.getByText("Awaiting proposal indexing and analysis")
+      screen.getByText("Proposal indexed")
     ).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Awaiting proposal indexing and analysis."
+      "Proposal ready"
     );
+    expect(screen.getByRole("link", { name: "Open proposal" })).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^\/dao\/proposals\/\d+\?from=upcoming$/)
+    );
+    expect(
+      screen.getByRole("link", { name: "View transaction" })
+    ).toHaveAttribute("target", "_blank");
+  });
+
+  it("shows the transaction before receipt identity and preserves the decoded route through indexing", async () => {
+    const user = userEvent.setup();
+    const writeText = vi
+      .spyOn(navigator.clipboard, "writeText")
+      .mockResolvedValue(undefined);
+    renderAuthoring(80);
+    await fillDraft(user, 1001);
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /I reviewed the exact immutable content/i,
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Publish immutable content" })
+    );
+    await screen.findByRole("heading", {
+      name: "Immutable content published",
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Create onchain proposal" })
+    );
+
+    const transaction = await screen.findByRole("link", {
+      name: "View transaction",
+    });
+    expect(transaction).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^https:\/\/etherscan\.io\/tx\/0x[0-9a-f]{64}$/)
+    );
+    expect(
+      screen.queryByRole("link", { name: "Open proposal" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy proposal link" })
+    ).not.toBeInTheDocument();
+
+    const open = await screen.findByRole("link", { name: "Open proposal" });
+    const decodedHref = open.getAttribute("href");
+    expect(decodedHref).toMatch(/^\/dao\/proposals\/\d+\?from=upcoming$/);
+    await user.click(
+      screen.getByRole("button", { name: "Copy proposal link" })
+    );
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(
+        new URL(decodedHref!, window.location.origin).toString()
+      )
+    );
+
+    await screen.findByRole("heading", { name: "Proposal ready" });
+    expect(screen.getByRole("link", { name: "Open proposal" })).toHaveAttribute(
+      "href",
+      decodedHref
+    );
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+  });
+
+  it("keeps the transaction link and hides proposal actions when identity decoding fails", async () => {
+    const user = userEvent.setup();
+    renderAuthoring();
+    await fillDraft(user, 1005);
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /I reviewed the exact immutable content/i,
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Publish immutable content" })
+    );
+    await screen.findByRole("heading", {
+      name: "Immutable content published",
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Create onchain proposal" })
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Proposal identity unavailable",
+      })
+    ).toBeVisible();
+    expect(screen.getByText("PROPOSE_LOG_MISSING")).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "View transaction" })
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: "Open proposal" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy proposal link" })
+    ).not.toBeInTheDocument();
   });
 
   it("locks the exact review throughout publication and exposes complete forum facts", async () => {
@@ -146,22 +326,25 @@ describe("DAO proposal authoring form", () => {
     renderAuthoring(80);
     await fillDraft(user, 1001, exactTitle);
 
-    const acceptedTopic = screen.getByRole("status", {
-      name: "",
-    });
-    expect(within(acceptedTopic).getByText("Fund protocol research")).toBeVisible();
-    expect(within(acceptedTopic).getByText("Proposals · ID 5")).toBeVisible();
-    expect(within(acceptedTopic).getByText("yearn-contributor")).toBeVisible();
-    expect(within(acceptedTopic).getByText("Aug 1, 2024, 12:00 AM UTC")).toBeVisible();
+    const acceptedTopic = screen
+      .getByText("Forum topic accepted", { selector: "#dao-forum-status p" })
+      .closest("div");
+    expect(acceptedTopic).not.toBeNull();
+    expect(within(acceptedTopic!).getByText("Fund protocol research")).toBeVisible();
+    expect(within(acceptedTopic!).getByText("Proposals · ID 5")).toBeVisible();
+    expect(within(acceptedTopic!).getByText("yearn-contributor")).toBeVisible();
+    expect(within(acceptedTopic!).getByText("Aug 1, 2024, 12:00 AM UTC")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Review proposal" }));
 
     const immutable = screen.getByRole("region", { name: "Immutable content" });
-    const exactTitleValue = within(immutable).getByText(exactTitle, {
-      exact: true,
-      normalizer: (value) => value,
-    });
-    expect(exactTitleValue).toHaveClass("whitespace-pre-wrap");
+    const sourceDisclosure = within(immutable).getByText("View Markdown source");
+    await user.click(sourceDisclosure);
+    const exactSource = `# ${exactTitle}\n\nExact summary\n\n## Specification\n\nExact specification\n`;
+    const exactSourceCode = within(immutable).getByText(
+      (_, element) => element?.tagName === "CODE" && element.textContent === exactSource
+    );
+    expect(exactSourceCode).toBeVisible();
 
     const forum = screen.getByRole("region", { name: "Forum topic" });
     expect(within(forum).getByText("Fund protocol research")).toBeVisible();
@@ -187,6 +370,7 @@ describe("DAO proposal authoring form", () => {
     expect(screen.getByRole("status", { name: "" })).toHaveTextContent(
       "Publishing immutable content"
     );
+    expect(screen.getByRole("status")).toHaveAttribute("aria-atomic", "true");
     const edit = screen.getByRole("button", { name: "Edit proposal" });
     expect(edit).toBeDisabled();
 
@@ -196,9 +380,35 @@ describe("DAO proposal authoring form", () => {
       screen.getByRole("heading", { name: "Review the exact proposal" })
     ).toBeVisible();
 
-    expect(await screen.findByText("Immutable content published")).toBeVisible();
+    expect(
+      await screen.findByRole("heading", {
+        name: "Immutable content published",
+      })
+    ).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit proposal" })).toBeDisabled();
-    expect(exactTitleValue.textContent).toBe(exactTitle);
+    expect(exactSourceCode.textContent).toBe(exactSource);
+  });
+
+  it("supports keyboard navigation between Write and Preview", async () => {
+    const user = userEvent.setup();
+    renderAuthoring();
+
+    const writeTab = screen.getByRole("tab", { name: "Write" });
+    const previewTab = screen.getByRole("tab", { name: "Preview" });
+    await user.click(writeTab);
+    await user.keyboard("{ArrowRight}");
+
+    await waitFor(() => expect(previewTab).toHaveFocus());
+    expect(previewTab).toHaveAttribute("aria-selected", "true");
+    expect(writeTab).toHaveAttribute("tabindex", "-1");
+    expect(screen.getByRole("tabpanel")).toHaveAttribute(
+      "aria-labelledby",
+      "dao-markdown-preview-tab"
+    );
+
+    await user.keyboard("{Home}");
+    await waitFor(() => expect(writeTab).toHaveFocus());
+    expect(writeTab).toHaveAttribute("aria-selected", "true");
   });
 
   it("preserves every draft field when publication fails and never starts a wallet step", async () => {
@@ -223,16 +433,10 @@ describe("DAO proposal authoring form", () => {
     ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Edit proposal" }));
-    expect(screen.getByRole("textbox", { name: "Title" })).toHaveValue(
-      "Exact proposal title"
-    );
-    expect(screen.getByRole("textbox", { name: "Summary" })).toHaveValue(
-      "Exact summary"
-    );
     expect(
-      screen.getByRole("textbox", { name: "Specification" })
+      screen.getByRole("textbox", { name: "Proposal Markdown" })
     ).toHaveValue(
-      "Exact specification"
+      "# Exact proposal title\n\nExact summary\n\n## Specification\n\nExact specification\n"
     );
     expect(
       screen.getByRole("textbox", { name: "Forum discussion" })
@@ -257,13 +461,17 @@ describe("DAO proposal authoring form", () => {
     await user.click(
       screen.getByRole("button", { name: "Publish immutable content" })
     );
-    await screen.findByText("Immutable content published");
+    await screen.findByRole("heading", {
+      name: "Immutable content published",
+    });
     await user.click(
       screen.getByRole("button", { name: "Create onchain proposal" })
     );
 
     expect(await screen.findByText(title)).toBeVisible();
-    expect(screen.getByText("Immutable content published")).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Immutable content published" })
+    ).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Retry proposal creation" })
     ).toBeEnabled();
@@ -358,18 +566,14 @@ async function fillDraft(
     `https://gov.yearn.fi/t/topic/${topicId}`
   );
   await user.click(screen.getByRole("button", { name: "Validate topic" }));
-  await screen.findByText("Forum topic accepted");
+  await screen.findByText("Forum topic accepted", {
+    selector: "#dao-forum-status p",
+  });
+  const markdown = screen.getByRole("textbox", { name: "Proposal Markdown" });
+  await user.clear(markdown);
   await user.type(
-    screen.getByRole("textbox", { name: "Title" }),
-    title
-  );
-  await user.type(
-    screen.getByRole("textbox", { name: "Summary" }),
-    "Exact summary"
-  );
-  await user.type(
-    screen.getByRole("textbox", { name: "Specification" }),
-    "Exact specification"
+    markdown,
+    `# ${title}\n\nExact summary\n\n## Specification\n\nExact specification\n`
   );
 }
 

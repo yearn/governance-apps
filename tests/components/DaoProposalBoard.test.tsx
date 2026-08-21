@@ -27,7 +27,7 @@ describe("DAO proposal board", () => {
     expect(within(proposal).getByText("Voting ends in 6 hours")).toBeVisible();
     expect(within(proposal).getByText("68.2% Yea · 31.8% Nay")).toBeVisible();
     expect(
-      within(proposal).getByText("of votes cast · 55% approval threshold")
+      within(proposal).getByText("of votes cast · 50% approval threshold")
     ).toBeVisible();
   });
 

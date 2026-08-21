@@ -4,6 +4,7 @@ import type {
   DaoCapabilityInput,
   DaoDisplayGroup,
   DaoDisplayStatus,
+  DaoLifecycleFacts,
   DaoProposal,
   DaoProposalEvent,
   DaoProposalLifecycleInput,
@@ -17,6 +18,7 @@ import type {
   DaoVotingWeight,
   DaoVotingWeightInput,
 } from "./types";
+import { validateDaoVerifiedSource } from "./content";
 
 export const DAO_BPS = 10_000;
 export const DAO_PROPOSAL_LIMIT = 64 as const;
@@ -160,6 +162,83 @@ export function deriveDaoDisplayGroup(
     return "active";
   }
   return "closed";
+}
+
+export function deriveDaoLifecycleFacts(
+  proposal: DaoProposal,
+  now: number
+): DaoLifecycleFacts {
+  assertFiniteInteger(now, "now");
+  const hasParticipation = proposal.totalWeight > 0n;
+  const isFlagged = proposal.protocolStatus === "flagged";
+  const isVetoed = proposal.protocolStatus === "vetoed";
+  const votingWindowOpen = now >= proposal.voteStartsAt && now < proposal.voteEndsAt;
+
+  const moderation: DaoLifecycleFacts["moderation"] =
+    isFlagged || isVetoed
+      ? {
+          kind: isFlagged ? "flagged" : "vetoed",
+          phase: hasParticipation
+            ? "after_participation"
+            : "before_participation",
+          reason: isFlagged
+            ? proposal.moderation.flagReason
+            : proposal.moderation.vetoReason,
+          votingAvailable: isVetoed && hasParticipation && votingWindowOpen,
+          executionBlocked: true,
+        }
+      : {
+          kind: null,
+          phase: null,
+          reason: null,
+          votingAvailable:
+            proposal.protocolStatus === "voting" && votingWindowOpen,
+          executionBlocked: false,
+        };
+
+  let voteResult: DaoLifecycleFacts["voteResult"] = null;
+  if (proposal.protocolStatus === "failed") voteResult = "rejected";
+  if (
+    proposal.protocolStatus === "passed" ||
+    proposal.protocolStatus === "executed" ||
+    proposal.protocolStatus === "expired"
+  ) {
+    voteResult = "approved";
+  }
+
+  let execution: DaoLifecycleFacts["execution"];
+  if (moderation.kind !== null) {
+    execution = { state: "blocked", guard: proposal.rules.executionGuard };
+  } else if (proposal.type === "signal") {
+    execution = { state: "no_actions", guard: null };
+  } else if (proposal.protocolStatus === "executed") {
+    execution = { state: "executed", guard: proposal.rules.executionGuard };
+  } else if (proposal.protocolStatus === "expired") {
+    execution = { state: "expired", guard: proposal.rules.executionGuard };
+  } else if (
+    proposal.protocolStatus === "passed" &&
+    proposal.executionStartsAt !== null &&
+    proposal.executionEndsAt !== null
+  ) {
+    execution = {
+      state:
+        now < proposal.executionStartsAt
+          ? "scheduled"
+          : now < proposal.executionEndsAt
+            ? "executable"
+            : "expired",
+      guard: proposal.rules.executionGuard,
+    };
+  } else {
+    execution = { state: "blocked", guard: proposal.rules.executionGuard };
+  }
+
+  return {
+    status: proposal.protocolStatus,
+    voteResult,
+    moderation,
+    execution,
+  };
 }
 
 export function deriveDaoProposalTiming(
@@ -415,6 +494,8 @@ export function assertDaoProposalInvariants(proposal: DaoProposal): void {
     throw new Error("Proposal display group is inconsistent.");
   }
 
+  assertDaoProposalRulesInvariant(proposal);
+
   if (proposal.type === "signal") {
     if (
       proposal.script.hash.toLowerCase() !== DAO_EMPTY_SCRIPT_HASH ||
@@ -443,6 +524,12 @@ export function assertDaoProposalInvariants(proposal: DaoProposal): void {
 }
 
 function assertDaoProposalEventInvariant(event: DaoProposalEvent): void {
+  if (
+    event.log.timestamp !== null &&
+    (!Number.isSafeInteger(event.log.timestamp) || event.log.timestamp < 0)
+  ) {
+    throw new Error("Event timestamps must be canonical unsigned Unix seconds.");
+  }
   if (event.type !== "vote") {
     if (
       event.voteActorKind !== null ||
@@ -481,6 +568,48 @@ function assertDaoProposalEventInvariant(event: DaoProposalEvent): void {
   } else if (event.direction !== null) {
     throw new Error("Aggregate vote events cannot use a binary direction.");
   }
+}
+
+function assertDaoProposalRulesInvariant(proposal: DaoProposal): void {
+  const rules = proposal.rules;
+  assertBasisPoints(rules.approvalThresholdBps, "approvalThresholdBps");
+  if (rules.approvalThresholdBps !== proposal.thresholdBps) {
+    throw new Error("Proposal rules must carry the snapshotted threshold.");
+  }
+  if (rules.proposalType !== proposal.type) {
+    throw new Error("Proposal rules must carry the proposal type.");
+  }
+  if (
+    rules.votingAddress.toLowerCase() !== proposal.ref.votingAddress.toLowerCase()
+  ) {
+    throw new Error("Proposal rules must bind to the exact Voting contract.");
+  }
+  if (rules.votingPeriodSeconds !== proposal.voteEndsAt - proposal.voteStartsAt) {
+    throw new Error("Proposal rules must carry the proposal voting period.");
+  }
+  if (!Number.isSafeInteger(rules.votingPeriodSeconds) || rules.votingPeriodSeconds <= 0) {
+    throw new Error("Proposal voting period must be positive Unix seconds.");
+  }
+  const expectedDelay =
+    proposal.executionStartsAt === null
+      ? null
+      : proposal.executionStartsAt - proposal.voteEndsAt;
+  if (rules.executionDelaySeconds !== expectedDelay) {
+    throw new Error("Proposal rules must carry the proposal execution delay.");
+  }
+  if (
+    (proposal.type === "signal" && rules.executionGuard !== null) ||
+    (proposal.type === "executable" && rules.executionGuard === null)
+  ) {
+    throw new Error("Proposal execution rules must match the proposal type.");
+  }
+  if (rules.observationBlockNumber < 0n) {
+    throw new Error("Proposal rule observation block cannot be negative.");
+  }
+  if (!rules.votingSourcePath.trim()) {
+    throw new Error("Proposal rules require the pinned Voting source path.");
+  }
+  validateDaoVerifiedSource(rules.votingSource);
 }
 
 function deriveVoteCapability(input: DaoCapabilityInput): {

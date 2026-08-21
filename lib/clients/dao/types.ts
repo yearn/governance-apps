@@ -53,16 +53,30 @@ export type DaoCapabilities = {
   executeBlockedReason: string | null;
 };
 
-export type DaoProposalContentV1 = {
+export type DaoProposalAsset = {
+  path: string;
+  mediaType: string;
+  byteLength: number;
+  digest: Hex;
+  width: number | null;
+  height: number | null;
+};
+
+export type DaoProposalContent = {
   schema: "yearn.dao.proposal.v1";
-  title: string;
-  summary: string;
-  specification: string;
+  markdown: string;
   discussionUrl: string;
   proposalType: DaoProposalType;
   createdBy: Address;
   createdAt: string;
-  links: Array<{ label: string; url: string }>;
+  assets: DaoProposalAsset[];
+};
+
+export type DaoVerifiedSource = {
+  kind: "github" | "sourcify" | "explorer";
+  label: string;
+  url: string;
+  revision: string | null;
 };
 
 export type DaoScriptFrame = {
@@ -109,7 +123,8 @@ export type DaoDecodedCall = DaoScriptFrame & {
   contractName: string | null;
   functionSignature: string | null;
   arguments: Array<{ name: string; type: string; value: string }>;
-  abiSource: string | null;
+  verifiedSource: DaoVerifiedSource | null;
+  sourcePath: string | null;
 };
 
 export type DaoSimulation = {
@@ -147,10 +162,75 @@ export type DaoExecutionPreflight = {
 export type DaoLogRef = {
   blockNumber: bigint;
   blockHash: Hex;
-  transactionHash: Hex;
+  timestamp: DaoUnixSeconds | null;
+  transactionHash: Hex | null;
   transactionIndex: number;
   logIndex: number;
 };
+
+export type DaoReceiptLog = {
+  address: Address;
+  data: Hex;
+  topics: readonly Hex[];
+  logIndex: number;
+};
+
+/**
+ * Chain identity is deliberately absent. A caller must supply trusted chain
+ * context separately when decoding a receipt.
+ */
+export type DaoTransactionReceipt = {
+  status: "success" | "reverted";
+  transactionHash: Hex;
+  blockNumber: bigint;
+  blockHash: Hex;
+  blockTimestamp: DaoUnixSeconds | null;
+  transactionIndex: number;
+  logs: DaoReceiptLog[];
+};
+
+export type DaoProposeReceiptExpectation = {
+  chainId: number;
+  votingAddress: Address;
+  transactionHash: Hex;
+  proposer: Address;
+  votingEpoch: bigint;
+  contentDigest: Hex;
+  script: Hex;
+};
+
+export type DaoDecodedProposeIdentity = {
+  ref: DaoProposalRef;
+  proposer: Address;
+  votingEpoch: bigint;
+  contentDigest: Hex;
+  script: Hex;
+  blockTimestamp: DaoUnixSeconds | null;
+  log: DaoLogRef;
+};
+
+export type DaoProposeReceiptErrorCode =
+  | "INVALID_CHAIN_CONTEXT"
+  | "TRANSACTION_HASH_MISMATCH"
+  | "RECEIPT_REVERTED"
+  | "PROPOSE_LOG_MISSING"
+  | "PROPOSE_LOG_WRONG_CONTRACT"
+  | "PROPOSE_LOG_DUPLICATE"
+  | "PROPOSE_LOG_MALFORMED"
+  | "PROPOSER_MISMATCH"
+  | "VOTING_EPOCH_MISMATCH"
+  | "CONTENT_DIGEST_MISMATCH"
+  | "SCRIPT_MISMATCH";
+
+export type DaoProposeReceiptDecodeResult =
+  | { state: "decoded"; identity: DaoDecodedProposeIdentity }
+  | {
+      state: "invalid";
+      error: {
+        code: DaoProposeReceiptErrorCode;
+        message: string;
+      };
+    };
 
 export type DaoProposalEvent = {
   type: "propose" | "vote" | "retract" | "flag" | "veto" | "execute";
@@ -161,6 +241,56 @@ export type DaoProposalEvent = {
   direction: DaoVoteDirection | null;
   weight: bigint | null;
   reason: string | null;
+};
+
+export type DaoVoteResult = "approved" | "rejected";
+export type DaoModerationPhase =
+  | "before_participation"
+  | "after_participation";
+
+export type DaoLifecycleFacts = {
+  status: DaoProtocolStatus;
+  voteResult: DaoVoteResult | null;
+  moderation:
+    | {
+        kind: null;
+        phase: null;
+        reason: null;
+        votingAvailable: boolean;
+        executionBlocked: boolean;
+      }
+    | {
+        kind: "flagged" | "vetoed";
+        phase: DaoModerationPhase;
+        reason: string | null;
+        votingAvailable: boolean;
+        executionBlocked: true;
+      };
+  execution: {
+    state:
+      | "no_actions"
+      | "scheduled"
+      | "executable"
+      | "executed"
+      | "blocked"
+      | "expired";
+    guard: DaoExecutionGuard | null;
+  };
+};
+
+export type DaoProposalRules = {
+  approvalThresholdBps: number;
+  thresholdSnapshottedAtCreation: true;
+  minimumTurnout: null;
+  passageRequiresPositiveTotal: true;
+  proposalType: DaoProposalType;
+  votingPeriodSeconds: number;
+  executionDelaySeconds: number | null;
+  executionGuard: DaoExecutionGuard | null;
+  votingAddress: Address;
+  votingSource: DaoVerifiedSource;
+  votingSourcePath: string;
+  observationBlockNumber: bigint;
 };
 
 export type DaoProposal = {
@@ -180,11 +310,12 @@ export type DaoProposal = {
   displayStatus: DaoDisplayStatus;
   displayGroup: DaoDisplayGroup;
   type: DaoProposalType;
+  rules: DaoProposalRules;
   content: {
     state: "available" | "unavailable" | "invalid";
     cid: string | null;
     digest: Hex;
-    value: DaoProposalContentV1 | null;
+    value: DaoProposalContent | null;
     error: string | null;
   };
   discussion: {
@@ -308,6 +439,13 @@ export type DaoProposalEventJson = Omit<DaoProposalEvent, "log" | "weight"> & {
   weight: DaoBigIntJson | null;
 };
 
+export type DaoProposalRulesJson = Omit<
+  DaoProposalRules,
+  "observationBlockNumber"
+> & {
+  observationBlockNumber: DaoBigIntJson;
+};
+
 export type DaoProposalJson = Omit<
   DaoProposal,
   | "ref"
@@ -317,6 +455,7 @@ export type DaoProposalJson = Omit<
   | "nayWeight"
   | "analysis"
   | "events"
+  | "rules"
 > & {
   ref: Omit<DaoProposalRef, "proposalId"> & {
     proposalId: DaoBigIntJson;
@@ -327,6 +466,14 @@ export type DaoProposalJson = Omit<
   nayWeight: DaoBigIntJson;
   analysis: DaoAnalysisJson;
   events: DaoProposalEventJson[];
+  rules: DaoProposalRulesJson;
+};
+
+export type DaoCreatedProposalStage = "awaiting_index" | "indexed";
+
+export type DaoCreatedProposalRecord = {
+  stage: DaoCreatedProposalStage;
+  proposal: DaoProposal;
 };
 
 export type DaoFeedV1Json = Omit<

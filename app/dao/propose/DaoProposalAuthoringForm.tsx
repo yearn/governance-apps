@@ -1,36 +1,53 @@
 "use client";
 
+import Link from "next/link";
 import {
-  forwardRef,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent,
   type ReactNode,
   type RefObject,
 } from "react";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
+import { IconCopy } from "@/components/icons/IconCopy";
+import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { UtcTime } from "@/components/ui/UtcTime";
 import {
   checkDaoExecutorScript,
+  DAO_PROPOSAL_MARKDOWN_LIMITS,
+  parseDaoProposalContent,
+  serializeDaoProposalRef,
+  type DaoDecodedProposeIdentity,
   type DaoMockAuthoring,
   type DaoProposalType,
   type DaoProposerState,
   type DaoScriptCheck,
 } from "@/lib/clients/dao";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/cn";
+import { getEtherscanTransactionUrl } from "@/lib/explorer";
 import { formatTokenAmount } from "@/lib/format";
 import {
   createDaoAuthoringReview,
-  DAO_AUTHORING_LIMITS,
+  DAO_PROPOSAL_MARKDOWN_TEMPLATE,
   findFirstFullDaoCapacityEpoch,
   type DaoAuthoringErrors,
 } from "./authoring";
 import {
+  DaoProposalMarkdown,
+  DaoProposalMarkdownSource,
+} from "../components/DaoProposalMarkdown";
+import {
+  completeMockDaoProposalIndex,
+  confirmMockDaoProposalReceipt,
   publishMockDaoProposalContent,
+  registerMockDaoProposalAwaitingIndex,
   submitMockDaoProposal,
   validateMockDaoForumTopic,
   type DaoAuthoringReview,
@@ -38,6 +55,7 @@ import {
   type DaoPublishedContent,
 } from "./mock-services";
 import { daoProposeCopy } from "./messages";
+import { createDaoProposalHref } from "../route-state";
 
 const FIELD_CLASS_NAME =
   "w-full rounded-box border border-border bg-surface px-3 text-base text-text-primary shadow-sm transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-text-secondary focus:border-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app motion-reduce:transition-none";
@@ -64,11 +82,28 @@ type WalletState =
       code: "WALLET_REJECTED" | "PROPOSAL_REVERTED";
       message: string;
     }
-  | { state: "submitted"; transactionHash: `0x${string}` };
+  | { state: "receipt_pending"; transactionHash: Hex }
+  | {
+      state: "receipt_failed";
+      transactionHash: Hex;
+      code: string;
+      message: string;
+    }
+  | {
+      state:
+        | "identity_decoded"
+        | "awaiting_index"
+        | "indexed"
+        | "index_failed";
+      transactionHash: Hex;
+      identity: DaoDecodedProposeIdentity;
+      message?: string;
+    };
 
 type DaoProposalAuthoringFormProps = {
   address: Address;
   authoringPreset?: DaoMockAuthoring | null;
+  hostname?: string;
   now: number;
   proposer: DaoProposerState;
   serviceLatencyMs?: number;
@@ -86,13 +121,13 @@ export function DaoProposalAuthoringForm(
 function DaoProposalAuthoringFormState({
   address,
   authoringPreset,
+  hostname,
   now,
   proposer,
   serviceLatencyMs = 140,
 }: DaoProposalAuthoringFormProps) {
-  const [title, setTitle] = useState("");
-  const [summary, setSummary] = useState("");
-  const [specification, setSpecification] = useState("");
+  const [markdown, setMarkdown] = useState(DAO_PROPOSAL_MARKDOWN_TEMPLATE);
+  const [editorMode, setEditorMode] = useState<"write" | "preview">("write");
   const [proposalType, setProposalType] = useState<DaoProposalType>(
     authoringPreset?.proposalType ?? "signal"
   );
@@ -112,16 +147,41 @@ function DaoProposalAuthoringFormState({
   const forumRequest = useRef(0);
   const publicationLock = useRef(false);
   const forumInputRef = useRef<HTMLInputElement>(null);
-  const titleRef = useRef<HTMLInputElement>(null);
-  const summaryRef = useRef<HTMLTextAreaElement>(null);
-  const specificationRef = useRef<HTMLTextAreaElement>(null);
+  const markdownRef = useRef<HTMLTextAreaElement>(null);
   const scriptRef = useRef<HTMLTextAreaElement>(null);
+  const pendingErrorFocusRef = useRef<{
+    field: keyof DaoAuthoringErrors;
+    offset: number | null;
+  } | null>(null);
   const proposalStepHeadingRef = useRef<HTMLHeadingElement>(null);
   const proposalCompleteHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const exactScript = proposalType === "signal" ? "0x" : executableScript;
   const scriptCheck = checkDaoExecutorScript(exactScript, proposalType);
   const topic = forumState.state === "valid" ? forumState.topic : null;
+  const parsedDraftContent = useMemo(
+    () =>
+      parseDaoProposalContent({
+        schema: "yearn.dao.proposal.v1",
+        markdown,
+        discussionUrl:
+          topic?.normalizedUrl ?? "https://gov.yearn.fi/t/pending/0",
+        proposalType,
+        createdBy: address,
+        createdAt: new Date(now * 1_000).toISOString(),
+        assets: [],
+      }),
+    [address, markdown, now, proposalType, topic?.normalizedUrl]
+  );
+  const draftAnnouncement =
+    forumState.state === "validating"
+      ? daoProposeCopy.discussion.validating
+      : forumState.state === "valid"
+        ? daoProposeCopy.discussion.accepted
+        : forumState.state === "invalid"
+          ? `${forumState.code}. ${forumState.message}`
+          : "";
+  const transactionHash = getWalletTransactionHash(wallet);
 
   useEffect(() => {
     if (publication.state !== "published") return;
@@ -131,11 +191,40 @@ function DaoProposalAuthoringFormState({
   }, [publication.state]);
 
   useEffect(() => {
-    if (wallet.state !== "submitted") return;
+    if (transactionHash === null) return;
 
     proposalCompleteHeadingRef.current?.focus({ preventScroll: true });
     proposalCompleteHeadingRef.current?.scrollIntoView?.({ block: "center" });
-  }, [wallet.state]);
+  }, [transactionHash]);
+
+  useEffect(() => {
+    const pending = pendingErrorFocusRef.current;
+    if (!pending || (pending.field === "markdown" && editorMode !== "write")) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      const refs = {
+        forum: forumInputRef,
+        markdown: markdownRef,
+        script: scriptRef,
+      } as const;
+      const control = refs[pending.field].current;
+      if (!control) return;
+
+      control.focus({ preventScroll: true });
+      if (
+        pending.field === "markdown" &&
+        control instanceof HTMLTextAreaElement &&
+        pending.offset !== null
+      ) {
+        const offset = Math.min(pending.offset, control.value.length);
+        control.setSelectionRange(offset, offset);
+      }
+      control.scrollIntoView?.({ block: "center" });
+      pendingErrorFocusRef.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editorMode, errors]);
 
   const handleForumInput = (value: string) => {
     forumRequest.current += 1;
@@ -172,9 +261,7 @@ function DaoProposalAuthoringFormState({
       address,
       createdAt: now,
       draft: {
-        title,
-        summary,
-        specification,
+        markdown,
         proposalType,
         executableScript,
       },
@@ -183,7 +270,7 @@ function DaoProposalAuthoringFormState({
 
     if (result.state === "invalid") {
       setErrors(result.errors);
-      focusFirstError(result.errors);
+      focusFirstError(result.errors, result.contentValidation.errors[0] ?? null);
       return;
     }
 
@@ -198,16 +285,38 @@ function DaoProposalAuthoringFormState({
     });
   };
 
-  const focusFirstError = (nextErrors: DaoAuthoringErrors) => {
-    const refs = {
-      forum: forumInputRef,
-      title: titleRef,
-      summary: summaryRef,
-      specification: specificationRef,
-      script: scriptRef,
-    } as const;
+  const focusFirstError = (
+    nextErrors: DaoAuthoringErrors,
+    contentError: { offset: number | null } | null
+  ) => {
     const first = (Object.keys(nextErrors) as (keyof DaoAuthoringErrors)[])[0];
-    requestAnimationFrame(() => refs[first]?.current?.focus());
+    if (!first) return;
+    pendingErrorFocusRef.current = {
+      field: first,
+      offset: first === "markdown" ? (contentError?.offset ?? null) : null,
+    };
+    if (first === "markdown") setEditorMode("write");
+  };
+
+  const handleEditorTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    mode: "write" | "preview"
+  ) => {
+    let nextMode: "write" | "preview" | null = null;
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      nextMode = mode === "write" ? "preview" : "write";
+    } else if (event.key === "Home") {
+      nextMode = "write";
+    } else if (event.key === "End") {
+      nextMode = "preview";
+    }
+    if (!nextMode) return;
+
+    event.preventDefault();
+    setEditorMode(nextMode);
+    requestAnimationFrame(() => {
+      document.getElementById(`dao-markdown-${nextMode}-tab`)?.focus();
+    });
   };
 
   const handleEdit = () => {
@@ -223,7 +332,7 @@ function DaoProposalAuthoringFormState({
     setConfirmationError(null);
     setPublication({ state: "idle" });
     setWallet({ state: "idle" });
-    requestAnimationFrame(() => titleRef.current?.focus());
+    requestAnimationFrame(() => markdownRef.current?.focus());
   };
 
   const handlePublish = async () => {
@@ -276,9 +385,73 @@ function DaoProposalAuthoringFormState({
       return;
     }
     setWallet({
-      state: "submitted",
+      state: "receipt_pending",
       transactionHash: result.transactionHash,
     });
+
+    const receipt = await confirmMockDaoProposalReceipt(
+      review,
+      publication.publication,
+      result.transactionHash,
+      proposer.expectedVotingEpoch,
+      serviceLatencyMs
+    );
+    if (receipt.decoded.state === "invalid") {
+      setWallet({
+        state: "receipt_failed",
+        transactionHash: result.transactionHash,
+        code: receipt.decoded.error.code,
+        message: receipt.decoded.error.message,
+      });
+      return;
+    }
+
+    const identity = receipt.decoded.identity;
+    setWallet({
+      state: "identity_decoded",
+      transactionHash: result.transactionHash,
+      identity,
+    });
+
+    try {
+      await registerMockDaoProposalAwaitingIndex(
+        review,
+        publication.publication,
+        identity,
+        serviceLatencyMs
+      );
+      setWallet({
+        state: "awaiting_index",
+        transactionHash: result.transactionHash,
+        identity,
+      });
+      const indexed = await completeMockDaoProposalIndex(
+        identity.ref,
+        now,
+        serviceLatencyMs
+      );
+      if (!indexed) {
+        setWallet({
+          state: "index_failed",
+          transactionHash: result.transactionHash,
+          identity,
+          message: daoProposeCopy.proposal.indexingDelayedBody,
+        });
+        return;
+      }
+      setWallet({
+        state: "indexed",
+        transactionHash: result.transactionHash,
+        identity,
+      });
+    } catch {
+      setWallet({
+        state: "index_failed",
+        transactionHash: result.transactionHash,
+        identity,
+        message: daoProposeCopy.proposal.indexingDelayedBody,
+      });
+    }
   };
 
   if (review) {
@@ -298,6 +471,7 @@ function DaoProposalAuthoringFormState({
         proposalCompleteHeadingRef={proposalCompleteHeadingRef}
         proposalStepHeadingRef={proposalStepHeadingRef}
         review={review}
+        hostname={hostname}
         wallet={wallet}
       />
     );
@@ -305,6 +479,7 @@ function DaoProposalAuthoringFormState({
 
   return (
     <Card className="min-w-0 space-y-8 overflow-hidden p-4 sm:p-6">
+      <AuthoringLiveRegion message={draftAnnouncement} />
       <div className="space-y-2">
         <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue dark:text-blue-300">
           {daoProposeCopy.form.eyebrow}
@@ -380,38 +555,130 @@ function DaoProposalAuthoringFormState({
           title={daoProposeCopy.content.title}
           description={daoProposeCopy.content.description}
         >
-          <TextField
-            ref={titleRef}
-            id="dao-proposal-title"
-            label={daoProposeCopy.content.titleLabel}
-            value={title}
-            error={errors.title}
-            maxLength={DAO_AUTHORING_LIMITS.title}
-            placeholder={daoProposeCopy.content.titlePlaceholder}
-            onChange={setTitle}
-          />
-          <TextAreaField
-            ref={summaryRef}
-            id="dao-proposal-summary"
-            label={daoProposeCopy.content.summaryLabel}
-            value={summary}
-            error={errors.summary}
-            maxLength={DAO_AUTHORING_LIMITS.summary}
-            placeholder={daoProposeCopy.content.summaryPlaceholder}
-            rows={5}
-            onChange={setSummary}
-          />
-          <TextAreaField
-            ref={specificationRef}
-            id="dao-proposal-specification"
-            label={daoProposeCopy.content.specificationLabel}
-            value={specification}
-            error={errors.specification}
-            maxLength={DAO_AUTHORING_LIMITS.specification}
-            placeholder={daoProposeCopy.content.specificationPlaceholder}
-            rows={9}
-            onChange={setSpecification}
-          />
+          <div className="min-w-0 space-y-3">
+            <div
+              role="tablist"
+              aria-label="Proposal document mode"
+              className="inline-flex min-h-11 rounded-box bg-surface-secondary p-1"
+            >
+              {(["write", "preview"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  id={`dao-markdown-${mode}-tab`}
+                  role="tab"
+                  aria-selected={editorMode === mode}
+                  aria-controls={`dao-markdown-${mode}-panel`}
+                  tabIndex={editorMode === mode ? 0 : -1}
+                  className={cn(
+                    "min-h-10 rounded-box px-4 text-sm font-bold transition-[background-color,color,box-shadow,scale] duration-150 ease-out active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none motion-reduce:active:scale-100",
+                    editorMode === mode
+                      ? "bg-surface text-text-primary shadow-sm"
+                      : "text-text-secondary hover:text-text-primary"
+                  )}
+                  onClick={() => setEditorMode(mode)}
+                  onKeyDown={(event) => handleEditorTabKeyDown(event, mode)}
+                >
+                  {mode === "write"
+                    ? daoProposeCopy.content.write
+                    : daoProposeCopy.content.preview}
+                </button>
+              ))}
+            </div>
+
+            {editorMode === "write" ? (
+              <div
+                id="dao-markdown-write-panel"
+                role="tabpanel"
+                aria-labelledby="dao-markdown-write-tab"
+                className="min-w-0 space-y-2"
+              >
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <label htmlFor="dao-proposal-markdown" className="text-sm font-bold">
+                    {daoProposeCopy.content.markdownLabel}
+                  </label>
+                  <span
+                    id="dao-markdown-byte-count"
+                    className="font-number text-xs tabular-nums text-text-secondary"
+                  >
+                    {daoProposeCopy.content.byteCount(
+                      parsedDraftContent.byteLength,
+                      DAO_PROPOSAL_MARKDOWN_LIMITS.maxUtf8Bytes
+                    )}
+                  </span>
+                </div>
+                <textarea
+                  ref={markdownRef}
+                  id="dao-proposal-markdown"
+                  rows={16}
+                  value={markdown}
+                  spellCheck
+                  aria-invalid={Boolean(errors.markdown)}
+                  aria-describedby="dao-markdown-byte-count dao-markdown-grammar dao-markdown-validation"
+                  className={cn(
+                    TEXTAREA_CLASS_NAME,
+                    "min-h-80 resize-y font-number text-sm leading-6"
+                  )}
+                  onChange={(event) => {
+                    setMarkdown(event.target.value);
+                    setErrors((current) => ({ ...current, markdown: undefined }));
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                id="dao-markdown-preview-panel"
+                role="tabpanel"
+                aria-labelledby="dao-markdown-preview-tab"
+                tabIndex={0}
+                className="min-w-0 rounded-box border border-border bg-surface p-4 outline-none focus-visible:ring-2 focus-visible:ring-text-primary sm:p-5"
+              >
+                {parsedDraftContent.errors.length === 0 ? (
+                  <DaoProposalMarkdown
+                    context="preview"
+                    hostname={hostname}
+                    parsed={parsedDraftContent}
+                  />
+                ) : (
+                  <p className="text-pretty text-sm leading-6 text-text-secondary">
+                    Fix the document errors listed below to see the final preview.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <p id="dao-markdown-grammar" className="text-pretty text-xs leading-5 text-text-secondary">
+              {daoProposeCopy.content.grammar}
+            </p>
+            <div
+              id="dao-markdown-validation"
+              className={cn(
+                "space-y-2 rounded-box p-3 text-sm",
+                parsedDraftContent.errors.length === 0
+                  ? "bg-green-50 text-green-950 dark:bg-green-950/35 dark:text-green-100"
+                  : "border border-red-300 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/40 dark:text-red-100"
+              )}
+            >
+              <p className="font-bold">
+                {parsedDraftContent.errors.length === 0
+                  ? daoProposeCopy.content.valid
+                  : daoProposeCopy.content.validation}
+              </p>
+              {parsedDraftContent.errors.length > 0 ? (
+                <ul className="space-y-1">
+                  {parsedDraftContent.errors.map((error) => (
+                    <li key={`${error.code}:${error.offset ?? error.manifestIndex ?? "none"}`}>
+                      <span className="font-number font-bold">{error.code}</span>
+                      {error.line !== null && error.column !== null
+                        ? ` · line ${error.line}, column ${error.column}`
+                        : ""}
+                      {` · ${error.message}`}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </div>
         </AuthoringSection>
 
         <AuthoringSection
@@ -519,6 +786,7 @@ function DaoFinalReview({
   proposalCompleteHeadingRef,
   proposalStepHeadingRef,
   review,
+  hostname,
   wallet,
 }: {
   confirmed: boolean;
@@ -532,15 +800,53 @@ function DaoFinalReview({
   proposalCompleteHeadingRef: RefObject<HTMLHeadingElement | null>;
   proposalStepHeadingRef: RefObject<HTMLHeadingElement | null>;
   review: DaoAuthoringReview;
+  hostname?: string;
   wallet: WalletState;
 }) {
+  const [proposalLinkCopied, setProposalLinkCopied] = useState(false);
   const publicationLocked =
     publication.state === "publishing" || publication.state === "published";
   const contentPublished = publication.state === "published";
-  const walletFinished = wallet.state === "submitted";
+  const transactionHash = getWalletTransactionHash(wallet);
+  const proposalIdentity = getWalletProposalIdentity(wallet);
+  const walletFinished = transactionHash !== null;
+  const proposalHref = proposalIdentity
+    ? createDaoProposalHref(
+        proposalIdentity.ref.proposalId,
+        "upcoming",
+        hostname
+      )
+    : null;
+  const announcement =
+    proposalLinkCopied
+      ? daoProposeCopy.proposal.copied
+      : publication.state === "publishing"
+      ? daoProposeCopy.publication.publishing
+      : publication.state === "failed"
+        ? publication.message
+        : wallet.state === "waiting"
+          ? daoProposeCopy.proposal.waiting
+          : wallet.state === "failed"
+            ? wallet.message
+            : wallet.state === "receipt_pending"
+              ? daoProposeCopy.proposal.receiptPending
+              : wallet.state === "receipt_failed"
+                ? wallet.message
+                : wallet.state === "identity_decoded"
+                  ? daoProposeCopy.proposal.identityConfirmed
+                  : wallet.state === "awaiting_index"
+                    ? daoProposeCopy.proposal.awaitingIndex
+                    : wallet.state === "indexed"
+                      ? daoProposeCopy.proposal.indexedTitle
+                      : wallet.state === "index_failed"
+                        ? daoProposeCopy.proposal.indexingDelayedTitle
+              : publication.state === "published"
+                ? daoProposeCopy.publication.successTitle
+                : "";
 
   return (
     <Card className="min-w-0 space-y-8 overflow-hidden p-4 sm:p-6">
+      <AuthoringLiveRegion message={announcement} />
       <div className="space-y-2">
         <p className="text-xs font-bold uppercase tracking-wide text-yearn-blue dark:text-blue-300">
           {daoProposeCopy.review.eyebrow}
@@ -587,18 +893,14 @@ function DaoFinalReview({
         <ReviewFact label={daoProposeCopy.review.schema} mono>
           {review.content.schema}
         </ReviewFact>
-        <ReviewFact
-          label={daoProposeCopy.review.titleLabel}
-          preserveWhitespace
-        >
-          {review.content.title}
-        </ReviewFact>
-        <ReviewFact label={daoProposeCopy.review.summary} preserveWhitespace>
-          {review.content.summary}
-        </ReviewFact>
-        <ReviewFact label={daoProposeCopy.review.specification} preserveWhitespace>
-          {review.content.specification}
-        </ReviewFact>
+        <div className="min-w-0 rounded-box border border-border bg-surface p-4 sm:p-5">
+          <DaoProposalMarkdown
+            context="preview"
+            hostname={hostname}
+            parsed={review.parsedContent}
+          />
+        </div>
+        <DaoProposalMarkdownSource source={review.content.markdown} />
         <ReviewFact label={daoProposeCopy.review.creator} mono>
           {review.content.createdBy}
         </ReviewFact>
@@ -759,11 +1061,6 @@ function DaoFinalReview({
                   : daoProposeCopy.publication.publish}
             </Button>
           </div>
-          {publication.state === "publishing" ? (
-            <p role="status" aria-live="polite" className="sr-only">
-              {daoProposeCopy.publication.publishing}
-            </p>
-          ) : null}
         </section>
       ) : (
         <div className="space-y-4">
@@ -862,17 +1159,19 @@ function DaoFinalReview({
                         : daoProposeCopy.proposal.create}
                   </Button>
                 </div>
-                {wallet.state === "waiting" ? (
-                  <p role="status" aria-live="polite" className="sr-only">
-                    {daoProposeCopy.proposal.waiting}
-                  </p>
-                ) : null}
               </div>
             </section>
-          ) : (
+          ) : transactionHash ? (
             <section
               aria-labelledby="dao-proposal-complete-heading"
-              className="space-y-4 rounded-box border border-green-300 bg-green-50 p-4 text-green-950 sm:p-5 dark:border-green-900 dark:bg-green-950/35 dark:text-green-100"
+              className={cn(
+                "space-y-4 rounded-box border p-4 sm:p-5",
+                wallet.state === "receipt_failed"
+                  ? "border-red-300 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/35 dark:text-red-100"
+                  : wallet.state === "receipt_pending"
+                    ? "border-yearn-blue/50 bg-surface text-text-primary dark:border-blue-700"
+                    : "border-green-300 bg-green-50 text-green-950 dark:border-green-900 dark:bg-green-950/35 dark:text-green-100"
+              )}
             >
               <p className="text-xs font-bold uppercase tracking-wide">
                 {daoProposeCopy.review.complete}
@@ -883,30 +1182,126 @@ function DaoFinalReview({
                 tabIndex={-1}
                 className="w-fit max-w-full rounded-box text-balance text-xl font-bold outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app"
               >
-                {daoProposeCopy.proposal.submittedTitle}
+                {wallet.state === "receipt_pending"
+                  ? daoProposeCopy.proposal.submittedTitle
+                  : wallet.state === "receipt_failed"
+                    ? daoProposeCopy.proposal.identityUnavailableTitle
+                    : wallet.state === "indexed"
+                      ? daoProposeCopy.proposal.indexedTitle
+                      : wallet.state === "index_failed"
+                        ? daoProposeCopy.proposal.indexingDelayedTitle
+                        : daoProposeCopy.proposal.identityConfirmed}
               </h3>
-              <p role="status" aria-live="polite" className="sr-only">
-                {daoProposeCopy.review.indexStatus}.
-              </p>
               <ReviewFact label={daoProposeCopy.proposal.transaction} mono>
-                {wallet.transactionHash}
+                {transactionHash}
               </ReviewFact>
+              {proposalIdentity ? (
+                <ReviewFact label={daoProposeCopy.proposal.proposalIdentity} mono>
+                  {serializeDaoProposalRef(proposalIdentity.ref)}
+                </ReviewFact>
+              ) : null}
+              {wallet.state === "receipt_failed" ? (
+                <StateNotice
+                  tone="error"
+                  title={wallet.code}
+                  body={wallet.message}
+                />
+              ) : null}
               <div
                 className="rounded-box bg-surface p-4 text-text-primary shadow-sm"
               >
                 <p className="font-bold">
-                  {daoProposeCopy.review.indexStatus}
+                  {wallet.state === "receipt_pending"
+                    ? daoProposeCopy.proposal.receiptPending
+                    : wallet.state === "receipt_failed"
+                      ? daoProposeCopy.proposal.identityUnavailableTitle
+                      : wallet.state === "indexed"
+                        ? daoProposeCopy.review.indexedStatus
+                        : wallet.state === "index_failed"
+                          ? daoProposeCopy.proposal.indexingDelayedTitle
+                          : wallet.state === "awaiting_index"
+                            ? daoProposeCopy.review.indexStatus
+                            : daoProposeCopy.proposal.identityConfirmed}
                 </p>
                 <p className="mt-1 max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
-                  {daoProposeCopy.proposal.submittedBody}
+                  {wallet.state === "indexed"
+                    ? daoProposeCopy.proposal.indexedBody
+                    : wallet.state === "index_failed"
+                      ? (wallet.message ??
+                        daoProposeCopy.proposal.indexingDelayedBody)
+                      : daoProposeCopy.proposal.submittedBody}
                 </p>
               </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {proposalHref ? (
+                  <>
+                    <Link
+                      href={proposalHref}
+                      className={getButtonClassName({
+                        className:
+                          "w-full gap-2 motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto",
+                      })}
+                    >
+                      {daoProposeCopy.proposal.open}
+                    </Link>
+                    <button
+                      type="button"
+                      className={getButtonClassName({
+                        variant: "secondary",
+                        className:
+                          "w-full gap-2 motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto",
+                      })}
+                      onClick={() => {
+                        const absoluteHref = resolveAbsoluteHref(proposalHref);
+                        void copyTextToClipboard(absoluteHref).then(
+                          (didCopy) => {
+                            setProposalLinkCopied(didCopy);
+                          }
+                        );
+                      }}
+                    >
+                      <IconCopy className="size-4" aria-hidden />
+                      {proposalLinkCopied
+                        ? daoProposeCopy.proposal.copied
+                        : daoProposeCopy.proposal.copy}
+                    </button>
+                  </>
+                ) : null}
+                <a
+                  href={getEtherscanTransactionUrl(transactionHash) ?? undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={getButtonClassName({
+                    variant: proposalHref ? "ghost" : "secondary",
+                    className:
+                      "w-full gap-2 motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto",
+                  })}
+                >
+                  {daoProposeCopy.proposal.viewTransaction}
+                  <IconLinkOut className="size-4" aria-hidden />
+                </a>
+              </div>
             </section>
-          )}
+          ) : null}
         </div>
       )}
     </Card>
   );
+}
+
+function getWalletTransactionHash(wallet: WalletState): Hex | null {
+  return "transactionHash" in wallet ? wallet.transactionHash : null;
+}
+
+function getWalletProposalIdentity(
+  wallet: WalletState
+): DaoDecodedProposeIdentity | null {
+  return "identity" in wallet ? wallet.identity : null;
+}
+
+function resolveAbsoluteHref(href: string): string {
+  if (typeof window === "undefined") return href;
+  return new URL(href, window.location.origin).toString();
 }
 
 export function DaoProposalEligibility({
@@ -1072,6 +1467,19 @@ function AuthoringSection({
   );
 }
 
+function AuthoringLiveRegion({ message }: { message: string }) {
+  return (
+    <p
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="sr-only"
+    >
+      {message}
+    </p>
+  );
+}
+
 function ForumStatus({
   error,
   state,
@@ -1081,7 +1489,7 @@ function ForumStatus({
 }) {
   if (state.state === "validating") {
     return (
-      <p id="dao-forum-status" role="status" className="text-sm text-text-secondary">
+      <p id="dao-forum-status" className="text-sm text-text-secondary">
         {daoProposeCopy.discussion.validating}
       </p>
     );
@@ -1105,7 +1513,7 @@ function ForumStatus({
   }
   if (state.state !== "valid") return <span id="dao-forum-status" />;
   return (
-    <div id="dao-forum-status" role="status" className="space-y-3 rounded-box bg-green-50 p-4 text-sm text-green-950">
+    <div id="dao-forum-status" className="space-y-3 rounded-box bg-green-50 p-4 text-sm text-green-950">
       <p className="font-bold">{daoProposeCopy.discussion.accepted}</p>
       <dl className="grid gap-2 sm:grid-cols-2">
         <ForumFact label={daoProposeCopy.discussion.topicTitle}>
@@ -1158,116 +1566,6 @@ function ForumFact({
     </div>
   );
 }
-
-type TextFieldProps = {
-  error?: string;
-  id: string;
-  label: string;
-  maxLength: number;
-  onChange: (value: string) => void;
-  placeholder: string;
-  value: string;
-};
-
-const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
-  {
-    error,
-    id,
-    label,
-    maxLength,
-    onChange,
-    placeholder,
-    value,
-  },
-  ref
-) {
-  const helpId = `${id}-help`;
-  const errorId = `${id}-error`;
-  return (
-    <div className="space-y-2">
-      <div className="flex items-end justify-between gap-3">
-        <label htmlFor={id} className="text-sm font-bold">{label}</label>
-        <span id={helpId} className="font-number text-xs tabular-nums text-text-secondary">
-          {value.length} / {maxLength}
-        </span>
-      </div>
-      <input
-        ref={ref}
-        id={id}
-        type="text"
-        value={value}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${helpId} ${errorId}` : helpId}
-        className={INPUT_CLASS_NAME}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      {error ? (
-        <p id={errorId} className="text-sm text-red-800 dark:text-red-300">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-});
-
-type TextAreaFieldProps = {
-  error?: string;
-  id: string;
-  label: string;
-  maxLength: number;
-  onChange: (value: string) => void;
-  placeholder: string;
-  rows: number;
-  value: string;
-};
-
-const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>(
-  function TextAreaField(
-    {
-      error,
-      id,
-      label,
-      maxLength,
-      onChange,
-      placeholder,
-      rows,
-      value,
-    },
-    ref
-  ) {
-  const helpId = `${id}-help`;
-  const errorId = `${id}-error`;
-  return (
-    <div className="space-y-2">
-      <div className="flex items-end justify-between gap-3">
-        <label htmlFor={id} className="text-sm font-bold">{label}</label>
-        <span id={helpId} className="font-number text-xs tabular-nums text-text-secondary">
-          {value.length} / {maxLength}
-        </span>
-      </div>
-      <textarea
-        ref={ref}
-        id={id}
-        rows={rows}
-        value={value}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${helpId} ${errorId}` : helpId}
-        className={TEXTAREA_CLASS_NAME}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      {error ? (
-        <p id={errorId} className="text-sm text-red-800 dark:text-red-300">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-  }
-);
 
 function ProposalTypeChoice({
   checked,
@@ -1352,7 +1650,7 @@ function ScriptStatus({ scriptCheck }: { scriptCheck: DaoScriptCheck }) {
     );
   }
   return (
-    <div id="dao-script-status" role="status" className="space-y-4 rounded-box bg-green-50 p-4 text-green-950">
+    <div id="dao-script-status" className="space-y-4 rounded-box bg-green-50 p-4 text-green-950">
       <p className="font-bold">{daoProposeCopy.script.valid}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <Metric label={daoProposeCopy.script.callCount} value={scriptCheck.frames.length.toString()} />
