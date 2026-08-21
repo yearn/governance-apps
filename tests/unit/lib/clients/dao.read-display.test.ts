@@ -4,6 +4,7 @@ import {
   deriveDaoProposalTimingDisplay,
   deriveDaoVoteDisplay,
   formatDaoPublicAnalysisError,
+  parseDaoProposalContent,
   resolveDaoProposalReadEnvelope,
 } from "@/lib/clients/dao";
 
@@ -57,9 +58,13 @@ describe("DAO read display facts", () => {
 
   it("keeps every public fixture presentation field free of delivery language", () => {
     const presentationValues = DAO_MOCK_FEED.proposals.flatMap((entry) => [
-      entry.content.value?.title,
-      entry.content.value?.summary,
-      entry.content.value?.specification,
+      entry.content.value?.markdown,
+      entry.content.value
+        ? parseDaoProposalContent(entry.content.value).title
+        : null,
+      entry.content.value
+        ? parseDaoProposalContent(entry.content.value).summary
+        : null,
       entry.content.value?.discussionUrl,
       entry.discussion.url,
       entry.discussion.title,
@@ -85,7 +90,7 @@ describe("DAO read display facts", () => {
       nayPercent: "31.8%",
       yeaPercentTenths: 682,
       nayPercentTenths: 318,
-      thresholdPercent: "55%",
+      thresholdPercent: "50%",
       yeaWeight: "7.5",
       nayWeight: "3.5",
       totalWeight: "11",

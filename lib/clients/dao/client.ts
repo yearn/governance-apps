@@ -116,7 +116,7 @@ function parseDaoProposalJson(proposal: DaoProposalJson): DaoProposal {
           ? null
           : {
               ...proposal.content.value,
-              links: proposal.content.value.links.map((link) => ({ ...link })),
+              assets: proposal.content.value.assets.map((asset) => ({ ...asset })),
             },
     },
     discussion: {
@@ -148,7 +148,7 @@ function serializeDaoProposalJson(proposal: DaoProposal): DaoProposalJson {
           ? null
           : {
               ...proposal.content.value,
-              links: proposal.content.value.links.map((link) => ({ ...link })),
+              assets: proposal.content.value.assets.map((asset) => ({ ...asset })),
             },
     },
     discussion: {

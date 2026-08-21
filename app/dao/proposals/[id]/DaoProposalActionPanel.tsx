@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
+  parseDaoProposalContent,
   serializeDaoProposalRef,
   validateDaoModerationReason,
   type DaoAccountProposalState,
@@ -617,7 +618,9 @@ function VoteConfirmation({
   proposal: DaoProposal;
 }) {
   const content = proposal.content.value;
-  const title = content?.title ?? `Proposal #${proposal.ref.proposalId.toString()}`;
+  const parsedContent = content ? parseDaoProposalContent(content) : null;
+  const title =
+    parsedContent?.title ?? `Proposal #${proposal.ref.proposalId.toString()}`;
   const decayed = account.decayBps < 10_000;
   return (
     <div className="space-y-5">

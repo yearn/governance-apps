@@ -1,5 +1,10 @@
 import { keccak256, stringToHex, type Hex } from "viem";
-import type { DaoProposalContentV1, DaoScriptCheck } from "@/lib/clients/dao";
+import {
+  deriveDaoProposalContentIdentity,
+  type DaoParsedProposalContent,
+  type DaoProposalContent,
+  type DaoScriptCheck,
+} from "@/lib/clients/dao";
 
 const ALLOWED_PROPOSALS_CATEGORY_ID = 5;
 
@@ -31,12 +36,15 @@ export type DaoForumValidationResult =
 
 export type DaoAuthoringReview = {
   topic: DaoForumTopic;
-  content: DaoProposalContentV1;
+  content: DaoProposalContent;
+  parsedContent: DaoParsedProposalContent;
   scriptCheck: DaoScriptCheck;
 };
 
 export type DaoPublishedContent = {
   fingerprint: Hex;
+  cid: string;
+  canonicalBytes: Uint8Array;
   publishedAt: number;
 };
 
@@ -163,10 +171,13 @@ export async function publishMockDaoProposalContent(
     };
   }
 
+  const identity = deriveDaoProposalContentIdentity(review.content);
   return {
     state: "published",
     publication: {
-      fingerprint: keccak256(stringToHex(canonicalReviewContent(review))),
+      fingerprint: identity.digest,
+      cid: identity.cid,
+      canonicalBytes: identity.bytes,
       publishedAt,
     },
   };
@@ -241,14 +252,6 @@ function forumError(
     state: "invalid",
     error: { code, message: FORUM_ERROR_MESSAGES[code] },
   };
-}
-
-function canonicalReviewContent(review: DaoAuthoringReview): string {
-  return JSON.stringify({
-    content: review.content,
-    script: review.scriptCheck.script,
-    scriptHash: review.scriptCheck.scriptHash,
-  });
 }
 
 function slugify(value: string): string {

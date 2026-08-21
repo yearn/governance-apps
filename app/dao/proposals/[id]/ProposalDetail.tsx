@@ -11,6 +11,7 @@ import { copyTextToClipboard } from "@/lib/clipboard";
 import { formatUtcDateTime } from "@/lib/date";
 import {
   formatDaoPublicAnalysisError,
+  parseDaoProposalContent,
   serializeDaoProposalRef,
   type DaoAnalysis,
   type DaoDecodedCall,
@@ -19,6 +20,10 @@ import {
   type DaoProposalEvent,
   type DaoSimulation,
 } from "@/lib/clients/dao";
+import {
+  DaoProposalMarkdown,
+  DaoProposalMarkdownSource,
+} from "../../components/DaoProposalMarkdown";
 import { getButtonClassName } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import {
@@ -54,8 +59,11 @@ export function ProposalDetail({
   const { feed, proposal } = envelope;
   const now = runtimeNow ?? feed.canonicalBlock.timestamp;
   const proposalId = proposal.ref.proposalId.toString();
-  const title = proposal.content.value?.title ?? daoCopy.detail.eyebrow(proposalId);
-  const summary = proposal.content.value?.summary;
+  const parsedContent = proposal.content.value
+    ? parseDaoProposalContent(proposal.content.value)
+    : null;
+  const title = parsedContent?.title ?? daoCopy.detail.eyebrow(proposalId);
+  const summary = parsedContent?.summary;
   const origin = resolveDaoProposalOrigin(
     requestedOrigin,
     proposal.displayGroup
@@ -182,7 +190,11 @@ export function ProposalDetail({
         </aside>
 
         <div className="order-last min-w-0 space-y-5 lg:order-first">
-          <ImmutableContent proposal={proposal} />
+          <ImmutableContent
+            hostname={hostname}
+            parsed={parsedContent}
+            proposal={proposal}
+          />
           <ProposalLifecycle proposal={proposal} />
           <ExecutionAnalysis proposal={proposal} />
           <TechnicalDetails feed={feed} proposal={proposal} />
@@ -252,7 +264,15 @@ function ContentWarning({ proposal }: { proposal: DaoProposal }) {
   );
 }
 
-function ImmutableContent({ proposal }: { proposal: DaoProposal }) {
+function ImmutableContent({
+  hostname,
+  parsed,
+  proposal,
+}: {
+  hostname?: string;
+  parsed: ReturnType<typeof parseDaoProposalContent> | null;
+  proposal: DaoProposal;
+}) {
   const content = proposal.content.value;
   return (
     <Card className="min-w-0 space-y-5">
@@ -261,35 +281,16 @@ function ImmutableContent({ proposal }: { proposal: DaoProposal }) {
         description={daoCopy.detail.immutableContentDescription}
       />
 
-      {content ? (
+      {content && parsed && parsed.errors.length === 0 ? (
         <div className="min-w-0 space-y-6">
-          <ContentBlock label={daoCopy.detail.summary} value={content.summary} />
-          <ContentBlock
-            label={daoCopy.detail.specification}
-            value={content.specification}
+          <DaoProposalMarkdown
+            context="detail"
+            hostname={hostname}
+            omitSummary
+            omitTitle
+            parsed={parsed}
           />
-          {content.links.length > 0 ? (
-            <div className="space-y-2">
-              <h4 className="text-sm font-bold">
-                {daoCopy.detail.supportingLinks}
-              </h4>
-              <ul className="space-y-2">
-                {content.links.map((link) => (
-                  <li key={`${link.label}:${link.url}`}>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded text-sm font-bold text-yearn-blue transition-[color] duration-150 ease-out hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:text-blue-300 dark:hover:text-blue-200"
-                    >
-                      <span className="truncate">{link.label}</span>
-                      <IconLinkOut className="size-3.5 shrink-0" aria-hidden />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          <DaoProposalMarkdownSource source={content.markdown} />
         </div>
       ) : (
         <div className="space-y-2 rounded-box bg-surface-secondary/60 p-4">
@@ -306,17 +307,6 @@ function ImmutableContent({ proposal }: { proposal: DaoProposal }) {
         </div>
       )}
     </Card>
-  );
-}
-
-function ContentBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <section className="min-w-0 space-y-2">
-      <h4 className="text-balance text-base font-bold">{label}</h4>
-      <p className="max-w-[75ch] whitespace-pre-wrap break-words text-base leading-7 [overflow-wrap:anywhere]">
-        {value}
-      </p>
-    </section>
   );
 }
 
@@ -940,7 +930,7 @@ function SectionHeading({
 }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-balance text-xl font-bold md:text-2xl">{title}</h3>
+      <h2 className="text-balance text-xl font-bold md:text-2xl">{title}</h2>
       <p className="max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
         {description}
       </p>

@@ -53,18 +53,6 @@ export type DaoCapabilities = {
   executeBlockedReason: string | null;
 };
 
-export type DaoProposalContentV1 = {
-  schema: "yearn.dao.proposal.v1";
-  title: string;
-  summary: string;
-  specification: string;
-  discussionUrl: string;
-  proposalType: DaoProposalType;
-  createdBy: Address;
-  createdAt: string;
-  links: Array<{ label: string; url: string }>;
-};
-
 export type DaoProposalAsset = {
   path: string;
   mediaType: string;
@@ -210,7 +198,7 @@ export type DaoProposal = {
     state: "available" | "unavailable" | "invalid";
     cid: string | null;
     digest: Hex;
-    value: DaoProposalContentV1 | null;
+    value: DaoProposalContent | null;
     error: string | null;
   };
   discussion: {

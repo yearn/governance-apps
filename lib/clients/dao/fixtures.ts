@@ -1,12 +1,10 @@
-import {
-  hexToBytes,
-  keccak256,
-  sha256,
-  toBytes,
-  type Address,
-  type Hex,
-} from "viem";
+import { keccak256, sha256, toBytes, type Address, type Hex } from "viem";
 import { parseDaoFeedJson, serializeDaoFeedJson } from "./client";
+import {
+  createDaoRawSha256Cid,
+  deriveDaoProposalContentIdentity,
+  parseDaoProposalContent,
+} from "./content";
 import {
   assertDaoProposalInvariants,
   DAO_EMPTY_SCRIPT_HASH,
@@ -27,7 +25,8 @@ import type {
   DaoMockFixture,
   DaoMockFixtureId,
   DaoProposal,
-  DaoProposalContentV1,
+  DaoProposalAsset,
+  DaoProposalContent,
   DaoProposalEvent,
   DaoProposalRef,
   DaoProposalType,
@@ -97,7 +96,6 @@ export const DAO_MOCK_VERIFIED_CALL_REGISTRY = [
 
 const DAY = 86_400;
 const UNIT = 10n ** 18n;
-const BASE32_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
 const VALID_SCRIPT = DAO_EXECUTOR_VALID_SCRIPT_VECTORS.twoCalls.script as Hex;
 const VALID_SCRIPT_HASH = keccak256(VALID_SCRIPT);
 const MISMATCHED_SCRIPT_HASH = `0x${"ff".repeat(32)}` as Hex;
@@ -447,7 +445,7 @@ export function getDaoMockFixture(id: DaoMockFixtureId): DaoMockFixture {
 
 function createProposal(options: ProposalFixtureOptions): DaoProposal {
   const type = options.type ?? "executable";
-  const thresholdBps = options.thresholdBps ?? 5_500;
+  const thresholdBps = options.thresholdBps ?? 5_000;
   const totalWeight = options.totalWeight ?? 250n * 10n ** 18n;
   const yeaWeight = options.yeaWeight ?? 155n * 10n ** 18n;
   const scriptBytes = type === "signal" ? ("0x" as Hex) : VALID_SCRIPT;
@@ -521,31 +519,47 @@ function createContent(
   options: ProposalFixtureOptions
 ): DaoProposal["content"] {
   const state = options.contentState ?? "available";
-  const value: DaoProposalContentV1 = {
+  const assets: DaoProposalAsset[] =
+    options.id === 1n
+      ? [
+          {
+            path: "./assets/governance-flow.svg",
+            mediaType: "image/svg+xml",
+            byteLength: 1_024,
+            digest: sha256(toBytes("<svg>governance-flow-v1</svg>")),
+            width: 1_280,
+            height: 720,
+          },
+        ]
+      : [];
+  const attachment =
+    assets.length > 0
+      ? "\n\n![Governance flow diagram](./assets/governance-flow.svg)"
+      : "";
+  const value: DaoProposalContent = {
     schema: "yearn.dao.proposal.v1",
-    title: options.title,
-    summary:
-      "This proposal records the decision and rationale presented for DAO review.",
-    specification:
-      "Review the requested governance outcome, voting record, and any ordered onchain actions before making a decision.",
+    markdown: `# ${options.title}\n\nThis proposal records the decision and rationale presented for DAO review.\n\n## Specification\n\nReview the requested governance outcome, voting record, and any ordered onchain actions before making a decision.${attachment}\n`,
     discussionUrl: `https://gov.yearn.fi/t/dao-proposal/${options.id.toString()}`,
     proposalType: options.type ?? "executable",
     createdBy: DAO_MOCK_PROPOSER_ADDRESS,
     createdAt: new Date(options.timing.createdAt * 1_000).toISOString(),
-    links: [],
+    assets,
   };
-  const contentBytes = toBytes(
-    JSON.stringify(
-      state === "invalid"
-        ? { ...value, schema: "yearn.dao.proposal.invalid" }
-        : value
-    )
+  const validation = parseDaoProposalContent(value);
+  if (validation.errors.length > 0) {
+    throw new Error(
+      `Invalid deterministic DAO content: ${validation.errors[0]?.code ?? "UNKNOWN"}`
+    );
+  }
+  const identity = deriveDaoProposalContentIdentity(value);
+  const invalidBytes = toBytes(
+    JSON.stringify({ ...value, schema: "yearn.dao.proposal.invalid" })
   );
-  const digest = sha256(contentBytes);
+  const digest = state === "invalid" ? sha256(invalidBytes) : identity.digest;
 
   return {
     state,
-    cid: state === "unavailable" ? null : createRawSha256Cid(digest),
+    cid: state === "unavailable" ? null : createDaoRawSha256Cid(digest),
     digest,
     value: state === "available" ? value : null,
     error:
@@ -555,40 +569,6 @@ function createContent(
           ? "The immutable document does not match yearn.dao.proposal.v1."
           : null,
   };
-}
-
-function createRawSha256Cid(digest: Hex): string {
-  const digestBytes = hexToBytes(digest);
-  if (digestBytes.length !== 32) {
-    throw new Error("DAO content digests must contain 32 bytes.");
-  }
-
-  const cidBytes = new Uint8Array(4 + digestBytes.length);
-  cidBytes.set([0x01, 0x55, 0x12, 0x20]);
-  cidBytes.set(digestBytes, 4);
-  return `b${encodeBase32(cidBytes)}`;
-}
-
-function encodeBase32(bytes: Uint8Array): string {
-  let output = "";
-  let buffer = 0;
-  let bufferedBits = 0;
-
-  for (const byte of bytes) {
-    buffer = (buffer << 8) | byte;
-    bufferedBits += 8;
-
-    while (bufferedBits >= 5) {
-      bufferedBits -= 5;
-      output += BASE32_ALPHABET[(buffer >> bufferedBits) & 0x1f];
-    }
-    buffer &= (1 << bufferedBits) - 1;
-  }
-
-  if (bufferedBits > 0) {
-    output += BASE32_ALPHABET[(buffer << (5 - bufferedBits)) & 0x1f];
-  }
-  return output;
 }
 
 function createDiscussion(

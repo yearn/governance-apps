@@ -51,23 +51,16 @@ export const daoProposeCopy = {
     step: "2",
     title: "Immutable proposal content",
     description:
-      "Title, summary, specification, forum URL, and proposal type become the immutable proposal snapshot.",
-    titleLabel: "Title",
-    titlePlaceholder: "A concise proposal title",
-    summaryLabel: "Summary",
-    summaryPlaceholder: "State the decision and its intended outcome.",
-    specificationLabel: "Specification",
-    specificationPlaceholder:
-      "Describe the complete proposal, constraints, and implementation details.",
-    titleRequired: "Enter a proposal title.",
-    titleTooLong: (limit: number) =>
-      `Keep the proposal title to ${limit} characters or fewer.`,
-    summaryRequired: "Enter a proposal summary.",
-    summaryTooLong: (limit: number) =>
-      `Keep the proposal summary to ${limit} characters or fewer.`,
-    specificationRequired: "Enter a proposal specification.",
-    specificationTooLong: (limit: number) =>
-      `Keep the proposal specification to ${limit} characters or fewer.`,
+      "Write one Markdown document. Its first H1 is the title, the next paragraph is the summary, and body content follows.",
+    markdownLabel: "Proposal Markdown",
+    write: "Write",
+    preview: "Preview",
+    byteCount: (count: number, limit: number) =>
+      `${count.toLocaleString("en-US")} / ${limit.toLocaleString("en-US")} UTF-8 bytes`,
+    grammar:
+      "Use one H1, then one summary paragraph, followed by meaningful body content. Later headings use H2 through H4.",
+    validation: "Markdown validation",
+    valid: "Document structure is valid",
   },
   type: {
     step: "3",
@@ -141,9 +134,7 @@ export const daoProposeCopy = {
     creator: "Created by",
     createdAt: "Snapshot time",
     proposalType: "Proposal type",
-    titleLabel: "Title",
-    summary: "Summary",
-    specification: "Specification",
+    markdown: "Exact Markdown",
     exactScript: "Exact script",
     confirm:
       "I reviewed the exact immutable content, proposal type, script, and script hash.",
