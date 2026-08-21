@@ -199,11 +199,13 @@ The grammar is:
   preflight and enforce the UTF-8 byte limit before calling the parser.
 - Ordinary links accept validated `https:` URLs, validated `ipfs:` URLs, or
   root-relative internal paths beginning with one `/`. Reject protocol-relative
-  paths, credentials, control characters, malformed URLs, `javascript:`,
-  `data:`, and every unlisted scheme.
+  paths, including an app-prefixed path such as `/dao//host/path` that would
+  become protocol-relative after prefix removal. Reject credentials, control
+  characters, malformed URLs, `javascript:`, `data:`, and every unlisted scheme.
 - External links use safe new-window behavior with no opener. Internal links
-  keep host-aware app routing. The UI never builds a trusted URL from untrusted
-  display text.
+  keep host-aware app routing. `/dao?query` and `/dao#fragment` become root
+  state on clean DAO hosts while remaining under `/dao` on shared hosts. The UI
+  never builds a trusted URL from untrusted display text.
 
 Validation returns stable error codes plus source offset, line, and column when
 the AST supplies a location. It reports deterministic errors for source bytes,
@@ -326,6 +328,11 @@ proposal indexed/enriched.
   matching confirmed `Propose` receipt log. Bind it to chain ID and the expected
   Voting address. Missing, duplicate, malformed, reverted, or wrong-contract
   logs fail explicitly and expose no proposal link.
+- A matching log has exactly four canonical topics: selector, proposal index,
+  proposer, and voting epoch. After strict decoding, canonically re-encode all
+  four topics and the non-indexed content digest and script. Every byte must
+  match the receipt. Reject extra topics, dirty indexed padding, trailing ABI
+  words, alternate dynamic offsets, and nonzero dynamic padding as malformed.
 - Once identity is decoded, show primary Open proposal, secondary Copy link,
   and View transaction actions. Open and Copy use existing host-aware DAO path
   helpers for shared `/dao`, `dao-beta.dao-ops.com`, and the reserved production

@@ -64,6 +64,12 @@ against the submitted values. Chain context is supplied separately; it is not
 trusted from receipt data. Missing, duplicate, malformed, wrong-contract, or
 mismatched logs produce no proposal link.
 
+The event log must contain exactly four canonical topics. After decoding, the
+consumer re-encodes the selector, indexed proposal ID, proposer, and epoch, plus
+the non-indexed content digest and script. The re-encoded bytes must equal the
+receipt bytes. Extra topics, dirty address padding, trailing data, alternate
+dynamic offsets, and nonzero padding are malformed and produce no identity.
+
 ## 3. Passing rule and quorum
 
 A proposal passes when:

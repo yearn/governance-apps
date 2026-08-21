@@ -441,8 +441,11 @@ Proposal creation does not guess the next numeric ID. Chain context is supplied
 separately from the receipt. The decoder requires a successful receipt with the
 exact submitted transaction hash and exactly one `Propose` log from the expected
 Voting address. Proposer, voting epoch, content digest, and exact script must
-match the submitted values. A missing, duplicate, malformed, wrong-contract, or
-mismatched log yields no proposal ref. Once decoded, the same composite ref is
+match the submitted values. The log has exactly four canonical topics. Its
+decoded topics and non-indexed content digest and script must re-encode to the
+exact receipt bytes, with no extra topic, trailing word, alternate offset, or
+dirty padding. A missing, duplicate, malformed, wrong-contract, or mismatched
+log yields no proposal ref. Once decoded, the same composite ref is
 used for the receipt-confirmed view, browser-local `awaiting_index` overlay, and
 indexed fixture. That local overlay intentionally does not survive another
 browser session.

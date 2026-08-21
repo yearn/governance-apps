@@ -605,6 +605,8 @@ The shared path remains the primary development and preview surface.
 `dao-beta.dao-ops.com` provides clean `/`, `/propose`, and `/proposals/[id]`
 paths for the unaccepted mock review. Nested links and breadcrumbs are
 host-aware; cross-beta DAO links target that host rather than nesting `/dao`.
+DAO root queries and fragments stay on clean `/` there and under `/dao` on a
+shared host. App-path normalization never returns a protocol-relative target.
 
 In preproduction production-runtime builds, `NEXT_PUBLIC_ENABLE_DAO=true`
 permits only the route-local DAO mock client. Global mocks, E2E mode, preview

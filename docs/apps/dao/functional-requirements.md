@@ -295,8 +295,10 @@ Step 1 retains its fingerprint receipt and focus moves to a distinct current
 Step 2 surface. When the transaction hash is known, View transaction appears
 before any proposal action. A successful receipt must bind the exact expected
 Voting address, transaction hash, proposer, voting epoch, content digest, and
-script to exactly one matching `Propose` log. Open proposal and Copy link appear
-only after that receipt supplies the composite identity. Receipt confirmation,
+script to exactly one matching `Propose` log. That log must have four canonical
+topics, and its decoded topics and non-indexed data must re-encode byte for byte
+with no trailing or dirty padding. Open proposal and Copy link appear only after
+that receipt supplies the composite identity. Receipt confirmation,
 awaiting-index, and indexed states retain the same identity. Publication failure
 never exposes Step 2. Wallet rejection or onchain revert preserves the published
 content and retries without republishing.
