@@ -150,6 +150,13 @@ describe("DAO proposal content", () => {
     expect(
       parseDaoProposalContent(content({ markdown: `${exact}a` })).errors[0]?.code
     ).toBe("SOURCE_TOO_LARGE");
+
+    const oversizedNesting = `${"> ".repeat(20_000)}body`;
+    const oversized = parseDaoProposalContent(
+      content({ markdown: oversizedNesting })
+    );
+    expect(oversized.errors[0]?.code).toBe("SOURCE_TOO_LARGE");
+    expect(oversized.ast.children).toEqual([]);
   });
 
   it("enforces parser work bounds", () => {
@@ -168,6 +175,48 @@ describe("DAO proposal content", () => {
         })
       ).errors.map((error) => error.code)
     ).toContain("TOO_MANY_TABLE_CELLS");
+  });
+
+  it("rejects adversarial blockquote depth without overflowing the stack", () => {
+    const nested = `${"> ".repeat(8_192)}body`;
+
+    expect(() =>
+      parseDaoProposalContent(
+        content({ markdown: `# Deep\n\nSummary.\n\n${nested}` })
+      )
+    ).not.toThrow();
+    const parsed = parseDaoProposalContent(
+      content({ markdown: `# Deep\n\nSummary.\n\n${nested}` })
+    );
+    expect(parsed.errors.map((error) => error.code)).toContain(
+      "DOCUMENT_TOO_DEEP"
+    );
+    expect(parsed.ast.children).toEqual([]);
+  });
+
+  it.each([
+    ["a nested level-one heading", "> # Nested title", ["DUPLICATE_H1", "HEADING_DEPTH"]],
+    ["a nested first level-three heading", "> ### Nested section", ["HEADING_DEPTH"]],
+    ["a nested level-five heading", "> ##### Nested section", ["HEADING_DEPTH"]],
+  ])("rejects %s across the whole tree", (_label, body, codes) => {
+    const parsed = parseDaoProposalContent(
+      content({ markdown: `# Title\n\nSummary.\n\n${body}\n\nBody.` })
+    );
+
+    for (const code of codes) {
+      expect(parsed.errors.map((error) => error.code)).toContain(code);
+    }
+  });
+
+  it("accepts supported H2 through H4 headings nested in body containers", () => {
+    const parsed = parseDaoProposalContent(
+      content({
+        markdown:
+          "# Title\n\nSummary.\n\n> ## Quoted section\n>\n> ### Detail\n>\n> #### Note\n>\n> Body.",
+      })
+    );
+
+    expect(parsed.errors).toEqual([]);
   });
 
   it("accepts safe external, IPFS, and root-relative links", () => {
@@ -207,6 +256,32 @@ describe("DAO proposal content", () => {
     );
     expect(parsed.errors).toEqual([]);
     expect(parsed.attachments).toHaveLength(1);
+  });
+
+  it.each([
+    ["the title", "# ![Diagram](./assets/architecture.svg)\n\nSummary.\n\nBody."],
+    ["the summary", "# Title\n\n![Diagram](./assets/architecture.svg)\n\nBody."],
+    ["a link", "# Title\n\nSummary.\n\n[![Diagram](./assets/architecture.svg)](https://example.com)"],
+    ["a heading", "# Title\n\nSummary.\n\n## ![Diagram](./assets/architecture.svg)\n\nBody."],
+    ["mixed paragraph content", "# Title\n\nSummary.\n\nBefore ![Diagram](./assets/architecture.svg)"],
+    ["emphasis", "# Title\n\nSummary.\n\n*![Diagram](./assets/architecture.svg)*"],
+    ["a blockquote", "# Title\n\nSummary.\n\n> ![Diagram](./assets/architecture.svg)\n>\n> Body."],
+  ])("rejects an attachment in %s", (_label, markdown) => {
+    const parsed = parseDaoProposalContent(
+      content({ markdown, assets: [asset()] })
+    );
+
+    expect(parsed.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "UNSAFE_IMAGE",
+          offset: expect.any(Number),
+          line: expect.any(Number),
+          column: expect.any(Number),
+        }),
+      ])
+    );
+    expect(parsed.attachments).toEqual([]);
   });
 
   it.each([
@@ -258,6 +333,65 @@ describe("DAO proposal content", () => {
     ).toContain("DUPLICATE_ASSET_DIGEST");
   });
 
+  it("reports duplicate attachment paths as paths and preserves digest errors", () => {
+    const duplicatePath = [
+      asset(),
+      asset({ digest: `0x${"22".repeat(32)}` as Hex }),
+    ];
+    expect(
+      resolveDaoProposalAttachment("./assets/architecture.svg", duplicatePath)
+    ).toMatchObject({ state: "invalid", code: "DUPLICATE_ASSET_PATH" });
+
+    const duplicateDigest = [
+      asset(),
+      asset({ path: "./assets/copy.svg" }),
+    ];
+    expect(
+      resolveDaoProposalAttachment(`ipfs://${ASSET_CID}`, duplicateDigest)
+    ).toMatchObject({ state: "invalid", code: "DUPLICATE_ASSET_DIGEST" });
+
+    const parsed = parseDaoProposalContent(
+      content({
+        markdown:
+          "# Attachment\n\nSummary.\n\n![Diagram](./assets/architecture.svg)",
+        assets: duplicatePath,
+      })
+    );
+    expect(parsed.attachments).toEqual([]);
+    expect(
+      parsed.errors.some(
+        (error) =>
+          error.code === "DUPLICATE_ASSET_PATH" && error.offset !== null
+      )
+    ).toBe(false);
+  });
+
+  it("orders manifest errors by index and a fixed per-entry priority", () => {
+    const tooMany = Array.from({ length: 17 }, (_, index) =>
+      asset({
+        path: index === 0 ? "../bad" : `./assets/${index}.svg`,
+        digest: `0x${index.toString(16).padStart(2, "0").repeat(32)}` as Hex,
+      })
+    );
+    const overflow = parseDaoProposalContent(content({ assets: tooMany }));
+    expect(overflow.errors[0]).toMatchObject({
+      code: "ASSET_TRAVERSAL",
+      manifestIndex: 0,
+    });
+    expect(
+      overflow.errors.findIndex((error) => error.code === "TOO_MANY_ASSETS")
+    ).toBeGreaterThan(0);
+
+    const duplicate = parseDaoProposalContent(
+      content({ assets: [asset(), asset()] })
+    );
+    expect(
+      duplicate.errors
+        .filter((error) => error.manifestIndex === 1)
+        .map((error) => error.code)
+    ).toEqual(["DUPLICATE_ASSET_PATH", "DUPLICATE_ASSET_DIGEST"]);
+  });
+
   it("enforces every frozen manifest bound", () => {
     expect(DAO_PROPOSAL_ASSET_LIMITS).toEqual({
       maxAssets: 16,
@@ -277,6 +411,7 @@ describe("DAO proposal content", () => {
       [{ width: 8_193 }, "ASSET_DIMENSIONS_INVALID"],
       [{ width: 8_192, height: 8_192 }, "ASSET_DIMENSIONS_INVALID"],
       [{ digest: "0x1234" as Hex }, "INVALID_ASSET_DIGEST"],
+      [{ path: "./assets/\ud800.svg" }, "INVALID_ASSET_PATH"],
     ];
     for (const [overrides, code] of vectors) {
       expect(

@@ -122,6 +122,7 @@ export type DaoProposalAttachmentResolution =
         | "INVALID_ASSET_PATH"
         | "ASSET_TRAVERSAL"
         | "MISSING_ASSET"
+        | "DUPLICATE_ASSET_PATH"
         | "DUPLICATE_ASSET_DIGEST";
       message: string;
     };
@@ -160,6 +161,32 @@ const SHA_256_MULTIHASH_CODE = 0x12;
 const SHA_256_DIGEST_BYTES = 32;
 const IPFS_GATEWAY_ORIGIN = "https://ipfs.io";
 const graphemeSegmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+
+type MarkdownVisit = {
+  node: DaoMarkdownNode;
+  depth: number;
+  parent: DaoMarkdownNode | null;
+  childIndex: number;
+  rootChildIndex: number | null;
+};
+
+const MANIFEST_ERROR_PRIORITY: Partial<
+  Record<DaoProposalContentErrorCode, number>
+> = {
+  INVALID_ASSET_PATH: 0,
+  ASSET_TRAVERSAL: 1,
+  ASSET_PATH_TOO_LONG: 2,
+  DUPLICATE_ASSET_PATH: 3,
+  ASSET_MEDIA_TYPE_INVALID: 4,
+  ASSET_MEDIA_TYPE_TOO_LONG: 5,
+  ASSET_BYTE_LENGTH_INVALID: 6,
+  ASSET_TOO_LARGE: 7,
+  INVALID_ASSET_DIGEST: 8,
+  DUPLICATE_ASSET_DIGEST: 9,
+  ASSET_DIMENSIONS_INVALID: 10,
+  TOO_MANY_ASSETS: 11,
+  ASSET_AGGREGATE_TOO_LARGE: 12,
+};
 
 export function getDaoProposalUtf8ByteLength(value: string): number {
   assertRoundTrippingUnicode(value);
@@ -218,43 +245,36 @@ export function parseDaoProposalContent(
 ): DaoParsedProposalContent {
   const sourceErrors = validateSourcePreflight(content.markdown);
   if (sourceErrors.length > 0) {
-    return {
-      source: content.markdown,
-      byteLength: 0,
-      ast: parseMarkdownAst(""),
-      title: null,
-      summary: null,
-      attachments: [],
-      errors: [...sourceErrors, ...validateManifest(content.assets)],
-    };
+    return invalidParsedContent(content, 0, sourceErrors);
   }
 
   const byteLength = new TextEncoder().encode(content.markdown).byteLength;
+  if (byteLength > DAO_PROPOSAL_MARKDOWN_LIMITS.maxUtf8Bytes) {
+    return invalidParsedContent(content, byteLength, [
+      sourceError(
+        "SOURCE_TOO_LARGE",
+        `Markdown must be at most ${DAO_PROPOSAL_MARKDOWN_LIMITS.maxUtf8Bytes.toLocaleString("en-US")} UTF-8 bytes.`,
+        content.markdown,
+        0
+      ),
+    ]);
+  }
+
   const ast = parseMarkdownAst(content.markdown);
+
+  const workErrors = validateMarkdownWorkBounds(ast);
+  if (workErrors.length > 0) {
+    return invalidParsedContent(content, byteLength, workErrors);
+  }
+
+  const manifestErrors = validateManifest(content.assets);
   const documentErrors: DaoProposalContentError[] = [];
   const attachments: DaoResolvedProposalAttachment[] = [];
   const validAttachmentOffsets = new Set<number>();
+  const headings: MarkdownVisit[] = [];
 
-  if (byteLength > DAO_PROPOSAL_MARKDOWN_LIMITS.maxUtf8Bytes) {
-    documentErrors.push(
-      errorAt(
-        "SOURCE_TOO_LARGE",
-        `Markdown must be at most ${DAO_PROPOSAL_MARKDOWN_LIMITS.maxUtf8Bytes.toLocaleString("en-US")} UTF-8 bytes.`,
-        ast
-      )
-    );
-  }
-
-  let nodeCount = 0;
-  let tableCellCount = 0;
-  let depthExceededNode: DaoMarkdownNode | null = null;
-  walkMarkdown(ast, 0, (node, depth) => {
-    nodeCount += 1;
-    if (depth > DAO_PROPOSAL_MARKDOWN_LIMITS.maxDepth && !depthExceededNode) {
-      depthExceededNode = node;
-    }
-    if (node.type === "tableCell") tableCellCount += 1;
-
+  walkMarkdown(ast, (visit) => {
+    const { node } = visit;
     if (node.type === "html") {
       documentErrors.push(
         errorAt("RAW_HTML", "Raw HTML is not allowed in proposal Markdown.", node)
@@ -280,6 +300,7 @@ export function parseDaoProposalContent(
         )
       );
     }
+    if (node.type === "heading") headings.push(visit);
     if (node.type === "image") {
       if (!(node.alt ?? "").trim()) {
         documentErrors.push(
@@ -291,6 +312,17 @@ export function parseDaoProposalContent(
         );
         return;
       }
+      if (!isStandaloneAttachmentContext(visit, ast)) {
+        documentErrors.push(
+          errorAt(
+            "UNSAFE_IMAGE",
+            "Attachments must be the only content in a top-level body paragraph after the summary.",
+            node
+          )
+        );
+        return;
+      }
+      if (manifestErrors.length > 0) return;
       const resolution = resolveDaoProposalAttachment(
         node.url ?? "",
         content.assets
@@ -305,34 +337,6 @@ export function parseDaoProposalContent(
       }
     }
   });
-
-  if (nodeCount > DAO_PROPOSAL_MARKDOWN_LIMITS.maxNodes) {
-    documentErrors.push(
-      errorAt(
-        "DOCUMENT_TOO_LARGE",
-        `Markdown may contain at most ${DAO_PROPOSAL_MARKDOWN_LIMITS.maxNodes.toLocaleString("en-US")} parsed nodes.`,
-        ast
-      )
-    );
-  }
-  if (depthExceededNode) {
-    documentErrors.push(
-      errorAt(
-        "DOCUMENT_TOO_DEEP",
-        `Markdown nesting may not exceed ${DAO_PROPOSAL_MARKDOWN_LIMITS.maxDepth} levels.`,
-        depthExceededNode
-      )
-    );
-  }
-  if (tableCellCount > DAO_PROPOSAL_MARKDOWN_LIMITS.maxTableCells) {
-    documentErrors.push(
-      errorAt(
-        "TOO_MANY_TABLE_CELLS",
-        `Tables may contain at most ${DAO_PROPOSAL_MARKDOWN_LIMITS.maxTableCells.toLocaleString("en-US")} cells.`,
-        ast
-      )
-    );
-  }
 
   const titleNode = ast.children[0];
   let title: string | null = null;
@@ -364,15 +368,13 @@ export function parseDaoProposalContent(
     }
   }
 
-  const h1Nodes = ast.children.filter(
-    (node) => node.type === "heading" && node.depth === 1
-  );
-  for (const duplicate of h1Nodes.slice(1)) {
+  for (const heading of headings) {
+    if (heading.node.depth !== 1 || heading.node === titleNode) continue;
     documentErrors.push(
       errorAt(
         "DUPLICATE_H1",
         "A proposal document must contain exactly one level-one title.",
-        duplicate
+        heading.node
       )
     );
   }
@@ -422,29 +424,34 @@ export function parseDaoProposalContent(
     );
   }
 
-  const laterHeadings = body.filter((node) => node.type === "heading");
-  if (laterHeadings[0] && laterHeadings[0].depth !== 2) {
+  const laterHeadings = headings.filter((heading) => heading.node !== titleNode);
+  if (laterHeadings[0] && laterHeadings[0].node.depth !== 2) {
     documentErrors.push(
       errorAt(
         "HEADING_DEPTH",
         "The first heading after the summary must be level two.",
-        laterHeadings[0]
+        laterHeadings[0].node
       )
     );
   }
-  for (const heading of laterHeadings) {
-    if ((heading.depth ?? 0) < 2 || (heading.depth ?? 0) > 4) {
+  for (const heading of headings) {
+    if (heading.node === titleNode) continue;
+    if (
+      heading.rootChildIndex === null ||
+      heading.rootChildIndex < 2 ||
+      (heading.node.depth ?? 0) < 2 ||
+      (heading.node.depth ?? 0) > 4
+    ) {
       documentErrors.push(
         errorAt(
           "HEADING_DEPTH",
-          "Headings after the title must use levels two through four.",
-          heading
+          "Headings after the title must occur in the body and use levels two through four.",
+          heading.node
         )
       );
     }
   }
 
-  const manifestErrors = validateManifest(content.assets);
   documentErrors.sort(compareLocatedErrors);
   return {
     source: content.markdown,
@@ -512,7 +519,7 @@ export function resolveDaoProposalAttachment(
   if (matches.length > 1) {
     return {
       state: "invalid",
-      code: "DUPLICATE_ASSET_DIGEST",
+      code: "DUPLICATE_ASSET_PATH",
       message: "The relative attachment path must identify one manifest entry.",
     };
   }
@@ -555,6 +562,91 @@ function parseMarkdownAst(markdown: string): DaoMarkdownRoot {
   }) as unknown as DaoMarkdownRoot;
 }
 
+function emptyMarkdownAst(): DaoMarkdownRoot {
+  return { type: "root", children: [] };
+}
+
+function invalidParsedContent(
+  content: DaoProposalContent,
+  byteLength: number,
+  errors: DaoProposalContentError[]
+): DaoParsedProposalContent {
+  const documentErrors = dedupeErrors([...errors].sort(compareLocatedErrors));
+  return {
+    source: content.markdown,
+    byteLength,
+    ast: emptyMarkdownAst(),
+    title: null,
+    summary: null,
+    attachments: [],
+    errors: [...documentErrors, ...validateManifest(content.assets)],
+  };
+}
+
+function validateMarkdownWorkBounds(
+  ast: DaoMarkdownRoot
+): DaoProposalContentError[] {
+  const stack: MarkdownVisit[] = [
+    {
+      node: ast,
+      depth: 0,
+      parent: null,
+      childIndex: 0,
+      rootChildIndex: null,
+    },
+  ];
+  let nodeCount = 0;
+  let tableCellCount = 0;
+
+  while (stack.length > 0) {
+    const visit = stack.pop() as MarkdownVisit;
+    nodeCount += 1;
+    if (nodeCount > DAO_PROPOSAL_MARKDOWN_LIMITS.maxNodes) {
+      return [
+        errorAt(
+          "DOCUMENT_TOO_LARGE",
+          `Markdown may contain at most ${DAO_PROPOSAL_MARKDOWN_LIMITS.maxNodes.toLocaleString("en-US")} parsed nodes.`,
+          visit.node
+        ),
+      ];
+    }
+    if (visit.depth > DAO_PROPOSAL_MARKDOWN_LIMITS.maxDepth) {
+      return [
+        errorAt(
+          "DOCUMENT_TOO_DEEP",
+          `Markdown nesting may not exceed ${DAO_PROPOSAL_MARKDOWN_LIMITS.maxDepth} levels.`,
+          visit.node
+        ),
+      ];
+    }
+    if (visit.node.type === "tableCell") {
+      tableCellCount += 1;
+      if (tableCellCount > DAO_PROPOSAL_MARKDOWN_LIMITS.maxTableCells) {
+        return [
+          errorAt(
+            "TOO_MANY_TABLE_CELLS",
+            `Tables may contain at most ${DAO_PROPOSAL_MARKDOWN_LIMITS.maxTableCells.toLocaleString("en-US")} cells.`,
+            visit.node
+          ),
+        ];
+      }
+    }
+
+    const children = visit.node.children ?? [];
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push({
+        node: children[index],
+        depth: visit.depth + 1,
+        parent: visit.node,
+        childIndex: index,
+        rootChildIndex:
+          visit.node.type === "root" ? index : visit.rootChildIndex,
+      });
+    }
+  }
+  return [];
+}
+
 function validateSourcePreflight(source: string): DaoProposalContentError[] {
   for (let index = 0; index < source.length; index += 1) {
     const code = source.charCodeAt(index);
@@ -595,8 +687,9 @@ function validateManifest(assets: readonly DaoProposalAsset[]): DaoProposalConte
   let aggregateBytes = 0;
   const paths = new Map<string, number>();
   const digests = new Map<string, number>();
+  const boundedAssets = assets.slice(0, DAO_PROPOSAL_ASSET_LIMITS.maxAssets);
 
-  assets.forEach((asset, index) => {
+  boundedAssets.forEach((asset, index) => {
     const pathCheck = validateManifestPath(asset.path);
     if (pathCheck) {
       errors.push(manifestError(pathCheck.code, pathCheck.message, index));
@@ -639,9 +732,9 @@ function validateManifest(assets: readonly DaoProposalAsset[]): DaoProposalConte
   });
 
   if (aggregateBytes > DAO_PROPOSAL_ASSET_LIMITS.maxAggregateAssetBytes) {
-    errors.push(manifestError("ASSET_AGGREGATE_TOO_LARGE", `Declared assets may contain at most ${DAO_PROPOSAL_ASSET_LIMITS.maxAggregateAssetBytes.toLocaleString("en-US")} bytes in total.`, Math.max(assets.length - 1, 0)));
+    errors.push(manifestError("ASSET_AGGREGATE_TOO_LARGE", `Declared assets may contain at most ${DAO_PROPOSAL_ASSET_LIMITS.maxAggregateAssetBytes.toLocaleString("en-US")} bytes in total.`, Math.max(boundedAssets.length - 1, 0)));
   }
-  return errors;
+  return errors.sort(compareManifestErrors);
 }
 
 function hasValidDimensions(asset: DaoProposalAsset): boolean {
@@ -709,7 +802,7 @@ function isCanonicalCid(value: string): boolean {
 }
 
 function validateManifestPath(path: string): Extract<DaoProposalAttachmentResolution, { state: "invalid" }> | null {
-  if (containsUnsafeControl(path) || path.includes("\\") || /[?#]/u.test(path)) {
+  if (!hasRoundTrippingUnicode(path) || containsUnsafeControl(path) || path.includes("\\") || /[?#]/u.test(path)) {
     return { state: "invalid", code: "INVALID_ASSET_PATH", message: "Asset paths may not contain controls, backslashes, queries, or fragments." };
   }
   let decoded = path;
@@ -771,24 +864,102 @@ function validAttachment(target: string, cid: string, asset: DaoProposalAsset): 
   };
 }
 
-function walkMarkdown(node: DaoMarkdownNode, depth: number, visit: (node: DaoMarkdownNode, depth: number) => void): void {
-  visit(node, depth);
-  for (const child of node.children ?? []) walkMarkdown(child, depth + 1, visit);
+function walkMarkdown(
+  root: DaoMarkdownRoot,
+  visitNode: (visit: MarkdownVisit) => void
+): void {
+  const stack: MarkdownVisit[] = [
+    {
+      node: root,
+      depth: 0,
+      parent: null,
+      childIndex: 0,
+      rootChildIndex: null,
+    },
+  ];
+  while (stack.length > 0) {
+    const visit = stack.pop() as MarkdownVisit;
+    visitNode(visit);
+    const children = visit.node.children ?? [];
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push({
+        node: children[index],
+        depth: visit.depth + 1,
+        parent: visit.node,
+        childIndex: index,
+        rootChildIndex:
+          visit.node.type === "root" ? index : visit.rootChildIndex,
+      });
+    }
+  }
 }
 
 function inlineText(node: DaoMarkdownNode): string {
-  if (node.type === "text" || node.type === "inlineCode") return node.value ?? "";
-  if (node.type === "break") return " ";
-  if (node.type === "image") return node.alt ?? "";
-  return (node.children ?? []).map(inlineText).join("");
+  const text: string[] = [];
+  const stack = [node];
+  while (stack.length > 0) {
+    const current = stack.pop() as DaoMarkdownNode;
+    if (current.type === "text" || current.type === "inlineCode") {
+      text.push(current.value ?? "");
+      continue;
+    }
+    if (current.type === "break") {
+      text.push(" ");
+      continue;
+    }
+    if (current.type === "image") {
+      text.push(current.alt ?? "");
+      continue;
+    }
+    const children = current.children ?? [];
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push(children[index]);
+    }
+  }
+  return text.join("");
 }
 
 function isMeaningfulBodyNode(node: DaoMarkdownNode, validAttachmentOffsets: Set<number>): boolean {
-  if (node.type === "heading") return false;
-  if (node.type === "image") return node.position?.start.offset !== undefined && validAttachmentOffsets.has(node.position.start.offset);
-  if (node.type === "code") return Boolean(node.value?.trim());
-  if (node.type === "text" || node.type === "inlineCode") return Boolean(node.value?.trim());
-  return (node.children ?? []).some((child) => isMeaningfulBodyNode(child, validAttachmentOffsets));
+  const stack = [node];
+  while (stack.length > 0) {
+    const current = stack.pop() as DaoMarkdownNode;
+    if (current.type === "heading") continue;
+    if (
+      current.type === "image" &&
+      current.position?.start.offset !== undefined &&
+      validAttachmentOffsets.has(current.position.start.offset)
+    ) {
+      return true;
+    }
+    if (
+      (current.type === "code" ||
+        current.type === "text" ||
+        current.type === "inlineCode") &&
+      Boolean(current.value?.trim())
+    ) {
+      return true;
+    }
+    const children = current.children ?? [];
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push(children[index]);
+    }
+  }
+  return false;
+}
+
+function isStandaloneAttachmentContext(
+  visit: MarkdownVisit,
+  ast: DaoMarkdownRoot
+): boolean {
+  const { node, parent, rootChildIndex } = visit;
+  return (
+    parent?.type === "paragraph" &&
+    rootChildIndex !== null &&
+    rootChildIndex >= 2 &&
+    ast.children[rootChildIndex] === parent &&
+    parent.children?.length === 1 &&
+    parent.children[0] === node
+  );
 }
 
 function errorAt(code: DaoProposalContentErrorCode, message: string, node: DaoMarkdownNode): DaoProposalContentError {
@@ -816,6 +987,21 @@ function compareLocatedErrors(left: DaoProposalContentError, right: DaoProposalC
   return (left.offset ?? Number.MAX_SAFE_INTEGER) - (right.offset ?? Number.MAX_SAFE_INTEGER);
 }
 
+function compareManifestErrors(
+  left: DaoProposalContentError,
+  right: DaoProposalContentError
+): number {
+  const byIndex =
+    (left.manifestIndex ?? Number.MAX_SAFE_INTEGER) -
+    (right.manifestIndex ?? Number.MAX_SAFE_INTEGER);
+  if (byIndex !== 0) return byIndex;
+  const byPriority =
+    (MANIFEST_ERROR_PRIORITY[left.code] ?? Number.MAX_SAFE_INTEGER) -
+    (MANIFEST_ERROR_PRIORITY[right.code] ?? Number.MAX_SAFE_INTEGER);
+  if (byPriority !== 0) return byPriority;
+  return left.code.localeCompare(right.code);
+}
+
 function dedupeErrors(errors: DaoProposalContentError[]): DaoProposalContentError[] {
   const seen = new Set<string>();
   return errors.filter((error) => {
@@ -828,4 +1014,10 @@ function dedupeErrors(errors: DaoProposalContentError[]): DaoProposalContentErro
 
 function containsUnsafeControl(value: string): boolean {
   return /[\u0000-\u001f\u007f-\u009f]/u.test(value);
+}
+
+function hasRoundTrippingUnicode(value: string): boolean {
+  return validateSourcePreflight(value).every(
+    (error) => error.code !== "INVALID_UNICODE"
+  );
 }
