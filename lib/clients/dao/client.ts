@@ -98,7 +98,7 @@ export function serializeDaoBigInt(value: bigint): DaoBigIntJson {
   return value.toString() as DaoBigIntJson;
 }
 
-function parseDaoProposalJson(proposal: DaoProposalJson): DaoProposal {
+export function parseDaoProposalJson(proposal: DaoProposalJson): DaoProposal {
   return {
     ...proposal,
     ref: {
@@ -130,7 +130,7 @@ function parseDaoProposalJson(proposal: DaoProposalJson): DaoProposal {
   };
 }
 
-function serializeDaoProposalJson(proposal: DaoProposal): DaoProposalJson {
+export function serializeDaoProposalJson(proposal: DaoProposal): DaoProposalJson {
   return {
     ...proposal,
     ref: {

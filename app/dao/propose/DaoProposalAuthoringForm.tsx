@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useEffect,
   useMemo,
@@ -10,21 +11,27 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
+import { IconCopy } from "@/components/icons/IconCopy";
+import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, getButtonClassName } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { UtcTime } from "@/components/ui/UtcTime";
 import {
   checkDaoExecutorScript,
   DAO_PROPOSAL_MARKDOWN_LIMITS,
   parseDaoProposalContent,
+  serializeDaoProposalRef,
+  type DaoDecodedProposeIdentity,
   type DaoMockAuthoring,
   type DaoProposalType,
   type DaoProposerState,
   type DaoScriptCheck,
 } from "@/lib/clients/dao";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/cn";
+import { getEtherscanTransactionUrl } from "@/lib/explorer";
 import { formatTokenAmount } from "@/lib/format";
 import {
   createDaoAuthoringReview,
@@ -37,7 +44,10 @@ import {
   DaoProposalMarkdownSource,
 } from "../components/DaoProposalMarkdown";
 import {
+  completeMockDaoProposalIndex,
+  confirmMockDaoProposalReceipt,
   publishMockDaoProposalContent,
+  registerMockDaoProposalAwaitingIndex,
   submitMockDaoProposal,
   validateMockDaoForumTopic,
   type DaoAuthoringReview,
@@ -45,6 +55,7 @@ import {
   type DaoPublishedContent,
 } from "./mock-services";
 import { daoProposeCopy } from "./messages";
+import { createDaoProposalHref } from "../route-state";
 
 const FIELD_CLASS_NAME =
   "w-full rounded-box border border-border bg-surface px-3 text-base text-text-primary shadow-sm transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-text-secondary focus:border-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-app motion-reduce:transition-none";
@@ -71,7 +82,23 @@ type WalletState =
       code: "WALLET_REJECTED" | "PROPOSAL_REVERTED";
       message: string;
     }
-  | { state: "submitted"; transactionHash: `0x${string}` };
+  | { state: "receipt_pending"; transactionHash: Hex }
+  | {
+      state: "receipt_failed";
+      transactionHash: Hex;
+      code: string;
+      message: string;
+    }
+  | {
+      state:
+        | "identity_decoded"
+        | "awaiting_index"
+        | "indexed"
+        | "index_failed";
+      transactionHash: Hex;
+      identity: DaoDecodedProposeIdentity;
+      message?: string;
+    };
 
 type DaoProposalAuthoringFormProps = {
   address: Address;
@@ -150,6 +177,7 @@ function DaoProposalAuthoringFormState({
         : forumState.state === "invalid"
           ? `${forumState.code}. ${forumState.message}`
           : "";
+  const transactionHash = getWalletTransactionHash(wallet);
 
   useEffect(() => {
     if (publication.state !== "published") return;
@@ -159,11 +187,11 @@ function DaoProposalAuthoringFormState({
   }, [publication.state]);
 
   useEffect(() => {
-    if (wallet.state !== "submitted") return;
+    if (transactionHash === null) return;
 
     proposalCompleteHeadingRef.current?.focus({ preventScroll: true });
     proposalCompleteHeadingRef.current?.scrollIntoView?.({ block: "center" });
-  }, [wallet.state]);
+  }, [transactionHash]);
 
   const handleForumInput = (value: string) => {
     forumRequest.current += 1;
@@ -336,9 +364,73 @@ function DaoProposalAuthoringFormState({
       return;
     }
     setWallet({
-      state: "submitted",
+      state: "receipt_pending",
       transactionHash: result.transactionHash,
     });
+
+    const receipt = await confirmMockDaoProposalReceipt(
+      review,
+      publication.publication,
+      result.transactionHash,
+      proposer.expectedVotingEpoch,
+      serviceLatencyMs
+    );
+    if (receipt.decoded.state === "invalid") {
+      setWallet({
+        state: "receipt_failed",
+        transactionHash: result.transactionHash,
+        code: receipt.decoded.error.code,
+        message: receipt.decoded.error.message,
+      });
+      return;
+    }
+
+    const identity = receipt.decoded.identity;
+    setWallet({
+      state: "identity_decoded",
+      transactionHash: result.transactionHash,
+      identity,
+    });
+
+    try {
+      await registerMockDaoProposalAwaitingIndex(
+        review,
+        publication.publication,
+        identity,
+        serviceLatencyMs
+      );
+      setWallet({
+        state: "awaiting_index",
+        transactionHash: result.transactionHash,
+        identity,
+      });
+      const indexed = await completeMockDaoProposalIndex(
+        identity.ref,
+        now,
+        serviceLatencyMs
+      );
+      if (!indexed) {
+        setWallet({
+          state: "index_failed",
+          transactionHash: result.transactionHash,
+          identity,
+          message: daoProposeCopy.proposal.indexingDelayedBody,
+        });
+        return;
+      }
+      setWallet({
+        state: "indexed",
+        transactionHash: result.transactionHash,
+        identity,
+      });
+    } catch {
+      setWallet({
+        state: "index_failed",
+        transactionHash: result.transactionHash,
+        identity,
+        message: daoProposeCopy.proposal.indexingDelayedBody,
+      });
+    }
   };
 
   if (review) {
@@ -690,12 +782,24 @@ function DaoFinalReview({
   hostname?: string;
   wallet: WalletState;
 }) {
+  const [proposalLinkCopied, setProposalLinkCopied] = useState(false);
   const publicationLocked =
     publication.state === "publishing" || publication.state === "published";
   const contentPublished = publication.state === "published";
-  const walletFinished = wallet.state === "submitted";
+  const transactionHash = getWalletTransactionHash(wallet);
+  const proposalIdentity = getWalletProposalIdentity(wallet);
+  const walletFinished = transactionHash !== null;
+  const proposalHref = proposalIdentity
+    ? createDaoProposalHref(
+        proposalIdentity.ref.proposalId,
+        "upcoming",
+        hostname
+      )
+    : null;
   const announcement =
-    publication.state === "publishing"
+    proposalLinkCopied
+      ? daoProposeCopy.proposal.copied
+      : publication.state === "publishing"
       ? daoProposeCopy.publication.publishing
       : publication.state === "failed"
         ? publication.message
@@ -703,8 +807,18 @@ function DaoFinalReview({
           ? daoProposeCopy.proposal.waiting
           : wallet.state === "failed"
             ? wallet.message
-            : wallet.state === "submitted"
-              ? `${daoProposeCopy.review.indexStatus}.`
+            : wallet.state === "receipt_pending"
+              ? daoProposeCopy.proposal.receiptPending
+              : wallet.state === "receipt_failed"
+                ? wallet.message
+                : wallet.state === "identity_decoded"
+                  ? daoProposeCopy.proposal.identityConfirmed
+                  : wallet.state === "awaiting_index"
+                    ? daoProposeCopy.proposal.awaitingIndex
+                    : wallet.state === "indexed"
+                      ? daoProposeCopy.proposal.indexedTitle
+                      : wallet.state === "index_failed"
+                        ? daoProposeCopy.proposal.indexingDelayedTitle
               : publication.state === "published"
                 ? daoProposeCopy.publication.successTitle
                 : "";
@@ -1026,10 +1140,17 @@ function DaoFinalReview({
                 </div>
               </div>
             </section>
-          ) : (
+          ) : transactionHash ? (
             <section
               aria-labelledby="dao-proposal-complete-heading"
-              className="space-y-4 rounded-box border border-green-300 bg-green-50 p-4 text-green-950 sm:p-5 dark:border-green-900 dark:bg-green-950/35 dark:text-green-100"
+              className={cn(
+                "space-y-4 rounded-box border p-4 sm:p-5",
+                wallet.state === "receipt_failed"
+                  ? "border-red-300 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/35 dark:text-red-100"
+                  : wallet.state === "receipt_pending"
+                    ? "border-yearn-blue/50 bg-surface text-text-primary dark:border-blue-700"
+                    : "border-green-300 bg-green-50 text-green-950 dark:border-green-900 dark:bg-green-950/35 dark:text-green-100"
+              )}
             >
               <p className="text-xs font-bold uppercase tracking-wide">
                 {daoProposeCopy.review.complete}
@@ -1040,27 +1161,126 @@ function DaoFinalReview({
                 tabIndex={-1}
                 className="w-fit max-w-full rounded-box text-balance text-xl font-bold outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app"
               >
-                {daoProposeCopy.proposal.submittedTitle}
+                {wallet.state === "receipt_pending"
+                  ? daoProposeCopy.proposal.submittedTitle
+                  : wallet.state === "receipt_failed"
+                    ? daoProposeCopy.proposal.identityUnavailableTitle
+                    : wallet.state === "indexed"
+                      ? daoProposeCopy.proposal.indexedTitle
+                      : wallet.state === "index_failed"
+                        ? daoProposeCopy.proposal.indexingDelayedTitle
+                        : daoProposeCopy.proposal.identityConfirmed}
               </h3>
               <ReviewFact label={daoProposeCopy.proposal.transaction} mono>
-                {wallet.transactionHash}
+                {transactionHash}
               </ReviewFact>
+              {proposalIdentity ? (
+                <ReviewFact label={daoProposeCopy.proposal.proposalIdentity} mono>
+                  {serializeDaoProposalRef(proposalIdentity.ref)}
+                </ReviewFact>
+              ) : null}
+              {wallet.state === "receipt_failed" ? (
+                <StateNotice
+                  tone="error"
+                  title={wallet.code}
+                  body={wallet.message}
+                />
+              ) : null}
               <div
                 className="rounded-box bg-surface p-4 text-text-primary shadow-sm"
               >
                 <p className="font-bold">
-                  {daoProposeCopy.review.indexStatus}
+                  {wallet.state === "receipt_pending"
+                    ? daoProposeCopy.proposal.receiptPending
+                    : wallet.state === "receipt_failed"
+                      ? daoProposeCopy.proposal.identityUnavailableTitle
+                      : wallet.state === "indexed"
+                        ? daoProposeCopy.review.indexedStatus
+                        : wallet.state === "index_failed"
+                          ? daoProposeCopy.proposal.indexingDelayedTitle
+                          : wallet.state === "awaiting_index"
+                            ? daoProposeCopy.review.indexStatus
+                            : daoProposeCopy.proposal.identityConfirmed}
                 </p>
                 <p className="mt-1 max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
-                  {daoProposeCopy.proposal.submittedBody}
+                  {wallet.state === "indexed"
+                    ? daoProposeCopy.proposal.indexedBody
+                    : wallet.state === "index_failed"
+                      ? (wallet.message ??
+                        daoProposeCopy.proposal.indexingDelayedBody)
+                      : daoProposeCopy.proposal.submittedBody}
                 </p>
               </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {proposalHref ? (
+                  <>
+                    <Link
+                      href={proposalHref}
+                      className={getButtonClassName({
+                        className:
+                          "w-full gap-2 motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto",
+                      })}
+                    >
+                      {daoProposeCopy.proposal.open}
+                    </Link>
+                    <button
+                      type="button"
+                      className={getButtonClassName({
+                        variant: "secondary",
+                        className:
+                          "w-full gap-2 motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto",
+                      })}
+                      onClick={() => {
+                        const absoluteHref = resolveAbsoluteHref(proposalHref);
+                        void copyTextToClipboard(absoluteHref).then(
+                          (didCopy) => {
+                            setProposalLinkCopied(didCopy);
+                          }
+                        );
+                      }}
+                    >
+                      <IconCopy className="size-4" aria-hidden />
+                      {proposalLinkCopied
+                        ? daoProposeCopy.proposal.copied
+                        : daoProposeCopy.proposal.copy}
+                    </button>
+                  </>
+                ) : null}
+                <a
+                  href={getEtherscanTransactionUrl(transactionHash) ?? undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={getButtonClassName({
+                    variant: proposalHref ? "ghost" : "secondary",
+                    className:
+                      "w-full gap-2 motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto",
+                  })}
+                >
+                  {daoProposeCopy.proposal.viewTransaction}
+                  <IconLinkOut className="size-4" aria-hidden />
+                </a>
+              </div>
             </section>
-          )}
+          ) : null}
         </div>
       )}
     </Card>
   );
+}
+
+function getWalletTransactionHash(wallet: WalletState): Hex | null {
+  return "transactionHash" in wallet ? wallet.transactionHash : null;
+}
+
+function getWalletProposalIdentity(
+  wallet: WalletState
+): DaoDecodedProposeIdentity | null {
+  return "identity" in wallet ? wallet.identity : null;
+}
+
+function resolveAbsoluteHref(href: string): string {
+  if (typeof window === "undefined") return href;
+  return new URL(href, window.location.origin).toString();
 }
 
 export function DaoProposalEligibility({

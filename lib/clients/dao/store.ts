@@ -15,6 +15,12 @@ import {
   validateDaoModerationReason,
 } from "./domain";
 import {
+  clearDaoCreatedProposals,
+  indexDaoCreatedProposal,
+  persistDaoCreatedProposal,
+  readDaoCreatedProposals,
+} from "./created-proposals";
+import {
   createDaoMockFeed,
   DAO_MOCK_NOW,
   deriveDaoMockBlockHash,
@@ -30,6 +36,7 @@ import type {
   DaoAccountProposalFacts,
   DaoAccountProposalState,
   DaoActionType,
+  DaoCreatedProposalRecord,
   DaoExecutionGuard,
   DaoMockAccountState,
   DaoMockAnalysisState,
@@ -132,6 +139,11 @@ function createStoreState(
 ): DaoMockStoreState {
   const fixture = getDaoMockFixture(fixtureId);
   const feed = createRuntimeFeed(now);
+  const createdRecords = readDaoCreatedProposals();
+  feed.proposals = mergeCreatedProposals(feed.proposals, createdRecords);
+  for (const record of createdRecords) {
+    advanceFeedToCreatedProposal(feed, record.proposal);
+  }
   const proposals = createProposalRuntimes(feed.proposals);
   const delta = now - fixture.now;
   const proposer = cloneValue(fixture.proposer);
@@ -299,6 +311,59 @@ function createProposalRuntimes(
   }));
 }
 
+function mergeCreatedProposals(
+  proposals: DaoProposal[],
+  records: DaoCreatedProposalRecord[]
+): DaoProposal[] {
+  const createdKeys = new Set(
+    records.map((record) => serializeDaoProposalRef(record.proposal.ref))
+  );
+  return [
+    ...proposals.filter(
+      (proposal) => !createdKeys.has(serializeDaoProposalRef(proposal.ref))
+    ),
+    ...records.map((record) => cloneValue(record.proposal)),
+  ];
+}
+
+function upsertCreatedProposalRuntime(
+  current: DaoMockStoreState,
+  record: DaoCreatedProposalRecord
+): void {
+  const key = serializeDaoProposalRef(record.proposal.ref);
+  const runtime = createProposalRuntimes([cloneValue(record.proposal)])[0];
+  if (!runtime) {
+    throw new Error("Created proposal runtime could not be initialized.");
+  }
+  current.proposals = [
+    ...current.proposals.filter(
+      (candidate) =>
+        serializeDaoProposalRef(candidate.proposal.ref) !== key
+    ),
+    runtime,
+  ];
+  current.now = Math.max(current.now, record.proposal.createdAt);
+  advanceFeedToCreatedProposal(current.feed, record.proposal);
+}
+
+function advanceFeedToCreatedProposal(
+  feed: DaoMockStoreState["feed"],
+  proposal: DaoProposal
+): void {
+  const proposeEvent = proposal.events.find((event) => event.type === "propose");
+  if (
+    !proposeEvent ||
+    proposeEvent.log.blockNumber <= feed.canonicalBlock.number
+  ) {
+    return;
+  }
+  feed.canonicalBlock = {
+    number: proposeEvent.log.blockNumber,
+    hash: proposeEvent.log.blockHash,
+    timestamp: proposal.createdAt,
+  };
+}
+
 function getSelectedProposalRuntime(
   current: DaoMockStoreState
 ): DaoMockProposalRuntime {
@@ -455,8 +520,15 @@ export function getDaoMockSnapshot(): DaoMockRuntimeSnapshot {
 }
 
 export function resetDaoMockStore(
-  options: { fixtureId?: DaoMockFixtureId; now?: number } = {}
+  options: {
+    fixtureId?: DaoMockFixtureId;
+    now?: number;
+    preserveCreatedProposals?: boolean;
+  } = {}
 ) {
+  if (!options.preserveCreatedProposals) {
+    clearDaoCreatedProposals();
+  }
   commit(
     createStoreState(
       options.now ?? DAO_MOCK_NOW,
@@ -464,6 +536,27 @@ export function resetDaoMockStore(
     )
   );
   return getDaoMockSnapshot();
+}
+
+export function registerDaoMockCreatedProposal(
+  record: DaoCreatedProposalRecord
+): DaoMockRuntimeSnapshot {
+  const persisted = persistDaoCreatedProposal(record);
+  return updateStore((current) => {
+    upsertCreatedProposalRuntime(current, persisted);
+  });
+}
+
+export function indexDaoMockCreatedProposal(
+  ref: DaoProposalRef,
+  indexedAt: number
+): DaoCreatedProposalRecord | null {
+  const indexed = indexDaoCreatedProposal(ref, indexedAt);
+  if (!indexed) return null;
+  updateStore((current) => {
+    upsertCreatedProposalRuntime(current, indexed);
+  });
+  return indexed;
 }
 
 export function applyDaoMockFixture(fixtureId: DaoMockFixtureId) {

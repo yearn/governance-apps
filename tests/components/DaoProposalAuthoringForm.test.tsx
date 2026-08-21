@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DAO_EXECUTOR_VALID_SCRIPT_VECTORS,
   deriveDaoProposerState,
   getDaoMockFixture,
+  resetDaoMockStore,
   type DaoProposerEligibilityInput,
 } from "@/lib/clients/dao";
 import {
@@ -15,6 +16,10 @@ import {
 const NOW = getDaoMockFixture("discussion").now;
 
 describe("DAO proposal authoring form", () => {
+  beforeEach(() => {
+    resetDaoMockStore();
+  });
+
   it("connects accessible field errors and focuses the first invalid field", async () => {
     const user = userEvent.setup();
     renderAuthoring();
@@ -149,16 +154,117 @@ describe("DAO proposal authoring form", () => {
       screen.getByRole("button", { name: "Create onchain proposal" })
     );
     const completionHeading = await screen.findByRole("heading", {
-      name: "Proposal transaction submitted",
+      name: "Proposal ready",
     });
     expect(completionHeading).toBeVisible();
     expect(completionHeading).toHaveFocus();
     expect(
-      screen.getByText("Awaiting proposal indexing and analysis")
+      screen.getByText("Proposal indexed")
     ).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Awaiting proposal indexing and analysis."
+      "Proposal ready"
     );
+    expect(screen.getByRole("link", { name: "Open proposal" })).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^\/dao\/proposals\/\d+\?from=upcoming$/)
+    );
+    expect(
+      screen.getByRole("link", { name: "View transaction" })
+    ).toHaveAttribute("target", "_blank");
+  });
+
+  it("shows the transaction before receipt identity and preserves the decoded route through indexing", async () => {
+    const user = userEvent.setup();
+    const writeText = vi
+      .spyOn(navigator.clipboard, "writeText")
+      .mockResolvedValue(undefined);
+    renderAuthoring(80);
+    await fillDraft(user, 1001);
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /I reviewed the exact immutable content/i,
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Publish immutable content" })
+    );
+    await screen.findByRole("heading", {
+      name: "Immutable content published",
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Create onchain proposal" })
+    );
+
+    const transaction = await screen.findByRole("link", {
+      name: "View transaction",
+    });
+    expect(transaction).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^https:\/\/etherscan\.io\/tx\/0x[0-9a-f]{64}$/)
+    );
+    expect(
+      screen.queryByRole("link", { name: "Open proposal" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy proposal link" })
+    ).not.toBeInTheDocument();
+
+    const open = await screen.findByRole("link", { name: "Open proposal" });
+    const decodedHref = open.getAttribute("href");
+    expect(decodedHref).toMatch(/^\/dao\/proposals\/\d+\?from=upcoming$/);
+    await user.click(
+      screen.getByRole("button", { name: "Copy proposal link" })
+    );
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(
+        new URL(decodedHref!, window.location.origin).toString()
+      )
+    );
+
+    await screen.findByRole("heading", { name: "Proposal ready" });
+    expect(screen.getByRole("link", { name: "Open proposal" })).toHaveAttribute(
+      "href",
+      decodedHref
+    );
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+  });
+
+  it("keeps the transaction link and hides proposal actions when identity decoding fails", async () => {
+    const user = userEvent.setup();
+    renderAuthoring();
+    await fillDraft(user, 1005);
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /I reviewed the exact immutable content/i,
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Publish immutable content" })
+    );
+    await screen.findByRole("heading", {
+      name: "Immutable content published",
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Create onchain proposal" })
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Proposal identity unavailable",
+      })
+    ).toBeVisible();
+    expect(screen.getByText("PROPOSE_LOG_MISSING")).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: "View transaction" })
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: "Open proposal" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy proposal link" })
+    ).not.toBeInTheDocument();
   });
 
   it("locks the exact review throughout publication and exposes complete forum facts", async () => {

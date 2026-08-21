@@ -155,6 +155,7 @@ export const daoProposeCopy = {
     proposeStepBody:
       "Create the onchain proposal with the published content fingerprint. A wallet cancellation or revert does not require republishing.",
     indexStatus: "Awaiting proposal indexing and analysis",
+    indexedStatus: "Proposal indexed",
   },
   publication: {
     publish: "Publish immutable content",
@@ -171,9 +172,24 @@ export const daoProposeCopy = {
     retry: "Retry proposal creation",
     waiting: "Waiting for wallet",
     submittedTitle: "Proposal transaction submitted",
+    receiptPending: "Waiting for transaction confirmation",
+    identityConfirmed: "Proposal identity confirmed",
+    identityUnavailableTitle: "Proposal identity unavailable",
+    awaitingIndex: "Proposal confirmed — awaiting indexing",
+    indexedTitle: "Proposal ready",
+    indexedBody:
+      "The confirmed proposal is indexed at the same proposal address.",
+    indexingDelayedTitle: "Proposal indexing is delayed",
+    indexingDelayedBody:
+      "The confirmed proposal address remains available while indexing catches up.",
     submittedBody:
-      "Waiting for proposal indexing and backend decoding and simulation.",
+      "The transaction hash is known. Proposal actions appear after the confirmed receipt supplies its identity.",
     transaction: "Transaction hash",
+    proposalIdentity: "Proposal identity",
+    open: "Open proposal",
+    copy: "Copy proposal link",
+    copied: "Proposal link copied",
+    viewTransaction: "View transaction",
     rejectedTitle: "Wallet request cancelled",
     revertedTitle: "Proposal creation failed",
   },

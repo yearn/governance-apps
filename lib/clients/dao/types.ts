@@ -166,6 +166,70 @@ export type DaoLogRef = {
   logIndex: number;
 };
 
+export type DaoReceiptLog = {
+  address: Address;
+  data: Hex;
+  topics: readonly Hex[];
+  logIndex: number;
+};
+
+/**
+ * Chain identity is deliberately absent. A caller must supply trusted chain
+ * context separately when decoding a receipt.
+ */
+export type DaoTransactionReceipt = {
+  status: "success" | "reverted";
+  transactionHash: Hex;
+  blockNumber: bigint;
+  blockHash: Hex;
+  blockTimestamp: DaoUnixSeconds | null;
+  transactionIndex: number;
+  logs: DaoReceiptLog[];
+};
+
+export type DaoProposeReceiptExpectation = {
+  chainId: number;
+  votingAddress: Address;
+  transactionHash: Hex;
+  proposer: Address;
+  votingEpoch: bigint;
+  contentDigest: Hex;
+  script: Hex;
+};
+
+export type DaoDecodedProposeIdentity = {
+  ref: DaoProposalRef;
+  proposer: Address;
+  votingEpoch: bigint;
+  contentDigest: Hex;
+  script: Hex;
+  blockTimestamp: DaoUnixSeconds | null;
+  log: DaoLogRef;
+};
+
+export type DaoProposeReceiptErrorCode =
+  | "INVALID_CHAIN_CONTEXT"
+  | "TRANSACTION_HASH_MISMATCH"
+  | "RECEIPT_REVERTED"
+  | "PROPOSE_LOG_MISSING"
+  | "PROPOSE_LOG_WRONG_CONTRACT"
+  | "PROPOSE_LOG_DUPLICATE"
+  | "PROPOSE_LOG_MALFORMED"
+  | "PROPOSER_MISMATCH"
+  | "VOTING_EPOCH_MISMATCH"
+  | "CONTENT_DIGEST_MISMATCH"
+  | "SCRIPT_MISMATCH";
+
+export type DaoProposeReceiptDecodeResult =
+  | { state: "decoded"; identity: DaoDecodedProposeIdentity }
+  | {
+      state: "invalid";
+      error: {
+        code: DaoProposeReceiptErrorCode;
+        message: string;
+      };
+    };
+
 export type DaoProposalEvent = {
   type: "propose" | "vote" | "retract" | "flag" | "veto" | "execute";
   log: DaoLogRef;
@@ -341,6 +405,13 @@ export type DaoProposalJson = Omit<
   nayWeight: DaoBigIntJson;
   analysis: DaoAnalysisJson;
   events: DaoProposalEventJson[];
+};
+
+export type DaoCreatedProposalStage = "awaiting_index" | "indexed";
+
+export type DaoCreatedProposalRecord = {
+  stage: DaoCreatedProposalStage;
+  proposal: DaoProposal;
 };
 
 export type DaoFeedV1Json = Omit<

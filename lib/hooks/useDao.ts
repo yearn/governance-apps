@@ -125,7 +125,10 @@ export function useDaoFeed(enabled = true) {
       exact: true,
     });
   }, [queryClient, surfaceBlocksRead]);
-  return applyDaoSurfaceState(query, runtime, query.data);
+  const surfaced = applyDaoSurfaceState(query, runtime, query.data);
+  return runtime && surfaced.data !== undefined
+    ? { ...surfaced, data: runtime.feed }
+    : surfaced;
 }
 
 export function useDaoProposal(proposalId: string) {
