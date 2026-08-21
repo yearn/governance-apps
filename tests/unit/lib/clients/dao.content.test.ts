@@ -84,6 +84,7 @@ describe("DAO proposal content", () => {
     ["UNSUPPORTED_NODE", "# One\n\nSummary.\n\n---\n"],
     ["UNSAFE_LINK", "# One\n\nSummary.\n\n[bad](javascript:alert(1))"],
     ["UNSAFE_LINK", "# One\n\nSummary.\n\n[bad](//evil.example/path)"],
+    ["UNSAFE_LINK", "# One\n\nSummary.\n\n[bad](/dao//evil.example/path)"],
   ])("returns stable %s errors", (code, markdown) => {
     const parsed = parseDaoProposalContent(content({ markdown }));
     expect(parsed.errors.map((error) => error.code)).toContain(code);

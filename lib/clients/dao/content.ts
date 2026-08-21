@@ -773,7 +773,9 @@ function isCanonicalRawSha256Cid(value: string): boolean {
 
 function isSafeDaoMarkdownLink(value: string): boolean {
   if (!value || containsUnsafeControl(value) || value.includes("\\")) return false;
-  if (value.startsWith("/")) return !value.startsWith("//");
+  if (value.startsWith("/")) {
+    return !value.startsWith("//") && !value.startsWith("/dao//");
+  }
   if (value.startsWith("ipfs://")) return isSafeIpfsLink(value);
   let url: URL;
   try {

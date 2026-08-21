@@ -161,7 +161,9 @@ function MarkdownNode({
       return <li className="min-w-0 pl-1">{children}</li>;
     case "link": {
       const href = resolveMarkdownHref(node.url ?? "", hostname);
-      const internal = (node.url ?? "").startsWith("/");
+      const internal =
+        (node.url ?? "").startsWith("/") &&
+        !(node.url ?? "").startsWith("//");
       const className =
         "inline rounded font-bold text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 transition-[color,text-decoration-color] duration-150 ease-out [overflow-wrap:anywhere] hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:text-blue-300 dark:hover:text-blue-200";
       return internal ? (
@@ -349,8 +351,14 @@ function AttachmentCard({
 }
 
 function resolveMarkdownHref(href: string, hostname?: string): string {
-  if (href === "/dao" || href.startsWith("/dao/")) {
-    const path = href.slice("/dao".length) || "/";
+  if (/^\/dao(?:$|[/?#])/u.test(href)) {
+    const remainder = href.slice("/dao".length);
+    const path =
+      !remainder
+        ? "/"
+        : remainder.startsWith("?") || remainder.startsWith("#")
+          ? `/${remainder}`
+          : remainder;
     return resolveGovernanceAppPathHref("dao", path as `/${string}`, hostname);
   }
   return resolveGovernanceHref(href, hostname);

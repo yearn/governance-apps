@@ -23,8 +23,8 @@ const asset: DaoProposalAsset = {
   height: 800,
 };
 
-function parsed(): ReturnType<typeof parseDaoProposalContent> {
-  const content: DaoProposalContent = {
+function parsedContent(): DaoProposalContent {
+  return {
     schema: "yearn.dao.proposal.v1",
     markdown: `# Improve governance clarity\n\nExplain the decision in one paragraph.\n\n## Specification\n\nUse **one renderer** and [safe source](https://example.com/source).\n\n### Data\n\n| Field | Value |\n| --- | --- |\n| CID | ${cid} |\n\n\`\`\`text\n${"long".repeat(80)}\n\`\`\`\n\n![Architecture diagram](./assets/diagram.svg)\n`,
     discussionUrl: "https://gov.yearn.fi/t/proposal/1001",
@@ -33,7 +33,10 @@ function parsed(): ReturnType<typeof parseDaoProposalContent> {
     createdAt: "2026-08-18T12:00:00.000Z",
     assets: [asset],
   };
-  const result = parseDaoProposalContent(content);
+}
+
+function parsed(): ReturnType<typeof parseDaoProposalContent> {
+  const result = parseDaoProposalContent(parsedContent());
   expect(result.errors).toEqual([]);
   return result;
 }
@@ -107,6 +110,43 @@ describe("DaoProposalMarkdown", () => {
     const link = screen.getByRole("link", { name: "safe source" });
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     expect(link).toHaveClass("[overflow-wrap:anywhere]");
+  });
+
+  it("keeps DAO root state host-aware without permitting a scheme-relative escape", () => {
+    const safe = parseDaoProposalContent({
+      ...parsedContent(),
+      markdown:
+        "# Links\n\nSummary.\n\n[Rules](/dao?trace=1#rules) and supporting text.",
+    });
+    render(
+      <DaoProposalMarkdown
+        parsed={safe}
+        context="detail"
+        hostname="dao-beta.dao-ops.com"
+      />
+    );
+    expect(screen.getByRole("link", { name: "Rules" })).toHaveAttribute(
+      "href",
+      "/?trace=1#rules"
+    );
+
+    const escaped = parseDaoProposalContent({
+      ...parsedContent(),
+      markdown:
+        "# Links\n\nSummary.\n\n[Unsafe](/dao//evil.example/path) and supporting text.",
+    });
+    expect(escaped.errors.map((error) => error.code)).toContain("UNSAFE_LINK");
+    render(
+      <DaoProposalMarkdown
+        parsed={escaped}
+        context="detail"
+        hostname="dao-beta.dao-ops.com"
+      />
+    );
+    expect(screen.getByRole("link", { name: "Unsafe" })).toHaveAttribute(
+      "href",
+      "/evil.example/path"
+    );
   });
 
   it("labels and contains the byte-exact source region", () => {

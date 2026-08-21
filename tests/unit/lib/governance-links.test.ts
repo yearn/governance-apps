@@ -84,6 +84,30 @@ describe("resolveGovernanceAppPathHref", () => {
     expect(
       resolveGovernanceAppPathHref("dao", "/", "dao-beta.dao-ops.com")
     ).toBe("/");
+    expect(
+      resolveGovernanceAppPathHref(
+        "dao",
+        "//evil.example/path",
+        "dao-beta.dao-ops.com"
+      )
+    ).toBe("/evil.example/path");
+  });
+
+  it("preserves root query and fragment state on shared and DAO hosts", () => {
+    expect(
+      resolveGovernanceAppPathHref(
+        "dao",
+        "/?trace=1#rules",
+        "dao-beta.dao-ops.com"
+      )
+    ).toBe("/?trace=1#rules");
+    expect(
+      resolveGovernanceAppPathHref(
+        "dao",
+        "/?trace=1#rules",
+        "app.dao-ops.com"
+      )
+    ).toBe("/dao?trace=1#rules");
   });
 
   it("cross-links from another beta surface to the DAO beta host", () => {
