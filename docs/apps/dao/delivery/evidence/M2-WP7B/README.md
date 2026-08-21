@@ -39,17 +39,109 @@ asset block. Neither form treats the asset as a descendant of the content CID.
 
 ## Dependency and parser boundary
 
-Production dependencies are pinned exactly:
+### Pre-implementation decision
 
-- `mdast-util-from-markdown@2.0.3`
-- `micromark-extension-gfm-table@2.1.1`
-- `mdast-util-gfm-table@2.0.0`
-- `multiformats@14.0.5`
+The content-security audit approved four exact production dependencies. The
+release dates below come from the package registry history; the linked upstream
+repositories supplied the maintenance, compatibility, API, and change history.
 
-The parser enables CommonMark and GFM tables only. It rejects raw HTML and
-every unsupported AST node. Rendering never uses `dangerouslySetInnerHTML`.
-`npm run validate:deps` passed, and the lockfile contains no unexpected install
-scripts from the four additions.
+| Direct package | Audited release | Why it is direct |
+| --- | --- | --- |
+| [`mdast-util-from-markdown@2.0.3`](https://github.com/syntax-tree/mdast-util-from-markdown) | 2026-02-21 | Parses CommonMark into MDAST and is imported by the domain parser. |
+| [`micromark-extension-gfm-table@2.1.1`](https://github.com/micromark/micromark-extension-gfm-table) | 2025-01-20 | Adds only GFM table tokenization and is passed directly to the parser. |
+| [`mdast-util-gfm-table@2.0.0`](https://github.com/syntax-tree/mdast-util-gfm-table) | 2023-07-10 | Converts table tokens to MDAST table nodes and is passed directly to the parser. Its current major remains in the upstream maintained compatibility line. |
+| [`multiformats@14.0.5`](https://github.com/multiformats/js-multiformats) | 2026-07-23 | Parses and creates canonical CIDv1/raw/SHA-256/Base32 identifiers. |
+
+The parser call is fixed to this configuration:
+
+```ts
+fromMarkdown(markdown, {
+  extensions: [gfmTable()],
+  mdastExtensions: [gfmTableFromMarkdown()],
+});
+```
+
+There is no unified, remark, rehype, raw-HTML, autolink, footnote,
+strikethrough, task-list, MDX, or sanitizer extension. CommonMark may tokenize
+raw HTML as an `html` node; the domain validator rejects that node as
+`RAW_HTML`, and the renderer has no HTML case or `dangerouslySetInnerHTML`.
+The parser only identifies link and image targets. Trust is decided later by
+the domain URL, CID, manifest, and standalone-attachment validators. Ordinary
+links accept validated HTTPS, validated IPFS, or canonical root-relative app
+paths. Images accept only exact authenticated manifest paths or canonical raw
+asset CIDs.
+
+### Complete lockfile inventory
+
+The frozen-base JSON diff contains 40 new `packages` keys: 38 non-type paths
+plus two type-package paths. The often quoted “38 added paths” omits those two
+type entries. This table records every new key and why npm includes it.
+
+| New lockfile path and version | Reason present |
+| --- | --- |
+| `node_modules/@types/mdast@4.0.4` | Transitive MDAST node shapes required by the parser and table packages. Application code uses its domain-owned AST type, so this is not a direct dev dependency. |
+| `node_modules/@types/unist@3.0.3` | Transitive base-node and source-position shapes used by MDAST packages. |
+| `node_modules/character-entities@2.0.2` | Named HTML character-reference data used during CommonMark token decoding. |
+| `node_modules/decode-named-character-reference@1.3.0` | Decodes named character references for the parser. |
+| `node_modules/devlop@1.1.0` | Small assertion helper used by the syntax-tree parser and table packages. |
+| `node_modules/longest-streak@3.1.0` | Serializer formatting helper pulled by `mdast-util-to-markdown`. The application does not serialize Markdown with it. |
+| `node_modules/markdown-table@3.0.4` | Table serializer pulled by the combined `mdast-util-gfm-table` package. The application uses only its parse extension. |
+| `node_modules/mdast-util-from-markdown@2.0.3` | Direct CommonMark-to-MDAST parser. |
+| `node_modules/mdast-util-gfm-table@2.0.0` | Direct GFM table MDAST extension; its package ships both parse and serialize support. |
+| `node_modules/mdast-util-phrasing@4.1.0` | Identifies phrasing nodes for the transitive Markdown serializer. |
+| `node_modules/mdast-util-to-markdown@2.1.2` | Serializer half pulled by `mdast-util-gfm-table`; not called by application code. |
+| `node_modules/mdast-util-to-string@4.0.0` | Shared visible-text helper required by upstream MDAST utilities. |
+| `node_modules/micromark@4.0.2` | CommonMark tokenizer engine used by `mdast-util-from-markdown`. |
+| `node_modules/micromark-core-commonmark@2.0.3` | Core CommonMark constructs used by micromark. |
+| `node_modules/micromark-extension-gfm-table@2.1.1` | Direct and only extra syntax extension. |
+| `node_modules/micromark-factory-destination@2.0.1` | Token factory for CommonMark link and image destinations. |
+| `node_modules/micromark-factory-label@2.0.1` | Token factory for link and image labels. |
+| `node_modules/micromark-factory-space@2.0.1` | Token factory for bounded Markdown whitespace. |
+| `node_modules/micromark-factory-title@2.0.1` | Token factory for CommonMark link titles. |
+| `node_modules/micromark-factory-whitespace@2.0.1` | Token factory for line-prefix and container whitespace. |
+| `node_modules/micromark-util-character@2.1.1` | Shared Markdown character classification. |
+| `node_modules/micromark-util-chunked@2.0.1` | Handles token-array chunks without unsafe argument spreading. |
+| `node_modules/micromark-util-classify-character@2.0.1` | Classifies characters around constructs and serializer escapes. |
+| `node_modules/micromark-util-combine-extensions@2.0.1` | Combines CommonMark with the one table syntax extension. |
+| `node_modules/micromark-util-decode-numeric-character-reference@2.0.2` | Decodes numeric character references. |
+| `node_modules/micromark-util-decode-string@2.0.1` | Decodes Markdown escapes and character references. |
+| `node_modules/micromark-util-encode@2.0.1` | Encodes unsafe characters for micromark output utilities. |
+| `node_modules/micromark-util-html-tag-name@2.0.1` | Recognizes raw-HTML tag names so the AST can expose and the domain can reject them. |
+| `node_modules/micromark-util-normalize-identifier@2.0.1` | Normalizes reference identifiers for CommonMark matching, not proposal source bytes. |
+| `node_modules/micromark-util-resolve-all@2.0.1` | Runs construct token resolvers in deterministic order. |
+| `node_modules/micromark-util-sanitize-uri@2.0.1` | Upstream URI output helper; it does not replace the DAO URL validator. |
+| `node_modules/micromark-util-subtokenize@2.1.0` | Resolves nested content token streams. |
+| `node_modules/micromark-util-symbol@2.0.1` | Shared tokenizer constants. |
+| `node_modules/micromark-util-types@2.0.2` | Shared micromark TypeScript declarations. |
+| `node_modules/uint8arrays/node_modules/multiformats@9.9.0` | Preserves the existing `uint8arrays@3.1.0` requirement on multiformats `^9.4.2` after the root dependency moves to 14.0.5. |
+| `node_modules/unist-util-is@6.0.1` | Node predicate used by transitive MDAST serializer helpers. |
+| `node_modules/unist-util-stringify-position@4.0.0` | Formats parser source positions for upstream diagnostics. |
+| `node_modules/unist-util-visit@5.1.0` | Tree visitor pulled by the transitive Markdown serializer. |
+| `node_modules/unist-util-visit-parents@6.0.2` | Parent-aware visitor used by `unist-util-visit`. |
+| `node_modules/zwitch@2.0.4` | Node-type dispatch used by the transitive serializer. |
+
+Three related lock changes are not new top-level keys. Root
+`node_modules/multiformats` moves from 9.9.0 to the direct 14.0.5 pin. The
+nested 9.9.0 entry above retains `uint8arrays` compatibility. Existing
+`node_modules/dequal@2.0.3` loses its `dev` and `peer` flags because `devlop`
+makes it production-reachable.
+
+### Final dependency audit
+
+On 2026-08-22, the corrected code and proof-harness tip `7145e6b` was checked
+against frozen base `4588a98`:
+
+- `npm run validate:deps` passed.
+- `package-lock.json` SHA-256 is
+  `a838fea95aa45d955053d172ca2f5b66ee966fb58788318f6a7053ac9eadfecc`.
+- The JSON key diff reports 40 added paths, of which 38 are non-type paths.
+- Enumerating every added entry reports zero `hasInstallScript` values. None of
+  the 40 is marked dev, optional, peer, OS-specific, or CPU-specific.
+- All new entries are MIT licensed except nested
+  `multiformats@9.9.0`, which records `(Apache-2.0 AND MIT)`.
+
+The complete final-tip validation sequence reruns `npm run validate:deps`; the
+handoff records that same-tip result without changing this lockfile audit.
 
 ## Evidence-population checks
 
