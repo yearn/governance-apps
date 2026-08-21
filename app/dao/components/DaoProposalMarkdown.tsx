@@ -74,7 +74,12 @@ export function DaoProposalMarkdownSource({
           +
         </span>
       </summary>
-      <pre className="max-w-full overflow-x-auto whitespace-pre-wrap break-words rounded-box bg-neutral-900 p-4 font-number text-xs leading-5 text-neutral-0 [overflow-wrap:anywhere]">
+      <pre
+        role="region"
+        aria-label="Exact Markdown source"
+        tabIndex={0}
+        className="max-w-full overflow-x-auto whitespace-pre rounded-box bg-neutral-900 p-4 font-number text-xs leading-5 text-neutral-0 outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+      >
         <code>{source}</code>
       </pre>
     </details>
@@ -158,7 +163,7 @@ function MarkdownNode({
       const href = resolveMarkdownHref(node.url ?? "", hostname);
       const internal = (node.url ?? "").startsWith("/");
       const className =
-        "inline rounded font-bold text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 transition-[color,text-decoration-color] duration-150 ease-out hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:text-blue-300 dark:hover:text-blue-200";
+        "inline rounded font-bold text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 transition-[color,text-decoration-color] duration-150 ease-out [overflow-wrap:anywhere] hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:text-blue-300 dark:hover:text-blue-200";
       return internal ? (
         <Link href={href} className={className}>
           {children}
@@ -171,13 +176,23 @@ function MarkdownNode({
     }
     case "code":
       return (
-        <pre className="max-w-full overflow-x-auto rounded-box bg-neutral-900 p-4 font-number text-xs leading-5 text-neutral-0">
+        <pre
+          role="region"
+          aria-label="Proposal Markdown code block"
+          tabIndex={0}
+          className="max-w-full overflow-x-auto rounded-box bg-neutral-900 p-4 font-number text-xs leading-5 text-neutral-0 outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+        >
           <code>{node.value ?? ""}</code>
         </pre>
       );
     case "table":
       return (
-        <div className="max-w-full overflow-x-auto rounded-box border border-border">
+        <div
+          role="region"
+          aria-label="Proposal Markdown table"
+          tabIndex={0}
+          className="max-w-full overflow-x-auto rounded-box border border-border outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+        >
           <table className="w-full min-w-[32rem] border-collapse text-left text-sm">
             <thead className="bg-surface-secondary">
               {node.children?.[0] ? (

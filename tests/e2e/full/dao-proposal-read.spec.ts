@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { DAO_MOCK_GOVERNANCE_FLOW_ASSET_CID } from "@/lib/clients/dao";
 
 const PINNED_VOTING_SOURCE_URL =
   "https://github.com/yearn/stYFI/blob/9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
@@ -412,6 +413,78 @@ test("keeps onchain records and trust failures explicit", async ({ page }) => {
   await expectNoDocumentOverflow(page, "trust failure fixtures");
 });
 
+test("contains long immutable Markdown at 200% text scaling", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dao/proposals/21");
+  await page.addStyleTag({ content: "html { font-size: 200%; }" });
+
+  await expect(
+    page.getByRole("heading", { name: /Interoperability evidence/ })
+  ).toBeVisible();
+  const longLink = page.getByRole("link", {
+    name: /governance-verification-evidence-/,
+  });
+  await expect(longLink).toHaveAttribute("target", "_blank");
+  await expect(longLink).toHaveAttribute("rel", "noopener noreferrer");
+
+  const table = page.getByRole("region", { name: "Proposal Markdown table" });
+  const code = page.getByRole("region", {
+    name: "Proposal Markdown code block",
+  });
+  await expect(table).toBeVisible();
+  await expect(code).toBeVisible();
+  await expectHorizontallyScrollable(table);
+  await expectHorizontallyScrollable(code);
+
+  await page.getByText("View Markdown source").click();
+  const source = page.getByRole("region", { name: "Exact Markdown source" });
+  await expect(source).toBeVisible();
+  await expectHorizontallyScrollable(source);
+  await expectNoDocumentOverflow(page, "200% immutable Markdown");
+});
+
+test("loads an authenticated attachment only after explicit activation", async ({
+  page,
+}) => {
+  const gatewayUrl = `https://ipfs.io/ipfs/${DAO_MOCK_GOVERNANCE_FLOW_ASSET_CID}`;
+  const gatewayRequests: string[] = [];
+  const context = page.context();
+  context.on("request", (request) => {
+    if (request.url().startsWith("https://ipfs.io/ipfs/")) {
+      gatewayRequests.push(request.url());
+    }
+  });
+  await context.route(gatewayUrl, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/plain",
+      body: "authenticated raw block",
+    });
+  });
+
+  for (const id of [1, 2]) {
+    await page.goto(`/dao/proposals/${id}`);
+    const attachment = page.getByRole("complementary", {
+      name: "Attachment: Governance flow diagram",
+    });
+    await expect(attachment).toBeVisible();
+    await expect(attachment.locator("img, picture, source, video")).toHaveCount(0);
+    const open = attachment.getByRole("link", { name: "Open attachment" });
+    await expect(open).toHaveAttribute("href", gatewayUrl);
+    await expect(open).toHaveAttribute("target", "_blank");
+    await expect(open).toHaveAttribute("rel", "noopener noreferrer");
+    await attachment.getByRole("button", { name: "Copy immutable link" }).click();
+    await expect.poll(() => gatewayRequests).toEqual([]);
+  }
+
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByRole("link", { name: "Open attachment" }).click();
+  const popup = await popupPromise;
+  await popup.waitForLoadState("domcontentloaded");
+  await expect.poll(() => gatewayRequests).toEqual([gatewayUrl]);
+  await popup.close();
+});
+
 async function expectNoDocumentOverflow(page: Page, context: string) {
   const widths = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -428,6 +501,14 @@ async function expectMinimumHitArea(locator: Locator) {
   expect(box).not.toBeNull();
   expect(box!.width).toBeGreaterThanOrEqual(40);
   expect(box!.height).toBeGreaterThanOrEqual(40);
+}
+
+async function expectHorizontallyScrollable(locator: Locator) {
+  const widths = await locator.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(widths.scrollWidth).toBeGreaterThan(widths.clientWidth);
 }
 
 async function expectNoDeliveryLanguage(page: Page) {

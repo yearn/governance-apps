@@ -116,6 +116,8 @@ const UNIT = 10n ** 18n;
 const VALID_SCRIPT = DAO_EXECUTOR_VALID_SCRIPT_VECTORS.twoCalls.script as Hex;
 const VALID_SCRIPT_HASH = keccak256(VALID_SCRIPT);
 const MISMATCHED_SCRIPT_HASH = `0x${"ff".repeat(32)}` as Hex;
+const DAO_MOCK_LONG_MARKDOWN_TOKEN =
+  "governance-verification-evidence-" + "a".repeat(192);
 
 type ProposalTimingFixture = {
   createdAt: number;
@@ -569,9 +571,13 @@ function createContent(
       : options.id === 2n
         ? `\n\n![Governance flow diagram](ipfs://${DAO_MOCK_GOVERNANCE_FLOW_ASSET_CID})`
         : "";
+  const markdown =
+    options.id === 21n
+      ? `# ${options.title}\n\nThis proposal records the decision and rationale presented for DAO review.\n\n## Interoperability evidence ${DAO_MOCK_LONG_MARKDOWN_TOKEN}\n\nReview the [${DAO_MOCK_LONG_MARKDOWN_TOKEN}](https://example.com/governance/${DAO_MOCK_LONG_MARKDOWN_TOKEN}) before execution.\n\n| Evidence | Exact value |\n| --- | --- |\n| Canonical manifest | ${DAO_MOCK_LONG_MARKDOWN_TOKEN} |\n\n\`\`\`text\n${DAO_MOCK_LONG_MARKDOWN_TOKEN}\n\`\`\`\n`
+      : `# ${options.title}\n\nThis proposal records the decision and rationale presented for DAO review.\n\n## Specification\n\nReview the requested governance outcome, voting record, and any ordered onchain actions before making a decision.${attachment}\n`;
   const value: DaoProposalContent = {
     schema: "yearn.dao.proposal.v1",
-    markdown: `# ${options.title}\n\nThis proposal records the decision and rationale presented for DAO review.\n\n## Specification\n\nReview the requested governance outcome, voting record, and any ordered onchain actions before making a decision.${attachment}\n`,
+    markdown,
     discussionUrl: `https://gov.yearn.fi/t/dao-proposal/${options.id.toString()}`,
     proposalType: options.type ?? "executable",
     createdBy: DAO_MOCK_PROPOSER_ADDRESS,

@@ -1,7 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Address, Hex } from "viem";
-import { DaoProposalMarkdown } from "@/app/dao/components/DaoProposalMarkdown";
+import {
+  DaoProposalMarkdown,
+  DaoProposalMarkdownSource,
+} from "@/app/dao/components/DaoProposalMarkdown";
 import {
   createDaoRawSha256Cid,
   parseDaoProposalContent,
@@ -90,18 +93,28 @@ describe("DaoProposalMarkdown", () => {
   });
 
   it("contains tables, code, and long links inside the content region", () => {
-    const { container } = render(
-      <DaoProposalMarkdown parsed={parsed()} context="detail" />
-    );
-    expect(container.querySelector("table")?.parentElement).toHaveClass("overflow-x-auto");
+    render(<DaoProposalMarkdown parsed={parsed()} context="detail" />);
+    expect(
+      screen.getByRole("region", { name: "Proposal Markdown table" })
+    ).toHaveClass("overflow-x-auto");
     expect(screen.getByRole("columnheader", { name: "Field" })).toHaveAttribute(
       "scope",
       "col"
     );
-    expect(container.querySelector("pre")).toHaveClass("overflow-x-auto");
-    expect(screen.getByRole("link", { name: "safe source" })).toHaveAttribute(
-      "rel",
-      "noopener noreferrer"
-    );
+    expect(
+      screen.getByRole("region", { name: "Proposal Markdown code block" })
+    ).toHaveClass("overflow-x-auto");
+    const link = screen.getByRole("link", { name: "safe source" });
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link).toHaveClass("[overflow-wrap:anywhere]");
+  });
+
+  it("labels and contains the byte-exact source region", () => {
+    render(<DaoProposalMarkdownSource source={parsed().source} />);
+
+    fireEvent.click(screen.getByText("View Markdown source"));
+    expect(
+      screen.getByRole("region", { name: "Exact Markdown source" })
+    ).toHaveClass("overflow-x-auto");
   });
 });
