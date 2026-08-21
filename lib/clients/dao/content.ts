@@ -189,7 +189,7 @@ export function canonicalizeDaoProposalContent(
       height: asset.height,
     })),
   };
-  return encodeUtf8Exact(JSON.stringify(canonical));
+  return encodeUtf8Exact(`${JSON.stringify(canonical)}\n`);
 }
 
 export function deriveDaoProposalContentIdentity(content: DaoProposalContent): {

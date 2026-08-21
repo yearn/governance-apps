@@ -477,7 +477,7 @@ test("renders DAO proposal detail and not-found shells", async ({ page }) => {
   ).toHaveAttribute("target", "_blank");
 
   for (const label of ["Proposal #2", "Proposal ID", "Status", "Type"]) {
-    await expect(page.getByText(label, { exact: true })).toHaveCSS(
+    await expect(page.getByText(label, { exact: true }).first()).toHaveCSS(
       "color",
       "rgb(82, 82, 82)"
     );

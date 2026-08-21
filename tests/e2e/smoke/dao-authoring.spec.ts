@@ -24,9 +24,14 @@ test("authors, reviews, publishes, and submits a Signal proposal", async ({
     page.getByRole("heading", { name: "Review the exact proposal" })
   ).toBeVisible();
   await expect(page.getByText("No executable actions")).toBeVisible();
-  await expect(page.getByText("Exact proposal title")).toBeVisible();
-  await expect(page.getByText("Exact summary")).toBeVisible();
-  await expect(page.getByText("Exact specification")).toBeVisible();
+  const immutable = page.getByRole("region", { name: "Immutable content" });
+  await expect(
+    immutable.getByRole("heading", { name: "Exact proposal title", level: 3 })
+  ).toBeVisible();
+  await expect(immutable.getByText("Exact summary", { exact: true }).first()).toBeVisible();
+  await expect(
+    immutable.getByText("Exact specification", { exact: true }).first()
+  ).toBeVisible();
   await expect(page.getByText("0x", { exact: true })).toBeVisible();
   await expect(
     page.getByText(/Backend decoding and simulation follow submission/i)
@@ -45,7 +50,9 @@ test("authors, reviews, publishes, and submits a Signal proposal", async ({
     .check();
   await publish.click();
 
-  await expect(page.getByText("Immutable content published")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Immutable content published" })
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", {
       name: "Content published — proposal not created yet",
@@ -56,17 +63,16 @@ test("authors, reviews, publishes, and submits a Signal proposal", async ({
   });
   await expectMinimumHitArea(create);
   await create.click();
-  const submitted = page.getByRole("heading", {
-    name: "Proposal transaction submitted",
-  });
-  await expect(submitted).toBeVisible();
-  await expect(submitted).toBeFocused();
-  await expect(page.getByRole("status")).toHaveText(
-    "Awaiting proposal indexing and analysis."
-  );
+  const ready = page.getByRole("heading", { name: "Proposal ready" });
+  await expect(ready).toBeVisible();
+  await expect(ready).toBeFocused();
+  await expect(page.getByRole("status")).toHaveText("Proposal ready");
   await expect(
-    page.getByText(/Waiting for proposal indexing and backend decoding/i)
+    page.getByText(/indexed at the same proposal address/i)
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: "View transaction" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open proposal" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy proposal link" })).toBeVisible();
   await expectNoDocumentOverflow(page);
 });
 
@@ -110,13 +116,19 @@ test("authors an executable proposal from the full raw script", async ({
   await page
     .getByRole("button", { name: "Publish immutable content" })
     .click();
-  await expect(page.getByText("Immutable content published")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Immutable content published" })
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Create onchain proposal" })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Proposal transaction submitted" })
+    page.getByRole("heading", { name: "Proposal identity unavailable" })
   ).toBeVisible();
+  await expect(page.getByText("PROPOSE_LOG_MISSING", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "View transaction" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open proposal" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Copy proposal link" })).toHaveCount(0);
   await expectNoDocumentOverflow(page);
 });
 
@@ -127,17 +139,9 @@ test("keeps the exact review locked and announces asynchronous progress", async 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await openAuthoring(page);
 
-  const specification = page.getByRole("textbox", { name: "Specification" });
-  const placeholderColor = await specification.evaluate(
-    (element) => getComputedStyle(element, "::placeholder").color
-  );
-  expect(placeholderColor).toBe("rgb(82, 82, 82)");
-
   const exactTitle = "  Exact   proposal title  ";
   await fillImmutableDraft(page, 1001, exactTitle);
-  const acceptedTopic = page.getByRole("status").filter({
-    hasText: "Forum topic accepted",
-  });
+  const acceptedTopic = page.locator("#dao-forum-status");
   await expect(acceptedTopic.getByText("Fund protocol research")).toBeVisible();
   await expect(acceptedTopic.getByText("Proposals · ID 5")).toBeVisible();
   await expect(acceptedTopic.getByText("yearn-contributor")).toBeVisible();
@@ -148,19 +152,13 @@ test("keeps the exact review locked and announces asynchronous progress", async 
 
   await page.getByRole("button", { name: "Review proposal" }).click();
   const immutable = page.getByRole("region", { name: "Immutable content" });
-  const titleValue = immutable
-    .getByText("Title", { exact: true })
-    .locator("xpath=following-sibling::div");
-  await expect(titleValue).toHaveText(exactTitle, { useInnerText: false });
-  expect(await titleValue.evaluate((element) => element.textContent)).toBe(
-    exactTitle
+  await immutable.getByText("View Markdown source").click();
+  const exactSource = `# ${exactTitle}\n\nExact summary\n\n## Specification\n\nExact specification\n`;
+  const exactSourceCode = immutable.locator("details code");
+  await expect(exactSourceCode).toBeVisible();
+  expect(await exactSourceCode.evaluate((element) => element.textContent)).toBe(
+    exactSource
   );
-  expect(
-    await titleValue.evaluate((element) => (element as HTMLElement).innerText)
-  ).toBe(exactTitle);
-  expect(
-    await titleValue.evaluate((element) => getComputedStyle(element).whiteSpace)
-  ).toBe("pre-wrap");
 
   const forum = page.getByRole("region", { name: "Forum topic" });
   await expect(forum.getByText("Fund protocol research")).toBeVisible();
@@ -209,10 +207,12 @@ test("keeps the exact review locked and announces asynchronous progress", async 
   ).toBeVisible();
 
   await page.clock.fastForward(200);
-  await expect(page.getByText("Immutable content published")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Immutable content published" })
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit proposal" })).toBeDisabled();
-  expect(await titleValue.evaluate((element) => element.textContent)).toBe(
-    exactTitle
+  expect(await exactSourceCode.evaluate((element) => element.textContent)).toBe(
+    exactSource
   );
 
   await page.getByRole("button", { name: "Create onchain proposal" }).click();
@@ -222,10 +222,32 @@ test("keeps the exact review locked and announces asynchronous progress", async 
   await expect(
     page.getByRole("status").filter({ hasText: "Waiting for wallet" })
   ).toBeVisible();
-  await page.clock.fastForward(250);
+  await page.clock.fastForward(150);
+  const submitted = page.getByRole("heading", {
+    name: "Proposal transaction submitted",
+  });
+  await expect(submitted).toBeVisible();
+  await expect(submitted).toBeFocused();
+  await expect(page.getByRole("link", { name: "View transaction" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open proposal" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Copy proposal link" })).toHaveCount(0);
+
+  await page.clock.fastForward(150);
   await expect(
-    page.getByRole("heading", { name: "Proposal transaction submitted" })
+    page.getByRole("heading", { name: "Proposal identity confirmed" })
   ).toBeVisible();
+  const openProposal = page.getByRole("link", { name: "Open proposal" });
+  const initialHref = await openProposal.getAttribute("href");
+  expect(initialHref).toMatch(/^\/dao\/proposals\/\d+\?from=upcoming$/);
+  await expect(page.getByRole("button", { name: "Copy proposal link" })).toBeVisible();
+
+  await page.clock.fastForward(150);
+  await expect(page.getByText("Awaiting proposal indexing and analysis")).toBeVisible();
+  await expect(openProposal).toHaveAttribute("href", initialHref!);
+
+  await page.clock.fastForward(150);
+  await expect(page.getByRole("heading", { name: "Proposal ready" })).toBeVisible();
+  await expect(openProposal).toHaveAttribute("href", initialHref!);
   await expectNoDocumentOverflow(page);
 });
 
@@ -279,7 +301,9 @@ test("shows deterministic forum validation failures without clearing content", a
   ] as const) {
     await forum.fill(`https://gov.yearn.fi/t/topic/${topicId}`);
     await validate.click();
-    await expect(page.getByText(code)).toBeVisible();
+    await expect(
+      page.locator("#dao-forum-status").getByText(code, { exact: true })
+    ).toBeVisible();
     await expect(forum).toHaveValue(
       `https://gov.yearn.fi/t/topic/${topicId}`
     );
@@ -300,15 +324,11 @@ test("preserves the draft and does not start the wallet step after publication f
     page.getByRole("button", { name: "Create onchain proposal" })
   ).toHaveCount(0);
   await page.getByRole("button", { name: "Edit proposal" }).click();
-  await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue(
-    "Exact proposal title"
-  );
-  await expect(page.getByRole("textbox", { name: "Summary" })).toHaveValue(
-    "Exact summary"
-  );
   await expect(
-    page.getByRole("textbox", { name: "Specification" })
-  ).toHaveValue("Exact specification");
+    page.getByRole("textbox", { name: "Proposal Markdown" })
+  ).toHaveValue(
+    "# Exact proposal title\n\nExact summary\n\n## Specification\n\nExact specification\n"
+  );
   await expect(
     page.getByRole("textbox", { name: "Forum discussion" })
   ).toHaveValue("https://gov.yearn.fi/t/improve-treasury-reporting/1002");
@@ -330,12 +350,16 @@ test("keeps publication after wallet rejection and proposal revert", async ({
     await openAuthoring(page);
     await fillImmutableDraft(page, topicId);
     await reviewAndPublish(page);
-    await expect(page.getByText("Immutable content published")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Immutable content published" })
+    ).toBeVisible();
     await page
       .getByRole("button", { name: "Create onchain proposal" })
       .click();
     await expect(page.getByText(failureTitle)).toBeVisible();
-    await expect(page.getByText("Immutable content published")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Immutable content published" })
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Retry proposal creation" })
     ).toBeEnabled();
@@ -397,16 +421,16 @@ async function fillImmutableDraft(
     .getByRole("textbox", { name: "Forum discussion" })
     .fill(`https://gov.yearn.fi/t/topic/${topicId}`);
   await page.getByRole("button", { name: "Validate topic" }).click();
-  await expect(page.getByText("Forum topic accepted")).toBeVisible();
+  await expect(
+    page
+      .locator("#dao-forum-status")
+      .getByText("Forum topic accepted", { exact: true })
+  ).toBeVisible();
   await page
-    .getByRole("textbox", { name: "Title" })
-    .fill(title);
-  await page
-    .getByRole("textbox", { name: "Summary" })
-    .fill("Exact summary");
-  await page
-    .getByRole("textbox", { name: "Specification" })
-    .fill("Exact specification");
+    .getByRole("textbox", { name: "Proposal Markdown" })
+    .fill(
+      `# ${title}\n\nExact summary\n\n## Specification\n\nExact specification\n`
+    );
 }
 
 async function reviewAndPublish(page: Page) {

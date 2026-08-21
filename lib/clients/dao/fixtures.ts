@@ -66,6 +66,20 @@ export const DAO_MOCK_YBC_AGGREGATE_ADDRESS =
   "0x7777777777777777777777777777777777777777" as Address;
 export const DAO_MOCK_STYFIX_AGGREGATE_ADDRESS =
   "0x8888888888888888888888888888888888888888" as Address;
+export const DAO_MOCK_GOVERNANCE_FLOW_ASSET_DIGEST =
+  "0x63786be28dedc9bab6de44a52c8124dc237dfc650e203779da5a03aed873a209" as Hex;
+export const DAO_MOCK_GOVERNANCE_FLOW_ASSET_CID = createDaoRawSha256Cid(
+  DAO_MOCK_GOVERNANCE_FLOW_ASSET_DIGEST
+);
+
+const DAO_MOCK_GOVERNANCE_FLOW_ASSET: DaoProposalAsset = {
+  path: "./assets/governance-flow.svg",
+  mediaType: "image/svg+xml",
+  byteLength: 660,
+  digest: DAO_MOCK_GOVERNANCE_FLOW_ASSET_DIGEST,
+  width: 1_280,
+  height: 720,
+};
 
 export function deriveDaoMockBlockHash(
   blockNumber: bigint,
@@ -546,22 +560,15 @@ function createContent(
 ): DaoProposal["content"] {
   const state = options.contentState ?? "available";
   const assets: DaoProposalAsset[] =
-    options.id === 1n
-      ? [
-          {
-            path: "./assets/governance-flow.svg",
-            mediaType: "image/svg+xml",
-            byteLength: 1_024,
-            digest: sha256(toBytes("<svg>governance-flow-v1</svg>")),
-            width: 1_280,
-            height: 720,
-          },
-        ]
+    options.id === 1n || options.id === 2n
+      ? [{ ...DAO_MOCK_GOVERNANCE_FLOW_ASSET }]
       : [];
   const attachment =
-    assets.length > 0
+    options.id === 1n
       ? "\n\n![Governance flow diagram](./assets/governance-flow.svg)"
-      : "";
+      : options.id === 2n
+        ? `\n\n![Governance flow diagram](ipfs://${DAO_MOCK_GOVERNANCE_FLOW_ASSET_CID})`
+        : "";
   const value: DaoProposalContent = {
     schema: "yearn.dao.proposal.v1",
     markdown: `# ${options.title}\n\nThis proposal records the decision and rationale presented for DAO review.\n\n## Specification\n\nReview the requested governance outcome, voting record, and any ordered onchain actions before making a decision.${attachment}\n`,
@@ -579,7 +586,7 @@ function createContent(
   }
   const identity = deriveDaoProposalContentIdentity(value);
   const invalidBytes = toBytes(
-    JSON.stringify({ ...value, schema: "yearn.dao.proposal.invalid" })
+    `${JSON.stringify({ ...value, schema: "yearn.dao.proposal.invalid" })}\n`
   );
   const digest = state === "invalid" ? sha256(invalidBytes) : identity.digest;
 

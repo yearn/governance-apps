@@ -302,7 +302,7 @@ describe("DAO proposal content", () => {
         createdBy: original.createdBy,
         createdAt: original.createdAt,
         assets: original.assets,
-      })
+      }) + "\n"
     );
     expect(identity.cid).toBe(createDaoRawSha256Cid(identity.digest));
     expect(deriveDaoProposalContentIdentity(changed)).not.toEqual(identity);

@@ -31,7 +31,7 @@ test("scans and filters the proposal board at every review viewport", async ({
     await expect(page.getByText("22 proposals are available.")).toBeVisible();
     await expect(page.getByText("Voting ends in 6 hours").first()).toBeVisible();
     await expect(
-      page.getByText("of votes cast · 55% approval threshold").first()
+      page.getByText("of votes cast · 50% approval threshold").first()
     ).toBeVisible();
 
     for (const filter of ["Active", "Upcoming", "Closed"]) {
