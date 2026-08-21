@@ -65,6 +65,32 @@ export type DaoProposalContentV1 = {
   links: Array<{ label: string; url: string }>;
 };
 
+export type DaoProposalAsset = {
+  path: string;
+  mediaType: string;
+  byteLength: number;
+  digest: Hex;
+  width: number | null;
+  height: number | null;
+};
+
+export type DaoProposalContent = {
+  schema: "yearn.dao.proposal.v1";
+  markdown: string;
+  discussionUrl: string;
+  proposalType: DaoProposalType;
+  createdBy: Address;
+  createdAt: string;
+  assets: DaoProposalAsset[];
+};
+
+export type DaoVerifiedSource = {
+  kind: "github" | "sourcify" | "explorer";
+  label: string;
+  url: string;
+  revision: string | null;
+};
+
 export type DaoScriptFrame = {
   index: number;
   offset: number;
