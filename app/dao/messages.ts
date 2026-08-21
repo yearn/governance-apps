@@ -101,9 +101,6 @@ export const daoCopy = {
     immutableContent: "Immutable proposal content",
     immutableContentDescription:
       "This is the proposal snapshot referenced by the onchain record.",
-    summary: "Summary",
-    specification: "Specification",
-    supportingLinks: "Supporting links",
     contentWarnings: {
       unavailable: {
         title: "Immutable content could not be retrieved",
@@ -158,7 +155,6 @@ export const daoCopy = {
     lifecycleSteps: {
       proposed: "Proposed",
       voting: "Voting window",
-      decision: "Decision",
       execution: "Execution window",
       terminalEvent: "Terminal event",
     },
@@ -233,8 +229,6 @@ export const daoCopy = {
     createdOn: "Created",
     votingWindow: "Voting window",
     executionWindow: "Execution window",
-    eventRecorded: (event: string, block: string) =>
-      `${event} recorded at block ${block}`,
     noTerminalEvent: "No separate terminal event is recorded.",
     terminalReasons: {
       flag: "Flag reason",
@@ -254,7 +248,7 @@ export const daoCopy = {
       },
       partial: {
         label: "Partially decoded · simulation succeeded",
-        body: "At least one call has no verified ABI source. Raw call data remains visible.",
+        body: "At least one call has no verified source record. Raw call data remains visible.",
       },
       failed: {
         label: "Simulation failed",

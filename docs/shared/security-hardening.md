@@ -94,7 +94,8 @@ Rules:
 ### 2.5 DAO immutable attachment boundary
 
 DAO proposal content uses one authenticated-manifest model. The onchain
-`bytes32` is the SHA-256 digest of the exact canonical content JSON; the content
+`bytes32` is the SHA-256 digest of the exact fixed-order canonical content JSON,
+including its required final LF; the content
 CID is its CIDv1/raw/SHA-256/Base32 representation. Each asset digest names and
 authenticates one independent raw block. A `./assets/...` target is an exact
 relative manifest attachment lookup, never a child path under the content CID.

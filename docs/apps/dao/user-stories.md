@@ -42,9 +42,27 @@ proves.
 Acceptance:
 
 - immutable IPFS content and the live forum link are labeled separately;
-- decoded actions identify verified and unknown calls;
+- decoded actions identify structured verified-source records and unknown calls;
 - simulation results include their reference block;
-- technical details expose transaction, contract, CID, digest, and script hash.
+- event rows show canonical block time, transaction when available, truthful
+  actor attribution, and explicit missing-data fallbacks;
+- technical details expose complete block/log identity, transaction, contract,
+  CID, digest, source revision/path, rule observation block, and script hash.
+
+### DAO-US-04: distinguish lifecycle facts
+
+As an observer, I want status, vote result, moderation, and execution shown
+separately so a flag or veto is not mistaken for a community decision.
+
+Acceptance:
+
+- a flagged proposal states that there is no community result;
+- an early veto says voting is blocked;
+- a post-participation veto says whether participation voting remains open;
+- an approved signal says `No executable actions` even when raw status is
+  `EXECUTED`;
+- proposal rules are collapsed and use the proposal's supplied 50% or 60%
+  snapshot rather than UI-owned math.
 
 ## Voters
 
@@ -107,7 +125,12 @@ immutable signal proposal with no executable calls.
 Acceptance:
 
 - the forum topic is validated and normalized;
-- the final IPFS content is reviewed before signing;
+- one Write/Preview Markdown editor derives title and summary from the validated
+  source and preserves the exact bytes through final review;
+- structural, raw-HTML, unsafe-link, and attachment errors identify the first
+  deterministic source location and return focus to Write;
+- the final IPFS content is reviewed through the same renderer before signing;
+- attachments render as no-load cards with explicit Open and Copy actions;
 - the review says two actions are required and publication alone does not
   create the proposal or open a wallet;
 - Step 2 becomes available only after Step 1 succeeds, and publication failure
@@ -126,7 +149,7 @@ Acceptance:
 - structural errors identify the first failing offset;
 - the UI shows calls, bytes, targets, sizes, and script hash;
 - a passing structural check never claims the script is safe;
-- detailed decoding and simulation are expected after submission.
+- detailed decoding and simulation are expected after submission;
 - wallet rejection or revert preserves the published content so Step 2 can be
   retried without republishing.
 
@@ -145,7 +168,24 @@ Acceptance:
   and the system-wide limit;
 - cooldown remains visible after retraction or moderation.
 
-### DAO-US-23: retract my proposal
+### DAO-US-23: keep one proposal identity through indexing
+
+As a proposer, I want the confirmed proposal address to stay stable while the
+feed indexes it so I never navigate to a guessed numeric ID.
+
+Acceptance:
+
+- View transaction appears when the hash is known;
+- Open proposal and Copy link are absent until one matching successful receipt
+  supplies chain ID, Voting address, and proposal ID;
+- malformed, missing, duplicate, wrong-contract, or mismatched `Propose` logs
+  expose no proposal action;
+- receipt-confirmed, awaiting-index, and indexed states retain the exact same
+  composite identity and host-aware href;
+- the mock limitation is stated: a browser-local created proposal does not
+  survive a new session.
+
+### DAO-US-24: retract my proposal
 
 As a proposal author, I want to retract my no-vote proposal while the contract
 allows it.

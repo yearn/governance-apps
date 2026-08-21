@@ -103,7 +103,6 @@ visit derives the proposal's display group, and an invalid `from` value is
 ignored. Show the proposal title as the route's only H1, followed by:
 
 - proposal ID;
-- title;
 - status;
 - type;
 - proposer;
@@ -130,7 +129,7 @@ the footer or technical details.
 ┌─────────────────────────────────────┬──────────────────────┐
 │ Header and proposal content         │ Vote/action panel    │
 │                                     │                      │
-│ Specification                       │ Weight and choices   │
+│ Immutable Markdown and attachments │ Weight and choices   │
 │                                     │                      │
 │ Lifecycle and results               │ Eligibility reason   │
 │                                     │                      │
@@ -148,7 +147,7 @@ copy:
 
 ```text
 62% Yea · 38% Nay
-of votes cast · 55% approval threshold
+of votes cast · 50% approval threshold
 ```
 
 The rules disclosure contains:
@@ -194,6 +193,37 @@ No executable actions
 
 Do not display `Executed` as the primary outcome for an empty script.
 
+### Immutable content
+
+The parsed title is the route's only H1 and the parsed summary appears once as
+lead copy. The immutable-content section starts at H2. Source H2 through H4 map
+to H3 through H5; source H1 and the summary node are omitted there because the
+header already owns them. Tables, fenced code, long links, and exact source are
+contained within their own scroll or wrap regions.
+
+Image syntax renders a semantic attachment card at its AST position. The card
+shows alt-text title, media type, byte size, Open, and Copy. It contains no
+`img`, `picture`, CSS background image, preload, metadata probe, or prefetched
+attachment link. Open and Copy receive only the validated suffix-free raw-CID
+gateway URL. SVG is never inline.
+
+One shared AST renderer serves authoring Preview, final review, and detail. The
+exact-source disclosure preserves the Markdown byte for byte.
+
+### Lifecycle and provenance
+
+Keep `Status`, `Vote result`, `Moderation`, and `Execution` as separate facts.
+Flagged shows `No community result`; early and post-participation vetoes use
+different explanations. Every event row names its truthful actor role, uses the
+producer-owned UTC block time, and links the transaction when available. Use
+`Time unavailable` and `Transaction unavailable` without inventing data.
+
+`Proposal rules` is collapsed by default and renders supplied domain facts:
+approval threshold, positive-total rule, no minimum turnout, proposal type,
+voting period, execution delay and guard, Voting contract, verified source, and
+configuration observation block. The UI formats 5,000 as 50% and 6,000 as 60%;
+it does not own the underlying rule.
+
 ### Execution analysis
 
 The section contains:
@@ -229,6 +259,10 @@ Use a disclosure for:
 - content CID and digest;
 - script hash and bytes;
 - flag or veto event details;
+- every event block number, hash, UTC time, nullable transaction hash,
+  transaction index, and log index;
+- verified-source kind, URL, revision, and source path;
+- proposal-rule observation block;
 - feed snapshot block and time.
 
 Long values use copy controls with at least 40-pixel hit areas. Code blocks wrap
@@ -253,13 +287,23 @@ contract callers.
 
 ### Section 2: proposal content
 
-- Title
-- Summary
-- Specification
-- Optional supporting links, if the content schema includes them
+Use one `Proposal Markdown` textarea beneath named Write and Preview tabs. The
+route H1 remains `Create proposal`; form sections are H2. Preview renders the
+parsed title at H3 and maps source H2 through H4 to H4 through H6. The first H1
+is the title, the following paragraph is the summary, and body content follows.
+Ordinary supporting links stay in Markdown.
 
-Explain that these fields become the immutable proposal snapshot. The forum may
-continue to change.
+Show one tabular UTF-8 byte counter against the 32,768-byte limit and the stable
+domain errors below the editor. Tabs use `tablist`, `tab`, and `tabpanel`, with
+Arrow, Home, and End keyboard behavior. A failed Review while Preview is active
+returns to Write, focuses the textarea, sets the deterministic UTF-16 caret to
+the first located error, and scrolls it into view. Do not intercept Tab inside
+the textarea.
+
+Preview, final review, and detail share one safe AST renderer. Raw HTML and
+unsupported nodes never render, and `dangerouslySetInnerHTML` is forbidden.
+Explain that the exact source becomes the immutable proposal snapshot while the
+forum may continue to change.
 
 ### Section 3: proposal type
 
@@ -303,16 +347,19 @@ surfaces rather than visually identical buttons:
 
 1. Publish proposal content
 2. Create onchain proposal
-3. Wait for proposal indexing and analysis
 
 Before publication, Step 1 is current and Step 2 is unavailable; state that
 publishing immutable content neither creates the proposal nor opens a wallet.
 After publication, Step 1 shows its receipt/fingerprint and Step 2 receives
-focus with `Content published — proposal not created yet`. After submission,
-both steps are complete and the page announces the indexing/analysis wait.
-Keep publication failure separate from wallet rejection or onchain revert. A
-publication failure never exposes Step 2. Wallet rejection or revert preserves
-published content and retries Step 2 without republishing.
+focus with `Content published — proposal not created yet`. When the hash is
+known, show View transaction but no proposal action. After a successful receipt
+decodes one matching `Propose` event, show Open proposal and Copy link. Keep the
+same host-aware composite identity through receipt-confirmed, awaiting-index,
+and indexed states. One persistent polite atomic live region announces progress
+without repeating the whole review. Keep publication failure separate from
+wallet rejection, receipt failure, or onchain revert. A publication failure
+never exposes Step 2. Wallet rejection or revert preserves published content
+and retries Step 2 without republishing.
 
 ## 6. Lifecycle menus
 
@@ -364,9 +411,18 @@ use canonical block provenance.
 - Headings use balanced wrapping; short explanatory copy uses pretty wrapping.
 - Dynamic weights, percentages, epochs, and timers use tabular numerals.
 - Respect reduced motion. Interactive transitions are short and interruptible.
+- Use property-specific transitions and a `0.96` press scale for active controls;
+  reduced motion removes both. Do not animate preview content on each edit.
 - Do not use `transition-all`.
 - Confirmation dialogs restore focus to their trigger when closed.
 - Script errors connect to the textarea with accessible description attributes.
+- Carry `min-width: 0` through nested grids and flex rows. Long headings and
+  links use anywhere wrapping; tables, fenced code, and exact source contain
+  their own horizontal scrolling. The document never overflows at the review
+  widths or 200% root text.
+- External source, transaction, and attachment links are native anchors with
+  `target="_blank"` and `rel="noopener noreferrer"`. Internal proposal links
+  remain native and host-aware.
 
 ## 9. Review widths
 
@@ -440,15 +496,17 @@ time.
 
 Producer-owned provenance values render verbatim. The read layer maps only
 explicitly supported producer error codes to public explanations; it does not
-rewrite arbitrary registry, engine, contract, function, ABI-source, or error
+rewrite arbitrary registry, engine, contract, function, verified-source, or error
 text. Fixture source data uses production-shaped presentation values so the
 public route never explains its test implementation.
 
 Unavailable or invalid immutable content replaces only the content body. The
 proposal identity, status, timing, vote results, discussion state, lifecycle,
 and technical record remain available. Unknown calls retain target, selector,
-calldata, byte size, and the absence of a verified ABI source. Long identifiers,
-addresses, hashes, and scripts scroll or wrap inside their own regions rather
+calldata, byte size, and the absence of a verified source record. Structured
+source links use only producer-validated HTTPS values; a pinned source proves
+the decoder input, not a mock deployment. Long identifiers, addresses, hashes,
+and scripts scroll or wrap inside their own regions rather
 than widening the page. Copy controls for Voting, Voter, Executor, and call
 target addresses stay visibly available with at least 40-pixel targets for
 coarse pointers while desktop explorer links retain their new-tab behavior.

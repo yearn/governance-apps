@@ -140,6 +140,18 @@ block across the intended block-exchange and pinning implementations. The same
 values must appear in domain tests and canonical docs; they may not live only
 in form controls.
 
+The deterministic M2 vector uses
+`docs/apps/dao/examples/proposal-content.example.json` as the exact canonical
+content bytes, including the final LF. Its digest is
+`0x3c67b58a3ea4c8fd5d6c9a56dfa7322853967b4b85c700c4592e3cf68bb2f867`
+and its raw CID is
+`bafkreib4m62yupvezd6v23e2k3p2omrikolhws4fy4amiwjoht3ixmxym4`. The
+committed `examples/assets/governance-flow.svg` raw block is 660 bytes, has
+digest
+`0x63786be28dedc9bab6de44a52c8124dc237dfc650e203779da5a03aed873a209`,
+and raw CID
+`bafkreiddpbv6fdpnzg5lnxseuuwicjg4en67yzioea3xtws2aoxnq45cbe`.
+
 ### 2. Use one maintained Markdown AST parser and validator
 
 Add one domain-owned parse and validation entry point. It uses a maintained

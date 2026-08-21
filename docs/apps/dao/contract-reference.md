@@ -56,6 +56,14 @@ chain ID + Voting contract address + numeric proposal ID
 
 The numeric ID alone is not stable across replacement Voting contracts.
 
+Proposal creation learns that identity only from a successful receipt. The
+receipt transaction hash must equal the submitted hash and exactly one
+`Propose` log must come from the expected Voting address. Its proposal ID,
+proposer, voting epoch, content digest, and exact script are decoded and checked
+against the submitted values. Chain context is supplied separately; it is not
+trusted from receipt data. Missing, duplicate, malformed, wrong-contract, or
+mismatched logs produce no proposal link.
+
 ## 3. Passing rule and quorum
 
 A proposal passes when:
@@ -68,6 +76,10 @@ Yea weight / total weight >= the proposal's snapshotted threshold
 
 There is no minimum turnout or quorum. The threshold is copied into the proposal
 at creation, so later global threshold changes do not affect existing proposals.
+The pinned Voting constructor default is 5,000 basis points. Normal deterministic
+fixtures use that 50% default; one historical fixture retains a 6,000-basis-point
+snapshot. A live deployment's mutable threshold, vote duration, execution delay,
+and guard remain observed configuration and must carry the observation block.
 
 ## 4. Voting
 
@@ -239,7 +251,18 @@ normal simulation through the current Voting contract and current state.
 - `Flag`, including reason;
 - `Veto`, including reason;
 - `Execute`;
-- canonical block, transaction, and log identity.
+- canonical block, producer-owned block timestamp, nullable transaction hash,
+  transaction index, and log index.
+
+The browser must not substitute local time when an event timestamp is missing
+and must not invent a transaction link for a direct-contract or incomplete
+historical record. Technical details retain every available identity field.
+
+Known-call decoding uses a structured verified-source record: source kind,
+label, validated HTTPS URL, revision, and source path. WP7B pins the Voting
+source to exact stYFI revision `9395d5e6fffdfe21fda32af94d32fca1a4f7840b`.
+That record proves the source used for decoding; it does not prove that a mock
+address is deployed. Unknown calls have no verified source.
 
 The producer verifies `keccak256(eventScript) == storedScriptHash`, fetches IPFS
 content, decodes known calls, runs the proposal-time simulation, and publishes a
@@ -248,7 +271,8 @@ versioned feed. Browser code must not scan full historical logs.
 ## 13. Content and asset authentication convention
 
 The application convention fixes the contract's 32-byte value as the SHA-256
-digest of the exact canonical proposal-content JSON bytes. The content CID is
+digest of the exact fixed-order proposal-content JSON bytes, including the one
+required final LF. The content CID is
 the CIDv1/raw/SHA-256/Base32 representation of those same bytes. Producers and
 consumers verify this byte-to-digest-to-CID round trip from fixed vectors; they
 do not reserialize a parsed object to choose its digest.

@@ -1,5 +1,10 @@
 # M2 WP6: Proposal Authoring
 
+Historical note: WP7B supersedes this package's separate title, summary, and
+specification fields with the finalized in-place `yearn.dao.proposal.v1`
+Markdown source and asset manifest. WP6 remains the delivery record for the
+original authoring slice, not the current content contract.
+
 Branch: `agent/dao/m2/wp6`
 
 ## Objective
@@ -21,7 +26,8 @@ structural checks, immutable-content review, and mock publish/propose states.
 ## Scope
 
 - Mock forum topic validation and normalization.
-- Immutable title, summary, specification, and type.
+- Historical separate title, summary, and specification inputs, superseded by
+  WP7B's exact Markdown source; proposal type remains structured metadata.
 - Signal empty script.
 - Executable full-hex textarea, parser result, targets, byte/call count, and hash.
 - Final review plus separate publication and onchain mock steps.
