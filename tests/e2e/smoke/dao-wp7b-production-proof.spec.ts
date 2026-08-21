@@ -580,10 +580,59 @@ async function setPresentation(
 }
 
 async function setTheme(page: Page, theme: "light" | "dark") {
-  const toggle = page.getByRole("button", {
-    name: theme === "dark" ? "Switch to Dark Mode" : "Switch to Light Mode",
+  const currentTheme = await assertThemeState(page);
+  const desktopToggle = page.getByRole("button", {
+    name: /^Switch to (Dark|Light) Mode$/,
   });
-  if ((await toggle.count()) > 0) await toggle.click();
+  if ((await desktopToggle.count()) > 0) {
+    await expect(desktopToggle).toHaveCount(1);
+    if (currentTheme !== theme) {
+      await page
+        .getByRole("button", {
+          name: theme === "dark" ? "Switch to Dark Mode" : "Switch to Light Mode",
+        })
+        .click();
+    }
+  } else {
+    const openNavigation = page.getByRole("button", {
+      name: "Open navigation menu",
+    });
+    await expect(openNavigation).toHaveCount(1);
+    await openNavigation.click();
+    const navigation = page.getByRole("dialog", { name: "Navigation menu" });
+    await expect(navigation).toBeVisible();
+    const mobileToggle = navigation.getByRole("button", {
+      name: /^(Dark|Light) mode$/,
+    });
+    await expect(mobileToggle).toHaveCount(1);
+    if (currentTheme !== theme) await mobileToggle.click();
+    await navigation
+      .getByRole("button", { name: "Close navigation menu" })
+      .click();
+    await expect(navigation).toHaveCount(0);
+  }
+  await assertThemeState(page, theme);
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  });
+}
+
+async function assertThemeState(
+  page: Page,
+  expectedTheme?: "light" | "dark"
+): Promise<"light" | "dark"> {
+  const root = page.locator("html");
+  await expect(root).toHaveAttribute("data-theme", /^(light|soft-dark)$/);
+  const state = await root.evaluate((element) => ({
+    dataTheme: element.getAttribute("data-theme"),
+    hasDarkClass: element.classList.contains("dark"),
+  }));
+  const actualTheme = state.dataTheme === "soft-dark" ? "dark" : "light";
+  expect(state.hasDarkClass).toBe(actualTheme === "dark");
+  if (expectedTheme) expect(actualTheme).toBe(expectedTheme);
+  return actualTheme;
 }
 
 async function removeEvidenceChrome(page: Page) {
@@ -620,6 +669,7 @@ async function captureScreenshot(
   expect(widths.documentScrollWidth).toBeLessThanOrEqual(
     widths.documentClientWidth
   );
+  const actualTheme = await assertThemeState(page, input.theme);
   await mkdir(SCREENSHOT_DIRECTORY, { recursive: true });
   await page.screenshot({
     path: path.join(SCREENSHOT_DIRECTORY, input.file),
@@ -628,6 +678,7 @@ async function captureScreenshot(
   const url = new URL(page.url());
   return {
     ...input,
+    theme: actualTheme,
     ...widths,
     buildSha: BUILD_SHA,
     route: `${url.pathname}${url.search}`,
