@@ -202,6 +202,20 @@ function normalizeStoreState(next: DaoMockStoreState): DaoMockStoreState {
       protocolStatus,
       displayStatus,
       displayGroup: deriveDaoDisplayGroup(displayStatus, proposal.type),
+      rules: {
+        ...proposal.rules,
+        approvalThresholdBps: proposal.thresholdBps,
+        proposalType: proposal.type,
+        votingPeriodSeconds: proposal.voteEndsAt - proposal.voteStartsAt,
+        executionDelaySeconds:
+          proposal.executionStartsAt === null
+            ? null
+            : proposal.executionStartsAt - proposal.voteEndsAt,
+        executionGuard:
+          proposal.type === "signal"
+            ? null
+            : proposal.rules.executionGuard ?? "guarded",
+      },
     };
     assertDaoProposalInvariants(normalizedProposal);
     return { ...runtime, proposal: normalizedProposal };
@@ -360,7 +374,7 @@ function advanceFeedToCreatedProposal(
   feed.canonicalBlock = {
     number: proposeEvent.log.blockNumber,
     hash: proposeEvent.log.blockHash,
-    timestamp: proposal.createdAt,
+    timestamp: proposeEvent.log.timestamp ?? feed.canonicalBlock.timestamp,
   };
 }
 
@@ -831,6 +845,11 @@ export function setDaoMockExecutionState(executionState: DaoMockExecutionState) 
 export function setDaoMockExecutionGuard(guard: DaoExecutionGuard) {
   return updateStore((current) => {
     current.executionGuard = guard;
+    updateSelectedProposal(current, (selected) => {
+      if (selected.proposal.type === "executable") {
+        selected.proposal.rules.executionGuard = guard;
+      }
+    });
   });
 }
 
@@ -1019,7 +1038,7 @@ export function indexDaoMockPendingAction() {
     current.feed.canonicalBlock = {
       number: event.log.blockNumber,
       hash: event.log.blockHash,
-      timestamp: current.feed.canonicalBlock.timestamp,
+      timestamp: event.log.timestamp ?? current.feed.canonicalBlock.timestamp,
     };
     current.selectedFixtureId = null;
     current.pendingAction = null;
@@ -1232,15 +1251,14 @@ function createIndexedActionEvent(
   pending: DaoPendingAction
 ): DaoProposalEvent {
   const blockNumber = current.feed.canonicalBlock.number + 1n;
-  const blockHash = deriveDaoMockBlockHash(
-    blockNumber,
-    current.feed.canonicalBlock.timestamp
-  );
+  const timestamp = current.feed.canonicalBlock.timestamp;
+  const blockHash = deriveDaoMockBlockHash(blockNumber, timestamp);
   return {
     type: pending.action,
     log: {
       blockNumber,
       blockHash,
+      timestamp,
       transactionHash: pending.transactionHash,
       transactionIndex: 0,
       logIndex: 0,

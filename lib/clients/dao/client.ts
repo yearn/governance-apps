@@ -16,6 +16,7 @@ import type {
   DaoProposerState,
   DaoVoteDirection,
 } from "./types";
+import { validateDaoVerifiedSource } from "./content";
 
 export interface DaoClient {
   getFeed(): Promise<DaoFeedV1>;
@@ -127,6 +128,15 @@ export function parseDaoProposalJson(proposal: DaoProposalJson): DaoProposal {
     analysis: parseDaoAnalysisJson(proposal.analysis),
     events: proposal.events.map(parseDaoProposalEventJson),
     moderation: { ...proposal.moderation },
+    rules: {
+      ...proposal.rules,
+      votingSource: {
+        ...validateDaoVerifiedSource(proposal.rules.votingSource),
+      },
+      observationBlockNumber: parseDaoBigInt(
+        proposal.rules.observationBlockNumber
+      ),
+    },
   };
 }
 
@@ -159,6 +169,13 @@ export function serializeDaoProposalJson(proposal: DaoProposal): DaoProposalJson
     analysis: serializeDaoAnalysisJson(proposal.analysis),
     events: proposal.events.map(serializeDaoProposalEventJson),
     moderation: { ...proposal.moderation },
+    rules: {
+      ...proposal.rules,
+      votingSource: { ...proposal.rules.votingSource },
+      observationBlockNumber: serializeDaoBigInt(
+        proposal.rules.observationBlockNumber
+      ),
+    },
   };
 }
 
@@ -168,6 +185,10 @@ function parseDaoAnalysisJson(analysis: DaoAnalysisJson): DaoAnalysis {
     calls: analysis.calls.map((call) => ({
       ...call,
       arguments: call.arguments.map((argument) => ({ ...argument })),
+      verifiedSource:
+        call.verifiedSource === null
+          ? null
+          : { ...validateDaoVerifiedSource(call.verifiedSource) },
     })),
     proposalSimulation: {
       ...analysis.proposalSimulation,
@@ -185,6 +206,8 @@ function serializeDaoAnalysisJson(analysis: DaoAnalysis): DaoAnalysisJson {
     calls: analysis.calls.map((call) => ({
       ...call,
       arguments: call.arguments.map((argument) => ({ ...argument })),
+      verifiedSource:
+        call.verifiedSource === null ? null : { ...call.verifiedSource },
     })),
     proposalSimulation: {
       ...analysis.proposalSimulation,

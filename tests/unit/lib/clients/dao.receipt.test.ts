@@ -77,6 +77,7 @@ describe("DAO Propose receipt decoding", () => {
         log: {
           blockNumber: 24_000_001n,
           blockHash: BLOCK_HASH,
+          timestamp: 1_787_054_412,
           transactionHash: TRANSACTION_HASH,
           transactionIndex: 3,
           logIndex: 7,

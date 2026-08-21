@@ -35,7 +35,7 @@ export type DaoProposalTimingDisplay =
     }
   | {
       kind: "executed_recorded" | "retracted_recorded" | "flagged_recorded" | "vetoed_recorded";
-      timestamp: null;
+      timestamp: number | null;
       remainingSeconds: null;
       event: DaoProposalEvent | null;
     };
@@ -92,7 +92,7 @@ export function deriveDaoVoteDisplay(proposal: DaoProposal): DaoVoteDisplay {
     nayPercent: formatPercentTenths(nayPercentTenths),
     yeaPercentTenths,
     nayPercentTenths,
-    thresholdPercent: formatBasisPoints(proposal.thresholdBps),
+    thresholdPercent: formatDaoBasisPoints(proposal.thresholdBps),
     yeaWeight: formatTokenAmount(proposal.yeaWeight, 18, 2),
     nayWeight: formatTokenAmount(proposal.nayWeight, 18, 2),
     totalWeight: formatTokenAmount(proposal.totalWeight, 18, 2),
@@ -161,7 +161,7 @@ function formatPercentTenths(tenths: number): string {
   return decimal === 0 ? `${whole}%` : `${whole}.${decimal}%`;
 }
 
-function formatBasisPoints(basisPoints: number): string {
+export function formatDaoBasisPoints(basisPoints: number): string {
   const whole = Math.trunc(basisPoints / 100);
   const remainder = basisPoints % 100;
   if (remainder === 0) return `${whole}%`;
@@ -205,12 +205,13 @@ function eventTiming(
   proposal: DaoProposal,
   eventType: DaoProposalEvent["type"]
 ): DaoProposalTimingDisplay {
+  const event =
+    [...proposal.events].reverse().find((candidate) => candidate.type === eventType) ??
+    null;
   return {
     kind,
-    timestamp: null,
+    timestamp: event?.log.timestamp ?? null,
     remainingSeconds: null,
-    event:
-      [...proposal.events].reverse().find((event) => event.type === eventType) ??
-      null,
+    event,
   };
 }

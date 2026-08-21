@@ -75,7 +75,10 @@ describe("DAO read display facts", () => {
       ...entry.analysis.calls.flatMap((call) => [
         call.contractName,
         call.functionSignature,
-        call.abiSource,
+        call.verifiedSource?.label,
+        call.verifiedSource?.url,
+        call.verifiedSource?.revision,
+        call.sourcePath,
       ]),
     ]);
 
@@ -134,14 +137,15 @@ describe("DAO read display facts", () => {
     });
   });
 
-  it("retains terminal event provenance when no event timestamp exists", () => {
+  it("retains canonical terminal event time and provenance", () => {
     const vetoed = proposal(13n);
     const timing = deriveDaoProposalTimingDisplay(
       vetoed,
       DAO_MOCK_FEED.canonicalBlock.timestamp
     );
     expect(timing.kind).toBe("vetoed_recorded");
-    expect(timing.timestamp).toBeNull();
+    expect(timing.timestamp).toBe(timing.event?.log.timestamp);
+    expect(timing.timestamp).not.toBeNull();
     expect(timing.event?.type).toBe("veto");
     expect(timing.event?.log.blockNumber).toBeTypeOf("bigint");
   });

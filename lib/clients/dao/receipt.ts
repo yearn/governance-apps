@@ -199,6 +199,7 @@ export function decodeDaoProposeReceipt(
       log: {
         blockNumber: receipt.blockNumber,
         blockHash: receipt.blockHash,
+        timestamp: receipt.blockTimestamp,
         transactionHash: receipt.transactionHash,
         transactionIndex: receipt.transactionIndex,
         logIndex: log.logIndex,

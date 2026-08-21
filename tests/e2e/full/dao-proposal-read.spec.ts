@@ -1,5 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+const PINNED_VOTING_SOURCE_URL =
+  "https://github.com/yearn/stYFI/blob/9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
+
 const VIEWPORTS = [
   { name: "phone", width: 390, height: 844 },
   { name: "tablet", width: 768, height: 1_024 },
@@ -223,16 +226,15 @@ test("contains proposal analysis and technical values at every review viewport",
     ).toBeVisible();
     await expect(page.getByText("Unknown call")).toBeVisible();
     await expect(
-      page.getByText("No verified ABI source", { exact: true }),
+      page.getByText("No verified source", { exact: true }),
     ).toBeVisible();
     await expect(page.getByText("Reference block", { exact: true })).toBeVisible();
     await expect(page.getByText("anvil", { exact: true })).toBeVisible();
     await expect(
-      page.getByText(
-        "yearn/stYFI@9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy",
-        { exact: true },
-      )
-    ).toBeVisible();
+      page
+        .getByRole("link", { name: "Voting.vy at pinned stYFI revision" })
+        .first()
+    ).toHaveAttribute("href", PINNED_VOTING_SOURCE_URL);
     await expectNoDeliveryLanguage(page);
 
     const technicalSummary = page.getByText("Technical details", {
@@ -334,6 +336,12 @@ test("renders every terminal fixture with explicit status and vote rule copy", a
     await page.getByText("Proposal rules", { exact: true }).click();
     await expect(page.getByText("No minimum turnout is required.")).toBeVisible();
     await expect(
+      page.getByText(
+        fixture.id === 7 ? "60% of votes cast" : "50% of votes cast",
+        { exact: true }
+      )
+    ).toBeVisible();
+    await expect(
       page.getByRole("heading", { name: "Lifecycle" })
     ).toBeVisible();
     await expectNoDocumentOverflow(page, `terminal proposal ${fixture.id}`);
@@ -342,6 +350,28 @@ test("renders every terminal fixture with explicit status and vote rule copy", a
   await page.goto("/dao/proposals/4");
   await expect(page.getByText("Approved", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("No executable actions").first()).toBeVisible();
+
+  await page.goto("/dao/proposals/11");
+  await expect(page.getByText("Flagged by operator", { exact: true })).toBeVisible();
+  await expect(page.getByText("No community result", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/moderation, not a community vote result/i)).toBeVisible();
+
+  await page.goto("/dao/proposals/12");
+  await expect(page.getByText(/vetoed before participation began/i)).toBeVisible();
+  await page.goto("/dao/proposals/13");
+  await expect(page.getByText(/Participation voting remains available/)).toBeVisible();
+
+  await page.goto("/dao/proposals/6");
+  await expect(page.getByText(/Executed .+ UTC/).first()).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /View Ethereum transaction/ }).first()
+  ).toHaveAttribute("rel", /noopener/);
+
+  await page.goto("/dao/proposals/20");
+  await expect(page.getByText("Time unavailable", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Transaction unavailable", { exact: true })
+  ).toBeVisible();
 });
 
 test("keeps onchain records and trust failures explicit", async ({ page }) => {

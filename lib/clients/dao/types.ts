@@ -123,7 +123,8 @@ export type DaoDecodedCall = DaoScriptFrame & {
   contractName: string | null;
   functionSignature: string | null;
   arguments: Array<{ name: string; type: string; value: string }>;
-  abiSource: string | null;
+  verifiedSource: DaoVerifiedSource | null;
+  sourcePath: string | null;
 };
 
 export type DaoSimulation = {
@@ -161,7 +162,8 @@ export type DaoExecutionPreflight = {
 export type DaoLogRef = {
   blockNumber: bigint;
   blockHash: Hex;
-  transactionHash: Hex;
+  timestamp: DaoUnixSeconds | null;
+  transactionHash: Hex | null;
   transactionIndex: number;
   logIndex: number;
 };
@@ -241,6 +243,56 @@ export type DaoProposalEvent = {
   reason: string | null;
 };
 
+export type DaoVoteResult = "approved" | "rejected";
+export type DaoModerationPhase =
+  | "before_participation"
+  | "after_participation";
+
+export type DaoLifecycleFacts = {
+  status: DaoProtocolStatus;
+  voteResult: DaoVoteResult | null;
+  moderation:
+    | {
+        kind: null;
+        phase: null;
+        reason: null;
+        votingAvailable: boolean;
+        executionBlocked: boolean;
+      }
+    | {
+        kind: "flagged" | "vetoed";
+        phase: DaoModerationPhase;
+        reason: string | null;
+        votingAvailable: boolean;
+        executionBlocked: true;
+      };
+  execution: {
+    state:
+      | "no_actions"
+      | "scheduled"
+      | "executable"
+      | "executed"
+      | "blocked"
+      | "expired";
+    guard: DaoExecutionGuard | null;
+  };
+};
+
+export type DaoProposalRules = {
+  approvalThresholdBps: number;
+  thresholdSnapshottedAtCreation: true;
+  minimumTurnout: null;
+  passageRequiresPositiveTotal: true;
+  proposalType: DaoProposalType;
+  votingPeriodSeconds: number;
+  executionDelaySeconds: number | null;
+  executionGuard: DaoExecutionGuard | null;
+  votingAddress: Address;
+  votingSource: DaoVerifiedSource;
+  votingSourcePath: string;
+  observationBlockNumber: bigint;
+};
+
 export type DaoProposal = {
   ref: DaoProposalRef;
   proposer: Address;
@@ -258,6 +310,7 @@ export type DaoProposal = {
   displayStatus: DaoDisplayStatus;
   displayGroup: DaoDisplayGroup;
   type: DaoProposalType;
+  rules: DaoProposalRules;
   content: {
     state: "available" | "unavailable" | "invalid";
     cid: string | null;
@@ -386,6 +439,13 @@ export type DaoProposalEventJson = Omit<DaoProposalEvent, "log" | "weight"> & {
   weight: DaoBigIntJson | null;
 };
 
+export type DaoProposalRulesJson = Omit<
+  DaoProposalRules,
+  "observationBlockNumber"
+> & {
+  observationBlockNumber: DaoBigIntJson;
+};
+
 export type DaoProposalJson = Omit<
   DaoProposal,
   | "ref"
@@ -395,6 +455,7 @@ export type DaoProposalJson = Omit<
   | "nayWeight"
   | "analysis"
   | "events"
+  | "rules"
 > & {
   ref: Omit<DaoProposalRef, "proposalId"> & {
     proposalId: DaoBigIntJson;
@@ -405,6 +466,7 @@ export type DaoProposalJson = Omit<
   nayWeight: DaoBigIntJson;
   analysis: DaoAnalysisJson;
   events: DaoProposalEventJson[];
+  rules: DaoProposalRulesJson;
 };
 
 export type DaoCreatedProposalStage = "awaiting_index" | "indexed";

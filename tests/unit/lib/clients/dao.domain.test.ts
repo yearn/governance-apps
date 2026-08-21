@@ -11,6 +11,7 @@ import {
   deriveDaoCapabilities,
   deriveDaoDisplayGroup,
   deriveDaoDisplayStatus,
+  deriveDaoLifecycleFacts,
   deriveDaoProposalTiming,
   deriveDaoProposerState,
   deriveDaoProtocolStatus,
@@ -161,6 +162,46 @@ describe("DAO proposal identity and lifecycle", () => {
     expect(deriveDaoDisplayStatus("executed", "signal")).toBe("approved");
     expect(deriveDaoDisplayGroup("approved", "signal")).toBe("closed");
     expect(deriveDaoDisplayGroup("approved", "executable")).toBe("active");
+  });
+
+  it("separates lifecycle status, vote result, moderation, and execution", () => {
+    expect(deriveDaoLifecycleFacts(proposal(4n), DAO_MOCK_NOW)).toMatchObject({
+      status: "executed",
+      voteResult: "approved",
+      moderation: { kind: null },
+      execution: { state: "no_actions", guard: null },
+    });
+    expect(deriveDaoLifecycleFacts(proposal(11n), DAO_MOCK_NOW)).toMatchObject({
+      status: "flagged",
+      voteResult: null,
+      moderation: {
+        kind: "flagged",
+        phase: "before_participation",
+        reason: "Malformed proposal content",
+      },
+      execution: { state: "blocked" },
+    });
+  });
+
+  it("distinguishes early veto from post-participation veto", () => {
+    expect(deriveDaoLifecycleFacts(proposal(12n), DAO_MOCK_NOW)).toMatchObject({
+      voteResult: null,
+      moderation: {
+        kind: "vetoed",
+        phase: "before_participation",
+        votingAvailable: false,
+        executionBlocked: true,
+      },
+    });
+    expect(deriveDaoLifecycleFacts(proposal(13n), DAO_MOCK_NOW)).toMatchObject({
+      voteResult: null,
+      moderation: {
+        kind: "vetoed",
+        phase: "after_participation",
+        votingAvailable: true,
+        executionBlocked: true,
+      },
+    });
   });
 });
 

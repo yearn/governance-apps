@@ -7,6 +7,7 @@ export * from "./fixtures";
 export * from "./mock";
 export * from "./read-display";
 export * from "./receipt";
+export * from "./provenance";
 export * from "./store";
 export * from "./script";
 export * from "./script-vectors";

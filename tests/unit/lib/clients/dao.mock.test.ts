@@ -327,6 +327,45 @@ describe("DAO deterministic mock feed", () => {
     ]);
   });
 
+  it("carries proposal-specific rule snapshots and mutable-fact observation blocks", () => {
+    const normal = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 2n
+    );
+    const alternate = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 7n
+    );
+    const permissionless = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 22n
+    );
+
+    expect(normal?.rules).toMatchObject({
+      approvalThresholdBps: 5_000,
+      thresholdSnapshottedAtCreation: true,
+      minimumTurnout: null,
+      passageRequiresPositiveTotal: true,
+      executionGuard: "guarded",
+      observationBlockNumber: 24_000_000n,
+    });
+    expect(alternate?.rules.approvalThresholdBps).toBe(6_000);
+    expect(permissionless?.rules.executionGuard).toBe("permissionless");
+  });
+
+  it("keeps missing event time and transaction availability explicit", () => {
+    const direct = DAO_MOCK_FEED.proposals.find(
+      (proposal) => proposal.ref.proposalId === 20n
+    );
+    const event = direct?.events.find((candidate) => candidate.type === "propose");
+    expect(event?.log.timestamp).toBeNull();
+    expect(event?.log.transactionHash).toBeNull();
+
+    const canonicalEvents = DAO_MOCK_FEED.proposals
+      .filter((proposal) => proposal.ref.proposalId !== 20n)
+      .flatMap((proposal) => proposal.events);
+    expect(canonicalEvents.every((candidate) => candidate.log.timestamp !== null)).toBe(
+      true
+    );
+  });
+
   it("keeps every available content CID, digest, and byte sequence consistent", () => {
     const available = DAO_MOCK_FEED.proposals.filter(
       (proposal) => proposal.content.state === "available"
@@ -466,6 +505,7 @@ describe("DAO deterministic mock feed", () => {
       expect(group).toHaveLength(3);
       expect(new Set(group.map((event) => event.log.blockNumber))).toHaveLength(1);
       expect(new Set(group.map((event) => event.log.blockHash))).toHaveLength(1);
+      expect(new Set(group.map((event) => event.log.timestamp))).toHaveLength(1);
       expect(new Set(group.map((event) => event.log.transactionHash))).toHaveLength(
         1
       );
@@ -506,6 +546,12 @@ describe("DAO deterministic mock feed", () => {
         /canonical unsigned decimals/i
       );
     }
+  });
+
+  it("rejects unvalidated verified-source URLs at the feed boundary", () => {
+    const invalid = structuredClone(DAO_MOCK_FEED_JSON);
+    invalid.proposals[0].rules.votingSource.url = "ipfs://not-an-https-source";
+    expect(() => parseDaoFeedJson(invalid)).toThrow(/complete HTTPS URL/i);
   });
 });
 

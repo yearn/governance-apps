@@ -9,8 +9,8 @@ import {
   type DaoProposalReadEnvelope,
 } from "@/lib/clients/dao";
 
-const PINNED_VOTING_ABI_SOURCE =
-  "yearn/stYFI@9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
+const PINNED_VOTING_SOURCE_URL =
+  "https://github.com/yearn/stYFI/blob/9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy";
 
 describe("DAO proposal detail", () => {
   it.each([
@@ -65,6 +65,38 @@ describe("DAO proposal detail", () => {
     expect(
       screen.queryByRole("heading", { name: "Ordered calls" })
     ).not.toBeInTheDocument();
+    expect(screen.getAllByText("Vote result", { exact: true }).length).toBe(1);
+    expect(
+      screen.getAllByText("No executable actions", { exact: true }).length
+    ).toBeGreaterThan(1);
+  });
+
+  it("presents flagging as moderation without inventing a community result", () => {
+    render(<ProposalDetail envelope={envelope(proposal(11n))} />);
+
+    expect(screen.getByText("Moderation", { exact: true })).toBeVisible();
+    expect(screen.getByText("Flagged by operator", { exact: true })).toBeVisible();
+    expect(
+      screen.getByText(
+        "The operator marked this proposal invalid before votes were recorded. This is moderation, not a community vote result."
+      )
+    ).toBeVisible();
+    expect(
+      screen.getAllByText("No community result", { exact: true }).length
+    ).toBe(2);
+  });
+
+  it.each([
+    [12n, "Voting is blocked because the guardian vetoed before participation began."],
+    [13n, "Participation voting remains available until the voting window closes, but approval and execution are blocked."],
+  ])("explains veto phase for proposal #%s", (proposalId, explanation) => {
+    render(<ProposalDetail envelope={envelope(proposal(proposalId))} />);
+
+    expect(screen.getByText("Vetoed by guardian", { exact: true })).toBeVisible();
+    expect(screen.getByText(explanation, { exact: true })).toBeVisible();
+    expect(
+      screen.getAllByText("No community result", { exact: true }).length
+    ).toBe(2);
   });
 
   it("exposes the vote breakdown once to assistive technology", () => {
@@ -96,7 +128,7 @@ describe("DAO proposal detail", () => {
       expect(
         screen.getAllByText(`Proposal #${proposalId.toString()}`).length
       ).toBeGreaterThan(0);
-      expect(screen.getByText("Voting contract")).toBeInTheDocument();
+      expect(screen.getAllByText("Voting contract").length).toBeGreaterThan(0);
     }
   );
 
@@ -122,11 +154,17 @@ describe("DAO proposal detail", () => {
     expect(screen.getByText("Verified decoding")).toBeVisible();
     expect(screen.getByText("Unknown call")).toBeVisible();
     expect(screen.getByText("Unknown contract")).toBeVisible();
-    expect(screen.getByText("No verified ABI source")).toBeVisible();
+    expect(screen.getByText("No verified source")).toBeVisible();
     expect(screen.getByText("Selector")).toBeVisible();
     expect(screen.getByText("Calldata")).toBeVisible();
     expect(screen.getByText("Reference block")).toBeVisible();
-    expect(screen.getByText(PINNED_VOTING_ABI_SOURCE)).toBeVisible();
+    expect(
+      screen
+        .getAllByRole("link", {
+          name: "Voting.vy at pinned stYFI revision",
+        })
+        .every((link) => link.getAttribute("href") === PINNED_VOTING_SOURCE_URL)
+    ).toBe(true);
   });
 
   it("keeps simulation failure separate from decoding", () => {
@@ -157,11 +195,13 @@ describe("DAO proposal detail", () => {
     expect(screen.getAllByText("epoch()").length).toBeGreaterThan(0);
     expect(screen.getAllByText("threshold()").length).toBeGreaterThan(0);
     expect(
-      screen.getAllByText(PINNED_VOTING_ABI_SOURCE).length
+      screen.getAllByRole("link", {
+        name: "Voting.vy at pinned stYFI revision",
+      }).length
     ).toBeGreaterThan(0);
   });
 
-  it("renders producer provenance verbatim without casing or marker rewrites", () => {
+  it("renders validated producer provenance verbatim without synthesizing a URL", () => {
     const feed = structuredClone(DAO_MOCK_FEED);
     const value = feed.proposals.find(
       (entry) => entry.ref.proposalId === 2n
@@ -172,7 +212,12 @@ describe("DAO proposal detail", () => {
       ...value.analysis.calls[0],
       contractName: "vaultFactory.v2",
       functionSignature: "rebalance_v2()",
-      abiSource: "sourcify://mainnet/0xAbC",
+      verifiedSource: {
+        kind: "sourcify",
+        label: "Verified Vault source",
+        url: "https://repo.sourcify.dev/contracts/full_match/1/0x0000000000000000000000000000000000000001/",
+        revision: null,
+      },
     };
 
     render(<ProposalDetail envelope={envelope(value, feed)} />);
@@ -181,8 +226,43 @@ describe("DAO proposal detail", () => {
     expect(screen.getByText("vaultFactory.v2", { exact: true })).toBeVisible();
     expect(screen.getByText("rebalance_v2()", { exact: true })).toBeVisible();
     expect(
-      screen.getByText("sourcify://mainnet/0xAbC", { exact: true })
-    ).toBeVisible();
+      screen.getByRole("link", { name: "Verified Vault source" })
+    ).toHaveAttribute(
+      "href",
+      "https://repo.sourcify.dev/contracts/full_match/1/0x0000000000000000000000000000000000000001/"
+    );
+  });
+
+  it("uses canonical event time and truthful transaction fallbacks", () => {
+    const value = structuredClone(proposal(6n));
+    const execute = value.events.find((event) => event.type === "execute");
+    if (!execute) throw new Error("Missing execute event.");
+    execute.log.timestamp = 1_776_513_840;
+
+    render(<ProposalDetail envelope={envelope(value)} />);
+
+    expect(
+      screen
+        .getAllByText("Apr 18, 2026, 12:04 PM UTC", { exact: true })
+        .some((time) => time.parentElement?.textContent?.startsWith("Executed"))
+    ).toBe(true);
+    expect(
+      screen.getAllByRole("link", { name: /View Ethereum transaction/ }).length
+    ).toBeGreaterThan(0);
+
+    const unavailable = structuredClone(proposal(20n));
+    const proposed = unavailable.events.find((event) => event.type === "propose");
+    if (!proposed) throw new Error("Missing propose event.");
+    proposed.log.timestamp = null;
+    proposed.log.transactionHash = null;
+    const { unmount } = render(<ProposalDetail envelope={envelope(unavailable)} />);
+    expect(
+      screen
+        .getAllByText("Time unavailable", { exact: true })
+        .some((time) => time.parentElement?.textContent?.startsWith("Proposed"))
+    ).toBe(true);
+    expect(screen.getByText("Transaction unavailable", { exact: true })).toBeVisible();
+    unmount();
   });
 
   it("labels canonical block time as the feed snapshot instead of generatedAt", () => {
@@ -246,6 +326,16 @@ describe("DAO proposal detail", () => {
     expect(rulesSummary).not.toBeNull();
     fireEvent.click(rulesSummary!);
     expect(screen.getByText("No minimum turnout is required.")).toBeVisible();
+    expect(screen.getByText("50% of votes cast", { exact: true })).toBeVisible();
+    expect(screen.getByText("Passage requires at least one non-zero vote.")).toBeVisible();
+    expect(screen.getByText("Guarded execution", { exact: true })).toBeVisible();
+    expect(
+      screen
+        .getAllByRole("link", {
+          name: "Voting.vy at pinned stYFI revision",
+        })
+        .every((link) => link.getAttribute("href") === PINNED_VOTING_SOURCE_URL)
+    ).toBe(true);
 
     const technicalSummary = screen
       .getByText("Technical details")
@@ -265,6 +355,12 @@ describe("DAO proposal detail", () => {
     expect(
       within(details!).getByRole("button", { name: "Copy script hash" })
     ).toHaveClass("size-10");
+  });
+
+  it("reads an alternate threshold from proposal rules", () => {
+    render(<ProposalDetail envelope={envelope(proposal(7n))} />);
+    fireEvent.click(screen.getByText("Proposal rules", { exact: true }));
+    expect(screen.getByText("60% of votes cast", { exact: true })).toBeVisible();
   });
 });
 

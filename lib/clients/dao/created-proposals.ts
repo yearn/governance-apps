@@ -17,6 +17,7 @@ import {
   DAO_MOCK_VOTE_START_OFFSET_SECONDS,
 } from "./fixtures";
 import { checkDaoExecutorScript } from "./script";
+import { DAO_PINNED_VOTING_SOURCE } from "./provenance";
 import type {
   DaoAnalysis,
   DaoCreatedProposalRecord,
@@ -117,6 +118,22 @@ export function createDaoAwaitingIndexProposal({
     displayStatus,
     displayGroup: deriveDaoDisplayGroup(displayStatus, content.proposalType),
     type: content.proposalType,
+    rules: {
+      approvalThresholdBps: 5_000,
+      thresholdSnapshottedAtCreation: true,
+      minimumTurnout: null,
+      passageRequiresPositiveTotal: true,
+      proposalType: content.proposalType,
+      votingPeriodSeconds: voteEndsAt - voteStartsAt,
+      executionDelaySeconds: executable
+        ? DAO_MOCK_EXECUTION_DELAY_SECONDS
+        : null,
+      executionGuard: executable ? "guarded" : null,
+      votingAddress: identity.ref.votingAddress,
+      votingSource: { ...DAO_PINNED_VOTING_SOURCE },
+      votingSourcePath: "contracts/governance/Voting.vy",
+      observationBlockNumber: identity.log.blockNumber,
+    },
     content: {
       state: "available",
       cid: contentCid,
@@ -332,7 +349,8 @@ function indexedExecutableAnalysis(
       contractName: null,
       functionSignature: null,
       arguments: [],
-      abiSource: null,
+      verifiedSource: null,
+      sourcePath: null,
     })),
     proposalSimulation: {
       state: "unavailable",
