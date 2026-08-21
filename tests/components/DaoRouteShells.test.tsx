@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   DAO_MOCK_FEED,
@@ -169,8 +175,16 @@ describe("DAO proposal detail shell", () => {
     expect(screen.getAllByText("Executable").length).toBeGreaterThan(0);
 
     const proposalIdLabel = screen.getByText("Proposal ID", { exact: true });
-    const statusLabel = screen.getByText("Status", { exact: true });
-    const typeLabel = screen.getByText("Type", { exact: true });
+    const proposalMetadata = proposalIdLabel.closest("dl");
+    if (!proposalMetadata) {
+      throw new Error("Proposal metadata list is required for route tests.");
+    }
+    const statusLabel = within(proposalMetadata).getByText("Status", {
+      exact: true,
+    });
+    const typeLabel = within(proposalMetadata).getByText("Type", {
+      exact: true,
+    });
     expect(proposalIdLabel).toHaveClass("text-text-secondary");
     expect(statusLabel).toHaveClass("text-text-secondary");
     expect(typeLabel).toHaveClass("text-text-secondary");
