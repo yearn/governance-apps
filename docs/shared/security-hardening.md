@@ -109,7 +109,9 @@ type bytes, 2,097,152 bytes per asset, and 33,554,432 aggregate declared bytes.
 Image metadata permits at most 8,192 px per dimension and 33,554,432 pixels.
 The 2 MiB per-asset limit keeps each attachment in one raw block for the
 intended block-exchange and pinning paths. The browser renders cards only and
-makes no asset request until the user opens one. It never renders SVG inline.
+makes no asset request until the user opens one. A card is accepted only for a
+sole image token in a top-level body paragraph after the summary; nested or
+mixed image contexts fail. It never renders SVG inline.
 
 ## 3. Production Runtime Invariants
 

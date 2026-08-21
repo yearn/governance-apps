@@ -201,8 +201,10 @@ to H3 through H5; source H1 and the summary node are omitted there because the
 header already owns them. Tables, fenced code, long links, and exact source are
 contained within their own scroll or wrap regions.
 
-Image syntax renders a semantic attachment card at its AST position. The card
-shows alt-text title, media type, byte size, Open, and Copy. It contains no
+One image token, alone in a top-level body paragraph after the summary, renders
+a semantic attachment card at that AST position. Images in title, summary,
+heading, link, styled-inline, mixed, or nested contexts fail validation. The
+card shows alt-text title, media type, byte size, Open, and Copy. It contains no
 `img`, `picture`, CSS background image, preload, metadata probe, or prefetched
 attachment link. Open and Copy receive only the validated suffix-free raw-CID
 gateway URL. SVG is never inline.

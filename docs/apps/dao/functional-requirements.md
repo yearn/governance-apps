@@ -240,7 +240,10 @@ Only CommonMark plus GFM tables are enabled. Raw HTML, unsupported nodes,
 unsafe links, unpaired surrogates, NUL/control characters, and invalid or
 ambiguous attachments fail closed with located errors. Markdown is limited to
 32,768 UTF-8 bytes, 4,096 nodes, depth 32, and 1,024 table cells. Title and
-summary limits count graphemes with `Intl.Segmenter`.
+summary limits count graphemes with `Intl.Segmenter`. Source bytes are bounded
+before parsing; iterative validation checks every heading and work bound. A
+work-limit failure exposes an empty safe AST. The only accepted image context is
+one sole image in a top-level body paragraph after the summary.
 
 The canonical content JSON uses the fixed field order and one final LF. Its
 SHA-256 digest is the onchain `bytes32`; its CID is CIDv1/raw/SHA-256/Base32.
@@ -250,7 +253,9 @@ An image token renders an informative attachment card, never an image-producing
 element. A relative `./assets/...` target matches one exact authenticated
 manifest entry; a direct `ipfs://` target contains one exact canonical raw CID
 and matches one unique digest. Both derive the same suffix-free trusted gateway
-URL and make no request until Open is activated. SVG is never rendered inline.
+URL and make no request until Open is activated. Images nested in headings,
+links, emphasis, lists, quotes, tables, or mixed inline content are rejected.
+SVG is never rendered inline.
 
 ### DAO-FR-032: signal
 

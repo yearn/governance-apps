@@ -644,13 +644,19 @@ Error precedence and offsets are deterministic:
 | `NON_EMPTY_SIGNAL_SCRIPT` | Signal type uses one or more structurally valid calls | `0` |
 
 The content parser first rejects non-round-tripping Unicode and NUL/control
-characters before `TextEncoder`. It then enforces the 32,768-byte source limit,
-AST node/depth/table-cell work bounds, one H1, summary paragraph, non-empty body,
-heading order, node allowlist, raw-HTML block, safe links, and attachment rules.
+characters before `TextEncoder`, then enforces the 32,768-byte source limit
+before parsing. Bounded iterative walks enforce AST node/depth/table-cell work
+bounds, exactly one H1 across the tree, later H2-H4 order, the summary paragraph,
+non-empty body, the node allowlist, the raw-HTML block, safe links, and attachment
+rules. A work-limit failure returns an empty safe AST. An attachment is valid
+only when it is the sole image in a top-level body paragraph after the summary;
+title, summary, heading, link, mixed-inline, and nested image contexts fail.
 Located document errors are reported in stable source order before manifest
-errors. Manifest errors retain their manifest index and use the frozen bounds.
-Duplicate normalized paths and duplicate digests fail before attachment lookup;
-direct-CID lookup must resolve to exactly one digest.
+errors. Manifest errors are ordered by manifest index and fixed rule priority;
+an earlier bad entry precedes the index-16 too-many-assets sentinel, and a
+duplicate path precedes a duplicate digest at one index. Duplicate normalized
+paths and duplicate digests fail before attachment lookup; direct-CID lookup
+must resolve to exactly one digest.
 
 Call-count validation precedes the total-byte limit so both contract limits are
 independently diagnosable: 65 empty 32-byte headers already occupy 2,080 bytes.

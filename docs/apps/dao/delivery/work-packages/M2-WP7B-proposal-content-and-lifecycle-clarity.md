@@ -183,8 +183,10 @@ The grammar is:
 - At least one meaningful non-heading body block follows the summary. Visible
   paragraph, list, quote, code, table-cell, or valid attachment content counts.
   Blank text and a heading alone do not.
-- The first later heading, when present, is H2. Later headings may be H2 through
-  H4. Reject H1 duplicates and H5/H6 nodes.
+- Inspect headings across the whole tree. The first later heading, when present,
+  is H2, and every later heading is H2 through H4. Supported body containers may
+  contain those headings. Reject every later H1 and every H5/H6, including
+  headings nested in a quote or list.
 - Supported nodes are headings, paragraphs, text, emphasis, strong emphasis,
   ordered and unordered lists, list items, blockquotes, safe links, inline
   code, fenced code, GFM tables, table rows/cells, line breaks, and image syntax
@@ -193,7 +195,8 @@ The grammar is:
   no raw-HTML rendering switch may exist.
 - The exact Markdown source is at most 32 KiB, meaning 32,768 UTF-8 bytes.
   Byte accounting uses one shared encoder. Reject non-round-tripping Unicode
-  input rather than silently replacing invalid code units.
+  input rather than silently replacing invalid code units. Finish source
+  preflight and enforce the UTF-8 byte limit before calling the parser.
 - Ordinary links accept validated `https:` URLs, validated `ipfs:` URLs, or
   root-relative internal paths beginning with one `/`. Reject protocol-relative
   paths, credentials, control characters, malformed URLs, `javascript:`,
@@ -208,8 +211,16 @@ missing or misplaced H1, duplicate H1, title length, missing or wrong summary,
 summary length, empty body, heading depth, raw HTML, unsupported nodes, unsafe
 links, unsafe images, invalid CIDs, invalid asset metadata, duplicate paths,
 missing assets, and traversal. Order document errors by source position, then
-manifest errors by manifest order. The first error controls focus and caret
-placement in authoring.
+manifest errors by manifest index and a frozen per-entry rule priority. Validate
+at most the first 16 entries plus the too-many-assets sentinel at index 16. A
+bad earlier entry precedes that sentinel; a duplicate path precedes a duplicate
+digest at the same index. Finish manifest validation before attachment lookup.
+The first error controls focus and caret placement in authoring.
+
+AST work-limit inspection and title, summary, body, heading, and attachment
+walks use bounded iterative traversal. A source that exceeds the node, nesting,
+or table-cell limit returns a stable located limit error and an empty safe AST;
+no recursive renderer receives the rejected tree.
 
 The same parse result supplies authoring validation, preview, final publication
 review, proposal detail, deterministic fixture checks, and expected vectors for
@@ -281,6 +292,13 @@ inconsistencies in fixture vectors, absolute filesystem paths, backslashes,
 empty path segments, query-based aliases, and `.` or `..` traversal. Apply
 traversal checks after percent decoding and reject encoded separators or
 traversal at any decoding depth.
+
+An attachment token is accepted only as the sole child of its own top-level
+paragraph after the summary. Reject image syntax in the title, summary,
+headings, links, emphasis, mixed inline content, quotes, lists, tables, and all
+other nested contexts. This keeps the card at one standalone block position and
+prevents an attachment action from becoming a child of another interactive
+element.
 
 Each card shows the Markdown alt text as its title, media type, formatted byte
 size, Open attachment, and Copy immutable link. One domain helper resolves both
