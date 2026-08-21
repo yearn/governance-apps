@@ -7,7 +7,7 @@ import {
   daoViewport,
 } from "../../metadata";
 import { isDaoEnabled } from "@/lib/runtime/features";
-import { resolveRequestHostname } from "@/lib/runtime/request-host";
+import { resolveRoutedRequestHostname } from "@/lib/runtime/request-host";
 
 export const viewport = daoViewport;
 
@@ -31,7 +31,7 @@ export default async function DaoProposalPage({
   const { id } = await params;
   const { from } = await searchParams;
   const requestHeaders = await headers();
-  const initialHostname = resolveRequestHostname(requestHeaders, "");
+  const initialHostname = resolveRoutedRequestHostname(requestHeaders, "");
   return (
     <DaoProposalPageClient
       initialHostname={initialHostname}

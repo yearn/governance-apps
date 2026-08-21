@@ -58,7 +58,12 @@ test("proves the production-compiled DAO-enabled boundary", async ({
     viewport: { width: 1_280, height: 900 },
   });
   await context.addInitScript(
-    ({ key, value }) => sessionStorage.setItem(key, value),
+    ({ key, value }) => {
+      if (window.location.protocol === "about:") return;
+      if (sessionStorage.getItem(key) === null) {
+        sessionStorage.setItem(key, value);
+      }
+    },
     {
       key: DAO_CREATED_PROPOSALS_STORAGE_KEY,
       value: records.awaiting,
@@ -112,7 +117,7 @@ test("proves the production-compiled DAO-enabled boundary", async ({
     ({ key, value }) => sessionStorage.setItem(key, value),
     { key: DAO_CREATED_PROPOSALS_STORAGE_KEY, value: records.indexed }
   );
-  await page.reload();
+  await page.goto(`/dao/proposals/${CREATED_PROPOSAL_ID.toString()}`);
   await expect(
     page.getByRole("heading", { name: "Session proposal", level: 1 })
   ).toBeVisible();
@@ -144,18 +149,17 @@ test("proves the production-compiled DAO-enabled boundary", async ({
     await writeMetadata("production-enabled-metadata.json", metadata);
   }
 
-  const betaPage = await context.newPage();
-  const betaUrl = new URL(baseURL);
-  betaUrl.hostname = "dao-beta.dao-ops.com";
-  betaUrl.pathname = "/";
-  const betaResponse = await betaPage.goto(betaUrl.toString());
-  expect(betaResponse?.status()).toBe(200);
-  expect(betaResponse?.headers()["x-robots-tag"]).toBe("noindex, nofollow");
-  await expect(betaPage.locator('link[rel="canonical"]')).toHaveCount(0);
-  await expect(
-    betaPage.getByRole("link", { name: "Create proposal" })
-  ).toHaveAttribute("href", "/propose");
-  await betaPage.close();
+  const betaResponse = await context.request.get("/", {
+    headers: {
+      host: "dao-beta.dao-ops.com",
+      "x-forwarded-host": "dao-beta.dao-ops.com",
+    },
+  });
+  expect(betaResponse.status()).toBe(200);
+  expect(betaResponse.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+  const betaHtml = await betaResponse.text();
+  expect(betaHtml).toContain('href="/propose"');
+  expect(betaHtml).not.toMatch(/rel="canonical"/i);
 
   expect(attachmentRequests).toEqual([]);
   expect(forbiddenRequests).toEqual([]);
@@ -165,9 +169,8 @@ test("proves the production-compiled DAO-enabled boundary", async ({
 });
 
 test("proves the production-compiled DAO-disabled boundary", async ({
-  page,
   request,
-}, testInfo) => {
+}) => {
   test.skip(PROOF_MODE !== "disabled");
 
   for (const route of ["/dao", "/dao/propose", "/dao/proposals/2"]) {
@@ -178,12 +181,14 @@ test("proves the production-compiled DAO-disabled boundary", async ({
     }
   }
 
-  const betaUrl = new URL(requireBaseUrl(testInfo.project.use.baseURL));
-  betaUrl.hostname = "dao-beta.dao-ops.com";
-  betaUrl.pathname = "/";
-  const betaResponse = await page.goto(betaUrl.toString());
-  expect(betaResponse?.status()).toBe(404);
-  expect(betaResponse?.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+  const betaResponse = await request.get("/", {
+    headers: {
+      host: "dao-beta.dao-ops.com",
+      "x-forwarded-host": "dao-beta.dao-ops.com",
+    },
+  });
+  expect(betaResponse.status()).toBe(404);
+  expect(betaResponse.headers()["x-robots-tag"]).toBe("noindex, nofollow");
 });
 
 test("captures mutable authoring states from the production-compiled preview", async ({

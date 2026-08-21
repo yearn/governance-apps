@@ -5,7 +5,10 @@ import {
   resolveHeadProbePath,
   resolveHostPrefix,
 } from "@/lib/runtime/host-routing";
-import { resolveRequestHostname } from "@/lib/runtime/request-host";
+import {
+  GOVERNANCE_ROUTED_HOST_HEADER,
+  resolveRequestHostname,
+} from "@/lib/runtime/request-host";
 import {
   buildSecurityHeaders,
   resolveAdditionalConnectSrc,
@@ -73,6 +76,9 @@ export function middleware(request: NextRequest) {
   const nonce = crypto.randomUUID().replace(/-/g, "");
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  // Preserve the public host for server components after Next's internal rewrite.
+  // The middleware derives and overwrites this value; callers cannot supply it.
+  requestHeaders.set(GOVERNANCE_ROUTED_HOST_HEADER, requestHostname);
 
   // 1. Determine the intended application based on the Host header
   const prefix = resolveHostPrefix(requestHostname);
