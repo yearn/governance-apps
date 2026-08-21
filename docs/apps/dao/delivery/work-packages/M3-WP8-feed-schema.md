@@ -17,6 +17,12 @@ the accepted mock domain.
 - Canonical block, contract generation, and composite proposal identity.
 - Events, script, hash verification, IPFS, discussion, moderation, votes,
   decoding, simulation, and failure fields.
+- Exact canonical Markdown/content JSON bytes, the SHA-256 onchain digest, the
+  CIDv1/raw/SHA-256/Base32 content CID, and the WP7B bounded asset manifest.
+- Independent raw asset CIDs derived from manifest digests. A relative manifest
+  attachment is an exact logical path lookup, never a content-CID descendant;
+  a direct `ipfs://` attachment has no path, slash, query, or fragment. Both
+  resolve to `https://ipfs.io/ipfs/<assetCid>` with no suffix.
 - Proposal-time simulation method, engine, caller/context, state block and hash,
   timestamp treatment, state/time overrides, atomic result, and failure state.
 - Human vote versus YBC/delegated aggregate classification.
@@ -40,6 +46,10 @@ the accepted mock domain.
 - Failed and unavailable simulation states are distinct, and decode status is
   independent.
 - Consumer tests reject incompatible or internally inconsistent examples.
+- Consumer tests enforce unique normalized manifest paths and digests and the
+  WP7B bounds: 16 assets, 512 UTF-8 path bytes, 127 UTF-8 media-type bytes,
+  2,097,152 bytes per asset, 33,554,432 aggregate bytes, 8,192 px per image
+  dimension, and 33,554,432 image pixels.
 
 ## Validation
 

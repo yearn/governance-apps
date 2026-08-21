@@ -245,29 +245,39 @@ The producer verifies `keccak256(eventScript) == storedScriptHash`, fetches IPFS
 content, decodes known calls, runs the proposal-time simulation, and publishes a
 versioned feed. Browser code must not scan full historical logs.
 
-## 13. IPFS convention
+## 13. Content and asset authentication convention
 
-The contract stores only 32 bytes and does not specify the CID version, codec, or
-hash function. Before live integration, the contract team must confirm the
-encoding convention.
+The application convention fixes the contract's 32-byte value as the SHA-256
+digest of the exact canonical proposal-content JSON bytes. The content CID is
+the CIDv1/raw/SHA-256/Base32 representation of those same bytes. Producers and
+consumers verify this byte-to-digest-to-CID round trip from fixed vectors; they
+do not reserialize a parsed object to choose its digest.
 
-The application recommendation is:
+Each asset-manifest digest authenticates one independent raw asset block. A
+relative manifest attachment such as `./assets/diagram.svg` is an exact logical
+lookup of the manifest path, not an IPFS descendant of the content CID. Its
+CIDv1/raw/SHA-256/Base32 asset CID is derived from the matching digest. A direct
+`ipfs://` attachment contains exactly that canonical raw asset CID with no
+path, slash, query, or fragment and must match exactly one manifest digest.
+Both forms resolve to `https://ipfs.io/ipfs/<assetCid>` with no suffix.
 
-- CIDv1;
-- raw codec;
-- SHA-256;
-- Base32 display;
-- one bounded canonical JSON block;
-- store the 32-byte SHA-256 digest onchain.
+Duplicate normalized paths or duplicate digests fail validation. The manifest
+allows at most 16 assets. Each path is at most 512 UTF-8 bytes, each media type
+at most 127 UTF-8 bytes, each raw asset at most 2,097,152 bytes, and all declared
+assets together at most 33,554,432 bytes. Image metadata is bounded to 8,192 px
+per dimension and 33,554,432 pixels. The 2 MiB per-asset bound keeps one asset
+within one raw block for the intended IPFS block-exchange and pinning paths.
 
-Mock data carries both CID and digest. Live publication cannot ship until the
-round trip from canonical bytes to CID, digest, and reconstructed CID is fixed by
-test vectors and confirmed with the contract team.
+M2 uses deterministic pre-pinned vectors. M5 owns creation, round-trip checks,
+multi-provider pinning, and retention of the independent content and asset raw
+blocks. A live contract deployment still needs explicit confirmation that it
+uses this convention before writes are enabled.
 
 ## 14. Known integration checks
 
 - The pinned contract requires a proposal cooldown of at least one day, while
   several pinned tests configure zero. Treat the branch test suite as moving.
 - The open PR has no final deployment manifest in this repository.
-- Role addresses, proposal parameters, execution guard mode, and the CID
-  convention remain live-integration inputs, not mock blockers.
+- Role addresses, proposal parameters, execution guard mode, and confirmation
+  that a live Voting deployment uses the fixed digest convention remain
+  live-integration inputs, not mock blockers.

@@ -10,14 +10,28 @@ through a server-owned, integrity-checked IPFS path.
 ## Depends on
 
 - Accepted M4.
-- Contract-team confirmation of the CID convention.
+- The WP7B authenticated-manifest contract: the onchain value is the SHA-256
+  digest of exact canonical content JSON, content and assets use independent
+  CIDv1/raw/SHA-256/Base32 blocks, and manifest paths are logical lookups.
+- Contract-team confirmation that the target Voting deployment uses that fixed
+  digest convention.
 - Pinning and retention ownership chosen for preproduction.
 
 ## Scope
 
 - Same-origin public Discourse topic validation and normalization.
-- Bounded content schema and exact byte encoder.
-- CIDv1/raw/SHA-256 creation, digest extraction, and round-trip verification.
+- Consume the WP7B content schema, exact byte encoder, parser vectors, and
+  manifest limits without adding a second schema or parser.
+- Create and round-trip one raw content block plus one independent raw block
+  for each asset. Each asset CID comes from its manifest digest.
+- Keep `./assets/...` as an exact logical manifest lookup, never an IPFS
+  descendant. Direct `ipfs://` targets contain one exact canonical raw CID with
+  no suffix. Both resolve to `https://ipfs.io/ipfs/<assetCid>`.
+- Enforce unique normalized paths and digests, at most 16 assets, 512 UTF-8 path
+  bytes, 127 UTF-8 media-type bytes, 2,097,152 bytes per asset, 33,554,432
+  aggregate bytes, 8,192 px per image dimension, and 33,554,432 image pixels.
+  The 2 MiB bound keeps each asset compatible with the intended single raw
+  block exchange and pinning paths.
 - Server-side provider credentials, multi-pin policy, timeout, retry, and
   last-good retention.
 - Mock service replacement in the authoring form.
@@ -32,7 +46,10 @@ through a server-owned, integrity-checked IPFS path.
 
 - The app path requires a public topic under Yearn `Proposals`.
 - Direct-contract proposals still render without verified discussion.
-- Exact uploaded bytes reproduce CID and onchain digest test vectors.
+- Exact uploaded content bytes reproduce the content CID and onchain digest;
+  each uploaded asset reproduces its independent raw CID and manifest digest.
+- Relative manifest and direct CID forms resolve to the same suffix-free
+  gateway URL for the same asset.
 - One provider failure does not silently report full retention success.
 - Secrets never enter client bundles.
 

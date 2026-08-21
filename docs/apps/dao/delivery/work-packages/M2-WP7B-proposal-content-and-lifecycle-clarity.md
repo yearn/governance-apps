@@ -103,10 +103,40 @@ fixture vectors, and digest derivation. Never regenerate Markdown from the AST.
 Record canonical vectors that prove a one-byte source change changes the
 digest.
 
-Before content implementation, freeze finite manifest limits in one exported
-domain constant. It must cover asset count, path bytes, media-type bytes,
-per-asset byte length, aggregate declared bytes, and image dimensions. The
-Markdown/content-security auditor must approve the numeric values. The same
+Content and asset publication use one authenticated-manifest model:
+
+- the onchain `bytes32` is the SHA-256 digest of the exact canonical content
+  JSON bytes;
+- the content CID is the CIDv1/raw/SHA-256/Base32 form of those same bytes;
+- each manifest digest authenticates one independent raw asset block;
+- `./assets/<path>` is an exact logical manifest lookup, never a descendant of
+  the content CID; its asset CID is derived from the matching manifest digest;
+- direct `ipfs://` attachment targets contain exactly one canonical raw asset
+  CID, with no path, slash, query, or fragment, and match exactly one manifest
+  digest; and
+- either attachment form resolves to
+  `https://ipfs.io/ipfs/<assetCid>` with no suffix.
+
+Duplicate normalized manifest paths or duplicate digests fail validation. This
+model does not publish a UnixFS directory and never treats an asset as an IPFS
+child of the content JSON.
+
+Freeze these finite manifest limits in one exported domain constant before
+content implementation:
+
+| Limit | Value |
+| --- | ---: |
+| Asset count | 16 |
+| Path UTF-8 bytes | 512 |
+| Media type UTF-8 bytes | 127 |
+| Bytes per asset | 2,097,152 |
+| Aggregate asset bytes | 33,554,432 |
+| Image width | 8,192 px |
+| Image height | 8,192 px |
+| Image pixels | 33,554,432 |
+
+The 2 MiB per-asset limit keeps each attachment representable as one raw IPFS
+block across the intended block-exchange and pinning implementations. The same
 values must appear in domain tests and canonical docs; they may not live only
 in form controls.
 
@@ -223,25 +253,29 @@ chooses Open attachment.
 
 Accept image targets only when they are:
 
-- an immutable `ipfs://<CID>/...` reference; or
+- an immutable `ipfs://<assetCid>` reference containing one exact canonical
+  CIDv1/raw/SHA-256/Base32 CID and no path, slash, query, or fragment; or
 - a canonical relative `./assets/...` reference.
 
 Every accepted image target resolves to exactly one asset-manifest entry so the
 card has verified media type, byte length, digest, and dimension facts. A
-relative target must match its manifest path and must resolve against the
-proposal content CID. Reject arbitrary remote `https:` image targets, missing
-or duplicate assets, invalid CIDs, empty or whitespace-only alt text, malformed
-metadata, digest/byte/dimension inconsistencies in fixture vectors, absolute
-filesystem paths, backslashes, empty path segments, query-based aliases, and
-`.` or `..` traversal. Apply traversal checks after percent decoding and reject
-encoded separators or traversal at any decoding depth.
+relative target is an exact logical manifest lookup. It never resolves as a
+path below the proposal content CID. Derive the asset's canonical raw CID from
+the matching digest. A direct CID must match exactly one manifest digest.
+Reject arbitrary remote `https:` image targets, missing or duplicate assets,
+duplicate manifest digests, invalid or noncanonical CIDs, direct CID paths,
+empty or whitespace-only alt text, malformed metadata, digest/byte/dimension
+inconsistencies in fixture vectors, absolute filesystem paths, backslashes,
+empty path segments, query-based aliases, and `.` or `..` traversal. Apply
+traversal checks after percent decoding and reject encoded separators or
+traversal at any decoding depth.
 
 Each card shows the Markdown alt text as its title, media type, formatted byte
 size, Open attachment, and Copy immutable link. One domain helper resolves both
-direct IPFS and relative package references to an absolute CID-addressed HTTPS
-gateway URL from a trusted gateway origin. Open and Copy use that resolved URL;
-Copy never returns the raw relative path. Opening uses an isolated new window
-with no opener.
+direct IPFS and relative manifest attachments to
+`https://ipfs.io/ipfs/<assetCid>` with no suffix. Open and Copy use that
+resolved URL; Copy never returns the raw relative path. Opening uses an isolated
+new window with no opener.
 
 SVG is a downloadable/openable immutable attachment in WP7B. Do not render it
 inline, sanitize it, rasterize it, inspect its remote contents, or add an SVG
@@ -407,7 +441,7 @@ Add or retain deterministic coverage for:
 - valid Markdown, long valid Markdown, invalid structure, missing H1, duplicate
   H1, missing summary, empty body, oversized UTF-8, raw HTML, safe links, and
   unsafe links;
-- valid IPFS attachment, valid relative package attachment, missing attachment,
+- valid IPFS attachment, valid relative manifest attachment, missing attachment,
   invalid CID, encoded and plain traversal, rejected remote image, empty alt
   text, duplicate paths, and inconsistent asset metadata;
 - unavailable content, invalid content digest, analysis pending, partial

@@ -69,25 +69,47 @@ separate facts. In particular, `protocolStatus: "vetoed"` may coexist with
 
 ## 3. Proposal content
 
-Recommended immutable content shape:
+Final immutable content shape:
 
 ```ts
-type DaoProposalContentV1 = {
+type DaoProposalAsset = {
+  path: string;
+  mediaType: string;
+  byteLength: number;
+  digest: Hex;
+  width: number | null;
+  height: number | null;
+};
+
+type DaoProposalContent = {
   schema: "yearn.dao.proposal.v1";
-  title: string;
-  summary: string;
-  specification: string;
+  markdown: string;
   discussionUrl: string;
   proposalType: "signal" | "executable";
   createdBy: Address;
   createdAt: string;
-  links: Array<{ label: string; url: string }>;
+  assets: DaoProposalAsset[];
 };
 ```
 
-The final wire schema must set string bounds and URL rules before IPFS
-publication. Consumers verify bytes and parse the declared version; they do not
-re-serialize a parsed object to decide what the CID should be.
+The exact canonical JSON bytes hash to the onchain SHA-256 `bytes32`. Their
+CIDv1/raw/SHA-256/Base32 form is the content CID. Consumers verify those bytes
+and parse the declared version; they do not reserialize a parsed object to
+choose its digest.
+
+Each manifest digest authenticates one independent raw asset block. A relative
+manifest attachment is an exact `./assets/...` path lookup, never a descendant
+of the content CID; derive its canonical raw CID from the matching digest. A
+direct `ipfs://<assetCid>` accepts no path, slash, query, or fragment and must
+match one unique manifest digest. Both forms resolve to
+`https://ipfs.io/ipfs/<assetCid>` with no suffix. Duplicate normalized paths or
+digests fail.
+
+Manifest limits are 16 assets, 512 UTF-8 bytes per path, 127 UTF-8 bytes per
+media type, 2,097,152 bytes per asset, and 33,554,432 declared bytes in total.
+Image metadata is limited to 8,192 px in either dimension and 33,554,432
+pixels. The 2 MiB asset limit preserves one-raw-block interoperability across
+the intended IPFS implementations.
 
 ## 4. Script and analysis
 
@@ -221,7 +243,7 @@ type DaoProposal = {
     state: "available" | "unavailable" | "invalid";
     cid: string | null;
     digest: Hex;
-    value: DaoProposalContentV1 | null;
+    value: DaoProposalContent | null;
     error: string | null;
   };
   discussion: {
