@@ -142,7 +142,7 @@ function MarkdownNode({
     }
     case "blockquote":
       return (
-        <blockquote className="min-w-0 space-y-3 border-l-4 border-yearn-blue/50 pl-4 text-text-secondary">
+        <blockquote className="min-w-0 space-y-3 rounded-box bg-surface-secondary/60 px-4 py-3 text-text-secondary">
           {children}
         </blockquote>
       );
