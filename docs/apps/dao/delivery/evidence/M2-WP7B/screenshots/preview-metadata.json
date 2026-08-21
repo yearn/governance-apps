@@ -9,7 +9,7 @@
     "theme": "light",
     "documentClientWidth": 390,
     "documentScrollWidth": 390,
-    "buildSha": "184429ab1d40d063a157f553d69432e0690104a7",
+    "buildSha": "7145e6b5a4643cb975bdc1a0f67c524874261c7b",
     "route": "/dao/propose",
     "textScale": "100%",
     "viewport": {
@@ -27,7 +27,7 @@
     "theme": "dark",
     "documentClientWidth": 1280,
     "documentScrollWidth": 1280,
-    "buildSha": "184429ab1d40d063a157f553d69432e0690104a7",
+    "buildSha": "7145e6b5a4643cb975bdc1a0f67c524874261c7b",
     "route": "/dao/propose",
     "textScale": "100%",
     "viewport": {
@@ -45,7 +45,7 @@
     "theme": "light",
     "documentClientWidth": 1280,
     "documentScrollWidth": 1280,
-    "buildSha": "184429ab1d40d063a157f553d69432e0690104a7",
+    "buildSha": "7145e6b5a4643cb975bdc1a0f67c524874261c7b",
     "route": "/dao/propose",
     "textScale": "100%",
     "viewport": {

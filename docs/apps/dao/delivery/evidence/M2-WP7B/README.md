@@ -11,7 +11,7 @@ acceptance remains withheld.
 - Starting documentation and scope tip:
   `51fab4bbc897b7424ff155f08871fda23ed0984a`
 - Screenshot and compiled-proof source commit:
-  `184429ab1d40d063a157f553d69432e0690104a7`
+  `7145e6b5a4643cb975bdc1a0f67c524874261c7b`
 - Evidence commit: the commit containing this ledger and its screenshots
 - Product gate: not accepted
 
@@ -151,16 +151,11 @@ result. The integrator handoff records that same-tip confirmation.
 
 | Check | Result |
 | --- | --- |
-| `npm run validate:deps` | Passed |
-| Focused content/domain Vitest, 6 files | 136 passed |
-| Focused component/hook Vitest, 6 files | 77 passed |
-| Focused smoke Playwright | 23 passed, 2 environment-mode skips |
-| Focused full Playwright | 32 passed |
-| Impeccable context audit | Passed; `PRODUCT.md` and `DESIGN.md` resolved |
-| Impeccable detection audit | Passed with `[]` after the blockquote side stripe was removed |
-| Banned-prose scan | No matches |
-| Frozen-base `git diff --check` | Passed |
-| TypeScript and focused ESLint | Passed |
+| `npm run validate:deps` | Passed at audit tip `184a36d` |
+| Focused bounded-content Vitest | 43 passed |
+| Focused link, renderer, and receipt Vitest | 79 passed |
+| Focused authoring and proposal-detail Vitest | 44 passed |
+| TypeScript and targeted ESLint | Passed |
 
 The full lint, Vitest, smoke E2E, full E2E, build, and every exact focused
 command remain subject to the clean evidence-tip confirmation. No result is
@@ -174,9 +169,9 @@ values in `.env.local`.
 
 | Build | Runtime | DAO | Review controls | Global mocks | E2E controls | Debug UI | Simulation fallback | Build result |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Enabled | `production` | true | false | false | false | false | false | Passed; compile 5.6 s, TypeScript 10.6 s |
-| Evidence preview | `preview` | true | false | true | true | false | false | Passed; compile 5.9 s, TypeScript 10.5 s |
-| Disabled | `production` | false | false | false | false | false | false | Passed; compile 5.9 s, TypeScript 10.6 s |
+| Enabled | `production` | true | false | false | false | false | false | Passed; compile 14.0 s, TypeScript 10.8 s |
+| Evidence preview | `preview` | true | false | true | true | false | false | Passed; compile 7.1 s, TypeScript 10.9 s |
+| Disabled | `production` | false | false | false | false | false | false | Passed; compile 6.3 s, TypeScript 10.9 s |
 
 Each build used `npm run build`. Generated `.next/static` and `public` assets
 were copied into the ignored standalone bundle, which started with:
@@ -194,15 +189,15 @@ node --env-file=.env.local ./node_modules/@playwright/test/cli.js test tests/e2e
 Each probe set `E2E_BASE_URL=http://127.0.0.1:<port>`,
 `E2E_WEB_SERVER_COMMAND` to the standalone start command,
 `E2E_REUSE_SERVER=false`, and
-`E2E_WP7B_BUILD_SHA=184429ab1d40d063a157f553d69432e0690104a7`.
+`E2E_WP7B_BUILD_SHA=7145e6b5a4643cb975bdc1a0f67c524874261c7b`.
 
 | Run | Mode | Capture | Port | Result |
 | --- | --- | ---: | ---: | --- |
-| Enabled capture | `enabled` | true | 3430 | 1 passed, 2 mode skips, 13.4 s |
-| Enabled confirmation | `enabled` | false | 3431 | 1 passed, 2 mode skips, 4.5 s |
-| Mutable-state evidence | `preview` | true | 3432 | 1 passed, 2 mode skips, 10.6 s |
-| Disabled proof 1 | `disabled` | false | 3433 | 1 passed, 2 mode skips, 1.7 s |
-| Disabled proof 2 | `disabled` | false | 3434 | 1 passed, 2 mode skips, 1.6 s |
+| Enabled capture | `enabled` | true | 3440 | 1 passed, 2 mode skips, 13.9 s |
+| Enabled confirmation | `enabled` | false | 3441 | 1 passed, 2 mode skips, 4.7 s |
+| Mutable-state evidence | `preview` | true | 3442 | 1 passed, 2 mode skips, 10.8 s |
+| Disabled proof 1 | `disabled` | false | 3443 | 1 passed, 2 mode skips, 1.7 s |
+| Disabled proof 2 | `disabled` | false | 3444 | 1 passed, 2 mode skips, 1.6 s |
 
 The enabled runs proved hydrated DAO root, authoring, detail, awaiting-index,
 and indexed-created states. The receipt-derived reference stayed
@@ -229,8 +224,12 @@ The directory contains 11 PNGs and two typed metadata files:
 
 Every row binds to the compiled-proof source commit, records zero automatic
 attachment requests, and reports `documentScrollWidth === documentClientWidth`.
-All images were visually inspected for state accuracy, focus context, clipping,
-and horizontal containment.
+Before each capture, the harness derives the recorded theme from the document
+and requires `html[data-theme]` and the `dark` class to agree. All images were
+then visually inspected for state accuracy, actual light or dark appearance,
+focus context, clipping, and horizontal containment. In particular,
+`rules-alternate-dark-390x844.png` is visibly dark and shows the alternate 60%
+approval threshold.
 
 | Image | Route and state | Viewport | Theme | Focus | Runtime |
 | --- | --- | --- | --- | --- | --- |
