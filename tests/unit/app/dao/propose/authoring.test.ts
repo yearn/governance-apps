@@ -3,6 +3,7 @@ import type { Address } from "viem";
 import {
   DAO_EXECUTOR_VALID_SCRIPT_VECTORS,
   DAO_EMPTY_SCRIPT_HASH,
+  type DaoMockTransactionOutcome,
 } from "@/lib/clients/dao";
 import {
   createDaoAuthoringReview,
@@ -172,10 +173,11 @@ describe("DAO proposal authoring mock services", () => {
   });
 
   it.each([
-    [1003, "WALLET_REJECTED"],
-    [1004, "PROPOSAL_REVERTED"],
-  ])("returns proposal failure %s as %s", async (topicId, expectedCode) => {
-    const review = await validReview(topicId);
+    ["user-rejected", "WALLET_REJECTED"],
+    ["revert", "PROPOSAL_REVERTED"],
+    ["network-error", "NETWORK_ERROR"],
+  ] as const)("returns %s as %s without a transaction hash", async (outcome, expectedCode) => {
+    const review = await validReview(1001);
     const publication = await publishMockDaoProposalContent(
       review,
       CREATED_AT,
@@ -184,19 +186,43 @@ describe("DAO proposal authoring mock services", () => {
     expect(publication.state).toBe("published");
     if (publication.state !== "published") return;
 
-    const submission = await submitMockDaoProposal(
+    const submission = await submitMockDaoProposal({
       review,
-      publication.publication,
-      0
-    );
+      publication: publication.publication,
+      outcome,
+      latencyMs: 0,
+    });
     expect(submission).toEqual({
       state: "failed",
       error: expect.objectContaining({ code: expectedCode }),
     });
+    expect(submission).not.toHaveProperty("transactionHash");
   });
 
+  it.each([1003, 1004])(
+    "keeps topic %s ordinary when the typed outcome succeeds",
+    async (topicId) => {
+      const review = await validReview(topicId);
+      const publication = await publishMockDaoProposalContent(
+        review,
+        CREATED_AT,
+        0
+      );
+      expect(publication.state).toBe("published");
+      if (publication.state !== "published") return;
+
+      const submission = await submitMockDaoProposal({
+        review,
+        publication: publication.publication,
+        outcome: "success",
+        latencyMs: 0,
+      });
+      expect(submission).toMatchObject({ state: "submitted" });
+    }
+  );
+
   it("submits a deterministic proposal after publication", async () => {
-    const review = await validReview(1005);
+    const review = await validReview(1001);
     const publication = await publishMockDaoProposalContent(
       review,
       CREATED_AT,
@@ -205,11 +231,12 @@ describe("DAO proposal authoring mock services", () => {
     expect(publication.state).toBe("published");
     if (publication.state !== "published") return;
 
-    const submission = await submitMockDaoProposal(
+    const submission = await submitMockDaoProposal({
       review,
-      publication.publication,
-      0
-    );
+      publication: publication.publication,
+      outcome: "success" satisfies DaoMockTransactionOutcome,
+      latencyMs: 0,
+    });
     expect(submission).toEqual({
       state: "submitted",
       transactionHash: expect.stringMatching(/^0x[0-9a-f]{64}$/),
