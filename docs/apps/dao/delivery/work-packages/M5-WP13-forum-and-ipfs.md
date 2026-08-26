@@ -20,6 +20,10 @@ through a server-owned, integrity-checked IPFS path.
 ## Scope
 
 - Same-origin public Discourse topic validation and normalization.
+- Replace the M2 URL field with an accessible Discourse-topic combobox scoped
+  to the configured Yearn Proposals category. Support keyboard operation,
+  paginated results, debounce, cache, rate-limit handling, exact selected-topic
+  validation, and paste-URL fallback. Do not ship a mock-only autocomplete.
 - Consume the WP7B content schema, exact byte encoder, parser vectors, and
   manifest limits without adding a second schema or parser.
 - Create and round-trip one raw content block plus one independent raw block
@@ -44,6 +48,8 @@ through a server-owned, integrity-checked IPFS path.
 ## Non-goals
 
 - No automatic forum topic creation.
+- No persistent or clickable full-process authoring stepper unless a later UX
+  review scopes it. Keep the accepted numbered sections and two-action flow.
 - No hard minimum topic age or poll rule without updated DAO policy.
 - No contract write in this package.
 - M2's committed pre-pinned content/asset vectors are test evidence only. They

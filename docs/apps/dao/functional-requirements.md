@@ -154,6 +154,19 @@ index, and log index. User-facing time never substitutes the browser clock.
 Missing time or transaction data has an explicit fallback; Technical details
 still retains every available raw identity field.
 
+### DAO-FR-016: execution integrity readiness
+
+The client derives proposal-level execution readiness only from proposal type,
+exact event script bytes, and the stored script hash. Signal proposals are not
+applicable. Executable proposals are integrity-ready when the exact bytes hash
+to the stored value. Missing bytes and a hash mismatch are the only hard
+integrity blockers.
+
+Board and detail show `Execution blocked` before status and type, followed by a
+static reason. They do not infer this badge from lifecycle, moderation, guard,
+schedule, account, or simulation state. Detail retains the lower live integrity
+explanation, and the board omits `Executable actions` only for a hard blocker.
+
 ## 6. Voting
 
 ### DAO-FR-020: eligibility
@@ -300,8 +313,13 @@ topics, and its decoded topics and non-indexed data must re-encode byte for byte
 with no trailing or dirty padding. Open proposal and Copy link appear only after
 that receipt supplies the composite identity. Receipt confirmation,
 awaiting-index, and indexed states retain the same identity. Publication failure
-never exposes Step 2. Wallet rejection or onchain revert preserves the published
-content and retries without republishing.
+never exposes Step 2. The typed review outcome controls proposal creation.
+Wallet rejection, onchain revert, and network failure preserve the published
+content and retry without republishing. They produce no hash, receipt, proposal
+identity, created record, pending action, feed event, proposal link, or index
+state. Registration applies its delay before persistence. An indexing delay
+shows `Retry indexing`, which re-registers and indexes the same receipt-derived
+reference without duplicate records or events.
 
 ### DAO-FR-036: backend analysis
 
@@ -394,7 +412,9 @@ a voting veto.
 - `/dao` ships on shared hosts before subdomain exposure.
 - The preproduction workflow reads `NEXT_PUBLIC_ENABLE_DAO` from its protected
   environment and defaults it false. The production workflow hardcodes it
-  false. `dao-beta.dao-ops.com` is noncanonical and `noindex`; the reserved
+  false. `dao-beta.dao-ops.com` is noncanonical and `noindex`. It and the other
+  five governance beta hosts require exact-host Cloudflare Access entries with
+  the approved GitHub organization/team policy on every path. The reserved
   `dao.yearn.fi` hostname exists only in the internal routing registry and
   remains absent from production Wrangler custom domains and discoverability.
 - Snapshot-era stYFI links remain unchanged until the production cutover package.
@@ -418,5 +438,8 @@ a voting veto.
   validation error returns to Write, focuses the textarea, and selects the
   deterministic UTF-16 caret offset.
 - Authoring uses one polite atomic live region for asynchronous progress.
+- The resolved application label is a native host-aware home link: `/` on its
+  branded beta host and the exact app path on shared hosts. It keeps visible
+  focus and a 40-pixel desktop or 44-pixel mobile target.
 - No component calls raw wagmi writes.
 - Tests cover every capability/status mismatch, especially vetoed-but-votable.

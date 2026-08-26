@@ -61,8 +61,27 @@ Acceptance:
 - a post-participation veto says whether participation voting remains open;
 - an approved signal says `No executable actions` even when raw status is
   `EXECUTED`;
+- missing exact executable bytes or a stored script-hash mismatch shows
+  `Execution blocked` before status and type, with its reason; no account,
+  schedule, guard, lifecycle, moderation, or simulation state creates that
+  badge;
 - proposal rules are collapsed and use the proposal's supplied 50% or 60%
   snapshot rather than UI-owned math.
+
+### DAO-US-05: return to the current application home
+
+As a user, I want the application label to return to that application's landing
+page so I do not have to infer whether I am on a shared or branded host.
+
+Acceptance:
+
+- `DAO Governance` links to `/dao` on shared hosts and `/` on
+  `dao-beta.dao-ops.com`;
+- the other application labels keep their exact host-aware roots;
+- desktop and mobile links are native, keyboard focused, and large enough to
+  activate; and
+- choosing the mobile link closes the modal menu and restores normal focus
+  behavior.
 
 ## Voters
 
@@ -150,8 +169,12 @@ Acceptance:
 - the UI shows calls, bytes, targets, sizes, and script hash;
 - a passing structural check never claims the script is safe;
 - detailed decoding and simulation are expected after submission;
-- wallet rejection or revert preserves the published content so Step 2 can be
-  retried without republishing.
+- the typed review outcome controls success, wallet rejection, revert, and
+  network failure;
+- each failure preserves the publication and review so Step 2 can retry without
+  republishing; and
+- failed creation produces no hash, receipt, proposal identity, pending action,
+  created record, feed event, proposal link, or indexing state.
 
 ### DAO-US-22: understand why I cannot propose
 
@@ -182,6 +205,8 @@ Acceptance:
   expose no proposal action;
 - receipt-confirmed, awaiting-index, and indexed states retain the exact same
   composite identity and host-aware href;
+- delayed indexing exposes a visible idempotent retry that reuses that identity
+  without duplicate records or events;
 - the mock limitation is stated: a browser-local created proposal does not
   survive a new session.
 
@@ -278,8 +303,12 @@ Acceptance:
   while production hardcodes the flag false;
 - global mocks, E2E, and debug UI stay disabled; DAO controls require the
   independent shared debug gate;
-- operators understand that the shared preprod flag is deployment-wide and
-  that a custom domain is not access control without Cloudflare Access;
+- all paths on the six exact `*-beta.dao-ops.com` governance hosts require the
+  approved GitHub organization/team Cloudflare Access policy, with no wildcard,
+  public bypass, or unrelated hostname in scope;
+- operators understand that the shared preprod flag is deployment-wide, that
+  `noindex` is separate from authentication, and that a custom domain alone is
+  not access control;
 - feed, IPFS, decode, and simulation health are monitored;
 - disabling the app does not lose indexed proposal data;
 - Snapshot cutover occurs only in the final approved rollout package.

@@ -10,6 +10,11 @@ Use the established route shell, Yearn blue, neutral surfaces, shared controls,
 and route-local messages. Avoid decorative governance imagery, glass effects,
 large marketing heroes, and nested cards for every metadata group.
 
+The resolved application label in the shared header is a native home link. It
+uses `/` on the application's branded beta host and the exact application path
+on shared hosts. Desktop keeps a 40-pixel target; mobile uses 44 pixels and
+closes the modal menu after activation. Both expose a visible focus ring.
+
 ## 2. Information architecture
 
 ```text
@@ -67,6 +72,8 @@ query parameters, survive reload, and do not add Back-stack entries.
 
 Each item contains:
 
+- an `Execution blocked` badge and static reason first when exact script bytes
+  are missing or do not match the stored hash;
 - status badge;
 - `Signal` or `Executable` label;
 - proposal ID and title;
@@ -79,6 +86,11 @@ Each item contains:
 
 Prefer a dense list on desktop and stacked rows on mobile. Do not create a large
 tile grid. Status, title, and timing must scan in that order.
+
+The hard-block order is `Execution blocked · <status> · Executable`, followed
+immediately by its reason. Suppress `Executable actions` only in that case.
+Lifecycle, moderation, guard, schedule, account, and simulation failures do not
+produce this proposal-level badge.
 
 The whole row opens the proposal through a stretched native link. Do not add a
 row `onClick` or button role. Address explorer and copy controls remain real,
@@ -103,6 +115,7 @@ visit derives the proposal's display group, and an invalid `from` value is
 ignored. Show the proposal title as the route's only H1, followed by:
 
 - proposal ID;
+- the same execution-block badge and reason used on the board, when applicable;
 - status;
 - type;
 - proposer;
@@ -359,9 +372,17 @@ decodes one matching `Propose` event, show Open proposal and Copy link. Keep the
 same host-aware composite identity through receipt-confirmed, awaiting-index,
 and indexed states. One persistent polite atomic live region announces progress
 without repeating the whole review. Keep publication failure separate from
-wallet rejection, receipt failure, or onchain revert. A publication failure
-never exposes Step 2. Wallet rejection or revert preserves published content
-and retries Step 2 without republishing.
+wallet rejection, receipt failure, onchain revert, or network failure. A
+publication failure never exposes Step 2. The review panel's typed transaction
+result controls proposal creation. Every failed creation preserves published
+content and retries Step 2 without republishing, while showing no hash, receipt,
+identity, proposal action, created record, or indexing state.
+
+Normal success moves through receipt pending, identity decoded, awaiting
+indexing, and Indexed with one stable proposal href. Apply registration latency
+before the created record appears. If indexing is delayed, keep Open, Copy, and
+View transaction visible and add `Retry indexing`; retry must index the same
+identity without duplicate persistence or feed events.
 
 ## 6. Lifecycle menus
 
@@ -615,8 +636,9 @@ permits only the route-local DAO mock client. Global mocks, E2E mode, preview
 runtime, and debug UI remain disabled. DAO controls appear only when the shared
 debug UI is independently enabled. The flag applies to the shared preproduction
 deployment, so `/dao` is also reachable through other hosts served by that
-Worker; `dao-beta` is the clean-path review host, not a hostname-level security
-boundary. The production workflow hardcodes the flag false. DAO remains absent
+Worker. The six exact governance beta hosts require Cloudflare Access on every
+path; the clean-path host, route flag, and `noindex` policy are not security
+boundaries. The production workflow hardcodes the flag false. DAO remains absent
 from canonical metadata, sitemap, machine-readable discovery, and deployed
 production Wrangler host configuration. `dao.yearn.fi` is reserved in the
 internal routing registry only.
