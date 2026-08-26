@@ -228,7 +228,7 @@ export function MobileNavMenu({
               <Link
                 href={currentAppNav.path}
                 onClick={handleClose}
-                className="flex min-h-[44px] w-full items-center gap-3 rounded-lg bg-primary/10 bg-text-primary/10 px-4 text-text-primary transition-[background-color,color,scale] duration-150 ease-out hover:bg-surface-tertiary active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app motion-reduce:transition-none motion-reduce:active:scale-100"
+                className="flex min-h-[44px] w-full items-center gap-3 rounded-lg bg-primary/10 bg-text-primary/10 px-4 py-2.5 text-text-primary transition-[background-color,color,scale] duration-150 ease-out hover:bg-surface-tertiary active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app motion-reduce:transition-none motion-reduce:active:scale-100"
               >
                 {currentApp?.icon ? (
                   <span
@@ -240,7 +240,9 @@ export function MobileNavMenu({
                     {currentApp.icon}
                   </span>
                 ) : null}
-                <span className="truncate text-lg font-medium">{currentAppLabel}</span>
+                <span className="min-w-0 flex-1 break-words text-pretty text-lg font-medium whitespace-normal">
+                  {currentAppLabel}
+                </span>
               </Link>
             ) : null}
             <MobileWalletButton
