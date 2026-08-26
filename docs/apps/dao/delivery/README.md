@@ -113,6 +113,7 @@ without re-review.
 - [`M2-WP7B-proposal-content-and-lifecycle-clarity.md`](work-packages/M2-WP7B-proposal-content-and-lifecycle-clarity.md)
 - [`M2-WP7B evidence`](evidence/M2-WP7B/README.md)
 - [`M2-WP7C-beta-access-and-execution-clarity.md`](work-packages/M2-WP7C-beta-access-and-execution-clarity.md)
+- [`M2-WP7C evidence`](evidence/M2-WP7C/README.md)
 - [`DAO beta operator runbook`](dao-beta-runbook.md)
 
 ### M3
