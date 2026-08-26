@@ -14,7 +14,7 @@ declare module "next" {
 }
 
 declare module "next/link" {
-  import type { ComponentType, ReactNode } from "react";
+  import type { ComponentType, MouseEventHandler, ReactNode } from "react";
   export type LinkProps = {
     href: string;
     className?: string;
@@ -24,6 +24,7 @@ declare module "next/link" {
     scroll?: boolean;
     target?: string;
     rel?: string;
+    onClick?: MouseEventHandler<HTMLAnchorElement>;
   };
   const Link: ComponentType<LinkProps>;
   export default Link;
