@@ -163,6 +163,42 @@ test("renders the DAO proposal board shell", async ({ page }) => {
   await expectMinimumHitArea(createProposalLink);
 });
 
+test("links the shared DAO application label home on desktop and mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1_280, height: 900 });
+  await page.goto("/dao/proposals/2");
+  const desktopHome = page
+    .locator("header")
+    .getByRole("link", { name: "DAO Governance", exact: true });
+  await expect(desktopHome).toHaveAttribute("href", "/dao");
+  await expectMinimumHitArea(desktopHome);
+  await desktopHome.focus();
+  await expect(desktopHome).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/dao$/);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dao/proposals/2");
+  const opener = page.getByRole("button", { name: "Open navigation menu" });
+  await opener.click();
+  const dialog = page.getByRole("dialog", { name: "Navigation menu" });
+  const mobileHome = dialog.getByRole("link", {
+    name: "DAO Governance",
+    exact: true,
+  });
+  await expect(mobileHome).toHaveAttribute("href", "/dao");
+  const mobileBox = await mobileHome.boundingBox();
+  expect(mobileBox).not.toBeNull();
+  expect(mobileBox!.height).toBeGreaterThanOrEqual(44);
+  await mobileHome.click();
+  await expect(page).toHaveURL(/\/dao$/);
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Open navigation menu" })
+  ).toBeFocused();
+});
+
 test("preserves the board group through replace, reload, detail, and Back", async ({
   page,
 }) => {
@@ -326,6 +362,11 @@ test("uses clean client-side paths on the guarded DAO beta host", async ({
   ).toBeVisible();
   expect(new URL(page.url()).pathname).toBe("/");
   await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+  const betaDesktopHome = page
+    .locator("header")
+    .getByRole("link", { name: "DAO Governance", exact: true });
+  await expect(betaDesktopHome).toHaveAttribute("href", "/");
+  await expectMinimumHitArea(betaDesktopHome);
   await expect(page.getByRole("link", { name: "Create proposal" })).toHaveAttribute(
     "href",
     "/propose"
@@ -351,6 +392,27 @@ test("uses clean client-side paths on the guarded DAO beta host", async ({
     "href",
     "/?group=active"
   );
+  await betaDesktopHome.click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/");
+
+  betaUrl.pathname = "/proposals/2";
+  betaUrl.search = "";
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(betaUrl.toString());
+  const betaOpener = page.getByRole("button", { name: "Open navigation menu" });
+  await betaOpener.click();
+  const betaDialog = page.getByRole("dialog", { name: "Navigation menu" });
+  const betaMobileHome = betaDialog.getByRole("link", {
+    name: "DAO Governance",
+    exact: true,
+  });
+  await expect(betaMobileHome).toHaveAttribute("href", "/");
+  const betaMobileBox = await betaMobileHome.boundingBox();
+  expect(betaMobileBox).not.toBeNull();
+  expect(betaMobileBox!.height).toBeGreaterThanOrEqual(44);
+  await betaMobileHome.click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/");
+  await expect(betaDialog).toHaveCount(0);
 
   betaUrl.pathname = "/propose";
   betaUrl.search = "";

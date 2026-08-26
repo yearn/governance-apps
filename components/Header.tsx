@@ -58,7 +58,9 @@ export function Header() {
       : undefined;
 
   // Resolve current app name (stYFI, veYFI, etc)
-  const primaryNav = resolveHeaderPrimaryNav(pathname, segment, hostname);
+  const primaryNav = hostname
+    ? resolveHeaderPrimaryNav(pathname, segment, hostname)
+    : { label: null, path: "/" };
   const showEpochPill =
     shouldShowEpochPill && (!!publicClient || !isGlobalLoading);
   const snapshotVotingLink =
