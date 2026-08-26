@@ -113,16 +113,39 @@ render that value and do not inspect raw analysis fields to invent it.
 
 The minimum matrix is:
 
+```ts
+type DaoProposalExecutionReadiness =
+  | { state: "not_applicable"; blocker: null; reason: null }
+  | { state: "integrity_ready"; blocker: null; reason: null }
+  | {
+      state: "integrity_blocked";
+      blocker:
+        | "exact_script_unavailable"
+        | "stored_script_hash_mismatch";
+      reason: string;
+    };
+```
+
+`integrity_ready` means only that exact script bytes are present and match the
+stored hash. It never means that the proposal is executable now or that the
+connected account has permission.
+
 | Proposal condition | Proposal-level readiness | Board/detail hard-block badge | Account capability effect |
 | --- | --- | --- | --- |
-| Executable proposal; stored script hash mismatches exact event script | blocked, hash mismatch | `Execution blocked` with exact mismatch reason | execution unavailable |
-| Executable proposal; exact event script bytes unavailable | blocked, script unavailable | `Execution blocked` with concise unavailable-bytes reason | execution unavailable |
-| Normal executable proposal with verified bytes and no proposal-level integrity failure | ready or lifecycle-appropriate nonblocked state | none | derived separately |
-| Approved executable proposal waiting for its execution window | scheduled | none | time block remains account/action copy |
-| Guarded executable proposal | ready/guarded, not hard blocked | none | non-operator inability remains account-specific |
-| Signal proposal | not applicable/no actions | none | no execution action |
-| Vetoed or flagged proposal | lifecycle/moderation blocked, not an integrity readiness badge | none | execution unavailable from lifecycle facts |
-| Disconnected wallet, wrong account permission, operator-only guard, execution delay, or simulation in progress | no proposal-level hard blocker | none | account/action state only |
+| Executable proposal; stored script hash mismatches exact event script | `integrity_blocked / stored_script_hash_mismatch` | `Execution blocked` with exact mismatch reason | execution unavailable |
+| Executable proposal; exact event script bytes unavailable | `integrity_blocked / exact_script_unavailable` | `Execution blocked` with concise unavailable-bytes reason | execution unavailable |
+| Normal executable proposal with verified bytes | `integrity_ready` | none | derived separately |
+| Approved executable proposal waiting for its execution window | `integrity_ready`; lifecycle remains `scheduled` | none | time block remains account/action copy |
+| Guarded executable proposal with verified bytes | `integrity_ready`; guard remains `guarded` | none | non-operator inability remains account-specific |
+| Signal proposal | `not_applicable`; type remains Signal/no actions | none | no execution action |
+| Vetoed or flagged executable proposal with verified bytes | `integrity_ready`; lifecycle/moderation remains blocked | none | execution unavailable from lifecycle facts |
+| Executed or expired executable proposal with verified bytes | `integrity_ready`; terminal lifecycle fact remains separate | none | execution unavailable from lifecycle facts |
+| Disconnected wallet, wrong network/account permission, operator-only guard, execution delay, or simulation idle/pending/failed | readiness unchanged | none | account/action state only |
+
+Derive readiness from proposal type and exact script bytes/hash only. Do not use
+analysis, wallet state, account capabilities, guard mode, lifecycle timing, or
+simulation. When bytes exist, `hashVerified` must equal their actual hash
+comparison; it is nullable only when exact bytes are absent.
 
 Proposal `#19` must present, in this order:
 
@@ -210,8 +233,11 @@ Do not add a fake percentage. A normal successful mock creation must reach
 Indexed within the documented deterministic delay. If it remains at
 `Awaiting proposal indexing and analysis`, diagnose and correct the transition
 rather than hiding it with animation. Preserve an explicit delayed/failure
-state and retry path. A subtle indeterminate indicator is optional only when it
-does not flash during the normal short delay.
+state and a visible `Retry indexing` path. Apply modeled registration latency
+before mutating persisted/runtime created-proposal state. Retry must be
+idempotent: it reuses or re-registers the same receipt-derived record as needed,
+then indexes that exact reference. A subtle indeterminate indicator is optional
+only when it does not flash during the normal short delay.
 
 Regression coverage proves that success reaches Indexed, the receipt-derived
 identity stays byte-for-byte stable, Open proposal and Copy proposal link work,
