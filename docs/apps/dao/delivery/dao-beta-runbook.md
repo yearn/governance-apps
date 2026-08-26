@@ -47,9 +47,11 @@ mutation, or M3/backend/IPFS/onchain work by itself.
 5. Supply valid production-shaped `NEXT_PUBLIC_WC_PROJECT_ID`,
    `NEXT_PUBLIC_GLOBAL_DATA_URL`, and comma-separated HTTPS
    `NEXT_PUBLIC_RPC_URLS`. Never use localhost or loopback RPC values.
-6. Before sharing any beta hostname, audit the Cloudflare Zero Trust identity
-   providers, reusable policies, Access applications, exact hostnames, and rule
-   precedence.
+6. Before sharing or changing any beta hostname, audit the Cloudflare Zero
+   Trust identity providers, reusable policies, Access applications, exact
+   hostnames, policy attachments, and rule precedence. Record a sanitized
+   pre-change snapshot that is detailed enough to restore every existing
+   application and policy attachment. Do not record secrets or identities.
 7. Use the existing GitHub identity provider and existing reusable internal-beta
    organization/team allow policy only when their configured identity matches
    the intended audience. Never infer an email domain, admit any GitHub user,
@@ -161,10 +163,14 @@ checks, and rollback steps as operator work. Keep the external gate blocked.
 
 ## Roll back
 
-Access rollback is separate from application rollback. Disable or delete only
-the six exact Access application bindings and any policy object created for this
-change. Do not remove DNS records, custom domains, TLS, or Worker routes. If the
-reusable policy predated this work, detach it but do not delete it.
+Access rollback is separate from application rollback. Restore the audited
+pre-change snapshot. Disable or delete only exact-host bindings, applications,
+and policy objects created by this change. If this change extended an existing
+application or policy, remove only the added `dao-beta.dao-ops.com` hostname or
+policy attachment. Never detach a pre-existing policy from a pre-existing
+application. Preserve or restore the prior protection and policy attachments
+for the five beta hosts that were already protected. Do not remove DNS records,
+custom domains, TLS, or Worker routes.
 
 1. Set the protected preproduction `NEXT_PUBLIC_ENABLE_DAO` value to `false`.
    Set `NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS=false` as well.

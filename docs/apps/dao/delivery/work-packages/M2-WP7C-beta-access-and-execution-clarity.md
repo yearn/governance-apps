@@ -69,10 +69,12 @@ Use Cloudflare Access with the account's existing GitHub identity provider and
 existing reusable internal-beta organization/team policy when their configured
 identity matches the intended audience. Audit current Zero Trust identity
 providers, reusable policies, Access applications, hostnames, and precedence
-before mutation. If the authorized GitHub organization or team cannot be
-determined from existing configuration, stop external mutation and ask the
-user one narrow question. Never infer an email domain, admit any GitHub user,
-use `Everyone`, or add a public bypass.
+before mutation. Record a sanitized pre-change snapshot of existing exact-host
+applications and policy attachments that is sufficient to restore them. If the
+authorized GitHub organization or team cannot be determined from existing
+configuration, stop external mutation and ask the user one narrow question.
+Never infer an email domain, admit any GitHub user, use `Everyone`, or add a
+public bypass.
 
 Use one reusable policy across six exact self-hosted application entries, or
 another API-supported exact-host structure with equivalent isolation. Do not
@@ -100,9 +102,14 @@ For each exact host, record sanitized evidence that:
 
 If available tooling cannot inspect or mutate Access safely, record exact
 operator steps and leave the external gate explicitly blocked. Never claim
-completion for an unchecked hostname. Record rollback steps that disable or
-delete the six Access application bindings and package-created policy objects,
-when any, without touching DNS or the Worker.
+completion for an unchecked hostname. Rollback must restore the sanitized
+pre-change snapshot and disable or delete only exact-host bindings,
+applications, and policies created by this package. If the package extends an
+existing application or policy, rollback removes only the added
+`dao-beta.dao-ops.com` hostname or policy attachment. It must never detach a
+pre-existing policy from a pre-existing application, and it must preserve or
+restore protection for the five beta hosts that were already protected. Do not
+touch DNS or the Worker.
 
 ### 2. Add a typed proposal-level execution-readiness fact
 
