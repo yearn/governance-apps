@@ -417,16 +417,36 @@ function DaoProposalAuthoringFormState({
       identity,
     });
 
+    await indexProposal(
+      review,
+      publication.publication,
+      result.transactionHash,
+      identity
+    );
+  };
+
+  const indexProposal = async (
+    proposalReview: DaoAuthoringReview,
+    publishedContent: DaoPublishedContent,
+    transactionHash: Hex,
+    identity: DaoDecodedProposeIdentity
+  ) => {
+    setWallet({
+      state: "identity_decoded",
+      transactionHash,
+      identity,
+    });
+
     try {
       await registerMockDaoProposalAwaitingIndex(
-        review,
-        publication.publication,
+        proposalReview,
+        publishedContent,
         identity,
         serviceLatencyMs
       );
       setWallet({
         state: "awaiting_index",
-        transactionHash: result.transactionHash,
+        transactionHash,
         identity,
       });
       const indexed = await completeMockDaoProposalIndex(
@@ -437,7 +457,7 @@ function DaoProposalAuthoringFormState({
       if (!indexed) {
         setWallet({
           state: "index_failed",
-          transactionHash: result.transactionHash,
+          transactionHash,
           identity,
           message: daoProposeCopy.proposal.indexingDelayedBody,
         });
@@ -445,17 +465,34 @@ function DaoProposalAuthoringFormState({
       }
       setWallet({
         state: "indexed",
-        transactionHash: result.transactionHash,
+        transactionHash,
         identity,
       });
     } catch {
       setWallet({
         state: "index_failed",
-        transactionHash: result.transactionHash,
+        transactionHash,
         identity,
         message: daoProposeCopy.proposal.indexingDelayedBody,
       });
     }
+  };
+
+  const handleRetryIndexing = async () => {
+    if (
+      !review ||
+      publication.state !== "published" ||
+      wallet.state !== "index_failed"
+    ) {
+      return;
+    }
+
+    await indexProposal(
+      review,
+      publication.publication,
+      wallet.transactionHash,
+      wallet.identity
+    );
   };
 
   if (review) {
@@ -470,6 +507,7 @@ function DaoProposalAuthoringFormState({
         onCreateProposal={handleCreateProposal}
         onEdit={handleEdit}
         onPublish={handlePublish}
+        onRetryIndexing={handleRetryIndexing}
         proposer={proposer}
         publication={publication}
         proposalCompleteHeadingRef={proposalCompleteHeadingRef}
@@ -785,6 +823,7 @@ function DaoFinalReview({
   onCreateProposal,
   onEdit,
   onPublish,
+  onRetryIndexing,
   proposer,
   publication,
   proposalCompleteHeadingRef,
@@ -799,6 +838,7 @@ function DaoFinalReview({
   onCreateProposal: () => Promise<void>;
   onEdit: () => void;
   onPublish: () => Promise<void>;
+  onRetryIndexing: () => Promise<void>;
   proposer: DaoProposerState;
   publication: PublicationState;
   proposalCompleteHeadingRef: RefObject<HTMLHeadingElement | null>;
@@ -1239,6 +1279,17 @@ function DaoFinalReview({
                 </p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {wallet.state === "index_failed" ? (
+                  <Button
+                    type="button"
+                    className="w-full motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
+                    onClick={() => {
+                      void onRetryIndexing();
+                    }}
+                  >
+                    {daoProposeCopy.proposal.retryIndexing}
+                  </Button>
+                ) : null}
                 {proposalHref ? (
                   <>
                     <Link

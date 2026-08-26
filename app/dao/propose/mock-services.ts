@@ -315,6 +315,7 @@ export async function registerMockDaoProposalAwaitingIndex(
   identity: DaoDecodedProposeIdentity,
   latencyMs = 100
 ): Promise<DaoCreatedProposalRecord> {
+  await wait(latencyMs);
   const proposal = createDaoAwaitingIndexProposal({
     identity,
     content: review.content,
@@ -333,7 +334,6 @@ export async function registerMockDaoProposalAwaitingIndex(
     proposal,
   };
   registerDaoMockCreatedProposal(record);
-  await wait(latencyMs);
   return record;
 }
 
