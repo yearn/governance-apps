@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
-import type { Address } from "viem";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Address, Hex } from "viem";
 import {
   DAO_EXECUTOR_VALID_SCRIPT_VECTORS,
   DAO_EMPTY_SCRIPT_HASH,
+  readDaoCreatedProposals,
+  resetDaoMockStore,
   type DaoMockTransactionOutcome,
 } from "@/lib/clients/dao";
 import {
@@ -11,13 +13,20 @@ import {
   findFirstFullDaoCapacityEpoch,
 } from "@/app/dao/propose/authoring";
 import {
+  confirmMockDaoProposalReceipt,
   publishMockDaoProposalContent,
+  registerMockDaoProposalAwaitingIndex,
   submitMockDaoProposal,
   validateMockDaoForumTopic,
 } from "@/app/dao/propose/mock-services";
 
 const ADDRESS = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266" as Address;
 const CREATED_AT = 1_723_420_800;
+const TRANSACTION_HASH = `0x${"a5".repeat(32)}` as Hex;
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("DAO proposal authoring vectors", () => {
   it("normalizes a supported forum topic using its stable category ID", async () => {
@@ -241,6 +250,42 @@ describe("DAO proposal authoring mock services", () => {
       state: "submitted",
       transactionHash: expect.stringMatching(/^0x[0-9a-f]{64}$/),
     });
+  });
+
+  it("applies registration latency before mutating created-proposal state", async () => {
+    const review = await validReview(1001);
+    const publication = await publishMockDaoProposalContent(
+      review,
+      CREATED_AT,
+      0
+    );
+    expect(publication.state).toBe("published");
+    if (publication.state !== "published") return;
+    const receipt = await confirmMockDaoProposalReceipt(
+      review,
+      publication.publication,
+      TRANSACTION_HASH,
+      201n,
+      0
+    );
+    expect(receipt.decoded.state).toBe("decoded");
+    if (receipt.decoded.state !== "decoded") return;
+
+    resetDaoMockStore();
+    vi.useFakeTimers();
+    const registration = registerMockDaoProposalAwaitingIndex(
+      review,
+      publication.publication,
+      receipt.decoded.identity,
+      1_000
+    );
+
+    expect(readDaoCreatedProposals()).toEqual([]);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(readDaoCreatedProposals()).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1);
+    await registration;
+    expect(readDaoCreatedProposals()).toHaveLength(1);
   });
 });
 

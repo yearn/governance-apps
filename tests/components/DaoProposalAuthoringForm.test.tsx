@@ -9,6 +9,7 @@ import {
   getDaoMockFixture,
   readDaoCreatedProposals,
   resetDaoMockStore,
+  serializeDaoProposalRef,
   type DaoMockTransactionOutcome,
   type DaoProposerEligibilityInput,
 } from "@/lib/clients/dao";
@@ -285,6 +286,58 @@ describe("DAO proposal authoring form", () => {
       decodedHref
     );
     expect(screen.getAllByRole("status")).toHaveLength(1);
+  });
+
+  it("retries delayed indexing idempotently with the same visible proposal identity", async () => {
+    const user = userEvent.setup();
+    renderAuthoring(150);
+    await fillDraft(user, 1001);
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /I reviewed the exact immutable content/i,
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Publish immutable content" })
+    );
+    await screen.findByRole("heading", {
+      name: "Immutable content published",
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Create onchain proposal" })
+    );
+
+    const open = await screen.findByRole("link", { name: "Open proposal" });
+    const proposalHref = open.getAttribute("href");
+    expect(proposalHref).toMatch(/^\/dao\/proposals\/\d+\?from=upcoming$/);
+    await screen.findByText("Awaiting proposal indexing and analysis");
+    resetDaoMockStore();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Proposal indexing is delayed",
+      })
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Retry indexing" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Proposal ready" })
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open proposal" })).toHaveAttribute(
+      "href",
+      proposalHref
+    );
+    const [created] = readDaoCreatedProposals();
+    expect(created?.stage).toBe("indexed");
+    const refKey = serializeDaoProposalRef(created!.proposal.ref);
+    const matching = getDaoMockSnapshot().feed.proposals.filter(
+      (proposal) => serializeDaoProposalRef(proposal.ref) === refKey
+    );
+    expect(matching).toHaveLength(1);
+    expect(
+      matching[0]?.events.filter((event) => event.type === "propose")
+    ).toHaveLength(1);
   });
 
   it("keeps the transaction link and hides proposal actions when identity decoding fails", async () => {
