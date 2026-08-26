@@ -34,9 +34,8 @@ import {
   daoRouteControlClassName,
 } from "../../components/DaoRouteFrame";
 import {
-  ProposalStatusBadge,
+  ProposalHeadingFacts,
   ProposalTiming,
-  ProposalTypeBadge,
   ProposalVoteSummary,
 } from "../../components/ProposalReadPrimitives";
 import { daoCopy } from "../../messages";
@@ -94,10 +93,7 @@ export function ProposalDetail({
           <p className="break-words font-number text-xs font-bold tabular-nums text-text-secondary [overflow-wrap:anywhere]">
             {daoCopy.detail.eyebrow(proposalId)}
           </p>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <ProposalStatusBadge status={proposal.displayStatus} />
-            <ProposalTypeBadge proposal={proposal} />
-          </div>
+          <ProposalHeadingFacts proposal={proposal} />
           <h1 className="text-balance text-2xl font-bold md:text-4xl">
             {title}
           </h1>

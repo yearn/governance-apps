@@ -21,9 +21,8 @@ import {
 import { daoCopy } from "../messages";
 import styles from "./ProposalBoard.module.css";
 import {
-  ProposalStatusBadge,
+  ProposalHeadingFacts,
   ProposalTiming,
-  ProposalTypeBadge,
   ProposalVoteSummary,
 } from "./ProposalReadPrimitives";
 
@@ -164,15 +163,7 @@ function ProposalBoardRow({
     >
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,21rem)] lg:items-center">
         <div className="min-w-0 space-y-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <ProposalStatusBadge status={proposal.displayStatus} />
-            <ProposalTypeBadge proposal={proposal} />
-            {proposal.type === "executable" ? (
-              <span className="text-pretty text-xs font-bold text-text-secondary">
-                {daoCopy.board.executableActions}
-              </span>
-            ) : null}
-          </div>
+          <ProposalHeadingFacts proposal={proposal} showExecutableActions />
 
           <div className="min-w-0 space-y-1.5">
             <p className="break-words font-number text-xs font-bold tabular-nums text-text-secondary [overflow-wrap:anywhere]">
