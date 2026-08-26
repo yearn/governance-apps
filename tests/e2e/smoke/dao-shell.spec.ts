@@ -5,6 +5,7 @@ import {
   type Locator,
   type Page,
 } from "@playwright/test";
+import { DAO_MOCK_NOW } from "@/lib/clients/dao";
 
 const EXPECT_PRODUCTION_FAIL_CLOSED =
   process.env.E2E_EXPECT_DAO_PRODUCTION_FAIL_CLOSED === "true";
@@ -516,11 +517,11 @@ test("uses the typed bridge to mutate DAO facts and refresh infinitely fresh que
   await expect(page.getByText("Proposal content is unavailable.")).toBeVisible();
 
   await page.goto("/dao/proposals/1");
-  await page.evaluate(async () => {
+  await page.evaluate(async (votingTimestamp) => {
     if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
     await window.__TEST__.setDaoFixture?.("discussion");
-    await window.__TEST__.setNow(Math.floor(Date.now() / 1_000) + 8 * 86_400);
-  });
+    await window.__TEST__.setNow(votingTimestamp);
+  }, DAO_MOCK_NOW + 8 * 86_400);
   await expect(page.getByText("Voting", { exact: true }).first()).toBeVisible();
 });
 
