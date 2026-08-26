@@ -25,6 +25,7 @@ import {
   serializeDaoProposalRef,
   type DaoDecodedProposeIdentity,
   type DaoMockAuthoring,
+  type DaoMockTransactionOutcome,
   type DaoProposalType,
   type DaoProposerState,
   type DaoScriptCheck,
@@ -79,7 +80,7 @@ type WalletState =
   | { state: "waiting" }
   | {
       state: "failed";
-      code: "WALLET_REJECTED" | "PROPOSAL_REVERTED";
+      code: "WALLET_REJECTED" | "PROPOSAL_REVERTED" | "NETWORK_ERROR";
       message: string;
     }
   | { state: "receipt_pending"; transactionHash: Hex }
@@ -107,6 +108,7 @@ type DaoProposalAuthoringFormProps = {
   now: number;
   proposer: DaoProposerState;
   serviceLatencyMs?: number;
+  transactionOutcome?: DaoMockTransactionOutcome;
 };
 
 export function DaoProposalAuthoringForm(
@@ -125,6 +127,7 @@ function DaoProposalAuthoringFormState({
   now,
   proposer,
   serviceLatencyMs = 140,
+  transactionOutcome = "success",
 }: DaoProposalAuthoringFormProps) {
   const [markdown, setMarkdown] = useState(DAO_PROPOSAL_MARKDOWN_TEMPLATE);
   const [editorMode, setEditorMode] = useState<"write" | "preview">("write");
@@ -371,11 +374,12 @@ function DaoProposalAuthoringFormState({
     }
 
     setWallet({ state: "waiting" });
-    const result = await submitMockDaoProposal(
+    const result = await submitMockDaoProposal({
       review,
-      publication.publication,
-      serviceLatencyMs
-    );
+      publication: publication.publication,
+      outcome: transactionOutcome,
+      latencyMs: serviceLatencyMs,
+    });
     if (result.state === "failed") {
       setWallet({
         state: "failed",
@@ -1116,7 +1120,9 @@ function DaoFinalReview({
                   title={
                     wallet.code === "WALLET_REJECTED"
                       ? daoProposeCopy.proposal.rejectedTitle
-                      : daoProposeCopy.proposal.revertedTitle
+                      : wallet.code === "NETWORK_ERROR"
+                        ? daoProposeCopy.proposal.networkErrorTitle
+                        : daoProposeCopy.proposal.revertedTitle
                   }
                   body={wallet.message}
                 />

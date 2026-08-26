@@ -192,5 +192,6 @@ export const daoProposeCopy = {
     viewTransaction: "View transaction",
     rejectedTitle: "Wallet request cancelled",
     revertedTitle: "Proposal creation failed",
+    networkErrorTitle: "Network request failed",
   },
 } as const;
