@@ -200,6 +200,80 @@ test("links the shared DAO application label home on desktop and mobile", async 
   ).toBeFocused();
 });
 
+test("wraps the long shared app label at 200% mobile text without clipping", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/ybc");
+  await expect(
+    page.getByRole("heading", {
+      name: "Yearn Builder's Collective",
+      level: 1,
+    })
+  ).toBeVisible();
+  await page.addStyleTag({
+    content: "html { font-size: 200% !important; }",
+  });
+
+  await page.getByRole("button", { name: "Open navigation menu" }).click();
+  const dialog = page.getByRole("dialog", { name: "Navigation menu" });
+  const mobileHome = dialog.getByRole("link", {
+    name: "Yearn Builder's Collective",
+    exact: true,
+  });
+  const label = mobileHome.getByText("Yearn Builder's Collective", {
+    exact: true,
+  });
+
+  await expect(mobileHome).toBeVisible();
+  await expect(mobileHome).toHaveAttribute("href", "/ybc");
+  const labelLayout = await label.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+
+    return {
+      clientHeight: element.clientHeight,
+      clientWidth: element.clientWidth,
+      scrollHeight: element.scrollHeight,
+      scrollWidth: element.scrollWidth,
+      textOverflow: style.textOverflow,
+      whiteSpace: style.whiteSpace,
+    };
+  });
+
+  expect(labelLayout.textOverflow, "long app label must not ellipsize").not.toBe(
+    "ellipsis"
+  );
+  expect(labelLayout.whiteSpace, "long app label must wrap").not.toBe("nowrap");
+  expect(
+    labelLayout.scrollHeight,
+    "wrapped label height must not clip"
+  ).toBeLessThanOrEqual(labelLayout.clientHeight);
+  expect(
+    labelLayout.scrollWidth,
+    "wrapped label width must not clip"
+  ).toBeLessThanOrEqual(labelLayout.clientWidth);
+  const mobileBox = await mobileHome.boundingBox();
+  expect(mobileBox).not.toBeNull();
+  expect(mobileBox!.height).toBeGreaterThanOrEqual(44);
+  const drawerLayout = await dialog.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+
+    return {
+      clientWidth: element.clientWidth,
+      left: rect.left,
+      right: rect.right,
+      scrollWidth: element.scrollWidth,
+      viewportWidth: window.innerWidth,
+    };
+  });
+  expect(drawerLayout.left).toBeGreaterThanOrEqual(0);
+  expect(drawerLayout.right).toBeLessThanOrEqual(drawerLayout.viewportWidth);
+  expect(drawerLayout.scrollWidth).toBeLessThanOrEqual(drawerLayout.clientWidth);
+  await expect
+    .poll(() => page.evaluate(() => window.getComputedStyle(document.body).overflow))
+    .toBe("hidden");
+});
+
 test("preserves the board group through replace, reload, detail, and Back", async ({
   page,
 }) => {
