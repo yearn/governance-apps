@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useSelectedLayoutSegments } from "next/navigation";
 import {
   WalletButton,
@@ -78,7 +79,12 @@ export function Header() {
               color="currentColor"
             />
             {primaryNav.label ? (
-              <span className="hidden text-text-primary md:block">{primaryNav.label}</span>
+              <Link
+                href={primaryNav.path}
+                className="hidden min-h-10 min-w-10 items-center rounded-lg text-text-primary transition-[color,scale] duration-150 ease-out hover:text-yearn-blue active:scale-[0.96] focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app motion-reduce:transition-none motion-reduce:active:scale-100 md:inline-flex"
+              >
+                {primaryNav.label}
+              </Link>
             ) : null}
             <div className="hidden h-6 w-px bg-border md:block" />
             <div className="hidden md:block">

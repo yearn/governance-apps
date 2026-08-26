@@ -95,7 +95,8 @@ export function MobileNavMenu({
   );
   const hostname = useHostname();
   const isDark = theme === "soft-dark";
-  const currentAppLabel = resolveHeaderPrimaryNav(pathname, null, hostname).label;
+  const currentAppNav = resolveHeaderPrimaryNav(pathname, null, hostname);
+  const currentAppLabel = currentAppNav.label;
   const hasCurrentAppLabel = currentAppLabel.length > 0;
   const currentApp = APP_LINKS.find((app) => app.name === currentAppLabel);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -224,7 +225,11 @@ export function MobileNavMenu({
         <div className="space-y-5">
           <div className="space-y-1">
             {hasCurrentAppLabel ? (
-              <div className="flex min-h-[44px] w-full items-center gap-3 rounded-lg bg-primary/10 bg-text-primary/10 px-4 text-text-primary">
+              <Link
+                href={currentAppNav.path}
+                onClick={handleClose}
+                className="flex min-h-[44px] w-full items-center gap-3 rounded-lg bg-primary/10 bg-text-primary/10 px-4 text-text-primary transition-[background-color,color,scale] duration-150 ease-out hover:bg-surface-tertiary active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary focus-visible:ring-offset-2 focus-visible:ring-offset-app motion-reduce:transition-none motion-reduce:active:scale-100"
+              >
                 {currentApp?.icon ? (
                   <span
                     className={cn(
@@ -236,7 +241,7 @@ export function MobileNavMenu({
                   </span>
                 ) : null}
                 <span className="truncate text-lg font-medium">{currentAppLabel}</span>
-              </div>
+              </Link>
             ) : null}
             <MobileWalletButton
               e2ePresentation={e2eWalletPresentation}

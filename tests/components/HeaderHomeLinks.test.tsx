@@ -102,6 +102,9 @@ describe("Header application home links", () => {
     expect(link).toHaveClass("min-h-[44px]");
     expect(link.className).toContain("focus-visible:ring-2");
 
+    link.addEventListener("click", (event) => event.preventDefault(), {
+      once: true,
+    });
     await user.click(link);
 
     expect(
