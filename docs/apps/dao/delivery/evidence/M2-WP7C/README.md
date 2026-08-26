@@ -12,8 +12,11 @@ six-host Access gate remain incomplete.
   `c2931f7714ab96ff2531e4192e9ef4a49595057a`
 - Refined scope tip before implementation:
   `527493f`
-- Final package tip: pending final gates and review
-- Reviewed range: pending final tip
+- Implementation and gate source tip:
+  `b03133b6817bcb1872c7651a431828d75e9a8dec`
+- Final exact candidate tip: the commit containing this ledger. A commit cannot
+  record its own SHA. Integration status and handoff must record that SHA and
+  the independently reviewed range.
 - Merge and post-merge ledger: pending; this package does not update
   `docs/apps/dao/delivery/status.md`
 - Product gate: not accepted
@@ -30,9 +33,11 @@ six-host Access gate remain incomplete.
 | Visible-control Playwright coverage | `568dfa3` |
 | Canonical behavior docs | `a3ab330` |
 | Access and shared security docs | `acbee9d` |
+| Beta-host header hydration coverage | `611f332` |
+| Deterministic inherited smoke fixture | `b03133b` |
 
-The evidence commit is the commit containing this ledger. Root must record the
-exact final tip after all gates and review fixes finish.
+The evidence commit is the exact candidate tip. This ledger does not self-name
+that commit or claim that independent review has approved its range.
 
 ## Execution-readiness evidence
 
@@ -76,26 +81,26 @@ detail integrity explanation remains.
   indexes the same receipt-derived reference without duplicate proposal records
   or `propose` events.
 
-## Sanitized pre-change Access observation
+## Sanitized Access observation
 
 Observation date: 2026-08-26. These were read-only, unauthenticated checks. No
 Cloudflare, DNS, Worker, custom-domain, GitHub, or deployment state changed.
 
-| Exact host | Pre-change observation |
-| --- | --- |
-| `styfi-beta.dao-ops.com` | Access protection present |
-| `veyfi-beta.dao-ops.com` | Access protection present |
-| `yeth-beta.dao-ops.com` | Access protection present |
-| `teams-beta.dao-ops.com` | Access protection present |
-| `ybc-beta.dao-ops.com` | Access protection present |
-| `dao-beta.dao-ops.com` | Unprotected; application reachable without an Access challenge |
+| Exact host | `/` | `/proposals/2` | Fake static asset | `/api/global-data` |
+| --- | ---: | ---: | ---: | ---: |
+| `styfi-beta.dao-ops.com` | 302 | 302 | 302 | 302 |
+| `veyfi-beta.dao-ops.com` | 302 | 302 | 302 | 302 |
+| `yeth-beta.dao-ops.com` | 302 | 302 | 302 | 302 |
+| `teams-beta.dao-ops.com` | 302 | 302 | 302 | 302 |
+| `ybc-beta.dao-ops.com` | 302 | 302 | 302 | 302 |
+| `dao-beta.dao-ops.com` | 200 | 200 | 404 | 200 |
 
-The available session could not inspect authenticated Zero Trust policy details
-or make a safe Access mutation. It therefore did not confirm the reusable
-policy's GitHub organization/team identity, application precedence, approved
-member entry, unrelated-account denial, nested-route coverage, cross-beta
-coverage, or authenticated wallet behavior. The six-host gate is blocked and
-must not be marked complete.
+These status codes show that the first five exact beta hosts redirected every
+probe to Access while `dao-beta.dao-ops.com` did not. The Cloudflare dashboard
+session was unauthenticated, so it could neither inspect protected policy
+details nor make an Access change. The exact GitHub organization/team identity,
+approved-member allow result, and unrelated-account deny result remain
+unverified. The six-host gate is blocked and must not be marked complete.
 
 Operator work remains:
 
@@ -107,35 +112,89 @@ Operator work remains:
 4. Record rollback. Disable or remove only package-created exact-host bindings
    or policies; do not touch DNS, TLS, custom domains, or the Worker.
 
-## Checks recorded before this ledger
+## Source gates
 
 | Command | Result |
 | --- | --- |
+| `npm run validate:deps` | Passed |
 | `npm run typecheck` | Passed |
-| `npm run test -- tests/unit/lib/clients/dao.domain.test.ts tests/unit/lib/header-nav.test.ts tests/unit/app/dao/propose/authoring.test.ts tests/components/HeaderHomeLinks.test.tsx tests/components/DaoProposalBoard.test.tsx tests/components/DaoProposalDetail.test.tsx tests/components/DaoProposalAuthoringForm.test.tsx` | 7 files, 136 tests passed |
-| `npm run test:e2e -- tests/e2e/smoke/dao-authoring.spec.ts --grep 'uses visible review controls'` | 1 passed; visible Rejected to Success to Indexed flow |
-| `npm run test:e2e -- tests/e2e/smoke/dao-authoring.spec.ts --grep 'keeps publication after every failed'` | 1 passed; rejection, revert, and network failure |
+| `npm run lint` | Passed |
+| `npm run test` | 139 files and 1,191 tests passed |
+| `npm run test:e2e:full -- --workers=1` | 34 of 34 passed |
+| `npm run build` | Passed |
 
-The first failure-matrix browser run reached the correct network-error UI but
-used a non-exact text locator that matched the title, body, and live region. The
-test was tightened to the exact title and passed on rerun. This was a test
-selector correction, not a product-state fix.
+These full source gates ran before `b03133b`. The later commit changes one smoke
+test only; it does not change product code. The affected seam and final smoke
+suite were then checked at `b03133b`:
 
-## Pending final evidence
+| Check at `b03133b` | Result |
+| --- | --- |
+| `npm run test:e2e` | 43 passed, 5 skipped |
+| Typed-bridge exact case, first isolated run | Passed |
+| Typed-bridge exact case, second isolated run | Passed |
+| ESLint for `tests/e2e/smoke/dao-shell.spec.ts` | Passed |
+| `npm run typecheck` | Passed |
+| `git diff --check` | Passed |
 
-Root must replace these entries after the exact clean final tip is known:
+Before `b03133b`, the complete smoke run failed because the typed-bridge test
+derived its clock from wall time. The isolated case failed the same way on the
+package candidate and on the exact frozen base. Commit `b03133b` changed only
+that test to use `DAO_MOCK_NOW`; it kept the exact `Voting` assertion. The exact
+case passed twice before the complete smoke suite passed.
 
-- final package tip and frozen-base-to-tip reviewed range;
-- `npm run validate:deps`, typecheck, lint, full Vitest, smoke Playwright, full
-  Playwright with one worker, and build results;
-- 390×844, 768×1024, 1280×900, and 1280×600 checks in light and dark, plus
-  keyboard, 200% root text, reduced motion, and coarse pointer;
-- screenshots or metadata for proposal #19 board/detail, normal executable,
-  header links, failed authoring retry, and Indexed identity;
-- contract/domain, frontend/accessibility, and security/runtime reviewer
-  verdicts; and
-- post-merge SHA, ledger commit, and post-merge gate results if the package is
-  approved for integration.
+## Compiled production proof
+
+| Mode | Build | Standalone proof | Result |
+| --- | --- | --- | --- |
+| DAO enabled | Passed | 1 passed, 2 mode skips | The compiled DAO route was enabled and did not expose the mock debug bridge. |
+| DAO disabled | Passed | 1 passed, 2 mode skips | Compiled GET and HEAD requests failed closed without a 5xx response. |
+
+## Interactive browser inspection
+
+Eight browser captures were inspected inline. The browser sandbox could not
+persist them, so this ledger records capture metadata without invented artifact
+paths.
+
+| Viewport | Theme | Capture record |
+| --- | --- | --- |
+| 390×844 | Light | Inspected inline |
+| 390×844 | Dark | Inspected inline |
+| 768×1024 | Light | Inspected inline |
+| 768×1024 | Dark | Inspected inline |
+| 1280×900 | Light | Inspected inline |
+| 1280×900 | Dark | Inspected inline |
+| 1280×600 | Light | Inspected inline |
+| 1280×600 | Dark | Inspected inline |
+
+The inspection found:
+
+- Proposal #19 showed `Execution blocked`, `Approved`, `Executable`, then
+  `Stored script hash does not match the proposed event script.` on both the
+  board and detail view. Board executable actions were absent, while the lower
+  detail explanation had one live region.
+- Proposal #22 showed no false blocker and kept its executable actions.
+- The native application home link measured at least 44 pixels high on mobile
+  and 40 pixels on desktop, had a visible focus ring, and caused no overflow.
+  Escape closed the mobile menu and restored focus to its opener. The long YBC
+  label fit at 390 pixels. No viewport showed horizontal overflow.
+- The visible review controls supported `Rejected` to `Success` to `Indexed`
+  and kept an identical content fingerprint. The final identity exposed Copy
+  and Open actions with a stable receipt-derived href.
+- No console errors appeared during the matrix.
+
+The 34-of-34 Playwright run covered 200% text, reduced motion, and coarse
+pointer behavior. This ledger does not claim that the interactive browser
+emulated those modes. Focused Playwright cases covered shared-host and beta-host
+home-link targets; the interactive browser could not inject a `Host` header.
+
+## Evidence limits and integration handoff
+
+- Integration status and handoff must record the exact ledger commit SHA and
+  its independently reviewed frozen-base-to-tip range.
+- Authenticated Access policy inspection, mutation, allow, and deny checks are
+  still outstanding.
+- Merge, post-merge gates, deployment, and product acceptance are not part of
+  this evidence commit.
 
 No deployment, push, tag, merge, Access change, DNS change, Worker change, or M2
 acceptance is claimed here.
