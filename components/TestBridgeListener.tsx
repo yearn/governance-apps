@@ -7,6 +7,7 @@ import type { VeyfiClient } from "@/lib/clients/veyfi/client";
 import type { YethClient } from "@/lib/clients/yeth/client";
 import {
   createTestBridge,
+  type DaoTestBridgeAdapter,
   type TeamsTestBridgeAdapter,
   type YbcTestBridgeAdapter,
 } from "@/lib/test-bridge";
@@ -17,6 +18,7 @@ type TestBridgeListenerProps = {
   yeth: YethClient;
   teams?: TeamsTestBridgeAdapter;
   ybc?: YbcTestBridgeAdapter;
+  dao?: DaoTestBridgeAdapter;
   enabled?: boolean;
 };
 
@@ -26,6 +28,7 @@ export function TestBridgeListener({
   yeth,
   teams,
   ybc,
+  dao,
   enabled = false,
 }: TestBridgeListenerProps) {
   const queryClient = useQueryClient();
@@ -41,12 +44,13 @@ export function TestBridgeListener({
       queryClient,
       teams,
       ybc,
+      dao,
     });
 
     return () => {
       delete window.__TEST__;
     };
-  }, [enabled, queryClient, styfi, teams, veyfi, ybc, yeth]);
+  }, [dao, enabled, queryClient, styfi, teams, veyfi, ybc, yeth]);
 
   return null;
 }

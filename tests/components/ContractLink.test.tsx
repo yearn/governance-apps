@@ -186,6 +186,30 @@ describe("ExplorerLink", () => {
     );
   });
 
+  it("can reserve a visible compact copy action for coarse pointers", () => {
+    const address = "0x1234567890123456789012345678901234567890";
+    render(
+      <AddressLink
+        address={address}
+        variant="compact"
+        showCopyOnCoarsePointer
+      />,
+    );
+
+    const link = screen.getByRole("link", {
+      name: `View Ethereum address ${address} on Etherscan`,
+    });
+    const copy = screen.getByRole("button", { name: "Copy address" });
+
+    expect(link.parentElement).toHaveClass("relative", "pr-10");
+    expect(copy).toHaveClass(
+      "size-10",
+      "[@media(pointer:coarse)]:pointer-events-auto",
+      "[@media(pointer:coarse)]:inline-flex",
+      "[@media(pointer:coarse)]:opacity-100",
+    );
+  });
+
   it("keeps an unlabeled compact address in monospaced code", () => {
     const address = "0x1234567890123456789012345678901234567890";
     render(<AddressLink address={address} variant="compact" />);

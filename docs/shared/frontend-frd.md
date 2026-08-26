@@ -1,5 +1,9 @@
 # `frontend-frd.md`
 
+> Historical stYFI/veYFI requirements. This file does not define current
+> repository-wide behavior and must not be used for DAO Governance. New app
+> requirements live under `docs/apps/<domain>`.
+
 **Frontend Functional Requirements — stYFI, stYFIx, veYFI, LLYFI**
 **Version:** 0.7
 **Applies to:** `governance-apps` repository

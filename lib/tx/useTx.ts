@@ -22,6 +22,7 @@ type TxExecuteOptions = {
   skipWaitForReceipt?: boolean;
   retries?: number;
   retryDelayMs?: number;
+  submittedMessage?: string;
 };
 
 const initialState: TxState = {
@@ -80,7 +81,10 @@ export function useTx() {
           });
 
           if (options?.skipWaitForReceipt) {
-            toast.success("Transaction submitted (Mock)", { id: toastId });
+            toast.success(
+              options.submittedMessage ?? "Transaction submitted (Mock)",
+              { id: toastId }
+            );
           } else {
             toast.loading("Transaction submitted. Waiting...", { id: toastId });
             setState({

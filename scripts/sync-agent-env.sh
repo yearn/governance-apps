@@ -157,10 +157,11 @@ run_with_fish_project_node() {
     set -e argv[1]
     cd "$wt"
 
-    set node_version 22
-    if test -f .nvmrc
-      set node_version (string trim < .nvmrc)
+    if not test -f .nvmrc
+      echo "  ERROR: .nvmrc is required before installing dependencies." >&2
+      exit 1
     end
+    set node_version (string trim < .nvmrc)
 
     set use_version $node_version
     if string match --quiet --regex "^[0-9]+\$" -- $use_version
@@ -185,10 +186,11 @@ run_with_project_node() {
   wt="$1"
   shift
 
-  node_version="22"
-  if [ -f "$wt/.nvmrc" ]; then
-    node_version="$(sed -n '1{s/[[:space:]]//g;p;q;}' "$wt/.nvmrc")"
+  if [ ! -f "$wt/.nvmrc" ]; then
+    echo "  ERROR: $wt/.nvmrc is required before installing dependencies." >&2
+    return 1
   fi
+  node_version="$(sed -n '1{s/[[:space:]]//g;p;q;}' "$wt/.nvmrc")"
   expected_major="$(node_major_from_version "$node_version")"
 
   if [ -z "$expected_major" ]; then
@@ -240,14 +242,14 @@ run_with_project_node() {
   fi
 
   current_major="$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || true)"
-  if [ "$current_major" = "22" ]; then
-    echo "  WARN: nvm not found; current node is already 22.x" >&2
+  if [ "$current_major" = "$expected_major" ]; then
+    echo "  WARN: nvm not found; current node is already ${expected_major}.x" >&2
     (cd "$wt" && "$@")
     return 0
   fi
 
-  echo "  ERROR: nvm is required to select Node 22 before installing dependencies." >&2
-  echo "         Install/load nvm, run 'nvm install 22', or pass --no-install." >&2
+  echo "  ERROR: nvm is required to select Node ${expected_major} before installing dependencies." >&2
+  echo "         Install/load nvm, run 'nvm install ${expected_major}', or pass --no-install." >&2
   return 1
 }
 

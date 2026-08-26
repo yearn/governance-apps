@@ -29,7 +29,6 @@ export function MockControls() {
 
   const {
     data,
-    resetRuntime,
     runtime,
     seedPerspective,
     seedRewardsState,
@@ -63,9 +62,6 @@ export function MockControls() {
         {
           id: "ybc",
           title: "YBC",
-          onReset: () => {
-            resetRuntime();
-          },
           onTimeTravel: (days) => {
             syncToNow(data.asOf + days * DAY_SECONDS);
           },

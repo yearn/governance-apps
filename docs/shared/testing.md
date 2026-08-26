@@ -42,8 +42,8 @@ We expose a typed control surface for E2E tests. It is only injected when `NEXT_
 - Initialization: `components/TestBridgeListener.tsx` rendered inside `state/protocol.tsx`.
 - Guard: `if (process.env.NEXT_PUBLIC_E2E === "true")`.
 - All state mutations invalidate React Query for deterministic UI updates.
-- For the Teams and YBC `M2A` alignment work, `shared / WP0` owns this shared seam and
-  the domain runtime packages add their adapters against that contract.
+- Each mock-heavy domain adds a typed adapter to this shared seam rather than
+  creating a second test bridge.
 
 #### Usage from Playwright (example)
 
@@ -68,11 +68,14 @@ await page.evaluate(async () => {
 - `setScenario(name)`: loads a predefined scenario (resets first).
 - `setYethPreset(address, preset)`: applies yETH mock account state (`claimable`, `recovery_position`, `empty`).
 
-For `M2A`, Teams and YBC adapters extend the shared bridge instead of redefining it:
+Teams, YBC, and DAO adapters show the pattern that new domains must follow:
 
-- `components/TestBridgeListener.tsx` accepts optional `teams` and `ybc` adapters
-- `lib/test-bridge.ts` exports `TeamsTestBridgeAdapter` and `YbcTestBridgeAdapter`
-- shared domain mutation methods invalidate `teamsKeys.all` or `ybcKeys.all`
+- `components/TestBridgeListener.tsx` accepts optional `teams`, `ybc`, and `dao`
+  adapters
+- `lib/test-bridge.ts` exports `TeamsTestBridgeAdapter`, `YbcTestBridgeAdapter`,
+  and `DaoTestBridgeAdapter`
+- shared domain mutation methods invalidate `teamsKeys.all`, `ybcKeys.all`, or
+  `daoKeys.all`
   automatically after the adapter mutation runs
 - shared `setNow(timestamp)` also calls adapter `onSetNow(timestamp)` hooks before the
   global query invalidation
@@ -85,6 +88,16 @@ Representative adapter methods already reserved by the shared contract:
 - YBC: `resetYbc`, `setYbcPerspective`, `setYbcLoading`, `setYbcEmptyRoster`,
   `setYbcEmptyBoard`, `setYbcEpoch`, `patchYbcMember`, `patchYbcProposal`,
   `patchYbcRewards`, `patchYbcAdmin`
+- DAO: `resetDao`, `setDaoFixture`, `setDaoSelectedProposal`, `setDaoPersona`,
+  `setDaoRole`, `setDaoContentState`, `setDaoLifecycle`, `setDaoVetoState`,
+  `setDaoAnalysisState`, `setDaoAccountState`, `setDaoExecutionState`,
+  `setDaoAuthoringState`, `setDaoTransactionOutcome`,
+  `indexDaoPendingAction`, `clearDaoPendingAction`, and granular
+  proposal/proposer fact setters
+
+DAO bridge mutations wait for the adapter and then invalidate `daoKeys.all`.
+This is required because the route client is module-scoped and DAO queries use
+infinite stale times.
 
 Amounts passed to the bridge must be human-readable strings without commas (e.g. `\"100.5\"`).
 
@@ -93,6 +106,15 @@ Scenario presets are applied to the default E2E address unless a test overrides 
 Prefer calling `reset()` at the start of each E2E test to avoid leaked state.
 New domains with substantial mock state should add app-specific bridge methods instead of
 requiring visible route-local scenario controls for QA.
+
+DAO proposal-content tests pin exact canonical JSON bytes, including the final
+LF, plus SHA-256 digest and CIDv1/raw/SHA-256/Base32 vectors. A committed raw
+asset fixture must match manifest byte length, digest, media type, dimensions,
+and derived CID. Component and Playwright coverage must prove that attachment
+cards make zero automatic asset requests and that only a user-activated Open
+uses the validated suffix-free raw-CID URL. Creation-flow tests keep transaction
+hash, receipt-derived composite identity, awaiting-index, and indexed states
+separate and assert that the identity never changes.
 
 Available scenarios:
 
@@ -109,8 +131,11 @@ All time logic must come from `lib/mocks/time.ts`:
 - `setFixedNow(ts | null)` freezes or clears time.
 - In mock mode, UI epoch/cooldown timing is driven by local mock time only (not global-data/chain canonical sources), so debug time travel remains deterministic.
 - Debug time travel controls are expected to invalidate identity plus domain query keys and refetch active/inactive observers immediately.
-- For `M2A`, the shared debug runtime reserves `teamsKeys.all` and `ybcKeys.all` as
-  the Teams and YBC root invalidation entry points.
+- Each domain exposes one root query-key entry point for shared reset and time
+  invalidation. Existing examples are `teamsKeys.all`, `ybcKeys.all`, and
+  `daoKeys.all`.
+- Shared debug time travel synchronizes the DAO runtime even when a non-DAO route
+  owns the mounted panel, then invalidates `daoKeys.all` with the other domain roots.
 
 Any logic that previously called `Date.now()` must use `nowSeconds()` instead.
 
@@ -121,8 +146,29 @@ When `NEXT_PUBLIC_E2E=true`, wagmi uses a `mock` connector with a fixed address:
 - Default E2E address: `0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266`
 - Location: `lib/constants.ts`
 
-This means E2E tests are instantly “connected” and do not rely on wallet UI flows.
-The mock connector is for testing only and should never be enabled in real user environments.
+This means E2E tests are instantly “connected” and do not rely on wallet UI
+flows. The E2E-only wrapper resolves exactly `eth_accounts` from that local
+deterministic account and delegates every other provider request to wagmi's mock
+connector. Wagmi reconnect reaches the connected account without network fetch;
+after an explicit disconnect, reconnect preserves the disconnected state. Do
+not disable reconnect-on-mount to hide RPC failures.
+
+The mock connector is for testing only and should never be enabled in real user
+environments.
+
+DAO RPC regression coverage deliberately points local E2E at the dead sentinel
+`http://127.0.0.1:8546`. Board, detail, and authoring tests wait for hydrated
+route state and assert zero `eth_accounts` request bodies, loopback requests,
+request failures, page errors, and console errors. Chromium maps
+`dao-beta.dao-ops.com` to loopback only when `E2E_BASE_URL` is local; remote and
+preproduction runs never receive that resolver rule.
+
+Local hostname mapping does not test Cloudflare Access. Before beta UAT, verify
+all six exact governance beta hosts with an unauthenticated incognito request,
+an approved GitHub organization/team member, an unrelated GitHub account, and a
+representative nested route. After authentication, repeat noindex/canonical,
+cross-beta navigation, wallet connection, and wallet-popup checks. Keep results
+sanitized and leave any host without direct evidence marked incomplete.
 
 ## Parallelism
 
@@ -157,6 +203,9 @@ Do:
 - Keep default route chrome production-like and place mock-only controls behind debug APIs.
 - Prefer granular bridge setters that mutate live route state over scenario-only loading
   once a route has matured past initial prototype mode.
+- For each new mock-heavy domain, test its state-machine boundaries, typed bridge
+  controls, deterministic time behavior, reset behavior, main components, and
+  at least one smoke flow through the production-shaped route.
 
 Do not:
 

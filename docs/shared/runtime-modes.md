@@ -30,6 +30,12 @@ sitemap or `llms.txt` discovery content.
 
 In `production` mode:
 
+- `NEXT_PUBLIC_ENABLE_DAO=true` exposes the temporary route-local DAO mock
+  review candidate. This exception is permitted only in the preproduction
+  workflow; the production workflow hardcodes it false.
+- `NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS=true` exposes the DAO fixture controls
+  only on `dao-beta.dao-ops.com`, and only when the DAO route is also enabled.
+  The production workflow hardcodes it false.
 - `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Team Finances routes.
 - `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC routes.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH routes.
@@ -61,6 +67,38 @@ Before deploying production:
 13. No app-specific mock or write-only flags are set for Teams/YBC
 14. Run `npm run validate:prod-env`
 
+`NEXT_PUBLIC_ENABLE_DAO` must be false in the public production workflow. It is
+not an approved production app flag in this checklist.
+
+## DAO internal preproduction review checklist
+
+The temporary M2 review candidate is production-shaped but mock-backed:
+
+1. `NEXT_PUBLIC_RUNTIME_MODE=production`
+2. Protected preproduction environment sets `NEXT_PUBLIC_ENABLE_DAO=true`
+3. Protected preproduction environment sets
+   `NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS=true` when fixture controls are
+   needed for review
+4. `NEXT_PUBLIC_USE_MOCKS=false`
+5. `NEXT_PUBLIC_E2E=false`
+6. `NEXT_PUBLIC_ENABLE_DEBUG_UI=false`
+7. WalletConnect, global-data, and HTTPS RPC inputs satisfy production
+   validation; never use loopback RPC URLs
+8. `dao-beta.dao-ops.com` serves clean DAO paths and returns
+   `X-Robots-Tag: noindex, nofollow`
+9. DAO stays absent from canonical metadata, sitemap, and `llms.txt`
+10. Cloudflare Access protects every path on the six exact governance beta
+    hosts (`styfi-beta`, `veyfi-beta`, `yeth-beta`, `teams-beta`, `ybc-beta`,
+    and `dao-beta` under `dao-ops.com`) with the approved reusable GitHub
+    organization/team policy
+
+The DAO flag applies to the shared preproduction deployment, not only the beta
+hostname. Other hosts served by the same Worker can reach `/dao` while it is
+true. Feature flags, custom domains, noncanonical metadata, and `noindex` are
+not authentication boundaries. Do not share a beta host until its exact Access
+application has passed unauthenticated, authorized-member, unrelated-account,
+and nested-route checks.
+
 ## Preview checklist
 
 For preview deployments:
@@ -82,5 +120,9 @@ For normal local dev:
 ## Troubleshooting
 
 - If production behavior appears locally: check `NEXT_PUBLIC_RUNTIME_MODE` first.
-- If Team Finances, YBC, yETH, or debug routes are unexpectedly hidden: check mode and corresponding `NEXT_PUBLIC_ENABLE_*` flags.
+- If DAO, Team Finances, YBC, yETH, or debug routes are unexpectedly hidden:
+  check mode and the corresponding `NEXT_PUBLIC_ENABLE_*` flag.
+- If a production-shaped beta route renders server HTML but client data fails,
+  verify the public feature flags were present during the GitHub build. Worker
+  dashboard changes do not rewrite compiled `NEXT_PUBLIC_*` client values.
 - If startup/build fails with invariant errors: confirm production checklist values above.

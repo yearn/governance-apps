@@ -54,6 +54,50 @@ describe("resolveHeaderPrimaryNav", () => {
     });
   });
 
+  it("keeps DAO Governance path-scoped on shared hosts", () => {
+    expect(resolveHeaderPrimaryNav("/dao/proposals/2", "dao")).toEqual({
+      label: "DAO Governance",
+      path: "/dao",
+    });
+  });
+
+  it("uses clean root navigation on the guarded DAO beta host", () => {
+    expect(
+      resolveHeaderPrimaryNav("/proposals/2", null, "dao-beta.dao-ops.com")
+    ).toEqual({
+      label: "DAO Governance",
+      path: "/",
+    });
+  });
+
+  it("gives an exact branded host precedence over contradictory route inputs", () => {
+    expect(
+      resolveHeaderPrimaryNav(
+        "/veyfi/portfolio",
+        "veyfi",
+        "dao-beta.dao-ops.com"
+      )
+    ).toEqual({
+      label: "DAO Governance",
+      path: "/",
+    });
+    expect(
+      resolveHeaderPrimaryNav("/dao/proposals/2", "dao", "styfi.yearn.fi")
+    ).toEqual({
+      label: "stYFI",
+      path: "/",
+    });
+  });
+
+  it("uses the exact path app on a generic host before a stale segment", () => {
+    expect(
+      resolveHeaderPrimaryNav("/dao/proposals/2", "styfi", "app.dao-ops.com")
+    ).toEqual({
+      label: "DAO Governance",
+      path: "/dao",
+    });
+  });
+
   it("falls back to pathname when segment is unavailable", () => {
     expect(resolveHeaderPrimaryNav("/veyfi/portfolio", null)).toEqual({
       label: "veYFI",
@@ -122,6 +166,9 @@ describe("resolveHeaderAppKey", () => {
     expect(resolveHeaderAppKey("/", null, "yeth-beta.dao-ops.com")).toBe(
       "yeth"
     );
+    expect(resolveHeaderAppKey("/propose", null, "dao-beta.dao-ops.com")).toBe(
+      "dao"
+    );
   });
 
   it("resolves product path prefixes for shared hosts", () => {
@@ -132,5 +179,26 @@ describe("resolveHeaderAppKey", () => {
       "veyfi"
     );
     expect(resolveHeaderAppKey("/yeth", null, "app.dao-ops.com")).toBe("yeth");
+    expect(resolveHeaderAppKey("/dao/propose", null, "app.dao-ops.com")).toBe(
+      "dao"
+    );
+  });
+
+  it("does not treat similarly named launcher paths as DAO routes", () => {
+    expect(resolveHeaderAppKey("/daoish", null, "app.dao-ops.com")).toBeNull();
+    expect(
+      resolveHeaderAppKey("/dao-governance", null, "app.dao-ops.com")
+    ).toBeNull();
+  });
+
+  it.each([
+    ["/daofoo", "dao"],
+    ["/styfishing", "styfi"],
+    ["/veyfinance", "veyfi"],
+    ["/teamster", "teams"],
+    ["/yethereum", "yeth"],
+    ["/ybcollective", "ybc"],
+  ])("does not treat %s as the %s app", (pathname) => {
+    expect(resolveHeaderAppKey(pathname, null, "app.dao-ops.com")).toBeNull();
   });
 });

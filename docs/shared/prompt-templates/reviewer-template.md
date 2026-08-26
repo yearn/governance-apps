@@ -2,6 +2,9 @@
 
 You are reviewing `{track}` / `{milestone}` / `{wp}` in `governance-apps`.
 
+Work read-only against the final committed package diff. Verify the commit range
+against its merge base with `agent/integration`. Do not edit.
+
 ## Review priorities
 1. Scope discipline
 2. Correctness
@@ -20,6 +23,8 @@ You are reviewing `{track}` / `{milestone}` / `{wp}` in `governance-apps`.
 ## Review output
 Return:
 - approve / request changes
-- list of blocking issues
+- blocking issues first, with severity, file, line, evidence, and impact
 - list of non-blocking improvements
+- missing regression tests
 - any integration-order notes
+- exact commands run and checks not run

@@ -91,6 +91,28 @@ Rules:
 - npm does not currently provide per-package release-age exclusions, so this override disables the age gate for the install run; reviewers must treat the lockfile diff as part of the exception review.
 - Remove the override once the package version is older than 7 days or the emergency is resolved.
 
+### 2.5 DAO immutable attachment boundary
+
+DAO proposal content uses one authenticated-manifest model. The onchain
+`bytes32` is the SHA-256 digest of the exact fixed-order canonical content JSON,
+including its required final LF; the content
+CID is its CIDv1/raw/SHA-256/Base32 representation. Each asset digest names and
+authenticates one independent raw block. A `./assets/...` target is an exact
+relative manifest attachment lookup, never a child path under the content CID.
+A direct `ipfs://` target accepts one exact canonical raw asset CID with no
+path, slash, query, or fragment and must match one unique manifest digest.
+Duplicate normalized paths or digests fail. Both target forms resolve only to
+`https://ipfs.io/ipfs/<assetCid>` with no suffix.
+
+The manifest permits at most 16 assets, 512 UTF-8 path bytes, 127 UTF-8 media
+type bytes, 2,097,152 bytes per asset, and 33,554,432 aggregate declared bytes.
+Image metadata permits at most 8,192 px per dimension and 33,554,432 pixels.
+The 2 MiB per-asset limit keeps each attachment in one raw block for the
+intended block-exchange and pinning paths. The browser renders cards only and
+makes no asset request until the user opens one. A card is accepted only for a
+sole image token in a top-level body paragraph after the summary; nested or
+mixed image contexts fail. It never renders SVG inline.
+
 ## 3. Production Runtime Invariants
 
 Validation script: `/scripts/validate-prod-env.mjs`
@@ -113,6 +135,9 @@ Production invariants (enforced when runtime mode resolves to `production`):
 
 Feature gating in production:
 
+- `NEXT_PUBLIC_ENABLE_DAO=true` is a temporary route-local mock exception for
+  the unaccepted internal preproduction review only. Public production
+  hardcodes it false; global mocks, E2E, and debug UI remain disabled.
 - `NEXT_PUBLIC_ENABLE_TEAMS=true` is required to expose Teams route/host.
 - `NEXT_PUBLIC_ENABLE_YBC=true` is required to expose YBC route/host.
 - `NEXT_PUBLIC_ENABLE_YETH=true` is required to expose yETH route/host.
@@ -129,6 +154,12 @@ Canonical discoverability metadata:
 - Only approved public production hosts publish sitemap entries. stYFI and veYFI are currently approved; Teams, YBC, and yETH remain excluded until their rollout decisions change.
 - Approved hosts publish a concise, host-specific `/llms.txt` generated from the same registry. It contains stable descriptions and canonical links only, avoiding live protocol values that could become stale.
 - Non-public, preview, local, and not-yet-approved hosts receive `X-Robots-Tag: noindex, nofollow`.
+- The six exact governance beta hosts under `dao-ops.com` remain noncanonical,
+  noindex, and absent from sitemap and `llms.txt`. Cloudflare Access must protect
+  every path with the approved reusable GitHub organization/team policy. Use
+  exact self-hosted applications, not a wildcard. Do not add public bypasses or
+  protect `app.dao-ops.com`, shared paths, public `*.yearn.fi`, or unrelated
+  hosts. Custom domains and robots metadata are not authentication boundaries.
 - `robots.txt` leaves Next.js JavaScript and CSS assets crawlable while excluding API and debug routes.
 
 ## 4. Transaction Safety Controls

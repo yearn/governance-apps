@@ -19,7 +19,7 @@ const PUBLIC_FILE =
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const IS_DEVELOPMENT = !IS_PRODUCTION;
-const STRICT_CSP_PATHS = ["/styfi", "/veyfi", "/yeth", "/ybc"];
+const STRICT_CSP_PATHS = ["/dao", "/styfi", "/veyfi", "/yeth", "/ybc"];
 const ADDITIONAL_CONNECT_SRC = resolveAdditionalConnectSrc();
 
 function isStrictCspPath(pathname: string, hostPrefix: string | null) {
@@ -100,7 +100,19 @@ export function middleware(request: NextRequest) {
   if (isHeadRequest && !isSkippablePath) {
     const headUrl = url.clone();
     const probePath = resolveHeadProbePath(headUrl.pathname, prefix);
-    headUrl.pathname = applyHostPrefix(probePath, prefix);
+    const probeTargetPath = applyHostPrefix(probePath, prefix);
+
+    if (probeTargetPath === url.pathname) {
+      return withSecurityHeaders(
+        NextResponse.next({
+          request: { headers: requestHeaders },
+        }),
+        nonce,
+        securityOptions
+      );
+    }
+
+    headUrl.pathname = probeTargetPath;
     return withSecurityHeaders(
       NextResponse.rewrite(headUrl, {
         request: { headers: requestHeaders },

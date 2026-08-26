@@ -1,0 +1,5 @@
+@media (prefers-reduced-motion: reduce) {
+  .filterTabs button {
+    transition-duration: 0s;
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "chainId": 1,
+  "generatedAt": "2026-08-18T12:00:00Z",
+  "canonicalBlock": {
+    "number": "24000000",
+    "hash": "0x39c219e27639654c0e593394e979a69bbd28433bd8609a522a46d6fb1432cf7d",
+    "timestamp": 1787054400
+  },
+  "contracts": [
+    {
+      "votingAddress": "0x1111111111111111111111111111111111111111",
+      "voterAddress": "0x2222222222222222222222222222222222222222",
+      "executorAddress": "0x3333333333333333333333333333333333333333",
+      "deploymentBlock": "23900000",
+      "active": true
+    }
+  ],
+  "proposals": [
+    {
+      "ref": {
+        "chainId": 1,
+        "votingAddress": "0x1111111111111111111111111111111111111111",
+        "proposalId": "1"
+      },
+      "proposer": "0x4444444444444444444444444444444444444444",
+      "votingEpoch": "201",
+      "createdAt": 1787054400,
+      "voteStartsAt": 1787680800,
+      "voteEndsAt": 1788285600,
+      "executionStartsAt": null,
+      "executionEndsAt": null,
+      "thresholdBps": 5000,
+      "totalWeight": "0",
+      "yeaWeight": "0",
+      "nayWeight": "0",
+      "protocolStatus": "proposed",
+      "displayStatus": "discussion",
+      "displayGroup": "upcoming",
+      "type": "signal",
+      "rules": {
+        "approvalThresholdBps": 5000,
+        "thresholdSnapshottedAtCreation": true,
+        "minimumTurnout": null,
+        "passageRequiresPositiveTotal": true,
+        "proposalType": "signal",
+        "votingPeriodSeconds": 604800,
+        "executionDelaySeconds": null,
+        "executionGuard": null,
+        "votingAddress": "0x1111111111111111111111111111111111111111",
+        "votingSource": {
+          "kind": "github",
+          "label": "Voting.vy at pinned stYFI revision",
+          "url": "https://github.com/yearn/stYFI/blob/9395d5e6fffdfe21fda32af94d32fca1a4f7840b/contracts/governance/Voting.vy",
+          "revision": "9395d5e6fffdfe21fda32af94d32fca1a4f7840b"
+        },
+        "votingSourcePath": "contracts/governance/Voting.vy",
+        "observationBlockNumber": "24000000"
+      },
+      "content": {
+        "state": "available",
+        "cid": "bafkreib4m62yupvezd6v23e2k3p2omrikolhws4fy4amiwjoht3ixmxym4",
+        "digest": "0x3c67b58a3ea4c8fd5d6c9a56dfa7322853967b4b85c700c4592e3cf68bb2f867",
+        "value": {
+          "schema": "yearn.dao.proposal.v1",
+          "markdown": "# Adopt the contributor budget policy\n\nThis proposal records the decision and rationale presented for DAO review.\n\n## Specification\n\nReview the requested governance outcome, voting record, and any ordered onchain actions before making a decision.\n\n![Governance flow diagram](./assets/governance-flow.svg)\n",
+          "discussionUrl": "https://gov.yearn.fi/t/dao-proposal/1",
+          "proposalType": "signal",
+          "createdBy": "0x4444444444444444444444444444444444444444",
+          "createdAt": "2026-08-18T12:00:00.000Z",
+          "assets": [
+            {
+              "path": "./assets/governance-flow.svg",
+              "mediaType": "image/svg+xml",
+              "byteLength": 660,
+              "digest": "0x63786be28dedc9bab6de44a52c8124dc237dfc650e203779da5a03aed873a209",
+              "width": 1280,
+              "height": 720
+            }
+          ]
+        },
+        "error": null
+      },
+      "discussion": {
+        "state": "verified",
+        "url": "https://gov.yearn.fi/t/dao-proposal/1",
+        "title": "Verified governance discussion",
+        "categoryId": 42,
+        "category": "Proposals",
+        "categorySlugPath": [
+          "proposals"
+        ]
+      },
+      "script": {
+        "bytes": "0x",
+        "hash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+        "hashVerified": true
+      },
+      "analysis": {
+        "state": "unavailable",
+        "generatedAt": null,
+        "registryVersion": null,
+        "calls": [],
+        "proposalSimulation": {
+          "state": "unavailable",
+          "method": null,
+          "engine": null,
+          "blockNumber": null,
+          "blockHash": null,
+          "simulatedAt": null,
+          "stateTimestamp": null,
+          "timestampMode": null,
+          "timestampOverride": null,
+          "caller": null,
+          "stateOverrides": null,
+          "error": "Signal proposals have no executable calls."
+        },
+        "error": null
+      },
+      "events": [
+        {
+          "type": "propose",
+          "log": {
+            "blockNumber": "23900010",
+            "blockHash": "0x000000000000000000000000000000000000000000000000000000000000000a",
+            "timestamp": 1787054400,
+            "transactionHash": "0x00000000000000000000000000000000000000000000000000000000000003f2",
+            "transactionIndex": 1,
+            "logIndex": 0
+          },
+          "actor": "0x4444444444444444444444444444444444444444",
+          "voteActorKind": null,
+          "yeaBps": null,
+          "direction": null,
+          "weight": null,
+          "reason": null
+        }
+      ],
+      "moderation": {
+        "flagReason": null,
+        "vetoReason": null
+      }
+    }
+  ]
+}

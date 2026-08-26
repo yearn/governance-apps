@@ -1,6 +1,7 @@
 # Release Checklist Template
 
-Use this template for Teams, YBC, or any future governance app surface.
+Use this template for every governance app surface. Mark items that do not apply
+and record why.
 
 ## 1. Scope freeze
 
@@ -30,6 +31,14 @@ Use this template for Teams, YBC, or any future governance app surface.
 - [ ] tx hashes recorded
 - [ ] failure cases exercised
 - [ ] simulation-before-write behavior confirmed
+- [ ] configured addresses, deployment blocks, roles, and chain ID verified
+- [ ] feed/indexer canonical-block and freshness checks pass, when applicable
+- [ ] immutable content remains available from more than one retained source,
+      when applicable
+- [ ] event payloads needed for later writes are retained and hash-verified
+- [ ] proposal-time analysis is distinguished from a fresh execution-time
+      simulation, when applicable
+- [ ] operator and guardian configuration is recorded, when applicable
 
 ## 5. Routing / rollout checks
 
@@ -38,6 +47,7 @@ Use this template for Teams, YBC, or any future governance app surface.
 - [ ] subdomain decision explicit
 - [ ] sitemap / discoverability decision explicit
 - [ ] header nav inclusion decision explicit
+- [ ] legacy-product cutover and archive behavior explicit
 
 ## 6. Ops checks
 

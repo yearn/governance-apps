@@ -68,8 +68,10 @@ describe("governance app discoverability", () => {
     expect(isIndexableGovernanceHostname("teams.yearn.fi")).toBe(false);
     expect(isIndexableGovernanceHostname("yeth.yearn.fi")).toBe(false);
     expect(isIndexableGovernanceHostname("ybc.yearn.fi")).toBe(false);
+    expect(isIndexableGovernanceHostname("dao.yearn.fi")).toBe(false);
     expect(isIndexableGovernanceHostname("app.dao-ops.com")).toBe(false);
     expect(isIndexableGovernanceHostname("styfi-beta.dao-ops.com")).toBe(false);
+    expect(isIndexableGovernanceHostname("dao-beta.dao-ops.com")).toBe(false);
     expect(isIndexableGovernanceHostname("localhost:3000")).toBe(false);
   });
 
@@ -101,7 +103,9 @@ describe("governance app discoverability", () => {
       },
     ]);
     expect(buildGovernanceSitemap("styfi-beta.dao-ops.com")).toEqual([]);
+    expect(buildGovernanceSitemap("dao-beta.dao-ops.com")).toEqual([]);
     expect(buildGovernanceSitemap("teams.yearn.fi")).toEqual([]);
+    expect(buildGovernanceSitemap("dao.yearn.fi")).toEqual([]);
   });
 
   it("publishes concise llms.txt content only for approved public hosts", () => {

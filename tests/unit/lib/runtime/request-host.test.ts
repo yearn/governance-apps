@@ -36,4 +36,5 @@ describe("resolveRequestHostname", () => {
 
     expect(resolveRequestHostname(headers, "127.0.0.1")).toBe("127.0.0.1");
   });
+
 });

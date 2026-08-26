@@ -11,6 +11,10 @@ You are integrating `{track}` / `{milestone}` work into the long-lived `agent/in
 - tag the integration commit only after the milestone is accepted
 
 ## Must check
+- package and integration worktrees are clean
+- reviewed commit SHAs match the final branch
+- reviewer and specialist-auditor blockers are resolved
+- dependency packages are already in `agent/integration`
 - milestone compiles cleanly
 - test suite remains green
 - route and host assumptions remain correct
@@ -25,3 +29,4 @@ Provide:
 - conflicts resolved
 - remaining blockers
 - readiness recommendation for next milestone
+- merge commit SHA and package commit range

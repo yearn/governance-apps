@@ -37,3 +37,13 @@ Each app folder contains app-scoped specs, UX notes, and delivery status.
 - [`ybc/user-stories.md`](ybc/user-stories.md)
 - [`ybc/onchain-integration-plan/README.md`](ybc/onchain-integration-plan/README.md)
 - [`ybc/onchain-integration-plan/ybc-feed-schema-v1.md`](ybc/onchain-integration-plan/ybc-feed-schema-v1.md)
+
+## DAO Governance
+
+- [`dao/README.md`](dao/README.md)
+- [`dao/contract-reference.md`](dao/contract-reference.md)
+- [`dao/functional-requirements.md`](dao/functional-requirements.md)
+- [`dao/user-stories.md`](dao/user-stories.md)
+- [`dao/ui-spec.md`](dao/ui-spec.md)
+- [`dao/mock-data-schema-v1.md`](dao/mock-data-schema-v1.md)
+- [`dao/delivery/README.md`](dao/delivery/README.md)

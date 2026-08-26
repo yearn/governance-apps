@@ -21,6 +21,7 @@ export function applyHostPrefix(pathname: string, prefix: string | null): string
 }
 
 function resolvePathPrefix(pathname: string): string | null {
+  if (pathname === "/dao" || pathname.startsWith("/dao/")) return "/dao";
   if (pathname === "/styfi" || pathname.startsWith("/styfi/")) return "/styfi";
   if (pathname === "/veyfi" || pathname.startsWith("/veyfi/")) return "/veyfi";
   if (pathname === "/teams" || pathname.startsWith("/teams/")) return "/teams";

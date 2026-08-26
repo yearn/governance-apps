@@ -25,5 +25,9 @@ export const homeCopy = {
       label: "Yearn Builder's Collective (ybc-beta.dao-ops.com)",
       href: "/ybc",
     },
+    dao: {
+      label: "DAO Governance",
+      href: "/dao",
+    },
   },
 } as const;
