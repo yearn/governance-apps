@@ -12,6 +12,7 @@ import {
   deriveDaoDisplayGroup,
   deriveDaoDisplayStatus,
   deriveDaoLifecycleFacts,
+  deriveDaoProposalExecutionReadiness,
   deriveDaoProposalTiming,
   deriveDaoProposerState,
   deriveDaoProtocolStatus,
@@ -202,6 +203,92 @@ describe("DAO proposal identity and lifecycle", () => {
         executionBlocked: true,
       },
     });
+  });
+});
+
+describe("DAO proposal execution readiness", () => {
+  it("derives the exact typed integrity states from proposal type and script bytes", () => {
+    expect(deriveDaoProposalExecutionReadiness(proposal(4n))).toEqual({
+      state: "not_applicable",
+      blocker: null,
+      reason: null,
+    });
+    expect(deriveDaoProposalExecutionReadiness(proposal(5n))).toEqual({
+      state: "integrity_ready",
+      blocker: null,
+      reason: null,
+    });
+    expect(deriveDaoProposalExecutionReadiness(proposal(19n))).toEqual({
+      state: "integrity_blocked",
+      blocker: "stored_script_hash_mismatch",
+      reason: "Stored script hash does not match the proposed event script.",
+    });
+
+    const withoutExactBytes = proposal(21n);
+    withoutExactBytes.script.bytes = null;
+    withoutExactBytes.script.hashVerified = null;
+    expect(deriveDaoProposalExecutionReadiness(withoutExactBytes)).toEqual({
+      state: "integrity_blocked",
+      blocker: "exact_script_unavailable",
+      reason: "Exact proposed event script bytes are unavailable.",
+    });
+  });
+
+  it("does not conflate integrity with lifecycle, moderation, analysis, or guard state", () => {
+    for (const proposalId of [
+      5n,
+      6n,
+      7n,
+      9n,
+      10n,
+      11n,
+      12n,
+      13n,
+      18n,
+      21n,
+      22n,
+    ]) {
+      expect(
+        deriveDaoProposalExecutionReadiness(proposal(proposalId)),
+        `proposal ${proposalId.toString()}`
+      ).toEqual({
+        state: "integrity_ready",
+        blocker: null,
+        reason: null,
+      });
+    }
+  });
+
+  it("requires hashVerified to equal the actual hash comparison when bytes exist", () => {
+    const matchingMarkedFalse = proposal(21n);
+    matchingMarkedFalse.script.hashVerified = false;
+    expect(() => assertDaoProposalInvariants(matchingMarkedFalse)).toThrow(
+      /hashVerified/i
+    );
+
+    const matchingMarkedUnknown = proposal(21n);
+    matchingMarkedUnknown.script.hashVerified = null;
+    expect(() => assertDaoProposalInvariants(matchingMarkedUnknown)).toThrow(
+      /hashVerified/i
+    );
+
+    const mismatchMarkedTrue = proposal(19n);
+    mismatchMarkedTrue.script.hashVerified = true;
+    expect(() => assertDaoProposalInvariants(mismatchMarkedTrue)).toThrow(
+      /hashVerified/i
+    );
+  });
+
+  it("allows nullable hash verification only when exact bytes are absent", () => {
+    const missingBytes = proposal(21n);
+    missingBytes.script.bytes = null;
+    missingBytes.script.hashVerified = null;
+    expect(() => assertDaoProposalInvariants(missingBytes)).not.toThrow();
+
+    missingBytes.script.hashVerified = false;
+    expect(() => assertDaoProposalInvariants(missingBytes)).toThrow(
+      /hashVerified/i
+    );
   });
 });
 
