@@ -12,8 +12,10 @@ six-host Access gate remain incomplete.
   `c2931f7714ab96ff2531e4192e9ef4a49595057a`
 - Refined scope tip before implementation:
   `527493f`
-- Implementation and gate source tip:
+- Original implementation and full-gate source tip:
   `b03133b6817bcb1872c7651a431828d75e9a8dec`
+- Final-review fix source tip before this ledger:
+  `89e169c8dce3e6bd5bca8a5b268941bd4e198f43`
 - Final exact candidate tip: the commit containing this ledger. A commit cannot
   record its own SHA. Integration status and handoff must record that SHA and
   the independently reviewed range.
@@ -25,16 +27,17 @@ six-host Access gate remain incomplete.
 
 | Concern | Commits |
 | --- | --- |
-| Red regressions | `3feb3d9`, `650ac75`, `5f5784d`, `5758564`, `a8919e4` |
+| Red regressions | `3feb3d9`, `650ac75`, `5f5784d`, `5758564`, `a8919e4`, `06b58e8` |
 | Execution readiness | `ead398e`, `b422142` |
 | Host-aware header links | `df13d9d`, `dff7bd8`, `acc18ee` |
 | Typed authoring outcomes | `ab4c850` |
 | Indexing recovery | `66f1e54` |
 | Visible-control Playwright coverage | `568dfa3` |
 | Canonical behavior docs | `a3ab330` |
-| Access and shared security docs | `acbee9d` |
+| Access and shared security docs | `acbee9d`, `89e169c` |
 | Beta-host header hydration coverage | `611f332` |
 | Deterministic inherited smoke fixture | `b03133b` |
+| Multiline mobile application label | `e040e1c` |
 
 The evidence commit is the exact candidate tip. This ledger does not self-name
 that commit or claim that independent review has approved its range.
@@ -70,6 +73,10 @@ detail integrity explanation remains.
   paths such as `/daofoo` do not match.
 - Desktop and mobile use native links with visible focus. The desktop target is
   at least 40 pixels high; mobile uses 44 pixels and closes the modal menu.
+- Mobile application labels wrap without ellipsis or clipping. The settled
+  shared `/ybc` case at 390×844 and 200% root text keeps the exact `Yearn
+  Builder's Collective` link and drawer contained, keeps the body scroll lock,
+  and uses the 0.96 press scale with reduced-motion handling.
 - Proposal submission receives one explicit `{ review, publication, outcome,
   latencyMs? }` request. Forum topics `1003` and `1004` are ordinary topics.
 - Rejection, revert, and network failure keep the exact review and publication
@@ -109,8 +116,11 @@ Operator work remains:
    or reconcile all six exact applications if the audit finds drift.
 3. Run every sanitized allow, deny, nested-route, cross-beta, wallet, noindex,
    canonical, and unrelated-host check in the beta runbook.
-4. Record rollback. Disable or remove only package-created exact-host bindings
-   or policies; do not touch DNS, TLS, custom domains, or the Worker.
+4. Before mutation, record a sanitized snapshot of the existing applications
+   and policy attachments. Rollback restores that snapshot and removes only
+   package-created exact-host objects or the added DAO hostname/attachment.
+   Never detach an existing policy from the five already-protected beta apps.
+   Do not touch DNS, TLS, custom domains, or the Worker.
 
 ## Source gates
 
@@ -141,6 +151,33 @@ derived its clock from wall time. The isolated case failed the same way on the
 package candidate and on the exact frozen base. Commit `b03133b` changed only
 that test to use `DAO_MOCK_NOW`; it kept the exact `Voting` assertion. The exact
 case passed twice before the complete smoke suite passed.
+
+## Final-review blocker follow-up
+
+| Check | Result |
+| --- | --- |
+| Final regression at `06b58e8` against the unchanged `truncate` label | Failed as intended: computed `text-overflow` was `ellipsis` |
+| Exact settled `/ybc` Playwright case after `e040e1c` | 1 passed |
+| `npm run test -- tests/components/HeaderHomeLinks.test.tsx tests/unit/lib/header-nav.test.ts` | 2 files and 31 tests passed |
+| ESLint for the changed header and Playwright files | Passed |
+| `npm run typecheck` | Passed |
+| `git diff --check` | Passed |
+
+The green case verifies the exact long label, wrapping styles, label scroll
+dimensions, 44-pixel minimum link target, drawer bounds and scroll width, and
+body scroll lock. Diagnostic runs also found a separate 200%-text min-content
+overflow in the underlying YBC operator controls. This package does not change
+or make a containment claim for that YBC surface; the header regression waits
+for the settled route and scopes its geometry to the open drawer.
+
+Commit `89e169c` also corrects the runbook and package specification. Rollback
+now restores a sanitized pre-change snapshot, removes only package-created
+objects or the added DAO attachment, and never detaches pre-existing policy
+protection from the five already-protected beta hosts.
+
+The full Vitest, full Playwright, and build gates above were not rerun after
+these final-review changes. The affected UI seam received the focused
+Playwright, component, resolver, lint, and typecheck checks recorded here.
 
 ## Compiled production proof
 
