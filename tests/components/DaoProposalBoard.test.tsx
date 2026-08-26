@@ -31,6 +31,44 @@ describe("DAO proposal board", () => {
     ).toBeVisible();
   });
 
+  it("puts proposal #19 integrity failure first and removes misleading action copy", () => {
+    render(
+      <ProposalBoard
+        now={now}
+        proposals={DAO_MOCK_FEED.proposals}
+        selectedGroup="active"
+      />
+    );
+
+    const blocked = screen.getByRole("article", {
+      name: /Proposal with a script hash mismatch/,
+    });
+    const facts = within(blocked).getByTestId("dao-proposal-heading-facts");
+    expectTextOrder(facts, [
+      "Execution blocked",
+      "Approved",
+      "Executable",
+      "Stored script hash does not match the proposed event script.",
+    ]);
+    expect(
+      within(facts).getByText("Execution blocked", { exact: true })
+    ).toHaveClass("bg-red-700", "text-white");
+    expect(
+      within(blocked).queryByText("Executable actions", { exact: true })
+    ).not.toBeInTheDocument();
+    expect(within(blocked).queryByRole("alert")).not.toBeInTheDocument();
+
+    const normal = screen.getByRole("article", {
+      name: /historical simulation failed/,
+    });
+    expect(
+      within(normal).getByText("Executable actions", { exact: true })
+    ).toBeVisible();
+    expect(
+      within(normal).queryByText("Execution blocked", { exact: true })
+    ).not.toBeInTheDocument();
+  });
+
   it("switches Upcoming and Closed with mouse and keyboard tab semantics", () => {
     render(<ProposalBoard now={now} proposals={DAO_MOCK_FEED.proposals} />);
 
@@ -272,4 +310,13 @@ function statusLabel(status: string) {
   return status === "not_found"
     ? "Not found"
     : `${status.charAt(0).toUpperCase()}${status.slice(1)}`;
+}
+
+function expectTextOrder(element: HTMLElement, labels: string[]) {
+  let previousIndex = -1;
+  for (const label of labels) {
+    const index = element.textContent?.indexOf(label) ?? -1;
+    expect(index, label).toBeGreaterThan(previousIndex);
+    previousIndex = index;
+  }
 }
