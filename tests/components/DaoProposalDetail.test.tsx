@@ -313,6 +313,23 @@ describe("DAO proposal detail", () => {
       <ProposalDetail envelope={envelope(proposal(19n))} />
     );
 
+    const facts = screen.getByTestId("dao-proposal-heading-facts");
+    expectTextOrder(facts, [
+      "Execution blocked",
+      "Approved",
+      "Executable",
+      "Stored script hash does not match the proposed event script.",
+    ]);
+    expect(
+      within(facts).getByText("Execution blocked", { exact: true })
+    ).toHaveClass("bg-red-700", "text-white");
+    expect(
+      within(facts).getByText(
+        "Stored script hash does not match the proposed event script.",
+        { exact: true }
+      )
+    ).toBeVisible();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Event script does not match the stored script hash"
     );
@@ -403,4 +420,13 @@ function statusLabel(status: DaoDisplayStatus) {
   if (status === "discussion") return "Discussion";
   if (status === "voting") return "Voting";
   return "Not found";
+}
+
+function expectTextOrder(element: HTMLElement, labels: string[]) {
+  let previousIndex = -1;
+  for (const label of labels) {
+    const index = element.textContent?.indexOf(label) ?? -1;
+    expect(index, label).toBeGreaterThan(previousIndex);
+    previousIndex = index;
+  }
 }

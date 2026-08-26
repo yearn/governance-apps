@@ -328,6 +328,25 @@ veto blocks voting, while a veto after participation can leave voting available
 until the window closes. An empty-script raw `executed` signal has an approved
 vote result and `no_actions` execution state.
 
+Execution integrity is a separate derived fact:
+
+```ts
+type DaoProposalExecutionReadiness =
+  | { state: "not_applicable"; blocker: null; reason: null }
+  | { state: "integrity_ready"; blocker: null; reason: null }
+  | {
+      state: "integrity_blocked";
+      blocker:
+        | "exact_script_unavailable"
+        | "stored_script_hash_mismatch";
+      reason: string;
+    };
+```
+
+`deriveDaoProposalExecutionReadiness` reads proposal type and script bytes/hash
+only. `integrity_ready` proves byte/hash integrity, not current executability or
+account permission.
+
 Rules belong to the proposal. The constructor/default fixture uses 5,000 basis
 points; a retained alternate snapshot uses 6,000. Mutable voting period, delay,
 guard, and global threshold observations carry their observation block. The UI
@@ -422,6 +441,13 @@ type DaoMockTransactionOutcome =
   | "user-rejected"
   | "revert"
   | "network-error";
+
+type DaoProposalSubmissionRequest = {
+  review: DaoAuthoringReview;
+  publication: DaoPublishedContent;
+  outcome: DaoMockTransactionOutcome;
+  latencyMs?: number;
+};
 ```
 
 `DaoPendingAction` is not canonical feed history. A confirmed vote updates
@@ -450,6 +476,19 @@ used for the receipt-confirmed view, browser-local `awaiting_index` overlay, and
 indexed fixture. That local overlay intentionally does not survive another
 browser session.
 
+The explicit submission request controls transaction outcomes. Forum topic
+`1002` remains the publication-failure fixture and `1005` remains the missing
+receipt-log fixture. Topics `1003` and `1004` are ordinary valid topics and do
+not select transaction behavior. Rejection, revert, and network failure return
+before a hash exists and leave pending, created, session, feed, event, and index
+state unchanged. Reset restores `success`.
+
+Created-proposal registration waits for its modeled latency before persistence.
+If completion cannot find the record, the UI exposes an idempotent indexing
+retry. Re-registration upserts the exact receipt-derived reference; indexing
+then enriches that same record without adding a second proposal or `propose`
+event.
+
 `createMockDaoClient` is an immutable fixture-snapshot reader and rejects all
 five prepared-write methods with a stable read-only error. It must not imply
 that a snapshot-only client can consume one-vote or lifecycle authorization.
@@ -466,7 +505,8 @@ only mock client that prepares and submits actions.
 - App type is derived from the event script: Signal has empty bytes and the
   empty-script hash; Executable has non-empty bytes. A conflicting IPFS
   `proposalType` is a content inconsistency, not the authoritative type.
-- `hashVerified` is true only when retained script bytes hash to the stored hash.
+- `hashVerified` is `null` only when exact bytes are absent. When bytes exist,
+  it equals the actual keccak comparison with the stored hash.
 - The six affected boost epochs start at `expectedVotingEpoch` and are
   consecutive.
 - `invalid` and `not_found` are lookup results and never appear in feed history.

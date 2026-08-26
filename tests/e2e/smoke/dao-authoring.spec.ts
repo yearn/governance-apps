@@ -1,5 +1,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { DAO_EXECUTOR_VALID_SCRIPT_VECTORS } from "@/lib/clients/dao";
+import {
+  DAO_CREATED_PROPOSALS_STORAGE_KEY,
+  DAO_EXECUTOR_VALID_SCRIPT_VECTORS,
+} from "@/lib/clients/dao";
 import { resetBridge, waitForTestBridge } from "../utils";
 
 test.beforeEach(async ({ page }) => {
@@ -334,12 +337,13 @@ test("preserves the draft and does not start the wallet step after publication f
   ).toHaveValue("https://gov.yearn.fi/t/improve-treasury-reporting/1002");
 });
 
-test("keeps publication after wallet rejection and proposal revert", async ({
+test("keeps publication after every failed typed transaction outcome", async ({
   page,
 }) => {
-  for (const [topicId, failureTitle] of [
-    [1003, "Wallet request cancelled"],
-    [1004, "Proposal creation failed"],
+  for (const [outcome, failureTitle] of [
+    ["user-rejected", "Wallet request cancelled"],
+    ["revert", "Proposal creation failed"],
+    ["network-error", "Network request failed"],
   ] as const) {
     await page.goto("/dao/propose");
     await waitForTestBridge(page);
@@ -347,8 +351,11 @@ test("keeps publication after wallet rejection and proposal revert", async ({
       await window.__TEST__?.setDaoProposerState?.("eligible");
       await window.__TEST__?.setDaoAuthoringState?.("valid-signal");
     });
+    await page.evaluate(async (nextOutcome) => {
+      await window.__TEST__?.setDaoTransactionOutcome?.(nextOutcome);
+    }, outcome);
     await openAuthoring(page);
-    await fillImmutableDraft(page, topicId);
+    await fillImmutableDraft(page, 1001);
     await reviewAndPublish(page);
     await expect(
       page.getByRole("heading", { name: "Immutable content published" })
@@ -356,14 +363,106 @@ test("keeps publication after wallet rejection and proposal revert", async ({
     await page
       .getByRole("button", { name: "Create onchain proposal" })
       .click();
-    await expect(page.getByText(failureTitle)).toBeVisible();
+    await expect(page.getByText(failureTitle, { exact: true })).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Immutable content published" })
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Retry proposal creation" })
     ).toBeEnabled();
+    await expect(page.getByText("Transaction hash", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "View transaction" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Open proposal" })).toHaveCount(0);
+    await expect(page.getByText("Awaiting proposal indexing and analysis")).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        (storageKey) => window.sessionStorage.getItem(storageKey),
+        DAO_CREATED_PROPOSALS_STORAGE_KEY
+      )
+    ).toBeNull();
   }
+});
+
+test("uses visible review controls for rejection then retries the same publication to Indexed", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openDebugControls(page);
+  await selectDebugControl(page, "Persona and roles", "Proposer");
+  await selectDebugControl(page, "Transaction result", "Rejected");
+  await page.getByRole("button", { name: "Close debug controls" }).click();
+
+  await openAuthoring(page);
+  await fillImmutableDraft(page, 1001);
+  await reviewAndPublish(page);
+  await expect(
+    page.getByRole("heading", { name: "Immutable content published" })
+  ).toBeVisible();
+  const fingerprintFact = page
+    .getByText("Content fingerprint", { exact: true })
+    .locator("xpath=..");
+  const publicationFingerprint = await fingerprintFact.textContent();
+
+  await page.getByRole("button", { name: "Create onchain proposal" }).click();
+  await expect(page.getByText("Wallet request cancelled")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Immutable content published" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Retry proposal creation" })
+  ).toBeEnabled();
+  await expect(page.getByText("Transaction hash", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "View transaction" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Open proposal" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Copy proposal link" })).toHaveCount(0);
+  await expect(page.getByText("Awaiting proposal indexing and analysis")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      (storageKey) => window.sessionStorage.getItem(storageKey),
+      DAO_CREATED_PROPOSALS_STORAGE_KEY
+    )
+  ).toBeNull();
+
+  await openDebugControls(page);
+  const transactionControls = await getDebugControlGroup(
+    page,
+    "Transaction result"
+  );
+  await expect(transactionControls.getByText(/awaiting indexing/i)).toHaveCount(0);
+  await transactionControls
+    .getByRole("button", { name: "Success", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Close debug controls" }).click();
+
+  await expect(fingerprintFact).toHaveText(publicationFingerprint ?? "");
+  await page
+    .getByRole("button", { name: "Retry proposal creation" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Proposal ready" })
+  ).toBeVisible();
+  await expect(fingerprintFact).toHaveText(publicationFingerprint ?? "");
+
+  const openProposal = page.getByRole("link", { name: "Open proposal" });
+  const proposalHref = await openProposal.getAttribute("href");
+  expect(proposalHref).toMatch(/^\/dao\/proposals\/\d+\?from=upcoming$/);
+  await page.getByRole("button", { name: "Copy proposal link" }).click();
+  await expect(
+    page.getByRole("button", { name: "Proposal link copied" })
+  ).toBeVisible();
+  const stored = await page.evaluate(
+    (storageKey) => window.sessionStorage.getItem(storageKey),
+    DAO_CREATED_PROPOSALS_STORAGE_KEY
+  );
+  expect(stored).not.toBeNull();
+  expect(JSON.parse(stored!).records).toHaveLength(1);
+  expect(JSON.parse(stored!).records[0]?.stage).toBe("indexed");
+
+  await openProposal.click();
+  await expect(page).toHaveURL(proposalHref!);
+  await expect(
+    page.getByRole("heading", { name: "Exact proposal title", level: 1 })
+  ).toBeVisible();
 });
 
 test("renders every mutable proposer blocker and the shared capacity rule", async ({
@@ -440,6 +539,34 @@ async function reviewAndPublish(page: Page) {
     .check();
   await page
     .getByRole("button", { name: "Publish immutable content" })
+    .click();
+}
+
+async function openDebugControls(page: Page) {
+  await page.getByRole("button", { name: /Debug/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Debug Controls" })
+  ).toBeVisible();
+}
+
+async function getDebugControlGroup(page: Page, label: string) {
+  const summary = page.getByText(label, { exact: true });
+  const group = summary.locator("xpath=ancestor::details[1]");
+  if ((await group.getAttribute("open")) === null) {
+    await summary.click();
+  }
+  return group;
+}
+
+async function selectDebugControl(
+  page: Page,
+  groupLabel: string,
+  buttonName: string
+) {
+  const group = await getDebugControlGroup(page, groupLabel);
+  await group
+    .getByRole("button", { name: buttonName, exact: true })
+    .first()
     .click();
 }
 

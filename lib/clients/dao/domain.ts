@@ -6,6 +6,7 @@ import type {
   DaoDisplayStatus,
   DaoLifecycleFacts,
   DaoProposal,
+  DaoProposalExecutionReadiness,
   DaoProposalEvent,
   DaoProposalLifecycleInput,
   DaoProposalRef,
@@ -60,6 +61,12 @@ export const DAO_BLOCKED_REASONS = {
   proposerWeight: "Proposal weight is below the current minimum.",
   proposerCooldown: "The proposal cooldown is still active.",
   proposerCapacity: "Proposal capacity is full.",
+} as const;
+
+const DAO_EXECUTION_READINESS_REASONS = {
+  exactScriptUnavailable: "Exact proposed event script bytes are unavailable.",
+  storedScriptHashMismatch:
+    "Stored script hash does not match the proposed event script.",
 } as const;
 
 export type DaoModerationReasonCheck = {
@@ -162,6 +169,32 @@ export function deriveDaoDisplayGroup(
     return "active";
   }
   return "closed";
+}
+
+export function deriveDaoProposalExecutionReadiness(
+  proposal: Pick<DaoProposal, "type" | "script">
+): DaoProposalExecutionReadiness {
+  if (proposal.type === "signal") {
+    return { state: "not_applicable", blocker: null, reason: null };
+  }
+  if (proposal.script.bytes === null) {
+    return {
+      state: "integrity_blocked",
+      blocker: "exact_script_unavailable",
+      reason: DAO_EXECUTION_READINESS_REASONS.exactScriptUnavailable,
+    };
+  }
+  if (
+    keccak256(proposal.script.bytes).toLowerCase() !==
+    proposal.script.hash.toLowerCase()
+  ) {
+    return {
+      state: "integrity_blocked",
+      blocker: "stored_script_hash_mismatch",
+      reason: DAO_EXECUTION_READINESS_REASONS.storedScriptHashMismatch,
+    };
+  }
+  return { state: "integrity_ready", blocker: null, reason: null };
 }
 
 export function deriveDaoLifecycleFacts(
@@ -510,14 +543,15 @@ export function assertDaoProposalInvariants(proposal: DaoProposal): void {
     throw new Error("Executable proposals cannot use the empty Executor script.");
   }
 
-  if (proposal.script.hashVerified === true) {
-    if (
-      proposal.script.bytes === null ||
-      keccak256(proposal.script.bytes).toLowerCase() !==
-        proposal.script.hash.toLowerCase()
-    ) {
-      throw new Error("A hash-verified script must match the stored script hash.");
-    }
+  const actualHashVerified =
+    proposal.script.bytes === null
+      ? null
+      : keccak256(proposal.script.bytes).toLowerCase() ===
+        proposal.script.hash.toLowerCase();
+  if (proposal.script.hashVerified !== actualHashVerified) {
+    throw new Error(
+      "Proposal script hashVerified must equal the actual hash comparison and may be null only when exact bytes are absent."
+    );
   }
 
   for (const event of proposal.events) assertDaoProposalEventInvariant(event);

@@ -87,11 +87,17 @@ The temporary M2 review candidate is production-shaped but mock-backed:
 8. `dao-beta.dao-ops.com` serves clean DAO paths and returns
    `X-Robots-Tag: noindex, nofollow`
 9. DAO stays absent from canonical metadata, sitemap, and `llms.txt`
+10. Cloudflare Access protects every path on the six exact governance beta
+    hosts (`styfi-beta`, `veyfi-beta`, `yeth-beta`, `teams-beta`, `ybc-beta`,
+    and `dao-beta` under `dao-ops.com`) with the approved reusable GitHub
+    organization/team policy
 
 The DAO flag applies to the shared preproduction deployment, not only the beta
 hostname. Other hosts served by the same Worker can reach `/dao` while it is
-true. The custom domain is unlisted, not authenticated; require Cloudflare
-Access separately if “internal” must mean access-controlled.
+true. Feature flags, custom domains, noncanonical metadata, and `noindex` are
+not authentication boundaries. Do not share a beta host until its exact Access
+application has passed unauthenticated, authorized-member, unrelated-account,
+and nested-route checks.
 
 ## Preview checklist
 

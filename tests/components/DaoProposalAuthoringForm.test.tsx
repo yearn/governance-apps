@@ -3,9 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DAO_EXECUTOR_VALID_SCRIPT_VECTORS,
+  DAO_CREATED_PROPOSALS_STORAGE_KEY,
   deriveDaoProposerState,
+  getDaoMockSnapshot,
   getDaoMockFixture,
+  readDaoCreatedProposals,
   resetDaoMockStore,
+  serializeDaoProposalRef,
+  type DaoMockTransactionOutcome,
   type DaoProposerEligibilityInput,
 } from "@/lib/clients/dao";
 import {
@@ -283,6 +288,58 @@ describe("DAO proposal authoring form", () => {
     expect(screen.getAllByRole("status")).toHaveLength(1);
   });
 
+  it("retries delayed indexing idempotently with the same visible proposal identity", async () => {
+    const user = userEvent.setup();
+    renderAuthoring(150);
+    await fillDraft(user, 1001);
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /I reviewed the exact immutable content/i,
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Publish immutable content" })
+    );
+    await screen.findByRole("heading", {
+      name: "Immutable content published",
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Create onchain proposal" })
+    );
+
+    const open = await screen.findByRole("link", { name: "Open proposal" });
+    const proposalHref = open.getAttribute("href");
+    expect(proposalHref).toMatch(/^\/dao\/proposals\/\d+\?from=upcoming$/);
+    await screen.findByText("Awaiting proposal indexing and analysis");
+    resetDaoMockStore();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Proposal indexing is delayed",
+      })
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Retry indexing" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Proposal ready" })
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open proposal" })).toHaveAttribute(
+      "href",
+      proposalHref
+    );
+    const [created] = readDaoCreatedProposals();
+    expect(created?.stage).toBe("indexed");
+    const refKey = serializeDaoProposalRef(created!.proposal.ref);
+    const matching = getDaoMockSnapshot().feed.proposals.filter(
+      (proposal) => serializeDaoProposalRef(proposal.ref) === refKey
+    );
+    expect(matching).toHaveLength(1);
+    expect(
+      matching[0]?.events.filter((event) => event.type === "propose")
+    ).toHaveLength(1);
+  });
+
   it("keeps the transaction link and hides proposal actions when identity decoding fails", async () => {
     const user = userEvent.setup();
     renderAuthoring();
@@ -446,12 +503,15 @@ describe("DAO proposal authoring form", () => {
   });
 
   it.each([
-    [1003, "Wallet request cancelled"],
-    [1004, "Proposal creation failed"],
-  ])("keeps published content after proposal failure %s", async (topicId, title) => {
+    ["user-rejected", "Wallet request cancelled"],
+    ["revert", "Proposal creation failed"],
+    ["network-error", "Network request failed"],
+  ] as const)("keeps publication and all proposal state clean after %s", async (outcome, title) => {
     const user = userEvent.setup();
-    renderAuthoring();
-    await fillDraft(user, topicId);
+    const before = getDaoMockSnapshot();
+    const beforeEventCount = countFeedEvents(before);
+    renderAuthoring(0, outcome);
+    await fillDraft(user, 1001);
     await user.click(screen.getByRole("button", { name: "Review proposal" }));
     await user.click(
       screen.getByRole("checkbox", {
@@ -475,6 +535,70 @@ describe("DAO proposal authoring form", () => {
     expect(
       screen.getByRole("button", { name: "Retry proposal creation" })
     ).toBeEnabled();
+    expect(
+      screen.queryByRole("link", { name: "View transaction" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Open proposal" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy proposal link" })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Transaction hash")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Awaiting proposal indexing and analysis")
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Proposal indexed")).not.toBeInTheDocument();
+    expect(readDaoCreatedProposals()).toEqual([]);
+    expect(
+      sessionStorage.getItem(DAO_CREATED_PROPOSALS_STORAGE_KEY)
+    ).toBeNull();
+
+    const after = getDaoMockSnapshot();
+    expect(after.feed.proposals).toHaveLength(before.feed.proposals.length);
+    expect(countFeedEvents(after)).toBe(beforeEventCount);
+    expect(after.pendingAction).toBeNull();
+  });
+
+  it("reuses the completed publication when a rejected request retries as Success", async () => {
+    const user = userEvent.setup();
+    const view = renderAuthoring(0, "user-rejected");
+    await fillDraft(user, 1001);
+    await user.click(screen.getByRole("button", { name: "Review proposal" }));
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /I reviewed the exact immutable content/i,
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Publish immutable content" })
+    );
+    await screen.findByRole("heading", {
+      name: "Immutable content published",
+    });
+    const fingerprint = screen.getByText("Content fingerprint").parentElement
+      ?.textContent;
+
+    await user.click(
+      screen.getByRole("button", { name: "Create onchain proposal" })
+    );
+    await screen.findByText("Wallet request cancelled");
+
+    view.rerender(authoringElement(0, "success"));
+    expect(
+      screen.getByRole("heading", { name: "Immutable content published" })
+    ).toBeVisible();
+    expect(screen.getByText("Content fingerprint").parentElement).toHaveTextContent(
+      fingerprint ?? ""
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Retry proposal creation" })
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Proposal ready" })
+    ).toBeVisible();
+    expect(readDaoCreatedProposals()).toHaveLength(1);
   });
 });
 
@@ -544,15 +668,33 @@ describe("DAO proposal eligibility presentation", () => {
   });
 });
 
-function renderAuthoring(serviceLatencyMs = 0) {
+function renderAuthoring(
+  serviceLatencyMs = 0,
+  transactionOutcome: DaoMockTransactionOutcome = "success"
+) {
+  return render(authoringElement(serviceLatencyMs, transactionOutcome));
+}
+
+function authoringElement(
+  serviceLatencyMs: number,
+  transactionOutcome: DaoMockTransactionOutcome
+) {
   const proposer = deriveDaoProposerState(proposerInput());
-  return render(
+  return (
     <DaoProposalAuthoringForm
       address={proposer.address}
       now={NOW}
       proposer={proposer}
       serviceLatencyMs={serviceLatencyMs}
+      transactionOutcome={transactionOutcome}
     />
+  );
+}
+
+function countFeedEvents(snapshot: ReturnType<typeof getDaoMockSnapshot>) {
+  return snapshot.feed.proposals.reduce(
+    (count, proposal) => count + proposal.events.length,
+    0
   );
 }
 

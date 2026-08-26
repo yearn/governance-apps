@@ -24,6 +24,9 @@ export const daoCopy = {
     proposeDisconnected:
       "Connect a wallet from the header to check whether you can create a proposal.",
   },
+  executionReadiness: {
+    blocked: "Execution blocked",
+  },
   board: {
     title: "Proposals",
     description: "Review upcoming, active, and closed DAO decisions.",

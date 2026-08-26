@@ -5,6 +5,7 @@ import {
   type Locator,
   type Page,
 } from "@playwright/test";
+import { DAO_MOCK_NOW } from "@/lib/clients/dao";
 
 const EXPECT_PRODUCTION_FAIL_CLOSED =
   process.env.E2E_EXPECT_DAO_PRODUCTION_FAIL_CLOSED === "true";
@@ -161,6 +162,116 @@ test("renders the DAO proposal board shell", async ({ page }) => {
   await expect(createProposalLink).toBeFocused();
 
   await expectMinimumHitArea(createProposalLink);
+});
+
+test("links the shared DAO application label home on desktop and mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1_280, height: 900 });
+  await page.goto("/dao/proposals/2");
+  const desktopHome = page
+    .locator("header")
+    .getByRole("link", { name: "DAO Governance", exact: true });
+  await expect(desktopHome).toHaveAttribute("href", "/dao");
+  await expectMinimumHitArea(desktopHome);
+  await desktopHome.focus();
+  await expect(desktopHome).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/dao$/);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dao/proposals/2");
+  const opener = page.getByRole("button", { name: "Open navigation menu" });
+  await opener.click();
+  const dialog = page.getByRole("dialog", { name: "Navigation menu" });
+  const mobileHome = dialog.getByRole("link", {
+    name: "DAO Governance",
+    exact: true,
+  });
+  await expect(mobileHome).toHaveAttribute("href", "/dao");
+  const mobileBox = await mobileHome.boundingBox();
+  expect(mobileBox).not.toBeNull();
+  expect(mobileBox!.height).toBeGreaterThanOrEqual(44);
+  await mobileHome.click();
+  await expect(page).toHaveURL(/\/dao$/);
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Open navigation menu" })
+  ).toBeFocused();
+});
+
+test("wraps the long shared app label at 200% mobile text without clipping", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/ybc");
+  await expect(
+    page.getByRole("heading", {
+      name: "Yearn Builder's Collective",
+      level: 1,
+    })
+  ).toBeVisible();
+  await page.addStyleTag({
+    content: "html { font-size: 200% !important; }",
+  });
+
+  await page.getByRole("button", { name: "Open navigation menu" }).click();
+  const dialog = page.getByRole("dialog", { name: "Navigation menu" });
+  const mobileHome = dialog.getByRole("link", {
+    name: "Yearn Builder's Collective",
+    exact: true,
+  });
+  const label = mobileHome.getByText("Yearn Builder's Collective", {
+    exact: true,
+  });
+
+  await expect(mobileHome).toBeVisible();
+  await expect(mobileHome).toHaveAttribute("href", "/ybc");
+  const labelLayout = await label.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+
+    return {
+      clientHeight: element.clientHeight,
+      clientWidth: element.clientWidth,
+      scrollHeight: element.scrollHeight,
+      scrollWidth: element.scrollWidth,
+      textOverflow: style.textOverflow,
+      whiteSpace: style.whiteSpace,
+    };
+  });
+
+  expect(labelLayout.textOverflow, "long app label must not ellipsize").not.toBe(
+    "ellipsis"
+  );
+  expect(labelLayout.whiteSpace, "long app label must wrap").not.toBe("nowrap");
+  expect(
+    labelLayout.scrollHeight,
+    "wrapped label height must not clip"
+  ).toBeLessThanOrEqual(labelLayout.clientHeight);
+  expect(
+    labelLayout.scrollWidth,
+    "wrapped label width must not clip"
+  ).toBeLessThanOrEqual(labelLayout.clientWidth);
+  const mobileBox = await mobileHome.boundingBox();
+  expect(mobileBox).not.toBeNull();
+  expect(mobileBox!.height).toBeGreaterThanOrEqual(44);
+  const drawerLayout = await dialog.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+
+    return {
+      clientWidth: element.clientWidth,
+      left: rect.left,
+      right: rect.right,
+      scrollWidth: element.scrollWidth,
+      viewportWidth: window.innerWidth,
+    };
+  });
+  expect(drawerLayout.left).toBeGreaterThanOrEqual(0);
+  expect(drawerLayout.right).toBeLessThanOrEqual(drawerLayout.viewportWidth);
+  expect(drawerLayout.scrollWidth).toBeLessThanOrEqual(drawerLayout.clientWidth);
+  await expect
+    .poll(() => page.evaluate(() => window.getComputedStyle(document.body).overflow))
+    .toBe("hidden");
 });
 
 test("preserves the board group through replace, reload, detail, and Back", async ({
@@ -326,6 +437,11 @@ test("uses clean client-side paths on the guarded DAO beta host", async ({
   ).toBeVisible();
   expect(new URL(page.url()).pathname).toBe("/");
   await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+  const betaDesktopHome = page
+    .locator("header")
+    .getByRole("link", { name: "DAO Governance", exact: true });
+  await expect(betaDesktopHome).toHaveAttribute("href", "/");
+  await expectMinimumHitArea(betaDesktopHome);
   await expect(page.getByRole("link", { name: "Create proposal" })).toHaveAttribute(
     "href",
     "/propose"
@@ -351,6 +467,27 @@ test("uses clean client-side paths on the guarded DAO beta host", async ({
     "href",
     "/?group=active"
   );
+  await betaDesktopHome.click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/");
+
+  betaUrl.pathname = "/proposals/2";
+  betaUrl.search = "";
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(betaUrl.toString());
+  const betaOpener = page.getByRole("button", { name: "Open navigation menu" });
+  await betaOpener.click();
+  const betaDialog = page.getByRole("dialog", { name: "Navigation menu" });
+  const betaMobileHome = betaDialog.getByRole("link", {
+    name: "DAO Governance",
+    exact: true,
+  });
+  await expect(betaMobileHome).toHaveAttribute("href", "/");
+  const betaMobileBox = await betaMobileHome.boundingBox();
+  expect(betaMobileBox).not.toBeNull();
+  expect(betaMobileBox!.height).toBeGreaterThanOrEqual(44);
+  await betaMobileHome.click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/");
+  await expect(betaDialog).toHaveCount(0);
 
   betaUrl.pathname = "/propose";
   betaUrl.search = "";
@@ -454,11 +591,11 @@ test("uses the typed bridge to mutate DAO facts and refresh infinitely fresh que
   await expect(page.getByText("Proposal content is unavailable.")).toBeVisible();
 
   await page.goto("/dao/proposals/1");
-  await page.evaluate(async () => {
+  await page.evaluate(async (votingTimestamp) => {
     if (!window.__TEST__) throw new Error("Test bridge is unavailable.");
     await window.__TEST__.setDaoFixture?.("discussion");
-    await window.__TEST__.setNow(Math.floor(Date.now() / 1_000) + 8 * 86_400);
-  });
+    await window.__TEST__.setNow(votingTimestamp);
+  }, DAO_MOCK_NOW + 8 * 86_400);
   await expect(page.getByText("Voting", { exact: true }).first()).toBeVisible();
 });
 

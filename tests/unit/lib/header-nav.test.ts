@@ -70,6 +70,34 @@ describe("resolveHeaderPrimaryNav", () => {
     });
   });
 
+  it("gives an exact branded host precedence over contradictory route inputs", () => {
+    expect(
+      resolveHeaderPrimaryNav(
+        "/veyfi/portfolio",
+        "veyfi",
+        "dao-beta.dao-ops.com"
+      )
+    ).toEqual({
+      label: "DAO Governance",
+      path: "/",
+    });
+    expect(
+      resolveHeaderPrimaryNav("/dao/proposals/2", "dao", "styfi.yearn.fi")
+    ).toEqual({
+      label: "stYFI",
+      path: "/",
+    });
+  });
+
+  it("uses the exact path app on a generic host before a stale segment", () => {
+    expect(
+      resolveHeaderPrimaryNav("/dao/proposals/2", "styfi", "app.dao-ops.com")
+    ).toEqual({
+      label: "DAO Governance",
+      path: "/dao",
+    });
+  });
+
   it("falls back to pathname when segment is unavailable", () => {
     expect(resolveHeaderPrimaryNav("/veyfi/portfolio", null)).toEqual({
       label: "veYFI",
@@ -161,5 +189,16 @@ describe("resolveHeaderAppKey", () => {
     expect(
       resolveHeaderAppKey("/dao-governance", null, "app.dao-ops.com")
     ).toBeNull();
+  });
+
+  it.each([
+    ["/daofoo", "dao"],
+    ["/styfishing", "styfi"],
+    ["/veyfinance", "veyfi"],
+    ["/teamster", "teams"],
+    ["/yethereum", "yeth"],
+    ["/ybcollective", "ybc"],
+  ])("does not treat %s as the %s app", (pathname) => {
+    expect(resolveHeaderAppKey(pathname, null, "app.dao-ops.com")).toBeNull();
   });
 });

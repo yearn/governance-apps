@@ -154,9 +154,12 @@ Canonical discoverability metadata:
 - Only approved public production hosts publish sitemap entries. stYFI and veYFI are currently approved; Teams, YBC, and yETH remain excluded until their rollout decisions change.
 - Approved hosts publish a concise, host-specific `/llms.txt` generated from the same registry. It contains stable descriptions and canonical links only, avoiding live protocol values that could become stale.
 - Non-public, preview, local, and not-yet-approved hosts receive `X-Robots-Tag: noindex, nofollow`.
-- `dao-beta.dao-ops.com` remains noncanonical, noindex, and absent from sitemap
-  and `llms.txt`. Its custom domain is not an authentication boundary; use
-  Cloudflare Access separately when restricted access is required.
+- The six exact governance beta hosts under `dao-ops.com` remain noncanonical,
+  noindex, and absent from sitemap and `llms.txt`. Cloudflare Access must protect
+  every path with the approved reusable GitHub organization/team policy. Use
+  exact self-hosted applications, not a wildcard. Do not add public bypasses or
+  protect `app.dao-ops.com`, shared paths, public `*.yearn.fi`, or unrelated
+  hosts. Custom domains and robots metadata are not authentication boundaries.
 - `robots.txt` leaves Next.js JavaScript and CSS assets crawlable while excluding API and debug routes.
 
 ## 4. Transaction Safety Controls

@@ -1,7 +1,6 @@
 # DAO Governance
 
-Status: M2 mock product assembled; the WP7B revision is awaiting explicit user
-acceptance.
+Status: M2 mock product assembled; WP7C is the active acceptance follow-up.
 
 `DAO Governance` is the proposal, voting, and execution-review app for Yearn's
 onchain governance contracts.
@@ -57,15 +56,22 @@ contract revision as equivalent.
 - Lifecycle status, vote result, moderation, and execution are separate facts.
   Event time comes from the block producer, verified sources are structured
   HTTPS records, and proposal rules are proposal-owned snapshots.
+- Proposal-level execution readiness covers exact script integrity only. Missing
+  event bytes and a stored-hash mismatch are hard blockers; lifecycle, account,
+  guard, schedule, and simulation facts stay separate.
 - Proposal identity is decoded from one matching successful `Propose` receipt.
   A transaction link appears as soon as its hash is known; proposal links wait
-  for receipt-derived identity and retain it while indexing catches up.
+  for receipt-derived identity and retain it while indexing catches up. Delayed
+  indexing has an idempotent retry for that same identity.
+- Proposal creation receives the review panel's typed transaction outcome.
+  Rejection, revert, and network failure keep the immutable publication but
+  create no hash, receipt, proposal record, feed event, or indexing state.
 - Execution requires the exact event script, hash verification, and a fresh
   current-state simulation.
 - The app is mock-first. Feed and onchain work starts only after mock UX review.
 - The guarded preproduction review remains mock-backed and is not production
-  approval. A custom domain does not make the host access-controlled; operators
-  must add Cloudflare Access separately if authenticated access is required.
+  approval. All six governance beta hosts require Cloudflare Access with the
+  approved GitHub organization/team policy; `noindex` is not authentication.
 
 ## Documentation map
 
@@ -80,7 +86,8 @@ contract revision as equivalent.
 
 ## Current gate
 
-M2 WP7B is the current product gate. The revised mock UX may be reviewed on the
-shared `/dao` path or guarded preproduction host, but it remains unaccepted.
+M2 WP7C is the current product gate. The revised mock UX may be reviewed on the
+shared `/dao` path or an authenticated preproduction host, but it remains
+unaccepted.
 Do not begin M3, backend feeds, real forum validation, IPFS publication, onchain
 reads/writes, or public production rollout until the user explicitly accepts it.

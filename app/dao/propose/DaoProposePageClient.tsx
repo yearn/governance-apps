@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import type {
   DaoMockAuthoring,
+  DaoMockTransactionOutcome,
   DaoProposerState,
 } from "@/lib/clients/dao";
 import { Badge } from "@/components/ui/Badge";
@@ -76,6 +77,7 @@ export function DaoProposePageClient({
         now={runtime?.now ?? 0}
         proposer={proposerQuery.data ?? null}
         state={state}
+        transactionOutcome={runtime?.transactionOutcome ?? "success"}
       />
       <MockControls />
     </>
@@ -89,6 +91,7 @@ export function DaoProposeView({
   onRetry,
   proposer,
   state,
+  transactionOutcome = "success",
 }: {
   authoring?: DaoMockAuthoring | null;
   hostname?: string;
@@ -96,6 +99,7 @@ export function DaoProposeView({
   onRetry: () => void;
   proposer: DaoProposerState | null;
   state: DaoProposeRouteState;
+  transactionOutcome?: DaoMockTransactionOutcome;
 }) {
   const [isAuthoring, setIsAuthoring] = useState(false);
 
@@ -170,6 +174,7 @@ export function DaoProposeView({
           hostname={hostname}
           now={now}
           proposer={proposer}
+          transactionOutcome={transactionOutcome}
         />
       ) : null}
     </DaoRouteFrame>

@@ -55,6 +55,41 @@ test("scans and filters the proposal board at every review viewport", async ({
   }
 });
 
+test("presents proposal #19 execution integrity first on board and detail", async ({
+  page,
+}) => {
+  await page.goto("/dao");
+  const blockedRow = page.getByRole("article", {
+    name: /Proposal with a script hash mismatch/,
+  });
+  const boardFacts = blockedRow.getByTestId("dao-proposal-heading-facts");
+  await expectHeadingFactsOrder(boardFacts);
+  await expect(
+    blockedRow.getByText("Executable actions", { exact: true })
+  ).toHaveCount(0);
+  await expect(boardFacts.getByRole("alert")).toHaveCount(0);
+
+  await blockedRow
+    .getByRole("link", { name: /Open proposal #19:/ })
+    .click();
+  await expect(page).toHaveURL(/\/dao\/proposals\/19/);
+  const detailFacts = page.getByTestId("dao-proposal-heading-facts");
+  await expectHeadingFactsOrder(detailFacts);
+  await expect(detailFacts.getByRole("alert")).toHaveCount(0);
+  await expect(
+    page.getByRole("alert").filter({
+      hasText: "Event script does not match the stored script hash",
+    })
+  ).toBeVisible();
+
+  await page.goto("/dao/proposals/18");
+  await expect(
+    page
+      .getByTestId("dao-proposal-heading-facts")
+      .getByText("Execution blocked", { exact: true })
+  ).toHaveCount(0);
+});
+
 test("supports keyboard filters and reduced motion", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -515,6 +550,13 @@ async function expectMinimumHitArea(locator: Locator) {
   expect(box).not.toBeNull();
   expect(box!.width).toBeGreaterThanOrEqual(40);
   expect(box!.height).toBeGreaterThanOrEqual(40);
+}
+
+async function expectHeadingFactsOrder(facts: Locator) {
+  await expect(facts).toBeVisible();
+  expect((await facts.innerText()).replace(/\s+/g, " ").trim()).toBe(
+    "Execution blocked Approved Executable Stored script hash does not match the proposed event script."
+  );
 }
 
 async function expectHorizontallyScrollable(locator: Locator) {

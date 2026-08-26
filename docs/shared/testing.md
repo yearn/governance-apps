@@ -163,6 +163,13 @@ request failures, page errors, and console errors. Chromium maps
 `dao-beta.dao-ops.com` to loopback only when `E2E_BASE_URL` is local; remote and
 preproduction runs never receive that resolver rule.
 
+Local hostname mapping does not test Cloudflare Access. Before beta UAT, verify
+all six exact governance beta hosts with an unauthenticated incognito request,
+an approved GitHub organization/team member, an unrelated GitHub account, and a
+representative nested route. After authentication, repeat noindex/canonical,
+cross-beta navigation, wallet connection, and wallet-popup checks. Keep results
+sanitized and leave any host without direct evidence marked incomplete.
+
 ## Parallelism
 
 Vitest runs in parallel by default.

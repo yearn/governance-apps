@@ -11,6 +11,7 @@ import {
   DAO_MOCK_VOTING_ADDRESS,
   type DaoCreatedProposalRecord,
   type DaoDecodedProposeIdentity,
+  type DaoMockTransactionOutcome,
   type DaoParsedProposalContent,
   type DaoProposalContent,
   type DaoProposeReceiptDecodeResult,
@@ -79,10 +80,17 @@ export type DaoProposalSubmissionResult =
   | {
       state: "failed";
       error: {
-        code: "WALLET_REJECTED" | "PROPOSAL_REVERTED";
+        code: "WALLET_REJECTED" | "PROPOSAL_REVERTED" | "NETWORK_ERROR";
         message: string;
       };
     };
+
+export type DaoProposalSubmissionRequest = {
+  review: DaoAuthoringReview;
+  publication: DaoPublishedContent;
+  outcome: DaoMockTransactionOutcome;
+  latencyMs?: number;
+};
 
 export type DaoProposalReceiptResult = {
   state: "confirmed";
@@ -203,12 +211,11 @@ export async function publishMockDaoProposalContent(
 }
 
 export async function submitMockDaoProposal(
-  review: DaoAuthoringReview,
-  publication: DaoPublishedContent,
-  latencyMs = 180
+  request: DaoProposalSubmissionRequest
 ): Promise<DaoProposalSubmissionResult> {
+  const { latencyMs = 180, outcome, publication, review } = request;
   await wait(latencyMs);
-  if (review.topic.topicId === 1003) {
+  if (outcome === "user-rejected") {
     return {
       state: "failed",
       error: {
@@ -218,13 +225,23 @@ export async function submitMockDaoProposal(
       },
     };
   }
-  if (review.topic.topicId === 1004) {
+  if (outcome === "revert") {
     return {
       state: "failed",
       error: {
         code: "PROPOSAL_REVERTED",
         message:
           "The proposal transaction reverted. Recheck current eligibility before trying again.",
+      },
+    };
+  }
+  if (outcome === "network-error") {
+    return {
+      state: "failed",
+      error: {
+        code: "NETWORK_ERROR",
+        message:
+          "The network request failed before submission. Published proposal content remains available for another attempt.",
       },
     };
   }
@@ -298,6 +315,7 @@ export async function registerMockDaoProposalAwaitingIndex(
   identity: DaoDecodedProposeIdentity,
   latencyMs = 100
 ): Promise<DaoCreatedProposalRecord> {
+  await wait(latencyMs);
   const proposal = createDaoAwaitingIndexProposal({
     identity,
     content: review.content,
@@ -316,7 +334,6 @@ export async function registerMockDaoProposalAwaitingIndex(
     proposal,
   };
   registerDaoMockCreatedProposal(record);
-  await wait(latencyMs);
   return record;
 }
 

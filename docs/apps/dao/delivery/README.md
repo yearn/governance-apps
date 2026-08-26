@@ -1,6 +1,6 @@
 # DAO Governance Delivery Plan
 
-Status: M2 WP7B is the active follow-up package; renewed user acceptance remains
+Status: M2 WP7C is the active follow-up package; renewed user acceptance remains
 the next gate.
 
 This plan is the task source for implementing DAO Governance. It uses the shared
@@ -51,7 +51,7 @@ Create a package only after its dependencies are merged into integration.
 
 ```text
 M1: WP1 -> WP2 -> WP3
-M2: WP4 -> WP6 -> WP5 -> WP7 -> user gate -> WP7A -> user gate -> WP7B -> user gate
+M2: WP4 -> WP6 -> WP5 -> WP7 -> user gate -> WP7A -> user gate -> WP7B -> user gate -> WP7C -> user gate
 M3: WP8 -> WP9 (gov-apps-stats) -> WP10
 M4: WP11 -> WP12
 M5: WP13 -> WP14 -> WP15
@@ -65,7 +65,7 @@ Producer WP9 runs in the `gov-apps-stats` repository and its own integration lan
 ## Human-gate iteration
 
 User feedback at M2 creates a follow-up package from the latest integration head:
-`M2-WP7A`, then `M2-WP7B` if needed. Add the scoped package file before editing,
+`M2-WP7A`, `M2-WP7B`, then `M2-WP7C` if needed. Add the scoped package file before editing,
 then run the normal implementation, review, audit, fix, re-review, and integration
 loop. Present the gate again after each accepted follow-up. Do not tag M2 or begin
 M3 without explicit acceptance.
@@ -112,6 +112,8 @@ without re-review.
 - [`M2-WP7A evidence`](evidence/M2-WP7A/README.md)
 - [`M2-WP7B-proposal-content-and-lifecycle-clarity.md`](work-packages/M2-WP7B-proposal-content-and-lifecycle-clarity.md)
 - [`M2-WP7B evidence`](evidence/M2-WP7B/README.md)
+- [`M2-WP7C-beta-access-and-execution-clarity.md`](work-packages/M2-WP7C-beta-access-and-execution-clarity.md)
+- [`M2-WP7C evidence`](evidence/M2-WP7C/README.md)
 - [`DAO beta operator runbook`](dao-beta-runbook.md)
 
 ### M3

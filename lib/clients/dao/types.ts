@@ -278,6 +278,17 @@ export type DaoLifecycleFacts = {
   };
 };
 
+export type DaoProposalExecutionReadiness =
+  | { state: "not_applicable"; blocker: null; reason: null }
+  | { state: "integrity_ready"; blocker: null; reason: null }
+  | {
+      state: "integrity_blocked";
+      blocker:
+        | "exact_script_unavailable"
+        | "stored_script_hash_mismatch";
+      reason: string;
+    };
+
 export type DaoProposalRules = {
   approvalThresholdBps: number;
   thresholdSnapshottedAtCreation: true;

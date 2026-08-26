@@ -2,6 +2,7 @@ import { Badge, type BadgeProps } from "@/components/ui/Badge";
 import { UtcTime } from "@/components/ui/UtcTime";
 import { TransactionLink } from "@/components/ui/ExplorerLink";
 import {
+  deriveDaoProposalExecutionReadiness,
   deriveDaoProposalTimingDisplay,
   deriveDaoVoteDisplay,
   type DaoDisplayStatus,
@@ -55,6 +56,46 @@ export function ProposalTypeBadge({ proposal }: { proposal: DaoProposal }) {
     <Badge className="font-sans">
       {daoCopy.proposalType[proposal.type]}
     </Badge>
+  );
+}
+
+export function ProposalHeadingFacts({
+  proposal,
+  showExecutableActions = false,
+}: {
+  proposal: DaoProposal;
+  showExecutableActions?: boolean;
+}) {
+  const readiness = deriveDaoProposalExecutionReadiness(proposal);
+  const isIntegrityBlocked = readiness.state === "integrity_blocked";
+
+  return (
+    <div
+      data-testid="dao-proposal-heading-facts"
+      className="min-w-0 space-y-2"
+    >
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        {isIntegrityBlocked ? (
+          <Badge className="bg-red-700 font-sans text-white dark:bg-red-300 dark:text-red-950">
+            {daoCopy.executionReadiness.blocked}
+          </Badge>
+        ) : null}
+        <ProposalStatusBadge status={proposal.displayStatus} />
+        <ProposalTypeBadge proposal={proposal} />
+        {showExecutableActions &&
+        proposal.type === "executable" &&
+        !isIntegrityBlocked ? (
+          <span className="text-pretty text-xs font-bold text-text-secondary">
+            {daoCopy.board.executableActions}
+          </span>
+        ) : null}
+      </div>
+      {isIntegrityBlocked ? (
+        <p className="max-w-2xl text-pretty text-xs font-bold text-error-700 dark:text-red-300">
+          {readiness.reason}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

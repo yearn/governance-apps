@@ -182,6 +182,7 @@ export const daoProposeCopy = {
     indexingDelayedTitle: "Proposal indexing is delayed",
     indexingDelayedBody:
       "The confirmed proposal address remains available while indexing catches up.",
+    retryIndexing: "Retry indexing",
     submittedBody:
       "The transaction hash is known. Proposal actions appear after the confirmed receipt supplies its identity.",
     transaction: "Transaction hash",
@@ -192,5 +193,6 @@ export const daoProposeCopy = {
     viewTransaction: "View transaction",
     rejectedTitle: "Wallet request cancelled",
     revertedTitle: "Proposal creation failed",
+    networkErrorTitle: "Network request failed",
   },
 } as const;
