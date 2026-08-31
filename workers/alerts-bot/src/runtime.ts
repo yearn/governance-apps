@@ -1,0 +1,677 @@
+import { encodeFunctionData } from "viem";
+import { renderCatalogueMessages } from "./catalogue";
+import {
+  domainConfigs,
+  runtimeConfig,
+  type AlertsEnv,
+  type DomainConfig,
+  type RuntimeConfig,
+} from "./config";
+import {
+  ERC4626_TOTAL_ASSETS_ABI,
+} from "./abis";
+import {
+  YETH_RECOVERY_VAULT,
+  YETH_YIELD_VAULT,
+} from "./contracts";
+import {
+  ALERT_DOMAIN_GENESIS_BLOCKS,
+  getAlertDomainRegistration,
+  isAlertDomainId,
+  type ActiveAlertDomainId,
+} from "./domain-registry";
+import {
+  buildYethRepaymentAlertActions,
+  buildYethRepaymentMetrics,
+  createEmptyYethState,
+  loadYethRepaymentMetrics,
+  loadYethState,
+  serializeYethRepaymentMetrics,
+  serializeYethState,
+  type StoredYethRepaymentMetrics,
+  type StoredYethState,
+  type YethFlowSummary,
+  type YethRepaymentMetrics,
+  type YethState,
+} from "./domains/yeth/accounting";
+import { scanChunkForActionsWithProgress } from "./domains/styfi-veyfi/scanner";
+import { scanYethBlocks } from "./domains/yeth/scanner";
+import { createRpcClient, type RpcBlock, type RpcClient } from "./rpc";
+import { sendMessage, TelegramRateLimitError } from "./telegram";
+import type { NormalizedAction } from "./types";
+
+const STATE_KEY = "state:v1";
+const RECEIPT_PREFIX = "sent:";
+const TELEGRAM_SPACING_MS = 1_100;
+const ZERO_FLOW = Object.freeze({ recoveryNetFlowEth: 0n, yieldNetFlowEth: 0n });
+
+interface StoredDomainState {
+  readonly version: 1;
+  readonly domainId: ActiveAlertDomainId;
+  readonly cursorBlock: number;
+  readonly cursorHash: string | null;
+  readonly lastObservedHead: number | null;
+  readonly lastRunAt: number | null;
+  readonly lastSuccessAt: number | null;
+  readonly lastErrorCode: string | null;
+  readonly telegramRetryAfterUntil: number | null;
+  readonly yethState: StoredYethState | null;
+  readonly yethMetrics: StoredYethRepaymentMetrics | null;
+  readonly yethDailyFlow: {
+    readonly recoveryNetFlowEth: string;
+    readonly yieldNetFlowEth: string;
+  } | null;
+}
+
+interface ScanOutcome {
+  readonly terminalBlock: number;
+  readonly actions: readonly NormalizedAction[];
+  readonly yethState: YethState | null;
+  readonly yethMetrics: YethRepaymentMetrics | null;
+  readonly yethDailyFlow: YethFlowSummary;
+}
+
+class AlertRunError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = "AlertRunError";
+  }
+}
+
+function nowSeconds(): number {
+  return Math.floor(Date.now() / 1_000);
+}
+
+function activeDomain(value: string | null): ActiveAlertDomainId | null {
+  if (!isAlertDomainId(value)) return null;
+  if (getAlertDomainRegistration(value).status !== "active") return null;
+  return value === "styfi" || value === "veyfi" || value === "yeth"
+    ? value
+    : null;
+}
+
+function initialState(domainId: ActiveAlertDomainId): StoredDomainState {
+  return Object.freeze({
+    version: 1,
+    domainId,
+    cursorBlock: ALERT_DOMAIN_GENESIS_BLOCKS[domainId] - 1,
+    cursorHash: null,
+    lastObservedHead: null,
+    lastRunAt: null,
+    lastSuccessAt: null,
+    lastErrorCode: null,
+    telegramRetryAfterUntil: null,
+    yethState: domainId === "yeth" ? serializeYethState(createEmptyYethState()) : null,
+    yethMetrics: null,
+    yethDailyFlow:
+      domainId === "yeth"
+        ? { recoveryNetFlowEth: "0", yieldNetFlowEth: "0" }
+        : null,
+  });
+}
+
+function validateStoredState(
+  value: StoredDomainState,
+  domainId: ActiveAlertDomainId,
+): StoredDomainState {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    value.version !== 1 ||
+    value.domainId !== domainId ||
+    !Number.isSafeInteger(value.cursorBlock) ||
+    value.cursorBlock < ALERT_DOMAIN_GENESIS_BLOCKS[domainId] - 1 ||
+    (value.cursorHash !== null && !/^0x[0-9a-f]{64}$/.test(value.cursorHash))
+  ) {
+    throw new AlertRunError("stored_state_invalid");
+  }
+  return value;
+}
+
+function loadFlow(value: StoredDomainState["yethDailyFlow"]): YethFlowSummary {
+  if (
+    value === null ||
+    !/^-?\d+$/.test(value.recoveryNetFlowEth) ||
+    !/^-?\d+$/.test(value.yieldNetFlowEth)
+  ) {
+    return { ...ZERO_FLOW };
+  }
+  return {
+    recoveryNetFlowEth: BigInt(value.recoveryNetFlowEth),
+    yieldNetFlowEth: BigInt(value.yieldNetFlowEth),
+  };
+}
+
+function addFlow(left: YethFlowSummary, right: YethFlowSummary): YethFlowSummary {
+  return {
+    recoveryNetFlowEth: left.recoveryNetFlowEth + right.recoveryNetFlowEth,
+    yieldNetFlowEth: left.yieldNetFlowEth + right.yieldNetFlowEth,
+  };
+}
+
+function storeFlow(flow: YethFlowSummary): StoredDomainState["yethDailyFlow"] {
+  return {
+    recoveryNetFlowEth: flow.recoveryNetFlowEth.toString(),
+    yieldNetFlowEth: flow.yieldNetFlowEth.toString(),
+  };
+}
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function nextYethCheckpoint(
+  cursorBlock: number,
+  interval: number,
+): number {
+  const base = ALERT_DOMAIN_GENESIS_BLOCKS.yeth - 1;
+  const completed = Math.floor(Math.max(0, cursorBlock - base) / interval);
+  return base + (completed + 1) * interval;
+}
+
+function abs(value: bigint): bigint {
+  return value < 0n ? -value : value;
+}
+
+function dailyActionDelta(action: NormalizedAction): bigint {
+  switch (action.kind) {
+    case "yeth_recovery_progress":
+    case "yeth_recovery_setback":
+      return abs(
+        action.amounts.yethCurrentRecoveryShortfallEth! -
+          action.amounts.yethPreviousRecoveryShortfallEth!,
+      );
+    case "yeth_yield_capacity_up":
+    case "yeth_yield_capacity_down":
+      return abs(
+        action.amounts.yethCurrentYieldVaultAssetsEth! -
+          action.amounts.yethPreviousYieldVaultAssetsEth!,
+      );
+    default:
+      return 0n;
+  }
+}
+
+function recoveryShortfall(metrics: YethRepaymentMetrics): bigint | null {
+  if (metrics.recoveryVaultAssetsEth === null) return null;
+  return metrics.snapshotStayedEth > metrics.recoveryVaultAssetsEth
+    ? metrics.snapshotStayedEth - metrics.recoveryVaultAssetsEth
+    : 0n;
+}
+
+function decodeWord(value: string): bigint {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(value)) {
+    throw new AlertRunError("vault_assets_invalid");
+  }
+  return BigInt(value);
+}
+
+async function readYethVaultAssets(
+  rpc: RpcClient,
+  block: RpcBlock,
+): Promise<readonly [bigint, bigint]> {
+  const data = encodeFunctionData({
+    abi: ERC4626_TOTAL_ASSETS_ABI,
+    functionName: "totalAssets",
+  });
+  const values = await rpc.call(
+    [
+      { to: YETH_RECOVERY_VAULT.toLowerCase(), data },
+      { to: YETH_YIELD_VAULT.toLowerCase(), data },
+    ],
+    { blockHash: block.hash, requireCanonical: true },
+  );
+  if (values.length !== 2) throw new AlertRunError("vault_assets_invalid");
+  return [decodeWord(values[0]!), decodeWord(values[1]!)];
+}
+
+async function scanYfiRange(params: {
+  readonly domainId: "styfi" | "veyfi";
+  readonly rpc: RpcClient;
+  readonly fromBlock: number;
+  readonly requestedToBlock: number;
+}): Promise<{ readonly terminalBlock: number; readonly actions: readonly NormalizedAction[] }> {
+  let toBlock = params.requestedToBlock;
+  while (true) {
+    const result = await scanChunkForActionsWithProgress(
+      params.rpc,
+      params.fromBlock,
+      toBlock,
+      { domainId: params.domainId },
+    );
+    if (result.failure?.code === "range_too_large" && toBlock > params.fromBlock) {
+      toBlock = params.fromBlock + Math.floor((toBlock - params.fromBlock) / 2);
+      continue;
+    }
+    if (result.failure !== null || !result.chunkComplete) {
+      throw new AlertRunError(`scan_${result.failure?.code ?? "incomplete"}`);
+    }
+    return { terminalBlock: toBlock, actions: result.actions };
+  }
+}
+
+async function scanYethRange(params: {
+  readonly rpc: RpcClient;
+  readonly fromBlock: number;
+  readonly requestedToBlock: number;
+  readonly state: YethState;
+}): Promise<{
+  readonly terminalBlock: number;
+  readonly state: YethState;
+  readonly actions: readonly NormalizedAction[];
+  readonly flow: YethFlowSummary;
+}> {
+  let toBlock = params.requestedToBlock;
+  while (true) {
+    let result = await scanYethBlocks({
+      rpc: params.rpc,
+      fromBlock: params.fromBlock,
+      toBlock,
+      state: params.state,
+    });
+    if (result.failure?.code === "range_too_large" && toBlock > params.fromBlock) {
+      toBlock = params.fromBlock + Math.floor((toBlock - params.fromBlock) / 2);
+      continue;
+    }
+    if (result.failure !== null) {
+      throw new AlertRunError(`scan_${result.failure.code}`);
+    }
+    const eventBlocks = [...new Set(result.actions.map((action) => action.blockNumber))];
+    if (eventBlocks.length > 1) {
+      toBlock = eventBlocks[0]!;
+      result = await scanYethBlocks({
+        rpc: params.rpc,
+        fromBlock: params.fromBlock,
+        toBlock,
+        state: params.state,
+      });
+      if (result.failure !== null) {
+        throw new AlertRunError(`scan_${result.failure.code}`);
+      }
+    }
+    return {
+      terminalBlock: toBlock,
+      state: result.state,
+      actions: result.actions,
+      flow: result.flow,
+    };
+  }
+}
+
+async function scanRange(params: {
+  readonly domainId: ActiveAlertDomainId;
+  readonly rpc: RpcClient;
+  readonly config: RuntimeConfig;
+  readonly state: StoredDomainState;
+  readonly requestedToBlock: number;
+}): Promise<ScanOutcome> {
+  const fromBlock = params.state.cursorBlock + 1;
+  if (params.domainId !== "yeth") {
+    const scan = await scanYfiRange({
+      domainId: params.domainId,
+      rpc: params.rpc,
+      fromBlock,
+      requestedToBlock: params.requestedToBlock,
+    });
+    return {
+      terminalBlock: scan.terminalBlock,
+      actions: scan.actions,
+      yethState: null,
+      yethMetrics: null,
+      yethDailyFlow: { ...ZERO_FLOW },
+    };
+  }
+
+  const startingYeth =
+    params.state.yethState === null
+      ? createEmptyYethState()
+      : loadYethState(params.state.yethState);
+  const previousMetrics = loadYethRepaymentMetrics(params.state.yethMetrics);
+  const scan = await scanYethRange({
+    rpc: params.rpc,
+    fromBlock,
+    requestedToBlock: params.requestedToBlock,
+    state: startingYeth,
+  });
+  const accumulatedFlow = addFlow(loadFlow(params.state.yethDailyFlow), scan.flow);
+  const stateMetrics = buildYethRepaymentMetrics(
+    scan.state,
+    previousMetrics?.recoveryVaultAssetsEth ?? null,
+    previousMetrics?.yieldVaultAssetsEth ?? null,
+  );
+  const actions = [...scan.actions];
+  const lastEvent = scan.actions.at(-1);
+  if (lastEvent !== undefined) {
+    const eventBlock = await params.rpc.getBlockByNumber(lastEvent.blockNumber);
+    actions.push(
+      ...buildYethRepaymentAlertActions({
+        previous: previousMetrics,
+        current: stateMetrics,
+        flow: scan.flow,
+        blockNumber: eventBlock.number,
+        blockHash: eventBlock.hash,
+      }).filter((action) => action.kind === "yeth_debt_paid_down"),
+    );
+  }
+
+  const checkpoint = nextYethCheckpoint(
+    params.state.cursorBlock,
+    params.config.yethDailyCheckpointBlocks,
+  );
+  if (scan.terminalBlock !== checkpoint) {
+    return {
+      terminalBlock: scan.terminalBlock,
+      actions: actions.sort((left, right) =>
+        left.blockNumber - right.blockNumber || left.logIndex - right.logIndex),
+      yethState: scan.state,
+      yethMetrics: stateMetrics,
+      yethDailyFlow: accumulatedFlow,
+    };
+  }
+
+  const checkpointBlock = await params.rpc.getBlockByNumber(checkpoint);
+  const [recoveryAssets, yieldAssets] = await readYethVaultAssets(
+    params.rpc,
+    checkpointBlock,
+  );
+  const dailyMetrics = buildYethRepaymentMetrics(
+    scan.state,
+    recoveryAssets,
+    yieldAssets,
+  );
+  const dailyCandidates = buildYethRepaymentAlertActions({
+    previous: stateMetrics,
+    current: dailyMetrics,
+    flow: accumulatedFlow,
+    blockNumber: checkpoint,
+    blockHash: checkpointBlock.hash,
+  }).filter((action) => action.kind !== "yeth_debt_paid_down");
+  const previousShortfall = recoveryShortfall(stateMetrics);
+  const currentShortfall = recoveryShortfall(dailyMetrics);
+  const rawRecoveryDelta =
+    previousShortfall === null || currentShortfall === null
+      ? null
+      : abs(currentShortfall - previousShortfall);
+  const rawYieldDelta =
+    stateMetrics.yieldVaultAssetsEth === null ||
+    dailyMetrics.yieldVaultAssetsEth === null
+      ? null
+      : abs(dailyMetrics.yieldVaultAssetsEth - stateMetrics.yieldVaultAssetsEth);
+  console.log(JSON.stringify({
+    event: "alert_yeth_daily_checkpoint",
+    block: checkpoint,
+    thresholdWei: params.config.yethDailyMinDeltaWei.toString(),
+    recoveryDeltaWei: rawRecoveryDelta?.toString() ?? null,
+    yieldDeltaWei: rawYieldDelta?.toString() ?? null,
+    candidates: dailyCandidates.map((action) => ({
+      kind: action.kind,
+      deltaWei: dailyActionDelta(action).toString(),
+      emitted: dailyActionDelta(action) >= params.config.yethDailyMinDeltaWei,
+    })),
+  }));
+  actions.push(
+    ...dailyCandidates.filter(
+      (action) => dailyActionDelta(action) >= params.config.yethDailyMinDeltaWei,
+    ),
+  );
+  return {
+    terminalBlock: scan.terminalBlock,
+    actions: actions.sort((left, right) =>
+      left.blockNumber - right.blockNumber || left.logIndex - right.logIndex),
+    yethState: scan.state,
+    yethMetrics: dailyMetrics,
+    yethDailyFlow: { ...ZERO_FLOW },
+  };
+}
+
+function withRunMetadata(
+  state: StoredDomainState,
+  fields: Partial<StoredDomainState>,
+): StoredDomainState {
+  return { ...state, ...fields };
+}
+
+export class AlertState implements DurableObject {
+  private running: Promise<Response> | null = null;
+
+  constructor(
+    private readonly state: DurableObjectState,
+    private readonly env: AlertsEnv,
+  ) {}
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    const domainId = activeDomain(url.searchParams.get("domain"));
+    if (domainId === null) return Response.json({ error: "invalid_domain" }, { status: 400 });
+    if (url.pathname === "/status" && request.method === "GET") {
+      return this.status(domainId);
+    }
+    if (url.pathname !== "/run" || request.method !== "POST") {
+      return Response.json({ error: "not_found" }, { status: 404 });
+    }
+    if (this.running !== null) {
+      return Response.json({ domain: domainId, outcome: "busy" }, { status: 202 });
+    }
+    this.running = this.run(domainId).finally(() => {
+      this.running = null;
+    });
+    return this.running;
+  }
+
+  private async load(domainId: ActiveAlertDomainId): Promise<StoredDomainState> {
+    const stored = await this.state.storage.get<StoredDomainState>(STATE_KEY);
+    return stored === undefined ? initialState(domainId) : validateStoredState(stored, domainId);
+  }
+
+  private async status(domainId: ActiveAlertDomainId): Promise<Response> {
+    let stored: StoredDomainState;
+    try {
+      stored = await this.load(domainId);
+    } catch {
+      return Response.json(
+        { domain: domainId, status: "invalid_state" },
+        { status: 500 },
+      );
+    }
+    return Response.json({
+      domain: domainId,
+      cursorBlock: stored.cursorBlock,
+      cursorHash: stored.cursorHash,
+      lastObservedHead: stored.lastObservedHead,
+      caughtUp:
+        stored.lastObservedHead !== null && stored.cursorBlock >= stored.lastObservedHead,
+      lastRunAt: stored.lastRunAt,
+      lastSuccessAt: stored.lastSuccessAt,
+      lastErrorCode: stored.lastErrorCode,
+      telegramRetryAfterUntil: stored.telegramRetryAfterUntil,
+    });
+  }
+
+  private async recordError(
+    stored: StoredDomainState,
+    code: string,
+    observedHead: number | null = stored.lastObservedHead,
+  ): Promise<void> {
+    await this.state.storage.put(
+      STATE_KEY,
+      withRunMetadata(stored, {
+        lastObservedHead: observedHead,
+        lastRunAt: nowSeconds(),
+        lastErrorCode: code,
+      }),
+    );
+  }
+
+  private async run(domainId: ActiveAlertDomainId): Promise<Response> {
+    let stored: StoredDomainState;
+    try {
+      stored = await this.load(domainId);
+    } catch {
+      console.error(JSON.stringify({ event: "alert_run_failed", domain: domainId, code: "stored_state_invalid" }));
+      return Response.json({ domain: domainId, outcome: "failed", code: "stored_state_invalid" }, { status: 500 });
+    }
+    try {
+      const domain = domainConfigs(this.env).find((entry) => entry.domainId === domainId);
+      if (domain === undefined || !domain.enabled) {
+        return Response.json({ domain: domainId, outcome: "disabled" });
+      }
+      if (domain.chatId === null) {
+        throw new AlertRunError(`config_${domainId}_chat_missing`);
+      }
+      let config: RuntimeConfig;
+      try {
+        config = runtimeConfig(this.env);
+      } catch (error) {
+        const safeCode =
+          error instanceof Error && /^alert_config_[a-z_]+$/.test(error.message)
+            ? error.message.replace(/^alert_/, "")
+            : "config_invalid";
+        throw new AlertRunError(safeCode);
+      }
+      const currentTime = nowSeconds();
+      if (
+        stored.telegramRetryAfterUntil !== null &&
+        stored.telegramRetryAfterUntil > currentTime
+      ) {
+        return Response.json({ domain: domainId, outcome: "telegram_backoff" }, { status: 202 });
+      }
+      const rpc = createRpcClient(config.rpcUrl);
+      const latest = await rpc.getBlockNumber();
+      const confirmedHead = Math.max(0, latest - config.confirmations);
+      if (stored.cursorHash !== null) {
+        const cursor = await rpc.getBlockByNumber(stored.cursorBlock);
+        if (cursor.hash !== stored.cursorHash) {
+          throw new AlertRunError("cursor_reorg_detected");
+        }
+      }
+      if (stored.cursorBlock >= confirmedHead) {
+        stored = withRunMetadata(stored, {
+          lastObservedHead: confirmedHead,
+          lastRunAt: currentTime,
+          lastSuccessAt: currentTime,
+          lastErrorCode: null,
+          telegramRetryAfterUntil: null,
+        });
+        await this.state.storage.put(STATE_KEY, stored);
+        return Response.json({ domain: domainId, outcome: "caught_up", cursorBlock: stored.cursorBlock });
+      }
+
+      let messagesSent = 0;
+      let lastTelegramSendAt = 0;
+      let ranges = 0;
+      while (
+        stored.cursorBlock < confirmedHead &&
+        ranges < config.maxRangesPerRun &&
+        messagesSent < config.maxMessagesPerRun
+      ) {
+        const fromBlock = stored.cursorBlock + 1;
+        let requestedToBlock = Math.min(
+          confirmedHead,
+          fromBlock + config.logRangeSize - 1,
+        );
+        if (domainId === "yeth") {
+          requestedToBlock = Math.min(
+            requestedToBlock,
+            nextYethCheckpoint(stored.cursorBlock, config.yethDailyCheckpointBlocks),
+          );
+        }
+        const scan = await scanRange({
+          domainId,
+          rpc,
+          config,
+          state: stored,
+          requestedToBlock,
+        });
+        const terminal = await rpc.getBlockByNumber(scan.terminalBlock);
+        if (terminal.number !== scan.terminalBlock) {
+          throw new AlertRunError("terminal_block_invalid");
+        }
+        const rendered = await renderCatalogueMessages({ domainId, actions: scan.actions, rpc });
+        const unsent = [] as typeof rendered[number][];
+        for (const message of rendered) {
+          const sent = await this.state.storage.get<boolean>(`${RECEIPT_PREFIX}${message.eventId}`);
+          if (sent !== true) unsent.push(message);
+        }
+        const remaining = config.maxMessagesPerRun - messagesSent;
+        const selected = unsent.slice(0, remaining);
+        for (const message of selected) {
+          if (lastTelegramSendAt > 0) {
+            const wait = TELEGRAM_SPACING_MS - (Date.now() - lastTelegramSendAt);
+            if (wait > 0) await sleep(wait);
+          }
+          await sendMessage(domain.chatId, message.html, config.botToken);
+          lastTelegramSendAt = Date.now();
+          await this.state.storage.put(`${RECEIPT_PREFIX}${message.eventId}`, true);
+          messagesSent += 1;
+        }
+        if (selected.length < unsent.length) {
+          await this.recordError(stored, "message_cap_reached", confirmedHead);
+          return Response.json({
+            domain: domainId,
+            outcome: "message_cap",
+            cursorBlock: stored.cursorBlock,
+            messagesSent,
+          }, { status: 202 });
+        }
+
+        const successTime = nowSeconds();
+        stored = {
+          ...stored,
+          cursorBlock: scan.terminalBlock,
+          cursorHash: terminal.hash,
+          lastObservedHead: confirmedHead,
+          lastRunAt: successTime,
+          lastSuccessAt: successTime,
+          lastErrorCode: null,
+          telegramRetryAfterUntil: null,
+          yethState:
+            scan.yethState === null ? stored.yethState : serializeYethState(scan.yethState),
+          yethMetrics:
+            scan.yethMetrics === null
+              ? stored.yethMetrics
+              : serializeYethRepaymentMetrics(scan.yethMetrics),
+          yethDailyFlow:
+            domainId === "yeth" ? storeFlow(scan.yethDailyFlow) : stored.yethDailyFlow,
+        };
+        await this.state.storage.put(STATE_KEY, stored);
+        ranges += 1;
+      }
+      return Response.json({
+        domain: domainId,
+        outcome: stored.cursorBlock >= confirmedHead ? "caught_up" : "progress",
+        cursorBlock: stored.cursorBlock,
+        confirmedHead,
+        ranges,
+        messagesSent,
+      });
+    } catch (error) {
+      if (error instanceof TelegramRateLimitError) {
+        const retryAfterUntil = nowSeconds() + error.retryAfterSeconds;
+        await this.state.storage.put(
+          STATE_KEY,
+          withRunMetadata(stored, {
+            lastRunAt: nowSeconds(),
+            lastErrorCode: "telegram_rate_limited",
+            telegramRetryAfterUntil: retryAfterUntil,
+          }),
+        );
+        console.warn(JSON.stringify({ event: "alert_run_delayed", domain: domainId, code: "telegram_rate_limited", retryAfterUntil }));
+        return Response.json({ domain: domainId, outcome: "telegram_backoff" }, { status: 202 });
+      }
+      const code = error instanceof AlertRunError ? error.code : "processing_failed";
+      await this.recordError(stored, code);
+      console.error(JSON.stringify({
+        event: "alert_run_failed",
+        domain: domainId,
+        code,
+        cursorBlock: stored.cursorBlock,
+        nextBlock: stored.cursorBlock + 1,
+      }));
+      return Response.json({ domain: domainId, outcome: "failed", code }, { status: 500 });
+    }
+  }
+}
+
+export function activeDomainConfigs(env: AlertsEnv): readonly DomainConfig[] {
+  return domainConfigs(env).filter((domain) => domain.enabled);
+}

@@ -1,6 +1,16 @@
 interface TelegramSendMessageResponse {
   ok: boolean;
   description?: string;
+  parameters?: {
+    retry_after?: number;
+  };
+}
+
+export class TelegramRateLimitError extends Error {
+  constructor(readonly retryAfterSeconds: number) {
+    super("telegram_rate_limited");
+    this.name = "TelegramRateLimitError";
+  }
 }
 
 export async function sendMessage(
@@ -26,9 +36,15 @@ export async function sendMessage(
   const payload =
     (await response.json().catch(() => null)) as TelegramSendMessageResponse | null;
 
+  const retryAfter = payload?.parameters?.retry_after;
+  if (
+    response.status === 429 &&
+    Number.isSafeInteger(retryAfter) &&
+    (retryAfter as number) > 0
+  ) {
+    throw new TelegramRateLimitError(retryAfter as number);
+  }
   if (!response.ok || payload?.ok !== true) {
-    throw new Error(
-      `Telegram sendMessage failed: ${payload?.description ?? response.statusText}`,
-    );
+    throw new Error("telegram_send_failed");
   }
 }

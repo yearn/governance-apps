@@ -27,6 +27,7 @@ function assertLiquidLockerColumns(): void {
 }
 
 function toSymbol(prefix: string): string {
+  if (prefix.toLowerCase() === "up") return "supYFI";
   return `${prefix}YFI`;
 }
 
@@ -44,6 +45,11 @@ export const YETH_CLAIM = yethDeployment.YETH_CLAIM as Address;
 export const YETH_YIELD_VAULT = yethDeployment.YETH_YIELD_VAULT as Address;
 export const YETH_RECOVERY_VAULT = yethDeployment.YETH_RECOVERY_VAULT as Address;
 export const YETH_CLAIM_DEPLOY_BLOCK = yethDeployment.YETH_CLAIM_DEPLOY_BLOCK;
+export const YETH_RECOVERY_VAULT_DEPLOY_BLOCK =
+  yethDeployment.YETH_RECOVERY_VAULT_DEPLOY_BLOCK;
+/** Verified proxy creation is in the same block as the recovery vault. */
+export const YETH_YIELD_VAULT_DEPLOY_BLOCK =
+  yethDeployment.YETH_RECOVERY_VAULT_DEPLOY_BLOCK;
 
 export const LIQUID_LOCKERS: readonly LiquidLockerContract[] =
   deployment.LIQUID_LOCKERS.NAME.map((name, index) => ({
@@ -67,21 +73,3 @@ export const LIQUID_LOCKER_BY_DEPOSITOR = new Map<string, LiquidLockerContract>(
 export const LIQUID_LOCKER_SYMBOL_BY_TOKEN = new Map<string, string>(
   LIQUID_LOCKERS.map((locker) => [locker.token.toLowerCase(), locker.symbol]),
 );
-
-const monitoredContracts = new Set<string>([
-  STYFI,
-  STYFIX,
-  VEYFI,
-  VEYFI_REWARD_DISTRIBUTOR,
-  LIQUID_LOCKER_REDEMPTION,
-  ...LIQUID_LOCKER_DEPOSITORS,
-].map((address) => address.toLowerCase()));
-
-export const MONITORED_CONTRACTS = Array.from(monitoredContracts);
-
-const yethMonitoredContracts = new Set<string>([
-  YETH_CLAIM,
-  YETH_RECOVERY_VAULT,
-].map((address) => address.toLowerCase()));
-
-export const YETH_MONITORED_CONTRACTS = Array.from(yethMonitoredContracts);
