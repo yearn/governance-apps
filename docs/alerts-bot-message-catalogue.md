@@ -2,8 +2,8 @@
 
 Status: **Approved for implementation on 27 August 2026.**
 
-This document specifies the Telegram messages for the next version of
-`governance-alerts-bot`. It covers the stYFI, veYFI, and yETH alert streams,
+This document specifies the Telegram messages for
+`governance-alerts-bot-v2`. It covers the stYFI, veYFI, and yETH alert streams,
 including historical replay from each stream's start block.
 
 The examples use fictional accounts, amounts, blocks, dates, and transaction

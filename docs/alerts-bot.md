@@ -2,14 +2,26 @@
 
 ## Scope
 
-This runbook covers the three-domain rebuild of `governance-alerts-bot`. The
-same Worker owns three independent Durable Object instances and three Telegram
-destinations. It does not migrate or adopt the old singleton's cursor.
+This runbook covers `governance-alerts-bot-v2`, the three-domain replacement
+for the live `governance-alerts-bot` singleton. The v2 Worker owns three
+independent Durable Object instances and three Telegram destinations. It does
+not migrate or adopt the old singleton's cursor.
+
+The two Workers run side by side while the v2 histories are replayed and
+reviewed privately. The old Worker continues serving its existing combined
+chat until an explicit cutover. `governance-alerts-bot-v2` is the permanent
+production identity after cutover; it must not be renamed back to the old
+Worker name.
 
 No command in this document should be run against production until the code
 review and local verification gates pass.
 
 ## Production shape
+
+| Worker | Purpose during rollout | Destination |
+| --- | --- | --- |
+| `governance-alerts-bot` | Existing live singleton; leave unchanged | Existing combined chat |
+| `governance-alerts-bot-v2` | New permanent Worker; replay privately | Three final domain chats |
 
 | Domain | Durable Object | Telegram destination | Start block |
 | --- | --- | --- | ---: |
@@ -117,24 +129,156 @@ and that the working tree is clean after the release commit.
 
 ## Bounded rollout
 
-1. Create the three final Telegram chats and keep them private.
-2. Add the bot and configure all six secrets outside git.
-3. Deploy the Worker with every domain disabled. Confirm the authenticated
-   status route and inspect the deployment logs.
-4. Enable stYFI only. Its new object starts at block 24,386,915 and replays into
-   the final stYFI chat.
-5. Wait for `caughtUp: true`. Review the entire history, links, ordering,
-   amounts, account context, and formatting. Pin the approved stYFI
-   introduction manually.
-6. Repeat the same process for veYFI.
-7. Enable yETH last. Review Y1–Y5 and the complete set of daily checkpoint
-   candidates before accepting the 5 ETH threshold. Pin the yETH introduction
-   only after approval.
-8. Invite users only after all enabled domains are caught up and their private
-   histories are approved.
+Run production commands from a clean checkout of the exact reviewed release
+commit, preferably after the accepted `agent/data` range has been merged to
+`master`. Confirm the configured Worker identity before every deploy:
+
+```fish
+git status --short
+git rev-parse HEAD
+rg '"name"|"ALERTS_.*_ENABLED"' wrangler.alerts.jsonc
+npx wrangler whoami
+```
+
+The name must be `governance-alerts-bot-v2`, and all three flags must initially
+be `false`.
+
+### 1. Prepare final destinations
+
+1. Create the final stYFI, veYFI, and yETH Telegram chats and keep them private.
+2. Add the bot to each chat with permission to post.
+3. Record the three final chat IDs. Never use the old combined chat ID for a v2
+   destination.
 
 Do not replay into a temporary chat and then change its destination. Event
 receipts belong to the final destination history.
+
+### 2. Deploy v2 inert
+
+Run the local release gates, then create the separate Worker while every domain
+is disabled:
+
+```fish
+npx wrangler deploy --dry-run --config wrangler.alerts.jsonc
+npx wrangler deploy --config wrangler.alerts.jsonc
+```
+
+The deploy output must identify `governance-alerts-bot-v2`. At this point the
+old `governance-alerts-bot` continues running unchanged, and v2 performs no RPC
+or Telegram work.
+
+### 3. Configure v2 secrets
+
+Wrangler prompts for each value without writing it to the repository:
+
+```fish
+npx wrangler secret put RPC_URL --config wrangler.alerts.jsonc
+npx wrangler secret put TELEGRAM_BOT_TOKEN --config wrangler.alerts.jsonc
+npx wrangler secret put STYFI_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
+npx wrangler secret put VEYFI_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
+npx wrangler secret put YETH_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
+npx wrangler secret put ADMIN_TOKEN --config wrangler.alerts.jsonc
+```
+
+Each `secret put` creates a Worker version. This is safe only because all three
+domain flags remain disabled.
+
+Use the `workers.dev` URL printed by the deploy command to verify the redacted
+status response:
+
+```fish
+set alerts_v2_url 'https://governance-alerts-bot-v2.<workers-subdomain>.workers.dev'
+read --silent --prompt-str 'v2 ADMIN_TOKEN: ' alerts_v2_admin_token
+curl --fail --silent --show-error \
+  --header "Authorization: Bearer $alerts_v2_admin_token" \
+  "$alerts_v2_url/status" | jq
+set -e alerts_v2_admin_token
+```
+
+Keep a second terminal available for structured logs:
+
+```fish
+npx wrangler tail governance-alerts-bot-v2 --format pretty
+```
+
+### 4. Replay stYFI
+
+Change only `ALERTS_STYFI_ENABLED` to `true` in `wrangler.alerts.jsonc`, review
+the diff, commit the operational change, and redeploy:
+
+```fish
+git diff --check
+git diff -- wrangler.alerts.jsonc
+git add wrangler.alerts.jsonc
+git commit -m "chore(alerts): enable stYFI v2 replay"
+npx wrangler deploy --config wrangler.alerts.jsonc
+```
+
+The new stYFI object starts at block 24,386,915. Poll the authenticated status
+route until stYFI reports `caughtUp: true`. Review the entire private history,
+links, ordering, amounts, account context, and formatting. Pin the approved
+stYFI introduction manually only after acceptance.
+
+### 5. Replay veYFI
+
+Leave stYFI enabled, change only `ALERTS_VEYFI_ENABLED` to `true`, then repeat
+the review, commit, and deploy sequence:
+
+```fish
+git diff --check
+git diff -- wrangler.alerts.jsonc
+git add wrangler.alerts.jsonc
+git commit -m "chore(alerts): enable veYFI v2 replay"
+npx wrangler deploy --config wrangler.alerts.jsonc
+```
+
+Wait for veYFI to report `caughtUp: true`, approve its complete private
+history, and then pin its introduction.
+
+### 6. Replay yETH
+
+Leave stYFI and veYFI enabled, change only `ALERTS_YETH_ENABLED` to `true`, then
+commit and deploy:
+
+```fish
+git diff --check
+git diff -- wrangler.alerts.jsonc
+git add wrangler.alerts.jsonc
+git commit -m "chore(alerts): enable yETH v2 replay"
+npx wrangler deploy --config wrangler.alerts.jsonc
+```
+
+Wait for yETH to report `caughtUp: true`. Review Y1–Y5, every structured
+`alert_yeth_daily_checkpoint` record, and the complete set of daily checkpoint
+candidates before accepting the 5 ETH threshold. Pin the yETH introduction
+only after approval.
+
+### 7. Observe privately and cut over
+
+Keep both Workers live briefly after all three v2 domains are caught up. They
+scan the same chain but deliver to different chats: the old Worker protects
+existing coverage while the final v2 histories remain private.
+
+Immediately before cutover, confirm all three v2 domains are caught up and have
+recent successful runs. Then disable the old singleton using its existing
+authenticated endpoint:
+
+```fish
+set alerts_v1_url 'https://governance-alerts-bot.<workers-subdomain>.workers.dev'
+read --silent --prompt-str 'v1 ADMIN_TOKEN: ' alerts_v1_admin_token
+curl --fail --silent --show-error --request POST \
+  --header "Authorization: Bearer $alerts_v1_admin_token" \
+  "$alerts_v1_url/admin/disable"
+set -e alerts_v1_admin_token
+```
+
+Confirm the response is `disabled`, the old chat stops receiving alerts, and
+v2 continues processing. Pin a redirect in the old chat, then invite users to
+the three new chats.
+
+Keep the old Worker deployed but disabled through the first production week.
+Retiring or deleting it is a separate destructive operation and is not part of
+this rollout.
 
 ## Rejecting a replay
 
@@ -154,9 +298,14 @@ force a replay. A new versioned object is simpler and leaves an auditable path.
 Set a domain's enable flag to `false` and redeploy to pause it. Its cursor and
 receipts remain intact. Re-enabling resumes from that cursor.
 
-Before rolling code back to the old singleton Worker, disable all three new
-domains. The old singleton and the three new objects have unrelated cursors and
-destinations; they must never deliver concurrently.
+The old singleton and v2 may deliver concurrently only during private replay,
+when their destinations are distinct. Never point a v2 domain at the old
+combined chat.
+
+To roll back after cutover, first call the old singleton's authenticated
+`/admin/enable` endpoint so coverage resumes immediately. Then set all three v2
+enable flags to `false` and redeploy v2. A brief overlap across distinct chats
+is preferable to a delivery gap. Do not call either old reset endpoint.
 
 The duplicate window after Telegram accepts a message but before its receipt is
 written cannot be removed without an external transactional sender. If it
