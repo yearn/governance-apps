@@ -129,19 +129,22 @@ and that the working tree is clean after the release commit.
 
 ## Bounded rollout
 
-Run production commands from a clean checkout of the exact reviewed release
-commit, preferably after the accepted `agent/data` range has been merged to
-`master`. Confirm the configured Worker identity before every deploy:
+Run the private rollout from the clean `agent/data` worktree. Do not merge the
+rebuild into `master` until all three replay histories and the private live
+behavior have been approved. Confirm the branch, commit, and configured Worker
+identity before every deploy:
 
 ```fish
+cd /Users/hydra/Developer/yearn/governance-apps.agent.data
 git status --short
+git branch --show-current
 git rev-parse HEAD
 rg '"name"|"ALERTS_.*_ENABLED"' wrangler.alerts.jsonc
 npx wrangler whoami
 ```
 
-The name must be `governance-alerts-bot-v2`, and all three flags must initially
-be `false`.
+The branch must be `agent/data`, the name must be
+`governance-alerts-bot-v2`, and all three flags must initially be `false`.
 
 ### 1. Prepare final destinations
 
@@ -253,11 +256,37 @@ Wait for yETH to report `caughtUp: true`. Review Y1–Y5, every structured
 candidates before accepting the 5 ETH threshold. Pin the yETH introduction
 only after approval.
 
-### 7. Observe privately and cut over
+### 7. Observe privately
 
 Keep both Workers live briefly after all three v2 domains are caught up. They
 scan the same chain but deliver to different chats: the old Worker protects
 existing coverage while the final v2 histories remain private.
+
+Do not merge to `master` until the replay histories, live messages, status, and
+structured logs have been accepted.
+
+### 8. Promote the approved release and cut over
+
+Once private testing is approved, fast-forward `master` to the accepted
+`agent/data` commit from the master worktree, rerun the release gates, and
+redeploy the same v2 configuration:
+
+```fish
+cd /Users/hydra/Developer/yearn/governance-apps
+git status --short
+git merge --ff-only agent/data
+npm run typecheck -- --incremental false
+npm run lint
+npm run validate:deps
+npm run test
+npx wrangler deploy --dry-run --config wrangler.alerts.jsonc
+npx wrangler deploy --config wrangler.alerts.jsonc
+```
+
+This redeploy targets the existing `governance-alerts-bot-v2` Worker. Its
+Durable Object state, receipts, cursors, and secrets remain in place. Confirm
+all three domains still report `caughtUp: true` before disabling the old
+Worker.
 
 Immediately before cutover, confirm all three v2 domains are caught up and have
 recent successful runs. Then disable the old singleton using its existing
