@@ -20,8 +20,8 @@
   "vars": {
     // All domains fail closed until their final private chat is ready.
     "ALERTS_STYFI_ENABLED": "true",
-    "ALERTS_VEYFI_ENABLED": "false",
-    "ALERTS_YETH_ENABLED": "false",
+    "ALERTS_VEYFI_ENABLED": "true",
+    "ALERTS_YETH_ENABLED": "true",
     "CONFIRMATIONS": "6",
     "MAX_MESSAGES_PER_RUN": "5",
     "MAX_RANGES_PER_RUN": "6",
