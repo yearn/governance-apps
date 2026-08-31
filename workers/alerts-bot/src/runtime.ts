@@ -36,8 +36,17 @@ import {
 } from "./domains/yeth/accounting";
 import { scanChunkForActionsWithProgress } from "./domains/styfi-veyfi/scanner";
 import { scanYethBlocks } from "./domains/yeth/scanner";
-import { createRpcClient, type RpcBlock, type RpcClient } from "./rpc";
-import { sendMessage, TelegramRateLimitError } from "./telegram";
+import {
+  createRpcClient,
+  RpcRequestError,
+  type RpcBlock,
+  type RpcClient,
+} from "./rpc";
+import {
+  sendMessage,
+  TelegramRateLimitError,
+  TelegramSendError,
+} from "./telegram";
 import type { NormalizedAction } from "./types";
 
 const STATE_KEY = "state:v1";
@@ -76,6 +85,61 @@ class AlertRunError extends Error {
     super(code);
     this.name = "AlertRunError";
   }
+}
+
+type AlertRunStage =
+  | "configuration"
+  | "head"
+  | "cursor_validation"
+  | "scan"
+  | "terminal"
+  | "render"
+  | "receipt_read"
+  | "telegram_send"
+  | "receipt_write"
+  | "state_commit";
+
+function safeExceptionName(error: unknown): string {
+  if (!(error instanceof Error)) return "NonError";
+  switch (error.name) {
+    case "Error":
+    case "TypeError":
+    case "RangeError":
+    case "SyntaxError":
+    case "AbortError":
+      return error.name;
+    default:
+      return "Error";
+  }
+}
+
+function safeFailureDiagnostic(error: unknown) {
+  if (error instanceof AlertRunError) {
+    return { failureKind: "controlled" };
+  }
+  if (error instanceof RpcRequestError) {
+    return {
+      failureKind: "rpc",
+      rpcMethod: error.method,
+      rpcKind: error.kind,
+      rpcCode: error.rpcCode ?? null,
+      httpStatus: error.httpStatus ?? null,
+      rangeLimit: error.rangeLimit,
+      batchLimit: error.batchLimit,
+    };
+  }
+  if (error instanceof TelegramSendError) {
+    return {
+      failureKind: "telegram",
+      telegramKind: error.kind,
+      httpStatus: error.httpStatus,
+      telegramErrorCode: error.telegramErrorCode,
+    };
+  }
+  return {
+    failureKind: "unexpected",
+    exceptionName: safeExceptionName(error),
+  };
 }
 
 function nowSeconds(): number {
@@ -510,6 +574,7 @@ export class AlertState implements DurableObject {
       console.error(JSON.stringify({ event: "alert_run_failed", domain: domainId, code: "stored_state_invalid" }));
       return Response.json({ domain: domainId, outcome: "failed", code: "stored_state_invalid" }, { status: 500 });
     }
+    let stage: AlertRunStage = "configuration";
     try {
       const domain = domainConfigs(this.env).find((entry) => entry.domainId === domainId);
       if (domain === undefined || !domain.enabled) {
@@ -536,9 +601,11 @@ export class AlertState implements DurableObject {
         return Response.json({ domain: domainId, outcome: "telegram_backoff" }, { status: 202 });
       }
       const rpc = createRpcClient(config.rpcUrl);
+      stage = "head";
       const latest = await rpc.getBlockNumber();
       const confirmedHead = Math.max(0, latest - config.confirmations);
       if (stored.cursorHash !== null) {
+        stage = "cursor_validation";
         const cursor = await rpc.getBlockByNumber(stored.cursorBlock);
         if (cursor.hash !== stored.cursorHash) {
           throw new AlertRunError("cursor_reorg_detected");
@@ -552,6 +619,7 @@ export class AlertState implements DurableObject {
           lastErrorCode: null,
           telegramRetryAfterUntil: null,
         });
+        stage = "state_commit";
         await this.state.storage.put(STATE_KEY, stored);
         return Response.json({ domain: domainId, outcome: "caught_up", cursorBlock: stored.cursorBlock });
       }
@@ -575,6 +643,7 @@ export class AlertState implements DurableObject {
             nextYethCheckpoint(stored.cursorBlock, config.yethDailyCheckpointBlocks),
           );
         }
+        stage = "scan";
         const scan = await scanRange({
           domainId,
           rpc,
@@ -582,13 +651,16 @@ export class AlertState implements DurableObject {
           state: stored,
           requestedToBlock,
         });
+        stage = "terminal";
         const terminal = await rpc.getBlockByNumber(scan.terminalBlock);
         if (terminal.number !== scan.terminalBlock) {
           throw new AlertRunError("terminal_block_invalid");
         }
+        stage = "render";
         const rendered = await renderCatalogueMessages({ domainId, actions: scan.actions, rpc });
         const unsent = [] as typeof rendered[number][];
         for (const message of rendered) {
+          stage = "receipt_read";
           const sent = await this.state.storage.get<boolean>(`${RECEIPT_PREFIX}${message.eventId}`);
           if (sent !== true) unsent.push(message);
         }
@@ -599,12 +671,15 @@ export class AlertState implements DurableObject {
             const wait = TELEGRAM_SPACING_MS - (Date.now() - lastTelegramSendAt);
             if (wait > 0) await sleep(wait);
           }
+          stage = "telegram_send";
           await sendMessage(domain.chatId, message.html, config.botToken);
           lastTelegramSendAt = Date.now();
+          stage = "receipt_write";
           await this.state.storage.put(`${RECEIPT_PREFIX}${message.eventId}`, true);
           messagesSent += 1;
         }
         if (selected.length < unsent.length) {
+          stage = "state_commit";
           await this.recordError(stored, "message_cap_reached", confirmedHead);
           return Response.json({
             domain: domainId,
@@ -633,6 +708,7 @@ export class AlertState implements DurableObject {
           yethDailyFlow:
             domainId === "yeth" ? storeFlow(scan.yethDailyFlow) : stored.yethDailyFlow,
         };
+        stage = "state_commit";
         await this.state.storage.put(STATE_KEY, stored);
         ranges += 1;
       }
@@ -659,11 +735,20 @@ export class AlertState implements DurableObject {
         return Response.json({ domain: domainId, outcome: "telegram_backoff" }, { status: 202 });
       }
       const code = error instanceof AlertRunError ? error.code : "processing_failed";
-      await this.recordError(stored, code);
+      const diagnostic = safeFailureDiagnostic(error);
+      let errorStateRecorded = true;
+      try {
+        await this.recordError(stored, code);
+      } catch {
+        errorStateRecorded = false;
+      }
       console.error(JSON.stringify({
         event: "alert_run_failed",
         domain: domainId,
         code,
+        stage,
+        ...diagnostic,
+        errorStateRecorded,
         cursorBlock: stored.cursorBlock,
         nextBlock: stored.cursorBlock + 1,
       }));

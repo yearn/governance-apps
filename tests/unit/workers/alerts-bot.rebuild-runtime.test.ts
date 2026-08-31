@@ -8,7 +8,10 @@ import {
   ALERT_DOMAIN_REGISTRATIONS,
 } from "@/workers/alerts-bot/src/domain-registry";
 import { AlertState } from "@/workers/alerts-bot/src/runtime";
-import { sendMessage } from "@/workers/alerts-bot/src/telegram";
+import {
+  sendMessage,
+  TelegramSendError,
+} from "@/workers/alerts-bot/src/telegram";
 import {
   applyYethClaim,
   applyYethSetClaim,
@@ -93,6 +96,7 @@ function rpcFetch(params: {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("alerts rebuild registry and configuration", () => {
@@ -249,6 +253,71 @@ describe("minimal durable runtime", () => {
       cursorBlock: cursor,
       lastErrorCode: "cursor_reorg_detected",
     });
+  });
+
+  it("logs a redacted stage when the head request throws unexpectedly", async () => {
+    const { state, storage } = durableState();
+    const secretMarker = "must-not-appear-in-alert-logs";
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new TypeError(`network failure: ${secretMarker}`);
+    }));
+    const object = new AlertState(
+      state,
+      baseEnv({ ALERTS_STYFI_ENABLED: "true" }),
+    );
+
+    const response = await object.fetch(
+      new Request("https://alerts.internal/run?domain=styfi", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({
+      outcome: "failed",
+      code: "processing_failed",
+    });
+    expect(storage.values.get("state:v1")).toMatchObject({
+      lastErrorCode: "processing_failed",
+    });
+    const log = JSON.parse(String(errorLog.mock.calls.at(-1)?.[0])) as Record<string, unknown>;
+    expect(log).toMatchObject({
+      event: "alert_run_failed",
+      domain: "styfi",
+      code: "processing_failed",
+      stage: "head",
+      failureKind: "unexpected",
+      exceptionName: "TypeError",
+      errorStateRecorded: true,
+    });
+    expect(JSON.stringify(log)).not.toContain(secretMarker);
+  });
+
+  it("logs safe RPC metadata without including provider response bodies", async () => {
+    const { state } = durableState();
+    const secretMarker = "provider-body-must-stay-redacted";
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(secretMarker, { status: 503 }),
+    ));
+    const object = new AlertState(
+      state,
+      baseEnv({ ALERTS_STYFI_ENABLED: "true" }),
+    );
+
+    await object.fetch(
+      new Request("https://alerts.internal/run?domain=styfi", { method: "POST" }),
+    );
+
+    const log = JSON.parse(String(errorLog.mock.calls.at(-1)?.[0])) as Record<string, unknown>;
+    expect(log).toMatchObject({
+      stage: "head",
+      failureKind: "rpc",
+      rpcMethod: "eth_blockNumber",
+      rpcKind: "http",
+      rpcCode: null,
+      httpStatus: 503,
+    });
+    expect(JSON.stringify(log)).not.toContain(secretMarker);
   });
 
   it("resumes a capped yETH checkpoint from event receipts without advancing early", async () => {
@@ -422,5 +491,32 @@ describe("worker routing and Telegram backoff", () => {
     await expect(sendMessage("chat", "<b>test</b>", "token")).rejects.toEqual(
       expect.objectContaining({ retryAfterSeconds: 42 }),
     );
+  });
+
+  it("surfaces redacted Telegram failure metadata without retaining descriptions", async () => {
+    const secretMarker = "telegram-description-must-stay-redacted";
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      Response.json(
+        {
+          ok: false,
+          error_code: 400,
+          description: secretMarker,
+        },
+        { status: 400 },
+      ),
+    ));
+
+    const error = await sendMessage("chat", "<b>test</b>", "token").catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBeInstanceOf(TelegramSendError);
+    expect(error).toMatchObject({
+      message: "telegram_send_failed",
+      httpStatus: 400,
+      telegramErrorCode: 400,
+      kind: "http_error",
+    });
+    expect(JSON.stringify(error)).not.toContain(secretMarker);
   });
 });

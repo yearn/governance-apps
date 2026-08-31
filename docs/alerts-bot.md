@@ -113,6 +113,13 @@ first production week, check status and structured logs manually. A scanner,
 context, rendering, cursor-hash, RPC, or Telegram failure leaves the domain at
 its saved cursor for retry. Unknown monitored data is never silently skipped.
 
+An `alert_run_failed` log includes a controlled `stage` such as `head`, `scan`,
+`render`, `telegram_send`, `receipt_write`, or `state_commit`. RPC failures add
+only the method, failure kind, HTTP status, and RPC code. Telegram failures add
+only the HTTP status, Telegram error code, and controlled failure kind. Raw
+exception messages, provider response bodies, RPC URLs, credentials, chat IDs,
+message bodies, and account context are never logged.
+
 ## Local release gates
 
 Run at minimum:

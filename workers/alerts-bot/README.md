@@ -33,8 +33,11 @@ evaluated at one fixed 7,200-block checkpoint and sent only when their change
 meets the configured threshold. There is no daily impact digest.
 
 There is deliberately no health monitor or Telegram warning subsystem. Failures
-produce structured logs and appear in the authenticated status response. This
-can be revisited when DAO alerts add stronger operational requirements.
+produce structured logs and appear in the authenticated status response.
+Failure logs identify the safe runtime stage and controlled RPC or Telegram
+error metadata without including provider payloads, credentials, destinations,
+message bodies, or account context. This can be revisited when DAO alerts add
+stronger operational requirements.
 
 ## Configuration
 
