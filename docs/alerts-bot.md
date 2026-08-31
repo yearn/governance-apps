@@ -86,6 +86,13 @@ events reduce outstanding recovery debt. Y6–Y9 are evaluated once per fixed
 7,200-block checkpoint. The scanner does not inspect every block for protocol
 metric changes.
 
+The Recovery Vault can mint and burn vault-owned shares without `Deposit` or
+`Withdraw` events during canonical V3 report, fee, and profit-locking
+accounting. These events update the internal share ledger but do not produce a
+user alert. Every `Deposit` must still have its matching share mint, every
+`Withdraw` must still have its matching burn, and a standalone user share burn
+fails closed.
+
 The committed daily materiality threshold is 0.5 ETH. This matches the
 accounting layer's candidate floor; smaller checkpoint changes do not
 accumulate after the daily baseline advances. Before yETH is opened to users,
@@ -119,6 +126,18 @@ only the method, failure kind, HTTP status, and RPC code. Telegram failures add
 only the HTTP status, Telegram error code, and controlled failure kind. Raw
 exception messages, provider response bodies, RPC URLs, credentials, chat IDs,
 message bodies, and account context are never logged.
+
+Direct stYFI and LLYFI calls are attributed to their sender. Canonical Safe
+`execTransaction` wrappers are accepted only for a zero-value `CALL` to the
+expected protocol contract and are attributed to the Safe. Unsupported
+Safe wrappers and target mismatches stop the scanner at the saved cursor rather
+than guessing an actor. Other indirect LLYFI redemptions use the catalogue's
+anonymous position variant so common router activity cannot halt replay.
+
+yETH claims use the indexed Claim account as principal and derive stayed versus
+exited from the Claim values and mandatory Recovery Vault companions. They do
+not perform a transaction lookup, so direct calls, Safe batches, and
+claim-and-distribute contracts share the same event-evidence path.
 
 ## Local release gates
 

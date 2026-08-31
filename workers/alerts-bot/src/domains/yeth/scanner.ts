@@ -1,7 +1,6 @@
 import {
   decodeAbiParameters,
   decodeEventLog,
-  decodeFunctionData,
   type Address,
   type Hex,
 } from "viem";
@@ -14,9 +13,6 @@ import {
   ERC4626_DEPOSIT_TOPIC,
   ERC4626_WITHDRAW_ABI,
   ERC4626_WITHDRAW_TOPIC,
-  YETH_CLAIM_CALL_ABI,
-  YETH_CLAIM_EXIT_SELECTOR,
-  YETH_CLAIM_NO_ARGUMENTS_SELECTOR,
   YETH_CLAIM_TOPIC,
   YETH_SET_CLAIM_TOPIC,
 } from "../../abis";
@@ -26,7 +22,7 @@ import {
   YETH_RECOVERY_VAULT,
   YETH_RECOVERY_VAULT_DEPLOY_BLOCK,
 } from "../../contracts";
-import type { RpcBlock, RpcClient, RpcLog, RpcTransaction } from "../../rpc";
+import type { RpcBlock, RpcClient, RpcLog } from "../../rpc";
 import { isRpcRangeTooLargeError } from "../../rpc";
 import type { NormalizedAction } from "../../types";
 import {
@@ -360,23 +356,6 @@ function isKnownYethAddressTopicPair(log: RpcLog): boolean {
   );
 }
 
-function decodeClaimExit(input: string): boolean {
-  const selector = input.slice(0, 10).toLowerCase();
-  if (selector === YETH_CLAIM_NO_ARGUMENTS_SELECTOR.toLowerCase()) {
-    if (input.length !== 10) throw new Error("invalid_claim_calldata");
-    return false;
-  }
-  if (selector !== YETH_CLAIM_EXIT_SELECTOR.toLowerCase()) {
-    throw new Error("invalid_claim_calldata");
-  }
-  if (input.length !== 74) throw new Error("invalid_claim_calldata");
-  const decoded = decodeFunctionData({ abi: YETH_CLAIM_CALL_ABI, data: input as Hex });
-  if (decoded.functionName !== "claim" || typeof decoded.args?.[0] !== "boolean") {
-    throw new Error("invalid_claim_calldata");
-  }
-  return decoded.args[0];
-}
-
 function metadata(log: RpcLog): {
   txHash: string;
   blockNumber: number;
@@ -473,7 +452,6 @@ function attributionKey(owner: string, shares: bigint): string {
 function applyTransactionEvents(
   state: YethState,
   events: readonly YethDecodedEvent[],
-  claimExit: boolean | null,
 ): { readonly actions: NormalizedAction[]; readonly flow: YethFlowSummary } {
   const actions: NormalizedAction[] = [];
   let recoveryNetFlowEth = 0n;
@@ -487,25 +465,23 @@ function applyTransactionEvents(
       event.kind === "transfer" &&
       normalizeYethAddress(event.sender) === normalizeYethAddress(ZERO_ADDRESS),
   );
-  const orderedDepositCompanions = [
-    ...mints.map((event) => ({ role: "mint" as const, event })),
-    ...deposits.map((event) => ({ role: "deposit" as const, event })),
-  ].sort((left, right) => left.event.log.logIndex! - right.event.log.logIndex!);
-  if (orderedDepositCompanions.length % 2 !== 0) {
-    throw new Error("deposit_mint_companion_count_mismatch");
-  }
-  for (let index = 0; index < orderedDepositCompanions.length; index += 2) {
-    const mint = orderedDepositCompanions[index];
-    const deposit = orderedDepositCompanions[index + 1];
-    if (
-      mint?.role !== "mint" ||
-      deposit?.role !== "deposit" ||
-      normalizeYethAddress(mint.event.receiver) !==
-        normalizeYethAddress(deposit.event.owner) ||
-      mint.event.value !== deposit.event.shares
-    ) {
+  const unmatchedMints = [...mints].sort(
+    (left, right) => left.log.logIndex! - right.log.logIndex!,
+  );
+  for (const deposit of [...deposits].sort(
+    (left, right) => left.log.logIndex! - right.log.logIndex!,
+  )) {
+    const mintIndex = unmatchedMints.findLastIndex(
+      (mint) =>
+        mint.log.logIndex! < deposit.log.logIndex! &&
+        normalizeYethAddress(mint.receiver) ===
+          normalizeYethAddress(deposit.owner) &&
+        mint.value === deposit.shares,
+    );
+    if (mintIndex < 0) {
       throw new Error("deposit_mint_companion_mismatch");
     }
+    unmatchedMints.splice(mintIndex, 1);
   }
 
   const withdrawals = events.filter(
@@ -517,23 +493,36 @@ function applyTransactionEvents(
       event.kind === "transfer" &&
       normalizeYethAddress(event.receiver) === normalizeYethAddress(ZERO_ADDRESS),
   );
-  const withdrawalCounts = new Map<string, number>();
-  const burnCounts = new Map<string, number>();
-  for (const withdrawal of withdrawals) {
-    const key = attributionKey(withdrawal.owner, withdrawal.shares);
-    withdrawalCounts.set(key, (withdrawalCounts.get(key) ?? 0) + 1);
-  }
+  const burnsByAttribution = new Map<
+    string,
+    Array<Extract<YethDecodedEvent, { kind: "transfer" }>>
+  >();
   for (const burn of burns) {
     const key = attributionKey(burn.sender, burn.value);
-    burnCounts.set(key, (burnCounts.get(key) ?? 0) + 1);
+    const queue = burnsByAttribution.get(key) ?? [];
+    queue.push(burn);
+    burnsByAttribution.set(key, queue);
   }
-  const withdrawalKeys = new Set([
-    ...withdrawalCounts.keys(),
-    ...burnCounts.keys(),
-  ]);
-  for (const key of withdrawalKeys) {
-    if ((withdrawalCounts.get(key) ?? 0) !== (burnCounts.get(key) ?? 0)) {
+  const withdrawalBurnLogIndices = new Set<number>();
+  for (const withdrawal of withdrawals) {
+    const key = attributionKey(withdrawal.owner, withdrawal.shares);
+    const queue = burnsByAttribution.get(key) ?? [];
+    const burn = queue.shift();
+    if (burn === undefined || burn.log.logIndex === null) {
       throw new Error("withdraw_burn_companion_mismatch");
+    }
+    withdrawalBurnLogIndices.add(burn.log.logIndex);
+    if (queue.length === 0) burnsByAttribution.delete(key);
+  }
+  for (const queue of burnsByAttribution.values()) {
+    if (
+      queue.some(
+        (burn) =>
+          normalizeYethAddress(burn.sender) !==
+          normalizeYethAddress(YETH_RECOVERY_VAULT),
+      )
+    ) {
+      throw new Error("unexpected_standalone_share_burn");
     }
   }
 
@@ -541,10 +530,8 @@ function applyTransactionEvents(
     (event): event is Extract<YethDecodedEvent, { kind: "claim" }> =>
       event.kind === "claim",
   );
-  if (claims.length > 1) throw new Error("multiple_claim_events_in_transaction");
-  const claim = claims[0];
-  if (claim !== undefined) {
-    if (claimExit === null) throw new Error("claim_attribution_missing");
+  for (const claim of claims) {
+    const claimExit = claim.shares === 0n;
     const account = normalizeYethAddress(claim.account);
     const companionDeposits = events.filter(
       (event): event is Extract<YethDecodedEvent, { kind: "deposit" }> =>
@@ -595,9 +582,7 @@ function applyTransactionEvents(
     if (event.kind === "set_claim") {
       applyYethSetClaim(state, event.account, event.amount);
     } else if (event.kind === "claim") {
-      if (claimExit === null) {
-        throw new Error("claim_attribution_missing");
-      }
+      const claimExit = event.shares === 0n;
       applyYethClaim(
         state,
         event.account,
@@ -639,6 +624,9 @@ function applyTransactionEvents(
         event.value,
       );
       if (attribution === null) {
+        continue;
+      }
+      if (!withdrawalBurnLogIndices.has(event.log.logIndex!)) {
         continue;
       }
       const key = attributionKey(attribution.owner, attribution.sharesBurned);
@@ -1087,107 +1075,13 @@ export async function scanYethBlocks(params: {
       decodedByTx.set(txHash, events);
     }
 
-    const claimExitByTx = new Map<string, boolean>();
-    const claimHashes = [...decodedByTx]
-      .filter(([, events]) => events.some((event) => event.kind === "claim"))
-      .map(([txHash]) => txHash);
-    if (claimHashes.length > 0) {
-      let transactions: Array<RpcTransaction | null>;
-      try {
-        transactions = await params.rpc.getTransactionByHash(claimHashes);
-      } catch (error) {
-        const representative = decodedByTx
-          .get(claimHashes[0]!)!
-          .find((event) => event.kind === "claim")!.log;
-        return {
-          state: committedState,
-          actions: committedActions,
-          ignored: committedIgnores,
-          eventBlocksInspected: countValidatedEventBlocksThrough(blockNumber),
-          flow: { ...committedFlow },
-          lastProcessedBlock: blockNumber - 1,
-          failure: failure(
-            params.isElapsedTimeExceeded?.(error) === true
-              ? "elapsed_time"
-              : params.isBudgetExceeded?.(error) === true
-                ? "budget_exhausted"
-                : "lookup_failed",
-            blockNumber,
-            representative,
-            "claim_transaction_lookup_failed",
-            canonicalBlockHash,
-          ),
-        };
-      }
-      if (!Array.isArray(transactions) || transactions.length !== claimHashes.length) {
-        return {
-          state: committedState,
-          actions: committedActions,
-          ignored: committedIgnores,
-          eventBlocksInspected: countValidatedEventBlocksThrough(blockNumber),
-          flow: { ...committedFlow },
-          lastProcessedBlock: blockNumber - 1,
-          failure: failure(
-            "lookup_failed",
-            blockNumber,
-            decodedByTx.get(claimHashes[0]!)?.[0]?.log ?? null,
-            "claim_transaction_batch_cardinality_mismatch",
-            canonicalBlockHash,
-          ),
-        };
-      }
-      for (let index = 0; index < claimHashes.length; index += 1) {
-        const txHash = claimHashes[index]!;
-        const events = decodedByTx.get(txHash)!;
-        const claim = events.find(
-          (event): event is Extract<YethDecodedEvent, { kind: "claim" }> =>
-            event.kind === "claim",
-        )!;
-        const transaction = transactions[index];
-        try {
-          if (
-            transaction === null ||
-            typeof transaction.hash !== "string" ||
-            transaction.hash.toLowerCase() !== txHash ||
-            transaction.blockNumber !== blockNumber ||
-            typeof transaction.blockHash !== "string" ||
-            transaction.blockHash.toLowerCase() !== canonicalBlockHash ||
-            transaction.to === null ||
-            normalizeYethAddress(transaction.to) !== normalizeYethAddress(YETH_CLAIM) ||
-            normalizeYethAddress(transaction.from) !==
-              normalizeYethAddress(claim.account)
-          ) {
-            throw new Error("claim_transaction_mismatch");
-          }
-          claimExitByTx.set(txHash, decodeClaimExit(transaction.input));
-        } catch {
-          return {
-            state: committedState,
-            actions: committedActions,
-            ignored: committedIgnores,
-            eventBlocksInspected: countValidatedEventBlocksThrough(blockNumber),
-            flow: { ...committedFlow },
-            lastProcessedBlock: blockNumber - 1,
-            failure: failure(
-              "attribution_failed",
-              blockNumber,
-              claim.log,
-              "claim_attribution_failed",
-              canonicalBlockHash,
-            ),
-          };
-        }
-      }
-    }
-
     const blockActions: NormalizedAction[] = [];
     const blockFlow = { recoveryNetFlowEth: 0n, yieldNetFlowEth: 0n };
     try {
-      for (const [txHash, events] of decodedByTx) {
+      for (const events of decodedByTx.values()) {
         const applied = applyTransactionEvents(
           provisionalState,
           events,
-          claimExitByTx.get(txHash) ?? null,
         );
         blockActions.push(...applied.actions);
         blockFlow.recoveryNetFlowEth += applied.flow.recoveryNetFlowEth;

@@ -36,6 +36,7 @@ import type {
   RpcTransaction,
   RpcTransactionReceipt,
 } from "@/workers/alerts-bot/src/rpc";
+import { SAFE_EXEC_TRANSACTION_ABI } from "@/workers/alerts-bot/src/transaction-attribution";
 
 const ONE = 10n ** 18n;
 const STYFI_DEPOSIT_CALL_ABI = parseAbi([
@@ -48,6 +49,9 @@ const STYFI_WITHDRAW_CALL_ABI = parseAbi([
   "function redeem(uint256 shares) returns (uint256)",
   "function redeem(uint256 shares, address receiver) returns (uint256)",
   "function redeem(uint256 shares, address receiver, address owner) returns (uint256)",
+]);
+const LIQUID_LOCKER_REDEMPTION_CALL_ABI = parseAbi([
+  "function redeem(uint256 index, uint256 amount) returns (uint256)",
 ]);
 const DIRECT_STYFI_EXIT_CASES = [
   {
@@ -1000,7 +1004,7 @@ describe("stYFI/veYFI strict scanner", () => {
     expect(result.actions.map((action) => action.txHash)).toEqual([firstHash]);
   });
 
-  it("attributes a complete prefix before later canonical transaction mismatch", async () => {
+  it("attributes a complete prefix before a later invalid Safe target", async () => {
     const locker = LIQUID_LOCKERS[0];
     if (!locker) {
       throw new Error("Missing liquid-locker fixture");
@@ -1008,6 +1012,22 @@ describe("stYFI/veYFI strict scanner", () => {
     const firstBlock = 445;
     const firstHash = hashOf(firstBlock);
     const expectedSender = addressOf(445);
+    const invalidSafeInput = encodeFunctionData({
+      abi: SAFE_EXEC_TRANSACTION_ABI,
+      functionName: "execTransaction",
+      args: [
+        addressOf(999),
+        0n,
+        "0x12345678",
+        0,
+        0n,
+        0n,
+        0n,
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        "0x1234",
+      ],
+    });
     const result = await scanChunkForActionsWithProgress(
       createRpc({
         logs: [
@@ -1024,6 +1044,7 @@ describe("stYFI/veYFI strict scanner", () => {
                 hash === firstHash
                   ? LIQUID_LOCKER_REDEMPTION
                   : addressOf(999),
+              input: hash === firstHash ? "0x" : invalidSafeInput,
             });
           return typeof input === "string"
             ? transaction(input)
@@ -1044,6 +1065,123 @@ describe("stYFI/veYFI strict scanner", () => {
       txHash: firstHash,
       user: expectedSender,
       kind: "redeem",
+    });
+  });
+
+  it("attributes the production Safe-wrapped Cove redemption to the Safe", async () => {
+    const locker = LIQUID_LOCKERS[2];
+    if (!locker) {
+      throw new Error("Missing Cove liquid-locker fixture");
+    }
+    const blockNumber = 24_650_397;
+    const transactionHash =
+      "0x7ef93dad8f455cbf068aa0af783d3ed24da3f0f8694dcb8d5db96336964cee84" as Hex;
+    const executor = "0x48f2bd7513da5bb9f7bfd54ea37c41650fd5f3a3" as Address;
+    const safe = "0x71bdc5f3aba49538c76d58bc2ab4e3a1118dae4c" as Address;
+    const amount = 0xb14b336cc0b3300bn;
+    const fee = 0x15c707120a9cec4n;
+    const log: RpcLog = {
+      ...redeemLog(blockNumber, locker.token),
+      data: encodeAbiParameters(
+        [{ type: "uint256" }, { type: "uint256" }],
+        [amount, fee],
+      ),
+      transactionHash,
+      logIndex: 461,
+    };
+    const innerInput = encodeFunctionData({
+      abi: LIQUID_LOCKER_REDEMPTION_CALL_ABI,
+      functionName: "redeem",
+      args: [2n, amount],
+    });
+    const safeInput = encodeFunctionData({
+      abi: SAFE_EXEC_TRANSACTION_ABI,
+      functionName: "execTransaction",
+      args: [
+        LIQUID_LOCKER_REDEMPTION,
+        0n,
+        innerInput,
+        0,
+        0n,
+        0n,
+        0n,
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        "0x1234",
+      ],
+    });
+    const transaction = transactionFor({
+      hash: transactionHash,
+      blockNumber,
+      from: executor,
+      to: safe,
+      input: safeInput,
+    });
+    const result = await scanChunkForActionsWithProgress(
+      createRpc({
+        logs: [log],
+        getTransactionByHash: (async (input: string | readonly string[]) =>
+          Array.isArray(input) ? input.map(() => transaction) : transaction) as RpcClient["getTransactionByHash"],
+      }),
+      blockNumber,
+      blockNumber,
+      { domainId: "veyfi" },
+    );
+
+    expect(result.failure).toBeNull();
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toMatchObject({
+      kind: "redeem",
+      txHash: transactionHash,
+      user: safe,
+      caller: safe,
+      principal: { kind: "proven", address: safe },
+      amounts: { amount, fee },
+    });
+  });
+
+  it("keeps a production router redemption anonymous without stopping replay", async () => {
+    const locker = LIQUID_LOCKERS[1];
+    if (!locker) {
+      throw new Error("Missing 1UP liquid-locker fixture");
+    }
+    const blockNumber = 24_842_464;
+    const transactionHash =
+      "0x25e09d06cf1a0d7b6e58f0b107d0bde9b4e409fc1e281c96469173ce62a127ea" as Hex;
+    const transaction = transactionFor({
+      hash: transactionHash,
+      blockNumber,
+      from: "0xc0ffeebabe5d496b2dde509f9fa189c25cf29671",
+      to: "0xe08d97e151473a848c3d9ca3f323cb720472d015",
+      input: "0x8cbf8566",
+    });
+    const result = await scanChunkForActionsWithProgress(
+      createRpc({
+        logs: [
+          {
+            ...redeemLog(blockNumber, locker.token),
+            transactionHash,
+            logIndex: 15,
+          },
+        ],
+        getTransactionByHash: (async (input: string | readonly string[]) =>
+          Array.isArray(input) ? input.map(() => transaction) : transaction) as RpcClient["getTransactionByHash"],
+      }),
+      blockNumber,
+      blockNumber,
+      { domainId: "veyfi" },
+    );
+
+    expect(result.failure).toBeNull();
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toMatchObject({
+      kind: "redeem",
+      txHash: transactionHash,
+      user: null,
+      principal: {
+        kind: "unavailable",
+        reason: "canonical_sender_unavailable",
+      },
     });
   });
 

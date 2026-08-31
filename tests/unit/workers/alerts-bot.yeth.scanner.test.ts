@@ -22,7 +22,10 @@ import {
   YETH_CLAIM_DEPLOY_BLOCK,
   YETH_RECOVERY_VAULT,
 } from "@/workers/alerts-bot/src/contracts";
-import { createEmptyYethState } from "@/workers/alerts-bot/src/domains/yeth/accounting";
+import {
+  applyYethSetClaim,
+  createEmptyYethState,
+} from "@/workers/alerts-bot/src/domains/yeth/accounting";
 import {
   loadYethBlockIdentityRange,
   scanYethBlocks as scanCanonicalYethBlocks,
@@ -454,7 +457,7 @@ describe("yETH strict scanner", () => {
     }
   });
 
-  it("keeps elapsed getLogs and claim lookup failures distinct from PF data failures", async () => {
+  it("keeps elapsed getLogs failures distinct from PF data failures", async () => {
     const elapsed = new Error("test_elapsed");
     const blockNumber = CLAIM_TEST_BASE + 95;
     const logsFailure = await scanYethBlocks({
@@ -475,75 +478,30 @@ describe("yETH strict scanner", () => {
     });
     expect(logsFailure.eventBlocksInspected).toBe(0);
 
-    const claim: RpcLog = {
-      ...setClaimLog({ blockNumber }),
-      topics: [
-        YETH_CLAIM_TOPIC,
-        `0x${ACCOUNT.slice(2).padStart(64, "0")}`,
-      ],
-      data: encodeAbiParameters(
-        [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
-        [1n, 0n, 0n],
-      ),
-    };
-    const claimLookupFailure = await scanYethBlocks({
-      rpc: {
-        ...rpcWithLogs([claim]),
-        getTransactionByHash: async () => {
-          throw elapsed;
-        },
-      } as unknown as RpcClient,
-      fromBlock: blockNumber,
-      toBlock: blockNumber,
-      state: createEmptyYethState(),
-      isElapsedTimeExceeded: (error) => error === elapsed,
-    });
-    expect(claimLookupFailure.failure).toMatchObject({
-      code: "elapsed_time",
-      reason: "claim_transaction_lookup_failed",
-    });
-    expect(claimLookupFailure.eventBlocksInspected).toBe(1);
   });
 
-  it("requires a claim transaction to belong to the same block", async () => {
+  it("uses canonical Claim event evidence without a transaction lookup", async () => {
     const blockNumber = CLAIM_TEST_BASE + 100;
-    const txHash = hashOf(3_400);
+    const txHash = hashOf(blockNumber * 100 + 1);
+    const setClaim = setClaimLog({ blockNumber, amount: 11n, logIndex: 0 });
     const claim: RpcLog = {
-      address: YETH_CLAIM,
+      ...setClaimLog({ blockNumber, amount: 11n, logIndex: 1 }),
       topics: [
         YETH_CLAIM_TOPIC,
         `0x${ACCOUNT.slice(2).padStart(64, "0")}`,
       ],
       data: encodeAbiParameters(
         [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
-        [1n, 0n, 0n],
+        [11n, 7n, 0n],
       ),
-      blockHash: hashOf(blockNumber),
-      blockNumber,
       transactionHash: txHash,
-      logIndex: 0,
-      removed: false,
     };
+    const getTransactionByHash = vi.fn(async () => {
+      throw new Error("transaction lookup must not be used");
+    });
     const rpc = {
-      ...rpcWithLogs([claim]),
-      getTransactionByHash: vi.fn(async (input: string | readonly string[]) => {
-        const transaction = {
-          hash: txHash,
-          from: ACCOUNT,
-          to: YETH_CLAIM,
-          blockHash: hashOf(blockNumber - 1),
-          blockNumber: blockNumber - 1,
-          nonce: 0,
-          transactionIndex: 0,
-          value: "0x0",
-          input: encodeFunctionData({
-            abi: YETH_CLAIM_CALL_ABI,
-            functionName: "claim",
-            args: [false],
-          }),
-        };
-        return Array.isArray(input) ? input.map(() => transaction) : transaction;
-      }),
+      ...rpcWithLogs([setClaim, claim]),
+      getTransactionByHash,
     } as unknown as RpcClient;
     const result = await scanYethBlocks({
       rpc,
@@ -551,53 +509,16 @@ describe("yETH strict scanner", () => {
       toBlock: blockNumber,
       state: createEmptyYethState(),
     });
-    expect(result).toMatchObject({
-      lastProcessedBlock: blockNumber - 1,
-      eventBlocksInspected: 1,
-      failure: { code: "attribution_failed", reason: "claim_attribution_failed" },
+    expect(result.failure).toBeNull();
+    expect(result.actions[0]).toMatchObject({
+      kind: "yeth_claimed_exited",
+      principal: { kind: "proven", address: ACCOUNT },
     });
-
-    for (const transactionBlockHash of [null, hashOf(3_401)]) {
-      const sameHeightRpc = {
-        ...rpcWithLogs([claim]),
-        getTransactionByHash: vi.fn(async (input: string | readonly string[]) => {
-          const transaction = {
-            hash: txHash,
-            from: ACCOUNT,
-            to: YETH_CLAIM,
-            blockHash: transactionBlockHash,
-            blockNumber,
-            nonce: 0,
-            transactionIndex: 0,
-            value: "0x0",
-            input: encodeFunctionData({
-              abi: YETH_CLAIM_CALL_ABI,
-              functionName: "claim",
-              args: [false],
-            }),
-          };
-          return Array.isArray(input) ? input.map(() => transaction) : transaction;
-        }),
-      } as unknown as RpcClient;
-      const sameHeight = await scanYethBlocks({
-        rpc: sameHeightRpc,
-        fromBlock: blockNumber,
-        toBlock: blockNumber,
-        state: createEmptyYethState(),
-      });
-      expect(sameHeight.failure).toMatchObject({
-        code: "attribution_failed",
-        reason: "claim_attribution_failed",
-      });
-      expect(sameHeight.state.totalSnapshotDebtEth).toBe(0n);
-    }
+    expect(getTransactionByHash).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { exit: true, shares: 1n, label: "exit with stayed shares" },
-    { exit: false, shares: 0n, label: "stay without vault shares" },
-  ])("rejects a contradictory $label companion shape", async ({ exit, shares }) => {
-    const blockNumber = CLAIM_TEST_BASE + 105 + Number(exit);
+  it("rejects a stayed claim without its vault companions", async () => {
+    const blockNumber = CLAIM_TEST_BASE + 105;
     const claimTx = hashOf(blockNumber * 100 + 1);
     const setClaim = setClaimLog({ blockNumber, amount: 11n, logIndex: 0 });
     const claim: RpcLog = {
@@ -608,32 +529,13 @@ describe("yETH strict scanner", () => {
       ],
       data: encodeAbiParameters(
         [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
-        [11n, 7n, shares],
+        [11n, 7n, 1n],
       ),
       transactionHash: claimTx,
     };
-    const rpc = {
-      ...rpcWithLogs([setClaim, claim]),
-      getTransactionByHash: vi.fn(async (input: string | readonly string[]) => {
-        const transaction = {
-          hash: claimTx,
-          from: ACCOUNT,
-          to: YETH_CLAIM,
-          blockHash: hashOf(blockNumber),
-          blockNumber,
-          nonce: 0,
-          transactionIndex: 0,
-          value: "0x0",
-          input: exit
-            ? `0x2d81a78e${"0".repeat(63)}1`
-            : `0x2d81a78e${"0".repeat(64)}`,
-        };
-        return Array.isArray(input) ? input.map(() => transaction) : transaction;
-      }),
-    } as unknown as RpcClient;
 
     const result = await scanYethBlocks({
-      rpc,
+      rpc: rpcWithLogs([setClaim, claim]),
       fromBlock: blockNumber,
       toBlock: blockNumber,
       state: createEmptyYethState(),
@@ -669,25 +571,8 @@ describe("yETH strict scanner", () => {
       transactionHash,
       logIndex: 1,
     };
-    const rpc = {
-      ...rpcWithLogs([setClaim, claim]),
-      getTransactionByHash: vi.fn(async (input: string | readonly string[]) => {
-        const transaction = {
-          hash: transactionHash,
-          from: ACCOUNT,
-          to: YETH_CLAIM,
-          blockHash: hashOf(blockNumber),
-          blockNumber,
-          nonce: 0,
-          transactionIndex: 0,
-          value: "0x0",
-          input: `0x2d81a78e${"0".repeat(63)}1`,
-        };
-        return Array.isArray(input) ? input.map(() => transaction) : transaction;
-      }),
-    } as unknown as RpcClient;
     const result = await scanYethBlocks({
-      rpc,
+      rpc: rpcWithLogs([setClaim, claim]),
       fromBlock: blockNumber,
       toBlock: blockNumber,
       state: createEmptyYethState(),
@@ -701,6 +586,236 @@ describe("yETH strict scanner", () => {
         yethSnapshotAmount: 11n,
         yethUnderlyingAmount: 7n,
         yethClaimShares: 0n,
+      },
+    });
+  });
+
+  it("attributes a production claim-and-distribute transaction from event evidence", async () => {
+    const blockNumber = 24_903_118;
+    const transactionHash =
+      "0x486ab5546f5da6d69db61fc7cc01b3780ecc24b8676c4980d28242fa034d8f76" as Hex;
+    const account = "0x926df14a23be491164dcf93f4c468a50ef659d5b" as Address;
+    const snapshotAmount = 0x143a9a32b69f7e81c1n;
+    const underlying = 0x6771f49a7e05660bbn;
+    const shares = 0x6506149a8ca336ddfn;
+    const base = {
+      blockHash: hashOf(blockNumber),
+      blockNumber,
+      transactionHash,
+      removed: false,
+    } as const;
+    const mint: RpcLog = {
+      ...base,
+      address: YETH_RECOVERY_VAULT,
+      topics: encodeEventTopics({
+        abi: ERC20_TRANSFER_ABI,
+        eventName: "Transfer",
+        args: {
+          sender: "0x0000000000000000000000000000000000000000",
+          receiver: account,
+        },
+      }) as Hex[],
+      data: encodeAbiParameters([{ type: "uint256" }], [shares]),
+      logIndex: 268,
+    };
+    const deposit: RpcLog = {
+      ...base,
+      address: YETH_RECOVERY_VAULT,
+      topics: encodeEventTopics({
+        abi: ERC4626_DEPOSIT_ABI,
+        eventName: "Deposit",
+        args: { sender: YETH_CLAIM, owner: account },
+      }) as Hex[],
+      data: encodeAbiParameters(
+        [{ type: "uint256" }, { type: "uint256" }],
+        [underlying, shares],
+      ),
+      logIndex: 269,
+    };
+    const claim: RpcLog = {
+      ...base,
+      address: YETH_CLAIM,
+      topics: [YETH_CLAIM_TOPIC, `0x${account.slice(2).padStart(64, "0")}`],
+      data: encodeAbiParameters(
+        [{ type: "uint256" }, { type: "uint256" }, { type: "uint256" }],
+        [snapshotAmount, underlying, shares],
+      ),
+      logIndex: 270,
+    };
+    const recipients = [
+      ["0xc95f235896f5a82486ab645596fc29b76e52900c", 0x351c577459971e606n, 275],
+      ["0x3c9f71ae57fea4a2e38c9d413705ed1fdcd9e3da", 0x20e5f7ed7052dc50an, 277],
+      ["0xae79f0562c2128cc12d0ac068ac288856fe0e1ab", 0x04302431b9d7ad94n, 279],
+      ["0xc989df5b623fa84e57e99ec9006283510ea8c2ec", 0xec0c2f5a71bc153bn, 281],
+    ] as const;
+    const transfers = recipients.map(([receiver, value, logIndex]): RpcLog => ({
+      ...base,
+      address: YETH_RECOVERY_VAULT,
+      topics: encodeEventTopics({
+        abi: ERC20_TRANSFER_ABI,
+        eventName: "Transfer",
+        args: { sender: account, receiver },
+      }) as Hex[],
+      data: encodeAbiParameters([{ type: "uint256" }], [value]),
+      logIndex,
+    }));
+    const getTransactionByHash = vi.fn(async () => {
+      throw new Error("transaction lookup must not be used");
+    });
+    const rpc = {
+      ...rpcWithLogs([mint, deposit, claim, ...transfers]),
+      getTransactionByHash,
+    } as unknown as RpcClient;
+    const state = createEmptyYethState();
+    applyYethSetClaim(state, account, snapshotAmount);
+
+    const result = await scanYethBlocks({
+      rpc,
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state,
+    });
+
+    expect(result.failure).toBeNull();
+    expect(result.actions[0]).toMatchObject({
+      kind: "yeth_claimed_stayed",
+      txHash: transactionHash,
+      user: account,
+      principal: { kind: "proven", address: account },
+    });
+    expect(getTransactionByHash).not.toHaveBeenCalled();
+  });
+
+  it("accepts the production process-report share mint without a Deposit event", async () => {
+    const blockNumber = 24_721_750;
+    const transactionHash =
+      "0x336c3c3739b0765d09b243d68cce643ae4a252571e653eb7101687a3cd78e030" as Hex;
+    const shares = 0x2060c8c55b504d36n;
+    const reportMint: RpcLog = {
+      address: YETH_RECOVERY_VAULT,
+      topics: encodeEventTopics({
+        abi: ERC20_TRANSFER_ABI,
+        eventName: "Transfer",
+        args: {
+          sender: "0x0000000000000000000000000000000000000000",
+          receiver: YETH_RECOVERY_VAULT,
+        },
+      }) as Hex[],
+      data: encodeAbiParameters([{ type: "uint256" }], [shares]),
+      blockHash: hashOf(blockNumber),
+      blockNumber,
+      transactionHash,
+      logIndex: 1_064,
+      removed: false,
+    };
+
+    const result = await scanYethBlocks({
+      rpc: rpcWithLogs([reportMint]),
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state: createEmptyYethState(),
+    });
+
+    expect(result.failure).toBeNull();
+    expect(result.actions).toEqual([]);
+    expect(
+      result.state.observedSharesByAddress.get(
+        YETH_RECOVERY_VAULT.toLowerCase(),
+      ),
+    ).toBe(shares);
+  });
+
+  it("accepts the production process-report burn of vault-owned locked shares", async () => {
+    const blockNumber = 24_793_498;
+    const transactionHash =
+      "0xafad8619fe92f6d1600e11f30f665f3c0b1f69aeab53a7021db5e514e192ea2e" as Hex;
+    const mintedShares = 0x2060c8c55b504d36n;
+    const burnedShares = 0x11c5a582c0665ca5n;
+    const reportBurn: RpcLog = {
+      address: YETH_RECOVERY_VAULT,
+      topics: encodeEventTopics({
+        abi: ERC20_TRANSFER_ABI,
+        eventName: "Transfer",
+        args: {
+          sender: YETH_RECOVERY_VAULT,
+          receiver: "0x0000000000000000000000000000000000000000",
+        },
+      }) as Hex[],
+      data: encodeAbiParameters([{ type: "uint256" }], [burnedShares]),
+      blockHash: hashOf(blockNumber),
+      blockNumber,
+      transactionHash,
+      logIndex: 444,
+      removed: false,
+    };
+    const state = createEmptyYethState();
+    state.observedSharesByAddress.set(
+      YETH_RECOVERY_VAULT.toLowerCase(),
+      mintedShares,
+    );
+
+    const result = await scanYethBlocks({
+      rpc: rpcWithLogs([reportBurn]),
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state,
+    });
+
+    expect(result.failure).toBeNull();
+    expect(result.actions).toEqual([]);
+    expect(
+      result.state.observedSharesByAddress.get(
+        YETH_RECOVERY_VAULT.toLowerCase(),
+      ),
+    ).toBe(mintedShares - burnedShares);
+  });
+
+  it("rejects a standalone user share burn without a Withdraw event", async () => {
+    const blockNumber = CLAIM_TEST_BASE + 121;
+    const userBurn = vaultLog("transfer", blockNumber);
+    userBurn.topics = encodeEventTopics({
+      abi: ERC20_TRANSFER_ABI,
+      eventName: "Transfer",
+      args: {
+        sender: ACCOUNT,
+        receiver: "0x0000000000000000000000000000000000000000",
+      },
+    }) as Hex[];
+    const state = createEmptyYethState();
+    state.observedSharesByAddress.set(ACCOUNT.toLowerCase(), 1n);
+
+    const result = await scanYethBlocks({
+      rpc: rpcWithLogs([userBurn]),
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state,
+    });
+
+    expect(result).toMatchObject({
+      lastProcessedBlock: blockNumber - 1,
+      actions: [],
+      failure: {
+        code: "accounting_failed",
+        reason: "block_accounting_failed",
+      },
+    });
+  });
+
+  it("still rejects a Deposit event without its share-mint companion", async () => {
+    const blockNumber = CLAIM_TEST_BASE + 120;
+    const result = await scanYethBlocks({
+      rpc: rpcWithLogs([vaultLog("deposit", blockNumber)]),
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state: createEmptyYethState(),
+    });
+
+    expect(result).toMatchObject({
+      lastProcessedBlock: blockNumber - 1,
+      actions: [],
+      failure: {
+        code: "accounting_failed",
+        reason: "block_accounting_failed",
       },
     });
   });

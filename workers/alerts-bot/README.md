@@ -20,6 +20,12 @@ Teams, YBC, and DAO remain explicit disabled registry entries.
   alerts use the same scanner, exact-block context, renderer, and sender.
 - User messages include the affected account's event-block position. They do
   not reconstruct balances from watched logs.
+- Direct stYFI and LLYFI calls are attributed to the sender. Strict Safe
+  `execTransaction` wrappers are attributed to the Safe only for zero-value
+  calls to the expected protocol contract; other Safe wrappers fail closed.
+  Other indirect LLYFI redemptions remain anonymous instead of guessing through
+  router data. yETH claims use their indexed event account and vault companions
+  without a transaction-envelope lookup.
 - Telegram delivery is sequential, capped at five messages per domain run, and
   obeys Telegram's `retry_after` response.
 - The only accepted duplicate window is Telegram accepting a message before
@@ -31,6 +37,10 @@ yETH claim and withdrawal messages are event-driven. Debt paydown is derived
 from claim/accounting changes. Recovery and yield-capacity messages are
 evaluated at one fixed 7,200-block checkpoint and sent only when their change
 meets the configured threshold. There is no daily impact digest.
+Canonical V3 report/fee mints and vault-owned profit-lock burns update the yETH
+share ledger without creating user alerts. Deposits and withdrawals still
+require their corresponding mint and burn events; standalone user burns fail
+closed.
 
 There is deliberately no health monitor or Telegram warning subsystem. Failures
 produce structured logs and appear in the authenticated status response.

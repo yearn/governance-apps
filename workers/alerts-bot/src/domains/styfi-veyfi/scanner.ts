@@ -46,6 +46,10 @@ import type {
   RpcTransaction,
 } from "../../rpc";
 import { isRpcRangeTooLargeError } from "../../rpc";
+import {
+  decodeAttributedProtocolCall,
+  UnsupportedProtocolCallEnvelopeError,
+} from "../../transaction-attribution";
 import type { NormalizedAction } from "../../types";
 import {
   STYFI_LOG_QUERY_PARTITIONS,
@@ -1463,26 +1467,19 @@ function validateBatchResponse<T>(params: {
   return { values: result, failure: null };
 }
 
-function decodeDirectStyfiExitCall(transaction: RpcTransaction): {
+function decodeStyfiExitCall(transaction: RpcTransaction): {
   readonly functionName: "withdraw" | "redeem";
   readonly sender: Address;
   readonly receiver: Address;
   readonly owner: Address;
   readonly amount: bigint;
 } {
-  const sender = asNonZeroAddress(transaction.from);
-  if (
-    sender === null ||
-    transaction.to === null ||
-    normalizeAddress(transaction.to) !== normalizeAddress(STYFI) ||
-    !/^0x(?:[0-9a-fA-F]{2})+$/.test(transaction.input)
-  ) {
-    throw new Error("direct_styfi_exit_transaction_invalid");
-  }
+  const attributed = decodeAttributedProtocolCall(transaction, STYFI);
+  const sender = attributed.principal;
 
   const decoded = decodeFunctionData({
     abi: STYFI_EXIT_CALL_ABI,
-    data: transaction.input as Hex,
+    data: attributed.input,
   });
   if (decoded.functionName !== "withdraw" && decoded.functionName !== "redeem") {
     throw new Error("direct_styfi_exit_selector_invalid");
@@ -1491,7 +1488,7 @@ function decodeDirectStyfiExitCall(transaction: RpcTransaction): {
   if (
     args.length < 1 ||
     args.length > 3 ||
-    transaction.input.length !== 10 + args.length * 64 ||
+    attributed.input.length !== 10 + args.length * 64 ||
     typeof args[0] !== "bigint" ||
     args[0] <= 0n
   ) {
@@ -1508,7 +1505,7 @@ function decodeDirectStyfiExitCall(transaction: RpcTransaction): {
     functionName: decoded.functionName,
     args: decoded.args,
   });
-  if (canonicalInput.toLowerCase() !== transaction.input.toLowerCase()) {
+  if (canonicalInput.toLowerCase() !== attributed.input.toLowerCase()) {
     throw new Error("direct_styfi_exit_calldata_noncanonical");
   }
   return {
@@ -1531,7 +1528,7 @@ function applyDirectStyfiExitProofs(
         if (transaction === null) {
           throw new Error("direct_styfi_exit_transaction_missing");
         }
-        const call = decodeDirectStyfiExitCall(transaction);
+        const call = decodeStyfiExitCall(transaction);
         const shares = proof.withdrawal.amounts.shares;
         const assets = proof.withdrawal.amounts.assets;
         const burnedShares = proof.burn.amounts.shares;
@@ -1596,24 +1593,31 @@ function applyRequiredActorData(
       const normalizedHash = action.txHash.toLowerCase();
       if (action.principal?.kind === "unavailable") {
         const tx = txByHash.get(normalizedHash) ?? null;
-        const sender = asNonZeroAddress(tx?.from);
         if (tx === null) {
           continue;
         }
-        if (
-          sender === null ||
-          tx.to === null ||
-          normalizeAddress(tx.to) !== normalizeAddress(LIQUID_LOCKER_REDEMPTION)
-        ) {
+        let principal: Address;
+        try {
+          principal = decodeAttributedProtocolCall(
+            tx,
+            LIQUID_LOCKER_REDEMPTION,
+          ).principal;
+        } catch (error) {
+          if (
+            action.kind === "redeem" &&
+            error instanceof UnsupportedProtocolCallEnvelopeError
+          ) {
+            continue;
+          }
           throw new StyfiVeyfiScannerStageError(
             "attribution_failed",
             new Error("required_transaction_sender_invalid"),
             group.blockNumber,
           );
         }
-        action.user = sender;
-        action.principal = { kind: "proven", address: sender };
-        action.caller = sender;
+        action.user = principal;
+        action.principal = { kind: "proven", address: principal };
+        action.caller = principal;
       }
     }
   }

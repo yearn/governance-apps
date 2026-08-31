@@ -72,7 +72,7 @@ Every user-action alert identifies one principal account:
 | Stake | Token or vault share owner |
 | Cooldown start | Owner whose active position entered cooldown |
 | Cooldown withdrawal | Owner whose cooldown position was reduced |
-| LLYFI buy or redeem | Transaction sender after canonical attribution |
+| LLYFI buy or redeem | Direct caller, or Safe account for a canonical Safe call |
 | veYFI migration | Migrated account |
 | Legacy veYFI lock change | Lock owner, not an operator acting for it |
 | Legacy veYFI withdrawal | Lock owner |
@@ -90,6 +90,20 @@ Use these actor labels only when they add information:
 
 Do not repeat the same address under several labels. Do not show a zero address,
 an unresolved `unknown` placeholder, or a protocol contract as a user account.
+
+For the monitored stYFI exits and LLYFI redemptions, canonical
+Safe `execTransaction` calls are unwrapped only when the inner operation is a
+zero-value `CALL` to the exact expected protocol contract. The Safe is the
+principal account; its external executor is not the user. Delegatecalls,
+multisends, unexpected Safe targets, and noncanonical Safe calldata fail
+closed. An indirect LLYFI redemption through another router remains anonymous;
+the bot does not guess the end user from router calldata.
+
+A yETH claim is attributed to the account indexed by the canonical Claim event,
+independent of whether the call was direct, Safe-wrapped, or initiated by a
+claim-and-distribute contract. Positive claim shares plus the matching Recovery
+Vault mint and deposit prove `stayed`; zero shares with no such companions prove
+`exited`. The bot does not parse transaction wrappers to infer either fact.
 
 ### 3.3 Event-time account position
 
