@@ -138,7 +138,7 @@ describe("alerts rebuild registry and configuration", () => {
       maxRangesPerRun: 6,
       logRangeSize: 10_000,
       yethDailyCheckpointBlocks: 7_200,
-      yethDailyMinDeltaWei: 5n * 10n ** 18n,
+      yethDailyMinDeltaWei: 5n * 10n ** 17n,
     });
   });
 });
@@ -335,7 +335,7 @@ describe("minimal durable runtime", () => {
         MAX_RANGES_PER_RUN: "1",
         MAX_MESSAGES_PER_RUN: "1",
         LOG_RANGE_SIZE: "10000",
-        YETH_DAILY_MIN_DELTA_ETH: "5",
+        YETH_DAILY_MIN_DELTA_ETH: "0.5",
       }),
     );
     const response = await object.fetch(

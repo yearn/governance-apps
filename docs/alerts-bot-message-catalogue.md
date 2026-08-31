@@ -32,6 +32,9 @@ remain disabled.
 - Use the same templates for replay and live alerts.
 - Keep the new chats private until replay reaches the confirmed chain head and
   reviewers approve the result.
+- Evaluate Y6–Y9 once per 7,200-block checkpoint and emit a candidate when the
+  relevant shortfall or vault-assets change is at least 0.5 ETH. Smaller
+  changes do not accumulate after the checkpoint baseline advances.
 - Do not send a daily impact digest.
 - Do not post synthetic `initialized` alerts during replay. Use one pinned
   channel introduction instead.

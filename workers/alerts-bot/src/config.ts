@@ -77,7 +77,7 @@ function integer(
 }
 
 function ethToWei(value: string | undefined): bigint {
-  const normalized = value?.trim() ?? "5";
+  const normalized = value?.trim() ?? "0.5";
   const match = /^(\d+)(?:\.(\d{1,18}))?$/.exec(normalized);
   if (match === null) throw new Error("alert_config_yeth_daily_delta_invalid");
   const whole = BigInt(match[1]!);

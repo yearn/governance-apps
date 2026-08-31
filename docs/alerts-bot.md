@@ -56,7 +56,7 @@ MAX_MESSAGES_PER_RUN=5
 MAX_RANGES_PER_RUN=6
 LOG_RANGE_SIZE=10000
 YETH_DAILY_CHECKPOINT_BLOCKS=7200
-YETH_DAILY_MIN_DELTA_ETH=5
+YETH_DAILY_MIN_DELTA_ETH=0.5
 ```
 
 An enabled domain without its chat ID fails closed. If no domains are enabled,
@@ -86,12 +86,15 @@ events reduce outstanding recovery debt. Y6–Y9 are evaluated once per fixed
 7,200-block checkpoint. The scanner does not inspect every block for protocol
 metric changes.
 
-The committed daily materiality threshold is 5 ETH. Before yETH is opened to
-users, review the complete replay history and the structured
+The committed daily materiality threshold is 0.5 ETH. This matches the
+accounting layer's candidate floor; smaller checkpoint changes do not
+accumulate after the daily baseline advances. Before yETH is opened to users,
+review the complete replay history and the structured
 `alert_yeth_daily_checkpoint` records. Those records include every candidate
-delta and whether the configured threshold emitted it. A threshold change must
-update the catalogue examples and focused tests. The first checkpoint
-establishes a baseline and sends no protocol message.
+delta and whether the configured threshold emitted it. If the private replay is
+too noisy, evaluate 1 ETH before considering a larger threshold. A threshold
+change must update the catalogue examples and focused tests. The first
+checkpoint establishes a baseline and sends no protocol message.
 
 ## Status and failures
 
@@ -253,7 +256,7 @@ npx wrangler deploy --config wrangler.alerts.jsonc
 
 Wait for yETH to report `caughtUp: true`. Review Y1–Y5, every structured
 `alert_yeth_daily_checkpoint` record, and the complete set of daily checkpoint
-candidates before accepting the 5 ETH threshold. Pin the yETH introduction
+candidates before accepting the 0.5 ETH threshold. Pin the yETH introduction
 only after approval.
 
 ### 7. Observe privately
