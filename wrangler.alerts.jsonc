@@ -19,7 +19,7 @@
   // wrangler secret put ADMIN_TOKEN --config wrangler.alerts.jsonc
   "vars": {
     // All domains fail closed until their final private chat is ready.
-    "ALERTS_STYFI_ENABLED": "false",
+    "ALERTS_STYFI_ENABLED": "true",
     "ALERTS_VEYFI_ENABLED": "false",
     "ALERTS_YETH_ENABLED": "false",
     "CONFIRMATIONS": "6",
