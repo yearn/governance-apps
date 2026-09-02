@@ -8,6 +8,7 @@ import {
   renderAlertCatalogueAction,
   type AlertCatalogueRenderInput,
 } from "@/workers/alerts-bot/src/catalogue-renderer";
+import { PRODUCT_ALERT_INTRODUCTIONS } from "@/workers/alerts-bot/src/product-renderer";
 import type { ActiveAlertDomainId } from "@/workers/alerts-bot/src/domain-registry";
 import {
   buildYethRepaymentAlertActions,
@@ -1501,5 +1502,7 @@ export function renderAlertCatalogueFixture(
 ): string {
   return fixture.kind === "action"
     ? renderAlertCatalogueAction(fixture.input)
-    : ALERT_CATALOGUE_INTRODUCTIONS[fixture.domainId];
+    : fixture.domainId === "teams" || fixture.domainId === "ybc"
+      ? PRODUCT_ALERT_INTRODUCTIONS[fixture.domainId]
+      : ALERT_CATALOGUE_INTRODUCTIONS[fixture.domainId];
 }

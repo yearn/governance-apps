@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { encodeEventTopics } from "viem";
 
 import worker from "@/workers/alerts-bot/src/index";
 import { domainConfigs, runtimeConfig, type AlertsEnv } from "@/workers/alerts-bot/src/config";
@@ -8,6 +9,8 @@ import {
   ALERT_DOMAIN_REGISTRATIONS,
 } from "@/workers/alerts-bot/src/domain-registry";
 import { AlertState } from "@/workers/alerts-bot/src/runtime";
+import { YBC_REWARD_DISTRIBUTOR } from "@/workers/alerts-bot/src/contracts";
+import { YBC_REWARD_DISTRIBUTOR_EVENTS_ABI } from "@/workers/alerts-bot/src/product-abis";
 import {
   sendMessage,
   TelegramSendError,
@@ -53,6 +56,8 @@ function baseEnv(overrides: Partial<AlertsEnv> = {}): AlertsEnv {
     STYFI_TELEGRAM_CHAT_ID: "styfi-chat",
     VEYFI_TELEGRAM_CHAT_ID: "veyfi-chat",
     YETH_TELEGRAM_CHAT_ID: "yeth-chat",
+    TEAMS_TELEGRAM_CHAT_ID: "teams-chat",
+    YBC_TELEGRAM_CHAT_ID: "ybc-chat",
     ADMIN_TOKEN: "admin-token",
     ...overrides,
   };
@@ -100,25 +105,31 @@ afterEach(() => {
 });
 
 describe("alerts rebuild registry and configuration", () => {
-  it("uses three independent active objects and keeps extension seams disabled", () => {
+  it("uses five independent active objects and keeps the DAO seam disabled", () => {
     expect(ALERT_DOMAIN_OBJECT_NAMES).toEqual({
       styfi: "alerts:styfi:v1",
       veyfi: "alerts:veyfi:v1",
       yeth: "alerts:yeth:v1",
+      teams: "alerts:teams:v1",
+      ybc: "alerts:ybc:v1",
     });
     expect(ALERT_DOMAIN_GENESIS_BLOCKS).toEqual({
       styfi: 24_386_915,
       veyfi: 24_386_915,
       yeth: 24_522_098,
+      teams: 25_244_861,
+      ybc: 25_228_044,
     });
     expect(
       ALERT_DOMAIN_REGISTRATIONS.filter(({ status }) => status === "disabled")
         .map(({ id }) => id),
-    ).toEqual(["teams", "ybc", "dao"]);
+    ).toEqual(["dao"]);
   });
 
   it("defaults all domains off and does not couple one missing chat to another", () => {
     expect(domainConfigs(baseEnv()).map(({ enabled }) => enabled)).toEqual([
+      false,
+      false,
       false,
       false,
       false,
@@ -132,6 +143,8 @@ describe("alerts rebuild registry and configuration", () => {
       { domainId: "styfi", enabled: true, chatId: "styfi-chat" },
       { domainId: "veyfi", enabled: false },
       { domainId: "yeth", enabled: true, chatId: null },
+      { domainId: "teams", enabled: false },
+      { domainId: "ybc", enabled: false },
     ]);
   });
 
@@ -320,6 +333,78 @@ describe("minimal durable runtime", () => {
     expect(JSON.stringify(log)).not.toContain(secretMarker);
   });
 
+  it("retains safe scanner evidence in controlled failure diagnostics", async () => {
+    const { state } = durableState();
+    const genesis = ALERT_DOMAIN_GENESIS_BLOCKS.ybc;
+    const transactionHash = `0x${"d".repeat(64)}`;
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        readonly id: number;
+        readonly method: string;
+        readonly params: readonly unknown[];
+      };
+      let result: unknown;
+      if (payload.method === "eth_blockNumber") {
+        result = `0x${(genesis + 6).toString(16)}`;
+      } else if (payload.method === "eth_getLogs") {
+        const filter = payload.params[0] as { readonly address?: string | readonly string[] };
+        const addresses = Array.isArray(filter.address) ? filter.address : [filter.address];
+        result = addresses.some((address) =>
+          address?.toLowerCase() === YBC_REWARD_DISTRIBUTOR.toLowerCase()
+        ) ? [{
+          address: YBC_REWARD_DISTRIBUTOR,
+          topics: encodeEventTopics({
+            abi: YBC_REWARD_DISTRIBUTOR_EVENTS_ABI,
+            eventName: "Kill",
+          }),
+          data: "0x",
+          blockHash: hashOf(genesis),
+          blockNumber: `0x${genesis.toString(16)}`,
+          transactionHash,
+          logIndex: "0x4",
+          removed: false,
+        }] : [];
+      } else if (payload.method === "eth_getBlockByNumber") {
+        const blockNumber = Number.parseInt(String(payload.params[0]).slice(2), 16);
+        result = {
+          number: `0x${blockNumber.toString(16)}`,
+          hash: hashOf(blockNumber),
+          parentHash: hashOf(blockNumber - 1),
+          timestamp: "0x6b49d200",
+        };
+      } else if (payload.method === "eth_getTransactionByHash") {
+        result = null;
+      } else {
+        throw new Error(`unexpected RPC method: ${payload.method}`);
+      }
+      return Response.json({ jsonrpc: "2.0", id: payload.id, result });
+    }));
+    const object = new AlertState(
+      state,
+      baseEnv({ ALERTS_YBC_ENABLED: "true", MAX_RANGES_PER_RUN: "1" }),
+    );
+
+    const response = await object.fetch(
+      new Request("https://alerts.internal/run?domain=ybc", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(500);
+    const log = JSON.parse(String(errorLog.mock.calls.at(-1)?.[0])) as Record<string, unknown>;
+    expect(log).toMatchObject({
+      event: "alert_run_failed",
+      domain: "ybc",
+      code: "scan_ybc_scan_failed",
+      stage: "scan",
+      failureKind: "controlled",
+      failureReason: "product_scan_transaction_missing",
+      contract: YBC_REWARD_DISTRIBUTOR.toLowerCase(),
+      blockNumber: genesis,
+      transactionHash,
+      eventName: "Kill",
+    });
+  });
+
   it("resumes a capped yETH checkpoint from event receipts without advancing early", async () => {
     const { state, storage } = durableState();
     const account = "0x1111111111111111111111111111111111111111";
@@ -443,7 +528,7 @@ describe("minimal durable runtime", () => {
 });
 
 describe("worker routing and Telegram backoff", () => {
-  it("fans the cron out to exactly the three configured object names", async () => {
+  it("fans the cron out to exactly the five configured object names", async () => {
     const names: string[] = [];
     const namespace = {
       idFromName(name: string) {
@@ -462,6 +547,8 @@ describe("worker routing and Telegram backoff", () => {
         ALERTS_STYFI_ENABLED: "true",
         ALERTS_VEYFI_ENABLED: "true",
         ALERTS_YETH_ENABLED: "true",
+        ALERTS_TEAMS_ENABLED: "true",
+        ALERTS_YBC_ENABLED: "true",
       }),
       { waitUntil(value) { pending = value; } },
     );
@@ -470,6 +557,8 @@ describe("worker routing and Telegram backoff", () => {
       "alerts:styfi:v1",
       "alerts:veyfi:v1",
       "alerts:yeth:v1",
+      "alerts:teams:v1",
+      "alerts:ybc:v1",
     ]);
   });
 

@@ -1,7 +1,7 @@
 # Governance alerts bot
 
-One Cloudflare Worker scans confirmed Ethereum events and routes three alert
-domains to three Telegram chats. One Durable Object class is instantiated once
+One Cloudflare Worker scans confirmed Ethereum events and routes five alert
+domains to five Telegram chats. One Durable Object class is instantiated once
 per domain:
 
 | Domain | Object name | Contents |
@@ -9,8 +9,11 @@ per domain:
 | stYFI | `alerts:styfi:v1` | stYFI and stYFIx |
 | veYFI | `alerts:veyfi:v1` | legacy and migrated veYFI plus LLYFI |
 | yETH | `alerts:yeth:v1` | recovery claims, withdrawals, and protocol updates |
+| Teams | `alerts:teams:v1` | team lifecycle, accounting, funding, and bonuses |
+| YBC | `alerts:ybc:v1` | on-chain proposals, membership, rewards, and collective power |
 
-Teams, YBC, and DAO remain explicit disabled registry entries.
+DAO remains an explicit disabled registry entry. Teams and YBC are active
+domains whose committed production flags remain off pending private replay.
 
 ## Runtime model
 
@@ -58,11 +61,14 @@ Required secrets when any domain is enabled:
 - `STYFI_TELEGRAM_CHAT_ID`
 - `VEYFI_TELEGRAM_CHAT_ID`
 - `YETH_TELEGRAM_CHAT_ID`
+- `TEAMS_TELEGRAM_CHAT_ID`
+- `YBC_TELEGRAM_CHAT_ID`
 - `ADMIN_TOKEN` for `GET /status`
 
 All domains are disabled in `wrangler.alerts.jsonc`. Enable them independently
-with `ALERTS_STYFI_ENABLED`, `ALERTS_VEYFI_ENABLED`, and
-`ALERTS_YETH_ENABLED` after their final private chats and secrets are ready.
+with `ALERTS_STYFI_ENABLED`, `ALERTS_VEYFI_ENABLED`, `ALERTS_YETH_ENABLED`,
+`ALERTS_TEAMS_ENABLED`, and `ALERTS_YBC_ENABLED` after their final private
+chats, secrets, and replay reviews are ready.
 
 The paid Workers plan removes the old free-tier pressure to micro-budget every
 subrequest. The remaining bounds protect providers and Telegram without adding
@@ -71,3 +77,6 @@ domain run, RPC batches of 25, and five Telegram messages per domain run.
 
 See [the operational runbook](../../docs/alerts-bot.md) and
 [the approved message catalogue](../../docs/alerts-bot-message-catalogue.md).
+Teams and YBC have a separate
+[acceptance specification](../../docs/alerts-bot-teams-ybc-spec.md) and
+[review ledger](../../docs/alerts-bot-teams-ybc-review-resolution.md).

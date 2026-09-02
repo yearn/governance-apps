@@ -2,9 +2,12 @@
 
 Status: **Approved for implementation on 27 August 2026.**
 
-This document specifies the Telegram messages for
-`governance-alerts-bot-v2`. It covers the stYFI, veYFI, and yETH alert streams,
-including historical replay from each stream's start block.
+This document specifies the original stYFI, veYFI, and yETH Telegram messages
+for `governance-alerts-bot-v2`, including historical replay from each stream's
+start block.
+
+The implemented Teams and YBC extension is specified in
+[`alerts-bot-teams-ybc-spec.md`](alerts-bot-teams-ybc-spec.md).
 
 The examples use fictional accounts, amounts, blocks, dates, and transaction
 hashes. They show the intended visible Telegram output. The implementation may
@@ -17,11 +20,16 @@ use Telegram HTML to produce the bold text and links.
 | stYFI | stYFI alerts chat | `alerts:styfi:v1` | stYFI and stYFIx |
 | veYFI | veYFI alerts chat | `alerts:veyfi:v1` | Legacy veYFI, migrated veYFI, sdYFI, supYFI, and coveYFI |
 | yETH | yETH alerts chat | `alerts:yeth:v1` | yETH claims and Recovery Vault activity |
+| Teams | Teams alerts chat | `alerts:teams:v1` | Team registry, budgets, accounting, and revenue routing |
+| YBC | YBC alerts chat | `alerts:ybc:v1` | On-chain proposals, membership, rewards, and collective voting power |
 
-The Worker runs all three objects independently. Each object owns its cursor, event receipts, Telegram backoff, and destination.
+The Worker runs all five objects independently. Each object owns its cursor,
+event receipts, Telegram backoff, and destination. Teams and YBC message rules
+and exact fixtures are defined in the linked extension specification.
 
-Teams, YBC, and DAO alerts are outside this catalogue. Their extension seams
-remain disabled.
+DAO alerts remain outside this catalogue and their extension seam stays
+disabled. Teams and YBC are implemented but remain disabled until their private
+replays are reviewed and accepted.
 
 ## 2. Approved product decisions
 

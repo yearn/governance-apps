@@ -2,9 +2,9 @@
 
 ## Scope
 
-This runbook covers `governance-alerts-bot-v2`, the three-domain replacement
-for the live `governance-alerts-bot` singleton. The v2 Worker owns three
-independent Durable Object instances and three Telegram destinations. It does
+This runbook covers `governance-alerts-bot-v2`, the five-domain replacement
+for the live `governance-alerts-bot` singleton. The v2 Worker owns five
+independent Durable Object instances and five Telegram destinations. It does
 not migrate or adopt the old singleton's cursor.
 
 The two Workers run side by side while the v2 histories are replayed and
@@ -21,17 +21,20 @@ review and local verification gates pass.
 | Worker | Purpose during rollout | Destination |
 | --- | --- | --- |
 | `governance-alerts-bot` | Existing live singleton; leave unchanged | Existing combined chat |
-| `governance-alerts-bot-v2` | New permanent Worker; replay privately | Three final domain chats |
+| `governance-alerts-bot-v2` | New permanent Worker; replay privately | Five final domain chats |
 
 | Domain | Durable Object | Telegram destination | Start block |
 | --- | --- | --- | ---: |
 | stYFI | `alerts:styfi:v1` | final private stYFI chat | 24,386,915 |
 | veYFI | `alerts:veyfi:v1` | final private veYFI chat | 24,386,915 |
 | yETH | `alerts:yeth:v1` | final private yETH chat | 24,522,098 |
+| Teams | `alerts:teams:v1` | final private Teams chat | 25,244,861 |
+| YBC | `alerts:ybc:v1` | final private YBC chat | 25,228,044 |
 
 Each object stores one versioned state record and immutable event receipts. The
 state contains the cursor and terminal hash, redacted run status, Telegram
-backoff, and yETH accounting where relevant. It does not contain chat IDs,
+backoff, yETH accounting where relevant, and domain replay state for Teams and
+YBC. It does not contain chat IDs,
 tokens, endpoints, warning leases, migration phases, or rollback generations.
 
 ## Configuration
@@ -43,6 +46,8 @@ Set these as Cloudflare secrets, never as committed values:
 - `STYFI_TELEGRAM_CHAT_ID`.
 - `VEYFI_TELEGRAM_CHAT_ID`.
 - `YETH_TELEGRAM_CHAT_ID`.
+- `TEAMS_TELEGRAM_CHAT_ID`.
+- `YBC_TELEGRAM_CHAT_ID`.
 - `ADMIN_TOKEN`: bearer token for `GET /status`.
 
 The committed variables are deliberately inert:
@@ -51,6 +56,8 @@ The committed variables are deliberately inert:
 ALERTS_STYFI_ENABLED=false
 ALERTS_VEYFI_ENABLED=false
 ALERTS_YETH_ENABLED=false
+ALERTS_TEAMS_ENABLED=false
+ALERTS_YBC_ENABLED=false
 CONFIRMATIONS=6
 MAX_MESSAGES_PER_RUN=5
 MAX_RANGES_PER_RUN=6
@@ -127,6 +134,11 @@ only the HTTP status, Telegram error code, and controlled failure kind. Raw
 exception messages, provider response bodies, RPC URLs, credentials, chat IDs,
 message bodies, and account context are never logged.
 
+Teams and YBC scanner failures additionally retain bounded canonical evidence:
+the controlled reason, contract, block number, transaction hash, and event name
+when known. These fields are format-validated before logging and never contain
+provider text.
+
 Direct stYFI and LLYFI calls are attributed to their sender. Canonical Safe
 `execTransaction` wrappers are accepted only for a zero-value `CALL` to the
 expected protocol contract and are attributed to the Safe. Unsupported
@@ -153,13 +165,13 @@ npx wrangler deploy --dry-run --config wrangler.alerts.jsonc
 git diff --check master...
 ```
 
-The dry run must not deploy. Confirm that all three enable flags remain false
+The dry run must not deploy. Confirm that all five enable flags remain false
 and that the working tree is clean after the release commit.
 
 ## Bounded rollout
 
 Run the private rollout from the clean `agent/data` worktree. Do not merge the
-rebuild into `master` until all three replay histories and the private live
+rebuild into `master` until all five replay histories and the private live
 behavior have been approved. Confirm the branch, commit, and configured Worker
 identity before every deploy:
 
@@ -173,13 +185,13 @@ npx wrangler whoami
 ```
 
 The branch must be `agent/data`, the name must be
-`governance-alerts-bot-v2`, and all three flags must initially be `false`.
+`governance-alerts-bot-v2`, and all five flags must initially be `false`.
 
 ### 1. Prepare final destinations
 
-1. Create the final stYFI, veYFI, and yETH Telegram chats and keep them private.
+1. Create the final stYFI, veYFI, yETH, Teams, and YBC Telegram chats and keep them private.
 2. Add the bot to each chat with permission to post.
-3. Record the three final chat IDs. Never use the old combined chat ID for a v2
+3. Record the five final chat IDs. Never use the old combined chat ID for a v2
    destination.
 
 Do not replay into a temporary chat and then change its destination. Event
@@ -209,10 +221,12 @@ npx wrangler secret put TELEGRAM_BOT_TOKEN --config wrangler.alerts.jsonc
 npx wrangler secret put STYFI_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
 npx wrangler secret put VEYFI_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
 npx wrangler secret put YETH_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
+npx wrangler secret put TEAMS_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
+npx wrangler secret put YBC_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
 npx wrangler secret put ADMIN_TOKEN --config wrangler.alerts.jsonc
 ```
 
-Each `secret put` creates a Worker version. This is safe only because all three
+Each `secret put` creates a Worker version. This is safe only because all five
 domain flags remain disabled.
 
 Use the `workers.dev` URL printed by the deploy command to verify the redacted
@@ -285,16 +299,31 @@ Wait for yETH to report `caughtUp: true`. Review Y1–Y5, every structured
 candidates before accepting the 0.5 ETH threshold. Pin the yETH introduction
 only after approval.
 
-### 7. Observe privately
+### 7. Replay Teams
 
-Keep both Workers live briefly after all three v2 domains are caught up. They
+Leave the accepted domains enabled, change only `ALERTS_TEAMS_ENABLED` to
+`true`, commit, and deploy. Wait for Teams to report `caughtUp: true`, then
+review every T1–T16 message, companion-log failure, team link, and zero/no-op
+suppression result. Pin the Teams introduction only after the replay is
+accepted.
+
+### 8. Replay YBC
+
+Change only `ALERTS_YBC_ENABLED` to `true`, commit, and deploy. Wait for YBC to
+report `caughtUp: true`, then review every B1–B14 message, same-block vote
+ordering, multi-team bonus pairing, collective-power checkpoint, and proposal
+link. Pin the YBC introduction only after the replay is accepted.
+
+### 9. Observe privately
+
+Keep both Workers live briefly after all five v2 domains are caught up. They
 scan the same chain but deliver to different chats: the old Worker protects
 existing coverage while the final v2 histories remain private.
 
 Do not merge to `master` until the replay histories, live messages, status, and
 structured logs have been accepted.
 
-### 8. Promote the approved release and cut over
+### 10. Promote the approved release and cut over
 
 Once private testing is approved, fast-forward `master` to the accepted
 `agent/data` commit from the master worktree, rerun the release gates, and
@@ -314,10 +343,10 @@ npx wrangler deploy --config wrangler.alerts.jsonc
 
 This redeploy targets the existing `governance-alerts-bot-v2` Worker. Its
 Durable Object state, receipts, cursors, and secrets remain in place. Confirm
-all three domains still report `caughtUp: true` before disabling the old
+all five domains still report `caughtUp: true` before disabling the old
 Worker.
 
-Immediately before cutover, confirm all three v2 domains are caught up and have
+Immediately before cutover, confirm all five v2 domains are caught up and have
 recent successful runs. Then disable the old singleton using its existing
 authenticated endpoint:
 
@@ -332,7 +361,7 @@ set -e alerts_v1_admin_token
 
 Confirm the response is `disabled`, the old chat stops receiving alerts, and
 v2 continues processing. Pin a redirect in the old chat, then invite users to
-the three new chats.
+the five new chats.
 
 Keep the old Worker deployed but disabled through the first production week.
 Retiring or deleting it is a separate destructive operation and is not part of
@@ -361,8 +390,8 @@ when their destinations are distinct. Never point a v2 domain at the old
 combined chat.
 
 To roll back after cutover, first call the old singleton's authenticated
-`/admin/enable` endpoint so coverage resumes immediately. Then set all three v2
-enable flags to `false` and redeploy v2. A brief overlap across distinct chats
+`/admin/enable` endpoint so legacy coverage resumes immediately. Then set all
+five v2 enable flags to `false` and redeploy v2. A brief overlap across distinct chats
 is preferable to a delivery gap. Do not call either old reset endpoint.
 
 The duplicate window after Telegram accepts a message but before its receipt is

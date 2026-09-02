@@ -17,6 +17,7 @@ import {
 import {
   ALERT_DOMAIN_GENESIS_BLOCKS,
   getAlertDomainRegistration,
+  isActiveAlertDomainRegistration,
   isAlertDomainId,
   type ActiveAlertDomainId,
 } from "./domain-registry";
@@ -37,6 +38,22 @@ import {
 import { scanChunkForActionsWithProgress } from "./domains/styfi-veyfi/scanner";
 import { scanYethBlocks } from "./domains/yeth/scanner";
 import {
+  createEmptyTeamsState,
+  loadTeamsState,
+  scanTeamsBlocks,
+  serializeTeamsState,
+  type StoredTeamsState,
+  type TeamsState,
+} from "./domains/teams/scanner";
+import {
+  createEmptyYbcState,
+  loadYbcState,
+  scanYbcBlocks,
+  serializeYbcState,
+  type StoredYbcState,
+  type YbcState,
+} from "./domains/ybc/scanner";
+import {
   createRpcClient,
   RpcRequestError,
   type RpcBlock,
@@ -48,6 +65,7 @@ import {
   TelegramSendError,
 } from "./telegram";
 import type { NormalizedAction } from "./types";
+import type { AlertAction } from "./product-types";
 
 const STATE_KEY = "state:v1";
 const RECEIPT_PREFIX = "sent:";
@@ -70,18 +88,31 @@ interface StoredDomainState {
     readonly recoveryNetFlowEth: string;
     readonly yieldNetFlowEth: string;
   } | null;
+  readonly teamsState: StoredTeamsState | null;
+  readonly ybcState: StoredYbcState | null;
 }
 
 interface ScanOutcome {
   readonly terminalBlock: number;
-  readonly actions: readonly NormalizedAction[];
+  readonly actions: readonly AlertAction[];
   readonly yethState: YethState | null;
   readonly yethMetrics: YethRepaymentMetrics | null;
   readonly yethDailyFlow: YethFlowSummary;
+  readonly teamsState: TeamsState | null;
+  readonly ybcState: YbcState | null;
 }
 
 class AlertRunError extends Error {
-  constructor(readonly code: string) {
+  constructor(
+    readonly code: string,
+    readonly diagnostic: {
+      readonly reason: string;
+      readonly contract: string | null;
+      readonly blockNumber: number | null;
+      readonly transactionHash: string | null;
+      readonly eventName: string | null;
+    } | null = null,
+  ) {
     super(code);
     this.name = "AlertRunError";
   }
@@ -115,7 +146,39 @@ function safeExceptionName(error: unknown): string {
 
 function safeFailureDiagnostic(error: unknown) {
   if (error instanceof AlertRunError) {
-    return { failureKind: "controlled" };
+    const diagnostic = error.diagnostic;
+    return {
+      failureKind: "controlled",
+      failureReason:
+        diagnostic !== null && /^[a-z0-9_:-]{1,120}$/.test(diagnostic.reason)
+          ? diagnostic.reason
+          : null,
+      contract:
+        diagnostic?.contract !== null &&
+        diagnostic?.contract !== undefined &&
+        /^0x[0-9a-fA-F]{40}$/.test(diagnostic.contract)
+          ? diagnostic.contract.toLowerCase()
+          : null,
+      blockNumber:
+        diagnostic?.blockNumber !== null &&
+        diagnostic?.blockNumber !== undefined &&
+        Number.isSafeInteger(diagnostic.blockNumber) &&
+        diagnostic.blockNumber >= 0
+          ? diagnostic.blockNumber
+          : null,
+      transactionHash:
+        diagnostic?.transactionHash !== null &&
+        diagnostic?.transactionHash !== undefined &&
+        /^0x[0-9a-fA-F]{64}$/.test(diagnostic.transactionHash)
+          ? diagnostic.transactionHash.toLowerCase()
+          : null,
+      eventName:
+        diagnostic?.eventName !== null &&
+        diagnostic?.eventName !== undefined &&
+        /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(diagnostic.eventName)
+          ? diagnostic.eventName
+          : null,
+    };
   }
   if (error instanceof RpcRequestError) {
     return {
@@ -148,10 +211,8 @@ function nowSeconds(): number {
 
 function activeDomain(value: string | null): ActiveAlertDomainId | null {
   if (!isAlertDomainId(value)) return null;
-  if (getAlertDomainRegistration(value).status !== "active") return null;
-  return value === "styfi" || value === "veyfi" || value === "yeth"
-    ? value
-    : null;
+  const registration = getAlertDomainRegistration(value);
+  return isActiveAlertDomainRegistration(registration) ? registration.id : null;
 }
 
 function initialState(domainId: ActiveAlertDomainId): StoredDomainState {
@@ -171,6 +232,10 @@ function initialState(domainId: ActiveAlertDomainId): StoredDomainState {
       domainId === "yeth"
         ? { recoveryNetFlowEth: "0", yieldNetFlowEth: "0" }
         : null,
+    teamsState:
+      domainId === "teams" ? serializeTeamsState(createEmptyTeamsState()) : null,
+    ybcState:
+      domainId === "ybc" ? serializeYbcState(createEmptyYbcState()) : null,
   });
 }
 
@@ -362,6 +427,56 @@ async function scanYethRange(params: {
   }
 }
 
+async function scanTeamsRange(params: {
+  readonly rpc: RpcClient;
+  readonly fromBlock: number;
+  readonly requestedToBlock: number;
+  readonly state: TeamsState;
+}): Promise<{ readonly terminalBlock: number; readonly state: TeamsState; readonly actions: readonly AlertAction[] }> {
+  let toBlock = params.requestedToBlock;
+  while (true) {
+    const result = await scanTeamsBlocks({
+      rpc: params.rpc,
+      fromBlock: params.fromBlock,
+      toBlock,
+      state: params.state,
+    });
+    if (result.failure?.code === "range_too_large" && toBlock > params.fromBlock) {
+      toBlock = params.fromBlock + Math.floor((toBlock - params.fromBlock) / 2);
+      continue;
+    }
+    if (result.failure !== null) {
+      throw new AlertRunError(`scan_teams_${result.failure.code}`, result.failure);
+    }
+    return { terminalBlock: toBlock, state: result.state, actions: result.actions };
+  }
+}
+
+async function scanYbcRange(params: {
+  readonly rpc: RpcClient;
+  readonly fromBlock: number;
+  readonly requestedToBlock: number;
+  readonly state: YbcState;
+}): Promise<{ readonly terminalBlock: number; readonly state: YbcState; readonly actions: readonly AlertAction[] }> {
+  let toBlock = params.requestedToBlock;
+  while (true) {
+    const result = await scanYbcBlocks({
+      rpc: params.rpc,
+      fromBlock: params.fromBlock,
+      toBlock,
+      state: params.state,
+    });
+    if (result.failure?.code === "range_too_large" && toBlock > params.fromBlock) {
+      toBlock = params.fromBlock + Math.floor((toBlock - params.fromBlock) / 2);
+      continue;
+    }
+    if (result.failure !== null) {
+      throw new AlertRunError(`scan_ybc_${result.failure.code}`, result.failure);
+    }
+    return { terminalBlock: toBlock, state: result.state, actions: result.actions };
+  }
+}
+
 async function scanRange(params: {
   readonly domainId: ActiveAlertDomainId;
   readonly rpc: RpcClient;
@@ -370,7 +485,7 @@ async function scanRange(params: {
   readonly requestedToBlock: number;
 }): Promise<ScanOutcome> {
   const fromBlock = params.state.cursorBlock + 1;
-  if (params.domainId !== "yeth") {
+  if (params.domainId === "styfi" || params.domainId === "veyfi") {
     const scan = await scanYfiRange({
       domainId: params.domainId,
       rpc: params.rpc,
@@ -383,6 +498,48 @@ async function scanRange(params: {
       yethState: null,
       yethMetrics: null,
       yethDailyFlow: { ...ZERO_FLOW },
+      teamsState: null,
+      ybcState: null,
+    };
+  }
+
+  if (params.domainId === "teams") {
+    const scan = await scanTeamsRange({
+      rpc: params.rpc,
+      fromBlock,
+      requestedToBlock: params.requestedToBlock,
+      state: params.state.teamsState === null || params.state.teamsState === undefined
+        ? createEmptyTeamsState()
+        : loadTeamsState(params.state.teamsState),
+    });
+    return {
+      terminalBlock: scan.terminalBlock,
+      actions: scan.actions,
+      yethState: null,
+      yethMetrics: null,
+      yethDailyFlow: { ...ZERO_FLOW },
+      teamsState: scan.state,
+      ybcState: null,
+    };
+  }
+
+  if (params.domainId === "ybc") {
+    const scan = await scanYbcRange({
+      rpc: params.rpc,
+      fromBlock,
+      requestedToBlock: params.requestedToBlock,
+      state: params.state.ybcState === null || params.state.ybcState === undefined
+        ? createEmptyYbcState()
+        : loadYbcState(params.state.ybcState),
+    });
+    return {
+      terminalBlock: scan.terminalBlock,
+      actions: scan.actions,
+      yethState: null,
+      yethMetrics: null,
+      yethDailyFlow: { ...ZERO_FLOW },
+      teamsState: null,
+      ybcState: scan.state,
     };
   }
 
@@ -430,6 +587,8 @@ async function scanRange(params: {
       yethState: scan.state,
       yethMetrics: stateMetrics,
       yethDailyFlow: accumulatedFlow,
+      teamsState: null,
+      ybcState: null,
     };
   }
 
@@ -485,6 +644,8 @@ async function scanRange(params: {
     yethState: scan.state,
     yethMetrics: dailyMetrics,
     yethDailyFlow: { ...ZERO_FLOW },
+    teamsState: null,
+    ybcState: null,
   };
 }
 
@@ -707,6 +868,10 @@ export class AlertState implements DurableObject {
               : serializeYethRepaymentMetrics(scan.yethMetrics),
           yethDailyFlow:
             domainId === "yeth" ? storeFlow(scan.yethDailyFlow) : stored.yethDailyFlow,
+          teamsState:
+            scan.teamsState === null ? stored.teamsState : serializeTeamsState(scan.teamsState),
+          ybcState:
+            scan.ybcState === null ? stored.ybcState : serializeYbcState(scan.ybcState),
         };
         stage = "state_commit";
         await this.state.storage.put(STATE_KEY, stored);

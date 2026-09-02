@@ -19,8 +19,7 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
   await expect(page.getByText("Accepted shell map")).toHaveCount(0);
   await expect(page.getByText("Mock interactions")).toHaveCount(0);
   await expect(page.getByText("Mock MVP scope")).toHaveCount(0);
-  await expect(page.getByText("Internal influence", { exact: true })).toBeVisible();
-  await expect(page.getByText("Delegated influence", { exact: true })).toBeVisible();
+  await expect(page.getByText("Total collective voting power", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Observer view", level: 2 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Proposal Board", level: 2 })).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
@@ -59,6 +58,27 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
 
   await setYbcEmptyBoard(page, true);
   await expect(page.getByText("No proposal history")).toBeVisible();
+});
+
+test("opens proposal links from Telegram and cleans invalid proposal ids", async ({
+  page,
+}) => {
+  await page.goto("/ybc?proposal=2#proposals");
+  await waitForTestBridge(page);
+
+  const focused = page.locator('[id="ybc-proposal-YBC-2"]');
+  await expect(focused).toBeVisible();
+  await expect(focused).toHaveAttribute("data-focused", "true");
+  await expect(focused.locator("details")).toHaveAttribute("open", "");
+
+  await page.goto("/ybc?keep=yes&proposal=999999#proposals");
+  await expect(page).toHaveURL(/\/ybc\?keep=yes#proposals$/);
+
+  await page.goto("/ybc?keep=yes&proposal=invalid#overview");
+  await expect(page).toHaveURL(/\/ybc\?keep=yes#proposals$/);
+
+  await page.goto("/ybc?keep=yes&proposal=999999");
+  await expect(page).toHaveURL(/\/ybc\?keep=yes#proposals$/);
 });
 
 test("contains YBC identity and timestamp layouts at 360px", async ({

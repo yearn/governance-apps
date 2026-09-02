@@ -1,4 +1,8 @@
 import type { ActiveAlertDomainId } from "./domain-registry";
+import {
+  isProductAlertAction,
+  type AlertAction,
+} from "./product-types";
 import type { NormalizedAction } from "./types";
 
 const DOMAIN_KINDS: Readonly<Record<ActiveAlertDomainId, ReadonlySet<string>>> = {
@@ -26,15 +30,19 @@ const DOMAIN_KINDS: Readonly<Record<ActiveAlertDomainId, ReadonlySet<string>>> =
     "yeth_yield_capacity_up",
     "yeth_yield_capacity_down",
   ]),
+  teams: new Set(),
+  ybc: new Set(),
 };
 
-export function actionEventId(action: NormalizedAction): string {
+export function actionEventId(action: AlertAction): string {
+  if (isProductAlertAction(action)) return action.eventId;
   return action.source.kind === "synthetic"
     ? action.source.metricId
     : `${action.txHash.toLowerCase()}:${action.logIndex}`;
 }
 
-export function isSuppressedCatalogueAction(action: NormalizedAction): boolean {
+export function isSuppressedCatalogueAction(action: AlertAction): boolean {
+  if (isProductAlertAction(action)) return false;
   if (action.kind === "penalty") return true;
   return (
     action.kind === "update" &&
@@ -80,13 +88,17 @@ export function actionUsesYfiUsdPrice(action: NormalizedAction): boolean {
 
 export function validateDomainActions(
   domainId: ActiveAlertDomainId,
-  actions: readonly NormalizedAction[],
+  actions: readonly AlertAction[],
 ): void {
   const ids = new Set<string>();
   let previousBlock = -1;
   let previousLogIndex = -1;
   for (const action of actions) {
-    if (!DOMAIN_KINDS[domainId].has(action.kind)) {
+    if (
+      isProductAlertAction(action)
+        ? action.domainId !== domainId
+        : !DOMAIN_KINDS[domainId].has(action.kind)
+    ) {
       throw new Error("alert_action_wrong_domain");
     }
     if (

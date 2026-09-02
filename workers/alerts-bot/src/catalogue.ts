@@ -8,6 +8,11 @@ import {
 } from "./actions";
 import { resolveAlertAccountBlockContext } from "./account-block-context";
 import { renderAlertCatalogueAction } from "./catalogue-renderer";
+import { renderProductAlertAction } from "./product-renderer";
+import {
+  isProductAlertAction,
+  type AlertAction,
+} from "./product-types";
 import {
   LIQUID_LOCKERS,
   LIQUID_LOCKER_REDEMPTION,
@@ -147,9 +152,9 @@ async function optionalCoveFacilityAtBlock(
 }
 
 function groupsByBlock(
-  actions: readonly NormalizedAction[],
-): readonly (readonly NormalizedAction[])[] {
-  const groups: NormalizedAction[][] = [];
+  actions: readonly AlertAction[],
+): readonly (readonly AlertAction[])[] {
+  const groups: AlertAction[][] = [];
   for (const action of actions) {
     const previous = groups.at(-1);
     if (previous?.[0]?.blockNumber === action.blockNumber) {
@@ -163,7 +168,7 @@ function groupsByBlock(
 
 export async function renderCatalogueMessages(params: {
   readonly domainId: ActiveAlertDomainId;
-  readonly actions: readonly NormalizedAction[];
+  readonly actions: readonly AlertAction[];
   readonly rpc: RpcClient;
 }): Promise<readonly RenderedAlertMessage[]> {
   const visible = params.actions.filter((action) => !isSuppressedCatalogueAction(action));
@@ -177,20 +182,39 @@ export async function renderCatalogueMessages(params: {
     if (block.number !== blockNumber || block.timestamp === null) {
       throw new Error("alert_event_block_invalid");
     }
+    if (actions.every(isProductAlertAction)) {
+      for (const action of actions) {
+        output.push(Object.freeze({
+          eventId: actionEventId(action),
+          blockNumber,
+          html: renderProductAlertAction(action, {
+            kind: "resolved",
+            blockNumber: block.number,
+            blockHash: block.hash,
+            seconds: block.timestamp,
+          }),
+        }));
+      }
+      continue;
+    }
+    if (actions.some(isProductAlertAction)) {
+      throw new Error("alert_action_family_mixed");
+    }
+    const legacyActions = actions as readonly NormalizedAction[];
     const reader = Object.freeze({
       read: (requests: readonly RpcCallRequest[]) =>
         readAtBlock(params.rpc, block, requests),
     });
     const accountContext = await resolveAlertAccountBlockContext({
       domainId: params.domainId,
-      actions,
+      actions: legacyActions,
       block: { blockNumber: block.number, blockHash: block.hash },
       reader,
     });
-    const price = actions.some(actionUsesYfiUsdPrice)
+    const price = legacyActions.some(actionUsesYfiUsdPrice)
       ? await priceAtBlock(priceSource, block)
       : unavailablePrice(block);
-    const coveFacility = actions.some(
+    const coveFacility = legacyActions.some(
       (action) =>
         action.tokenSymbol === "coveYFI" &&
         (action.kind === "exchange" || action.kind === "redeem"),
@@ -198,7 +222,7 @@ export async function renderCatalogueMessages(params: {
       ? await optionalCoveFacilityAtBlock(params.rpc, block)
       : null;
 
-    for (const action of actions) {
+    for (const action of legacyActions) {
       const principal = actionPrincipal(action);
       if (
         (action.kind === "redeem" && principal === null) ||

@@ -10,9 +10,13 @@ export interface AlertsEnv {
   STYFI_TELEGRAM_CHAT_ID?: string;
   VEYFI_TELEGRAM_CHAT_ID?: string;
   YETH_TELEGRAM_CHAT_ID?: string;
+  TEAMS_TELEGRAM_CHAT_ID?: string;
+  YBC_TELEGRAM_CHAT_ID?: string;
   ALERTS_STYFI_ENABLED?: string;
   ALERTS_VEYFI_ENABLED?: string;
   ALERTS_YETH_ENABLED?: string;
+  ALERTS_TEAMS_ENABLED?: string;
+  ALERTS_YBC_ENABLED?: string;
   CONFIRMATIONS?: string;
   MAX_MESSAGES_PER_RUN?: string;
   MAX_RANGES_PER_RUN?: string;
@@ -51,6 +55,14 @@ const DOMAIN_ENV = {
   yeth: {
     enabled: "ALERTS_YETH_ENABLED",
     chat: "YETH_TELEGRAM_CHAT_ID",
+  },
+  teams: {
+    enabled: "ALERTS_TEAMS_ENABLED",
+    chat: "TEAMS_TELEGRAM_CHAT_ID",
+  },
+  ybc: {
+    enabled: "ALERTS_YBC_ENABLED",
+    chat: "YBC_TELEGRAM_CHAT_ID",
   },
 } as const;
 

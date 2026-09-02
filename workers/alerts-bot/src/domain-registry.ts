@@ -8,13 +8,18 @@ export const ALERT_DOMAIN_IDS = [
 ] as const;
 
 export type AlertDomainId = (typeof ALERT_DOMAIN_IDS)[number];
-export type ActiveAlertDomainId = Extract<AlertDomainId, "styfi" | "veyfi" | "yeth">;
+export type ActiveAlertDomainId = Extract<
+  AlertDomainId,
+  "styfi" | "veyfi" | "yeth" | "teams" | "ybc"
+>;
 export type DisabledAlertDomainId = Exclude<AlertDomainId, ActiveAlertDomainId>;
 
 export const ALERT_DOMAIN_OBJECT_NAMES = {
   styfi: "alerts:styfi:v1",
   veyfi: "alerts:veyfi:v1",
   yeth: "alerts:yeth:v1",
+  teams: "alerts:teams:v1",
+  ybc: "alerts:ybc:v1",
 } as const satisfies Readonly<Record<ActiveAlertDomainId, string>>;
 
 export type AlertDomainObjectName =
@@ -25,6 +30,8 @@ export const ALERT_DOMAIN_GENESIS_BLOCKS = {
   styfi: 24_386_915,
   veyfi: 24_386_915,
   yeth: 24_522_098,
+  teams: 25_244_861,
+  ybc: 25_228_044,
 } as const satisfies Readonly<Record<ActiveAlertDomainId, number>>;
 
 export type AlertFamily =
@@ -32,7 +39,9 @@ export type AlertFamily =
   | "styfix"
   | "veyfi"
   | "liquid-locker"
-  | "yeth";
+  | "yeth"
+  | "teams"
+  | "ybc";
 
 export interface ActiveAlertDomainRegistration {
   readonly id: ActiveAlertDomainId;
@@ -78,15 +87,19 @@ const YETH_REGISTRATION = Object.freeze({
 
 const TEAMS_REGISTRATION = Object.freeze({
   id: "teams",
-  status: "disabled",
-  alertFamilies: Object.freeze([]),
-} satisfies DisabledAlertDomainRegistration);
+  status: "active",
+  objectName: ALERT_DOMAIN_OBJECT_NAMES.teams,
+  genesisBlock: ALERT_DOMAIN_GENESIS_BLOCKS.teams,
+  alertFamilies: Object.freeze(["teams"]),
+} satisfies ActiveAlertDomainRegistration);
 
 const YBC_REGISTRATION = Object.freeze({
   id: "ybc",
-  status: "disabled",
-  alertFamilies: Object.freeze([]),
-} satisfies DisabledAlertDomainRegistration);
+  status: "active",
+  objectName: ALERT_DOMAIN_OBJECT_NAMES.ybc,
+  genesisBlock: ALERT_DOMAIN_GENESIS_BLOCKS.ybc,
+  alertFamilies: Object.freeze(["ybc"]),
+} satisfies ActiveAlertDomainRegistration);
 
 const DAO_REGISTRATION = Object.freeze({
   id: "dao",
@@ -98,12 +111,12 @@ export const ACTIVE_ALERT_DOMAIN_REGISTRATIONS = Object.freeze([
   STYFI_REGISTRATION,
   VEYFI_REGISTRATION,
   YETH_REGISTRATION,
+  TEAMS_REGISTRATION,
+  YBC_REGISTRATION,
 ] satisfies readonly ActiveAlertDomainRegistration[]);
 
 export const ALERT_DOMAIN_REGISTRATIONS = Object.freeze([
   ...ACTIVE_ALERT_DOMAIN_REGISTRATIONS,
-  TEAMS_REGISTRATION,
-  YBC_REGISTRATION,
   DAO_REGISTRATION,
 ] satisfies readonly AlertDomainRegistration[]);
 
