@@ -395,13 +395,13 @@ function epochAt(timestamp: number): number {
   return Math.floor((timestamp - YBC_GENESIS) / YBC_EPOCH_SECONDS);
 }
 
-function undecayedVoteWeight(countedWeight: bigint, timestamp: number): bigint {
+function finalDayDecaySecondsRemaining(timestamp: number): bigint | null {
   const epochProgress = (timestamp - YBC_GENESIS) % YBC_EPOCH_SECONDS;
   const decayStartsAt = YBC_EPOCH_SECONDS - YBC_DECAY_SECONDS;
-  if (epochProgress <= decayStartsAt) return countedWeight;
+  if (epochProgress <= decayStartsAt) return null;
   const remaining = BigInt(YBC_EPOCH_SECONDS - epochProgress);
   if (remaining <= 0n) throw new Error("ybc_vote_decay_time_invalid");
-  return (countedWeight * BigInt(YBC_DECAY_SECONDS) + remaining - 1n) / remaining;
+  return remaining;
 }
 
 async function firstBlockAtOrAfter(
@@ -792,10 +792,7 @@ export async function scanYbcBlocks(params: {
             yea: asBoolean(event.args.yea, "ybc_vote_yea"),
             voter,
             countedWeight: asBigint(event.args.weight, "ybc_vote_weight"),
-            baseWeight: undecayedVoteWeight(
-              asBigint(event.args.weight, "ybc_vote_weight"),
-              block.timestamp!,
-            ),
+            finalDayDecaySecondsRemaining: finalDayDecaySecondsRemaining(block.timestamp!),
             yeaWeight: replay.yeaWeight,
             totalWeight: replay.totalWeight,
             thresholdBps: proposal.threshold,

@@ -188,7 +188,7 @@ interface ProductActionDetails {
     readonly yea: boolean;
     readonly voter: string;
     readonly countedWeight: bigint;
-    readonly baseWeight: bigint;
+    readonly finalDayDecaySecondsRemaining: bigint | null;
     readonly yeaWeight: bigint;
     readonly totalWeight: bigint;
     readonly thresholdBps: bigint;

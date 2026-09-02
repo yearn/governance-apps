@@ -20,6 +20,7 @@ import {
   loadYbcState,
   scanYbcBlocks,
   serializeYbcState,
+  YBC_FINAL_DAY_DECAY_SECONDS,
 } from "@/workers/alerts-bot/src/domains/ybc/scanner";
 import type { BlockTag, RpcBlock, RpcClient, RpcLog } from "@/workers/alerts-bot/src/rpc";
 import {
@@ -227,7 +228,7 @@ describe("product alert scanner state", () => {
     }]);
   });
 
-  it("replays same-block YBC votes in log order", async () => {
+  it("replays same-block YBC votes in log order and excludes an expulsion target from eligibility", async () => {
     const blockNumber = 25_500_100;
     const timestamp = YBC_GENESIS + (YBC_EPOCH_SECONDS * 2) - 43_200;
     const transactionHash = `0x${"e".repeat(64)}`;
@@ -259,7 +260,7 @@ describe("product alert scanner state", () => {
     const proposal = (total: bigint, yea: bigint) => encodeFunctionResult({
       abi: YBC_READ_ABI,
       functionName: "proposals",
-      result: [target, proposer, 1n, true, 6_000n, total, yea, false, false],
+      result: [target, proposer, 1n, false, 6_000n, total, yea, false, false],
     });
     const rpc = {
       ...emptyRpc(),
@@ -285,9 +286,9 @@ describe("product alert scanner state", () => {
       },
     } as unknown as RpcClient;
     const state = loadYbcState({
-      members: [...voters],
+      members: [...voters, target],
       votersByProposal: {},
-      lastCollectivePower: "30",
+      lastCollectivePower: "45",
       lastEpoch: epochFor(timestamp),
     });
 
@@ -295,12 +296,90 @@ describe("product alert scanner state", () => {
 
     expect(result.failure).toBeNull();
     expect(result.actions.filter((action) => action.kind === "ybc_vote_cast")).toMatchObject([
-      { details: { baseWeight: 20n, yeaWeight: 10n, totalWeight: 10n, uniqueVoters: 1 } },
-      { details: { baseWeight: 40n, yeaWeight: 10n, totalWeight: 30n, uniqueVoters: 2 } },
+      { details: { proposalType: "expulsion", finalDayDecaySecondsRemaining: 43_200n, yeaWeight: 10n, totalWeight: 10n, uniqueVoters: 1, eligibleMembers: 2 } },
+      { details: { proposalType: "expulsion", finalDayDecaySecondsRemaining: 43_200n, yeaWeight: 10n, totalWeight: 30n, uniqueVoters: 2, eligibleMembers: 2 } },
     ]);
   });
 
-  it("ignores unrelated YBC calls but rejects duplicate membership evidence", async () => {
+  it("marks only votes strictly inside the final-day decay window", async () => {
+    const proposalId = 8n;
+    const voter = "0x1010101010101010101010101010101010101010";
+    const target = "0x2020202020202020202020202020202020202020";
+    const scanAt = async (timestamp: number, countedWeight: bigint) => {
+      const blockNumber = 25_500_120;
+      const transactionHash = `0x${countedWeight.toString(16).padStart(64, "0")}`;
+      const vote = eventLog({
+        address: YBC_ELECTION,
+        topics: encodeEventTopics({
+          abi: YBC_ELECTION_EVENTS_ABI,
+          eventName: "Vote",
+          args: { account: voter, idx: proposalId },
+        }),
+        data: encodeAbiParameters(parseAbiParameters("uint256, bool"), [countedWeight, true]),
+        blockNumber,
+        transactionHash,
+        logIndex: 0,
+      });
+      const proposal = (weight: bigint) => encodeFunctionResult({
+        abi: YBC_READ_ABI,
+        functionName: "proposals",
+        result: [target, voter, 1n, true, 6_000n, weight, weight, false, false],
+      });
+      const rpc = {
+        ...emptyRpc(),
+        getBlockByNumber: async (number: BlockTag) => ({
+          ...block(number === "latest" ? blockNumber : number),
+          timestamp: timestamp + (number === blockNumber ? 0 : -1),
+        }),
+        getLogs: async (filter: { address?: string[] }) =>
+          filter.address?.some((address) => address.toLowerCase() === YBC_ELECTION.toLowerCase())
+            ? [vote]
+            : [],
+        call: async (request: { data: string }, reference?: { blockHash: string }) => {
+          if (request.data.startsWith(toFunctionSelector("proposals(uint256)"))) {
+            return reference?.blockHash === block(blockNumber - 1).hash
+              ? proposal(0n)
+              : proposal(countedWeight);
+          }
+          if (request.data.startsWith(toFunctionSelector("weight_aggregator()"))) {
+            return encodeFunctionResult({ abi: YBC_READ_ABI, functionName: "weight_aggregator", result: YBC_WEIGHT_AGGREGATOR });
+          }
+          if (request.data.startsWith(toFunctionSelector("weight(address)"))) {
+            return encodeFunctionResult({ abi: YBC_READ_ABI, functionName: "weight", result: 1_000_000n });
+          }
+          throw new Error("unexpected exact read");
+        },
+      } as unknown as RpcClient;
+      return scanYbcBlocks({
+        rpc,
+        fromBlock: blockNumber,
+        toBlock: blockNumber,
+        state: loadYbcState({
+          members: [voter],
+          votersByProposal: {},
+          lastCollectivePower: "1000000",
+          lastEpoch: epochFor(timestamp),
+        }),
+      });
+    };
+    const epochEnd = YBC_GENESIS + YBC_EPOCH_SECONDS;
+    const atBoundary = await scanAt(
+      epochEnd - YBC_FINAL_DAY_DECAY_SECONDS,
+      1_000_000n,
+    );
+    const lastSecond = await scanAt(epochEnd - 1, 11n);
+
+    expect(atBoundary.failure).toBeNull();
+    expect(lastSecond.failure).toBeNull();
+    expect(atBoundary.actions).toMatchObject([
+      { kind: "ybc_vote_cast", details: { countedWeight: 1_000_000n, finalDayDecaySecondsRemaining: null } },
+    ]);
+    expect(lastSecond.actions).toMatchObject([
+      { kind: "ybc_vote_cast", details: { countedWeight: 11n, finalDayDecaySecondsRemaining: 1n } },
+    ]);
+  });
+
+  it("accepts unrelated YBC calls but rejects missing, malformed, or contradictory membership evidence", async () => {
     const blockNumber = 25_500_150;
     const timestamp = YBC_GENESIS + YBC_EPOCH_SECONDS + 150;
     const member = "0x1212121212121212121212121212121212121212" as const;
@@ -378,6 +457,25 @@ describe("product alert scanner state", () => {
       eventName: "AddMember",
     });
     expect(duplicate.actions).toEqual([]);
+
+    const missing = await scanYbcBlocks({
+      rpc: rpcFor([unrelated, memberAdded]),
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state: createEmptyYbcState(),
+    });
+    expect(missing.failure?.reason).toBe("ybc_membership_call_missing");
+    expect(missing.actions).toEqual([]);
+
+    const removeCalldata = `${toFunctionSelector("remove_member(address)")}${member.slice(2).padStart(64, "0")}`;
+    const malformed = await scanYbcBlocks({
+      rpc: rpcFor([call(YBC, removeCalldata as `0x${string}`, 1), memberAdded]),
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state: createEmptyYbcState(),
+    });
+    expect(malformed.failure?.reason).toBe("ybc_membership_call_mismatch");
+    expect(malformed.actions).toEqual([]);
   });
 
   it("rejects a syntactically valid log from a noncanonical block", async () => {
@@ -460,6 +558,54 @@ describe("product alert scanner state", () => {
       blockHash: block(blockNumber).hash,
       seconds: timestamp,
     })).toContain(`/tx/${transactionHash}`);
+  });
+
+  it("emits each changed B14 epoch ramp and suppresses the unchanged checkpoint", async () => {
+    const fromBlock = 100;
+    const toBlock = 105;
+    const member = "0x4545454545454545454545454545454545454545";
+    const rpc = {
+      ...emptyRpc(),
+      getBlockByNumber: async (number: BlockTag) => {
+        const resolved = number === "latest" ? toBlock : number;
+        return {
+          ...block(resolved),
+          timestamp: YBC_GENESIS + (resolved - fromBlock) * YBC_EPOCH_SECONDS,
+        };
+      },
+      getLogs: async () => [],
+      call: async (request: { data: string }, reference?: { blockHash: string }) => {
+        if (request.data.startsWith(toFunctionSelector("weight_aggregator()"))) {
+          return encodeFunctionResult({ abi: YBC_READ_ABI, functionName: "weight_aggregator", result: YBC_WEIGHT_AGGREGATOR });
+        }
+        if (request.data.startsWith(toFunctionSelector("weight(address)"))) {
+          const atBlock = reference === undefined ? fromBlock : Number(BigInt(reference.blockHash));
+          const ramp = BigInt(Math.min(100, Math.max(0, atBlock - fromBlock) * 25));
+          return encodeFunctionResult({ abi: YBC_READ_ABI, functionName: "weight", result: ramp });
+        }
+        throw new Error("unexpected exact read");
+      },
+    } as unknown as RpcClient;
+    const state = loadYbcState({
+      members: [member],
+      votersByProposal: {},
+      lastCollectivePower: "0",
+      lastEpoch: 0,
+    });
+
+    const result = await scanYbcBlocks({ rpc, fromBlock, toBlock, state });
+    const ramps = result.actions.filter((candidate) => candidate.kind === "ybc_collective_power_changed");
+
+    expect(result.failure).toBeNull();
+    expect(ramps.map((candidate) => candidate.blockNumber)).toEqual([101, 102, 103, 104]);
+    expect(ramps).toMatchObject([
+      { details: { previousPower: 0n, currentPower: 25n, cause: "epoch weight ramp" } },
+      { details: { previousPower: 25n, currentPower: 50n, cause: "epoch weight ramp" } },
+      { details: { previousPower: 50n, currentPower: 75n, cause: "epoch weight ramp" } },
+      { details: { previousPower: 75n, currentPower: 100n, cause: "epoch weight ramp" } },
+    ]);
+    expect(result.state.lastCollectivePower).toBe(100n);
+    expect(result.state.lastEpoch).toBe(5);
   });
 
   it("pairs multiple team bonus calls independently for Teams and YBC", async () => {

@@ -120,22 +120,22 @@ export function runtimeConfig(env: AlertsEnv): RuntimeConfig {
   return Object.freeze({
     rpcUrl,
     botToken,
-    confirmations: integer(env.CONFIRMATIONS, 6, 0, 256, "confirmations"),
+    confirmations: integer(env.CONFIRMATIONS, 6, 6, 6, "confirmations"),
     maxMessagesPerRun: integer(
       env.MAX_MESSAGES_PER_RUN,
       5,
       1,
-      20,
+      5,
       "message_cap",
     ),
     maxRangesPerRun: integer(
       env.MAX_RANGES_PER_RUN,
       6,
       1,
-      50,
+      6,
       "range_cap",
     ),
-    logRangeSize: integer(env.LOG_RANGE_SIZE, 10_000, 100, 100_000, "range_size"),
+    logRangeSize: integer(env.LOG_RANGE_SIZE, 10_000, 100, 10_000, "range_size"),
     yethDailyCheckpointBlocks: integer(
       env.YETH_DAILY_CHECKPOINT_BLOCKS,
       7_200,

@@ -16,9 +16,10 @@ Teams and YBC use separate Telegram chats and separate durable state:
 | YBC | `YBC_TELEGRAM_CHAT_ID` | `ALERTS_YBC_ENABLED` | `alerts:ybc:v1` | `25,228,044` |
 
 Both flags default to `false`. Enabling one domain does not enable the other.
-The shared Worker applies the same six-confirmation default, cursor checks,
-receipt-based deduplication, message cap, Telegram backoff, and adaptive RPC
-range reduction used by the existing alert domains.
+The shared Worker requires six confirmations and applies cursor checks,
+receipt-based deduplication, Telegram backoff, and adaptive RPC range
+reduction. Runtime overrides cannot raise the limits above five messages, six
+ranges, or 10,000 blocks per range.
 
 Every message uses Telegram HTML and stays below 4,096 characters. On-chain
 alerts link to their transaction, block, and UTC event time. Stake- and
@@ -31,8 +32,8 @@ epoch-boundary voting-power alerts use a block-only footer.
   reference.
 - Reject removed logs, malformed log metadata, logs whose block hash differs
   from the canonical block at that height, invalid addresses, bad event
-  encodings, missing or ambiguous companion logs, and companion values that do
-  not match.
+  encodings, missing companions, unmatched contradictory companions, and
+  companion values that do not match.
 - Use the event log index for ordering. Use a stable synthetic ID for a derived
   block-level metric.
 - Escape contract-supplied strings before adding them to Telegram HTML.
@@ -56,10 +57,10 @@ stores the address and registry index for later scans.
 | T4 | Team migrated | Registry `MigrateTeam` plus the same transaction's matching Team `Migrate`; team name and old/new registry | Team lifecycle |
 | T5 | Team ownership transfer started | Team `PendingOwner`; team name, current owner, and pending owner | Team lifecycle |
 | T6 | Team ownership transferred | Team `SetOwner`; team name and owner before/after | Team lifecycle |
-| T7 | Team revenue deposited | Team `DepositRevenue`, matching Revenue Recipient `DepositRevenue`, and matching Accountant revenue increment; token amount, USD credit, depositor, period, and period revenue/cost/result after | Team revenue |
+| T7 | Team revenue deposited | Team `DepositRevenue`, one-to-one complete-payload Revenue Recipient `DepositRevenue`, and one-to-one complete-payload Accountant revenue increment; token amount, USD credit, depositor, period, and period revenue/cost/result after | Team revenue |
 | T8 | Team funding approved | Funding Distributor `ApproveFunding`; approval ID, team, token amount, period, vest duration, and the budget-period claim window | Team funding |
-| T9 | Team funding claimed | Matching Team and Funding Distributor `ClaimFunding` plus matching Accountant cost increment; approval, token amount, USD cost, recipient, delivery route, and approval remaining | Team funding |
-| T10 | Team funding returned | Matching Team and Funding Distributor `ReturnFunding` plus matching Accountant cost decrement; approval, token amount, USD refund, sender, and used amount after | Team funding |
+| T9 | Team funding claimed | One-to-one complete-payload Team and Funding Distributor `ClaimFunding` plus a one-to-one Accountant cost increment; approval, token amount, USD cost, recipient, delivery route, and approval remaining | Team funding |
+| T10 | Team funding returned | One-to-one complete-payload Team and Funding Distributor `ReturnFunding` plus a one-to-one Accountant cost decrement; approval, token amount, USD refund, sender, and used amount after | Team funding |
 | T11 | Team bonus claimed | One or more Bonus Distributor `ClaimBonus` logs for one team in one transaction; matching YBC Bonus Recipient deposit when the YBC share is nonzero; periods, gross YFI, team share, YBC share, and recipient | Team bonus history |
 | T12 | Team revenue accounting adjusted | Accountant `AdjustRevenue` not consumed by T7; operator, sign, USD amount, period, and revenue/cost/result after | Team overview |
 | T13 | Team cost accounting adjusted | Accountant `AdjustCost` not consumed by T9 or T10; operator, sign, USD amount, period, and revenue/cost/result after | Team overview |
@@ -79,6 +80,11 @@ revenue are zero. T11 is suppressed when its aggregate gross and YBC share are
 both zero. T12 and T13 are suppressed when the adjustment is zero. Suppression
 does not relax companion validation.
 
+T7, T9, and T10 pair companions by their complete event payload and consume
+each companion once in canonical log order. Multiple actions for the same team
+and period in one transaction are valid. A missing, malformed, surplus, or
+contradictory related companion fails the whole range without advancing state.
+
 ## YBC alerts
 
 The YBC scanner follows the deployed YBC, YBC Election, vote-weight
@@ -90,7 +96,7 @@ last collective voting power, and the last epoch.
 |---|---|---|---|
 | B1 | Proposal opened | Election `Propose` plus the event-block proposal record; ID, add/remove type, target, proposer, voting window, and proposal threshold | Exact proposal |
 | B2 | Proposal retracted | Election `Retract` plus the proposal record and transaction sender; ID, type, target, and retractor | Exact proposal |
-| B3 | Vote cast | Election `Vote` plus the proposal record and current voter weight; yea/nay, voter, recorded weight, yea/total weight cast, threshold status, unique voters, and eligible members | Exact proposal |
+| B3 | Vote cast | Election `Vote` plus the proposal record; yea/nay, voter, exact recorded weight, yea/total weight cast, threshold status, unique voters, eligible members, and final-day timing when applicable | Exact proposal |
 | B4 | Proposal executed | Election `Execute` plus matching YBC `Call` and member add/remove logs; final cast result, executor, member change, collective voting power after, and active-member count | Exact proposal |
 | B5 | Member added outside an election execution | Matching YBC `Call` and `AddMember` without `Execute`; operator, collective voting power before/after, and active-member count | Members |
 | B6 | Member removed outside an election execution | Matching YBC `Call` and `RemoveMember` without `Execute`; operator, collective voting power before/after, and active-member count | Members |
@@ -114,10 +120,12 @@ There is no separate quorum in these alerts. B3 shows the exact weight recorded
 by the `Vote` event. Vote logs are replayed in log order from the proposal's
 pre-block totals, and the replayed final totals must equal the proposal record
 at the end of the block. This prevents a later vote in the same block from
-appearing in an earlier vote's message. During the final-day decay window, the
-undecayed weight is reconstructed from the event weight and the contract's
-timestamp formula, so a later same-block weight change cannot alter the alert.
-The collective total in B4 and B14 is context; it never changes the pass test.
+appearing in an earlier vote's message. The contract records a floor-rounded
+weight during the final-day decay window, so its undecayed input cannot be
+reconstructed uniquely. B3 does not claim a current or undecayed weight. It
+shows the exact event weight and, while decay is active, the exact number of
+seconds remaining in the epoch. The collective total in B4 and B14 is context;
+it never changes the pass test.
 
 B14 sums `weight(member)` from the Election's current weight aggregator for all
 active YBC members. It emits only when that sum changes. Member-add and
@@ -185,11 +193,24 @@ exception text remain redacted.
 - [x] Each of T1–T16 has an exact checked-in HTML golden and stable event ID.
 - [x] Each of B1–B14 has an exact checked-in HTML golden and stable event ID.
 - [x] Companion-log failures stop the range without advancing the cursor.
+- [x] T7, T9, and T10 accept complete-payload batches in different valid log
+  orders and reject missing, malformed, or contradictory companions.
 - [x] Vote messages use ordered cast weight, not collective power, for pass/fail.
+- [x] Exact-threshold, one-unit-below-threshold, zero-vote, decay-start, and
+  final-second vote boundaries are covered.
+- [x] Expulsion targets are excluded from eligible-member counts.
 - [x] B14 emits only for a nonzero change in the collective total.
+- [x] Four changing epoch ramps emit four B14 alerts; the next unchanged epoch
+  is suppressed.
 - [x] Teams and YBC receipts, cursors, state, flags, and chat IDs stay separate.
+- [x] A failed range is retried from the same cursor and advances only after a
+  successful rescan.
 - [x] Product links point to the matching team, proposal, or useful section.
 - [x] Telegram messages fit the 4,096-character limit and contain valid HTML.
+- [x] Conditional renderer coverage includes direct/vested funding, whale
+  threshold, noncontiguous periods, token metadata fallback, expulsion,
+  operator removal, and declining collective power.
 - [x] The YBC page has one active-member collective metric and safe proposal links.
+- [x] YBC proposal focus survives browser back and forward navigation.
 - [x] Typecheck, lint, unit tests, and both end-to-end suites pass on the final diff.
 - [ ] Private historical replay is reviewed and accepted before either flag is enabled.

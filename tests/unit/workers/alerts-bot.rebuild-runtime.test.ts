@@ -158,6 +158,17 @@ describe("alerts rebuild registry and configuration", () => {
       yethDailyMinDeltaWei: 5n * 10n ** 17n,
     });
   });
+
+  it.each([
+    ["zero confirmations", { CONFIRMATIONS: "0" }, "alert_config_confirmations_invalid"],
+    ["confirmations below six", { CONFIRMATIONS: "5" }, "alert_config_confirmations_invalid"],
+    ["confirmations above six", { CONFIRMATIONS: "7" }, "alert_config_confirmations_invalid"],
+    ["more than five messages", { MAX_MESSAGES_PER_RUN: "6" }, "alert_config_message_cap_invalid"],
+    ["more than six ranges", { MAX_RANGES_PER_RUN: "7" }, "alert_config_range_cap_invalid"],
+    ["more than 10,000 blocks", { LOG_RANGE_SIZE: "10001" }, "alert_config_range_size_invalid"],
+  ])("rejects unsafe runtime override: %s", (_label, overrides, reason) => {
+    expect(() => runtimeConfig(baseEnv(overrides))).toThrow(reason);
+  });
 });
 
 describe("minimal durable runtime", () => {
@@ -225,6 +236,78 @@ describe("minimal durable runtime", () => {
     expect(storage.values.get("state:v1")).toMatchObject({
       cursorBlock: genesis + 8,
       cursorHash: hashOf(genesis + 8),
+    });
+  });
+
+  it("retries the same range after a scanner failure before advancing the cursor", async () => {
+    const { state, storage } = durableState();
+    const genesis = ALERT_DOMAIN_GENESIS_BLOCKS.styfi;
+    const scannedRanges: Array<readonly [string, string]> = [];
+    let failNextLogRequest = true;
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        readonly id: number;
+        readonly method: string;
+        readonly params: readonly unknown[];
+      };
+      if (payload.method === "eth_blockNumber") {
+        return Response.json({ jsonrpc: "2.0", id: payload.id, result: `0x${(genesis + 6).toString(16)}` });
+      }
+      if (payload.method === "eth_getLogs") {
+        const filter = payload.params[0] as { readonly fromBlock: string; readonly toBlock: string };
+        scannedRanges.push([filter.fromBlock, filter.toBlock]);
+        if (failNextLogRequest) {
+          failNextLogRequest = false;
+          return Response.json({
+            jsonrpc: "2.0",
+            id: payload.id,
+            error: { code: -32_000, message: "temporary provider failure" },
+          });
+        }
+        return Response.json({ jsonrpc: "2.0", id: payload.id, result: [] });
+      }
+      if (payload.method === "eth_getBlockByNumber") {
+        const number = Number.parseInt(String(payload.params[0]).slice(2), 16);
+        return Response.json({
+          jsonrpc: "2.0",
+          id: payload.id,
+          result: {
+            number: `0x${number.toString(16)}`,
+            hash: hashOf(number),
+            parentHash: hashOf(number - 1),
+            timestamp: "0x6b49d200",
+          },
+        });
+      }
+      throw new Error(`unexpected RPC method: ${payload.method}`);
+    }));
+    const object = new AlertState(
+      state,
+      baseEnv({ ALERTS_STYFI_ENABLED: "true", MAX_RANGES_PER_RUN: "1" }),
+    );
+
+    const failed = await object.fetch(
+      new Request("https://alerts.internal/run?domain=styfi", { method: "POST" }),
+    );
+    expect(failed.status).toBe(500);
+    expect(storage.values.get("state:v1")).toMatchObject({
+      cursorBlock: genesis - 1,
+    });
+
+    const recovered = await object.fetch(
+      new Request("https://alerts.internal/run?domain=styfi", { method: "POST" }),
+    );
+    expect(recovered.status).toBe(200);
+    expect(await recovered.json()).toMatchObject({
+      outcome: "caught_up",
+      cursorBlock: genesis,
+    });
+    expect(scannedRanges[0]).toEqual(scannedRanges[1]);
+    expect(storage.values.get("state:v1")).toMatchObject({
+      cursorBlock: genesis,
+      cursorHash: hashOf(genesis),
+      lastErrorCode: null,
     });
   });
 

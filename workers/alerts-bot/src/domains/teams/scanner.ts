@@ -315,6 +315,21 @@ function companionKey(
   ].join(":");
 }
 
+function consumeCompanion(
+  transactionLogs: readonly CanonicalProductLog[],
+  consumed: Set<CanonicalProductLog>,
+  matches: (candidate: CanonicalProductLog) => boolean,
+  missingReason: string,
+): CanonicalProductLog {
+  for (const candidate of transactionLogs) {
+    if (!consumed.has(candidate) && matches(candidate)) {
+      consumed.add(candidate);
+      return candidate;
+    }
+  }
+  throw new Error(missingReason);
+}
+
 interface TeamBonusBundle {
   readonly claims: readonly CanonicalProductLog[];
   readonly deposit: CanonicalProductLog | null;
@@ -485,6 +500,9 @@ export async function scanTeamsBlocks(params: {
       byTransaction.set(log.transactionHash, group);
     }
     const bonusBundles = buildTeamBonusBundles(byTransaction, decodedByLog, recordEvidence);
+    const consumedAccountingCompanions = new Set<CanonicalProductLog>();
+    const consumedRevenueCompanions = new Set<CanonicalProductLog>();
+    const consumedFundingCompanions = new Set<CanonicalProductLog>();
     const actions: ProductAlertAction[] = [];
 
     for (const log of logs) {
@@ -565,45 +583,35 @@ export async function scanTeamsBlocks(params: {
           const revenue = asBigint(event.args.revenue, "teams_revenue_value");
           const amountValue = asBigint(event.args.amount, "teams_revenue_amount");
           const token = asAddress(event.args.token, "teams_revenue_token");
-          const accountingCandidates = (byTransaction.get(log.transactionHash) ?? []).filter((candidate) => {
-            if (candidate.address !== normalizeAddress(TEAM_ACCOUNTANT)) return false;
-            const value = decodedByLog.get(candidate)!;
-            return value.eventName === "AdjustRevenue" &&
-              asAddress(value.args.operator, "teams_revenue_operator") === normalizeAddress(REVENUE_RECIPIENT) &&
-              asAddress(value.args.team, "teams_revenue_team") === team &&
-              asBigint(value.args.period, "teams_revenue_period") === period;
-          });
-          const companion = exactlyOne(
-            accountingCandidates,
+          const transactionLogs = byTransaction.get(log.transactionHash) ?? [];
+          consumeCompanion(
+            transactionLogs,
+            consumedAccountingCompanions,
+            (candidate) => {
+              if (candidate.address !== normalizeAddress(TEAM_ACCOUNTANT)) return false;
+              const value = decodedByLog.get(candidate)!;
+              return value.eventName === "AdjustRevenue" &&
+                asAddress(value.args.operator, "teams_revenue_operator") === normalizeAddress(REVENUE_RECIPIENT) &&
+                companionKey(value.args, "revenue") ===
+                  ["revenue", team, period, revenue, "1"].join(":");
+            },
             "teams_revenue_companion_missing",
-            "teams_revenue_companion_ambiguous",
           );
-          if (
-            companionKey(decodedByLog.get(companion)!.args, "revenue") !==
-              ["revenue", team, period, revenue, "1"].join(":")
-          ) {
-            throw new Error("teams_revenue_companion_mismatch");
-          }
-          const recipientCandidates = (byTransaction.get(log.transactionHash) ?? []).filter((candidate) => {
-            if (candidate.address !== normalizeAddress(REVENUE_RECIPIENT)) return false;
-            const value = decodedByLog.get(candidate)!;
-            return value.eventName === "DepositRevenue" &&
-              asAddress(value.args.team, "teams_recipient_team") === team &&
-              asBigint(value.args.period, "teams_recipient_period") === period;
-          });
-          const recipientCompanion = exactlyOne(
-            recipientCandidates,
+          consumeCompanion(
+            transactionLogs,
+            consumedRevenueCompanions,
+            (candidate) => {
+              if (candidate.address !== normalizeAddress(REVENUE_RECIPIENT)) return false;
+              const value = decodedByLog.get(candidate)!;
+              return value.eventName === "DepositRevenue" &&
+                asAddress(value.args.team, "teams_recipient_team") === team &&
+                asBigint(value.args.period, "teams_recipient_period") === period &&
+                asAddress(value.args.token, "teams_recipient_token") === token &&
+                asBigint(value.args.amount, "teams_recipient_amount") === amountValue &&
+                asBigint(value.args.revenue, "teams_recipient_revenue") === revenue;
+            },
             "teams_revenue_recipient_missing",
-            "teams_revenue_recipient_ambiguous",
           );
-          const recipientArgs = decodedByLog.get(recipientCompanion)!.args;
-          if (
-            asAddress(recipientArgs.token, "teams_recipient_token") !== token ||
-            asBigint(recipientArgs.amount, "teams_recipient_amount") !== amountValue ||
-            asBigint(recipientArgs.revenue, "teams_recipient_revenue") !== revenue
-          ) {
-            throw new Error("teams_revenue_recipient_mismatch");
-          }
           if (amountValue === 0n && revenue === 0n) continue;
           actions.push(action(log, "team_revenue_deposited", {
             team,
@@ -618,58 +626,52 @@ export async function scanTeamsBlocks(params: {
           const index = asBigint(event.args.idx, "teams_funding_index");
           const period = asBigint(event.args.period, "teams_funding_period");
           const amountValue = asBigint(event.args.amount, "teams_funding_amount");
+          const token = asAddress(event.args.token, "teams_funding_token");
           const distributorName = event.eventName;
-          const distributorCompanion = exactlyOne(
-            (byTransaction.get(log.transactionHash) ?? []).filter((candidate) => {
-              if (candidate.address !== normalizeAddress(FUNDING_DISTRIBUTOR)) return false;
-              const value = decodedByLog.get(candidate)!;
-              return value.eventName === distributorName &&
-                asBigint(value.args.idx, "teams_distributor_index") === index;
-            }),
-            "teams_funding_companion_missing",
-            "teams_funding_companion_ambiguous",
-          );
-          const distributorArgs = decodedByLog.get(distributorCompanion)!.args;
-          if (
-            asBigint(distributorArgs.idx, "teams_distributor_index") !== index ||
-            asAddress(distributorArgs.team, "teams_distributor_team") !== team ||
-            asBigint(distributorArgs.period, "teams_distributor_period") !== period ||
-            asAddress(distributorArgs.token, "teams_distributor_token") !== asAddress(event.args.token, "teams_funding_token") ||
-            asBigint(distributorArgs.amount, "teams_distributor_amount") !== amountValue
-          ) throw new Error("teams_funding_companion_mismatch");
-          const adjustType = "cost" as const;
           const adjustment = event.eventName === "ClaimFunding"
             ? asBigint(event.args.cost, "teams_funding_cost")
             : asBigint(event.args.refund, "teams_funding_refund");
           const increment = event.eventName === "ClaimFunding";
-          if (event.eventName === "ClaimFunding") {
-            if (
-              asBigint(distributorArgs.cost, "teams_distributor_cost") !== adjustment ||
-              asAddress(distributorArgs.vest, "teams_distributor_vest") !== asAddress(event.args.vest, "teams_funding_vest") ||
-              asAddress(distributorArgs.recipient, "teams_distributor_recipient") !== asAddress(event.args.recipient, "teams_funding_recipient")
-            ) throw new Error("teams_funding_companion_mismatch");
-          } else if (
-            asBigint(distributorArgs.refund, "teams_distributor_refund") !== adjustment ||
-            asAddress(distributorArgs.sender, "teams_distributor_sender") !== asAddress(event.args.sender, "teams_funding_sender")
-          ) {
-            throw new Error("teams_funding_companion_mismatch");
-          }
-          const accountingCompanion = exactlyOne((byTransaction.get(log.transactionHash) ?? []).filter((candidate) => {
-            if (candidate.address !== normalizeAddress(TEAM_ACCOUNTANT)) return false;
-            const value = decodedByLog.get(candidate)!;
-            return value.eventName === "AdjustCost" &&
-              asAddress(value.args.operator, "teams_funding_operator") === normalizeAddress(FUNDING_DISTRIBUTOR) &&
-              asAddress(value.args.team, "teams_funding_team") === team &&
-              asBigint(value.args.period, "teams_funding_period") === period;
-          }), "teams_funding_accounting_missing", "teams_funding_accounting_ambiguous");
-          if (
-            companionKey(decodedByLog.get(accountingCompanion)!.args, adjustType) !==
-              [adjustType, team, period, adjustment, increment ? "1" : "0"].join(":")
-          ) {
-            throw new Error("teams_funding_accounting_mismatch");
-          }
-          const [approvalTeam, , token, approvedAmount, , used] = await approval(params.rpc, block, index);
-          if (approvalTeam !== team || used > approvedAmount) throw new Error("teams_funding_approval_mismatch");
+          const transactionLogs = byTransaction.get(log.transactionHash) ?? [];
+          consumeCompanion(
+            transactionLogs,
+            consumedFundingCompanions,
+            (candidate) => {
+              if (candidate.address !== normalizeAddress(FUNDING_DISTRIBUTOR)) return false;
+              const value = decodedByLog.get(candidate)!;
+              if (
+                value.eventName !== distributorName ||
+                asBigint(value.args.idx, "teams_distributor_index") !== index ||
+                asAddress(value.args.team, "teams_distributor_team") !== team ||
+                asBigint(value.args.period, "teams_distributor_period") !== period ||
+                asAddress(value.args.token, "teams_distributor_token") !== token ||
+                asBigint(value.args.amount, "teams_distributor_amount") !== amountValue
+              ) return false;
+              return event.eventName === "ClaimFunding"
+                ? asBigint(value.args.cost, "teams_distributor_cost") === adjustment &&
+                  asAddress(value.args.vest, "teams_distributor_vest") === asAddress(event.args.vest, "teams_funding_vest") &&
+                  asAddress(value.args.recipient, "teams_distributor_recipient") === asAddress(event.args.recipient, "teams_funding_recipient")
+                : asBigint(value.args.refund, "teams_distributor_refund") === adjustment &&
+                  asAddress(value.args.sender, "teams_distributor_sender") === asAddress(event.args.sender, "teams_funding_sender");
+            },
+            "teams_funding_companion_missing",
+          );
+          const adjustType = "cost" as const;
+          consumeCompanion(
+            transactionLogs,
+            consumedAccountingCompanions,
+            (candidate) => {
+              if (candidate.address !== normalizeAddress(TEAM_ACCOUNTANT)) return false;
+              const value = decodedByLog.get(candidate)!;
+              return value.eventName === "AdjustCost" &&
+                asAddress(value.args.operator, "teams_funding_operator") === normalizeAddress(FUNDING_DISTRIBUTOR) &&
+                companionKey(value.args, adjustType) ===
+                  [adjustType, team, period, adjustment, increment ? "1" : "0"].join(":");
+            },
+            "teams_funding_accounting_missing",
+          );
+          const [approvalTeam, , approvalToken, approvedAmount, , used] = await approval(params.rpc, block, index);
+          if (approvalTeam !== team || approvalToken !== token || used > approvedAmount) throw new Error("teams_funding_approval_mismatch");
           if (event.eventName === "ClaimFunding") {
             actions.push(action(log, "team_funding_claimed", {
               approvalId: index,
@@ -811,6 +813,79 @@ export async function scanTeamsBlocks(params: {
             actions.push(action(log, "team_revenue_to_treasury", { ...shared, treasury: await readAddress(params.rpc, block, normalizeAddress(REVENUE_RECIPIENT), "treasury") }));
           } else {
             actions.push(action(log, "team_revenue_to_recovery", { ...shared, recoveryAuction: await readAddress(params.rpc, block, normalizeAddress(REVENUE_RECIPIENT), "recovery_auction") }));
+          }
+        }
+      }
+    }
+
+    for (const transactionLogs of byTransaction.values()) {
+      const teamEvents = transactionLogs.filter((candidate) => teams.has(candidate.address));
+      for (const candidate of transactionLogs) {
+        const candidateEvent = decodedByLog.get(candidate)!;
+        if (
+          candidate.address === normalizeAddress(TEAM_ACCOUNTANT) &&
+          !consumedAccountingCompanions.has(candidate) &&
+          (candidateEvent.eventName === "AdjustRevenue" || candidateEvent.eventName === "AdjustCost")
+        ) {
+          const team = asAddress(candidateEvent.args.team, "teams_unconsumed_adjust_team");
+          const period = asBigint(candidateEvent.args.period, "teams_unconsumed_adjust_period");
+          const operator = asAddress(candidateEvent.args.operator, "teams_unconsumed_adjust_operator");
+          const related = teamEvents.some((teamLog) => {
+            const teamEvent = decodedByLog.get(teamLog)!;
+            if (teamLog.address !== team) return false;
+            if (
+              candidateEvent.eventName === "AdjustRevenue" &&
+              operator === normalizeAddress(REVENUE_RECIPIENT) &&
+              teamEvent.eventName === "DepositRevenue"
+            ) {
+              return asBigint(teamEvent.args.period, "teams_unconsumed_revenue_period") === period;
+            }
+            if (
+              candidateEvent.eventName === "AdjustCost" &&
+              operator === normalizeAddress(FUNDING_DISTRIBUTOR) &&
+              (teamEvent.eventName === "ClaimFunding" || teamEvent.eventName === "ReturnFunding")
+            ) {
+              return asBigint(teamEvent.args.period, "teams_unconsumed_funding_period") === period;
+            }
+            return false;
+          });
+          if (related) {
+            recordEvidence(candidate, candidateEvent.eventName);
+            throw new Error("teams_accounting_companion_unconsumed");
+          }
+        }
+        if (
+          candidate.address === normalizeAddress(REVENUE_RECIPIENT) &&
+          candidateEvent.eventName === "DepositRevenue" &&
+          !consumedRevenueCompanions.has(candidate)
+        ) {
+          const team = asAddress(candidateEvent.args.team, "teams_unconsumed_recipient_team");
+          const period = asBigint(candidateEvent.args.period, "teams_unconsumed_recipient_period");
+          const related = teamEvents.some((teamLog) => {
+            const teamEvent = decodedByLog.get(teamLog)!;
+            return teamLog.address === team &&
+              teamEvent.eventName === "DepositRevenue" &&
+              asBigint(teamEvent.args.period, "teams_unconsumed_revenue_period") === period;
+          });
+          if (related) {
+            recordEvidence(candidate, candidateEvent.eventName);
+            throw new Error("teams_revenue_recipient_unconsumed");
+          }
+        }
+        if (
+          candidate.address === normalizeAddress(FUNDING_DISTRIBUTOR) &&
+          (candidateEvent.eventName === "ClaimFunding" || candidateEvent.eventName === "ReturnFunding") &&
+          !consumedFundingCompanions.has(candidate)
+        ) {
+          const index = asBigint(candidateEvent.args.idx, "teams_unconsumed_funding_index");
+          const related = teamEvents.some((teamLog) => {
+            const teamEvent = decodedByLog.get(teamLog)!;
+            return teamEvent.eventName === candidateEvent.eventName &&
+              asBigint(teamEvent.args.idx, "teams_unconsumed_team_funding_index") === index;
+          });
+          if (related) {
+            recordEvidence(candidate, candidateEvent.eventName);
+            throw new Error("teams_funding_companion_unconsumed");
           }
         }
       }

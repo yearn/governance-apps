@@ -364,8 +364,9 @@ function renderBody(action: ProductAlertAction): Body {
         `Threshold: ${percentageBps(d.thresholdBps)} · Currently ${passing ? "passing" : "failing"}`,
         `Participation: ${commaInteger(d.uniqueVoters)} unique voters · ${commaInteger(d.eligibleMembers)} eligible members`,
       ];
-      if (d.baseWeight > 0n && d.countedWeight < d.baseWeight) {
-        lines.push("", `Timing adjustment: ${percentageBps(ratioBps(d.countedWeight, d.baseWeight))} of current weight counted due to final-day decay`);
+      if (d.finalDayDecaySecondsRemaining !== null) {
+        const unit = d.finalDayDecaySecondsRemaining === 1n ? "second" : "seconds";
+        lines.push("", `Final-day decay: active · ${commaInteger(d.finalDayDecaySecondsRemaining)} ${unit} remaining`);
       }
       return { title: "🗳️ YBC vote cast", lines, link: proposalLink(d.proposalId) };
     }

@@ -86,6 +86,10 @@ instead of the old free-tier request ledger:
 These settings catch up quickly without doing repeated head scans or consuming
 capacity that has no user benefit.
 
+The parser treats these as safety limits, not suggestions. Confirmations must
+equal six. Environment overrides above five messages, six ranges, or 10,000
+blocks per range are rejected before a domain can run.
+
 ## yETH cadence
 
 Y1–Y4 are emitted from claim and withdrawal events. Y5 is derived when those

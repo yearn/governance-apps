@@ -74,6 +74,8 @@ The paid Workers plan removes the old free-tier pressure to micro-budget every
 subrequest. The remaining bounds protect providers and Telegram without adding
 a general request governor: 10,000-block log ranges, at most six ranges per
 domain run, RPC batches of 25, and five Telegram messages per domain run.
+Configuration parsing requires exactly six confirmations and rejects overrides
+above any of those range or message limits.
 
 See [the operational runbook](../../docs/alerts-bot.md) and
 [the approved message catalogue](../../docs/alerts-bot-message-catalogue.md).

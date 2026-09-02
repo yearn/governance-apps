@@ -21,9 +21,9 @@
   // wrangler secret put ADMIN_TOKEN --config wrangler.alerts.jsonc
   "vars": {
     // All domains fail closed until their final private chat is ready.
-    "ALERTS_STYFI_ENABLED": "true",
-    "ALERTS_VEYFI_ENABLED": "true",
-    "ALERTS_YETH_ENABLED": "true",
+    "ALERTS_STYFI_ENABLED": "false",
+    "ALERTS_VEYFI_ENABLED": "false",
+    "ALERTS_YETH_ENABLED": "false",
     // Keep the new domains private and disabled until replay review is accepted.
     "ALERTS_TEAMS_ENABLED": "false",
     "ALERTS_YBC_ENABLED": "false",

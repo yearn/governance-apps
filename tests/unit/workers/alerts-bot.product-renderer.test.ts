@@ -41,7 +41,7 @@ describe("Teams and YBC alert catalogue", () => {
     expect(voteHtml).toContain("https://ybc.yearn.fi/?proposal=12#proposals".replace("?", "?").replace("&", "&amp;"));
     expect(voteHtml).toContain("8.00 / 10.00 YFI cast · 80.00% yea");
     expect(voteHtml).toContain("60.00% · Currently passing");
-    expect(voteHtml).toContain("80.00% of current weight counted due to final-day decay");
+    expect(voteHtml).toContain("Final-day decay: active · 43,200 seconds remaining");
   });
 
   it("does not let rounded support change the on-chain pass result", () => {
@@ -61,6 +61,139 @@ describe("Teams and YBC alert catalogue", () => {
 
     expect(html).toContain("60.00% yea");
     expect(html).toContain("60.00% · Currently failing");
+  });
+
+  it("uses exact integer vote math at threshold, one unit below, and zero votes", () => {
+    const vote = fixture("ybc_vote_cast") as Extract<
+      ProductAlertAction,
+      { kind: "ybc_vote_cast" }
+    >;
+    const render = (yeaWeight: bigint, totalWeight: bigint) =>
+      renderProductAlertAction({
+        ...vote,
+        details: {
+          ...vote.details,
+          yeaWeight,
+          totalWeight,
+          thresholdBps: 6_000n,
+        },
+      }, PRODUCT_CATALOGUE_EVENT_TIME);
+
+    expect(render(60n * WAD, 100n * WAD)).toContain("Currently passing");
+    expect(render(60n * WAD - 1n, 100n * WAD)).toContain("Currently failing");
+    expect(render(0n, 0n)).toContain("Currently failing");
+  });
+
+  it("renders the final-day boundary without claiming an invertible current weight", () => {
+    const vote = fixture("ybc_vote_cast") as Extract<
+      ProductAlertAction,
+      { kind: "ybc_vote_cast" }
+    >;
+    const beforeDecay = renderProductAlertAction({
+      ...vote,
+      details: { ...vote.details, finalDayDecaySecondsRemaining: null },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+    const lastSecond = renderProductAlertAction({
+      ...vote,
+      details: { ...vote.details, finalDayDecaySecondsRemaining: 1n },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+
+    expect(beforeDecay).not.toContain("Final-day decay:");
+    expect(lastSecond).toContain("Final-day decay: active · 1 second remaining");
+    expect(lastSecond).not.toContain("current weight counted");
+  });
+
+  it("renders direct and vested funding delivery variants", () => {
+    const funding = fixture("team_funding_claimed") as Extract<
+      ProductAlertAction,
+      { kind: "team_funding_claimed" }
+    >;
+    const vested = renderProductAlertAction(funding, PRODUCT_CATALOGUE_EVENT_TIME);
+    const direct = renderProductAlertAction({
+      ...funding,
+      details: {
+        ...funding.details,
+        vest: "0x0000000000000000000000000000000000000000",
+      },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+
+    expect(vested).toContain("Delivery: Vesting contract");
+    expect(direct).toContain("Delivery: Direct transfer");
+  });
+
+  it("renders whale, non-whale, contiguous, and noncontiguous bonus variants", () => {
+    const bonus = fixture("team_bonus_claimed") as Extract<
+      ProductAlertAction,
+      { kind: "team_bonus_claimed" }
+    >;
+    const whale = renderProductAlertAction({
+      ...bonus,
+      details: { ...bonus.details, gross: 40n * WAD },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+    const ordinary = renderProductAlertAction({
+      ...bonus,
+      details: {
+        ...bonus.details,
+        periods: [2n, 4n],
+        gross: 39n * WAD,
+        teamAmount: 34n * WAD,
+      },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+
+    expect(whale).toContain("WHALE MOVE");
+    expect(ordinary).not.toContain("WHALE MOVE");
+    expect(ordinary).toContain("Periods: #2, #4");
+  });
+
+  it("renders token fallback, expulsion, operator removal, and declining-power variants", () => {
+    const revenue = fixture("team_revenue_deposited") as Extract<
+      ProductAlertAction,
+      { kind: "team_revenue_deposited" }
+    >;
+    const proposal = fixture("ybc_proposal_opened") as Extract<
+      ProductAlertAction,
+      { kind: "ybc_proposal_opened" }
+    >;
+    const operator = fixture("ybc_operator_changed") as Extract<
+      ProductAlertAction,
+      { kind: "ybc_operator_changed" }
+    >;
+    const power = fixture("ybc_collective_power_changed") as Extract<
+      ProductAlertAction,
+      { kind: "ybc_collective_power_changed" }
+    >;
+    const fallback = renderProductAlertAction({
+      ...revenue,
+      details: {
+        ...revenue.details,
+        deposited: { ...revenue.details.deposited, symbol: null, decimals: null, value: 123n },
+      },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+    const expulsion = renderProductAlertAction({
+      ...proposal,
+      details: { ...proposal.details, proposalType: "expulsion" },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+    const removed = renderProductAlertAction({
+      ...operator,
+      details: { ...operator.details, enabled: false },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+    const decline = renderProductAlertAction({
+      ...power,
+      details: {
+        ...power.details,
+        previousPower: 100n * WAD,
+        currentPower: 90n * WAD,
+        cause: "weight configuration changed",
+      },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+
+    expect(fallback).toContain("123 base units · token");
+    expect(expulsion).toContain("YBC-12 · Remove member");
+    expect(expulsion).toContain("Member:");
+    expect(removed).toContain("YBC operator removed");
+    expect(removed).toContain("Status: Removed");
+    expect(decline).toContain("Change: -10.00 YFI");
+    expect(decline).toContain("Cause: Weight configuration changed");
   });
 
   it("uses a block-only footer for epoch-only B14 checkpoints", () => {

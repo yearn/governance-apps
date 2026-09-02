@@ -71,6 +71,21 @@ test("opens proposal links from Telegram and cleans invalid proposal ids", async
   await expect(focused).toHaveAttribute("data-focused", "true");
   await expect(focused.locator("details")).toHaveAttribute("open", "");
 
+  await page.goto("/ybc?proposal=3#proposals");
+  await expect(page.locator('[id="ybc-proposal-YBC-3"]')).toHaveAttribute(
+    "data-focused",
+    "true"
+  );
+  await page.goBack();
+  await expect(page).toHaveURL(/\/ybc\?proposal=2#proposals$/);
+  await expect(focused).toHaveAttribute("data-focused", "true");
+  await page.goForward();
+  await expect(page).toHaveURL(/\/ybc\?proposal=3#proposals$/);
+  await expect(page.locator('[id="ybc-proposal-YBC-3"]')).toHaveAttribute(
+    "data-focused",
+    "true"
+  );
+
   await page.goto("/ybc?keep=yes&proposal=999999#proposals");
   await expect(page).toHaveURL(/\/ybc\?keep=yes#proposals$/);
 
