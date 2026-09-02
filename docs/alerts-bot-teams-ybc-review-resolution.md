@@ -1,6 +1,6 @@
 # Teams and YBC alert review resolution
 
-Status: code-complete after two request-changes reviews. All five checked-in
+Status: code-complete after three request-changes reviews. All five checked-in
 production flags remain disabled pending accepted private historical replay.
 
 This ledger tracks the request-changes review received on 2 September 2026.
@@ -27,8 +27,16 @@ The numbered rows match that review.
 | 1 | Fixed | T7, T9, and T10 match complete event payloads and consume companions in canonical order. Valid same-team, same-period batches no longer appear ambiguous; unmatched related extras fail closed. | Batched revenue in mixed and identical-payload order; batched claim/return; missing, malformed, and contradictory companion cases |
 | 2 | Fixed | Runtime configuration requires exactly six confirmations and caps messages, ranges, and range size at 5, 6, and 10,000. Unsafe environment overrides are rejected. | Configuration boundary table |
 | 3 | Fixed | `wrangler.alerts.jsonc` now commits all five domain flags as `false`, matching the inert-deploy runbook. | Wrangler dry-run binding inspection in the release gates |
-| 4 | Fixed | The named regression gaps are explicit tests rather than inferred coverage from the broad catalogue. | Vote thresholds and decay, expulsion eligibility, four-epoch B14 ramp, retry recovery, renderer variants, and YBC browser history tests |
-| 5 | Fixed | Floor-rounded final-day event weight is not inverted. B3 reports the exact counted event weight and exact decay time remaining without claiming a current-weight comparison. | Decay-start/final-second scanner test, renderer boundary test, and updated exact B3 golden |
+| 4 | Superseded | This pass added useful focused coverage but did not name every mandatory companion and collective-power case. The third review rows below record the completed matrix. | Earlier vote, ramp, retry, renderer, and browser-history tests remain in place |
+| 5 | Corrected | This conclusion was wrong for the pinned deployment because the aggregator quantizes weights in `1e6` units. The third review records the validated reconstruction. | Earlier boundary fixtures were retained and corrected below |
+
+## Third review received 2 September 2026
+
+| # | Disposition | Resolution | Regression evidence |
+|---:|---|---|---|
+| 1 | Fixed | B3 now inverts the Election decay floor against the pinned aggregator's `1e6` weight quantum. The range must contain exactly one valid quantum and reproduce the event weight; otherwise the scan fails closed. The timing line compares counted and base current weight. | Decay-start, half-window, final-second `11 → 1,000,000`, impossible reconstruction, renderer boundary, and exact B3 golden |
+| 2 | Fixed | The mandatory matrix now names every outstanding companion and collective-power case directly. T4 also proves the migrated registry from exact block state. | T4, T9, T10, T11, and B4 missing/malformed/duplicated/contradictory cases; YBC-held/stYFIx exclusions; no-effective-change, same-block aggregation, and B4/B5/B6 suppression cases |
+| 3 | Fixed | Teams and YBC product actors are collected per block, resolved with the existing ENS Universal Resolver plan at the exact canonical block hash, and passed to the renderer. Unsafe or unavailable names retain the linked short address. | Product account-context tests for the EIP-1898 reference, resolved names, and unresolved fallback |
 
 ## Release gate still open
 

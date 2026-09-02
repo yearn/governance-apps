@@ -6,12 +6,17 @@ import {
   isSuppressedCatalogueAction,
   validateDomainActions,
 } from "./actions";
-import { resolveAlertAccountBlockContext } from "./account-block-context";
+import {
+  resolveAlertAccountBlockContext,
+  resolveAlertEnsNamesAtBlock,
+} from "./account-block-context";
 import { renderAlertCatalogueAction } from "./catalogue-renderer";
 import { renderProductAlertAction } from "./product-renderer";
 import {
   isProductAlertAction,
+  productAlertAddresses,
   type AlertAction,
+  type ProductAlertAction,
 } from "./product-types";
 import {
   LIQUID_LOCKERS,
@@ -182,7 +187,17 @@ export async function renderCatalogueMessages(params: {
     if (block.number !== blockNumber || block.timestamp === null) {
       throw new Error("alert_event_block_invalid");
     }
+    const reader = Object.freeze({
+      read: (requests: readonly RpcCallRequest[]) =>
+        readAtBlock(params.rpc, block, requests),
+    });
     if (actions.every(isProductAlertAction)) {
+      const productActions = actions as readonly ProductAlertAction[];
+      const ensNamesByAddress = await resolveAlertEnsNamesAtBlock({
+        addresses: productAlertAddresses(productActions),
+        block: { blockNumber: block.number, blockHash: block.hash },
+        reader,
+      });
       for (const action of actions) {
         output.push(Object.freeze({
           eventId: actionEventId(action),
@@ -192,7 +207,7 @@ export async function renderCatalogueMessages(params: {
             blockNumber: block.number,
             blockHash: block.hash,
             seconds: block.timestamp,
-          }),
+          }, ensNamesByAddress),
         }));
       }
       continue;
@@ -201,10 +216,6 @@ export async function renderCatalogueMessages(params: {
       throw new Error("alert_action_family_mixed");
     }
     const legacyActions = actions as readonly NormalizedAction[];
-    const reader = Object.freeze({
-      read: (requests: readonly RpcCallRequest[]) =>
-        readAtBlock(params.rpc, block, requests),
-    });
     const accountContext = await resolveAlertAccountBlockContext({
       domainId: params.domainId,
       actions: legacyActions,

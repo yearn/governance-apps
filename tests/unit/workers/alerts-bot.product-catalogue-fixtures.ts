@@ -42,7 +42,7 @@ export const PRODUCT_ALERT_DETAILS = {
   team_revenue_to_recovery: { amount: token(2n * WAD), recoveryAuction: B, usedAfter: token(12n * WAD) },
   ybc_proposal_opened: { proposalId: 12n, proposalType: "addition", target: A, proposer: B, votingStartsAt: 1_790_000_000n, votingEndsAt: 1_790_604_800n, thresholdBps: 6_000n },
   ybc_proposal_retracted: { proposalId: 12n, proposalType: "addition", target: A, retractor: B },
-  ybc_vote_cast: { proposalId: 12n, proposalType: "addition", yea: true, voter: B, countedWeight: 8n * WAD, finalDayDecaySecondsRemaining: 43_200n, yeaWeight: 8n * WAD, totalWeight: 10n * WAD, thresholdBps: 6_000n, uniqueVoters: 2, eligibleMembers: 5 },
+  ybc_vote_cast: { proposalId: 12n, proposalType: "addition", yea: true, voter: B, countedWeight: 8n * WAD, baseWeight: 10n * WAD, yeaWeight: 8n * WAD, totalWeight: 10n * WAD, thresholdBps: 6_000n, uniqueVoters: 2, eligibleMembers: 5 },
   ybc_proposal_executed: { proposalId: 12n, proposalType: "addition", member: A, executor: B, yeaWeight: 8n * WAD, totalWeight: 10n * WAD, collectivePowerAfter: 100n * WAD, activeMembers: 6 },
   ybc_member_added: { member: A, operator: B, collectivePowerBefore: 90n * WAD, collectivePowerAfter: 100n * WAD, activeMembers: 6 },
   ybc_member_removed: { member: A, operator: B, collectivePowerBefore: 100n * WAD, collectivePowerAfter: 90n * WAD, activeMembers: 5 },

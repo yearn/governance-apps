@@ -549,11 +549,18 @@ export async function scanTeamsBlocks(params: {
             "teams_migration_companion_ambiguous",
           );
           const migrated = decodedByLog.get(companion)!;
+          const currentRegistry = asAddress(
+            migrated.args.registry,
+            "teams_migration_registry",
+          );
+          if (await readAddress(params.rpc, block, team, "registry") !== currentRegistry) {
+            throw new Error("teams_migration_registry_mismatch");
+          }
           actions.push(action(log, "team_migrated", {
             team,
             teamName: await getName(block, team),
             previousRegistry: normalizeAddress(TEAM_REGISTRY),
-            currentRegistry: asAddress(migrated.args.registry, "teams_migration_registry"),
+            currentRegistry,
           }));
         }
         continue;

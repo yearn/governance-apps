@@ -273,6 +273,15 @@ export interface AlertAccountBlockContextInput {
   readonly reader: AlertAccountBlockReader;
 }
 
+export interface AlertEnsBlockContextInput {
+  readonly addresses: readonly string[];
+  readonly block: {
+    readonly blockNumber: number;
+    readonly blockHash: string;
+  };
+  readonly reader: AlertAccountBlockReader;
+}
+
 interface PlannedRead {
   readonly request: RpcCallRequest;
   readonly words: number;
@@ -438,6 +447,39 @@ function decodeEnsResult(value: string): string | null {
     throw new Error("alert_account_block_context_ens_result_invalid");
   }
   return safeEnsName(name);
+}
+
+/** Resolves safely verified ENS primary names using the existing exact-block plan. */
+export async function resolveAlertEnsNamesAtBlock(
+  input: AlertEnsBlockContextInput,
+): Promise<Readonly<Record<string, string>>> {
+  if (
+    !Number.isSafeInteger(input.block.blockNumber) ||
+    input.block.blockNumber < ALERT_ENS_CONTEXT_READY_BLOCK ||
+    !/^0x[0-9a-fA-F]{64}$/.test(input.block.blockHash)
+  ) {
+    throw new Error("alert_account_block_context_ens_block_invalid");
+  }
+  const addresses = [...new Set(input.addresses.map((value) => {
+    const normalized = value.toLowerCase();
+    if (!/^0x[0-9a-f]{40}$/.test(normalized)) {
+      throw new Error("alert_account_block_context_ens_address_invalid");
+    }
+    return normalized;
+  }))].sort();
+  if (addresses.length === 0) return Object.freeze({});
+  const values = await input.reader.read(
+    Object.freeze(addresses.map((value) => ensRequest(value as Address))),
+  );
+  if (values.length !== addresses.length) {
+    throw new Error("alert_account_block_context_ens_cardinality_invalid");
+  }
+  const names: Record<string, string> = {};
+  for (let index = 0; index < addresses.length; index += 1) {
+    const name = decodeEnsResult(values[index]!);
+    if (name !== null) names[addresses[index]!] = name;
+  }
+  return Object.freeze(names);
 }
 
 const contextPromisesByReader = new WeakMap<

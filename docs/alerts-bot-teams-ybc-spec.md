@@ -39,6 +39,10 @@ epoch-boundary voting-power alerts use a block-only footer.
 - Escape contract-supplied strings before adding them to Telegram HTML.
 - Read token symbols and decimals at the event block. If metadata cannot be
   read, show the token address and base-unit value.
+- Resolve account labels through the ENS Universal Resolver at the exact event
+  block. Use a normalized, safely verified primary name when one exists;
+  otherwise keep the shortened address. The label always links to the
+  canonical address.
 - Show a product link only when the linked page has useful current state. The
   chain transaction remains the source for the historical event.
 
@@ -75,15 +79,18 @@ pairs each claim run with its own following YBC deposit.
 
 T1 verifies all three registry relationships at the event block:
 `Team.registry()`, `TeamRegistry.teams(index)`, and
-`TeamRegistry.is_team(team)`. T7 is suppressed when both token amount and USD
-revenue are zero. T11 is suppressed when its aggregate gross and YBC share are
-both zero. T12 and T13 are suppressed when the adjustment is zero. Suppression
-does not relax companion validation.
+`TeamRegistry.is_team(team)`. T4 also verifies that `Team.registry()` equals
+the registry named by the companion `Migrate` log. T7 is suppressed when both
+token amount and USD revenue are zero. T11 is suppressed when its aggregate
+gross and YBC share are both zero. T12 and T13 are suppressed when the
+adjustment is zero. Suppression does not relax companion validation.
 
 T7, T9, and T10 pair companions by their complete event payload and consume
 each companion once in canonical log order. Multiple actions for the same team
 and period in one transaction are valid. A missing, malformed, surplus, or
 contradictory related companion fails the whole range without advancing state.
+T4 and T11 apply the same fail-closed rule to their migration and bonus-deposit
+companions.
 
 ## YBC alerts
 
@@ -120,18 +127,25 @@ There is no separate quorum in these alerts. B3 shows the exact weight recorded
 by the `Vote` event. Vote logs are replayed in log order from the proposal's
 pre-block totals, and the replayed final totals must equal the proposal record
 at the end of the block. This prevents a later vote in the same block from
-appearing in an earlier vote's message. The contract records a floor-rounded
-weight during the final-day decay window, so its undecayed input cannot be
-reconstructed uniquely. B3 does not claim a current or undecayed weight. It
-shows the exact event weight and, while decay is active, the exact number of
-seconds remaining in the epoch. The collective total in B4 and B14 is context;
-it never changes the pass test.
+appearing in an earlier vote's message.
+
+During final-day decay, Election records
+`floor(base weight × seconds remaining / 86,400)`. The pinned weight aggregator
+returns weights in `1,000,000`-unit increments. The scanner inverts the floor
+to an inclusive base-weight interval and accepts it only when that interval
+contains exactly one `1,000,000`-unit multiple that reproduces the recorded
+weight. B3 then compares the counted and reconstructed base weights in the
+timing-adjustment line. An absent or ambiguous candidate fails the range. The
+collective total in B4 and B14 is context; it never changes the pass test.
 
 B14 sums `weight(member)` from the Election's current weight aggregator for all
-active YBC members. It emits only when that sum changes. Member-add and
-member-remove blocks do not also emit B14 because B4, B5, or B6 already shows
-the change. A stake or aggregator transaction supplies B14's transaction
-footer; an epoch checkpoint has no single transaction and uses a block footer.
+active YBC members. YBC-held stake and stYFIx delegation are outside that sum.
+It emits only when the sum changes, aggregates all causes in one block into one
+checkpoint, and suppresses a target-weight configuration event with no
+effective change. Member-add and member-remove blocks do not also emit B14
+because B4, B5, or B6 already shows the change. A stake or aggregator
+transaction supplies B14's transaction footer; an epoch checkpoint has no
+single transaction and uses a block footer.
 
 A multicall that claims bonuses for several teams produces one B8 per paired
 YBC deposit. Each B8 contains only that source team's positive YBC-share periods.
@@ -193,8 +207,9 @@ exception text remain redacted.
 - [x] Each of T1–T16 has an exact checked-in HTML golden and stable event ID.
 - [x] Each of B1–B14 has an exact checked-in HTML golden and stable event ID.
 - [x] Companion-log failures stop the range without advancing the cursor.
-- [x] T7, T9, and T10 accept complete-payload batches in different valid log
-  orders and reject missing, malformed, or contradictory companions.
+- [x] T4, T7, T9, T10, T11, and B4 reject missing, malformed, duplicated, and
+  contradictory companions; complete-payload batches remain valid in different
+  canonical orders.
 - [x] Vote messages use ordered cast weight, not collective power, for pass/fail.
 - [x] Exact-threshold, one-unit-below-threshold, zero-vote, decay-start, and
   final-second vote boundaries are covered.
@@ -202,10 +217,15 @@ exception text remain redacted.
 - [x] B14 emits only for a nonzero change in the collective total.
 - [x] Four changing epoch ramps emit four B14 alerts; the next unchanged epoch
   is suppressed.
+- [x] YBC-held stake and stYFIx delegation are excluded; target changes with no
+  effective change are suppressed; same-block stake changes aggregate once;
+  B4, B5, and B6 suppress a duplicate B14.
 - [x] Teams and YBC receipts, cursors, state, flags, and chat IDs stay separate.
 - [x] A failed range is retried from the same cursor and advances only after a
   successful rescan.
 - [x] Product links point to the matching team, proposal, or useful section.
+- [x] Product actors use safely verified exact-block ENS names with a linked
+  shortened-address fallback.
 - [x] Telegram messages fit the 4,096-character limit and contain valid HTML.
 - [x] Conditional renderer coverage includes direct/vested funding, whale
   threshold, noncontiguous periods, token metadata fallback, expulsion,

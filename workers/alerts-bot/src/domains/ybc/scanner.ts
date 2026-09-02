@@ -119,6 +119,7 @@ const ZERO_HASH = `0x${"0".repeat(64)}` as Hex;
 const ADD_MEMBER_SELECTOR = toFunctionSelector("add_member(address)");
 const REMOVE_MEMBER_SELECTOR = toFunctionSelector("remove_member(address)");
 const CLAIM_SELECTOR = toFunctionSelector("claim(address)");
+const WEIGHT_PACKING_SCALE = 1_000_000n;
 
 const FIXED_ADDRESSES = [
   YBC_ADDRESS,
@@ -395,13 +396,26 @@ function epochAt(timestamp: number): number {
   return Math.floor((timestamp - YBC_GENESIS) / YBC_EPOCH_SECONDS);
 }
 
-function finalDayDecaySecondsRemaining(timestamp: number): bigint | null {
+function baseVoteWeight(countedWeight: bigint, timestamp: number): bigint {
+  if (countedWeight <= 0n) throw new Error("ybc_vote_weight_invalid");
   const epochProgress = (timestamp - YBC_GENESIS) % YBC_EPOCH_SECONDS;
   const decayStartsAt = YBC_EPOCH_SECONDS - YBC_DECAY_SECONDS;
-  if (epochProgress <= decayStartsAt) return null;
+  if (epochProgress <= decayStartsAt) return countedWeight;
   const remaining = BigInt(YBC_EPOCH_SECONDS - epochProgress);
   if (remaining <= 0n) throw new Error("ybc_vote_decay_time_invalid");
-  return remaining;
+  const decayLength = BigInt(YBC_DECAY_SECONDS);
+  const lower = (countedWeight * decayLength + remaining - 1n) / remaining;
+  const upper = ((countedWeight + 1n) * decayLength - 1n) / remaining;
+  const candidate = ((lower + WEIGHT_PACKING_SCALE - 1n) / WEIGHT_PACKING_SCALE) *
+    WEIGHT_PACKING_SCALE;
+  if (
+    candidate > upper ||
+    candidate * remaining / decayLength !== countedWeight ||
+    candidate + WEIGHT_PACKING_SCALE <= upper
+  ) {
+    throw new Error("ybc_vote_base_weight_unrecoverable");
+  }
+  return candidate;
 }
 
 async function firstBlockAtOrAfter(
@@ -792,7 +806,10 @@ export async function scanYbcBlocks(params: {
             yea: asBoolean(event.args.yea, "ybc_vote_yea"),
             voter,
             countedWeight: asBigint(event.args.weight, "ybc_vote_weight"),
-            finalDayDecaySecondsRemaining: finalDayDecaySecondsRemaining(block.timestamp!),
+            baseWeight: baseVoteWeight(
+              asBigint(event.args.weight, "ybc_vote_weight"),
+              block.timestamp!,
+            ),
             yeaWeight: replay.yeaWeight,
             totalWeight: replay.totalWeight,
             thresholdBps: proposal.threshold,

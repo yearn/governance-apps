@@ -243,7 +243,7 @@ describe("product alert scanner state", () => {
       eventLog({
         address: YBC_ELECTION,
         topics: encodeEventTopics({ abi: YBC_ELECTION_EVENTS_ABI, eventName: "Vote", args: { account: voters[0], idx: proposalId } }),
-        data: encodeAbiParameters(parseAbiParameters("uint256, bool"), [10n, true]),
+        data: encodeAbiParameters(parseAbiParameters("uint256, bool"), [10_000_000n, true]),
         blockNumber,
         transactionHash,
         logIndex: 3,
@@ -251,7 +251,7 @@ describe("product alert scanner state", () => {
       eventLog({
         address: YBC_ELECTION,
         topics: encodeEventTopics({ abi: YBC_ELECTION_EVENTS_ABI, eventName: "Vote", args: { account: voters[1], idx: proposalId } }),
-        data: encodeAbiParameters(parseAbiParameters("uint256, bool"), [20n, false]),
+        data: encodeAbiParameters(parseAbiParameters("uint256, bool"), [20_000_000n, false]),
         blockNumber,
         transactionHash,
         logIndex: 7,
@@ -274,7 +274,7 @@ describe("product alert scanner state", () => {
         if (request.data.startsWith(toFunctionSelector("proposals(uint256)"))) {
           return reference?.blockHash === block(blockNumber - 1).hash
             ? proposal(0n, 0n)
-            : proposal(30n, 10n);
+            : proposal(30_000_000n, 10_000_000n);
         }
         if (request.data.startsWith(toFunctionSelector("weight_aggregator()"))) {
           return encodeFunctionResult({ abi: YBC_READ_ABI, functionName: "weight_aggregator", result: YBC_WEIGHT_AGGREGATOR });
@@ -296,12 +296,12 @@ describe("product alert scanner state", () => {
 
     expect(result.failure).toBeNull();
     expect(result.actions.filter((action) => action.kind === "ybc_vote_cast")).toMatchObject([
-      { details: { proposalType: "expulsion", finalDayDecaySecondsRemaining: 43_200n, yeaWeight: 10n, totalWeight: 10n, uniqueVoters: 1, eligibleMembers: 2 } },
-      { details: { proposalType: "expulsion", finalDayDecaySecondsRemaining: 43_200n, yeaWeight: 10n, totalWeight: 30n, uniqueVoters: 2, eligibleMembers: 2 } },
+      { details: { proposalType: "expulsion", countedWeight: 10_000_000n, baseWeight: 20_000_000n, yeaWeight: 10_000_000n, totalWeight: 10_000_000n, uniqueVoters: 1, eligibleMembers: 2 } },
+      { details: { proposalType: "expulsion", countedWeight: 20_000_000n, baseWeight: 40_000_000n, yeaWeight: 10_000_000n, totalWeight: 30_000_000n, uniqueVoters: 2, eligibleMembers: 2 } },
     ]);
   });
 
-  it("marks only votes strictly inside the final-day decay window", async () => {
+  it("reconstructs the unique packed base weight strictly inside final-day decay", async () => {
     const proposalId = 8n;
     const voter = "0x1010101010101010101010101010101010101010";
     const target = "0x2020202020202020202020202020202020202020";
@@ -368,15 +368,18 @@ describe("product alert scanner state", () => {
       1_000_000n,
     );
     const lastSecond = await scanAt(epochEnd - 1, 11n);
+    const impossible = await scanAt(epochEnd - 1, 10n);
 
     expect(atBoundary.failure).toBeNull();
     expect(lastSecond.failure).toBeNull();
     expect(atBoundary.actions).toMatchObject([
-      { kind: "ybc_vote_cast", details: { countedWeight: 1_000_000n, finalDayDecaySecondsRemaining: null } },
+      { kind: "ybc_vote_cast", details: { countedWeight: 1_000_000n, baseWeight: 1_000_000n } },
     ]);
     expect(lastSecond.actions).toMatchObject([
-      { kind: "ybc_vote_cast", details: { countedWeight: 11n, finalDayDecaySecondsRemaining: 1n } },
+      { kind: "ybc_vote_cast", details: { countedWeight: 11n, baseWeight: 1_000_000n } },
     ]);
+    expect(impossible.failure?.reason).toBe("ybc_vote_base_weight_unrecoverable");
+    expect(impossible.actions).toEqual([]);
   });
 
   it("accepts unrelated YBC calls but rejects missing, malformed, or contradictory membership evidence", async () => {

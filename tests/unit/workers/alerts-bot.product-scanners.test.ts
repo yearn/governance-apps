@@ -172,7 +172,11 @@ describe("Teams alert scanner acceptance catalogue", () => {
       call: async (request: { to: string; data: string }, reference?: { blockHash: string }) => {
         const data = request.data;
         if (data.startsWith(toFunctionSelector("registry()"))) {
-          return encodeFunctionResult({ abi: TEAMS_READ_ABI, functionName: "registry", result: TEAM_REGISTRY });
+          const eventBlock = reference === undefined ? 0 : Number(BigInt(reference.blockHash));
+          const registry = request.to.toLowerCase() === EXISTING_TEAM && eventBlock >= at(3)
+            ? NEXT_REGISTRY
+            : TEAM_REGISTRY;
+          return encodeFunctionResult({ abi: TEAMS_READ_ABI, functionName: "registry", result: registry });
         }
         if (data.startsWith(toFunctionSelector("teams(uint256)"))) {
           return encodeFunctionResult({ abi: TEAMS_READ_ABI, functionName: "teams", result: ADDED_TEAM });

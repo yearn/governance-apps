@@ -41,7 +41,9 @@ describe("Teams and YBC alert catalogue", () => {
     expect(voteHtml).toContain("https://ybc.yearn.fi/?proposal=12#proposals".replace("?", "?").replace("&", "&amp;"));
     expect(voteHtml).toContain("8.00 / 10.00 YFI cast · 80.00% yea");
     expect(voteHtml).toContain("60.00% · Currently passing");
-    expect(voteHtml).toContain("Final-day decay: active · 43,200 seconds remaining");
+    expect(voteHtml).toContain(
+      "Timing adjustment: 80.00% of current weight counted due to final-day decay",
+    );
   });
 
   it("does not let rounded support change the on-chain pass result", () => {
@@ -84,23 +86,24 @@ describe("Teams and YBC alert catalogue", () => {
     expect(render(0n, 0n)).toContain("Currently failing");
   });
 
-  it("renders the final-day boundary without claiming an invertible current weight", () => {
+  it("renders the reconstructed base weight comparison at the final-day boundary", () => {
     const vote = fixture("ybc_vote_cast") as Extract<
       ProductAlertAction,
       { kind: "ybc_vote_cast" }
     >;
     const beforeDecay = renderProductAlertAction({
       ...vote,
-      details: { ...vote.details, finalDayDecaySecondsRemaining: null },
+      details: { ...vote.details, countedWeight: WAD, baseWeight: WAD },
     }, PRODUCT_CATALOGUE_EVENT_TIME);
     const lastSecond = renderProductAlertAction({
       ...vote,
-      details: { ...vote.details, finalDayDecaySecondsRemaining: 1n },
+      details: { ...vote.details, countedWeight: 11n, baseWeight: 1_000_000n },
     }, PRODUCT_CATALOGUE_EVENT_TIME);
 
-    expect(beforeDecay).not.toContain("Final-day decay:");
-    expect(lastSecond).toContain("Final-day decay: active · 1 second remaining");
-    expect(lastSecond).not.toContain("current weight counted");
+    expect(beforeDecay).not.toContain("Timing adjustment:");
+    expect(lastSecond).toContain(
+      "Timing adjustment: &lt;0.01% of current weight counted due to final-day decay",
+    );
   });
 
   it("renders direct and vested funding delivery variants", () => {

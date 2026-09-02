@@ -13,20 +13,25 @@ import {
   scanTeamsBlocks,
 } from "@/workers/alerts-bot/src/domains/teams/scanner";
 import {
+  BONUS_DISTRIBUTOR_EVENTS_ABI,
   FUNDING_DISTRIBUTOR_EVENTS_ABI,
   REVENUE_RECIPIENT_EVENTS_ABI,
   TEAM_ACCOUNTANT_EVENTS_ABI,
   TEAM_EVENTS_ABI,
+  TEAM_REGISTRY_EVENTS_ABI,
   TEAMS_READ_ABI,
   TOKEN_METADATA_ABI,
+  YBC_BONUS_RECIPIENT_EVENTS_ABI,
 } from "@/workers/alerts-bot/src/product-abis";
 import {
+  BONUS_DISTRIBUTOR,
   FUNDING_DISTRIBUTOR,
   REVENUE_RECIPIENT,
   TEAM_ACCOUNTANT,
   TEAM_REGISTRY,
   TEAMS_BUDGET_GENESIS,
   TEAMS_PERIOD_SECONDS,
+  YBC_BONUS_RECIPIENT,
 } from "@/workers/alerts-bot/src/contracts";
 import type {
   BlockTag,
@@ -75,7 +80,11 @@ function eventLog(params: {
   };
 }
 
-function teamsRpc(fixed: readonly RpcLog[], dynamic: readonly RpcLog[]): RpcClient {
+function teamsRpc(
+  fixed: readonly RpcLog[],
+  dynamic: readonly RpcLog[],
+  migrationRegistry: `0x${string}` = TOKEN,
+): RpcClient {
   return {
     getBlockNumber: async () => BLOCK_NUMBER,
     getBlockByNumber: async (number: BlockTag) =>
@@ -89,6 +98,13 @@ function teamsRpc(fixed: readonly RpcLog[], dynamic: readonly RpcLog[]): RpcClie
     call: async (request: { data: string }) => {
       if (request.data.startsWith(toFunctionSelector("name()"))) {
         return encodeFunctionResult({ abi: TEAMS_READ_ABI, functionName: "name", result: "Batched Team" });
+      }
+      if (request.data.startsWith(toFunctionSelector("registry()"))) {
+        return encodeFunctionResult({
+          abi: TEAMS_READ_ABI,
+          functionName: "registry",
+          result: migrationRegistry,
+        });
       }
       if (request.data.startsWith(toFunctionSelector("team_revenues(address,uint256)"))) {
         return encodeFunctionResult({ abi: TEAMS_READ_ABI, functionName: "team_revenues", result: 30n });
@@ -160,7 +176,103 @@ function revenueLogs(params: {
   };
 }
 
+function fundingLogs(kind: "ClaimFunding" | "ReturnFunding") {
+  const claim = kind === "ClaimFunding";
+  const primary = eventLog({
+    abi: TEAM_EVENTS_ABI,
+    eventName: kind,
+    indexedArgs: { idx: claim ? 1n : 2n, period: 2n },
+    data: claim
+      ? encodeAbiParameters(
+          parseAbiParameters("address, uint256, uint256, address, address"),
+          [TOKEN, 2n, 4n, VEST, ACTOR],
+        )
+      : encodeAbiParameters(
+          parseAbiParameters("address, uint256, uint256, address"),
+          [TOKEN, 3n, 2n, ACTOR],
+        ),
+    address: TEAM,
+    logIndex: 0,
+  });
+  const distributor = eventLog({
+    abi: FUNDING_DISTRIBUTOR_EVENTS_ABI,
+    eventName: kind,
+    indexedArgs: { idx: claim ? 1n : 2n, team: TEAM, period: 2n },
+    data: claim
+      ? encodeAbiParameters(
+          parseAbiParameters("address, uint256, uint256, address, address"),
+          [TOKEN, 2n, 4n, VEST, ACTOR],
+        )
+      : encodeAbiParameters(
+          parseAbiParameters("address, uint256, uint256, address"),
+          [TOKEN, 3n, 2n, ACTOR],
+        ),
+    address: FUNDING_DISTRIBUTOR,
+    logIndex: 1,
+  });
+  const accounting = eventLog({
+    abi: TEAM_ACCOUNTANT_EVENTS_ABI,
+    eventName: "AdjustCost",
+    indexedArgs: { operator: FUNDING_DISTRIBUTOR, team: TEAM, period: 2n },
+    data: encodeAbiParameters(
+      parseAbiParameters("uint256, bool"),
+      [claim ? 4n : 2n, claim],
+    ),
+    address: TEAM_ACCOUNTANT,
+    logIndex: 2,
+  });
+  const contradictory = {
+    ...distributor,
+    data: claim
+      ? encodeAbiParameters(
+          parseAbiParameters("address, uint256, uint256, address, address"),
+          [TOKEN, 9n, 4n, VEST, ACTOR],
+        )
+      : encodeAbiParameters(
+          parseAbiParameters("address, uint256, uint256, address"),
+          [TOKEN, 9n, 2n, ACTOR],
+        ),
+  };
+  return { primary, distributor, accounting, contradictory };
+}
+
 describe("Teams companion reconciliation", () => {
+  it.each([
+    { label: "missing", companions: () => [] },
+    { label: "malformed", companions: (valid: RpcLog) => [{ ...valid, topics: [valid.topics[0]!, "0x12"] }] },
+    { label: "duplicated", companions: (valid: RpcLog) => [valid, { ...valid, logIndex: 2 }] },
+    { label: "contradictory", companions: (valid: RpcLog) => [valid] },
+  ])("fails closed for a $label T4 migration companion", async ({ label, companions }) => {
+    const migration = eventLog({
+      abi: TEAM_REGISTRY_EVENTS_ABI,
+      eventName: "MigrateTeam",
+      indexedArgs: { team: TEAM },
+      address: TEAM_REGISTRY,
+      logIndex: 0,
+    });
+    const teamMigration = eventLog({
+      abi: TEAM_EVENTS_ABI,
+      eventName: "Migrate",
+      indexedArgs: { registry: TOKEN },
+      address: TEAM,
+      logIndex: 1,
+    });
+    const result = await scanTeamsBlocks({
+      rpc: teamsRpc(
+        [migration],
+        companions(teamMigration),
+        label === "contradictory" ? ACTOR : TOKEN,
+      ),
+      fromBlock: BLOCK_NUMBER,
+      toBlock: BLOCK_NUMBER,
+      state: state(),
+    });
+
+    expect(result.failure, label).not.toBeNull();
+    expect(result.actions).toEqual([]);
+    expect(result.state).toEqual(state());
+  });
+
   it("pairs same-team revenue deposits by complete payload in either log order", async () => {
     const first = revenueLogs({
       amount: 3n,
@@ -299,6 +411,80 @@ describe("Teams companion reconciliation", () => {
       { kind: "team_funding_claimed", details: { approvalId: 1n, costUsd: 4n } },
       { kind: "team_funding_returned", details: { approvalId: 2n, refundUsd: 2n } },
     ]);
+  });
+
+  it.each(["ClaimFunding", "ReturnFunding"] as const)(
+    "fails closed for missing, malformed, duplicated, and contradictory %s companions",
+    async (kind) => {
+      const logs = fundingLogs(kind);
+      const cases = [
+        { label: "missing", fixed: [logs.accounting] },
+        { label: "malformed", fixed: [{ ...logs.distributor, data: "0x12" }, logs.accounting] },
+        { label: "duplicated", fixed: [logs.distributor, { ...logs.distributor, logIndex: 3 }, logs.accounting] },
+        { label: "contradictory", fixed: [logs.contradictory, logs.accounting] },
+      ];
+
+      for (const value of cases) {
+        const result = await scanTeamsBlocks({
+          rpc: teamsRpc(value.fixed, [logs.primary]),
+          fromBlock: BLOCK_NUMBER,
+          toBlock: BLOCK_NUMBER,
+          state: state(),
+        });
+        expect(result.failure, `${kind}:${value.label}`).not.toBeNull();
+        expect(result.actions, `${kind}:${value.label}`).toEqual([]);
+        expect(result.state, `${kind}:${value.label}`).toEqual(state());
+      }
+    },
+  );
+
+  it("fails closed for missing, malformed, duplicated, and contradictory T11 deposits", async () => {
+    const claim = eventLog({
+      abi: BONUS_DISTRIBUTOR_EVENTS_ABI,
+      eventName: "ClaimBonus",
+      indexedArgs: { team: TEAM, period: 2n },
+      data: encodeAbiParameters(
+        parseAbiParameters("uint256, uint256, address"),
+        [50n, 5n, ACTOR],
+      ),
+      address: BONUS_DISTRIBUTOR,
+      logIndex: 0,
+    });
+    const deposit = eventLog({
+      abi: YBC_BONUS_RECIPIENT_EVENTS_ABI,
+      eventName: "Deposit",
+      indexedArgs: { depositor: BONUS_DISTRIBUTOR },
+      data: encodeAbiParameters(parseAbiParameters("uint256"), [5n]),
+      address: YBC_BONUS_RECIPIENT,
+      logIndex: 1,
+    });
+    const cases = [
+      { label: "missing", fixed: [claim] },
+      { label: "malformed", fixed: [claim, { ...deposit, data: "0x12" }] },
+      { label: "duplicated", fixed: [claim, deposit, { ...deposit, logIndex: 2 }] },
+      {
+        label: "contradictory",
+        fixed: [
+          claim,
+          {
+            ...deposit,
+            data: encodeAbiParameters(parseAbiParameters("uint256"), [6n]),
+          },
+        ],
+      },
+    ];
+
+    for (const value of cases) {
+      const result = await scanTeamsBlocks({
+        rpc: teamsRpc(value.fixed, []),
+        fromBlock: BLOCK_NUMBER,
+        toBlock: BLOCK_NUMBER,
+        state: state(),
+      });
+      expect(result.failure, value.label).not.toBeNull();
+      expect(result.actions, value.label).toEqual([]);
+      expect(result.state, value.label).toEqual(state());
+    }
   });
 
   it.each([

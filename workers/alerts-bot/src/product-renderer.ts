@@ -1,4 +1,5 @@
 import type { AlertEventTimeEvidence } from "./evidence";
+import { isSafeAlertEnsName } from "./account-block-context";
 import type {
   AlertTokenAmount,
   ProductAlertAction,
@@ -48,9 +49,16 @@ function shortAddress(value: string): string {
   return `${normalized.slice(0, 6)}…${normalized.slice(-4)}`;
 }
 
-function addressLink(value: string): string {
+function resolvedAddressLink(
+  value: string,
+  ensNamesByAddress: Readonly<Record<string, string>> | undefined,
+): string {
   const normalized = address(value);
-  return `<a href="${ETHERSCAN}/address/${normalized}">${shortAddress(normalized)}</a>`;
+  const resolved = ensNamesByAddress?.[normalized];
+  const label = resolved !== undefined && isSafeAlertEnsName(resolved)
+    ? escapeHtml(resolved)
+    : shortAddress(normalized);
+  return `<a href="${ETHERSCAN}/address/${normalized}">${label}</a>`;
 }
 
 function commaInteger(value: bigint | number): string {
@@ -89,7 +97,7 @@ function amountPair(left: bigint, right: bigint): readonly [string, string] {
 
 function tokenAmount(value: AlertTokenAmount): string {
   if (value.symbol === null || value.decimals === null) {
-    return `${commaInteger(value.value)} base units · token ${addressLink(value.token)}`;
+    return `${commaInteger(value.value)} base units · token ${resolvedAddressLink(value.token, undefined)}`;
   }
   return `${scaled(value.value, value.decimals)} ${escapeHtml(value.symbol)}`;
 }
@@ -105,6 +113,13 @@ function percentageBps(value: bigint): string {
 function ratioBps(numerator: bigint, denominator: bigint): bigint {
   if (denominator === 0n) return 0n;
   return (numerator * 10_000n + denominator / 2n) / denominator;
+}
+
+function timingRatio(numerator: bigint, denominator: bigint): string {
+  const basisPoints = ratioBps(numerator, denominator);
+  return numerator > 0n && denominator > 0n && basisPoints === 0n
+    ? "&lt;0.01%"
+    : percentageBps(basisPoints);
 }
 
 function formatDate(seconds: bigint, includeTime: boolean): string {
@@ -186,7 +201,12 @@ interface Body {
   readonly whale?: boolean;
 }
 
-function renderBody(action: ProductAlertAction): Body {
+function renderBody(
+  action: ProductAlertAction,
+  ensNamesByAddress: Readonly<Record<string, string>> | undefined,
+): Body {
+  const addressLink = (value: string) =>
+    resolvedAddressLink(value, ensNamesByAddress);
   switch (action.kind) {
     case "team_added": {
       const d = action.details;
@@ -364,9 +384,11 @@ function renderBody(action: ProductAlertAction): Body {
         `Threshold: ${percentageBps(d.thresholdBps)} · Currently ${passing ? "passing" : "failing"}`,
         `Participation: ${commaInteger(d.uniqueVoters)} unique voters · ${commaInteger(d.eligibleMembers)} eligible members`,
       ];
-      if (d.finalDayDecaySecondsRemaining !== null) {
-        const unit = d.finalDayDecaySecondsRemaining === 1n ? "second" : "seconds";
-        lines.push("", `Final-day decay: active · ${commaInteger(d.finalDayDecaySecondsRemaining)} ${unit} remaining`);
+      if (d.baseWeight !== d.countedWeight) {
+        lines.push(
+          "",
+          `Timing adjustment: ${timingRatio(d.countedWeight, d.baseWeight)} of current weight counted due to final-day decay`,
+        );
       }
       return { title: "🗳️ YBC vote cast", lines, link: proposalLink(d.proposalId) };
     }
@@ -472,8 +494,9 @@ function validateHtml(html: string): string {
 export function renderProductAlertAction(
   action: ProductAlertAction,
   eventTime: AlertEventTimeEvidence,
+  ensNamesByAddress?: Readonly<Record<string, string>>,
 ): string {
-  const body = renderBody(action);
+  const body = renderBody(action, ensNamesByAddress);
   const lines: string[] = [];
   if (body.whale === true) lines.push("🚨 <b>WHALE MOVE</b>");
   lines.push(`<b>${body.title}</b>`, "", ...body.lines);

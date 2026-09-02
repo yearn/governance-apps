@@ -188,7 +188,7 @@ interface ProductActionDetails {
     readonly yea: boolean;
     readonly voter: string;
     readonly countedWeight: bigint;
-    readonly finalDayDecaySecondsRemaining: bigint | null;
+    readonly baseWeight: bigint;
     readonly yeaWeight: bigint;
     readonly totalWeight: bigint;
     readonly thresholdBps: bigint;
@@ -292,4 +292,54 @@ export function isProductAlertAction(value: unknown): value is ProductAlertActio
     ((value as { domainId?: unknown }).domainId === "teams" ||
       (value as { domainId?: unknown }).domainId === "ybc")
   );
+}
+
+export function productAlertAddresses(
+  actions: readonly ProductAlertAction[],
+): readonly string[] {
+  const addresses = new Set<string>();
+  const collect = (...values: readonly string[]): void => {
+    for (const value of values) {
+      const normalized = value.toLowerCase();
+      if (!/^0x[0-9a-f]{40}$/.test(normalized)) {
+        throw new Error("product_alert_address_invalid");
+      }
+      if (!/^0x0{40}$/.test(normalized)) addresses.add(normalized);
+    }
+  };
+  for (const action of actions) {
+    switch (action.kind) {
+      case "team_added": collect(action.details.team, action.details.owner); break;
+      case "team_retirement_scheduled": break;
+      case "teams_registry_deprecated": collect(action.details.registry, action.details.successor); break;
+      case "team_migrated": collect(action.details.previousRegistry, action.details.currentRegistry); break;
+      case "team_owner_pending": collect(action.details.currentOwner, action.details.pendingOwner); break;
+      case "team_owner_set": collect(action.details.previousOwner, action.details.currentOwner); break;
+      case "team_revenue_deposited": collect(action.details.depositor); break;
+      case "team_funding_approved": break;
+      case "team_funding_claimed": collect(action.details.recipient, action.details.vest); break;
+      case "team_funding_returned": collect(action.details.sender); break;
+      case "team_bonus_claimed": collect(action.details.recipient); break;
+      case "team_revenue_adjusted":
+      case "team_cost_adjusted": collect(action.details.operator); break;
+      case "team_revenue_to_rewards": break;
+      case "team_revenue_to_treasury": collect(action.details.treasury); break;
+      case "team_revenue_to_recovery": collect(action.details.recoveryAuction); break;
+      case "ybc_proposal_opened": collect(action.details.target, action.details.proposer); break;
+      case "ybc_proposal_retracted": collect(action.details.target, action.details.retractor); break;
+      case "ybc_vote_cast": collect(action.details.voter); break;
+      case "ybc_proposal_executed": collect(action.details.member, action.details.executor); break;
+      case "ybc_member_added":
+      case "ybc_member_removed": collect(action.details.member, action.details.operator); break;
+      case "ybc_rewards_claimed": collect(action.details.account); break;
+      case "ybc_team_bonus_received": collect(action.details.sourceTeam); break;
+      case "ybc_thresholds_changed": collect(action.details.actor); break;
+      case "ybc_operator_changed": collect(action.details.operator, action.details.actor); break;
+      case "ybc_hooks_changed": collect(action.details.previousHooks, action.details.currentHooks, action.details.actor); break;
+      case "ybc_rewards_stopped": collect(action.details.actor); break;
+      case "ybc_unrecognized_call": collect(action.details.operator, action.details.target); break;
+      case "ybc_collective_power_changed": break;
+    }
+  }
+  return Object.freeze([...addresses].sort());
 }
