@@ -311,6 +311,96 @@ describe("minimal durable runtime", () => {
     });
   });
 
+  it("keeps Teams and YBC progress independent through a Teams failure and recovery", async () => {
+    const teams = durableState();
+    const ybc = durableState();
+    const teamsGenesis = ALERT_DOMAIN_GENESIS_BLOCKS.teams;
+    const ybcGenesis = ALERT_DOMAIN_GENESIS_BLOCKS.ybc;
+    const latest = teamsGenesis + 6;
+    let failTeams = true;
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        readonly id: number;
+        readonly method: string;
+        readonly params: readonly unknown[];
+      };
+      if (payload.method === "eth_blockNumber") {
+        return Response.json({
+          jsonrpc: "2.0",
+          id: payload.id,
+          result: `0x${latest.toString(16)}`,
+        });
+      }
+      if (payload.method === "eth_getLogs") {
+        if (failTeams) {
+          return Response.json({
+            jsonrpc: "2.0",
+            id: payload.id,
+            error: { code: -32_000, message: "temporary Teams provider failure" },
+          });
+        }
+        return Response.json({ jsonrpc: "2.0", id: payload.id, result: [] });
+      }
+      if (payload.method === "eth_getBlockByNumber") {
+        const number = Number.parseInt(String(payload.params[0]).slice(2), 16);
+        return Response.json({
+          jsonrpc: "2.0",
+          id: payload.id,
+          result: {
+            number: `0x${number.toString(16)}`,
+            hash: hashOf(number),
+            parentHash: hashOf(number - 1),
+            timestamp: "0x6b49d200",
+          },
+        });
+      }
+      throw new Error(`unexpected RPC method: ${payload.method}`);
+    }));
+    const env = baseEnv({
+      ALERTS_TEAMS_ENABLED: "true",
+      ALERTS_YBC_ENABLED: "true",
+      MAX_RANGES_PER_RUN: "1",
+    });
+    const teamsObject = new AlertState(teams.state, env);
+    const ybcObject = new AlertState(ybc.state, env);
+
+    const failedTeams = await teamsObject.fetch(
+      new Request("https://alerts.internal/run?domain=teams", { method: "POST" }),
+    );
+    expect(failedTeams.status).toBe(500);
+    expect(teams.storage.values.get("state:v1")).toMatchObject({
+      domainId: "teams",
+      cursorBlock: teamsGenesis - 1,
+    });
+
+    failTeams = false;
+    const progressedYbc = await ybcObject.fetch(
+      new Request("https://alerts.internal/run?domain=ybc", { method: "POST" }),
+    );
+    expect(progressedYbc.status).toBe(200);
+    expect(ybc.storage.values.get("state:v1")).toMatchObject({
+      domainId: "ybc",
+      cursorBlock: ybcGenesis + 9_999,
+      lastErrorCode: null,
+    });
+    expect(teams.storage.values.get("state:v1")).toMatchObject({
+      cursorBlock: teamsGenesis - 1,
+    });
+
+    const recoveredTeams = await teamsObject.fetch(
+      new Request("https://alerts.internal/run?domain=teams", { method: "POST" }),
+    );
+    expect(recoveredTeams.status).toBe(200);
+    expect(teams.storage.values.get("state:v1")).toMatchObject({
+      cursorBlock: teamsGenesis,
+      lastErrorCode: null,
+    });
+    expect(ybc.storage.values.get("state:v1")).toMatchObject({
+      cursorBlock: ybcGenesis + 9_999,
+    });
+  });
+
   it("stops when the saved cursor hash is no longer canonical", async () => {
     const { state, storage } = durableState();
     const cursor = ALERT_DOMAIN_GENESIS_BLOCKS.styfi;
@@ -643,6 +733,62 @@ describe("worker routing and Telegram backoff", () => {
       "alerts:teams:v1",
       "alerts:ybc:v1",
     ]);
+  });
+
+  it("continues independent cron dispatch while Teams and YBC fail and recover", async () => {
+    const attempts = new Map<string, number>();
+    let failingDomain: "teams" | "ybc" | null = "teams";
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const namespace = {
+      idFromName(name: string) {
+        return name;
+      },
+      get(name: string) {
+        return {
+          fetch: async () => {
+            attempts.set(name, (attempts.get(name) ?? 0) + 1);
+            const domain = name === ALERT_DOMAIN_OBJECT_NAMES.teams ? "teams" : "ybc";
+            return domain === failingDomain
+              ? Response.json({ outcome: "failed" }, { status: 500 })
+              : Response.json({ outcome: "caught_up" });
+          },
+        };
+      },
+    } as unknown as DurableObjectNamespace;
+    const env = baseEnv({
+      ALERT_STATE: namespace,
+      ALERTS_TEAMS_ENABLED: "true",
+      ALERTS_YBC_ENABLED: "true",
+    });
+    const runScheduled = async () => {
+      let pending: Promise<unknown> | null = null;
+      worker.scheduled(
+        {} as ScheduledController,
+        env,
+        { waitUntil(value) { pending = value; } },
+      );
+      await pending;
+    };
+
+    await runScheduled();
+    failingDomain = "ybc";
+    await runScheduled();
+    failingDomain = null;
+    await runScheduled();
+
+    expect(attempts).toEqual(new Map([
+      [ALERT_DOMAIN_OBJECT_NAMES.teams, 3],
+      [ALERT_DOMAIN_OBJECT_NAMES.ybc, 3],
+    ]));
+    expect(errorLog).toHaveBeenCalledTimes(2);
+    expect(errorLog).toHaveBeenNthCalledWith(1, JSON.stringify({
+      event: "alert_dispatch_failed",
+      domain: "teams",
+    }));
+    expect(errorLog).toHaveBeenNthCalledWith(2, JSON.stringify({
+      event: "alert_dispatch_failed",
+      domain: "ybc",
+    }));
   });
 
   it("requires the bearer token before reading status objects", async () => {

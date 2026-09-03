@@ -199,6 +199,39 @@ describe("Teams and YBC alert catalogue", () => {
     expect(decline).toContain("Cause: Weight configuration changed");
   });
 
+  it("renders a Teams loss and preserves small Teams and YBC amount precision", () => {
+    const revenue = fixture("team_revenue_deposited") as Extract<
+      ProductAlertAction,
+      { kind: "team_revenue_deposited" }
+    >;
+    const member = fixture("ybc_member_added") as Extract<
+      ProductAlertAction,
+      { kind: "ybc_member_added" }
+    >;
+    const teams = renderProductAlertAction({
+      ...revenue,
+      details: {
+        ...revenue.details,
+        deposited: { ...revenue.details.deposited, value: 1n },
+        financialsAfter: { revenue: 2n * WAD, cost: 3n * WAD },
+      },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+    const ybc = renderProductAlertAction({
+      ...member,
+      details: {
+        ...member.details,
+        collectivePowerBefore: 10n * WAD + 1n,
+        collectivePowerAfter: 10n * WAD + 2n,
+      },
+    }, PRODUCT_CATALOGUE_EVENT_TIME);
+
+    expect(teams).toContain("Deposited: &lt;0.0001 YFI");
+    expect(teams).toContain("$1.00 loss");
+    expect(ybc).toContain(
+      "Collective voting power: 10.000000000000000001 → 10.000000000000000002 YFI",
+    );
+  });
+
   it("uses a block-only footer for epoch-only B14 checkpoints", () => {
     const power = fixture("ybc_collective_power_changed") as Extract<
       ProductAlertAction,

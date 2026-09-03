@@ -1,6 +1,6 @@
 # Teams and YBC alert review resolution
 
-Status: code-complete after three request-changes reviews. All five checked-in
+Status: code-complete after four request-changes reviews. All five checked-in
 production flags remain disabled pending accepted private historical replay.
 
 This ledger tracks the request-changes review received on 2 September 2026.
@@ -34,9 +34,18 @@ The numbered rows match that review.
 
 | # | Disposition | Resolution | Regression evidence |
 |---:|---|---|---|
-| 1 | Fixed | B3 now inverts the Election decay floor against the pinned aggregator's `1e6` weight quantum. The range must contain exactly one valid quantum and reproduce the event weight; otherwise the scan fails closed. The timing line compares counted and base current weight. | Decay-start, half-window, final-second `11 → 1,000,000`, impossible reconstruction, renderer boundary, and exact B3 golden |
-| 2 | Fixed | The mandatory matrix now names every outstanding companion and collective-power case directly. T4 also proves the migrated registry from exact block state. | T4, T9, T10, T11, and B4 missing/malformed/duplicated/contradictory cases; YBC-held/stYFIx exclusions; no-effective-change, same-block aggregation, and B4/B5/B6 suppression cases |
-| 3 | Fixed | Teams and YBC product actors are collected per block, resolved with the existing ENS Universal Resolver plan at the exact canonical block hash, and passed to the renderer. Unsafe or unavailable names retain the linked short address. | Product account-context tests for the EIP-1898 reference, resolved names, and unresolved fallback |
+| 1 | Superseded | This pass correctly restored the pinned-wrapper inverse, but applied its `1e6` quantum to every Election aggregator. The fourth review records aggregator-aware reconstruction. | The pinned-wrapper boundary fixtures remain in place and are extended below |
+| 2 | Superseded | This pass completed the named companion and collective-power cases, but omitted independent domain recovery, renderer loss/precision variants, and two browser requirements. | The completed acceptance coverage is recorded in the fourth review |
+| 3 | Corrected | Exact-block ENS resolution and rendering were added, but unsafe names still aborted the block instead of using the documented fallback. | The fourth review adds an unsafe-name fallback regression |
+
+## Fourth review received 3 September 2026
+
+| # | Disposition | Resolution | Regression evidence |
+|---:|---|---|---|
+| 1 | Fixed | The scanner replays Election `SetWeightAggregator` events in canonical log order. It uses the packing inverse only while the pinned wrapper is proven active; another aggregator is read at the exact event block and its base weight must reproduce the recorded decay result. | Same-block wrapper-to-generic transition with `1,234,567 → 617,283`; retained pinned-wrapper boundary and impossible-reconstruction cases |
+| 2 | Fixed | The remaining acceptance cases now cover cross-domain failure isolation and recovery, Teams loss and Teams/YBC precision, lifecycle and bonus alert links, and prohibited visible YBC copy. | Durable-runtime, product-renderer, Teams smoke, and YBC smoke assertions |
+| 3 | Fixed | An ENS name that fails normalization or safety checks is treated as unresolved and renders the linked short address. Malformed ABI and contradictory resolver evidence still fail closed. | Unsafe directional-control name fallback plus resolved and empty-name cases |
+| 4 | Fixed | The Alerts Worker compatibility date moved to `2026-09-03`; the runbook requires a compatibility review at least quarterly followed by the complete release gate and private replay. | Wrangler schema inspection and deployment dry run |
 
 ## Release gate still open
 

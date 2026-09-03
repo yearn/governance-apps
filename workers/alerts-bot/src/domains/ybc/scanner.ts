@@ -115,6 +115,7 @@ const BONUS_DISTRIBUTOR_ADDRESS = normalizeAddress(BONUS_DISTRIBUTOR);
 const WEIGHT_AGGREGATOR_ADDRESS = normalizeAddress(YBC_WEIGHT_AGGREGATOR);
 const REWARD_CLAIMER_ADDRESS = normalizeAddress(YBC_REWARD_CLAIMER);
 const REWARD_TOKEN_ADDRESS = normalizeAddress(YBC_REWARD_TOKEN);
+const ZERO_ADDRESS = normalizeAddress("0x0000000000000000000000000000000000000000");
 const ZERO_HASH = `0x${"0".repeat(64)}` as Hex;
 const ADD_MEMBER_SELECTOR = toFunctionSelector("add_member(address)");
 const REMOVE_MEMBER_SELECTOR = toFunctionSelector("remove_member(address)");
@@ -280,29 +281,43 @@ async function readThreshold(
   }), `ybc_${functionName}`);
 }
 
-async function memberWeight(
+async function readElectionAggregator(
   rpc: RpcClient,
   block: RpcBlock,
-  member: Address,
-): Promise<bigint> {
-  const aggregator = asAddress(await exactRead({
+): Promise<Address> {
+  return asAddress(await exactRead({
     rpc,
     block,
     address: ELECTION_ADDRESS,
     abi: YBC_READ_ABI,
     functionName: "weight_aggregator",
   }), "ybc_vote_weight_aggregator");
-  if (aggregator === normalizeAddress("0x0000000000000000000000000000000000000000")) {
-    return 0n;
-  }
+}
+
+async function readAggregatorWeight(
+  rpc: RpcClient,
+  block: RpcBlock,
+  aggregator: Address,
+  account: Address,
+): Promise<bigint> {
   return asBigint(await exactRead({
     rpc,
     block,
     address: aggregator,
     abi: YBC_READ_ABI,
     functionName: "weight",
-    args: [member],
+    args: [account],
   }), "ybc_member_weight");
+}
+
+async function memberWeight(
+  rpc: RpcClient,
+  block: RpcBlock,
+  member: Address,
+): Promise<bigint> {
+  const aggregator = await readElectionAggregator(rpc, block);
+  if (aggregator === ZERO_ADDRESS) return 0n;
+  return readAggregatorWeight(rpc, block, aggregator, member);
 }
 
 async function collectivePower(
@@ -396,26 +411,64 @@ function epochAt(timestamp: number): number {
   return Math.floor((timestamp - YBC_GENESIS) / YBC_EPOCH_SECONDS);
 }
 
-function baseVoteWeight(countedWeight: bigint, timestamp: number): bigint {
+interface VoteDecay {
+  readonly length: bigint;
+  readonly remaining: bigint;
+}
+
+function voteDecay(countedWeight: bigint, timestamp: number): VoteDecay | null {
   if (countedWeight <= 0n) throw new Error("ybc_vote_weight_invalid");
+  if (timestamp < YBC_GENESIS) throw new Error("ybc_vote_before_genesis");
   const epochProgress = (timestamp - YBC_GENESIS) % YBC_EPOCH_SECONDS;
   const decayStartsAt = YBC_EPOCH_SECONDS - YBC_DECAY_SECONDS;
-  if (epochProgress <= decayStartsAt) return countedWeight;
+  if (epochProgress <= decayStartsAt) return null;
   const remaining = BigInt(YBC_EPOCH_SECONDS - epochProgress);
   if (remaining <= 0n) throw new Error("ybc_vote_decay_time_invalid");
-  const decayLength = BigInt(YBC_DECAY_SECONDS);
-  const lower = (countedWeight * decayLength + remaining - 1n) / remaining;
-  const upper = ((countedWeight + 1n) * decayLength - 1n) / remaining;
+  return Object.freeze({ length: BigInt(YBC_DECAY_SECONDS), remaining });
+}
+
+function packedBaseVoteWeight(countedWeight: bigint, decay: VoteDecay): bigint {
+  const lower = (countedWeight * decay.length + decay.remaining - 1n) /
+    decay.remaining;
+  const upper = ((countedWeight + 1n) * decay.length - 1n) /
+    decay.remaining;
   const candidate = ((lower + WEIGHT_PACKING_SCALE - 1n) / WEIGHT_PACKING_SCALE) *
     WEIGHT_PACKING_SCALE;
   if (
     candidate > upper ||
-    candidate * remaining / decayLength !== countedWeight ||
+    candidate * decay.remaining / decay.length !== countedWeight ||
     candidate + WEIGHT_PACKING_SCALE <= upper
   ) {
     throw new Error("ybc_vote_base_weight_unrecoverable");
   }
   return candidate;
+}
+
+async function baseVoteWeight(params: {
+  readonly rpc: RpcClient;
+  readonly block: RpcBlock;
+  readonly aggregator: Address;
+  readonly voter: Address;
+  readonly countedWeight: bigint;
+}): Promise<bigint> {
+  const decay = voteDecay(params.countedWeight, params.block.timestamp!);
+  if (decay === null) return params.countedWeight;
+  if (params.aggregator === WEIGHT_AGGREGATOR_ADDRESS) {
+    return packedBaseVoteWeight(params.countedWeight, decay);
+  }
+  const currentWeight = await readAggregatorWeight(
+    params.rpc,
+    params.block,
+    params.aggregator,
+    params.voter,
+  );
+  if (
+    currentWeight <= 0n ||
+    currentWeight * decay.remaining / decay.length !== params.countedWeight
+  ) {
+    throw new Error("ybc_vote_base_weight_mismatch");
+  }
+  return currentWeight;
 }
 
 async function firstBlockAtOrAfter(
@@ -488,6 +541,65 @@ interface VoteReplaySnapshot {
   readonly proposal: Proposal;
   readonly totalWeight: bigint;
   readonly yeaWeight: bigint;
+}
+
+async function buildElectionAggregatorReplay(params: {
+  readonly rpc: RpcClient;
+  readonly logs: readonly CanonicalProductLog[];
+  readonly decodedByLog: ReadonlyMap<CanonicalProductLog, ReturnType<typeof decoded>>;
+  readonly getBlock: (number: number) => Promise<RpcBlock>;
+  readonly recordEvidence: (log: CanonicalProductLog, eventName: string) => void;
+}): Promise<ReadonlyMap<CanonicalProductLog, Address>> {
+  const aggregatorsByVote = new Map<CanonicalProductLog, Address>();
+  let activeAggregator: Address | null = null;
+  let configuredBlock: number | null = null;
+
+  const verifyConfiguredBlock = async () => {
+    if (configuredBlock === null || activeAggregator === null) return;
+    const configured = await readElectionAggregator(
+      params.rpc,
+      await params.getBlock(configuredBlock),
+    );
+    if (configured !== activeAggregator) {
+      throw new Error("ybc_vote_weight_aggregator_replay_mismatch");
+    }
+  };
+
+  for (const log of params.logs) {
+    if (log.address !== ELECTION_ADDRESS) continue;
+    const event = params.decodedByLog.get(log)!;
+    if (event.eventName !== "SetWeightAggregator" && event.eventName !== "Vote") {
+      continue;
+    }
+    if (configuredBlock !== null && configuredBlock !== log.blockNumber) {
+      await verifyConfiguredBlock();
+      configuredBlock = null;
+    }
+    params.recordEvidence(log, event.eventName);
+    if (event.eventName === "SetWeightAggregator") {
+      activeAggregator = asAddress(
+        event.args.aggregator,
+        "ybc_vote_weight_aggregator",
+      );
+      configuredBlock = log.blockNumber;
+      continue;
+    }
+    if (activeAggregator === null) {
+      if (log.blockNumber === 0) {
+        throw new Error("ybc_vote_weight_aggregator_unavailable");
+      }
+      activeAggregator = await readElectionAggregator(
+        params.rpc,
+        await params.getBlock(log.blockNumber - 1),
+      );
+    }
+    if (activeAggregator === ZERO_ADDRESS) {
+      throw new Error("ybc_vote_weight_aggregator_unavailable");
+    }
+    aggregatorsByVote.set(log, activeAggregator);
+  }
+  await verifyConfiguredBlock();
+  return aggregatorsByVote;
 }
 
 async function buildVoteReplay(params: {
@@ -691,6 +803,13 @@ export async function scanYbcBlocks(params: {
       group.push(log);
       byTransaction.set(log.transactionHash, group);
     }
+    const electionAggregatorsByVote = await buildElectionAggregatorReplay({
+      rpc: params.rpc,
+      logs,
+      decodedByLog,
+      getBlock,
+      recordEvidence,
+    });
     const voteReplay = await buildVoteReplay({
       rpc: params.rpc,
       logs,
@@ -790,6 +909,10 @@ export async function scanYbcBlocks(params: {
         } else if (event.eventName === "Vote") {
           const proposalId = asBigint(event.args.idx, "ybc_proposal_id");
           const voter = asAddress(event.args.account, "ybc_voter");
+          const aggregator = electionAggregatorsByVote.get(log);
+          if (aggregator === undefined) {
+            throw new Error("ybc_vote_weight_aggregator_replay_missing");
+          }
           const replay = voteReplay.get(log);
           if (replay === undefined) throw new Error("ybc_vote_replay_missing");
           const proposal = replay.proposal;
@@ -800,16 +923,20 @@ export async function scanYbcBlocks(params: {
           const eligibleMembers = proposal.addition || !members.has(proposal.account)
             ? members.size
             : Math.max(0, members.size - 1);
+          const countedWeight = asBigint(event.args.weight, "ybc_vote_weight");
           actions.push(action(log, "ybc_vote_cast", {
             proposalId,
             proposalType: proposalType(proposal),
             yea: asBoolean(event.args.yea, "ybc_vote_yea"),
             voter,
-            countedWeight: asBigint(event.args.weight, "ybc_vote_weight"),
-            baseWeight: baseVoteWeight(
-              asBigint(event.args.weight, "ybc_vote_weight"),
-              block.timestamp!,
-            ),
+            countedWeight,
+            baseWeight: await baseVoteWeight({
+              rpc: params.rpc,
+              block,
+              aggregator,
+              voter,
+              countedWeight,
+            }),
             yeaWeight: replay.yeaWeight,
             totalWeight: replay.totalWeight,
             thresholdBps: proposal.threshold,

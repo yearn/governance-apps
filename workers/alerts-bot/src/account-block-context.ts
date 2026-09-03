@@ -415,13 +415,6 @@ export function isSafeAlertEnsName(value: string): boolean {
   );
 }
 
-function safeEnsName(value: string): string {
-  if (!isSafeAlertEnsName(value)) {
-    throw new Error("alert_account_block_context_ens_name_invalid");
-  }
-  return value;
-}
-
 function decodeEnsResult(value: string): string | null {
   const outer = canonicalResult({
     value,
@@ -446,7 +439,7 @@ function decodeEnsResult(value: string): string | null {
   ) {
     throw new Error("alert_account_block_context_ens_result_invalid");
   }
-  return safeEnsName(name);
+  return isSafeAlertEnsName(name) ? name : null;
 }
 
 /** Resolves safely verified ENS primary names using the existing exact-block plan. */

@@ -4,7 +4,7 @@
   "name": "governance-alerts-bot-v2",
   "main": "workers/alerts-bot/src/index.ts",
 
-  "compatibility_date": "2026-01-22",
+  "compatibility_date": "2026-09-03",
   "compatibility_flags": ["nodejs_compat"],
   // The authenticated /status endpoint uses this stable rollout URL.
   "workers_dev": true,

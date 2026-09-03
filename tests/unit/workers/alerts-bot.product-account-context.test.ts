@@ -16,14 +16,18 @@ const RESOLVER_ABI = parseAbi([
   "function reverse(bytes reverseAddress,uint256 coinType) view returns (string,address,address)",
 ] as const);
 
-function ensResult(name: string): Hex {
+function ensResult(
+  name: string,
+  resolver: `0x${string}` = "0x4444444444444444444444444444444444444444",
+  reverseResolver: `0x${string}` = "0x5555555555555555555555555555555555555555",
+): Hex {
   const inner = encodeFunctionResult({
     abi: RESOLVER_ABI,
     functionName: "reverse",
     result: [
       name,
-      "0x4444444444444444444444444444444444444444",
-      "0x5555555555555555555555555555555555555555",
+      resolver,
+      reverseResolver,
     ],
   });
   return encodeFunctionResult({
@@ -49,14 +53,14 @@ function ybcVote() {
   return action;
 }
 
-function productRpc(names: readonly string[]) {
+function productRpcResults(results: readonly Hex[]) {
   const call = vi.fn(async (requests: readonly unknown[], reference: unknown) => {
     expect(reference).toEqual({
       blockHash: PRODUCT_CATALOGUE_BLOCK_HASH,
       requireCanonical: true,
     });
-    expect(requests).toHaveLength(names.length);
-    return names.map(ensResult);
+    expect(requests).toHaveLength(results.length);
+    return results;
   });
   return {
     call,
@@ -70,6 +74,10 @@ function productRpc(names: readonly string[]) {
       call,
     } as unknown as RpcClient,
   };
+}
+
+function productRpc(names: readonly string[]) {
+  return productRpcResults(names.map((name) => ensResult(name)));
 }
 
 describe("Teams and YBC product account context", () => {
@@ -98,6 +106,39 @@ describe("Teams and YBC product account context", () => {
 
     expect(message?.html).toContain(">0x1111…1111</a>");
     expect(message?.html).toContain("Owner: <a href=\"https://etherscan.io/address/0x2222222222222222222222222222222222222222\">0x2222…2222</a>");
+  });
+
+  it("treats an unsafe resolver name as unresolved instead of aborting the block", async () => {
+    const { rpc } = productRpc(["alice.eth\u202e", "owner.eth"]);
+
+    const [message] = await renderCatalogueMessages({
+      domainId: "teams",
+      actions: [teamAdded()],
+      rpc,
+    });
+
+    expect(message?.html).toContain(
+      "Team contract: <a href=\"https://etherscan.io/address/0x1111111111111111111111111111111111111111\">0x1111…1111</a>",
+    );
+    expect(message?.html).toContain(
+      "Owner: <a href=\"https://etherscan.io/address/0x2222222222222222222222222222222222222222\">owner.eth</a>",
+    );
+  });
+
+  it("still fails closed for malformed ABI and contradictory resolver evidence", async () => {
+    const contradictory = ensResult(
+      "alice.eth",
+      "0x0000000000000000000000000000000000000000",
+    );
+
+    for (const result of ["0x1234" as Hex, contradictory]) {
+      const { rpc } = productRpcResults([result]);
+      await expect(renderCatalogueMessages({
+        domainId: "ybc",
+        actions: [ybcVote()],
+        rpc,
+      })).rejects.toThrow("alert_account_block_context_ens_result_invalid");
+    }
   });
 
   it("passes verified event-block ENS names to YBC renderers", async () => {

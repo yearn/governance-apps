@@ -301,6 +301,128 @@ describe("product alert scanner state", () => {
     ]);
   });
 
+  it("replays Election aggregator changes and only applies packing to the pinned wrapper", async () => {
+    const blockNumber = 25_500_110;
+    const timestamp = YBC_GENESIS + (YBC_EPOCH_SECONDS * 2) - 43_200;
+    const transactionHash = `0x${"f".repeat(64)}`;
+    const proposalId = 9n;
+    const target = "0x3030303030303030303030303030303030303030";
+    const voters = [
+      "0x4040404040404040404040404040404040404040",
+      "0x5050505050505050505050505050505050505050",
+    ] as const;
+    const genericAggregator = "0x6060606060606060606060606060606060606060";
+    const logs = [
+      eventLog({
+        address: YBC_ELECTION,
+        topics: encodeEventTopics({
+          abi: YBC_ELECTION_EVENTS_ABI,
+          eventName: "Vote",
+          args: { account: voters[0], idx: proposalId },
+        }),
+        data: encodeAbiParameters(parseAbiParameters("uint256, bool"), [500_000n, true]),
+        blockNumber,
+        transactionHash,
+        logIndex: 1,
+      }),
+      eventLog({
+        address: YBC_ELECTION,
+        topics: encodeEventTopics({
+          abi: YBC_ELECTION_EVENTS_ABI,
+          eventName: "SetWeightAggregator",
+          args: { aggregator: genericAggregator },
+        }),
+        blockNumber,
+        transactionHash,
+        logIndex: 2,
+      }),
+      eventLog({
+        address: YBC_ELECTION,
+        topics: encodeEventTopics({
+          abi: YBC_ELECTION_EVENTS_ABI,
+          eventName: "Vote",
+          args: { account: voters[1], idx: proposalId },
+        }),
+        data: encodeAbiParameters(parseAbiParameters("uint256, bool"), [617_283n, true]),
+        blockNumber,
+        transactionHash,
+        logIndex: 3,
+      }),
+    ];
+    const proposal = (votes: bigint) => encodeFunctionResult({
+      abi: YBC_READ_ABI,
+      functionName: "proposals",
+      result: [target, voters[0], 1n, true, 6_000n, votes, votes, false, false],
+    });
+    const weightReads: Array<{ readonly aggregator: string; readonly account: string }> = [];
+    const rpc = {
+      ...emptyRpc(),
+      getBlockByNumber: async (number: BlockTag) => ({
+        ...block(number === "latest" ? blockNumber : number),
+        timestamp: timestamp + (number === blockNumber ? 0 : -1),
+      }),
+      getLogs: async (filter: { address?: string[] }) =>
+        filter.address?.some((address) => address.toLowerCase() === YBC_ELECTION.toLowerCase())
+          ? logs
+          : [],
+      call: async (
+        request: { to: string; data: string },
+        reference?: { blockHash: string },
+      ) => {
+        if (request.data.startsWith(toFunctionSelector("proposals(uint256)"))) {
+          return reference?.blockHash === block(blockNumber - 1).hash
+            ? proposal(0n)
+            : proposal(1_117_283n);
+        }
+        if (request.data.startsWith(toFunctionSelector("weight_aggregator()"))) {
+          return encodeFunctionResult({
+            abi: YBC_READ_ABI,
+            functionName: "weight_aggregator",
+            result: reference?.blockHash === block(blockNumber - 1).hash
+              ? YBC_WEIGHT_AGGREGATOR
+              : genericAggregator,
+          });
+        }
+        if (request.data.startsWith(toFunctionSelector("weight(address)"))) {
+          weightReads.push({
+            aggregator: request.to.toLowerCase(),
+            account: `0x${request.data.slice(-40)}`.toLowerCase(),
+          });
+          return encodeFunctionResult({
+            abi: YBC_READ_ABI,
+            functionName: "weight",
+            result: 1_234_567n,
+          });
+        }
+        throw new Error("unexpected exact read");
+      },
+    } as unknown as RpcClient;
+    const state = loadYbcState({
+      members: voters,
+      votersByProposal: {},
+      lastCollectivePower: "2000000",
+      lastEpoch: epochFor(timestamp),
+    });
+
+    const result = await scanYbcBlocks({
+      rpc,
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state,
+    });
+    const votes = result.actions.filter((candidate) => candidate.kind === "ybc_vote_cast");
+
+    expect(result.failure).toBeNull();
+    expect(votes).toMatchObject([
+      { details: { countedWeight: 500_000n, baseWeight: 1_000_000n } },
+      { details: { countedWeight: 617_283n, baseWeight: 1_234_567n } },
+    ]);
+    expect(weightReads[0]).toEqual({
+      aggregator: genericAggregator,
+      account: voters[1],
+    });
+  });
+
   it("reconstructs the unique packed base weight strictly inside final-day decay", async () => {
     const proposalId = 8n;
     const voter = "0x1010101010101010101010101010101010101010";

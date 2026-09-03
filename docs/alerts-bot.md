@@ -172,6 +172,11 @@ git diff --check master...
 The dry run must not deploy. Confirm that all five enable flags remain false
 and that the working tree is clean after the release commit.
 
+The Worker compatibility date was reviewed and advanced on 3 September 2026.
+Review it at least quarterly. Before each update, inspect the Cloudflare
+compatibility changes since the pinned date. Run this complete gate before
+deployment and repeat the private replay before public enablement.
+
 ## Bounded rollout
 
 Run the private rollout from the clean `agent/data` worktree. Do not merge the

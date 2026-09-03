@@ -26,6 +26,9 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
   await expect(page.getByRole("columnheader", { name: "Raw staked" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Effective weight" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Target weight" })).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(
+    /Snapshot|off[ -]?chain voting|stYFIx delegation|delegation (?:gained|lost)/i,
+  );
   await page.getByRole("button", { name: /Cards/i }).click();
   await expect(page.getByRole("table")).toHaveCount(0);
 

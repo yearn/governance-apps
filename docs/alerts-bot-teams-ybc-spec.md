@@ -130,13 +130,16 @@ at the end of the block. This prevents a later vote in the same block from
 appearing in an earlier vote's message.
 
 During final-day decay, Election records
-`floor(base weight × seconds remaining / 86,400)`. The pinned weight aggregator
-returns weights in `1,000,000`-unit increments. The scanner inverts the floor
-to an inclusive base-weight interval and accepts it only when that interval
-contains exactly one `1,000,000`-unit multiple that reproduces the recorded
-weight. B3 then compares the counted and reconstructed base weights in the
-timing-adjustment line. An absent or ambiguous candidate fails the range. The
-collective total in B4 and B14 is context; it never changes the pass test.
+`floor(base weight × seconds remaining / 86,400)`. The scanner replays
+Election's active weight aggregator in canonical log order. When that active
+address is the pinned YBC weight wrapper, the scanner inverts the floor to an
+inclusive base-weight interval and accepts it only when the interval contains
+exactly one `1,000,000`-unit multiple that reproduces the recorded weight. For
+any other configured aggregator, it reads `weight(voter)` at the exact event
+block and verifies that applying the decay floor reproduces the event weight.
+B3 then compares the counted and verified base weights in the timing-adjustment
+line. Missing or contradictory evidence fails the range. The collective total
+in B4 and B14 is context; it never changes the pass test.
 
 B14 sums `weight(member)` from the Election's current weight aggregator for all
 active YBC members. YBC-held stake and stYFIx delegation are outside that sum.
@@ -223,14 +226,20 @@ exception text remain redacted.
 - [x] Teams and YBC receipts, cursors, state, flags, and chat IDs stay separate.
 - [x] A failed range is retried from the same cursor and advances only after a
   successful rescan.
+- [x] A Teams failure leaves YBC free to advance, and Teams recovers from its
+  unchanged cursor independently.
 - [x] Product links point to the matching team, proposal, or useful section.
 - [x] Product actors use safely verified exact-block ENS names with a linked
-  shortened-address fallback.
+  shortened-address fallback, including unsafe resolver-name results.
 - [x] Telegram messages fit the 4,096-character limit and contain valid HTML.
 - [x] Conditional renderer coverage includes direct/vested funding, whale
-  threshold, noncontiguous periods, token metadata fallback, expulsion,
-  operator removal, and declining collective power.
+  threshold, noncontiguous periods, profit/loss, amount precision, token
+  metadata fallback, expulsion, operator removal, and declining collective
+  power.
+- [x] Browser coverage opens Teams overview, revenue, funding, lifecycle, and
+  bonus alert destinations for the intended team.
 - [x] The YBC page has one active-member collective metric and safe proposal links.
+- [x] Visible YBC copy has no offchain voting or stYFIx delegation references.
 - [x] YBC proposal focus survives browser back and forward navigation.
 - [x] Typecheck, lint, unit tests, and both end-to-end suites pass on the final diff.
 - [ ] Private historical replay is reviewed and accepted before either flag is enabled.
