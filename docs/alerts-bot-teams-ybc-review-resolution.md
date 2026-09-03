@@ -53,10 +53,20 @@ The numbered rows match that review.
 |---:|---|---|---|
 | 1 | Fixed | Generic-aggregator B3 base weight now comes from the exact `weight(voter)` `STATICCALL` in a log-aware replay of the vote transaction. The scanner binds the canonical `Vote` by global log index and payload, limits candidate calls to those completed before the log, validates the returned ABI word, and verifies the decay result. It no longer uses end-of-block weight as vote-time evidence. | Same-block wrapper-to-generic transition where the traced weight is `1,234,567`, the later block state is `1,234,566`, and both floor to `617,283`; unavailable and wrong-position trace failures; RPC trace shape, request, and size-limit tests |
 
+## Private replay findings received 3 September 2026
+
+| # | Disposition | Resolution | Regression evidence |
+|---:|---|---|---|
+| 1 | Fixed | YBC filters the combined address/topic RPC result through an emitter-specific topic allowlist before decoding. A `SetWeightAggregator` signature emitted by RewardDistributor can no longer be decoded against the RewardDistributor monitoring ABI or stop the domain. | Exact block `25,228,860`, transaction `0x1fec1f37922a2e672d1711162d7b8e386711dc2d7fba6ffaf5d59c847cc2b63b`, and emitter regression |
+| 2 | Fixed | Teams recognizes only the canonical 23-entry six-decimal seed, normalizes it to 18 decimals, persists a semantic per-period ledger, and snapshots every adjustment in canonical log order. Legitimate pre-correction deposits remain unchanged. | Exact seed matrix with yAudit and Curation output assertions; real pre-correction Curation deposit regression |
+| 3 | Fixed | The canonical 46-log correction must pair each legacy decrement with its `1e12` replacement and agree with exact-block accountant totals. It updates no semantic balance and emits no user messages. | Full correction transaction validation and no-alert regression |
+| 4 | Fixed | Teams and YBC use fresh `v2` object names while retaining their canonical start blocks. Operators may reuse the existing private chats after removing rejected messages; unchanged chat IDs require no secret update. | Registry routing assertions and replay-rejection runbook |
+
 ## Release gate still open
 
-No private historical replay was supplied or accepted as part of this change.
-All checked-in domain flags therefore remain `false`. Before Teams or YBC
+The first private historical replay exposed the findings recorded above and
+was not accepted. The checked-in Teams and YBC flags therefore remain `false`.
+Before Teams or YBC
 production enablement, an operator must replay from each documented deployment
 block, review the output and controlled failures, confirm the two Telegram chat
 destinations, prove that the configured RPC returns log-aware call traces for

@@ -18,8 +18,8 @@ export const ALERT_DOMAIN_OBJECT_NAMES = {
   styfi: "alerts:styfi:v1",
   veyfi: "alerts:veyfi:v1",
   yeth: "alerts:yeth:v1",
-  teams: "alerts:teams:v1",
-  ybc: "alerts:ybc:v1",
+  teams: "alerts:teams:v2",
+  ybc: "alerts:ybc:v2",
 } as const satisfies Readonly<Record<ActiveAlertDomainId, string>>;
 
 export type AlertDomainObjectName =

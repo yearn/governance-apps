@@ -1,6 +1,17 @@
 import { decodeEventLog, type Abi, type Address, type Hex } from "viem";
 
 import {
+  TEAMS_ACCOUNTING_CORRECTION_ADJUSTMENT_COUNT,
+  TEAMS_ACCOUNTING_CORRECTION_TRANSACTION,
+  TEAMS_ACCOUNTING_LEGACY_SCALE,
+  TEAMS_ACCOUNTING_MAINTAINER,
+  TEAMS_ACCOUNTING_SEED_ADJUSTMENT_COUNT,
+  TEAMS_ACCOUNTING_SEED_BLOCK,
+  TEAMS_ACCOUNTING_SEED_TRANSACTION,
+  TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK,
+} from "../../../../../lib/clients/teams/accounting-history";
+
+import {
   BONUS_DISTRIBUTOR,
   FUNDING_DISTRIBUTOR,
   REVENUE_RECIPIENT,
@@ -60,12 +71,21 @@ interface StoredTeamReference {
   readonly index: string;
 }
 
+interface StoredTeamPeriodFinancials {
+  readonly team: string;
+  readonly period: string;
+  readonly revenue: string;
+  readonly cost: string;
+}
+
 export interface StoredTeamsState {
   readonly teams: readonly StoredTeamReference[];
+  readonly financials?: readonly StoredTeamPeriodFinancials[];
 }
 
 export interface TeamsState {
   readonly teams: ReadonlyMap<Address, bigint>;
+  readonly financials: ReadonlyMap<string, TeamPeriodFinancials>;
 }
 
 export interface TeamsScanFailure {
@@ -83,14 +103,21 @@ export interface TeamsScanResult {
   readonly failure: TeamsScanFailure | null;
 }
 
+const TEAM_REGISTRY_ADDRESS = normalizeAddress(TEAM_REGISTRY);
+const TEAM_ACCOUNTANT_ADDRESS = normalizeAddress(TEAM_ACCOUNTANT);
+const REVENUE_RECIPIENT_ADDRESS = normalizeAddress(REVENUE_RECIPIENT);
+const FUNDING_DISTRIBUTOR_ADDRESS = normalizeAddress(FUNDING_DISTRIBUTOR);
+const BONUS_DISTRIBUTOR_ADDRESS = normalizeAddress(BONUS_DISTRIBUTOR);
+const YBC_BONUS_RECIPIENT_ADDRESS = normalizeAddress(YBC_BONUS_RECIPIENT);
+
 const FIXED_ADDRESSES = [
-  TEAM_REGISTRY,
-  TEAM_ACCOUNTANT,
-  REVENUE_RECIPIENT,
-  FUNDING_DISTRIBUTOR,
-  BONUS_DISTRIBUTOR,
-  YBC_BONUS_RECIPIENT,
-].map(normalizeAddress);
+  TEAM_REGISTRY_ADDRESS,
+  TEAM_ACCOUNTANT_ADDRESS,
+  REVENUE_RECIPIENT_ADDRESS,
+  FUNDING_DISTRIBUTOR_ADDRESS,
+  BONUS_DISTRIBUTOR_ADDRESS,
+  YBC_BONUS_RECIPIENT_ADDRESS,
+];
 
 const FIXED_TOPICS = [
   ...Object.values(TEAM_REGISTRY_EVENT_TOPICS),
@@ -100,6 +127,21 @@ const FIXED_TOPICS = [
   ...Object.values(BONUS_DISTRIBUTOR_EVENT_TOPICS),
   ...Object.values(YBC_BONUS_RECIPIENT_EVENT_TOPICS),
 ];
+
+const FIXED_TOPICS_BY_ADDRESS = new Map<Address, ReadonlySet<string>>([
+  [TEAM_REGISTRY_ADDRESS, new Set(Object.values(TEAM_REGISTRY_EVENT_TOPICS))],
+  [TEAM_ACCOUNTANT_ADDRESS, new Set(Object.values(TEAM_ACCOUNTANT_EVENT_TOPICS))],
+  [REVENUE_RECIPIENT_ADDRESS, new Set(Object.values(REVENUE_RECIPIENT_EVENT_TOPICS))],
+  [FUNDING_DISTRIBUTOR_ADDRESS, new Set(Object.values(FUNDING_DISTRIBUTOR_EVENT_TOPICS))],
+  [BONUS_DISTRIBUTOR_ADDRESS, new Set(Object.values(BONUS_DISTRIBUTOR_EVENT_TOPICS))],
+  [YBC_BONUS_RECIPIENT_ADDRESS, new Set(Object.values(YBC_BONUS_RECIPIENT_EVENT_TOPICS))],
+]);
+
+function fixedTopicAllowed(log: CanonicalProductLog): boolean {
+  const allowed = FIXED_TOPICS_BY_ADDRESS.get(log.address);
+  const topic = log.topics[0];
+  return allowed !== undefined && topic !== undefined && allowed.has(topic);
+}
 
 function decoded(
   log: CanonicalProductLog,
@@ -122,12 +164,12 @@ function decoded(
 
 function fixedAbi(address: Address): Abi {
   switch (address) {
-    case normalizeAddress(TEAM_REGISTRY): return TEAM_REGISTRY_EVENTS_ABI;
-    case normalizeAddress(TEAM_ACCOUNTANT): return TEAM_ACCOUNTANT_EVENTS_ABI;
-    case normalizeAddress(REVENUE_RECIPIENT): return REVENUE_RECIPIENT_EVENTS_ABI;
-    case normalizeAddress(FUNDING_DISTRIBUTOR): return FUNDING_DISTRIBUTOR_EVENTS_ABI;
-    case normalizeAddress(BONUS_DISTRIBUTOR): return BONUS_DISTRIBUTOR_EVENTS_ABI;
-    case normalizeAddress(YBC_BONUS_RECIPIENT): return YBC_BONUS_RECIPIENT_EVENTS_ABI;
+    case TEAM_REGISTRY_ADDRESS: return TEAM_REGISTRY_EVENTS_ABI;
+    case TEAM_ACCOUNTANT_ADDRESS: return TEAM_ACCOUNTANT_EVENTS_ABI;
+    case REVENUE_RECIPIENT_ADDRESS: return REVENUE_RECIPIENT_EVENTS_ABI;
+    case FUNDING_DISTRIBUTOR_ADDRESS: return FUNDING_DISTRIBUTOR_EVENTS_ABI;
+    case BONUS_DISTRIBUTOR_ADDRESS: return BONUS_DISTRIBUTOR_EVENTS_ABI;
+    case YBC_BONUS_RECIPIENT_ADDRESS: return YBC_BONUS_RECIPIENT_EVENTS_ABI;
     default: throw new Error("teams_fixed_emitter_invalid");
   }
 }
@@ -272,8 +314,19 @@ function action<K extends ProductAlertAction["kind"]>(
   } as Extract<ProductAlertAction, { kind: K }>;
 }
 
+function teamPeriodKey(team: Address, period: bigint): string {
+  return `${team}:${period}`;
+}
+
+function frozenFinancials(revenue: bigint, cost: bigint): TeamPeriodFinancials {
+  return Object.freeze({ revenue, cost });
+}
+
 export function createEmptyTeamsState(): TeamsState {
-  return Object.freeze({ teams: new Map<Address, bigint>() });
+  return Object.freeze({
+    teams: new Map<Address, bigint>(),
+    financials: new Map<string, TeamPeriodFinancials>(),
+  });
 }
 
 export function serializeTeamsState(state: TeamsState): StoredTeamsState {
@@ -281,6 +334,18 @@ export function serializeTeamsState(state: TeamsState): StoredTeamsState {
     teams: Object.freeze([...state.teams.entries()]
       .sort((left, right) => left[1] < right[1] ? -1 : left[1] > right[1] ? 1 : 0)
       .map(([address, index]) => Object.freeze({ address, index: index.toString() }))),
+    financials: Object.freeze([...state.financials.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => {
+        const separator = key.lastIndexOf(":");
+        if (separator < 0) throw new Error("teams_state_financial_key_invalid");
+        return Object.freeze({
+          team: key.slice(0, separator),
+          period: key.slice(separator + 1),
+          revenue: value.revenue.toString(),
+          cost: value.cost.toString(),
+        });
+      })),
   });
 }
 
@@ -299,7 +364,25 @@ export function loadTeamsState(value: StoredTeamsState): TeamsState {
     teams.set(address, BigInt(item.index));
     indexes.add(item.index);
   }
-  return Object.freeze({ teams });
+  const storedFinancials = value.financials ?? [];
+  if (!Array.isArray(storedFinancials)) throw new Error("teams_state_invalid");
+  const financials = new Map<string, TeamPeriodFinancials>();
+  for (const item of storedFinancials) {
+    if (
+      typeof item !== "object" ||
+      item === null ||
+      !/^\d+$/.test(item.period) ||
+      !/^\d+$/.test(item.revenue) ||
+      !/^\d+$/.test(item.cost)
+    ) {
+      throw new Error("teams_state_invalid");
+    }
+    const team = normalizeAddress(item.team);
+    const key = teamPeriodKey(team, BigInt(item.period));
+    if (financials.has(key)) throw new Error("teams_state_financial_duplicate");
+    financials.set(key, frozenFinancials(BigInt(item.revenue), BigInt(item.cost)));
+  }
+  return Object.freeze({ teams, financials });
 }
 
 function companionKey(
@@ -410,6 +493,219 @@ function buildTeamBonusBundles(
   return bundles;
 }
 
+interface AccountingCorrectionPair {
+  readonly legacy: CanonicalProductLog;
+  readonly replacement: CanonicalProductLog;
+  readonly team: Address;
+  readonly period: bigint;
+}
+
+interface AccountingReplay {
+  readonly terminal: ReadonlyMap<string, TeamPeriodFinancials>;
+  readonly amountByLog: ReadonlyMap<CanonicalProductLog, bigint>;
+  readonly afterByLog: ReadonlyMap<CanonicalProductLog, TeamPeriodFinancials>;
+  readonly suppressed: ReadonlySet<CanonicalProductLog>;
+}
+
+function adjustmentIdentity(
+  event: ReturnType<typeof decoded>,
+): { readonly team: Address; readonly period: bigint; readonly type: "revenue" | "cost" } {
+  if (event.eventName !== "AdjustRevenue" && event.eventName !== "AdjustCost") {
+    throw new Error("teams_accounting_event_invalid");
+  }
+  return {
+    team: asAddress(event.args.team, "teams_adjust_team"),
+    period: asBigint(event.args.period, "teams_adjust_period"),
+    type: event.eventName === "AdjustRevenue" ? "revenue" : "cost",
+  };
+}
+
+function validateAccountingSeed(
+  logs: readonly CanonicalProductLog[],
+  decodedByLog: ReadonlyMap<CanonicalProductLog, ReturnType<typeof decoded>>,
+): void {
+  if (logs.length !== TEAMS_ACCOUNTING_SEED_ADJUSTMENT_COUNT) {
+    throw new Error("teams_accounting_seed_incomplete");
+  }
+  const identities = new Set<string>();
+  for (const log of logs) {
+    const event = decodedByLog.get(log)!;
+    const identity = adjustmentIdentity(event);
+    const amount = asBigint(event.args.amount, "teams_seed_amount");
+    if (
+      log.blockNumber !== TEAMS_ACCOUNTING_SEED_BLOCK ||
+      log.transactionHash !== TEAMS_ACCOUNTING_SEED_TRANSACTION ||
+      asAddress(event.args.operator, "teams_seed_operator") !== TEAMS_ACCOUNTING_MAINTAINER ||
+      !asBoolean(event.args.increment, "teams_seed_increment") ||
+      amount === 0n
+    ) {
+      throw new Error("teams_accounting_seed_invalid");
+    }
+    const key = `${identity.type}:${teamPeriodKey(identity.team, identity.period)}`;
+    if (identities.has(key)) throw new Error("teams_accounting_seed_duplicate");
+    identities.add(key);
+  }
+}
+
+function validateAccountingCorrection(
+  logs: readonly CanonicalProductLog[],
+  decodedByLog: ReadonlyMap<CanonicalProductLog, ReturnType<typeof decoded>>,
+): readonly AccountingCorrectionPair[] {
+  if (logs.length !== TEAMS_ACCOUNTING_CORRECTION_ADJUSTMENT_COUNT) {
+    throw new Error("teams_accounting_correction_incomplete");
+  }
+  const pairs: AccountingCorrectionPair[] = [];
+  const identities = new Set<string>();
+  for (let index = 0; index < logs.length; index += 2) {
+    const legacy = logs[index]!;
+    const replacement = logs[index + 1]!;
+    const legacyEvent = decodedByLog.get(legacy)!;
+    const replacementEvent = decodedByLog.get(replacement)!;
+    const legacyIdentity = adjustmentIdentity(legacyEvent);
+    const replacementIdentity = adjustmentIdentity(replacementEvent);
+    const legacyAmount = asBigint(legacyEvent.args.amount, "teams_correction_legacy_amount");
+    const replacementAmount = asBigint(replacementEvent.args.amount, "teams_correction_replacement_amount");
+    if (
+      legacy.blockNumber !== TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK ||
+      replacement.blockNumber !== TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK ||
+      legacy.transactionHash !== TEAMS_ACCOUNTING_CORRECTION_TRANSACTION ||
+      replacement.transactionHash !== TEAMS_ACCOUNTING_CORRECTION_TRANSACTION ||
+      legacyEvent.eventName !== replacementEvent.eventName ||
+      legacyIdentity.team !== replacementIdentity.team ||
+      legacyIdentity.period !== replacementIdentity.period ||
+      asAddress(legacyEvent.args.operator, "teams_correction_operator") !== TEAMS_ACCOUNTING_MAINTAINER ||
+      asAddress(replacementEvent.args.operator, "teams_correction_operator") !== TEAMS_ACCOUNTING_MAINTAINER ||
+      asBoolean(legacyEvent.args.increment, "teams_correction_legacy_increment") ||
+      !asBoolean(replacementEvent.args.increment, "teams_correction_replacement_increment") ||
+      legacyAmount === 0n ||
+      replacementAmount !== legacyAmount * TEAMS_ACCOUNTING_LEGACY_SCALE
+    ) {
+      throw new Error("teams_accounting_correction_invalid");
+    }
+    const key = `${legacyIdentity.type}:${teamPeriodKey(legacyIdentity.team, legacyIdentity.period)}`;
+    if (identities.has(key)) throw new Error("teams_accounting_correction_duplicate");
+    identities.add(key);
+    pairs.push({
+      legacy,
+      replacement,
+      team: legacyIdentity.team,
+      period: legacyIdentity.period,
+    });
+  }
+  return Object.freeze(pairs);
+}
+
+async function buildAccountingReplay(params: {
+  readonly rpc: RpcClient;
+  readonly logs: readonly CanonicalProductLog[];
+  readonly initial: ReadonlyMap<string, TeamPeriodFinancials>;
+  readonly decodedByLog: ReadonlyMap<CanonicalProductLog, ReturnType<typeof decoded>>;
+  readonly getBlock: (number: number) => Promise<RpcBlock>;
+  readonly recordEvidence: (log: CanonicalProductLog, eventName: string | null) => void;
+}): Promise<AccountingReplay> {
+  const ledger = new Map(params.initial);
+  const amountByLog = new Map<CanonicalProductLog, bigint>();
+  const afterByLog = new Map<CanonicalProductLog, TeamPeriodFinancials>();
+  const suppressed = new Set<CanonicalProductLog>();
+  const accountingLogs = params.logs.filter((log) => {
+    if (log.address !== TEAM_ACCOUNTANT_ADDRESS) return false;
+    const eventName = params.decodedByLog.get(log)!.eventName;
+    return eventName === "AdjustRevenue" || eventName === "AdjustCost";
+  });
+  const accountingByTransaction = new Map<string, CanonicalProductLog[]>();
+  for (const log of accountingLogs) {
+    const transactionLogs = accountingByTransaction.get(log.transactionHash) ?? [];
+    transactionLogs.push(log);
+    accountingByTransaction.set(log.transactionHash, transactionLogs);
+  }
+  const seedLogs = accountingByTransaction.get(TEAMS_ACCOUNTING_SEED_TRANSACTION);
+  if (seedLogs !== undefined) validateAccountingSeed(seedLogs, params.decodedByLog);
+  const correctionLogs = accountingByTransaction.get(TEAMS_ACCOUNTING_CORRECTION_TRANSACTION);
+  const correctionPairs = correctionLogs === undefined
+    ? null
+    : validateAccountingCorrection(correctionLogs, params.decodedByLog);
+  let correctionValidated = false;
+
+  for (const log of accountingLogs) {
+    const event = params.decodedByLog.get(log)!;
+    params.recordEvidence(log, event.eventName);
+    if (log.transactionHash === TEAMS_ACCOUNTING_CORRECTION_TRANSACTION) {
+      if (!correctionValidated) {
+        correctionValidated = true;
+        const block = await params.getBlock(TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK);
+        for (const pair of correctionPairs!) {
+          const key = teamPeriodKey(pair.team, pair.period);
+          const expected = ledger.get(key);
+          if (expected === undefined) throw new Error("teams_accounting_correction_history_missing");
+          const actual = await financials(params.rpc, block, pair.team, pair.period);
+          if (actual.revenue !== expected.revenue || actual.cost !== expected.cost) {
+            throw new Error("teams_accounting_correction_state_mismatch");
+          }
+          suppressed.add(pair.legacy);
+          suppressed.add(pair.replacement);
+        }
+      }
+      continue;
+    }
+
+    const identity = adjustmentIdentity(event);
+    const key = teamPeriodKey(identity.team, identity.period);
+    const rawAmount = asBigint(event.args.amount, "teams_adjust_amount");
+    const amount = log.transactionHash === TEAMS_ACCOUNTING_SEED_TRANSACTION
+      ? rawAmount * TEAMS_ACCOUNTING_LEGACY_SCALE
+      : rawAmount;
+    if (amount === 0n) {
+      amountByLog.set(log, 0n);
+      const unchanged = ledger.get(key);
+      if (unchanged !== undefined) afterByLog.set(log, unchanged);
+      continue;
+    }
+    let before = ledger.get(key);
+    if (before === undefined) {
+      if (log.transactionHash === TEAMS_ACCOUNTING_SEED_TRANSACTION) {
+        before = frozenFinancials(0n, 0n);
+      } else {
+        if (log.blockNumber === 0) throw new Error("teams_accounting_prior_block_missing");
+        const priorBlock = await params.getBlock(log.blockNumber - 1);
+        before = await financials(params.rpc, priorBlock, identity.team, identity.period);
+        if (
+          log.blockNumber <= TEAMS_FEED_CORRECTED_ACCOUNTING_BLOCK &&
+          (before.revenue !== 0n || before.cost !== 0n)
+        ) {
+          throw new Error("teams_accounting_history_incomplete");
+        }
+      }
+    }
+    const increment = asBoolean(event.args.increment, "teams_adjust_increment");
+    const previous = identity.type === "revenue" ? before.revenue : before.cost;
+    if (!increment && amount > previous) throw new Error("teams_accounting_underflow");
+    const nextValue = increment ? previous + amount : previous - amount;
+    const after = identity.type === "revenue"
+      ? frozenFinancials(nextValue, before.cost)
+      : frozenFinancials(before.revenue, nextValue);
+    amountByLog.set(log, amount);
+    afterByLog.set(log, after);
+    ledger.set(key, after);
+  }
+
+  return Object.freeze({ terminal: ledger, amountByLog, afterByLog, suppressed });
+}
+
+function replayAmount(replay: AccountingReplay, log: CanonicalProductLog): bigint {
+  const amount = replay.amountByLog.get(log);
+  if (amount === undefined) throw new Error("teams_accounting_replay_amount_missing");
+  return amount;
+}
+
+function replayAfter(
+  replay: AccountingReplay,
+  log: CanonicalProductLog,
+): TeamPeriodFinancials {
+  const value = replay.afterByLog.get(log);
+  if (value === undefined) throw new Error("teams_accounting_replay_state_missing");
+  return value;
+}
+
 export async function scanTeamsBlocks(params: {
   readonly rpc: RpcClient;
   readonly fromBlock: number;
@@ -438,7 +734,12 @@ export async function scanTeamsBlocks(params: {
       fromBlock: params.fromBlock,
       toBlock: params.toBlock,
     });
-    const fixed = sortProductLogs(fixedRaw.map(canonicalProductLog).filter((log): log is CanonicalProductLog => log !== null));
+    const fixed = sortProductLogs(
+      fixedRaw
+        .map(canonicalProductLog)
+        .filter((log): log is CanonicalProductLog => log !== null)
+        .filter(fixedTopicAllowed),
+    );
     const blockCache = new Map<number, Promise<RpcBlock>>();
     const getBlock = (number: number) => {
       const cached = blockCache.get(number);
@@ -451,7 +752,7 @@ export async function scanTeamsBlocks(params: {
     for (const log of fixed) {
       recordEvidence(log, null);
       assertCanonicalProductLog(log, await getBlock(log.blockNumber));
-      if (log.address !== normalizeAddress(TEAM_REGISTRY)) continue;
+      if (log.address !== TEAM_REGISTRY_ADDRESS) continue;
       const event = decoded(log, TEAM_REGISTRY_EVENTS_ABI);
       recordEvidence(log, event.eventName);
       if (event.eventName !== "AddTeam") continue;
@@ -499,6 +800,14 @@ export async function scanTeamsBlocks(params: {
       group.push(log);
       byTransaction.set(log.transactionHash, group);
     }
+    const accountingReplay = await buildAccountingReplay({
+      rpc: params.rpc,
+      logs,
+      initial: params.state.financials,
+      decodedByLog,
+      getBlock,
+      recordEvidence,
+    });
     const bonusBundles = buildTeamBonusBundles(byTransaction, decodedByLog, recordEvidence);
     const consumedAccountingCompanions = new Set<CanonicalProductLog>();
     const consumedRevenueCompanions = new Set<CanonicalProductLog>();
@@ -510,7 +819,7 @@ export async function scanTeamsBlocks(params: {
       recordEvidence(log, event.eventName);
       const block = await getBlock(log.blockNumber);
 
-      if (log.address === normalizeAddress(TEAM_REGISTRY)) {
+      if (log.address === TEAM_REGISTRY_ADDRESS) {
         if (event.eventName === "AddTeam") {
           const team = asAddress(event.args.team, "teams_add_team");
           const index = asBigint(event.args.idx, "teams_add_index");
@@ -591,14 +900,14 @@ export async function scanTeamsBlocks(params: {
           const amountValue = asBigint(event.args.amount, "teams_revenue_amount");
           const token = asAddress(event.args.token, "teams_revenue_token");
           const transactionLogs = byTransaction.get(log.transactionHash) ?? [];
-          consumeCompanion(
+          const accountingCompanion = consumeCompanion(
             transactionLogs,
             consumedAccountingCompanions,
             (candidate) => {
-              if (candidate.address !== normalizeAddress(TEAM_ACCOUNTANT)) return false;
+              if (candidate.address !== TEAM_ACCOUNTANT_ADDRESS) return false;
               const value = decodedByLog.get(candidate)!;
               return value.eventName === "AdjustRevenue" &&
-                asAddress(value.args.operator, "teams_revenue_operator") === normalizeAddress(REVENUE_RECIPIENT) &&
+                asAddress(value.args.operator, "teams_revenue_operator") === REVENUE_RECIPIENT_ADDRESS &&
                 companionKey(value.args, "revenue") ===
                   ["revenue", team, period, revenue, "1"].join(":");
             },
@@ -608,7 +917,7 @@ export async function scanTeamsBlocks(params: {
             transactionLogs,
             consumedRevenueCompanions,
             (candidate) => {
-              if (candidate.address !== normalizeAddress(REVENUE_RECIPIENT)) return false;
+              if (candidate.address !== REVENUE_RECIPIENT_ADDRESS) return false;
               const value = decodedByLog.get(candidate)!;
               return value.eventName === "DepositRevenue" &&
                 asAddress(value.args.team, "teams_recipient_team") === team &&
@@ -624,10 +933,10 @@ export async function scanTeamsBlocks(params: {
             team,
             teamName: teamLabel,
             deposited: await tokenAmount(params.rpc, block, token, amountValue),
-            revenueUsd: revenue,
+            revenueUsd: replayAmount(accountingReplay, accountingCompanion),
             depositor: asAddress(event.args.depositor, "teams_revenue_depositor"),
             period,
-            financialsAfter: await financials(params.rpc, block, team, period),
+            financialsAfter: replayAfter(accountingReplay, accountingCompanion),
           }));
         } else if (event.eventName === "ClaimFunding" || event.eventName === "ReturnFunding") {
           const index = asBigint(event.args.idx, "teams_funding_index");
@@ -644,7 +953,7 @@ export async function scanTeamsBlocks(params: {
             transactionLogs,
             consumedFundingCompanions,
             (candidate) => {
-              if (candidate.address !== normalizeAddress(FUNDING_DISTRIBUTOR)) return false;
+              if (candidate.address !== FUNDING_DISTRIBUTOR_ADDRESS) return false;
               const value = decodedByLog.get(candidate)!;
               if (
                 value.eventName !== distributorName ||
@@ -668,10 +977,10 @@ export async function scanTeamsBlocks(params: {
             transactionLogs,
             consumedAccountingCompanions,
             (candidate) => {
-              if (candidate.address !== normalizeAddress(TEAM_ACCOUNTANT)) return false;
+              if (candidate.address !== TEAM_ACCOUNTANT_ADDRESS) return false;
               const value = decodedByLog.get(candidate)!;
               return value.eventName === "AdjustCost" &&
-                asAddress(value.args.operator, "teams_funding_operator") === normalizeAddress(FUNDING_DISTRIBUTOR) &&
+                asAddress(value.args.operator, "teams_funding_operator") === FUNDING_DISTRIBUTOR_ADDRESS &&
                 companionKey(value.args, adjustType) ===
                   [adjustType, team, period, adjustment, increment ? "1" : "0"].join(":");
             },
@@ -705,7 +1014,7 @@ export async function scanTeamsBlocks(params: {
         continue;
       }
 
-      if (log.address === normalizeAddress(FUNDING_DISTRIBUTOR) && event.eventName === "ApproveFunding") {
+      if (log.address === FUNDING_DISTRIBUTOR_ADDRESS && event.eventName === "ApproveFunding") {
         const team = asAddress(event.args.team, "teams_approval_team");
         const period = asBigint(event.args.period, "teams_approval_period");
         const duration = asBigint(event.args.duration, "teams_approval_duration");
@@ -733,7 +1042,7 @@ export async function scanTeamsBlocks(params: {
         continue;
       }
 
-      if (log.address === normalizeAddress(BONUS_DISTRIBUTOR) && event.eventName === "ClaimBonus") {
+      if (log.address === BONUS_DISTRIBUTOR_ADDRESS && event.eventName === "ClaimBonus") {
         const bundle = bonusBundles.get(log);
         if (bundle === undefined) continue;
         const claims = bundle.claims;
@@ -759,7 +1068,8 @@ export async function scanTeamsBlocks(params: {
         continue;
       }
 
-      if (log.address === normalizeAddress(TEAM_ACCOUNTANT) && (event.eventName === "AdjustRevenue" || event.eventName === "AdjustCost")) {
+      if (log.address === TEAM_ACCOUNTANT_ADDRESS && (event.eventName === "AdjustRevenue" || event.eventName === "AdjustCost")) {
+        if (accountingReplay.suppressed.has(log)) continue;
         const transactionLogs = byTransaction.get(log.transactionHash)!;
         const adjustmentTeam = asAddress(event.args.team, "teams_adjust_team");
         const adjustmentPeriod = asBigint(event.args.period, "teams_adjust_period");
@@ -774,7 +1084,7 @@ export async function scanTeamsBlocks(params: {
               asBigint(value.args.period, "teams_deposit_period") === adjustmentPeriod &&
               asBigint(value.args.revenue, "teams_deposit_revenue") === adjustmentAmount &&
               adjustmentIncrement &&
-              adjustmentOperator === normalizeAddress(REVENUE_RECIPIENT);
+              adjustmentOperator === REVENUE_RECIPIENT_ADDRESS;
           }
           if (event.eventName === "AdjustCost" && (value.eventName === "ClaimFunding" || value.eventName === "ReturnFunding")) {
             const reported = value.eventName === "ClaimFunding"
@@ -784,7 +1094,7 @@ export async function scanTeamsBlocks(params: {
               asBigint(value.args.period, "teams_funding_period") === adjustmentPeriod &&
               reported === adjustmentAmount &&
               adjustmentIncrement === (value.eventName === "ClaimFunding") &&
-              adjustmentOperator === normalizeAddress(FUNDING_DISTRIBUTOR);
+              adjustmentOperator === FUNDING_DISTRIBUTOR_ADDRESS;
           }
           return false;
         });
@@ -798,14 +1108,14 @@ export async function scanTeamsBlocks(params: {
           teamName: await getName(block, team),
           operator: asAddress(event.args.operator, "teams_adjust_operator"),
           period,
-          amountUsd: adjustmentAmount,
+          amountUsd: replayAmount(accountingReplay, log),
           increment: asBoolean(event.args.increment, "teams_adjust_increment"),
-          financialsAfter: await financials(params.rpc, block, team, period),
+          financialsAfter: replayAfter(accountingReplay, log),
         }));
         continue;
       }
 
-      if (log.address === normalizeAddress(REVENUE_RECIPIENT)) {
+      if (log.address === REVENUE_RECIPIENT_ADDRESS) {
         if (event.eventName === "ToRewards" || event.eventName === "ToTreasury" || event.eventName === "ToRecovery") {
           const token = await readAddress(params.rpc, block, normalizeAddress(REVENUE_RECIPIENT), "token");
           const amountValue = asBigint(event.args.amount, "teams_route_amount");
@@ -830,7 +1140,8 @@ export async function scanTeamsBlocks(params: {
       for (const candidate of transactionLogs) {
         const candidateEvent = decodedByLog.get(candidate)!;
         if (
-          candidate.address === normalizeAddress(TEAM_ACCOUNTANT) &&
+          candidate.address === TEAM_ACCOUNTANT_ADDRESS &&
+          !accountingReplay.suppressed.has(candidate) &&
           !consumedAccountingCompanions.has(candidate) &&
           (candidateEvent.eventName === "AdjustRevenue" || candidateEvent.eventName === "AdjustCost")
         ) {
@@ -842,14 +1153,14 @@ export async function scanTeamsBlocks(params: {
             if (teamLog.address !== team) return false;
             if (
               candidateEvent.eventName === "AdjustRevenue" &&
-              operator === normalizeAddress(REVENUE_RECIPIENT) &&
+              operator === REVENUE_RECIPIENT_ADDRESS &&
               teamEvent.eventName === "DepositRevenue"
             ) {
               return asBigint(teamEvent.args.period, "teams_unconsumed_revenue_period") === period;
             }
             if (
               candidateEvent.eventName === "AdjustCost" &&
-              operator === normalizeAddress(FUNDING_DISTRIBUTOR) &&
+              operator === FUNDING_DISTRIBUTOR_ADDRESS &&
               (teamEvent.eventName === "ClaimFunding" || teamEvent.eventName === "ReturnFunding")
             ) {
               return asBigint(teamEvent.args.period, "teams_unconsumed_funding_period") === period;
@@ -862,7 +1173,7 @@ export async function scanTeamsBlocks(params: {
           }
         }
         if (
-          candidate.address === normalizeAddress(REVENUE_RECIPIENT) &&
+          candidate.address === REVENUE_RECIPIENT_ADDRESS &&
           candidateEvent.eventName === "DepositRevenue" &&
           !consumedRevenueCompanions.has(candidate)
         ) {
@@ -880,7 +1191,7 @@ export async function scanTeamsBlocks(params: {
           }
         }
         if (
-          candidate.address === normalizeAddress(FUNDING_DISTRIBUTOR) &&
+          candidate.address === FUNDING_DISTRIBUTOR_ADDRESS &&
           (candidateEvent.eventName === "ClaimFunding" || candidateEvent.eventName === "ReturnFunding") &&
           !consumedFundingCompanions.has(candidate)
         ) {
@@ -899,7 +1210,11 @@ export async function scanTeamsBlocks(params: {
     }
 
     actions.sort((left, right) => left.blockNumber - right.blockNumber || left.logIndex - right.logIndex);
-    return { state: Object.freeze({ teams }), actions: Object.freeze(actions), failure: null };
+    return {
+      state: Object.freeze({ teams, financials: accountingReplay.terminal }),
+      actions: Object.freeze(actions),
+      failure: null,
+    };
   } catch (error) {
     return {
       state: params.state,

@@ -130,7 +130,7 @@ function transaction(hash: string, from = ACTOR) {
 
 describe("Teams alert scanner acceptance catalogue", () => {
   it("derives T1 through T16 from canonical contract evidence", async () => {
-    const first = 25_600_000;
+    const first = 25_700_000;
     const at = (offset: number) => first + offset;
     const fixed: RpcLog[] = [
       log({ abi: TEAM_REGISTRY_EVENTS_ABI, eventName: "AddTeam", indexedArgs: { idx: 1n, team: ADDED_TEAM }, address: TEAM_REGISTRY, blockNumber: at(0), transactionHash: tx(1), logIndex: 0 }),

@@ -26,6 +26,7 @@ import {
   YBC_ELECTION,
   YBC_EPOCH_SECONDS,
   YBC_GENESIS,
+  YBC_REWARD_DISTRIBUTOR,
   YBC_WEIGHT_AGGREGATOR,
 } from "@/workers/alerts-bot/src/contracts";
 import type {
@@ -59,7 +60,9 @@ function eventLog(params: {
   readonly data?: `0x${string}`;
   readonly logIndex: number;
   readonly transactionHash?: string;
+  readonly blockNumber?: number;
 }): RpcLog {
+  const blockNumber = params.blockNumber ?? BLOCK_NUMBER;
   return {
     address: params.address,
     topics: encodeEventTopics({
@@ -68,8 +71,8 @@ function eventLog(params: {
       args: params.indexedArgs ?? {},
     } as never) as string[],
     data: params.data ?? "0x",
-    blockHash: block(BLOCK_NUMBER).hash,
-    blockNumber: BLOCK_NUMBER,
+    blockHash: block(blockNumber).hash,
+    blockNumber,
     transactionHash: params.transactionHash ?? TX,
     logIndex: params.logIndex,
     removed: false,
@@ -197,11 +200,46 @@ function ybcRpc(params: {
   } as unknown as RpcClient;
 }
 
+function epochForTimestamp(timestamp: number) {
+  return Math.floor((timestamp - YBC_GENESIS) / YBC_EPOCH_SECONDS);
+}
+
 function epoch() {
-  return Math.floor((TIMESTAMP - YBC_GENESIS) / YBC_EPOCH_SECONDS);
+  return epochForTimestamp(TIMESTAMP);
 }
 
 describe("YBC mandatory regression matrix", () => {
+  it("ignores the production RewardDistributor topic collision at block 25,228,860", async () => {
+    const blockNumber = 25_228_860;
+    const transactionHash = "0x1fec1f37922a2e672d1711162d7b8e386711dc2d7fba6ffaf5d59c847cc2b63b";
+    const collision = eventLog({
+      address: YBC_REWARD_DISTRIBUTOR,
+      abi: YBC_ELECTION_EVENTS_ABI,
+      eventName: "SetWeightAggregator",
+      indexedArgs: { aggregator: YBC_WEIGHT_AGGREGATOR },
+      blockNumber,
+      transactionHash,
+      logIndex: 1,
+    });
+    const initial = loadYbcState({
+      members: [],
+      votersByProposal: {},
+      lastCollectivePower: "0",
+      lastEpoch: epochForTimestamp(block(blockNumber).timestamp!),
+    });
+
+    const result = await scanYbcBlocks({
+      rpc: ybcRpc({ fixed: [collision], currentWeight: 0n }),
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state: initial,
+    });
+
+    expect(result.failure).toBeNull();
+    expect(result.actions).toEqual([]);
+    expect(result.state.lastCollectivePower).toBe(0n);
+  });
+
   it("fails closed for missing, malformed, duplicated, and contradictory B4 companions", async () => {
     const valid = membershipLogs({ addition: true, execution: true });
     const call = valid[0]!;

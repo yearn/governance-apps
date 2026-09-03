@@ -20,8 +20,8 @@ use Telegram HTML to produce the bold text and links.
 | stYFI | stYFI alerts chat | `alerts:styfi:v1` | stYFI and stYFIx |
 | veYFI | veYFI alerts chat | `alerts:veyfi:v1` | Legacy veYFI, migrated veYFI, sdYFI, supYFI, and coveYFI |
 | yETH | yETH alerts chat | `alerts:yeth:v1` | yETH claims and Recovery Vault activity |
-| Teams | Teams alerts chat | `alerts:teams:v1` | Team registry, budgets, accounting, and revenue routing |
-| YBC | YBC alerts chat | `alerts:ybc:v1` | On-chain proposals, membership, rewards, and collective voting power |
+| Teams | Teams alerts chat | `alerts:teams:v2` | Team registry, budgets, accounting, and revenue routing |
+| YBC | YBC alerts chat | `alerts:ybc:v2` | On-chain proposals, membership, rewards, and collective voting power |
 
 The Worker runs all five objects independently. Each object owns its cursor,
 event receipts, Telegram backoff, and destination. Teams and YBC message rules

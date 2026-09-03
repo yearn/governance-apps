@@ -110,8 +110,8 @@ describe("alerts rebuild registry and configuration", () => {
       styfi: "alerts:styfi:v1",
       veyfi: "alerts:veyfi:v1",
       yeth: "alerts:yeth:v1",
-      teams: "alerts:teams:v1",
-      ybc: "alerts:ybc:v1",
+      teams: "alerts:teams:v2",
+      ybc: "alerts:ybc:v2",
     });
     expect(ALERT_DOMAIN_GENESIS_BLOCKS).toEqual({
       styfi: 24_386_915,
@@ -730,8 +730,8 @@ describe("worker routing and Telegram backoff", () => {
       "alerts:styfi:v1",
       "alerts:veyfi:v1",
       "alerts:yeth:v1",
-      "alerts:teams:v1",
-      "alerts:ybc:v1",
+      "alerts:teams:v2",
+      "alerts:ybc:v2",
     ]);
   });
 

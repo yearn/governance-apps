@@ -9,8 +9,8 @@ per domain:
 | stYFI | `alerts:styfi:v1` | stYFI and stYFIx |
 | veYFI | `alerts:veyfi:v1` | legacy and migrated veYFI plus LLYFI |
 | yETH | `alerts:yeth:v1` | recovery claims, withdrawals, and protocol updates |
-| Teams | `alerts:teams:v1` | team lifecycle, accounting, funding, and bonuses |
-| YBC | `alerts:ybc:v1` | on-chain proposals, membership, rewards, and collective power |
+| Teams | `alerts:teams:v2` | team lifecycle, accounting, funding, and bonuses |
+| YBC | `alerts:ybc:v2` | on-chain proposals, membership, rewards, and collective power |
 
 DAO remains an explicit disabled registry entry. Teams and YBC are active
 domains whose committed production flags remain off pending private replay.

@@ -28,8 +28,8 @@ review and local verification gates pass.
 | stYFI | `alerts:styfi:v1` | final private stYFI chat | 24,386,915 |
 | veYFI | `alerts:veyfi:v1` | final private veYFI chat | 24,386,915 |
 | yETH | `alerts:yeth:v1` | final private yETH chat | 24,522,098 |
-| Teams | `alerts:teams:v1` | final private Teams chat | 25,244,861 |
-| YBC | `alerts:ybc:v1` | final private YBC chat | 25,228,044 |
+| Teams | `alerts:teams:v2` | final private Teams chat | 25,244,861 |
+| YBC | `alerts:ybc:v2` | final private YBC chat | 25,228,044 |
 
 Each object stores one versioned state record and immutable event receipts. The
 state contains the cursor and terminal hash, redacted run status, Telegram
@@ -392,13 +392,19 @@ this rollout.
 If reviewers reject a private chat's history:
 
 1. Disable that domain.
-2. Keep the rejected chat private.
-3. Create a new final chat.
-4. Bump only that domain's object name from `v1` to `v2` in a reviewed commit.
-5. Update its chat-ID secret and replay from the canonical start block.
+2. Keep the destination private and remove the rejected bot messages from its
+   Telegram history. Creating a new chat remains an option, but is not required.
+3. Bump only that domain's versioned object name in a reviewed commit and deploy
+   it while the domain remains disabled.
+4. When reusing the same chat, leave its chat-ID secret unchanged. Update the
+   secret only when moving to a different chat.
+5. Re-enable the domain and replay from its canonical start block. Verify the
+   status identifies the new object generation before accepting the replay.
 
 Do not add a reset endpoint or mutate production Durable Object storage to
 force a replay. A new versioned object is simpler and leaves an auditable path.
+The prior object and its receipts remain isolated and cannot suppress messages
+sent by the new replay.
 
 ## Pause and recovery
 

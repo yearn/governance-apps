@@ -142,6 +142,21 @@ const FIXED_TOPICS = [
   ...Object.values(BONUS_DISTRIBUTOR_EVENT_TOPICS),
 ];
 
+const FIXED_TOPICS_BY_ADDRESS = new Map<Address, ReadonlySet<string>>([
+  [YBC_ADDRESS, new Set(Object.values(YBC_EVENT_TOPICS))],
+  [ELECTION_ADDRESS, new Set(Object.values(YBC_ELECTION_EVENT_TOPICS))],
+  [REWARD_DISTRIBUTOR_ADDRESS, new Set(Object.values(YBC_REWARD_DISTRIBUTOR_EVENT_TOPICS))],
+  [BONUS_RECIPIENT_ADDRESS, new Set(Object.values(YBC_BONUS_RECIPIENT_EVENT_TOPICS))],
+  [BONUS_DISTRIBUTOR_ADDRESS, new Set(Object.values(BONUS_DISTRIBUTOR_EVENT_TOPICS))],
+  [WEIGHT_AGGREGATOR_ADDRESS, new Set([YBC_ELECTION_EVENT_TOPICS.SetWeightAggregator])],
+]);
+
+function fixedTopicAllowed(log: CanonicalProductLog): boolean {
+  const allowed = FIXED_TOPICS_BY_ADDRESS.get(log.address);
+  const topic = log.topics[0];
+  return allowed !== undefined && topic !== undefined && allowed.has(topic);
+}
+
 function fixedAbi(address: Address): Abi {
   switch (address) {
     case YBC_ADDRESS: return YBC_EVENTS_ABI;
@@ -859,7 +874,12 @@ export async function scanYbcBlocks(params: {
         toBlock: params.toBlock,
       }),
     ]);
-    const logs = sortProductLogs(fixedRaw.map(canonicalProductLog).filter((log): log is CanonicalProductLog => log !== null));
+    const logs = sortProductLogs(
+      fixedRaw
+        .map(canonicalProductLog)
+        .filter((log): log is CanonicalProductLog => log !== null)
+        .filter(fixedTopicAllowed),
+    );
     const transfers = sortProductLogs(transferRaw.map(canonicalProductLog).filter((log): log is CanonicalProductLog => log !== null));
     const blockCache = new Map<number, Promise<RpcBlock>>();
     const getBlock = (number: number) => {

@@ -12,8 +12,8 @@ Teams and YBC use separate Telegram chats and separate durable state:
 
 | Domain | Chat secret | Enable flag | Durable object | Replay start |
 |---|---|---|---|---:|
-| Teams | `TEAMS_TELEGRAM_CHAT_ID` | `ALERTS_TEAMS_ENABLED` | `alerts:teams:v1` | `25,244,861` |
-| YBC | `YBC_TELEGRAM_CHAT_ID` | `ALERTS_YBC_ENABLED` | `alerts:ybc:v1` | `25,228,044` |
+| Teams | `TEAMS_TELEGRAM_CHAT_ID` | `ALERTS_TEAMS_ENABLED` | `alerts:teams:v2` | `25,244,861` |
+| YBC | `YBC_TELEGRAM_CHAT_ID` | `ALERTS_YBC_ENABLED` | `alerts:ybc:v2` | `25,228,044` |
 
 Both flags default to `false`. Enabling one domain does not enable the other.
 The shared Worker requires six confirmations and applies cursor checks,
@@ -30,6 +30,14 @@ epoch-boundary voting-power alerts use a block-only footer.
 
 - Read state at the confirmed event block with an EIP-1898 canonical block-hash
   reference.
+- Replay Teams accountant changes in canonical log order and persist normalized
+  revenue/cost totals per team and period. The 23 adjustments in transaction
+  `0xf3c8832bd077a1b2a8a956f92ad776481ef31a02e5827521dce5918c6fd367d3`
+  at block `25,475,581` are the sole six-decimal historical seed and are scaled
+  by `1e12`. All other adjustments are already 18-decimal values. The paired
+  unit correction in transaction
+  `0x72d8633d89bb52c14566ed761b560105400fc16dfec2ae5c4ca6867fa6e14c53`
+  at block `25,633,144` must match the replayed totals and is not alerted.
 - Reject removed logs, malformed log metadata, logs whose block hash differs
   from the canonical block at that height, invalid addresses, bad event
   encodings, missing companions, unmatched contradictory companions, and
@@ -84,6 +92,10 @@ the registry named by the companion `Migrate` log. T7 is suppressed when both
 token amount and USD revenue are zero. T11 is suppressed when its aggregate
 gross and YBC share are both zero. T12 and T13 are suppressed when the
 adjustment is zero. Suppression does not relax companion validation.
+
+T7, T12, and T13 use the normalized replay snapshot immediately after their
+accountant log. They must not read the block's terminal totals for an earlier
+same-block adjustment.
 
 T7, T9, and T10 pair companions by their complete event payload and consume
 each companion once in canonical log order. Multiple actions for the same team
