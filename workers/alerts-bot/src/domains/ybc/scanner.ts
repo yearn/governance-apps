@@ -1,5 +1,6 @@
 import {
   decodeEventLog,
+  encodeFunctionData,
   toFunctionSelector,
   type Abi,
   type Address,
@@ -46,6 +47,8 @@ import type {
 import {
   isRpcRangeTooLargeError,
   type RpcBlock,
+  type RpcCallTraceFrame,
+  type RpcCallTraceLog,
   type RpcClient,
 } from "../../rpc";
 import {
@@ -447,21 +450,18 @@ function packedBaseVoteWeight(countedWeight: bigint, decay: VoteDecay): bigint {
 async function baseVoteWeight(params: {
   readonly rpc: RpcClient;
   readonly block: RpcBlock;
+  readonly log: CanonicalProductLog;
   readonly aggregator: Address;
   readonly voter: Address;
   readonly countedWeight: bigint;
+  readonly traceCache: Map<string, Promise<RpcCallTraceFrame>>;
 }): Promise<bigint> {
   const decay = voteDecay(params.countedWeight, params.block.timestamp!);
   if (decay === null) return params.countedWeight;
   if (params.aggregator === WEIGHT_AGGREGATOR_ADDRESS) {
     return packedBaseVoteWeight(params.countedWeight, decay);
   }
-  const currentWeight = await readAggregatorWeight(
-    params.rpc,
-    params.block,
-    params.aggregator,
-    params.voter,
-  );
+  const currentWeight = await tracedBaseVoteWeight(params);
   if (
     currentWeight <= 0n ||
     currentWeight * decay.remaining / decay.length !== params.countedWeight
@@ -469,6 +469,89 @@ async function baseVoteWeight(params: {
     throw new Error("ybc_vote_base_weight_mismatch");
   }
   return currentWeight;
+}
+
+function sameTraceLog(
+  traceLog: RpcCallTraceLog,
+  eventLog: CanonicalProductLog,
+): boolean {
+  return traceLog.index === eventLog.logIndex &&
+    traceLog.address === eventLog.address &&
+    traceLog.data === eventLog.data.toLowerCase() &&
+    traceLog.topics.length === eventLog.topics.length &&
+    traceLog.topics.every(
+      (topic, index) => topic === eventLog.topics[index]!.toLowerCase(),
+    );
+}
+
+function framesForTraceLog(
+  root: RpcCallTraceFrame,
+  eventLog: CanonicalProductLog,
+): Array<{ readonly frame: RpcCallTraceFrame; readonly log: RpcCallTraceLog }> {
+  const matches: Array<{
+    readonly frame: RpcCallTraceFrame;
+    readonly log: RpcCallTraceLog;
+  }> = [];
+  const visit = (frame: RpcCallTraceFrame) => {
+    for (const log of frame.logs) {
+      if (sameTraceLog(log, eventLog)) matches.push({ frame, log });
+    }
+    for (const call of frame.calls) visit(call);
+  };
+  visit(root);
+  return matches;
+}
+
+async function tracedBaseVoteWeight(params: {
+  readonly rpc: RpcClient;
+  readonly log: CanonicalProductLog;
+  readonly aggregator: Address;
+  readonly voter: Address;
+  readonly traceCache: Map<string, Promise<RpcCallTraceFrame>>;
+}): Promise<bigint> {
+  if (params.rpc.traceTransactionByHash === undefined) {
+    throw new Error("ybc_vote_trace_unavailable");
+  }
+  let trace = params.traceCache.get(params.log.transactionHash);
+  if (trace === undefined) {
+    trace = params.rpc.traceTransactionByHash(params.log.transactionHash);
+    params.traceCache.set(params.log.transactionHash, trace);
+  }
+  const tracedLog = exactlyOne(
+    framesForTraceLog(await trace, params.log),
+    "ybc_vote_trace_log_missing",
+    "ybc_vote_trace_log_ambiguous",
+  );
+  if (
+    tracedLog.frame.to !== ELECTION_ADDRESS ||
+    tracedLog.frame.error !== null
+  ) {
+    throw new Error("ybc_vote_trace_frame_mismatch");
+  }
+
+  const expectedInput = encodeFunctionData({
+    abi: YBC_READ_ABI,
+    functionName: "weight",
+    args: [params.voter],
+  }).toLowerCase();
+  const weightCall = exactlyOne(
+    tracedLog.frame.calls.slice(0, tracedLog.log.position).filter((call) =>
+      call.type === "STATICCALL" &&
+      call.from === ELECTION_ADDRESS &&
+      call.to === params.aggregator &&
+      call.input === expectedInput &&
+      call.error === null
+    ),
+    "ybc_vote_trace_weight_call_missing",
+    "ybc_vote_trace_weight_call_ambiguous",
+  );
+  if (
+    weightCall.output === null ||
+    !/^0x[0-9a-f]{64}$/.test(weightCall.output)
+  ) {
+    throw new Error("ybc_vote_trace_weight_output_invalid");
+  }
+  return BigInt(weightCall.output);
 }
 
 async function firstBlockAtOrAfter(
@@ -825,6 +908,7 @@ export async function scanYbcBlocks(params: {
     );
     const membershipEvents: Array<{ block: number; member: Address; addition: boolean }> = [];
     const membershipBlocks = new Set<number>();
+    const transactionTraceCache = new Map<string, Promise<RpcCallTraceFrame>>();
     const actions: ProductAlertAction[] = [];
 
     for (const log of logs) {
@@ -933,9 +1017,11 @@ export async function scanYbcBlocks(params: {
             baseWeight: await baseVoteWeight({
               rpc: params.rpc,
               block,
+              log,
               aggregator,
               voter,
               countedWeight,
+              traceCache: transactionTraceCache,
             }),
             yeaWeight: replay.yeaWeight,
             totalWeight: replay.totalWeight,

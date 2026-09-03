@@ -56,7 +56,8 @@ stronger operational requirements.
 
 Required secrets when any domain is enabled:
 
-- `RPC_URL`
+- `RPC_URL` (archive-capable; YBC additionally requires Geth-compatible
+  `debug_traceTransaction` call traces with logs for non-pinned final-day votes)
 - `TELEGRAM_BOT_TOKEN`
 - `STYFI_TELEGRAM_CHAT_ID`
 - `VEYFI_TELEGRAM_CHAT_ID`
@@ -74,6 +75,9 @@ The paid Workers plan removes the old free-tier pressure to micro-budget every
 subrequest. The remaining bounds protect providers and Telegram without adding
 a general request governor: 10,000-block log ranges, at most six ranges per
 domain run, RPC batches of 25, and five Telegram messages per domain run.
+Transaction call traces are capped at 8 MiB and are requested only when a
+final-day YBC vote used an aggregator whose vote-time weight cannot be
+reconstructed from the pinned wrapper's packing rule.
 Configuration parsing requires exactly six confirmations and rejects overrides
 above any of those range or message limits.
 

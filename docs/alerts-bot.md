@@ -41,7 +41,9 @@ tokens, endpoints, warning leases, migration phases, or rollback generations.
 
 Set these as Cloudflare secrets, never as committed values:
 
-- `RPC_URL`: archive-capable Ethereum RPC.
+- `RPC_URL`: archive-capable Ethereum RPC. It must also support Geth-compatible
+  `debug_traceTransaction` with `callTracer` and `withLog` before YBC is enabled;
+  final-day votes through a non-pinned aggregator require that evidence.
 - `TELEGRAM_BOT_TOKEN`.
 - `STYFI_TELEGRAM_CHAT_ID`.
 - `VEYFI_TELEGRAM_CHAT_ID`.
@@ -80,6 +82,8 @@ instead of the old free-tier request ledger:
 - block headers loaded only for event blocks and range terminals, not every
   block in a range;
 - exact-block RPC batches limited to 25 calls;
+- log-aware transaction traces limited to 8 MiB and requested only for
+  final-day YBC votes through a non-pinned weight aggregator;
 - five Telegram messages per domain run, sent in order about 1.1 seconds apart;
 - persisted Telegram `retry_after` backoff.
 
@@ -89,6 +93,13 @@ capacity that has no user benefit.
 The parser treats these as safety limits, not suggestions. Confirmations must
 equal six. Environment overrides above five messages, six ranges, or 10,000
 blocks per range are rejected before a domain can run.
+
+Before enabling YBC, exercise `debug_traceTransaction` against the configured
+provider during the private historical replay. The response must use the Geth
+`callTracer` shape and include logs with `index` and `position`. An unsupported
+method, ignored `withLog` option, malformed positional data, or trace above the
+8 MiB limit stops YBC at its saved cursor. Do not substitute a block-level
+`eth_call`: it cannot recover state at a transaction position within the block.
 
 ## yETH cadence
 

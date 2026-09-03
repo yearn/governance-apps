@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   encodeAbiParameters,
   encodeEventTopics,
+  encodeFunctionData,
   encodeFunctionResult,
   parseAbiParameters,
   pad,
@@ -301,7 +302,7 @@ describe("product alert scanner state", () => {
     ]);
   });
 
-  it("replays Election aggregator changes and only applies packing to the pinned wrapper", async () => {
+  it("uses the exact traced generic weight when it changes later in the vote block", async () => {
     const blockNumber = 25_500_110;
     const timestamp = YBC_GENESIS + (YBC_EPOCH_SECONDS * 2) - 43_200;
     const transactionHash = `0x${"f".repeat(64)}`;
@@ -312,6 +313,7 @@ describe("product alert scanner state", () => {
       "0x5050505050505050505050505050505050505050",
     ] as const;
     const genericAggregator = "0x6060606060606060606060606060606060606060";
+    const batcher = "0x7070707070707070707070707070707070707070";
     const logs = [
       eventLog({
         address: YBC_ELECTION,
@@ -355,6 +357,48 @@ describe("product alert scanner state", () => {
       result: [target, voters[0], 1n, true, 6_000n, votes, votes, false, false],
     });
     const weightReads: Array<{ readonly aggregator: string; readonly account: string }> = [];
+    const tracedTransactions: string[] = [];
+    const tracedWeight = 1_234_567n;
+    const endOfBlockWeight = 1_234_566n;
+    const weightInput = (voter: `0x${string}`) => encodeFunctionData({
+      abi: YBC_READ_ABI,
+      functionName: "weight",
+      args: [voter],
+    });
+    const electionFrame = (
+      event: RpcLog,
+      voter: `0x${string}`,
+      aggregator: `0x${string}`,
+      weight: bigint,
+    ) => ({
+      type: "CALL",
+      from: batcher,
+      to: YBC_ELECTION.toLowerCase(),
+      input: "0x",
+      output: "0x",
+      error: null,
+      calls: [{
+        type: "STATICCALL",
+        from: YBC_ELECTION.toLowerCase(),
+        to: aggregator.toLowerCase(),
+        input: weightInput(voter).toLowerCase(),
+        output: encodeFunctionResult({
+          abi: YBC_READ_ABI,
+          functionName: "weight",
+          result: weight,
+        }).toLowerCase(),
+        error: null,
+        calls: [],
+        logs: [],
+      }],
+      logs: [{
+        address: event.address.toLowerCase(),
+        topics: event.topics.map((topic) => topic.toLowerCase()),
+        data: event.data.toLowerCase(),
+        index: event.logIndex!,
+        position: 1,
+      }],
+    });
     const rpc = {
       ...emptyRpc(),
       getBlockByNumber: async (number: BlockTag) => ({
@@ -391,16 +435,48 @@ describe("product alert scanner state", () => {
           return encodeFunctionResult({
             abi: YBC_READ_ABI,
             functionName: "weight",
-            result: 1_234_567n,
+            result: endOfBlockWeight,
           });
         }
         throw new Error("unexpected exact read");
+      },
+      traceTransactionByHash: async (hash: string) => {
+        tracedTransactions.push(hash);
+        return {
+          type: "CALL",
+          from: voters[0],
+          to: batcher,
+          input: "0x",
+          output: "0x",
+          error: null,
+          calls: [
+            electionFrame(logs[0]!, voters[0], YBC_WEIGHT_AGGREGATOR, 1_000_000n),
+            {
+              type: "CALL",
+              from: batcher,
+              to: YBC_ELECTION.toLowerCase(),
+              input: "0x",
+              output: "0x",
+              error: null,
+              calls: [],
+              logs: [{
+                address: logs[1]!.address.toLowerCase(),
+                topics: logs[1]!.topics.map((topic) => topic.toLowerCase()),
+                data: logs[1]!.data.toLowerCase(),
+                index: logs[1]!.logIndex!,
+                position: 0,
+              }],
+            },
+            electionFrame(logs[2]!, voters[1], genericAggregator, tracedWeight),
+          ],
+          logs: [],
+        };
       },
     } as unknown as RpcClient;
     const state = loadYbcState({
       members: voters,
       votersByProposal: {},
-      lastCollectivePower: "2000000",
+      lastCollectivePower: (endOfBlockWeight * 2n).toString(),
       lastEpoch: epochFor(timestamp),
     });
 
@@ -415,12 +491,48 @@ describe("product alert scanner state", () => {
     expect(result.failure).toBeNull();
     expect(votes).toMatchObject([
       { details: { countedWeight: 500_000n, baseWeight: 1_000_000n } },
-      { details: { countedWeight: 617_283n, baseWeight: 1_234_567n } },
+      { details: { countedWeight: 617_283n, baseWeight: tracedWeight } },
     ]);
-    expect(weightReads[0]).toEqual({
-      aggregator: genericAggregator,
-      account: voters[1],
+    expect(tracedTransactions).toEqual([transactionHash]);
+    expect(weightReads.length).toBeGreaterThan(0);
+    expect(weightReads.every(({ aggregator }) => aggregator === genericAggregator)).toBe(true);
+    expect(endOfBlockWeight).not.toBe(tracedWeight);
+    expect(endOfBlockWeight * 43_200n / 86_400n).toBe(617_283n);
+
+    const unavailable = await scanYbcBlocks({
+      rpc: { ...rpc, traceTransactionByHash: undefined } as unknown as RpcClient,
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state,
     });
+    expect(unavailable.failure?.reason).toBe("ybc_vote_trace_unavailable");
+    expect(unavailable.actions).toEqual([]);
+
+    const wrongPosition = await scanYbcBlocks({
+      rpc: {
+        ...rpc,
+        traceTransactionByHash: async (hash: string) => {
+          const trace = await rpc.traceTransactionByHash!(hash);
+          return {
+            ...trace,
+            calls: trace.calls.map((frame, index) => index === 2
+              ? {
+                  ...frame,
+                  logs: frame.logs.map((candidate) => ({
+                    ...candidate,
+                    position: 0,
+                  })),
+                }
+              : frame),
+          };
+        },
+      } as unknown as RpcClient,
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+      state,
+    });
+    expect(wrongPosition.failure?.reason).toBe("ybc_vote_trace_weight_call_missing");
+    expect(wrongPosition.actions).toEqual([]);
   });
 
   it("reconstructs the unique packed base weight strictly inside final-day decay", async () => {

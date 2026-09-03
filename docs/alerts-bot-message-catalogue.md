@@ -944,6 +944,10 @@ Variant rules for Y8 and Y9:
 - Preserve transaction and log order within each block.
 - Use each event's block timestamp, account state, protocol state, and price.
 - Use an archive-capable Ethereum RPC for historical `eth_call` requests.
+- Before enabling YBC, verify that the same RPC supports Geth-compatible
+  `debug_traceTransaction` with `callTracer` and `withLog`. Generic-aggregator
+  votes during final-day decay use the trace's log index and child-call position
+  to recover vote-time weight; an end-of-block call is not valid evidence.
 - Post through the same formatter, delivery, cursor, retry, and deduplication
   path used for live alerts.
 - Rate-limit Telegram delivery without reordering messages within a chat.

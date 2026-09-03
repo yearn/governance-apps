@@ -135,11 +135,16 @@ Election's active weight aggregator in canonical log order. When that active
 address is the pinned YBC weight wrapper, the scanner inverts the floor to an
 inclusive base-weight interval and accepts it only when the interval contains
 exactly one `1,000,000`-unit multiple that reproduces the recorded weight. For
-any other configured aggregator, it reads `weight(voter)` at the exact event
-block and verifies that applying the decay floor reproduces the event weight.
-B3 then compares the counted and verified base weights in the timing-adjustment
-line. Missing or contradictory evidence fails the range. The collective total
-in B4 and B14 is context; it never changes the pass test.
+any other configured aggregator, a block-hash `eth_call` is not sufficient:
+it sees the block's final state rather than the state at the vote's transaction
+position. The scanner instead replays the vote transaction with the call tracer,
+binds the exact `Vote` log by global log index and payload, and reads the return
+value of the matching Election-to-aggregator `weight(voter)` `STATICCALL` that
+completed before that log. Applying the decay floor to this traced base weight
+must reproduce the event weight. B3 then compares the counted and verified base
+weights in the timing-adjustment line. Missing, ambiguous, oversized, or
+contradictory trace evidence fails the range. The collective total in B4 and
+B14 is context; it never changes the pass test.
 
 B14 sums `weight(member)` from the Election's current weight aggregator for all
 active YBC members. YBC-held stake and stYFIx delegation are outside that sum.

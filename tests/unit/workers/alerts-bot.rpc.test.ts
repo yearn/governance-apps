@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  ALERT_RPC_MAX_TRACE_RESPONSE_BYTES,
   createRpcClient,
   isRpcBatchPayloadTooLargeError,
   isRpcRangeTooLargeError,
@@ -78,6 +79,118 @@ describe("alerts-bot rpc client", () => {
       ),
     ).resolves.toBe("0x");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests a log-aware call trace and validates its positional evidence", async () => {
+    const transactionHash = `0x${"12".repeat(32)}`;
+    const election = "0x00000000000000000000000000000000000000a1";
+    const aggregator = "0x00000000000000000000000000000000000000a2";
+    const voteTopic = `0x${"34".repeat(32)}`;
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as {
+        method: string;
+        params: unknown[];
+      };
+      expect(body).toEqual({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "debug_traceTransaction",
+        params: [
+          transactionHash,
+          { tracer: "callTracer", tracerConfig: { withLog: true } },
+        ],
+      });
+      return jsonRpcResponse({
+        type: "CALL",
+        from: "0x00000000000000000000000000000000000000B0",
+        to: election.toUpperCase().replace("0X", "0x"),
+        input: "0xAABB",
+        output: "0x",
+        calls: [{
+          type: "STATICCALL",
+          from: election,
+          to: aggregator,
+          input: "0x1234",
+          output: `0x${"00".repeat(31)}01`,
+        }],
+        logs: [{
+          address: election,
+          topics: [voteTopic],
+          data: "0xAABB",
+          index: "0x7",
+          position: "0x1",
+        }],
+      });
+    });
+    const rpc = createRpcClient("https://rpc.example", fetchImpl as typeof fetch);
+
+    await expect(rpc.traceTransactionByHash!(transactionHash)).resolves.toEqual({
+      type: "CALL",
+      from: "0x00000000000000000000000000000000000000b0",
+      to: election,
+      input: "0xaabb",
+      output: "0x",
+      error: null,
+      calls: [{
+        type: "STATICCALL",
+        from: election,
+        to: aggregator,
+        input: "0x1234",
+        output: `0x${"00".repeat(31)}01`,
+        error: null,
+        calls: [],
+        logs: [],
+      }],
+      logs: [{
+        address: election,
+        topics: [voteTopic],
+        data: "0xaabb",
+        index: 7,
+        position: 1,
+      }],
+    });
+  });
+
+  it("rejects malformed or oversized transaction traces", async () => {
+    const transactionHash = `0x${"56".repeat(32)}`;
+    const malformed = createRpcClient(
+      "https://rpc.example",
+      vi.fn(async () => jsonRpcResponse({
+        type: "CALL",
+        from: "0x00000000000000000000000000000000000000b0",
+        to: "0x00000000000000000000000000000000000000a1",
+        input: "0x",
+        calls: [],
+        logs: [{
+          address: "0x00000000000000000000000000000000000000a1",
+          topics: [],
+          data: "0x",
+          index: "0x0",
+          position: "0x1",
+        }],
+      })) as typeof fetch,
+    );
+    await expect(malformed.traceTransactionByHash!(transactionHash)).rejects.toMatchObject({
+      name: "RpcRequestError",
+      method: "debug_traceTransaction",
+      kind: "protocol",
+    });
+
+    const oversized = createRpcClient(
+      "https://rpc.example",
+      vi.fn(async () => new Response("{}", {
+        status: 200,
+        headers: {
+          "content-length": String(ALERT_RPC_MAX_TRACE_RESPONSE_BYTES + 1),
+          "content-type": "application/json",
+        },
+      })) as typeof fetch,
+    );
+    await expect(oversized.traceTransactionByHash!(transactionHash)).rejects.toMatchObject({
+      name: "RpcRequestError",
+      method: "debug_traceTransaction",
+      kind: "protocol",
+    });
   });
 
   it("surfaces a noncanonical hash-bound call error without numeric fallback", async () => {

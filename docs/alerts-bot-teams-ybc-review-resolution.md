@@ -1,6 +1,6 @@
 # Teams and YBC alert review resolution
 
-Status: code-complete after four request-changes reviews. All five checked-in
+Status: code-complete after five request-changes reviews. All five checked-in
 production flags remain disabled pending accepted private historical replay.
 
 This ledger tracks the request-changes review received on 2 September 2026.
@@ -42,10 +42,16 @@ The numbered rows match that review.
 
 | # | Disposition | Resolution | Regression evidence |
 |---:|---|---|---|
-| 1 | Fixed | The scanner replays Election `SetWeightAggregator` events in canonical log order. It uses the packing inverse only while the pinned wrapper is proven active; another aggregator is read at the exact event block and its base weight must reproduce the recorded decay result. | Same-block wrapper-to-generic transition with `1,234,567 → 617,283`; retained pinned-wrapper boundary and impossible-reconstruction cases |
+| 1 | Superseded | The scanner replayed Election `SetWeightAggregator` events correctly, but its generic-aggregator fallback read the block's final state rather than vote-time state. The fifth review records the transaction-position fix. | The aggregator-order and pinned-wrapper fixtures remain in place and are extended below |
 | 2 | Fixed | The remaining acceptance cases now cover cross-domain failure isolation and recovery, Teams loss and Teams/YBC precision, lifecycle and bonus alert links, and prohibited visible YBC copy. | Durable-runtime, product-renderer, Teams smoke, and YBC smoke assertions |
 | 3 | Fixed | An ENS name that fails normalization or safety checks is treated as unresolved and renders the linked short address. Malformed ABI and contradictory resolver evidence still fail closed. | Unsafe directional-control name fallback plus resolved and empty-name cases |
 | 4 | Fixed | The Alerts Worker compatibility date moved to `2026-09-03`; the runbook requires a compatibility review at least quarterly followed by the complete release gate and private replay. | Wrangler schema inspection and deployment dry run |
+
+## Fifth review received 3 September 2026
+
+| # | Disposition | Resolution | Regression evidence |
+|---:|---|---|---|
+| 1 | Fixed | Generic-aggregator B3 base weight now comes from the exact `weight(voter)` `STATICCALL` in a log-aware replay of the vote transaction. The scanner binds the canonical `Vote` by global log index and payload, limits candidate calls to those completed before the log, validates the returned ABI word, and verifies the decay result. It no longer uses end-of-block weight as vote-time evidence. | Same-block wrapper-to-generic transition where the traced weight is `1,234,567`, the later block state is `1,234,566`, and both floor to `617,283`; unavailable and wrong-position trace failures; RPC trace shape, request, and size-limit tests |
 
 ## Release gate still open
 
@@ -53,4 +59,5 @@ No private historical replay was supplied or accepted as part of this change.
 All checked-in domain flags therefore remain `false`. Before Teams or YBC
 production enablement, an operator must replay from each documented deployment
 block, review the output and controlled failures, confirm the two Telegram chat
-destinations, and record acceptance separately.
+destinations, prove that the configured RPC returns log-aware call traces for
+any generic-aggregator YBC vote, and record acceptance separately.

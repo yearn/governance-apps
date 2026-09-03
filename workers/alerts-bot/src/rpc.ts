@@ -45,6 +45,26 @@ export interface RpcTransactionReceipt {
   logs: RpcLog[];
 }
 
+export interface RpcCallTraceLog {
+  readonly address: string;
+  readonly topics: readonly string[];
+  readonly data: string;
+  readonly index: number;
+  /** Number of direct child calls completed before this log was emitted. */
+  readonly position: number;
+}
+
+export interface RpcCallTraceFrame {
+  readonly type: string;
+  readonly from: string;
+  readonly to: string | null;
+  readonly input: string;
+  readonly output: string | null;
+  readonly error: string | null;
+  readonly calls: readonly RpcCallTraceFrame[];
+  readonly logs: readonly RpcCallTraceLog[];
+}
+
 export interface RpcCallRequest {
   to: string;
   data: string;
@@ -102,6 +122,11 @@ export interface RpcClient {
     requests: readonly RpcExactBlockCallRequest[],
     signal?: AbortSignal,
   ): Promise<string[]>;
+  /** Optional exact transaction replay used only when event-time call evidence is required. */
+  traceTransactionByHash?(
+    hash: string,
+    signal?: AbortSignal,
+  ): Promise<RpcCallTraceFrame>;
 }
 
 interface JsonRpcRequest {
@@ -350,6 +375,31 @@ class EthereumRpcClient implements RpcClient {
     );
   }
 
+  async traceTransactionByHash(
+    hash: string,
+    signal?: AbortSignal,
+  ): Promise<RpcCallTraceFrame> {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) {
+      throw new RpcRequestError(
+        "Expected a 32-byte transaction hash",
+        "debug_traceTransaction",
+      );
+    }
+    const result = await this.request<unknown>(
+      "debug_traceTransaction",
+      [
+        hash.toLowerCase(),
+        {
+          tracer: "callTracer",
+          tracerConfig: { withLog: true },
+        },
+      ],
+      signal,
+      ALERT_RPC_MAX_TRACE_RESPONSE_BYTES,
+    );
+    return parseCallTraceFrame(result);
+  }
+
   private buildRequest(method: string, params: unknown[]): JsonRpcRequest {
     return {
       jsonrpc: "2.0",
@@ -363,9 +413,10 @@ class EthereumRpcClient implements RpcClient {
     method: string,
     params: unknown[],
     signal?: AbortSignal,
+    maxResponseBytes?: number,
   ): Promise<TResult> {
     const request = this.buildRequest(method, params);
-    const response = await this.post(request, method, signal);
+    const response = await this.post(request, method, signal, maxResponseBytes);
     if (Array.isArray(response)) {
       throw malformedResponse(method, "single_shape");
     }
@@ -422,6 +473,7 @@ class EthereumRpcClient implements RpcClient {
     payload: JsonRpcRequest | JsonRpcRequest[],
     method: string,
     signal?: AbortSignal,
+    maxResponseBytes?: number,
   ): Promise<unknown> {
     const response = await this.fetchImpl.call(globalThis, this.rpcUrl, {
       method: "POST",
@@ -433,6 +485,7 @@ class EthereumRpcClient implements RpcClient {
     });
 
     if (!response.ok) {
+      await cancelResponseBody(response);
       throw new RpcRequestError(
         `RPC request failed with HTTP ${response.status}`,
         method,
@@ -444,11 +497,64 @@ class EthereumRpcClient implements RpcClient {
       );
     }
 
+    if (maxResponseBytes !== undefined) {
+      return readBoundedJson(response, method, maxResponseBytes);
+    }
+
     try {
       return await response.json();
     } catch {
       throw malformedResponse(method, "json_decode");
     }
+  }
+}
+
+async function readBoundedJson(
+  response: Response,
+  method: string,
+  maxBytes: number,
+): Promise<unknown> {
+  const declaredLength = response.headers.get("content-length");
+  if (
+    declaredLength !== null &&
+    /^\d+$/.test(declaredLength) &&
+    Number(declaredLength) > maxBytes
+  ) {
+    await cancelResponseBody(response);
+    throw malformedResponse(method, "response_size");
+  }
+  if (response.body === null) {
+    throw malformedResponse(method, "json_decode");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let totalBytes = 0;
+  let text = "";
+  try {
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      totalBytes += chunk.value.byteLength;
+      if (totalBytes > maxBytes) {
+        await reader.cancel();
+        throw malformedResponse(method, "response_size");
+      }
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+    text += decoder.decode();
+    return JSON.parse(text) as unknown;
+  } catch (error) {
+    if (error instanceof RpcRequestError) throw error;
+    throw malformedResponse(method, "json_decode");
+  }
+}
+
+async function cancelResponseBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Cancellation is best-effort; retain the controlled RPC failure.
   }
 }
 
@@ -588,6 +694,109 @@ function parseTransactionReceipt(raw: RawRpcTransactionReceipt): RpcTransactionR
   };
 }
 
+interface CallTraceParseBudget {
+  frames: number;
+  logs: number;
+}
+
+function parseCallTraceFrame(
+  raw: unknown,
+  depth = 0,
+  budget: CallTraceParseBudget = { frames: 0, logs: 0 },
+): RpcCallTraceFrame {
+  budget.frames += 1;
+  if (
+    depth > ALERT_RPC_MAX_TRACE_DEPTH ||
+    budget.frames > ALERT_RPC_MAX_TRACE_FRAMES ||
+    !isRecord(raw) ||
+    typeof raw.type !== "string" ||
+    typeof raw.from !== "string" ||
+    !isAddress(raw.from) ||
+    (raw.to !== undefined && (typeof raw.to !== "string" || !isAddress(raw.to))) ||
+    typeof raw.input !== "string" ||
+    !isHexData(raw.input) ||
+    (raw.output !== undefined && (typeof raw.output !== "string" || !isHexData(raw.output))) ||
+    (raw.error !== undefined && typeof raw.error !== "string") ||
+    (raw.calls !== undefined && !Array.isArray(raw.calls)) ||
+    (raw.logs !== undefined && !Array.isArray(raw.logs))
+  ) {
+    throw malformedResponse("debug_traceTransaction", "call_trace_shape");
+  }
+
+  const rawCalls = raw.calls ?? [];
+  const rawLogs = raw.logs ?? [];
+  const calls = rawCalls.map((call) =>
+    parseCallTraceFrame(call, depth + 1, budget)
+  );
+  const logs = rawLogs.map((log) => parseCallTraceLog(log, budget));
+  let previousPosition = 0;
+  for (const log of logs) {
+    if (log.position > calls.length || log.position < previousPosition) {
+      throw malformedResponse("debug_traceTransaction", "call_trace_log_position");
+    }
+    previousPosition = log.position;
+  }
+
+  return Object.freeze({
+    type: raw.type.toUpperCase(),
+    from: raw.from.toLowerCase(),
+    to: typeof raw.to === "string" ? raw.to.toLowerCase() : null,
+    input: raw.input.toLowerCase(),
+    output: typeof raw.output === "string" ? raw.output.toLowerCase() : null,
+    error: typeof raw.error === "string" ? raw.error : null,
+    calls: Object.freeze(calls),
+    logs: Object.freeze(logs),
+  });
+}
+
+function parseCallTraceLog(
+  raw: unknown,
+  budget: CallTraceParseBudget,
+): RpcCallTraceLog {
+  budget.logs += 1;
+  if (
+    budget.logs > ALERT_RPC_MAX_TRACE_LOGS ||
+    !isRecord(raw) ||
+    typeof raw.address !== "string" ||
+    !isAddress(raw.address) ||
+    !Array.isArray(raw.topics) ||
+    !raw.topics.every((topic) => typeof topic === "string" && isHash(topic)) ||
+    typeof raw.data !== "string" ||
+    !isHexData(raw.data) ||
+    typeof raw.index !== "string" ||
+    typeof raw.position !== "string"
+  ) {
+    throw malformedResponse("debug_traceTransaction", "call_trace_log_shape");
+  }
+  let index: number;
+  let position: number;
+  try {
+    index = parseHexQuantity(raw.index);
+    position = parseHexQuantity(raw.position);
+  } catch {
+    throw malformedResponse("debug_traceTransaction", "call_trace_log_quantity");
+  }
+  return Object.freeze({
+    address: raw.address.toLowerCase(),
+    topics: Object.freeze(raw.topics.map((topic) => topic.toLowerCase())),
+    data: raw.data.toLowerCase(),
+    index,
+    position,
+  });
+}
+
+function isAddress(value: string): boolean {
+  return /^0x[0-9a-fA-F]{40}$/.test(value);
+}
+
+function isHash(value: string): boolean {
+  return /^0x[0-9a-fA-F]{64}$/.test(value);
+}
+
+function isHexData(value: string): boolean {
+  return /^0x(?:[0-9a-fA-F]{2})*$/.test(value);
+}
+
 function parseHexQuantity(value: string): number {
   if (
     typeof value !== "string" ||
@@ -669,6 +878,10 @@ export function createRpcClient(
 }
 
 export const ALERT_RPC_MAX_BATCH_SIZE = 25;
+export const ALERT_RPC_MAX_TRACE_RESPONSE_BYTES = 8 * 1024 * 1024;
+const ALERT_RPC_MAX_TRACE_DEPTH = 1_024;
+const ALERT_RPC_MAX_TRACE_FRAMES = 20_000;
+const ALERT_RPC_MAX_TRACE_LOGS = 20_000;
 
 /** Only explicit provider result/range limits are safe to retry with a smaller range. */
 export function isRpcRangeTooLargeError(error: unknown): boolean {
