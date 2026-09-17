@@ -1604,9 +1604,10 @@ function applyRequiredActorData(
           ).principal;
         } catch (error) {
           if (
-            action.kind === "redeem" &&
+            (action.kind === "redeem" || action.kind === "exchange") &&
             error instanceof UnsupportedProtocolCallEnvelopeError
           ) {
+            // The facility event proves the trade even when the router's user is unknown.
             continue;
           }
           throw new StyfiVeyfiScannerStageError(
@@ -1635,7 +1636,9 @@ async function resolveChunkActorData(
         addBatchRequirement(
           transactionRequirements,
           action,
-          action.kind === "redeem" ? "lookup_failed" : "attribution_failed",
+          action.kind === "redeem" || action.kind === "exchange"
+            ? "lookup_failed"
+            : "attribution_failed",
         );
       }
     }

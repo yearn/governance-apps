@@ -135,7 +135,8 @@ Authorization: Bearer <ADMIN_TOKEN>
 
 It returns only redacted domain state: cursor, cursor hash, last observed
 confirmed head, caught-up state, last run and success times, last error code,
-and Telegram backoff expiry.
+and Telegram backoff expiry. A saved run error makes `caughtUp` false. Failures
+after fetching the chain head retain that head without advancing the cursor.
 
 There is no automatic health monitor in this release. During replay and the
 first production week, check status and structured logs manually. A scanner,
@@ -156,10 +157,13 @@ provider text.
 
 Direct stYFI and LLYFI calls are attributed to their sender. Canonical Safe
 `execTransaction` wrappers are accepted only for a zero-value `CALL` to the
-expected protocol contract and are attributed to the Safe. Unsupported
-Safe wrappers and target mismatches stop the scanner at the saved cursor rather
-than guessing an actor. Other indirect LLYFI redemptions use the catalogue's
-anonymous position variant so common router activity cannot halt replay.
+expected protocol contract and are attributed to the Safe. LLYFI buys and
+redemptions through Safe batches or other indirect routes use the catalogue's
+anonymous position variant. Their confirmed facility events prove the trades;
+the bot does not infer the end user from the outer transaction sender. An
+explicitly missing transaction lookup uses the same fallback. Failed RPC
+requests, malformed Safe calldata, or contradictory transaction data still stop
+processing. stYFI exit attribution remains strict.
 
 yETH claims use the indexed Claim account as principal and derive stayed versus
 exited from the Claim values and mandatory Recovery Vault companions. They do

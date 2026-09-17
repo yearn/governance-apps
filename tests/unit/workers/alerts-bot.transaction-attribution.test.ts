@@ -90,11 +90,16 @@ describe("protocol transaction attribution", () => {
     { label: "wrong target", input: safeInput({ target: CALLER }) },
     { label: "native value", input: safeInput({ value: 1n }) },
     { label: "delegatecall", input: safeInput({ operation: 1 }) },
-    { label: "empty inner call", input: safeInput({ input: "0x" }) },
-  ])("rejects a Safe envelope with $label", ({ input }) => {
+  ])("leaves a Safe envelope with $label unattributed", ({ input }) => {
     expect(() =>
       decodeAttributedProtocolCall(transaction({ to: SAFE, input }), TARGET),
-    ).toThrow();
+    ).toThrow(UnsupportedProtocolCallEnvelopeError);
+  });
+
+  it("rejects an invalid Safe inner call", () => {
+    expect(() =>
+      decodeAttributedProtocolCall(transaction({ to: SAFE, input: safeInput({ input: "0x" }) }), TARGET),
+    ).toThrow("safe_exec_transaction_call_invalid");
   });
 
   it("rejects noncanonical Safe calldata", () => {

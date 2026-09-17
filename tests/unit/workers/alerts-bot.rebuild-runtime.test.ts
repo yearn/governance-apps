@@ -184,7 +184,7 @@ describe("minimal durable runtime", () => {
     expect(external).not.toHaveBeenCalled();
   });
 
-  it("reports caught up from the canonical initial cursor", async () => {
+  it("reports caught up only without a saved run error", async () => {
     const { state, storage } = durableState();
     const initialCursor = ALERT_DOMAIN_GENESIS_BLOCKS.styfi - 1;
     vi.stubGlobal("fetch", rpcFetch({ latest: initialCursor + 6 }));
@@ -205,6 +205,13 @@ describe("minimal durable runtime", () => {
       lastObservedHead: initialCursor,
       lastErrorCode: null,
     });
+    const statusRequest = () => new Request("https://alerts.internal/status?domain=styfi");
+    expect(await (await object.fetch(statusRequest())).json()).toMatchObject({ caughtUp: true });
+    storage.values.set("state:v1", {
+      ...storage.values.get("state:v1") as Record<string, unknown>,
+      lastErrorCode: "scan_attribution_failed",
+    });
+    expect(await (await object.fetch(statusRequest())).json()).toMatchObject({ caughtUp: false });
   });
 
   it("advances an empty range without loading every block header", async () => {
@@ -293,6 +300,7 @@ describe("minimal durable runtime", () => {
     expect(failed.status).toBe(500);
     expect(storage.values.get("state:v1")).toMatchObject({
       cursorBlock: genesis - 1,
+      lastObservedHead: genesis,
     });
 
     const recovered = await object.fetch(

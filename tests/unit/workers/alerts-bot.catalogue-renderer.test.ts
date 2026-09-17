@@ -339,21 +339,25 @@ describe("catalogue renderer discriminators", () => {
     );
     expect(claimFallback).toContain("Position data: unavailable");
 
-    const unattributed = onchainAction({
-      kind: "redeem",
-      tokenSymbol: "sdYFI",
-      user: null,
-      principal: {
-        kind: "unavailable",
-        reason: "canonical_sender_unavailable",
-      },
-      amounts: { amount: ONE, fee: 0n },
-    });
-    const v5Fallback = render("veyfi", unattributed, null, {
-      positionUnavailable: true,
-    });
-    expect(v5Fallback).toContain("Position after: unavailable");
-    expect(v5Fallback).not.toContain("Position after ·");
+    for (const kind of ["exchange", "redeem"] as const) {
+      const unattributed = onchainAction({
+        kind,
+        tokenSymbol: "sdYFI",
+        user: null,
+        principal: {
+          kind: "unavailable",
+          reason: "canonical_sender_unavailable",
+        },
+        amounts: { amount: ONE, fee: 0n },
+      });
+      const tradeFallback = render("veyfi", unattributed, null, {
+        positionUnavailable: true,
+      });
+      expect(tradeFallback).toContain(kind === "exchange" ? "sdYFI bought" : "sdYFI redeemed");
+      expect(tradeFallback).toContain(kind === "exchange" ? "1.00 YFI → 1.00 sdYFI" : "1.00 sdYFI → 1.00 YFI");
+      expect(tradeFallback).toContain("Position after: unavailable");
+      expect(tradeFallback).not.toContain("Position after ·");
+    }
   });
 
   it("falls back from hostile injected ENS labels and escapes hostile symbols", () => {

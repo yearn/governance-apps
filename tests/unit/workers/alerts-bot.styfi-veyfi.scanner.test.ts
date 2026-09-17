@@ -927,10 +927,14 @@ describe("stYFI/veYFI strict scanner", () => {
       { domainId: "veyfi" },
     );
     expect(missingExchangeActor).toMatchObject({
-      actions: [],
+      actions: [{
+        kind: "exchange",
+        user: null,
+        principal: { kind: "unavailable", reason: "canonical_sender_unavailable" },
+      }],
       eventBlocksInspected: 1,
-      lastProcessedBlock: blockNumber + 2,
-      failure: { code: "attribution_failed", blockNumber: blockNumber + 3 },
+      lastProcessedBlock: blockNumber + 3,
+      failure: null,
     });
 
     const zeroLockerSenderBlock = blockNumber + 4;
@@ -1004,7 +1008,7 @@ describe("stYFI/veYFI strict scanner", () => {
     expect(result.actions.map((action) => action.txHash)).toEqual([firstHash]);
   });
 
-  it("attributes a complete prefix before a later invalid Safe target", async () => {
+  it("preserves a direct actor and leaves a later indirect Safe trade anonymous", async () => {
     const locker = LIQUID_LOCKERS[0];
     if (!locker) {
       throw new Error("Missing liquid-locker fixture");
@@ -1057,14 +1061,19 @@ describe("stYFI/veYFI strict scanner", () => {
     );
 
     expect(result).toMatchObject({
-      lastProcessedBlock: firstBlock,
-      failure: { code: "attribution_failed", blockNumber: firstBlock + 1 },
+      lastProcessedBlock: firstBlock + 1,
+      failure: null,
     });
-    expect(result.actions).toHaveLength(1);
+    expect(result.actions).toHaveLength(2);
     expect(result.actions[0]).toMatchObject({
       txHash: firstHash,
       user: expectedSender,
       kind: "redeem",
+    });
+    expect(result.actions[1]).toMatchObject({
+      kind: "redeem",
+      user: null,
+      principal: { kind: "unavailable", reason: "canonical_sender_unavailable" },
     });
   });
 
@@ -1183,6 +1192,79 @@ describe("stYFI/veYFI strict scanner", () => {
         reason: "canonical_sender_unavailable",
       },
     });
+  });
+
+  it.each(["redeem", "exchange"] as const)("keeps a Safe batch %s anonymous without stopping replay", async (kind) => {
+    // The production stall was a Safe MultiSend redemption in this block.
+    const blockNumber = 25_902_744;
+    const transactionHash = "0x6bb6a069c1ee85687fc1ad06ef5d81512278597888d237a49b6109b014159e72" as Hex;
+    const log = (kind === "redeem" ? redeemLog : exchangeLog)(blockNumber, LIQUID_LOCKERS[1]!.token);
+    const transaction = transactionFor({
+      hash: transactionHash,
+      blockNumber,
+      to: "0x66bdefa7abf210d1240c9ec00000aafcfc80a235",
+      input: encodeFunctionData({
+        abi: SAFE_EXEC_TRANSACTION_ABI,
+        functionName: "execTransaction",
+        args: [
+          "0x40A2aCCbd92BCA938b02010E17A5b8929b49130D",
+          0n, "0x8d80ff0a", 1, 0n, 0n, 0n,
+          "0x0000000000000000000000000000000000000000",
+          "0x0000000000000000000000000000000000000000", "0x1234",
+        ],
+      }),
+    });
+    const result = await scanChunkForActionsWithProgress(
+      createRpc({
+        logs: [{ ...log, transactionHash }],
+        getTransactionByHash: (async (input: string | readonly string[]) =>
+          typeof input === "string" ? transaction : input.map(() => transaction)) as RpcClient["getTransactionByHash"],
+      }),
+      blockNumber,
+      blockNumber,
+      { domainId: "veyfi" },
+    );
+    expect(result.failure).toBeNull();
+    expect(result.chunkComplete).toBe(true);
+    expect(result.actions).toMatchObject([{
+      kind,
+      user: null,
+      principal: { kind: "unavailable", reason: "canonical_sender_unavailable" },
+    }]);
+  });
+
+  it.each(LIQUID_LOCKERS)("keeps a routed $symbol buy and subsequent redemption without stopping replay", async (locker) => {
+    const blockNumber = 460;
+    const transaction = transactionFor({
+      hash: hashOf(blockNumber),
+      blockNumber,
+      to: addressOf(80),
+      input: "0x12345678",
+    });
+    const result = await scanChunkForActionsWithProgress(
+      createRpc({
+        logs: [exchangeLog(blockNumber, locker.token), redeemLog(blockNumber + 1, locker.token)],
+        getTransactionByHash: (async (input: string | readonly string[]) => {
+          const lookup = (hash: string) => hash === transaction.hash ? transaction : null;
+          return typeof input === "string" ? lookup(input) : input.map(lookup);
+        }) as RpcClient["getTransactionByHash"],
+      }),
+      blockNumber,
+      blockNumber + 1,
+      { domainId: "veyfi" },
+    );
+
+    expect(result.failure).toBeNull();
+    expect(result.chunkComplete).toBe(true);
+    expect(result.lastProcessedBlock).toBe(blockNumber + 1);
+    expect(result.actions.map(({ kind, tokenSymbol, user, principal }) => ({ kind, tokenSymbol, user, principal }))).toEqual(
+      ["exchange", "redeem"].map((kind) => ({
+        kind,
+        tokenSymbol: locker.symbol,
+        user: null,
+        principal: { kind: "unavailable", reason: "canonical_sender_unavailable" },
+      })),
+    );
   });
 
   it("rejects short actor batches and mismatched transaction hashes", async () => {

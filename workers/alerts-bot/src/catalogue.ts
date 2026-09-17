@@ -236,7 +236,7 @@ export async function renderCatalogueMessages(params: {
     for (const action of legacyActions) {
       const principal = actionPrincipal(action);
       if (
-        (action.kind === "redeem" && principal === null) ||
+        ((action.kind === "redeem" || action.kind === "exchange") && principal === null) ||
         (action.kind === "update" &&
           action.amounts.previousLocktime !== undefined &&
           action.amounts.locktime !== undefined &&
@@ -247,7 +247,7 @@ export async function renderCatalogueMessages(params: {
           domain: params.domainId,
           block: action.blockNumber,
           kind:
-            action.kind === "redeem"
+            action.kind === "redeem" || action.kind === "exchange"
               ? "principal_unavailable"
               : "unlock_shortened",
         }));

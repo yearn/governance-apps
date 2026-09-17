@@ -80,9 +80,6 @@ export function decodeAttributedProtocolCall(
   const validatedInput = calldata(innerInput);
   if (
     validatedTarget === null ||
-    validatedTarget.toLowerCase() !== expectedTarget.toLowerCase() ||
-    value !== 0n ||
-    operation !== 0 ||
     validatedInput === null ||
     validatedInput.length < 10
   ) {
@@ -95,6 +92,14 @@ export function decodeAttributedProtocolCall(
   });
   if (canonicalInput.toLowerCase() !== outerInput.toLowerCase()) {
     throw new Error("safe_exec_transaction_noncanonical");
+  }
+  if (
+    validatedTarget.toLowerCase() !== expectedTarget.toLowerCase() ||
+    value !== 0n ||
+    operation !== 0
+  ) {
+    // A valid Safe batch can emit a protocol event without proving its end user.
+    throw new UnsupportedProtocolCallEnvelopeError();
   }
   return {
     principal: transactionTarget,

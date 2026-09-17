@@ -704,6 +704,7 @@ export class AlertState implements DurableObject {
       cursorHash: stored.cursorHash,
       lastObservedHead: stored.lastObservedHead,
       caughtUp:
+        stored.lastErrorCode === null &&
         stored.lastObservedHead !== null && stored.cursorBlock >= stored.lastObservedHead,
       lastRunAt: stored.lastRunAt,
       lastSuccessAt: stored.lastSuccessAt,
@@ -765,6 +766,7 @@ export class AlertState implements DurableObject {
       stage = "head";
       const latest = await rpc.getBlockNumber();
       const confirmedHead = Math.max(0, latest - config.confirmations);
+      stored = withRunMetadata(stored, { lastObservedHead: confirmedHead });
       if (stored.cursorHash !== null) {
         stage = "cursor_validation";
         const cursor = await rpc.getBlockByNumber(stored.cursorBlock);

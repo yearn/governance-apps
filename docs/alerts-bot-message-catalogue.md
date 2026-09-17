@@ -99,13 +99,16 @@ Use these actor labels only when they add information:
 Do not repeat the same address under several labels. Do not show a zero address,
 an unresolved `unknown` placeholder, or a protocol contract as a user account.
 
-For the monitored stYFI exits and LLYFI redemptions, canonical
+For the monitored stYFI exits and LLYFI buys and redemptions, canonical
 Safe `execTransaction` calls are unwrapped only when the inner operation is a
 zero-value `CALL` to the exact expected protocol contract. The Safe is the
-principal account; its external executor is not the user. Delegatecalls,
-multisends, unexpected Safe targets, and noncanonical Safe calldata fail
-closed. An indirect LLYFI redemption through another router remains anonymous;
-the bot does not guess the end user from router calldata.
+principal account; its external executor is not the user. LLYFI buys and
+redemptions through Safe batches, other Safe targets, or routers remain
+anonymous; their confirmed facility events still produce alerts. The bot does
+not guess the end user from indirect calldata. If the transaction lookup
+explicitly returns no transaction, either trade also posts with its confirmed
+event amounts and `Position after: unavailable`. Malformed or noncanonical
+calldata fails closed. stYFI exits still require proven attribution.
 
 A yETH claim is attributed to the account indexed by the canonical Claim event,
 independent of whether the call was direct, Safe-wrapped, or initiated by a
