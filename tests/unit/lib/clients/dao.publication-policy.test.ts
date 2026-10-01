@@ -110,6 +110,33 @@ describe("publication origin after Next.js loopback normalization", () => {
 });
 afterEach(() => vi.unstubAllEnvs());
 describe("public publication route", () => {
+  it.each(["app.dao-ops.com", "dao.yearn.fi"])("accepts exact-origin publication on %s", async host => {
+    vi.stubEnv("NODE_ENV", "production");
+    const response = await POST(new NextRequest(`https://${host}/api/dao-content`, {
+      method: "POST", body: new Uint8Array(identity.bytes),
+      headers: { Origin: `https://${host}`, "Content-Type": "application/octet-stream",
+        "X-DAO-Content-Digest": identity.digest, "X-DAO-Content-CID": identity.cid },
+    }));
+    expect(response.status).toBe(200);
+    expect(publishDaoContent).toHaveBeenCalledExactlyOnceWith(identity.bytes);
+  });
+  it.each([
+    ["app.dao-ops.com", "https://dao.yearn.fi"],
+    ["dao.yearn.fi", "https://app.dao-ops.com"],
+    ["app.dao-ops.com", "https://dao-beta.dao-ops.com"],
+    ["dao.yearn.fi", "http://dao.yearn.fi"],
+    ["dao.yearn.fi", "https://dao.yearn.fi:8443"],
+  ])("rejects foreign origin %s <- %s before publication", async (host, origin) => {
+    vi.stubEnv("NODE_ENV", "production");
+    const response = await POST(new NextRequest(`https://${host}/api/dao-content`, {
+      method: "POST", body: new Uint8Array(identity.bytes),
+      headers: { Origin: origin, "Content-Type": "application/octet-stream",
+        "X-Forwarded-Host": new URL(origin).host, "X-Forwarded-Proto": new URL(origin).protocol.slice(0, -1),
+        "X-DAO-Content-Digest": identity.digest, "X-DAO-Content-CID": identity.cid },
+    }));
+    expect(response.status).toBe(403);
+    expect(publishDaoContent).not.toHaveBeenCalled();
+  });
   it("returns disabled before reading input or contacting services", async () => {
     vi.stubEnv("DAO_PUBLICATION_ENABLED", "false");
     expect((await POST(request(new Uint8Array(131073)))).status).toBe(404);

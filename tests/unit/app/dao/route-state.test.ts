@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   createDaoBoardGroupHref,
   createDaoProposalHref,
+  createDaoProposeHref,
+  createDaoRootHref,
   parseDaoBoardGroup,
   resolveDaoProposalOrigin,
   type DaoBoardGroupCounts,
@@ -64,6 +66,19 @@ describe("DAO route state", () => {
     expect(
       createDaoProposalHref(12n, "closed", "dao-beta.dao-ops.com")
     ).toBe("/proposals/12?from=closed");
+  });
+
+  it.each([
+    ["app.dao-ops.com", "/dao"],
+    ["dao.yearn.fi", ""],
+  ])("keeps board, authoring, and proposal identity on %s", (hostname, prefix) => {
+    const votingAddress = "0x543e8871562a8c53e8b6a26835aeecb3a5a13070";
+    expect(createDaoRootHref(hostname)).toBe(prefix || "/");
+    expect(createDaoProposeHref(hostname)).toBe(`${prefix}/propose`);
+    expect(createDaoProposalHref(0n, "active", hostname, { chainId: 1, votingAddress, proposalId: 0n }))
+      .toBe(`${prefix}/proposals/0?from=active&chain=1&voting=${votingAddress}`);
+    expect(createDaoBoardGroupHref(`https://${hostname}${prefix}?trace=1`, "closed"))
+      .toBe(`${prefix || "/"}?trace=1&group=closed`);
   });
 
   it("cross-links beta surfaces to the guarded DAO beta host", () => {

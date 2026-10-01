@@ -9,6 +9,7 @@ import { DAO_PUBLICATION_DEFAULT_LIMITS as defaults, daoPublicationLimits } from
 import { publishDaoContent, readStoredDaoContent } from "@/lib/server/dao-content";
 import { recoveredBytes } from "@/tests/fixtures/dao-pinata-recovery";
 import { validateDaoPublicationBytes } from "@/lib/clients/dao/publication";
+import { POST, GET } from "@/app/api/dao-content/route";
 vi.mock("@opennextjs/cloudflare", () => ({ getCloudflareContext: async () => ({ env: { DAO_PUBLICATION_DB: db } }) }));
 vi.mock("@/lib/clients/dao/forum", () => ({ validateDaoForumTopic: vi.fn(async (url: string) => ({ state: "valid", topic: { normalizedUrl: url } })) }));
 let db: D1Database, platform: PlatformProxy<{ DAO_PUBLICATION_DB: D1Database }>, directory: string;
@@ -20,6 +21,7 @@ const identity = (n = 0) => deriveDaoProposalContentIdentity({
 async function start() {
   platform = await getPlatformProxy<{ DAO_PUBLICATION_DB: D1Database }>({
     configPath: "tests/fixtures/dao-publication.wrangler.jsonc", persist: { path: directory },
+    remoteBindings: false, envFiles: [],
   });
   db = platform.env.DAO_PUBLICATION_DB;
 }
@@ -40,6 +42,48 @@ beforeEach(async () => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 describe("admission on real local D1", () => {
+  it("publishes through the production route with runtime configuration and retains content during an incident", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_DAO", "true");
+    vi.stubEnv("NEXT_PUBLIC_USE_MOCKS", "false");
+    vi.stubEnv("NEXT_PUBLIC_E2E", "false");
+    const i = identity();
+    const fetcher = vi.fn(async (url: string, options: RequestInit) => {
+      expect(options.redirect).toBe("manual");
+      expect(options.credentials).toBe("omit");
+      if (options.method === "POST") {
+        expect(url).toBe("https://api.pinata.cloud/pinning/pinFileToIPFS");
+        expect(options.headers).toEqual({ Authorization: "Bearer test-only-secret" });
+        expect(new Uint8Array(await ((options.body as FormData).get("file") as Blob).arrayBuffer())).toEqual(i.bytes);
+        return Response.json({ IpfsHash: i.cid, PinSize: i.bytes.length });
+      }
+      expect(url).toBe("https://gateway.example/ipfs/" + i.cid);
+      expect(options.headers).toBeUndefined();
+      return new Response(new Uint8Array(i.bytes));
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const post = (host: string) => POST(new Request(`https://${host}/api/dao-content`, {
+      method: "POST", body: new Uint8Array(i.bytes),
+      headers: { Origin: `https://${host}`, "Content-Type": "application/octet-stream",
+        "X-DAO-Content-Digest": i.digest, "X-DAO-Content-CID": i.cid },
+    }));
+    const first = await post("app.dao-ops.com");
+    expect(first.status).toBe(200);
+    expect(await first.json()).toMatchObject({ state: "published", digest: i.digest, cid: i.cid });
+    expect(await (await post("dao.yearn.fi")).json()).toMatchObject({ state: "already_published" });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    const ledger = await db.prepare("SELECT * FROM dao_publications").all();
+    const policy = await db.prepare("SELECT * FROM dao_publication_policy").all();
+    vi.stubEnv("DAO_PUBLICATION_ENABLED", "false");
+    expect((await post("app.dao-ops.com")).status).toBe(404);
+    vi.stubEnv("DAO_PINATA_JWT", "");
+    const recovered = await GET(new Request("https://dao.yearn.fi/api/dao-content?digest=" + i.digest));
+    expect(recovered.status).toBe(200);
+    expect(new Uint8Array(await recovered.arrayBuffer())).toEqual(i.bytes);
+    expect((await db.prepare("SELECT * FROM dao_publications").all()).results).toEqual(ledger.results);
+    expect((await db.prepare("SELECT * FROM dao_publication_policy").all()).results).toEqual(policy.results);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
   it("serializes same-digest races across independent stores", async () => {
     const requests = await Promise.allSettled(Array.from({ length: 12 }, () => reserve(new DaoPublicationStore(db, defaults))));
     expect(requests.filter(r => r.status === "fulfilled")).toHaveLength(1);
