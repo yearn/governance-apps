@@ -2,8 +2,9 @@
 
 Publication is implemented and disabled by default. Publication acceptance completed on 23 September 2026.
 See the [accepted result](publication-acceptance-20260923.md) and [release checklist](release-checklist.md).
-Independent approval of the closeout corrections and production configuration remain release requirements.
-Use the [canonical preprod procedure](preprod-validation.md) for the current candidate, reported remote setup, and ordered operator steps.
+Preprod is deployed with two successful proposals, according to the operator. Historical acceptance evidence remains complete.
+Use the [canonical production procedure](production-release.md) for candidate review and ordered operator steps.
+The approved production launch sets `DAO_PUBLICATION_ENABLED=true` from its first DAO deployment. The default and incident disablement behavior remain unchanged.
 The September 30, 2026 decision replaces separate production/preprod databases with one shared mainnet publication database.
 The author needs no provider account, upload key, document grant, or publication signature.
 An eligible author publishes reviewed content, then separately authorizes the governance transaction.
@@ -143,9 +144,9 @@ Publication grants no onchain authority. Feed V2 and immutable proposal-content 
 
 ## Configure, replace, or disable
 
-Use the [canonical preprod procedure](preprod-validation.md#continue-after-the-reported-database-setup) after the operator's reported database setup.
-It covers GitHub values, Worker runtime configuration, private secret installation, access protection, exact workflow/source selection, and bounded checks.
-Production later uses the same database, policy, gateway, and JWT through its separate Worker.
+Use the [canonical production procedure](production-release.md) for the current release.
+It covers GitHub values, runtime configuration, private secret installation, exact source selection, and deployment checks using existing content.
+Production uses the same database, policy, gateway, and JWT through its separate Worker.
 Normal operation needs no per-document approval or planned frequent key rotation.
 
 To stop uploads, set `DAO_PUBLICATION_ENABLED=false` through the deployment configuration.
@@ -156,7 +157,9 @@ Application limits do not constrain direct abuse of a stolen provider credential
 
 ## Backup, inventory, and recovery
 
-Before a release backup or policy change, stop publication in both Workers and allow 180 seconds for reservations to expire.
+For a release backup, obtain a point-in-time export and record its time. Publication disablement is not a release requirement.
+An export temporarily blocks database requests. Coordinate timing with preprod use and retain later accounting for any incident reconciliation.
+Before a policy change or incident restoration, stop publication in both Workers and allow 180 seconds for reservations to expire.
 Export the complete database through the operator's Cloudflare account:
 
 ```fish

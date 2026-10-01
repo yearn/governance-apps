@@ -405,11 +405,15 @@ The app owns trusted chain/deployment configuration. One static snapshot contain
 
 ## 11. Runtime and rollout
 
-Production DAO exposure remains feature-gated; production selects only the V2 consumer and live read client, never mocks. Production write methods fail explicitly. Mock/debug actions stay in nonproduction runtime. Invalid deployment configuration surfaces an error without choosing transaction destinations.
+Production DAO exposure remains feature-gated. Production selects the V2 consumer and live domain clients, never mocks.
+Reviewed wallet actions use fresh canonical reads, exact-call simulation, and the shared transaction pipeline.
+Mock/debug actions stay in nonproduction runtime. Invalid deployment configuration surfaces an error without choosing transaction destinations.
 
 Consumer completion precedes external review, explicit producer-start approval, producer implementation, actual-byte interoperability and lifecycle gates, then production approval. The prior V1 freeze and producer-before-consumer dependency are superseded. Historical acceptance remains recorded. V2 may receive coordinated amendments after producer evidence.
 
-Shared-host validation still precedes production host exposure. Existing production flags remain off; protected beta access and noindex policies remain unchanged. Snapshot-era links change only in the approved rollout package.
+Shared-host validation at `app.dao-ops.com/dao` precedes manual dashboard configuration of `dao.yearn.fi`.
+The approved production launch enables DAO reads, wallet actions, and publication. Protected beta access and noindex policies remain unchanged.
+Use the [production procedure](production-release.md) for configuration and release order.
 
 ## 12. Quality requirements
 

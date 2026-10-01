@@ -5,7 +5,17 @@ every accepted merge. When a merge SHA is not known before integration, the
 integrator records it in a small post-merge documentation commit before the next
 package starts.
 
-## Current work (2026-09-30)
+## Current work (2026-10-01)
+
+- The [production handoff](production-release-20261001.md) records the candidate, exact review scope, and automated validation.
+- The operator reports preprod deployed and two successful proposals. The public feed independently contains mainnet IDs 0 and 1.
+- Production uses the same mainnet contracts, producer, Pinata account/gateway/JWT, D1 database, and committed publication policy.
+- The [production procedure](../production-release.md) starts with candidate review and keeps promotion, push, deployment, and private configuration with the operator.
+- Launch includes reads, wallet actions, and publication. No disabled-publication stage or repeated UAT/provider acceptance is required.
+- The existing `governance-apps` Worker and `app.dao-ops.com` route remain. The operator configures `dao.yearn.fi` manually through the existing dashboard procedure.
+- Local validation uses isolated databases and offline provider fixtures. Historical UAT evidence and retained services remain untouched.
+
+## Preprod preparation (historical, 2026-09-30)
 
 - Repository preprod preparation is complete for independent review. The [preparation handoff](preprod-preparation-20260930.md) records the candidate and local validation.
 - The approved infrastructure shares mainnet contracts, producer, Pinata account/gateway/JWT, and one D1 database across both Workers.

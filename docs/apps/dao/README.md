@@ -1,6 +1,7 @@
 # DAO Governance
 
-Publication acceptance completed on 23 September 2026. Production exposure remains disabled pending release approval.
+Publication acceptance completed on 23 September 2026. The operator reports preprod deployed with two successful proposals.
+Production launch includes reads, wallet actions, and publication. Independent candidate review precedes operator deployment.
 The [acceptance record](publication-acceptance-20260923.md) separates checked artifacts, operator observations, and historical limitations.
 The [closeout evidence](delivery/evidence/closeout-20260924/README.md) covers subsequent corrections and offline validation.
 
@@ -8,13 +9,15 @@ The [closeout evidence](delivery/evidence/closeout-20260924/README.md) covers su
 | --- | --- |
 | Architecture, transaction checks, and recovery | [Live services](live-services.md) |
 | Built local walkthrough and real producer snapshots | [Local validation](local-validation.md) |
-| Mainnet preprod preparation, without deployment | [Preprod validation](preprod-validation.md) |
+| Ordered production release and private operator inputs | [Production procedure](production-release.md) |
+| Preprod status, shared infrastructure, and historical preparation | [Preprod reference](preprod-validation.md) |
 | Publication configuration, budgets, backup, and rollback | [Publication operations](pinata-publication.md) |
 | Development, file-based D1 setup, and regression commands | [Local development](local-development.md) and [disposable fork UAT](local-fork-uat.md) |
 | Accepted validation and remaining release work | [Acceptance](publication-acceptance-20260923.md), [release checklist](release-checklist.md), and [delivery status](delivery/status.md) |
 | Dated plans, failed attempts, and evidence locations | [Historical index](delivery/historical-index.md) |
 
-The current candidate lives on `agent/integration`. The exact approved package is `da041f5eaa5abe55ed5221f2642d3f0b047e5315`.
+The current candidate lives on `agent/integration`. The [production handoff](delivery/production-release-20261001.md) records its review range and validation.
+The earlier approved publication package is `da041f5eaa5abe55ed5221f2642d3f0b047e5315`.
 The [integration record](delivery/integration-20260924.md) identifies the merge, added tooling, validation, and remaining release inputs.
 Provider selection and live publication acceptance are closed. The completed A/C/B procedures are historical material.
 
@@ -41,6 +44,12 @@ Writes stay in domain clients and shared useTx. Authoring separates content publ
 
 ## Routes and rollout
 
-Shared hosts use `/dao`, `/dao/proposals/[id]`, and `/dao/propose`. Proposal links carry chain/Voting selection where needed. The existing internal `dao-beta.dao-ops.com` host stays unlisted, noindex and noncanonical; planned `dao.yearn.fi` exposure requires later approval. Forum discussion remains at `gov.yearn.fi`.
+Shared hosts use `/dao`, `/dao/proposals/[id]`, and `/dao/propose`. Proposal links carry chain/Voting selection where needed.
+The existing internal `dao-beta.dao-ops.com` host stays protected, unlisted, noindex, and noncanonical.
+The operator configures `dao.yearn.fi` manually after validation at `app.dao-ops.com/dao`. Wrangler retains only the existing production route.
+Forum discussion remains at `gov.yearn.fi`.
 
-`NEXT_PUBLIC_ENABLE_DAO` gates production routes. `DAO_PUBLICATION_ENABLED` independently gates uploads, which require configured Pinata secrets and durable global admission. Authors need no publication signature or document approval. Production mode has no mock fallback, including on the beta host. The existing production deployment flag remains off. Protected preview-mode environments may review mock actions. See the [runbook](delivery/dao-beta-runbook.md); this reset changes no infrastructure or deployed environment.
+`NEXT_PUBLIC_ENABLE_DAO` gates production routes. `DAO_PUBLICATION_ENABLED` independently gates uploads, which require configured Pinata secrets and durable global admission.
+Both values are `true` for the approved production launch. Publication disablement remains available during an incident.
+Authors need no publication signature or document approval. Production mode has no mock fallback, including on the beta host.
+Protected preview environments can review mock actions. See the [production procedure](production-release.md) for the release configuration.

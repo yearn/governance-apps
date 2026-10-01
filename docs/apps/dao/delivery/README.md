@@ -1,6 +1,7 @@
 # DAO Governance Delivery Plan
 
-Current entry points: [UAT closeout and review handoff](uat-closeout-20260930.md), [delivery status](status.md), and [preprod preparation](../preprod-validation.md).
+Current entry points: [production handoff](production-release-20261001.md), [production procedure](../production-release.md), and [delivery status](status.md).
+The [UAT closeout](uat-closeout-20260930.md) and [preprod preparation](../preprod-validation.md) retain completed-stage evidence.
 The dated sequencing below records the historical delivery plan.
 
 Status (2026-09-10): the accepted mock UI and reviewed V2 reads are integrated. The producer is reported released and active.
@@ -36,7 +37,8 @@ The authorized combined package is `agent/dao/m5/live`, based on `28dd8fff2e7ff0
 
 The [milestone plan](milestone-plan.md) defines implementation, lightweight fork UAT, independent review, and separate release reconciliation/rollout.
 No intermediate package approvals are required within the authorized implementation.
-Historical M2 product gates and the manual fork walkthrough are complete. Independent candidate review and preprod validation remain required before release.
+Historical M2 product gates, manual fork UAT, and Pinata acceptance are complete. The operator reports successful preprod deployment and two proposals.
+Independent production candidate review and the ordered operator procedure remain before release.
 
 ## Agent workflow
 

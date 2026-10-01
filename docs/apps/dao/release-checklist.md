@@ -3,26 +3,46 @@
 Publication acceptance is [complete](publication-acceptance-20260923.md).
 The approved package is integrated. DAO integration through `9bee14b9037396899d8f1d3d3b604eabeeba7427` passed independent review.
 The [UAT closeout](delivery/uat-closeout-20260930.md) retains completed walkthrough evidence and finding dispositions.
-Use the [preparation handoff](delivery/preprod-preparation-20260930.md) for the current candidate and local validation.
-The manual walkthrough and Pinata acceptance are complete. Independent review and authorized preprod deployment preparation are the next gates.
-This checklist does not authorize a merge, deployment, remote change, or production transaction.
+The operator reports preprod deployed and two successful mainnet proposals. The public producer snapshot independently contains proposal IDs 0 and 1.
+These are distinct evidence sources. Repository checks do not independently establish private preprod configuration or its complete deployed behavior.
+Use the [production handoff](delivery/production-release-20261001.md) for the current candidate, validation, and review range.
+Independent candidate review and operator deployment are next. Manual UAT and live Pinata acceptance remain complete.
+The operator owns master promotion, push, deployment, private configuration, and dashboard hostname setup.
 
 ## Remaining release inputs
 
-Follow the [canonical preprod procedure](preprod-validation.md) for the exact remaining inputs and their order.
-The reviewed mainnet JSON and producer identity are recorded there. Public-client RPC URLs and existing application configuration remain operator inputs.
-The operator reports database setup complete. Local preparation did not independently verify remote configuration or migration.
-Private shared-JWT installation, the public gateway, access protection, backup/retention owners, monitoring, and rollback remain operator release checks.
-Production rollout requires separate authorization and workflow/route review.
+Follow the [canonical production procedure](production-release.md) in order:
+
+1. Review the exact candidate and validation report.
+2. Identify the deployment repository and current remote master.
+3. Promote accepted integration history to master.
+4. Push through the existing release process.
+5. Supply GitHub production values while preserving existing applications.
+6. Record the previous working Worker version and obtain a shared-database backup.
+7. Configure production runtime values and install the shared JWT privately.
+8. Dispatch the production workflow from master.
+9. Check the deployed source SHA and Worker version.
+10. Validate `app.dao-ops.com/dao`.
+11. Configure `dao.yearn.fi` manually through the existing dashboard procedure.
+12. Complete the final hostname checks.
+
+Production publication is approved from launch: GitHub `NEXT_PUBLIC_ENABLE_DAO=true` and Worker `DAO_PUBLICATION_ENABLED=true`.
+No disabled-publication stage, new mainnet proposal, upload, transaction, or repeated acceptance campaign is required.
+The production Worker remains `governance-apps`, with the existing `app.dao-ops.com` Wrangler route.
+The final hostname remains a manual dashboard action. Both application host forms retain support.
 
 The retained acceptance configuration and throwaway wallets are not production inputs.
 Both Wrangler files now identify the approved shared database and identical publication policy.
 The September 30, 2026 decision supersedes separate-database and placeholder-ID requirements in historical handoffs.
-Keep `NEXT_PUBLIC_ENABLE_DAO` and `DAO_PUBLICATION_ENABLED` independently gated.
+Keep the build flag and server publication switch separate. Publication disablement remains an incident control.
 Use [publication operations](pinata-publication.md) for shared policy semantics, key replacement, backup, budget recovery, and rollback.
 Do not repeat the completed A/C/B experiment as a normal production procedure.
 
 ## Completed integration procedure (historical)
+
+The procedure below records the September integration scope. Do not rerun it for production release.
+Its earlier branch divergence was addressed by the [master reconciliation](delivery/master-reconciliation-20260926.md).
+The production procedure requires a fresh remote comparison before promotion.
 
 The package includes M5 live at `fc81ae0502efe45ed84367062a57df16c6dab46c` and all reviewed publication/recovery commits.
 Do not cherry-pick the closeout onto the older integration baseline.
@@ -94,7 +114,9 @@ git status --short
 The merge must have two parents. Record its SHA and post-merge results in the delivery ledger.
 Do not push, tag, deploy, or enable flags without the corresponding authorization.
 
-## Before enabling an approved environment
+## Historical enablement checks
+
+The [production procedure](production-release.md) supersedes these earlier launch instructions.
 
 Verify the exact deployment identities independently of the producer feed.
 Check that the RPC supports canonical block-hash reads and simulation; a stale or replaced observation must fail closed.

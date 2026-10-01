@@ -580,11 +580,16 @@ it is evidence for root-font scaling, not a browser-zoom claim.
 
 ## 15. Feed V2 and rollout states
 
-The production route never uses mock fallback. With the existing DAO flag off, routes remain unavailable. Enabled, operator-configured review builds require an exact trusted deployment set and server feed URL. The beta host remains noindex/noncanonical and Access-protected; this task changes no deployed configuration.
+The production route never uses mock fallback. With the DAO flag off, routes remain unavailable.
+The approved production launch enables DAO with the reviewed deployment set, shared producer, and runtime publication configuration.
+Shared-host paths remain under `/dao`. The final hostname uses clean paths after manual dashboard configuration.
+The beta host remains noindex, noncanonical, and Access-protected. Follow the [production procedure](production-release.md).
 
 Use a compact snapshot notice inside the existing route container. Show block time and age even after a successful old response; warn after five minutes. Failed refresh retains the last-good board/detail with an error and Retry. Initial loading, empty feed, unavailable source, incompatible version/deployment and ambiguous multi-deployment selection remain distinct. Proposal URLs include chain and Voting address so ID zero and repeated numeric IDs work.
 
-The current-wallet panel uses a separate observed block, status and effective weight. Disconnected users keep all global data. Wrong network, RPC failure, refreshing or disconnect hides old eligibility. A newer live change may show feed lag without rewriting snapshot fields. Production actions remain explicitly disabled until their packages pass review.
+The current-wallet panel uses a separate observed block, status and effective weight. Disconnected users keep all global data.
+Wrong network, RPC failure, refreshing or disconnect hides old eligibility. A newer live change can show feed lag without rewriting snapshot fields.
+Reviewed production actions require current eligibility and exact-call simulation through the shared transaction pipeline.
 
 ## 16. V2 review evidence
 

@@ -1,6 +1,8 @@
 # DAO preprod procedure
 
-This is the canonical procedure for the protected mainnet beta and its later production rollout.
+The operator reports the protected mainnet beta deployed, with two successful proposals.
+This document retains the preprod infrastructure reference and historical preparation steps.
+Use the [canonical production procedure](production-release.md) for the current release, with publication enabled from launch.
 The September 30, 2026 shared-infrastructure decision supersedes earlier requirements for separate production and preprod databases.
 Repository preparation does not authorize deployment, remote changes, publication, or transactions.
 
@@ -10,9 +12,9 @@ Repository preparation does not authorize deployment, remote changes, publicatio
 | --- | --- |
 | Repository preparation | The candidate retains the shared D1 binding and policy, completes preprod workflow inputs, and records the reviewed deployment JSON. See the [preparation handoff](delivery/preprod-preparation-20260930.md) for local checks and review scope. |
 | Remote setup | The operator reports completing setup steps 1–5, including database setup. This preparation has only local configuration evidence. Remote migration, bindings, secrets, and dashboard values were not independently verified. |
-| Private operator actions | GitHub values, runtime configuration, secret installation, access protection, ownership, and release approval still need operator confirmation. |
-| Preprod deployment | Pending independent review and operator authorization. Read-only checks precede a separately authorized publication check. |
-| Production rollout | A later, separately authorized release. This preparation does not enable production DAO or change production routes. |
+| Private configuration | Preprod success is operator-reported. This production preparation does not independently inspect private runtime values or secrets. |
+| Preprod deployment | Deployed with two successful proposals, according to the operator. A separately retrieved public producer snapshot contains mainnet IDs 0 and 1. |
+| Production rollout | Approved with reads, wallet actions, and publication from launch. Follow the [production procedure](production-release.md) after independent candidate review. |
 
 The [manual UAT closeout](delivery/uat-closeout-20260930.md) and [Pinata acceptance](publication-acceptance-20260923.md) remain completed evidence.
 Do not repeat those campaigns or start their retained services for this preparation.
@@ -51,7 +53,13 @@ Voting, Voter, and Executor code hashes matched the retained producer inventory.
 These are prior review results supplied for this preparation. This task did not repeat the mainnet checks.
 Local parser validation establishes configuration syntax, not current onchain identity.
 
-## Continue after the reported database setup
+## Historical preprod preparation steps
+
+<a id="continue-after-the-reported-database-setup"></a>
+
+These September 30 steps describe the earlier preprod preparation. They are not outstanding production requirements.
+Do not repeat the bounded publication check, manual UAT, or live provider acceptance for this release.
+The earlier disabled-publication stage below does not apply to the approved production launch.
 
 ### 1. Configure GitHub preprod values
 
@@ -183,12 +191,13 @@ Before re-enabling publication, reconcile any restored backup with later attempt
 Content referenced by real proposals remains retained regardless of its originating site.
 Record the retention duration and backup location privately. Public IPFS copies can outlive a provider pin.
 
-For later production rollout, obtain separate approval for production workflow wiring, flags, routes, and the exact release SHA.
-Use the same mainnet JSON, producer, D1 database, publication policy, public gateway, and upload-only JWT.
-Install the JWT privately in `governance-apps` with `wrangler.jsonc` when authorized.
-Keep production publication disabled until its release checks pass. Do not repeat database creation or reset the shared policy.
+For production rollout, follow the [production procedure](production-release.md).
+It uses the same mainnet JSON, producer, D1 database, policy, public gateway, and upload-only JWT.
+Production publication starts enabled. Do not repeat database creation or reset the shared policy.
 
-## Remaining operator inputs
+## Historical preprod inputs
+
+These were the preprod preparation inputs. Current production inputs are listed in the [production procedure](production-release.md#remaining-private-operator-inputs).
 
 - Independent candidate acceptance, workflow revision, source SHA, release operator, and deployment authorization.
 - GitHub preprod values, public-client mainnet RPC URLs, and existing application configuration.
