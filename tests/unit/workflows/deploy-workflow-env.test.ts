@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import ts from "typescript";
+import { DAO_PUBLICATION_DEFAULT_LIMITS } from "@/lib/server/dao-publication-policy";
 
 const expectedRuntimeEnv: Record<string, string> = {
   NODE_ENV: "production",
@@ -36,13 +38,11 @@ const preprodDaoReviewControlsFlag =
 function expectedRuntimeEnvFor(relativePath: string) {
   return {
     ...expectedRuntimeEnv,
-    ...(relativePath.includes("preprod") ? {
-      NEXT_PUBLIC_DAO_DEPLOYMENTS: "${{ vars.NEXT_PUBLIC_DAO_DEPLOYMENTS }}",
-      NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK: '"false"',
-    } : {}),
+    NEXT_PUBLIC_DAO_DEPLOYMENTS: "${{ vars.NEXT_PUBLIC_DAO_DEPLOYMENTS }}",
+    NEXT_PUBLIC_ENABLE_SIMULATION_TRANSPORT_FALLBACK: '"false"',
     NEXT_PUBLIC_ENABLE_DAO: relativePath.includes("preprod")
       ? preprodDaoFlag
-      : '"false"',
+      : "${{ vars.NEXT_PUBLIC_ENABLE_DAO || 'false' }}",
     NEXT_PUBLIC_ENABLE_DAO_REVIEW_CONTROLS: relativePath.includes("preprod")
       ? preprodDaoReviewControlsFlag
       : '"false"',
@@ -137,6 +137,66 @@ describe("preprod worker routes", () => {
     );
 
     expect(wranglerConfig).not.toContain('"pattern": "dao.yearn.fi"');
+  });
+});
+
+describe("production release safeguards", () => {
+  const workflow = readFileSync(".github/workflows/deploy-production.yml", "utf8");
+  function readWranglerConfig(file: string) {
+    const parsed = ts.parseConfigFileTextToJson(file, readFileSync(file, "utf8"));
+    expect(parsed.error).toBeUndefined();
+    return parsed.config;
+  }
+  const production = readWranglerConfig("wrangler.jsonc");
+  const preprod = readWranglerConfig("wrangler.preprod.jsonc");
+
+  it("only dispatches manually from master with the existing environment and concurrency controls", () => {
+    expect(workflow.match(/^on:\n([\s\S]*?)\njobs:/m)?.[1].trim()).toBe("workflow_dispatch:");
+    expect(workflow).toMatch(/^  deploy:\n    name: .+\n    if: github.ref == 'refs\/heads\/master'$/m);
+    expect(workflow).toContain("    environment: production\n");
+    expect(workflow).toContain("    concurrency:\n      group: deploy-production\n      cancel-in-progress: false\n");
+  });
+
+  it("checks out the dispatch SHA and records the checked-out commit without configuration values", () => {
+    expect(workflow).toMatch(/uses: actions\/checkout@[^\n]+\n        with:\n          ref: \$\{\{ github.sha \}\}/);
+    expect(workflow).not.toMatch(/ref: master/);
+    expect(workflow).toContain("run: git log -1 --format='Checked-out source SHA:%x20%H' | tee -a \"$GITHUB_STEP_SUMMARY\"");
+  });
+
+  it("preserves OpenNext deployment and dashboard runtime variables", () => {
+    const { scripts } = JSON.parse(readFileSync("package.json", "utf8"));
+    expect(scripts["worker:deploy:prod"]).toBe("opennextjs-cloudflare deploy -c wrangler.jsonc -- --keep-vars");
+    expect(scripts["worker:deploy:preprod"]).toBe("opennextjs-cloudflare deploy -c wrangler.preprod.jsonc -- --keep-vars");
+    expect(workflow).not.toMatch(/(?:NEXT_PUBLIC_)?DAO_PUBLICATION_ENABLED|DAO_PINATA_JWT/);
+    expect(production.vars).not.toHaveProperty("DAO_PUBLICATION_ENABLED");
+    expect(production.vars).not.toHaveProperty("DAO_PINATA_JWT");
+  });
+
+  it("preserves the production Worker, route, assets, and self reference", () => {
+    expect(production.name).toBe("governance-apps");
+    expect(preprod.name).toBe("governance-apps-preprod");
+    expect(production.routes).toEqual([{ pattern: "app.dao-ops.com", custom_domain: true }]);
+    expect(production.assets).toEqual({ directory: ".open-next/assets", binding: "ASSETS" });
+    expect(production.services).toEqual([{ binding: "WORKER_SELF_REFERENCE", service: "governance-apps" }]);
+    expect(preprod.services).toEqual([{ binding: "WORKER_SELF_REFERENCE", service: "governance-apps-preprod" }]);
+    for (const config of [production, preprod]) {
+      expect(config.routes.some((route: { pattern: string }) => route.pattern.includes("dao.yearn.fi"))).toBe(false);
+    }
+  });
+
+  it("preserves the shared database and identical approved publication policy", () => {
+    const binding = [{ binding: "DAO_PUBLICATION_DB", database_name: "dao-publication",
+      database_id: "66d8bf6b-9b2c-41d2-afa1-19647ea9725e", migrations_dir: "migrations/dao-publication" }];
+    expect(production.d1_databases).toEqual(binding);
+    expect(preprod.d1_databases).toEqual(binding);
+    expect(production.vars.DAO_PUBLICATION_LIMITS).toBe(preprod.vars.DAO_PUBLICATION_LIMITS);
+    expect(JSON.parse(production.vars.DAO_PUBLICATION_LIMITS)).toEqual({
+      hourlyDocuments: 10, dailyDocuments: 30, monthlyDocuments: 100, documents: 400,
+      bytes: 52428800, concurrent: 2, uploadAttempts: 1200, documentUploadAttempts: 3,
+      retrievalAttempts: 2400, documentRetrievalAttempts: 6, documentReservations: 6,
+    });
+    // Deployment overrides must not silently replace the conservative application defaults.
+    expect(DAO_PUBLICATION_DEFAULT_LIMITS).toMatchObject({ hourlyDocuments: 2, documents: 300, uploadAttempts: 500 });
   });
 });
 
