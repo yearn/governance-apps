@@ -87,6 +87,7 @@ export type DaoMarkdownNode = {
   children?: DaoMarkdownNode[];
   value?: string;
   depth?: number;
+  headingId?: string;
   url?: string;
   alt?: string | null;
   ordered?: boolean;
@@ -272,6 +273,7 @@ export function parseDaoProposalContent(
   const attachments: DaoResolvedProposalAttachment[] = [];
   const validAttachmentOffsets = new Set<number>();
   const headings: MarkdownVisit[] = [];
+  const headingIds = new Set<string>();
 
   walkMarkdown(ast, (visit) => {
     const { node } = visit;
@@ -295,12 +297,25 @@ export function parseDaoProposalContent(
       documentErrors.push(
         errorAt(
           "UNSAFE_LINK",
-          "Links must use HTTPS, a validated IPFS URL, or one root-relative app path.",
+          "Links must use HTTPS, a validated IPFS URL, one root-relative app path, or a section fragment such as #references.",
           node
         )
       );
     }
-    if (node.type === "heading") headings.push(visit);
+    if (node.type === "heading") {
+      const slug = inlineText(node)
+        .normalize("NFC")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{M}\p{N}_\s-]/gu, "")
+        .trim()
+        .replace(/\s+/gu, "-") || "section";
+      let id = slug;
+      let suffix = 0;
+      while (headingIds.has(id)) id = `${slug}-${++suffix}`;
+      node.headingId = id;
+      headingIds.add(id);
+      headings.push(visit);
+    }
     if (node.type === "image") {
       if (!(node.alt ?? "").trim()) {
         documentErrors.push(
@@ -771,8 +786,19 @@ function isCanonicalRawSha256Cid(value: string): boolean {
   }
 }
 
+export function getDaoMarkdownFragmentId(value: string): string | null {
+  if (!value.startsWith("#")) return null;
+  try {
+    const fragment = decodeURIComponent(value.slice(1)).normalize("NFC").toLowerCase();
+    return /^[\p{L}\p{M}\p{N}_-]+$/u.test(fragment) ? fragment : null;
+  } catch {
+    return null;
+  }
+}
+
 function isSafeDaoMarkdownLink(value: string): boolean {
   if (!value || containsUnsafeControl(value) || value.includes("\\")) return false;
+  if (value.startsWith("#")) return getDaoMarkdownFragmentId(value) !== null;
   if (value.startsWith("/")) {
     return !value.startsWith("//") && !value.startsWith("/dao//");
   }

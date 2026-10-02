@@ -42,6 +42,32 @@ function parsed(): ReturnType<typeof parseDaoProposalContent> {
 }
 
 describe("DaoProposalMarkdown", () => {
+  it("keeps section links in the current document and gives duplicate headings distinct targets", () => {
+    const content = parseDaoProposalContent({
+      ...parsedContent(),
+      markdown: "# Links\n\nSummary.\n\n[First](#references), [Second](#references-1), [Unicode](#r%C3%A9f%C3%A9rences).\n\n## References\n\nFirst source.\n\n## References\n\nSecond source.\n\n## Références\n\nThird source.",
+    });
+    expect(content.errors).toEqual([]);
+    render(<DaoProposalMarkdown parsed={content} context="detail" omitTitle omitSummary />);
+    const headings = screen.getAllByRole("heading", { name: "References" });
+    expect(headings[0]).toHaveAttribute("id", "dao-detail-heading-references");
+    expect(headings[1]).toHaveAttribute("id", "dao-detail-heading-references-1");
+    expect(headings[0]).toHaveAttribute("tabindex", "-1");
+    expect(screen.getByRole("link", { name: "First" })).toHaveAttribute("href", `#${headings[0].id}`);
+    expect(screen.getByRole("link", { name: "Second" })).toHaveAttribute("href", `#${headings[1].id}`);
+    expect(screen.getByRole("link", { name: "First" })).not.toHaveAttribute("target");
+    expect(screen.getByRole("link", { name: "Unicode" })).toHaveAttribute("href", "#dao-detail-heading-r%C3%A9f%C3%A9rences");
+  });
+
+  it("scopes preview IDs separately from detail and retains the omitted title target", () => {
+    const content = parseDaoProposalContent({ ...parsedContent(), markdown: "# Links\n\nSummary.\n\n[Top](#links).\n\n## constructor\n\nDetails." });
+    const { container } = render(<><DaoProposalMarkdown parsed={content} context="detail" omitTitle /><DaoProposalMarkdown parsed={content} context="preview" /></>);
+    const ids = Array.from(container.querySelectorAll("[id]")).map((node) => node.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(container.querySelector("#dao-detail-heading-links")).not.toBeNull();
+    expect(screen.getAllByRole("heading", { name: "constructor" }).map((node) => node.id)).toEqual(["dao-detail-heading-constructor", "dao-preview-heading-constructor"]);
+  });
+
   it("maps preview headings below the authoring route H1", () => {
     render(<DaoProposalMarkdown parsed={parsed()} context="preview" />);
 

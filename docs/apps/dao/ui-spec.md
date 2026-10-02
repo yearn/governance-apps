@@ -290,7 +290,9 @@ Use one `Proposal Markdown` textarea beneath named Write and Preview tabs. The
 route H1 remains `Create proposal`; form sections are H2. Preview renders the
 parsed title at H3 and maps source H2 through H4 to H4 through H6. The first H1
 is the title, the following paragraph is the summary, and body content follows.
-Ordinary supporting links stay in Markdown.
+Ordinary supporting links stay in Markdown. Same-document section links such as
+`[References](#references)` work in Preview, final review, and proposal detail.
+Repeated headings use numeric suffixes such as `#references-1`.
 
 Show one tabular UTF-8 byte counter against the 32,768-byte limit and the stable
 domain errors below the editor. Tabs use `tablist`, `tab`, and `tabpanel`, with
@@ -298,6 +300,15 @@ Arrow, Home, and End keyboard behavior. A failed Review while Preview is active
 returns to Write, focuses the textarea, sets the deterministic UTF-16 caret to
 the first located error, and scrolls it into view. Focus waits until the Write
 textarea is mounted. Do not intercept Tab inside the textarea.
+
+Show source line numbers in a non-interactive gutter. Each number identifies one
+source line, including blank lines and a trailing empty line. Soft-wrapped text
+does not increment the number. The gutter follows textarea scrolling and updates
+when the content, editor size, or font metrics change. The native textarea keeps
+selection, undo, spellcheck, and keyboard navigation. Hide the gutter and its
+measurement mirror from assistive technology; the textarea label and validation
+description remain the accessible editing interface. Mock and live authoring
+use the same editor.
 
 Preview, final review, and detail share one safe AST renderer. Raw HTML and
 unsupported nodes never render, and `dangerouslySetInnerHTML` is forbidden.
