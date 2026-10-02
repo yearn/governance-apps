@@ -275,6 +275,20 @@ test("keeps nested row controls independent of the stretched proposal link", asy
   expect(popup.url()).toMatch(/etherscan\.io\/address\//);
   await popup.close();
   await expect(page).toHaveURL(/\/dao\?group=active$/);
+
+  const discussion = row.getByRole("link", {
+    name: "Open this proposal's forum discussion in a new tab",
+  });
+  await page.context().route("https://gov.yearn.fi/t/**", (route) => route.fulfill({
+    contentType: "text/html",
+    body: "<title>Forum discussion</title>",
+  }));
+  const discussionPopupPromise = page.waitForEvent("popup");
+  await discussion.click();
+  const discussionPopup = await discussionPopupPromise;
+  await discussionPopup.waitForURL(/gov\.yearn\.fi\/t\//);
+  await discussionPopup.close();
+  await expect(page).toHaveURL(/\/dao\?group=active$/);
 });
 
 test("makes no dead-loopback RPC request while hydrating every DAO route", async ({
@@ -542,12 +556,11 @@ test("renders DAO proposal detail and not-found shells", async ({ page }) => {
     })
   ).toHaveAttribute("target", "_blank");
 
-  for (const label of ["Proposal #2", "Proposal ID", "Status", "Type"]) {
-    await expect(page.getByText(label, { exact: true }).first()).toHaveCSS(
-      "color",
-      "rgb(82, 82, 82)"
-    );
-  }
+  await expect(page.getByText("Proposal #2", { exact: true }).first()).toHaveCSS(
+    "color",
+    "rgb(82, 82, 82)"
+  );
+  await expect(page.getByText("Proposal ID", { exact: true })).toHaveCount(0);
   await expect(
     page.getByText(/\b(mock|fixture|prototype|qa|implementation)\b/i)
   ).toHaveCount(0);

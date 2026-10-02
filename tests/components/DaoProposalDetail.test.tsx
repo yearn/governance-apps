@@ -42,7 +42,7 @@ describe("DAO proposal detail", () => {
         screen.getByRole("heading", { name: "Lifecycle" })
       ).toBeVisible();
       expect(
-        screen.getByRole("heading", { name: "Immutable proposal content" })
+        screen.getByRole("heading", { name: "Proposal content" })
       ).toBeVisible();
       unmount();
     }
@@ -106,6 +106,23 @@ describe("DAO proposal detail", () => {
     expect(screen.getByText(/Yea.*Nay/i)).toBeVisible();
   });
 
+  it("shows a safe forum link even when category metadata is unavailable", () => {
+    const value = structuredClone(proposal(2n));
+    value.discussion.state = "unverified";
+    render(<ProposalDetail envelope={envelope(value)} />);
+    expect(screen.getByRole("link", { name: "Open this proposal's forum discussion in a new tab" }))
+      .toHaveAttribute("href", value.discussion.url);
+    expect(screen.queryByText(/not a verified|verified Proposals-category/i)).not.toBeInTheDocument();
+  });
+
+  it.each([null, "javascript:alert(1)", "https://other.example/t/proposal/1"])("omits unavailable or unsafe forum link %s", (url) => {
+    const value = structuredClone(proposal(2n));
+    value.discussion.url = url;
+    render(<ProposalDetail envelope={envelope(value)} />);
+    expect(screen.queryByRole("link", { name: "Open this proposal's forum discussion in a new tab" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/no forum discussion|no verified forum/i)).not.toBeInTheDocument();
+  });
+
   it.each([
     [14n, "Immutable content could not be retrieved", "Content gateway"],
     [
@@ -137,12 +154,23 @@ describe("DAO proposal detail", () => {
     expect(screen.getByRole("heading", { name: "Proposed script" })).toBeVisible();
     expect(screen.getAllByText(/script.*unavailable|missing script/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Analysis pending|simulation succeeded/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("Unknown call")).not.toBeInTheDocument();
+    expect(screen.queryByText("Raw call data")).not.toBeInTheDocument();
   });
 
-  it("retains raw unknown calls and the configured source reference", () => {
-    render(<ProposalDetail envelope={envelope(proposal(17n))} />);
-    expect(screen.getAllByText("Unknown call").length).toBeGreaterThan(0);
+  it("explains missing decoding once and retains exact call data for inspection", () => {
+    const value = proposal(17n);
+    render(<ProposalDetail envelope={envelope(value)} />);
+    expect(screen.getAllByText("Raw call data")).toHaveLength(value.analysis.calls.length);
+    expect(screen.getAllByText(/Some calls are shown as raw data/)).toHaveLength(1);
+    expect(screen.queryByText("Unknown contract")).not.toBeInTheDocument();
+    expect(screen.queryByText("No verified source")).not.toBeInTheDocument();
+    for (const [index, summary] of screen.getAllByText("Call data", { exact: true }).entries()) {
+      const disclosure = summary.closest("details")!;
+      expect(disclosure).not.toHaveAttribute("open");
+      fireEvent.click(summary);
+      const calldataRow = within(disclosure).getByText("Calldata", { exact: true }).parentElement!;
+      expect(within(calldataRow).getByText(value.analysis.calls[index].calldata, { exact: true })).toBeVisible();
+    }
     expect(screen.getAllByText("Calldata").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Voting.vy at pinned stYFI revision" })
       .every((link) => link.getAttribute("href") === PINNED_VOTING_SOURCE_URL)).toBe(true);
@@ -155,6 +183,15 @@ describe("DAO proposal detail", () => {
     expect(screen.queryByText(/Simulation failed|proposal-time simulation/i)).not.toBeInTheDocument();
   });
 
+  it("keeps script mismatches prominent and failed decoding distinct", () => {
+    const value = structuredClone(proposal(17n));
+    value.script.hashVerified = false;
+    value.analysis.calls[0].decodeStatus = "failed";
+    render(<ProposalDetail envelope={envelope(value)} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Event script does not match the stored script hash");
+    expect(screen.getByText("Unable to decode")).toBeVisible();
+  });
+
   it("renders optional locally reviewed decoding without synthesizing a source URL", () => {
     const feed = structuredClone(DAO_MOCK_FEED);
     const value = feed.proposals.find(
@@ -163,6 +200,7 @@ describe("DAO proposal detail", () => {
     if (!value) throw new Error("Missing proposal #2.");
     value.analysis.calls[0] = {
       ...value.analysis.calls[0],
+      decodeStatus: "verified",
       contractName: "vaultFactory.v2",
       functionSignature: "rebalance_v2()",
       verifiedSource: {
@@ -177,6 +215,11 @@ describe("DAO proposal detail", () => {
 
     expect(screen.getByText("vaultFactory.v2", { exact: true })).toBeVisible();
     expect(screen.getByText("rebalance_v2()", { exact: true })).toBeVisible();
+    expect(screen.getByText("Decoded call", { exact: true })).toBeVisible();
+    const firstCallData = screen.getAllByText("Call data", { exact: true })[0];
+    fireEvent.click(firstCallData);
+    const calldataRow = within(firstCallData.closest("details")!).getByText("Calldata", { exact: true }).parentElement!;
+    expect(within(calldataRow).getByText(value.analysis.calls[0].calldata, { exact: true })).toBeVisible();
     expect(
       screen.getByRole("link", { name: "Verified Vault source" })
     ).toHaveAttribute(

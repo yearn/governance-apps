@@ -29,7 +29,7 @@ test("renders saved V2 through real routes without wallet RPC or mocks", async (
     await page.screenshot({ path: captureDirectory + "/board-" + viewport.width + ".png" });
   }
   await zero.click();
-  await expect(page.getByRole("heading", { name: "Immutable proposal content" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proposal content" })).toBeVisible();
   await expect(page.getByText(/Connect.*wallet.*(vote|eligibility|participate)/i).first()).toBeVisible();
   await expect(page.getByText("Vote account", { exact: true }).first()).toBeVisible();
 
@@ -51,11 +51,11 @@ test("renders saved V2 through real routes without wallet RPC or mocks", async (
   failed = true;
   await page.getByRole("button", { name: "Retry" }).first().click();
   await expect(page.getByText(/last.*valid|last.*good/i).first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Immutable proposal content" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proposal content" })).toBeVisible();
   failureStatus = 409;
   await page.getByRole("button", { name: "Retry" }).first().click();
   await expect(page.getByText(/feed version is incompatible/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Immutable proposal content" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Proposal content" })).toBeVisible();
   failed = false;
 
   await page.goto("/dao/proposals/9?chain=1&voting=0x1111111111111111111111111111111111111111");

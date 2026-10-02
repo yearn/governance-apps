@@ -57,7 +57,7 @@ test("keeps the action panel reachable, responsive, and keyboard safe", async ({
     await expect(results.locator("details")).not.toHaveAttribute("open", "");
     const resultsBox = await results.boundingBox();
     const contentHeading = page.getByRole("heading", {
-      name: "Immutable proposal content",
+      name: "Proposal content",
     });
     const actionBox = await actionHeading.boundingBox();
     const contentBox = await contentHeading.boundingBox();

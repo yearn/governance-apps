@@ -5,6 +5,7 @@ import { DAO_EMPTY_SCRIPT_HASH, deriveDaoDisplayGroup, deriveDaoDisplayStatus } 
 import { readDaoContentBytes } from "./content-bytes";
 import { DAO_PINNED_VOTING_SOURCE } from "./provenance";
 import { analyzeDaoScript } from "./script-analysis";
+import { getDaoDiscussionUrl } from "./read-display";
 import type { DaoSnapshot, DaoProposal, DaoProtocolStatus } from "./types";
 
 export function adaptDaoProposal(
@@ -22,6 +23,7 @@ export function adaptDaoProposal(
   const displayStatus = deriveDaoDisplayStatus(protocolStatus, type);
   const supported = deployment.supportedExecutors.includes(configuration.executor as Address);
   const content = readDaoContentBytes(p.contentBytes, p.contentDigest as Hex);
+  const discussionUrl = getDaoDiscussionUrl(content.value?.discussionUrl);
   const events: DaoProposal["events"] = p.events.map((e) => ({
     type: e.type,
     log: { ...e.log, blockNumber: BigInt(e.log.blockNumber), blockHash: e.log.blockHash as Hex, transactionHash: e.log.transactionHash as Hex },
@@ -59,9 +61,9 @@ export function adaptDaoProposal(
     },
     content,
     discussion: {
-      state: content.value?.discussionUrl ? "unverified" : "unavailable",
+      state: discussionUrl ? "unverified" : "unavailable",
       // Canonical content does not verify a live forum topic or ancestry.
-      url: safeDiscussionUrl(content.value?.discussionUrl),
+      url: discussionUrl,
       title: null, categoryId: null, category: null, categorySlugPath: [],
     },
     script: {
@@ -76,15 +78,6 @@ export function adaptDaoProposal(
       vetoReason: events.findLast((e) => e.type === "veto")?.reason ?? null,
     },
   };
-}
-
-function safeDiscussionUrl(value: string | undefined): string | null {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && url.hostname === "gov.yearn.fi" &&
-      !url.username && !url.password && !url.port ? value : null;
-  } catch { return null; }
 }
 
 export function adaptDaoFeed(feed: DaoFeedWire, deployments: readonly DaoDeployment[]): DaoSnapshot {

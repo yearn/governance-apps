@@ -174,28 +174,29 @@ describe("DAO proposal detail shell", () => {
     expect(screen.getAllByText("Voting").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Executable").length).toBeGreaterThan(0);
 
-    const proposalIdLabel = screen.getByText("Proposal ID", { exact: true });
-    const proposalMetadata = proposalIdLabel.closest("dl");
-    if (!proposalMetadata) {
-      throw new Error("Proposal metadata list is required for route tests.");
-    }
-    const statusLabel = within(proposalMetadata).getByText("Status", {
-      exact: true,
-    });
-    const typeLabel = within(proposalMetadata).getByText("Type", {
-      exact: true,
-    });
-    expect(proposalIdLabel).toHaveClass("text-text-secondary");
-    expect(statusLabel).toHaveClass("text-text-secondary");
-    expect(typeLabel).toHaveClass("text-text-secondary");
-    expect(proposalIdLabel.nextElementSibling).toHaveClass("font-number");
-    expect(statusLabel.nextElementSibling).not.toHaveClass("font-number");
-    expect(typeLabel.nextElementSibling).not.toHaveClass("font-number");
+    expect(screen.getByText("Proposal #2", { exact: true })).toHaveClass("font-number", "text-text-secondary");
+    expect(screen.queryByText("Proposal ID", { exact: true })).not.toBeInTheDocument();
     expect(
       screen.getByRole("link", {
         name: "Open this proposal's forum discussion in a new tab",
       })
     ).toHaveAttribute("target", "_blank");
+  });
+
+  it("places snapshot freshness inside the proposal overview after its title", () => {
+    const { container } = render(
+      <DaoProposalView
+        envelope={detailEnvelope(proposal)}
+        onRetry={vi.fn()}
+        proposalId="2"
+        snapshotNotice={<span data-testid="snapshot-freshness">Snapshot · 2m ago</span>}
+        state="ready"
+      />
+    );
+    const overview = container.querySelector("article > .bg-surface");
+    expect(overview).not.toBeNull();
+    expect(within(overview as HTMLElement).getByRole("heading", { level: 1 })).toBeVisible();
+    expect(within(overview as HTMLElement).getByTestId("snapshot-freshness")).toBeVisible();
   });
 
   it("keeps detail hierarchy navigation clean on the DAO beta host", () => {

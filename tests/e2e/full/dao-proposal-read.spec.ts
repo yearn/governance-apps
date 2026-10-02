@@ -258,7 +258,7 @@ test("contains proposed script and technical values at every review viewport", a
     }
 
     const immutableHeading = page.getByRole("heading", {
-      name: "Immutable proposal content",
+      name: "Proposal content",
     });
     const resultsHeading = page.getByRole("heading", { name: "Vote results" });
     await expect(immutableHeading).toBeVisible();
@@ -266,10 +266,11 @@ test("contains proposed script and technical values at every review viewport", a
     await expect(
       page.getByRole("heading", { name: "Proposed script" })
     ).toBeVisible();
-    await expect(page.getByText("Unknown call").first()).toBeVisible();
-    await expect(
-      page.getByText("No verified source", { exact: true }).first(),
-    ).toBeVisible();
+    await expect(page.getByText("Raw call data").first()).toBeVisible();
+    await expect(page.getByText("No verified source", { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/Some calls are shown as raw data/)).toBeVisible();
+    await page.getByText("Call data", { exact: true }).first().click();
+    await expect(page.getByText("Calldata", { exact: true }).first()).toBeVisible();
     await page.getByText("Proposal rules", { exact: true }).click();
     await expect(
       page
@@ -461,9 +462,14 @@ test("keeps onchain records and trust failures explicit", async ({ page }) => {
   ).toBeVisible();
 
   await page.goto("/dao/proposals/20");
+  const discussion = page.getByRole("link", {
+    name: "Open this proposal's forum discussion in a new tab",
+  });
+  await expect(discussion).toHaveAttribute("href", "https://gov.yearn.fi/t/dao-proposal/20");
+  await expect(discussion).toHaveAttribute("rel", "noopener noreferrer");
   await expect(
     page.getByText(/not a verified Proposals-category topic/)
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expectNoDocumentOverflow(page, "trust failure fixtures");
 });
 

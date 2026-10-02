@@ -42,9 +42,9 @@ for (const { host, prefix } of [
       await expect(proposal).toHaveAttribute("href", `${prefix}/proposals/0?from=active&chain=1&voting=0x1111111111111111111111111111111111111111`);
       await proposal.click();
       await expect(page).toHaveURL(new RegExp(`${prefix}/proposals/0\\?`));
-      await expect(page.getByRole("heading", { name: "Immutable proposal content" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Proposal content" })).toBeVisible();
       await page.reload();
-      await expect(page.getByRole("heading", { name: "Immutable proposal content" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Proposal content" })).toBeVisible();
       const back = page.getByRole("navigation", { name: "Proposal hierarchy" })
         .getByRole("link", { name: "Proposals", exact: true });
       await expect(back).toHaveAttribute("href", root);

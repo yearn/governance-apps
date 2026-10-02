@@ -62,8 +62,8 @@ describe("DAO proposal board", () => {
       name: /Guarded executable proposal/,
     });
     expect(
-      within(normal).getByText("Executable actions", { exact: true })
-    ).toBeVisible();
+      within(normal).queryByText("Executable actions", { exact: true })
+    ).not.toBeInTheDocument();
     expect(
       within(normal).queryByText("Execution blocked", { exact: true })
     ).not.toBeInTheDocument();
@@ -280,6 +280,27 @@ describe("DAO proposal board", () => {
     expect(
       within(row!).getByRole("button", { name: "Copy proposed by" })
     ).toBeEnabled();
+    const discussionLink = within(row!).getByRole("link", { name: "Open this proposal's forum discussion in a new tab" });
+    expect(discussionLink).toHaveClass("relative", "z-10");
+    expect(discussionLink).toHaveAttribute("target", "_blank");
+    expect(discussionLink).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("shows safe forum links without requiring optional category metadata", () => {
+    const proposal = structuredClone(DAO_MOCK_FEED.proposals.find((entry) => entry.ref.proposalId === 2n)!);
+    proposal.discussion.state = "unverified";
+    render(<ProposalBoard now={now} proposals={[proposal]} />);
+    expect(screen.getByRole("link", { name: "Open this proposal's forum discussion in a new tab" }))
+      .toHaveAttribute("href", proposal.discussion.url);
+    expect(screen.queryByText(/verified.*discussion|discussion.*unverified/i)).not.toBeInTheDocument();
+  });
+
+  it.each([null, "javascript:alert(1)", "https://other.example/t/proposal/1"])("omits unavailable or unsafe forum link %s", (url) => {
+    const proposal = structuredClone(DAO_MOCK_FEED.proposals.find((entry) => entry.ref.proposalId === 2n)!);
+    proposal.discussion.url = url;
+    render(<ProposalBoard now={now} proposals={[proposal]} />);
+    expect(screen.queryByRole("link", { name: "Open this proposal's forum discussion in a new tab" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/forum discussion.*unavailable|no verified forum/i)).not.toBeInTheDocument();
   });
 
   it("uses clean proposal paths on the guarded DAO beta host", () => {

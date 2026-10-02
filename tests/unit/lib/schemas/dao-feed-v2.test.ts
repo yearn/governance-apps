@@ -133,7 +133,7 @@ describe("DAO V2 interpretation", () => {
     expect(feed.proposals[17].content.state).toBe("invalid");
     expect(feed.proposals[18].content.error).toMatch(/digest/);
     expect(feed.proposals[19].content.error).toMatch(/HTML/);
-    expect(feed.proposals[25].discussion).toMatchObject({ state: "unverified", url: null });
+    expect(feed.proposals[25].discussion).toMatchObject({ state: "unavailable", url: null });
     const bad = wire(); bad.proposals[0].contentBytes = "%%%";
     expect(accepts(bad)).toBe(true);
     const content = adaptDaoFeed(parseDaoFeed(bad), V2_DEPLOYMENTS).proposals[0].content;
