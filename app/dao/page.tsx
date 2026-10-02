@@ -12,10 +12,12 @@ import { resolveRequestHostname } from "@/lib/runtime/request-host";
 export const viewport = daoViewport;
 export const dynamic = "force-dynamic";
 
-export function generateMetadata() {
-  return isDaoEnabled()
-    ? createDaoRouteMetadata("DAO Governance | Yearn Finance")
-    : daoNotFoundMetadata;
+export async function generateMetadata() {
+  if (!isDaoEnabled()) return daoNotFoundMetadata;
+  const requestHeaders = await headers();
+  return createDaoRouteMetadata("DAO Governance | Yearn Finance", {
+    hostname: resolveRequestHostname(requestHeaders, ""),
+  });
 }
 
 export default async function DaoPage() {
