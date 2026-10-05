@@ -166,6 +166,42 @@ describe("validate-dependency-policy", () => {
     );
   });
 
+  it("accepts the pinned TypeScript CLI and API development aliases", () => {
+    const cwd = createTempRepo({
+      devDependencies: {
+        "@typescript/native": "npm:typescript@7.0.2",
+        typescript: "npm:@typescript/typescript6@6.0.2",
+      },
+    });
+
+    expect(runValidator(cwd).status).toBe(0);
+  });
+
+  it.each([
+    ["@typescript/native", "npm:typescript@^7.0.2"],
+    ["@typescript/native", "npm:typescript@latest"],
+    ["@typescript/native", "npm:typescript"],
+    ["@typescript/native", "npm:unreviewed-compiler@7.0.2"],
+    ["typescript", "npm:@typescript/typescript6@~6.0.2"],
+    ["typescript", "npm:@typescript/typescript6@next"],
+    ["other", "npm:typescript@7.0.2"],
+  ])("rejects an unpinned or unreviewed development alias %s@%s", (name, version) => {
+    const cwd = createTempRepo({ devDependencies: { [name]: version } });
+
+    expect(runValidator(cwd).status).not.toBe(0);
+  });
+
+  it.each(["dependencies", "optionalDependencies", "peerDependencies"])(
+    "rejects TypeScript aliases in %s",
+    (section) => {
+      const cwd = createTempRepo({
+        [section]: { "@typescript/native": "npm:typescript@7.0.2" },
+      });
+
+      expect(runValidator(cwd).status).not.toBe(0);
+    }
+  );
+
   it("fails when dependencies use non-semver tags", () => {
     const cwd = createTempRepo({
       dependencies: {

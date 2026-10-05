@@ -88,9 +88,28 @@ function isAllowedOverrideSpecifier(value) {
   return normalized.startsWith("$");
 }
 
+// TypeScript 7 supplies the CLI; Next.js and ESLint still need the 6.x API.
+// Only these documented development aliases may use an npm protocol specifier.
+const typescriptTransitionAliases = new Map([
+  ["@typescript/native", "typescript"],
+  ["typescript", "@typescript/typescript6"],
+]);
+
+function isPinnedTypeScriptAlias(sectionName, name, version) {
+  if (sectionName !== "devDependencies" || typeof version !== "string") {
+    return false;
+  }
+  const target = typescriptTransitionAliases.get(name);
+  if (!target) return false;
+  const prefix = `npm:${target}@`;
+  return version.startsWith(prefix) &&
+    isExactSemverSpecifier(version.slice(prefix.length));
+}
+
 function assertPinnedSection(sectionName, deps = {}) {
-  const offenders = Object.entries(deps).filter(([, version]) =>
-    !isExactSemverSpecifier(version)
+  const offenders = Object.entries(deps).filter(([name, version]) =>
+    !isExactSemverSpecifier(version) &&
+    !isPinnedTypeScriptAlias(sectionName, name, version)
   );
   if (offenders.length === 0) return [];
   return offenders.map(
