@@ -28,7 +28,7 @@
     "ALERTS_TEAMS_ENABLED": "true",
     "ALERTS_YBC_ENABLED": "true",
     // Enable DAO after configuring its chat and reviewing private replay.
-    "ALERTS_DAO_ENABLED": "false",
+    "ALERTS_DAO_ENABLED": "true",
     "DAO_ALERT_VOTES_ENABLED": "true",
     "CONFIRMATIONS": "6",
     "MAX_MESSAGES_PER_RUN": "5",
