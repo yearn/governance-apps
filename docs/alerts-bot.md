@@ -8,7 +8,8 @@ Each stream owns an independent Durable Object and Telegram destination. It does
 not migrate or adopt the old singleton's cursor.
 
 For the DAO addition, use the [DAO catalogue and rollout](apps/dao/telegram-alerts.md).
-DAO starts disabled. The existing five committed flags are enabled.
+All six committed flags are now enabled. New installations must configure destinations before enabling delivery.
+DAO content uses the website's configured feed through a service binding; no duplicate feed URL is required.
 The original singleton cutover instructions below describe the earlier five-stream rollout;
 adding DAO does not require that cutover again.
 

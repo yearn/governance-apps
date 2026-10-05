@@ -94,6 +94,7 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     const link = `https://dao.yearn.fi/proposals/${p.id}?chain=1&voting=${DAO_VOTING}`;
     lines.push(`<b>${titles[action.event]}</b>`, "", `<a href="${escape(link)}">Proposal #${p.id}</a> · ${signal ? "Signal" : "Executable"}`);
     if (content?.title) lines.push(`<b>${text(content.title, 140)}</b>`);
+    else lines.push("Proposal title unavailable. Open the proposal for details.");
     if (action.event === "proposed" && content?.summary) lines.push(text(content.summary, 300));
     lines.push("");
     if (action.event === "proposed") {

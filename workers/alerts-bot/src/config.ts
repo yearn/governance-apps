@@ -5,6 +5,7 @@ import {
 
 export interface AlertsEnv {
   ALERT_STATE: DurableObjectNamespace;
+  DAO_APP?: Pick<Fetcher, "fetch">;
   RPC_URL?: string;
   TELEGRAM_BOT_TOKEN?: string;
   STYFI_TELEGRAM_CHAT_ID?: string;

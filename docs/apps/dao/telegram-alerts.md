@@ -3,7 +3,7 @@
 The DAO stream extends the existing `governance-alerts-bot-v2` Worker.
 It uses one chat and the independent Durable Object `alerts:dao:v1`.
 Its cursor starts at Ethereum block `25883944`.
-The committed DAO flag is off. Existing streams retain their configuration.
+The committed DAO flag is enabled. Existing streams retain their configuration.
 
 ## Alert catalogue
 
@@ -30,10 +30,26 @@ Every message includes its observation time in UTC and the confirmed block numbe
 Transaction events link to Etherscan transactions. Deadline alerts link to their confirmed blocks.
 Proposal links include the chain and Voting address, so numeric proposal IDs remain unambiguous.
 
-New-proposal announcements can include a title, summary, and forum link.
-The bot fetches bounded content from `ipfs.io` and validates its bytes against the on-chain digest and the app content schema.
-A timeout, missing content, invalid digest, or invalid schema removes this enrichment without stopping the alert.
-The bot does not fetch arbitrary URLs from proposal content.
+All proposal alert types use the verified title and available forum link, including votes, deadlines, results, moderation, and execution.
+New-proposal announcements also include a summary excerpt. The bot and website share the summary selection helper.
+An explicit Summary section takes precedence over author attribution below the title.
+
+The `DAO_APP` service binding calls `/api/dao-data` on the existing `governance-apps` Worker.
+That route uses the website's existing `DAO_DATA_URL`. No feed URL or secret needs to be entered for the bot.
+The bot uses the same bounded feed reader and content validator as the website.
+It matches the chain, Voting address, proposal ID, and on-chain digest before accepting `contentBytes`.
+Feed timestamps, status, and vote totals never replace confirmed chain observations in alerts.
+The bot makes no direct IPFS requests and does not fetch URLs from proposal content.
+
+Verified titles, summary excerpts, and forum links persist in the DAO object's storage, keyed by proposal identity and digest.
+A feed request occurs at most once per run when uncached content is needed.
+Cached content remains usable during feed outages and after restarts.
+For uncached content, feed failures or producer delays preserve the cursor and retry on the next cron.
+These retries continue for ten minutes from the first failure for that proposal and digest.
+After ten minutes, alerts continue with the proposal ID, link, and an explicit title-unavailable notice.
+The bot keeps trying the feed on later runs and caches content when it becomes available.
+Controlled errors appear in `/status`; fallback warnings appear in structured logs without content or credentials.
+A missing service binding is a configuration error and stops uncached DAO proposal delivery until corrected.
 
 ## Operator configuration alerts
 
@@ -86,15 +102,24 @@ This extension does not send infrastructure warnings to Telegram.
 
 ## Configuration and rollout
 
-| Setting | Purpose | Default |
+| Setting | Purpose | Current configuration |
 | --- | --- | --- |
-| `DAO_TELEGRAM_CHAT_ID` | Cloudflare secret for the final DAO chat | Unset |
-| `ALERTS_DAO_ENABLED` | Enable DAO scanning and delivery | `false` |
+| `DAO_TELEGRAM_CHAT_ID` | Cloudflare secret for the final DAO chat | Managed on the deployed Worker |
+| `ALERTS_DAO_ENABLED` | Enable DAO scanning and delivery | `true` |
 | `DAO_ALERT_VOTES_ENABLED` | Include each Vote event | `true` |
+| `DAO_APP` | Service binding to the website's configured feed route | `governance-apps` |
 
 The existing `RPC_URL`, `TELEGRAM_BOT_TOKEN`, and `ADMIN_TOKEN` are shared.
 The RPC must support historical calls by canonical block hash.
 Setting `DAO_ALERT_VOTES_ENABLED=false` suppresses individual vote messages; proposal totals and lifecycle alerts remain active.
+
+For the content fix, deploy the alert Worker with the committed service binding.
+The existing website route needs no deployment or new configuration.
+Keep the current object name, cursor, receipts, and chat ID.
+Previously delivered Telegram messages are not edited or replayed by this update.
+Future alerts load titles for existing proposals even when their original announcements lacked content.
+
+For a new installation, keep DAO disabled until the destination secret is configured:
 
 1. Create the final private DAO chat and add the existing bot with permission to post.
 2. Configure `DAO_TELEGRAM_CHAT_ID` with `npx wrangler secret put DAO_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc`.
@@ -118,16 +143,19 @@ npm run test
 npx wrangler deploy --dry-run --config wrangler.alerts.jsonc --outdir /tmp/dao-alerts-bundle
 ```
 
-The focused suites cover event decoding, quiet deadlines, cancellations, vote replacement semantics, configuration changes, canonical reads, content integrity, message bounds, and recovery.
+The focused suites cover event decoding, quiet deadlines, cancellations, vote replacement semantics, configuration changes, canonical reads, feed identity, content integrity, message bounds, and recovery.
+Content tests cover the website's configured feed route, all proposal alert types, durable caching, bounded retries, timeouts, and oversized responses.
 Exact HTML examples are in [the snapshot catalogue](../../../tests/unit/workers/__snapshots__/alerts-bot.dao.test.ts.snap).
 These examples use fictional proposal data and observation times.
 No app route or UI flow changes are required.
 
-Local validation on 5 October 2026 passed typecheck, lint, the Worker dry-run build,
-and all 1,885 tests with two test workers. The focused DAO suites contain 54 tests.
+Local validation of the content fix on 5 October 2026 passed typecheck, lint, the Worker dry-run build,
+and all 1,914 tests with two test workers. The focused DAO suites contain 83 tests.
 The lower concurrency avoids an intermittent timeout in an existing publication-store test.
 All 560 local DAO documentation targets passed the link check.
-Private Telegram replay remains a release step.
+The new reader verified the two live proposals from the website feed in a read-only check.
+Both returned a title, summary, and forum link using one feed response.
+The service binding and Telegram delivery still require deployment of this fix.
 
 ## Coverage limits and integrator notes
 
@@ -137,6 +165,7 @@ Forum replies, private drafts, content uploads without proposals, and per-wallet
 The app remains the source for fresh wallet eligibility and transaction preparation.
 
 No new dependency, Durable Object class, or storage migration is required.
+The content update adds the configured `DAO_APP` service binding and separate additive content cache records.
 Existing domain records load without a DAO state field. New DAO records use their own object identity.
 The DAO extension can merge independently of frontend changes.
 Enabling delivery requires the destination secret and private replay acceptance.

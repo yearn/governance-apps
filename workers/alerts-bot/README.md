@@ -13,8 +13,8 @@ per domain:
 | YBC | `alerts:ybc:v2` | on-chain proposals, membership, rewards, and collective power |
 | DAO | `alerts:dao:v1` | proposals, votes, deadlines, moderation, execution, and governance configuration |
 
-DAO is registered but its delivery flag remains off until its chat is configured
-and private replay is reviewed. The other five committed flags are enabled.
+All six committed delivery flags are enabled. New installations must configure
+their final chats before enabling delivery.
 
 ## Runtime model
 
@@ -51,6 +51,12 @@ deadline blocks when no contract event occurs. Reminders precede voting and
 execution deadlines by 24 hours and 1 hour. See the
 [DAO catalogue and rollout](../../docs/apps/dao/telegram-alerts.md).
 
+DAO proposal titles come from the website's `/api/dao-data` route through the
+`DAO_APP` service binding. The website owns `DAO_DATA_URL`; no duplicate feed
+configuration is needed. The bot verifies content against the on-chain digest
+and caches it for every proposal alert. Feed delays receive bounded retries.
+The bot makes no direct IPFS requests.
+
 There is deliberately no health monitor or Telegram warning subsystem. Failures
 produce structured logs and appear in the authenticated status response.
 Failure logs identify the safe runtime stage and controlled RPC or Telegram
@@ -72,7 +78,7 @@ Required secrets when any domain is enabled:
 - `DAO_TELEGRAM_CHAT_ID` when DAO is enabled
 - `ADMIN_TOKEN` for `GET /status`
 
-The DAO domain is disabled in `wrangler.alerts.jsonc`. Control each domain independently
+Control each domain independently
 with `ALERTS_STYFI_ENABLED`, `ALERTS_VEYFI_ENABLED`, `ALERTS_YETH_ENABLED`,
 `ALERTS_TEAMS_ENABLED`, `ALERTS_YBC_ENABLED`, and `ALERTS_DAO_ENABLED` after their final private
 chats, secrets, and replay reviews are ready.

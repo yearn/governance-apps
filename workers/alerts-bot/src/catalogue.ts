@@ -14,7 +14,7 @@ import { renderAlertCatalogueAction } from "./catalogue-renderer";
 import { renderProductAlertAction } from "./product-renderer";
 import { isDaoAlertAction } from "./domains/dao/types";
 import { renderDaoAlert } from "./domains/dao/renderer";
-import { readDaoAlertContent, type DaoAlertContent } from "./domains/dao/content";
+import { DaoAlertContentError, type DaoAlertContentReader } from "./domains/dao/content";
 import {
   isProductAlertAction,
   productAlertAddresses,
@@ -178,11 +178,11 @@ export async function renderCatalogueMessages(params: {
   readonly domainId: ActiveAlertDomainId;
   readonly actions: readonly AlertAction[];
   readonly rpc: RpcClient;
+  readonly daoContent?: Pick<DaoAlertContentReader, "read">;
 }): Promise<readonly RenderedAlertMessage[]> {
   const visible = params.actions.filter((action) => !isSuppressedCatalogueAction(action));
   validateDomainActions(params.domainId, visible);
   const output: RenderedAlertMessage[] = [];
-  const daoContent = new Map<string, DaoAlertContent | null>();
   const priceSource = createChainlinkYfiUsdPriceSource(params.rpc);
 
   for (const actions of groupsByBlock(visible)) {
@@ -201,13 +201,10 @@ export async function renderCatalogueMessages(params: {
             (action.source.kind === "synthetic" && action.source.blockHash !== block.hash)) {
           throw new Error("dao_render_block_mismatch");
         }
-        // Content is optional and fetched only for proposal announcements.
-        // Follow-up alerts retain the canonical proposal link even if IPFS is down.
-        let content: DaoAlertContent | null = null;
-        if (action.kind === "dao_proposal" && action.event === "proposed") {
-          const digest = action.proposal.digest;
-          if (!daoContent.has(digest)) daoContent.set(digest, await readDaoAlertContent(digest));
-          content = daoContent.get(digest) ?? null;
+        let content = null;
+        if (action.kind === "dao_proposal") {
+          if (!params.daoContent) throw new DaoAlertContentError("dao_content_service_missing");
+          content = await params.daoContent.read(action.proposal);
         }
         output.push({ eventId: action.eventId, blockNumber, html: renderDaoAlert(action, content) });
       }

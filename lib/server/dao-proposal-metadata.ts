@@ -1,7 +1,8 @@
 import { readBoundedJson, withFeedRequest } from "@/lib/feed-transport";
 import { DAO_FEED_TRANSPORT_POLICY } from "@/lib/clients/dao/feed";
 import { assertDaoDeployments, getDaoDeployments } from "@/lib/clients/dao/deployment";
-import { parseDaoProposalContent, type DaoMarkdownNode, type DaoParsedProposalContent } from "@/lib/clients/dao/content";
+import { parseDaoProposalContent } from "@/lib/clients/dao/content";
+import { getDaoProposalSummary } from "@/lib/clients/dao/content-summary";
 import { readDaoContentBytes } from "@/lib/clients/dao/content-bytes";
 import { isDaoEnabled, isDaoMockRuntimeEnabled } from "@/lib/runtime/features";
 import { parseDaoFeed } from "@/lib/schemas/dao-feed";
@@ -37,32 +38,6 @@ function summaryExcerpt(summary: string): string {
   const excerpt = characters.slice(0, 197).join("");
   const boundary = excerpt.lastIndexOf(" ");
   return `${(boundary > 150 ? excerpt.slice(0, boundary) : excerpt).trimEnd()}…`;
-}
-
-function nodeText(node: DaoMarkdownNode): string {
-  if (node.type === "text" || node.type === "inlineCode") return node.value ?? "";
-  if (node.type === "break") return " ";
-  if (node.type === "code" || node.type === "image") return "";
-  const separator = ["list", "listItem", "blockquote"].includes(node.type) ? " " : "";
-  return (node.children ?? []).map(nodeText).join(separator);
-}
-
-function proposalSummary(parsed: DaoParsedProposalContent): string | null {
-  // Existing proposals can put author attribution below the title. Prefer the
-  // actual Summary section, including numbered headings, for the share text.
-  const nodes = parsed.ast.children;
-  const start = nodes.findIndex((node) => node.type === "heading" &&
-    /^(?:\d+[.)]?\s+)?summary$/i.test(nodeText(node).trim()));
-  if (start >= 0) {
-    const section: string[] = [];
-    for (const node of nodes.slice(start + 1)) {
-      if (node.type === "heading") break;
-      if (["paragraph", "list", "blockquote"].includes(node.type)) section.push(nodeText(node));
-    }
-    const text = section.join(" ").trim();
-    if (text) return text;
-  }
-  return parsed.summary;
 }
 
 export function daoProposalSharePath(input: DaoProposalMetadataInput): string {
@@ -107,7 +82,7 @@ export async function readDaoProposalShareDetails(
     const content = readDaoContentBytes(proposal.contentBytes, proposal.contentDigest as Hex);
     const parsed = content.state === "available" && content.value
       ? parseDaoProposalContent(content.value) : null;
-    const summary = parsed ? proposalSummary(parsed) : null;
+    const summary = parsed ? getDaoProposalSummary(parsed) : null;
     return {
       title: parsed?.title ? `${parsed.title} | Yearn DAO` : `Proposal #${input.id} | Yearn DAO`,
       description: summary ? summaryExcerpt(summary)

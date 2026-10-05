@@ -44,6 +44,11 @@
     "crons": ["* * * * *"],
   },
 
+  // Reuse the website's /api/dao-data route and its existing DAO_DATA_URL.
+  "services": [
+    { "binding": "DAO_APP", "service": "governance-apps" },
+  ],
+
   "durable_objects": {
     "bindings": [
       {

@@ -3,8 +3,10 @@ import { AlertState } from "@/workers/alerts-bot/src/runtime";
 import { createRpcClient } from "@/workers/alerts-bot/src/rpc";
 import { sendMessage, TelegramRateLimitError } from "@/workers/alerts-bot/src/telegram";
 import { DAO_DEPLOYMENT_BLOCK as G, DAO_EVENTS } from "@/workers/alerts-bot/src/domains/dao/contracts";
+import { DAO_EMPTY_SCRIPT_HASH } from "@/lib/clients/dao/domain";
 import type { AlertsEnv } from "@/workers/alerts-bot/src/config";
 import { ACCOUNT, daoLog, daoRpc, hash, trackedState, voteStart } from "./alerts-bot.dao-fixtures";
+import { contentProposal, daoContentFeed } from "./alerts-bot.dao-content-fixtures";
 
 vi.mock("@/workers/alerts-bot/src/rpc", async importOriginal => ({ ...await importOriginal<typeof import("@/workers/alerts-bot/src/rpc")>(), createRpcClient: vi.fn() }));
 vi.mock("@/workers/alerts-bot/src/telegram", async importOriginal => ({ ...await importOriginal<typeof import("@/workers/alerts-bot/src/telegram")>(), sendMessage: vi.fn() }));
@@ -67,23 +69,44 @@ describe("DAO durable delivery", () => {
   });
 
   it("does not commit deadline state until all messages are sent", async () => {
-    const { rpc } = daoRpc({ startTime: voteStart });
+    const { rpc } = daoRpc({ startTime: voteStart, proposal: contentProposal });
     vi.mocked(createRpcClient).mockReturnValue(rpc);
-    const { storage, run } = setup();
+    const env = { DAO_APP: { fetch: async () => Response.json(daoContentFeed()) } };
+    const { storage, run } = setup(env);
     // Initialize using the runtime's own schema before adding a tracked proposal.
     await setup({ ALERTS_DAO_ENABLED: "false" }, storage).object.fetch(new Request("https://alerts.internal/status?domain=dao"));
     storage.values.set("state:v1", { version: 1, domainId: "dao", cursorBlock: G - 1, cursorHash: null,
       lastObservedHead: null, lastRunAt: null, lastSuccessAt: null, lastErrorCode: null, telegramRetryAfterUntil: null,
-      yethState: null, yethMetrics: null, yethDailyFlow: null, teamsState: null, ybcState: null, daoState: trackedState() });
+      yethState: null, yethMetrics: null, yethDailyFlow: null, teamsState: null, ybcState: null, daoState: trackedState(contentProposal) });
     vi.mocked(sendMessage).mockRejectedValueOnce(new Error("test failure"));
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect((await run()).status).toBe(500);
     const saved = storage.values.get("state:v1") as { cursorBlock: number; daoState: ReturnType<typeof trackedState> };
     expect(saved.cursorBlock).toBe(G - 1);
     expect(saved.daoState.proposals["0"]!.notified).toEqual([]);
-    await setup({}, storage).run();
+    await setup(env, storage).run();
     expect(sendMessage).toHaveBeenCalledTimes(2);
     expect(vi.mocked(sendMessage).mock.calls[1]![1]).toContain("voting opened");
+    expect(vi.mocked(sendMessage).mock.calls[1]![1]).toContain("Fund research");
+  });
+
+  it("retries feed failures without consuming the proposal, then delivers its verified title and summary", async () => {
+    const p = { ...contentProposal, scriptHash: DAO_EMPTY_SCRIPT_HASH, votes: "0", yea: "0" };
+    const { rpc } = daoRpc({ proposal: p, logs: [daoLog(DAO_EVENTS, "Propose", {
+      idx: 0n, proposer: ACCOUNT, epoch: BigInt(p.epoch), ipfs: p.digest, script: "0x",
+    })] });
+    vi.mocked(createRpcClient).mockReturnValue(rpc);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const first = setup({ DAO_APP: { fetch: async () => new Response(null, { status: 503 }) } });
+    expect(await (await first.run()).json()).toMatchObject({ code: "dao_content_feed_unavailable" });
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(first.storage.values.get("state:v1")).toMatchObject({ cursorBlock: G - 1, lastErrorCode: "dao_content_feed_unavailable" });
+    const retry = setup({ DAO_APP: { fetch: async () => Response.json(daoContentFeed()) } }, first.storage);
+    expect(await (await retry.run()).json()).toMatchObject({ outcome: "caught_up", cursorBlock: G });
+    expect(sendMessage).toHaveBeenCalledOnce();
+    expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain("<b>Fund research</b>");
+    expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain("Publish the research results.");
+    expect(first.storage.values.get("state:v1")).toMatchObject({ lastErrorCode: null });
   });
 
   it("halts before sending if the scanned terminal block changes", async () => {
