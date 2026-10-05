@@ -112,7 +112,7 @@ describe("alerts rebuild registry and configuration", () => {
       yeth: "alerts:yeth:v1",
       teams: "alerts:teams:v2",
       ybc: "alerts:ybc:v2",
-      dao: "alerts:dao:v2",
+      dao: "alerts:dao:v3",
     });
     expect(ALERT_DOMAIN_GENESIS_BLOCKS).toEqual({
       styfi: 24_386_915,
@@ -744,7 +744,7 @@ describe("worker routing and Telegram backoff", () => {
       "alerts:yeth:v1",
       "alerts:teams:v2",
       "alerts:ybc:v2",
-      "alerts:dao:v2",
+      "alerts:dao:v3",
     ]);
   });
 
@@ -816,12 +816,16 @@ describe("worker routing and Telegram backoff", () => {
     const stores = new Map<string, MemoryStorage>();
     const names: string[] = [];
     for (const [domain, name] of Object.entries(ALERT_DOMAIN_OBJECT_NAMES)) {
-      const store = new MemoryStorage();
-      const cursor = ALERT_DOMAIN_GENESIS_BLOCKS[domain as keyof typeof ALERT_DOMAIN_GENESIS_BLOCKS] + 100;
-      store.values.set("state:v1", { version: 1, domainId: domain, cursorBlock: cursor,
-        cursorHash: null, lastObservedHead: cursor, lastErrorCode: null });
-      store.values.set("sent:previous-event", true);
-      stores.set(domain === "dao" ? "alerts:dao:v1" : name, store);
+      const previousNames = domain === "dao" ? ["alerts:dao:v1", "alerts:dao:v2"] : [name];
+      for (const previousName of previousNames) {
+        const store = new MemoryStorage();
+        const cursor = ALERT_DOMAIN_GENESIS_BLOCKS[domain as keyof typeof ALERT_DOMAIN_GENESIS_BLOCKS] + 100;
+        store.values.set("state:v1", { version: 1, domainId: domain, cursorBlock: cursor,
+          cursorHash: null, lastObservedHead: cursor, lastErrorCode: null });
+        store.values.set("sent:previous-event", true);
+        if (domain === "dao") store.values.set("dao-content:previous-proposal", { title: "Previous title" });
+        stores.set(previousName, store);
+      }
     }
     const namespace = {
       idFromName(name: string) { names.push(name); return name; },
@@ -837,16 +841,19 @@ describe("worker routing and Telegram backoff", () => {
     }), baseEnv({ ALERT_STATE: namespace }));
     const result = await response.json() as { domains: { domain: keyof typeof ALERT_DOMAIN_GENESIS_BLOCKS; objectName: string; cursorBlock: number; caughtUp: boolean }[] };
     expect(result.domains.find(d => d.domain === "dao")).toMatchObject({
-      objectName: "alerts:dao:v2", cursorBlock: 25_883_943, caughtUp: false,
+      objectName: "alerts:dao:v3", cursorBlock: 25_883_943, caughtUp: false,
     });
     for (const domain of result.domains.filter(d => d.domain !== "dao")) {
       expect(domain.objectName).toBe(ALERT_DOMAIN_OBJECT_NAMES[domain.domain]);
       expect(domain.cursorBlock).toBe(ALERT_DOMAIN_GENESIS_BLOCKS[domain.domain] + 100);
       expect(domain.caughtUp).toBe(true);
     }
-    expect(names).not.toContain("alerts:dao:v1");
-    expect(stores.get("alerts:dao:v1")!.values.get("sent:previous-event")).toBe(true);
-    expect(stores.get("alerts:dao:v2")!.values.size).toBe(0);
+    for (const previousName of ["alerts:dao:v1", "alerts:dao:v2"]) {
+      expect(names).not.toContain(previousName);
+      expect(stores.get(previousName)!.values.get("sent:previous-event")).toBe(true);
+      expect(stores.get(previousName)!.values.get("dao-content:previous-proposal")).toEqual({ title: "Previous title" });
+    }
+    expect(stores.get("alerts:dao:v3")!.values.size).toBe(0);
   });
 
   it("surfaces Telegram retry_after as a typed backoff", async () => {

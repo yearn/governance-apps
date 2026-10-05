@@ -11,7 +11,7 @@ per domain:
 | yETH | `alerts:yeth:v1` | recovery claims, withdrawals, and protocol updates |
 | Teams | `alerts:teams:v2` | team lifecycle, accounting, funding, and bonuses |
 | YBC | `alerts:ybc:v2` | on-chain proposals, membership, rewards, and collective power |
-| DAO | `alerts:dao:v2` | proposals, votes, deadlines, moderation, execution, and governance configuration |
+| DAO | `alerts:dao:v3` | proposals, votes, deadlines, moderation, execution, and governance configuration |
 
 All six committed delivery flags are enabled. New installations must configure
 their final chats before enabling delivery.
@@ -57,8 +57,8 @@ configuration is needed. The bot verifies content against the on-chain digest
 and caches it for every proposal alert. Feed delays receive bounded retries.
 The bot makes no direct IPFS requests.
 
-DAO generation `v2` deliberately replays from block 25,883,944 with enriched
-titles and message icons. It preserves the old DAO object and all other
+DAO generation `v3` deliberately replays from block 25,883,944 after the website
+service-request fix, with enriched titles and message icons. It preserves both old DAO objects and all other
 streams. The authenticated status response includes each `objectName`.
 
 There is deliberately no health monitor or Telegram warning subsystem. Failures

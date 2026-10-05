@@ -36,7 +36,7 @@ review and local verification gates pass.
 | yETH | `alerts:yeth:v1` | final private yETH chat | 24,522,098 |
 | Teams | `alerts:teams:v2` | final private Teams chat | 25,244,861 |
 | YBC | `alerts:ybc:v2` | final private YBC chat | 25,228,044 |
-| DAO | `alerts:dao:v2` | final private DAO chat | 25,883,944 |
+| DAO | `alerts:dao:v3` | final private DAO chat | 25,883,944 |
 
 Each object stores one versioned state record and immutable event receipts. The
 state contains the cursor and terminal hash, redacted run status, Telegram
@@ -68,7 +68,7 @@ ALERTS_VEYFI_ENABLED=true
 ALERTS_YETH_ENABLED=true
 ALERTS_TEAMS_ENABLED=true
 ALERTS_YBC_ENABLED=true
-ALERTS_DAO_ENABLED=false
+ALERTS_DAO_ENABLED=true
 DAO_ALERT_VOTES_ENABLED=true
 CONFIRMATIONS=6
 MAX_MESSAGES_PER_RUN=5

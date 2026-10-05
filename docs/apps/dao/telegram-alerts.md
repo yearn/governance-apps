@@ -1,7 +1,7 @@
 # DAO Telegram alerts
 
 The DAO stream extends the existing `governance-alerts-bot-v2` Worker.
-It uses one chat and the independent Durable Object `alerts:dao:v2`.
+It uses one chat and the independent Durable Object `alerts:dao:v3`.
 Its cursor starts at Ethereum block `25883944`.
 The committed DAO flag is enabled. Existing streams retain their configuration.
 
@@ -135,9 +135,9 @@ Setting `DAO_ALERT_VOTES_ENABLED=false` suppresses individual vote messages; pro
 
 For the content fix and fresh replay, deploy the alert Worker with the committed service binding.
 The existing website route needs no deployment or new configuration.
-Keep the current Worker name and chat ID. The registry now selects a fresh DAO object, `alerts:dao:v2`.
+Keep the current Worker name and chat ID. The registry now selects a fresh DAO object, `alerts:dao:v3`.
 Its empty cursor, receipts, and content cache restart the full DAO history from block 25,883,944 inclusive.
-The old `alerts:dao:v1` object remains stored. Its receipts do not suppress messages in the fresh replay.
+The old `alerts:dao:v1` and `alerts:dao:v2` objects remain stored. Their receipts do not suppress messages in the fresh replay.
 Other domains retain their object names, cursors, and receipts.
 Existing Telegram posts remain; replay adds new messages with titles and icons to the configured group.
 
@@ -148,14 +148,14 @@ npx wrangler deploy --config wrangler.alerts.jsonc --keep-vars
 ```
 
 The enabled cron starts replay automatically. No storage deletion, reset endpoint, migration, or new secret is required.
-Check the DAO entry in authenticated `/status` for `objectName: "alerts:dao:v2"`.
+Check the DAO entry in authenticated `/status` for `objectName: "alerts:dao:v3"`.
 Before its first run, `cursorBlock` is 25883943. Then it advances until `caughtUp: true` without an error.
 Review the new messages before accepting the replay. Old messages can be removed manually if a clean group history is desired.
-Subsequent deployments keep the `v2` cursor and resume; they do not restart replay again.
+Subsequent deployments keep the `v3` cursor and resume; they do not restart replay again.
 
-The service-request fix retains `alerts:dao:v2`. Deploy it with the same command to resume the current replay with working content reads.
-It does not edit or resend Telegram messages that were already delivered without titles.
-Use a separately reviewed DAO generation change if another full replay is required; do not reset the other domains.
+Deploy this replay together with the supported-redirect service-request fix.
+The first deployment replays the complete DAO history, including events previously delivered without titles.
+It creates new Telegram posts; it does not edit or delete existing messages.
 
 For a new installation, keep DAO disabled until the destination secret is configured:
 

@@ -22,8 +22,8 @@ export const ALERT_DOMAIN_OBJECT_NAMES = {
   yeth: "alerts:yeth:v1",
   teams: "alerts:teams:v2",
   ybc: "alerts:ybc:v2",
-  // Fresh replay with website proposal content and message-type icons.
-  dao: "alerts:dao:v2",
+  // Fresh replay after fixing the website service request's redirect mode.
+  dao: "alerts:dao:v3",
 } as const satisfies Readonly<Record<ActiveAlertDomainId, string>>;
 
 export type AlertDomainObjectName =
