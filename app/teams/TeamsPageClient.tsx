@@ -43,6 +43,7 @@ export function TeamsPageClient() {
   });
   const [pendingScrollId, setPendingScrollId] =
     useState<TeamsRouteSection | null>(null);
+  const [unavailableTeamAddress, setUnavailableTeamAddress] = useState<string | null>(null);
   const navigateTo = useCallback(
     (
       nextRoute: TeamsRouteState,
@@ -175,34 +176,44 @@ export function TeamsPageClient() {
     };
   }, [routeAuthorizationReady, showAdminSection]);
 
-  useEffect(() => {
-    if (
-      !routeState.teamAddress ||
-      renderState === "loading" ||
-      (renderState === "ready" && selectedTeam)
-    ) {
-      return;
-    }
+  const invalidTeamRoute = Boolean(
+    routeState.teamAddress &&
+    renderState !== "loading" &&
+    !(renderState === "ready" && selectedTeam)
+  );
+  if (invalidTeamRoute) {
+    setUnavailableTeamAddress(routeState.teamAddress);
+    setRouteState({ section: "directory", teamAddress: null });
+    setPendingScrollId("directory");
+  }
 
-    navigateTo(
-      {
-        section: "directory",
-        teamAddress: null,
-      },
-      { replace: true }
+  // Keep the browser URL aligned after an unavailable team route resolves.
+  useEffect(() => {
+    if (!unavailableTeamAddress || routeState.section !== "directory" || routeState.teamAddress) return;
+    const current = parseTeamsRouteState(window.location.href);
+    if (current.teamAddress !== unavailableTeamAddress) return;
+    window.history.replaceState(
+      null,
+      "",
+      createTeamsRouteHref(window.location.href, routeState)
     );
-  }, [navigateTo, renderState, routeState.teamAddress, selectedTeam]);
+  }, [routeState, unavailableTeamAddress]);
+
+  if (
+    pendingScrollId &&
+    renderState === "ready" &&
+    getTeamsTopSection(pendingScrollId) === "workspace" &&
+    !selectedTeam &&
+    !routeState.teamAddress
+  ) {
+    setPendingScrollId(null);
+  }
 
   useEffect(() => {
     if (!pendingScrollId || renderState !== "ready") return;
 
     const topSection = getTeamsTopSection(pendingScrollId);
-    if (topSection === "workspace" && !selectedTeam) {
-      if (!routeState.teamAddress) {
-        setPendingScrollId(null);
-      }
-      return;
-    }
+    if (topSection === "workspace" && !selectedTeam) return;
     if (topSection === "admin" && !showAdminSection) return;
     const scrollTargetId = getTeamsScrollTargetId(pendingScrollId);
 

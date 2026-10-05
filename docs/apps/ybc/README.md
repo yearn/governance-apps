@@ -93,3 +93,10 @@ Without an explicit preset, the view follows the active wallet.
 - `docs/apps/ybc/onchain-integration-plan/README.md`
 - `docs/apps/ybc/onchain-integration-plan/ybc-feed-schema-v1.md`
 - `docs/apps/ybc/onchain-integration-plan/examples/ybc-feed.example.json`
+
+## React state compatibility
+
+The bootstrap indicator starts disabled for live data and for mock sessions with bootstrap disabled.
+Mock initialization retains cancellation checks before it updates the runtime store.
+
+See the [dependency migration notes](../../shared/testing.md#dependency-migration-2026-10-05) for compiler and linter requirements.

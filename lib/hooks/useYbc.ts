@@ -173,7 +173,9 @@ export function useYbcState(
     getYbcMockSnapshot
   );
   const [error, setError] = useState<Error | null>(null);
-  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const shouldBootstrap = usesMockBackend && options.bootstrap !== false;
+  const [isBootstrapping, setIsBootstrapping] = useState(shouldBootstrap);
+  if (!shouldBootstrap && isBootstrapping) setIsBootstrapping(false);
   const lastBootstrappedScenarioId = useRef<YbcPrototypeScenarioId | null>(null);
 
   const defaultScenarioId: YbcPrototypeScenarioId =
@@ -249,15 +251,11 @@ export function useYbcState(
 
   useEffect(() => {
     if (!usesMockBackend) {
-      setIsBootstrapping(false);
       setYbcLoading(false);
       return;
     }
 
-    if (options.bootstrap === false) {
-      setIsBootstrapping(false);
-      return;
-    }
+    if (options.bootstrap === false) return;
 
     let isCancelled = false;
 

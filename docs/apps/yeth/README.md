@@ -20,3 +20,11 @@ Scope: yETH recovery experience under `/yeth`.
 
 For exact completion details, use the status tracker:
 [`implementation-status.md`](implementation-status.md).
+
+## React state compatibility
+
+The page retains the last valid claim deadline across incomplete payloads and closes the risk modal when the deadline passes.
+Claim history uses an external-store subscription and updates after storage events from other tabs.
+The current session retains successful claim details when browser storage is unavailable.
+
+See the [dependency migration notes](../../shared/testing.md#dependency-migration-2026-10-05) for compiler and linter requirements.

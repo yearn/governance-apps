@@ -90,3 +90,10 @@ Producer and cutover rules are in
 - `docs/apps/teams/examples/mock-data.example.json`
 - `docs/apps/teams/onchain-integration-plan/teams-feed-schema-v1.md`
 - `docs/apps/teams/onchain-integration-plan/examples/teams-feed.example.json`
+
+## React state compatibility
+
+Unavailable team routes return to the directory after data resolves. URL updates remain browser effects.
+Funding forms reset their values and validation state before the changed approval or wallet renders.
+
+See the [dependency migration notes](../../shared/testing.md#dependency-migration-2026-10-05) for compiler and linter requirements.

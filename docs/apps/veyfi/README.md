@@ -15,3 +15,10 @@ unavailable. External DEX
 trades and LLYFI reward claims are outside the bot's coverage.
 
 Shared architecture and standards are documented in [`../../shared/README.md`](../../shared/README.md).
+
+## React state compatibility
+
+Trade inputs reset when the user changes trading mode or a transaction reaches success.
+These resets no longer require synchronous effects.
+
+See the [dependency migration notes](../../shared/testing.md#dependency-migration-2026-10-05) for compiler and linter requirements.

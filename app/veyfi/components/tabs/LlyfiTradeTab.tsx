@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useIdentity } from "@/state/identity";
 import { Button } from "@/components/ui/Button";
@@ -27,11 +27,6 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
   const { data } = useVeyfiAccount();
   const [mode, setMode] = useState<"sell" | "buy">("sell");
   const [input, setInput] = useState("");
-
-  // Clear input when switching modes
-  useEffect(() => {
-    setInput("");
-  }, [mode]);
 
   const { amount, isValid } = useMemo(() => parseAmount(input), [input]);
 
@@ -134,11 +129,14 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
     mintState.status === "submitted" ||
     mintState.status === "mining";
 
-  useEffect(() => {
+  const transactionStatuses = `${redeemState.status}:${mintState.status}`;
+  const [previousStatuses, setPreviousStatuses] = useState(transactionStatuses);
+  if (previousStatuses !== transactionStatuses) {
+    setPreviousStatuses(transactionStatuses);
     if (redeemState.status === "success" || mintState.status === "success") {
       setInput("");
     }
-  }, [redeemState.status, mintState.status]);
+  }
 
   if (!token.redemption.enabled) {
     return (
@@ -177,7 +175,10 @@ export function LlyfiTradeTab({ token }: { token: LlyfiTokenState }) {
         <RadioGroup
           name={`trade-${token.symbol}`}
           value={mode}
-          onChange={setMode}
+          onChange={(nextMode) => {
+            setMode(nextMode);
+            setInput("");
+          }}
           options={[
             { value: "sell", label: `Sell ${displaySymbol}` },
             { value: "buy", label: `Buy ${displaySymbol}` },

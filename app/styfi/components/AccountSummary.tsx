@@ -70,6 +70,7 @@ export type AccountBalances = {
 };
 
 type AccountSummaryProps = {
+  now: number;
   selectedAsset?: StyfiAsset;
   onSelectAsset: (asset: StyfiAsset) => void;
   balances?: AccountBalances | null;
@@ -85,6 +86,7 @@ type AccountSummaryProps = {
 };
 
 export function AccountSummary({
+  now,
   selectedAsset,
   onSelectAsset,
   balances,
@@ -194,6 +196,7 @@ export function AccountSummary({
                     <ExternalPositionRow
                       key={position.id}
                       position={position}
+                      now={now}
                       href={resolveVeyfiHref(position.href, veyfiBaseHref)}
                     />
                   ))}
@@ -207,6 +210,7 @@ export function AccountSummary({
                 <ExternalPositionRow
                   key={position.id}
                   position={position}
+                  now={now}
                   href={resolveVeyfiHref(position.href, veyfiBaseHref)}
                 />
               ))}
@@ -343,9 +347,11 @@ function PositionRow({
 }
 
 function ExternalPositionRow({
+  now,
   position,
   href,
 }: {
+  now: number;
   position: ExternalPosition;
   href: string;
 }) {
@@ -354,7 +360,7 @@ function ExternalPositionRow({
   const isVeYfiUnlocked =
     isVeYfi &&
     typeof position.unlockTime === "number" &&
-    position.unlockTime <= Math.floor(Date.now() / 1000);
+    position.unlockTime <= now;
   const activeClass =
     position.activeYfi > 0n ? "text-neutral-900" : "text-neutral-300";
   const unstakingClass =
