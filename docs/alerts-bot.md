@@ -36,7 +36,7 @@ review and local verification gates pass.
 | yETH | `alerts:yeth:v1` | final private yETH chat | 24,522,098 |
 | Teams | `alerts:teams:v2` | final private Teams chat | 25,244,861 |
 | YBC | `alerts:ybc:v2` | final private YBC chat | 25,228,044 |
-| DAO | `alerts:dao:v1` | final private DAO chat | 25,883,944 |
+| DAO | `alerts:dao:v2` | final private DAO chat | 25,883,944 |
 
 Each object stores one versioned state record and immutable event receipts. The
 state contains the cursor and terminal hash, redacted run status, Telegram

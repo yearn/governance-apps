@@ -1,7 +1,7 @@
 # DAO Telegram alerts
 
 The DAO stream extends the existing `governance-alerts-bot-v2` Worker.
-It uses one chat and the independent Durable Object `alerts:dao:v1`.
+It uses one chat and the independent Durable Object `alerts:dao:v2`.
 Its cursor starts at Ethereum block `25883944`.
 The committed DAO flag is enabled. Existing streams retain their configuration.
 
@@ -129,11 +129,25 @@ The existing `RPC_URL`, `TELEGRAM_BOT_TOKEN`, and `ADMIN_TOKEN` are shared.
 The RPC must support historical calls by canonical block hash.
 Setting `DAO_ALERT_VOTES_ENABLED=false` suppresses individual vote messages; proposal totals and lifecycle alerts remain active.
 
-For the content fix, deploy the alert Worker with the committed service binding.
+For the content fix and fresh replay, deploy the alert Worker with the committed service binding.
 The existing website route needs no deployment or new configuration.
-Keep the current object name, cursor, receipts, and chat ID.
-Previously delivered Telegram messages are not edited or replayed by this update.
-Future alerts load titles for existing proposals even when their original announcements lacked content.
+Keep the current Worker name and chat ID. The registry now selects a fresh DAO object, `alerts:dao:v2`.
+Its empty cursor, receipts, and content cache restart the full DAO history from block 25,883,944 inclusive.
+The old `alerts:dao:v1` object remains stored. Its receipts do not suppress messages in the fresh replay.
+Other domains retain their object names, cursors, and receipts.
+Existing Telegram posts remain; replay adds new messages with titles and icons to the configured group.
+
+To start the prepared replay, deploy the current checkout:
+
+```fish
+npx wrangler deploy --config wrangler.alerts.jsonc --keep-vars
+```
+
+The enabled cron starts replay automatically. No storage deletion, reset endpoint, migration, or new secret is required.
+Check the DAO entry in authenticated `/status` for `objectName: "alerts:dao:v2"`.
+Before its first run, `cursorBlock` is 25883943. Then it advances until `caughtUp: true` without an error.
+Review the new messages before accepting the replay. Old messages can be removed manually if a clean group history is desired.
+Subsequent deployments keep the `v2` cursor and resume; they do not restart replay again.
 
 For a new installation, keep DAO disabled until the destination secret is configured:
 
@@ -148,7 +162,8 @@ For a new installation, keep DAO disabled until the destination secret is config
 
 To pause DAO delivery, set `ALERTS_DAO_ENABLED=false` and deploy the configuration.
 Its stored cursor and receipts remain available when delivery resumes.
-Do not rename the object or reuse another stream's cursor.
+Do not change the object name for routine deployments or reuse another stream's cursor.
+Another deliberate full replay requires a new DAO generation in a reviewed change, following the shared runbook.
 
 ## Validation
 
@@ -165,13 +180,15 @@ Exact HTML examples are in [the snapshot catalogue](../../../tests/unit/workers/
 These examples use fictional proposal data and observation times.
 No app route or UI flow changes are required.
 
-Local validation of the content fix on 5 October 2026 passed typecheck, lint, the Worker dry-run build,
-and all 1,914 tests with two test workers. The focused DAO suites contain 83 tests.
+Local validation of the content, emoji, and replay updates on 5 October 2026 passed typecheck, lint, the Worker dry-run build,
+and all 1,915 tests with two test workers. The focused DAO suites contain 83 tests.
+All 33 DAO message snapshots include the event icons.
+The routing test checks that DAO starts fresh while other domain cursors and old DAO receipts remain intact.
 The lower concurrency avoids an intermittent timeout in an existing publication-store test.
 All 560 local DAO documentation targets passed the link check.
 The new reader verified the two live proposals from the website feed in a read-only check.
 Both returned a title, summary, and forum link using one feed response.
-The service binding and Telegram delivery still require deployment of this fix.
+The service binding, fresh replay, and Telegram delivery still require deployment of this update.
 
 ## Coverage limits and integrator notes
 
