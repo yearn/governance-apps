@@ -5,7 +5,7 @@ import { getDaoProposalSummary } from "../../../../../lib/clients/dao/content-su
 import { DAO_FEED_TRANSPORT_POLICY } from "../../../../../lib/clients/dao/feed";
 import { getDaoDiscussionUrl } from "../../../../../lib/clients/dao/read-display";
 import { readBoundedJson, withFeedRequest } from "../../../../../lib/feed-transport";
-import { parseDaoFeed, type DaoFeedWire } from "../../../../../lib/schemas/dao-feed";
+import { DaoFeedError, parseDaoFeed, type DaoFeedWire } from "../../../../../lib/schemas/dao-feed";
 import { DAO_VOTING } from "./contracts";
 import type { DaoAlertProposal } from "./types";
 
@@ -45,15 +45,33 @@ export class DaoAlertContentReader {
   private async loadFeed(): Promise<DaoFeedWire> {
     if (!this.app) throw new DaoAlertContentError("dao_content_service_missing");
     const app = this.app;
+    // workerd rejects redirect: "error" before dispatching the request. Return
+    // redirects instead, then reject their non-OK status without following them.
     const policy = { ...DAO_FEED_TRANSPORT_POLICY,
-      fetchOptions: { ...DAO_FEED_TRANSPORT_POLICY.fetchOptions, redirect: "error" as const } };
-    return withFeedRequest(DAO_APP_FEED_URL, policy, async (response, context) => {
-      if (!response.ok) {
-        await response.body?.cancel();
-        throw new DaoAlertContentError("dao_content_feed_unavailable");
-      }
-      return parseDaoFeed(await readBoundedJson(response, context, DAO_FEED_TRANSPORT_POLICY));
-    }, (url, init) => app.fetch(url, init));
+      fetchOptions: { ...DAO_FEED_TRANSPORT_POLICY.fetchOptions, redirect: "manual" as const } };
+    let stage = "request";
+    let httpStatus: number | null = null;
+    try {
+      return await withFeedRequest(DAO_APP_FEED_URL, policy, async (response, context) => {
+        stage = "response";
+        httpStatus = response.status;
+        if (!response.ok) {
+          await response.body?.cancel();
+          throw new DaoAlertContentError("dao_content_feed_unavailable");
+        }
+        stage = "validation";
+        return parseDaoFeed(await readBoundedJson(response, context, DAO_FEED_TRANSPORT_POLICY));
+      }, (url, init) => app.fetch(url, init));
+    } catch (error) {
+      // Keep runtime failures distinguishable from missing proposal content,
+      // without logging upstream bodies, exception messages, or credentials.
+      const kind = error instanceof DaoFeedError ? error.kind
+        : error instanceof TypeError ? "type_error"
+          : error instanceof SyntaxError ? "invalid_json"
+            : error instanceof DaoAlertContentError ? "http" : "unexpected";
+      console.warn(JSON.stringify({ event: "dao_content_feed_failed", stage, httpStatus, kind }));
+      throw error;
+    }
   }
 
   private async unavailable(

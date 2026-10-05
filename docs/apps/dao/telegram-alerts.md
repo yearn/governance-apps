@@ -53,6 +53,8 @@ An explicit Summary section takes precedence over author attribution below the t
 The `DAO_APP` service binding calls `/api/dao-data` on the existing `governance-apps` Worker.
 That route uses the website's existing `DAO_DATA_URL`. No feed URL or secret needs to be entered for the bot.
 The bot uses the same bounded feed reader and content validator as the website.
+Service requests use `redirect: "manual"` and reject non-success responses, including redirects.
+Cloudflare rejects `redirect: "error"` before dispatch, so that mode must not be used here.
 It matches the chain, Voting address, proposal ID, and on-chain digest before accepting `contentBytes`.
 Feed timestamps, status, and vote totals never replace confirmed chain observations in alerts.
 The bot makes no direct IPFS requests and does not fetch URLs from proposal content.
@@ -65,6 +67,8 @@ These retries continue for ten minutes from the first failure for that proposal 
 After ten minutes, alerts continue with the proposal ID, link, and an explicit title-unavailable notice.
 The bot keeps trying the feed on later runs and caches content when it becomes available.
 Controlled errors appear in `/status`; fallback warnings appear in structured logs without content or credentials.
+The `dao_content_feed_failed` log identifies the failure stage, HTTP status when available, and a controlled error kind.
+For example, `stage: "request"`, `httpStatus: null`, and `kind: "type_error"` indicate a request failure before any response.
 A missing service binding is a configuration error and stops uncached DAO proposal delivery until corrected.
 
 ## Operator configuration alerts
@@ -149,6 +153,10 @@ Before its first run, `cursorBlock` is 25883943. Then it advances until `caughtU
 Review the new messages before accepting the replay. Old messages can be removed manually if a clean group history is desired.
 Subsequent deployments keep the `v2` cursor and resume; they do not restart replay again.
 
+The service-request fix retains `alerts:dao:v2`. Deploy it with the same command to resume the current replay with working content reads.
+It does not edit or resend Telegram messages that were already delivered without titles.
+Use a separately reviewed DAO generation change if another full replay is required; do not reset the other domains.
+
 For a new installation, keep DAO disabled until the destination secret is configured:
 
 1. Create the final private DAO chat and add the existing bot with permission to post.
@@ -176,19 +184,24 @@ npx wrangler deploy --dry-run --config wrangler.alerts.jsonc --outdir /tmp/dao-a
 
 The focused suites cover event decoding, quiet deadlines, cancellations, vote replacement semantics, configuration changes, canonical reads, feed identity, content integrity, message bounds, and recovery.
 Content tests cover the website's configured feed route, all proposal alert types, durable caching, bounded retries, timeouts, and oversized responses.
+The workerd integration test bundles the actual reader and renderer and calls a second local Worker through a service binding.
+It verifies proposal #0 enrichment and redirect rejection in the Workers runtime, where Node fetch mocks missed the unsupported redirect mode.
 Exact HTML examples are in [the snapshot catalogue](../../../tests/unit/workers/__snapshots__/alerts-bot.dao.test.ts.snap).
 These examples use fictional proposal data and observation times.
 No app route or UI flow changes are required.
 
-Local validation of the content, emoji, and replay updates on 5 October 2026 passed typecheck, lint, the Worker dry-run build,
-and all 1,915 tests with two test workers. The focused DAO suites contain 83 tests.
+Local validation including the service-request fix on 5 October 2026 passed typecheck, lint, the Worker dry-run build,
+and all 1,924 tests across 178 files with two test workers.
 All 33 DAO message snapshots include the event icons.
 The routing test checks that DAO starts fresh while other domain cursors and old DAO receipts remain intact.
 The lower concurrency avoids an intermittent timeout in an existing publication-store test.
 All 560 local DAO documentation targets passed the link check.
 The new reader verified the two live proposals from the website feed in a read-only check.
 Both returned a title, summary, and forum link using one feed response.
-The service binding, fresh replay, and Telegram delivery still require deployment of this update.
+The earlier live-feed check used a simulated binding and did not validate Cloudflare request-option support.
+On 5 October 2026, an isolated Cloudflare preview using the production compatibility date reproduced the invalid redirect error.
+The same preview called the live `governance-apps` binding with `redirect: "manual"` and received HTTP 200 with both proposal titles.
+The service-request fix still requires a bot deployment. These read-only checks did not send Telegram messages or change replay state.
 
 ## Coverage limits and integrator notes
 

@@ -29,7 +29,7 @@ describe("DAO website feed content", () => {
     const app = { fetch: vi.fn(async () => GET()) };
     const reader = new DaoAlertContentReader(app, new ContentStorage());
     expect(await reader.read(contentProposal)).toEqual(expectedContent);
-    expect(app.fetch).toHaveBeenCalledWith(DAO_APP_FEED_URL, expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(app.fetch).toHaveBeenCalledWith(DAO_APP_FEED_URL, expect.objectContaining({ redirect: "manual", signal: expect.any(AbortSignal) }));
     expect(upstream).toHaveBeenCalledOnce();
     expect(upstream).toHaveBeenCalledWith("https://configured.example/dao.json", expect.anything());
   });
@@ -85,6 +85,26 @@ describe("DAO website feed content", () => {
     app.fetch.mockResolvedValueOnce(kind === "HTTP" ? new Response("unavailable", { status: 503 })
       : kind === "version" ? respond({ schema: "yearn.dao.feed.v1" }) : new Response("bad JSON"));
     await expect(reader.read(contentProposal)).rejects.toMatchObject({ code: "dao_content_feed_unavailable" });
+  });
+
+  it.each([301, 302, 307, 308])("rejects HTTP %s without following redirects away from the bound website", async status => {
+    const { reader, app } = setup();
+    app.fetch.mockResolvedValueOnce(new Response(null, { status, headers: { location: "https://other.example/dao.json" } }));
+    await expect(reader.read(contentProposal)).rejects.toMatchObject({ code: "dao_content_feed_unavailable" });
+    expect(app.fetch).toHaveBeenCalledExactlyOnceWith(DAO_APP_FEED_URL, expect.objectContaining({ redirect: "manual" }));
+  });
+
+  it.each(["request", "response", "validation"])("logs safe diagnostics for a %s failure", async stage => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { reader, app } = setup();
+    if (stage === "request") app.fetch.mockRejectedValueOnce(new TypeError("private upstream credentials"));
+    else app.fetch.mockResolvedValueOnce(new Response("private upstream credentials", { status: stage === "response" ? 503 : 200 }));
+    await expect(reader.read(contentProposal)).rejects.toMatchObject({ code: "dao_content_feed_unavailable" });
+    expect(warn).toHaveBeenCalledExactlyOnceWith(JSON.stringify({
+      event: "dao_content_feed_failed", stage,
+      httpStatus: stage === "request" ? null : stage === "response" ? 503 : 200,
+      kind: stage === "request" ? "type_error" : stage === "response" ? "http" : "invalid_json",
+    }));
   });
 
   it.each(["headers", "body"])("bounds a service timeout during %s", async phase => {
