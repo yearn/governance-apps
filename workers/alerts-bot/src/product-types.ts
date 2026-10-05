@@ -1,4 +1,5 @@
 import type { NormalizedAction, NormalizedActionSource } from "./types";
+import type { DaoAlertAction } from "./domains/dao/types";
 
 export type TeamsAlertKind =
   | "team_added"
@@ -279,7 +280,7 @@ export type ProductAlertAction = {
   };
 }[keyof ProductActionDetails];
 
-export type AlertAction = NormalizedAction | ProductAlertAction;
+export type AlertAction = NormalizedAction | ProductAlertAction | DaoAlertAction;
 
 export type ProductAlertDetailsFor<K extends ProductAlertKind> =
   ProductActionDetails[K];

@@ -8,6 +8,7 @@ start block.
 
 The implemented Teams and YBC extension is specified in
 [`alerts-bot-teams-ybc-spec.md`](alerts-bot-teams-ybc-spec.md).
+The DAO extension has its own [catalogue and rollout](apps/dao/telegram-alerts.md).
 
 The examples use fictional accounts, amounts, blocks, dates, and transaction
 hashes. They show the intended visible Telegram output. The implementation may
@@ -22,14 +23,15 @@ use Telegram HTML to produce the bold text and links.
 | yETH | yETH alerts chat | `alerts:yeth:v1` | yETH claims and Recovery Vault activity |
 | Teams | Teams alerts chat | `alerts:teams:v2` | Team registry, budgets, accounting, and revenue routing |
 | YBC | YBC alerts chat | `alerts:ybc:v2` | On-chain proposals, membership, rewards, and collective voting power |
+| DAO | DAO alerts chat | `alerts:dao:v1` | Proposal lifecycle, deadlines, votes, moderation, and governance configuration |
 
-The Worker runs all five objects independently. Each object owns its cursor,
+The Worker runs all six objects independently. Each object owns its cursor,
 event receipts, Telegram backoff, and destination. Teams and YBC message rules
 and exact fixtures are defined in the linked extension specification.
 
-DAO alerts remain outside this catalogue and their extension seam stays
-disabled. Teams and YBC are implemented but remain disabled until their private
-replays are reviewed and accepted.
+DAO messages are specified in the linked DAO catalogue. DAO delivery remains
+disabled pending destination configuration and private replay. The other five
+committed delivery flags are enabled.
 
 ## 2. Approved product decisions
 

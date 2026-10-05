@@ -66,6 +66,8 @@ import {
 } from "./telegram";
 import type { NormalizedAction } from "./types";
 import type { AlertAction } from "./product-types";
+import { createEmptyDaoState, loadDaoState, scanDaoBlocks } from "./domains/dao/scanner";
+import type { DaoAlertState } from "./domains/dao/types";
 
 const STATE_KEY = "state:v1";
 const RECEIPT_PREFIX = "sent:";
@@ -90,6 +92,7 @@ interface StoredDomainState {
   } | null;
   readonly teamsState: StoredTeamsState | null;
   readonly ybcState: StoredYbcState | null;
+  readonly daoState?: DaoAlertState | null;
 }
 
 interface ScanOutcome {
@@ -100,6 +103,8 @@ interface ScanOutcome {
   readonly yethDailyFlow: YethFlowSummary;
   readonly teamsState: TeamsState | null;
   readonly ybcState: YbcState | null;
+  readonly daoState?: DaoAlertState;
+  readonly terminalHash?: string;
 }
 
 class AlertRunError extends Error {
@@ -236,6 +241,7 @@ function initialState(domainId: ActiveAlertDomainId): StoredDomainState {
       domainId === "teams" ? serializeTeamsState(createEmptyTeamsState()) : null,
     ybcState:
       domainId === "ybc" ? serializeYbcState(createEmptyYbcState()) : null,
+    daoState: domainId === "dao" ? createEmptyDaoState() : null,
   });
 }
 
@@ -485,6 +491,17 @@ async function scanRange(params: {
   readonly requestedToBlock: number;
 }): Promise<ScanOutcome> {
   const fromBlock = params.state.cursorBlock + 1;
+  if (params.domainId === "dao") {
+    const scan = await scanDaoBlocks({
+      rpc: params.rpc, fromBlock, toBlock: params.requestedToBlock,
+      state: loadDaoState(params.state.daoState), includeVotes: params.config.daoIncludeVotes,
+    });
+    return {
+      terminalBlock: scan.terminalBlock, terminalHash: scan.terminalHash, actions: scan.actions,
+      daoState: scan.state, teamsState: null, ybcState: null, yethState: null,
+      yethMetrics: null, yethDailyFlow: { ...ZERO_FLOW },
+    };
+  }
   if (params.domainId === "styfi" || params.domainId === "veyfi") {
     const scan = await scanYfiRange({
       domainId: params.domainId,
@@ -816,7 +833,8 @@ export class AlertState implements DurableObject {
         });
         stage = "terminal";
         const terminal = await rpc.getBlockByNumber(scan.terminalBlock);
-        if (terminal.number !== scan.terminalBlock) {
+        if (terminal.number !== scan.terminalBlock ||
+            (scan.terminalHash !== undefined && terminal.hash !== scan.terminalHash)) {
           throw new AlertRunError("terminal_block_invalid");
         }
         stage = "render";
@@ -874,6 +892,7 @@ export class AlertState implements DurableObject {
             scan.teamsState === null ? stored.teamsState : serializeTeamsState(scan.teamsState),
           ybcState:
             scan.ybcState === null ? stored.ybcState : serializeYbcState(scan.ybcState),
+          daoState: scan.daoState ?? stored.daoState ?? null,
         };
         stage = "state_commit";
         await this.state.storage.put(STATE_KEY, stored);

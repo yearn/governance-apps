@@ -2,10 +2,15 @@
 
 ## Scope
 
-This runbook covers `governance-alerts-bot-v2`, the five-domain replacement
-for the live `governance-alerts-bot` singleton. The v2 Worker owns five
-independent Durable Object instances and five Telegram destinations. It does
+This runbook covers `governance-alerts-bot-v2`, which now supports six domains.
+The original five-stream rollout describes replacement of the `governance-alerts-bot` singleton.
+Each stream owns an independent Durable Object and Telegram destination. It does
 not migrate or adopt the old singleton's cursor.
+
+For the DAO addition, use the [DAO catalogue and rollout](apps/dao/telegram-alerts.md).
+DAO starts disabled. The existing five committed flags are enabled.
+The original singleton cutover instructions below describe the earlier five-stream rollout;
+adding DAO does not require that cutover again.
 
 The two Workers run side by side while the v2 histories are replayed and
 reviewed privately. The old Worker continues serving its existing combined
@@ -21,7 +26,7 @@ review and local verification gates pass.
 | Worker | Purpose during rollout | Destination |
 | --- | --- | --- |
 | `governance-alerts-bot` | Existing live singleton; leave unchanged | Existing combined chat |
-| `governance-alerts-bot-v2` | New permanent Worker; replay privately | Five final domain chats |
+| `governance-alerts-bot-v2` | Permanent Worker; new streams replay privately | Separate domain chats |
 
 | Domain | Durable Object | Telegram destination | Start block |
 | --- | --- | --- | ---: |
@@ -30,11 +35,12 @@ review and local verification gates pass.
 | yETH | `alerts:yeth:v1` | final private yETH chat | 24,522,098 |
 | Teams | `alerts:teams:v2` | final private Teams chat | 25,244,861 |
 | YBC | `alerts:ybc:v2` | final private YBC chat | 25,228,044 |
+| DAO | `alerts:dao:v1` | final private DAO chat | 25,883,944 |
 
 Each object stores one versioned state record and immutable event receipts. The
 state contains the cursor and terminal hash, redacted run status, Telegram
 backoff, yETH accounting where relevant, and domain replay state for Teams and
-YBC. It does not contain chat IDs,
+YBC, plus active proposals and deadline receipts for DAO. It does not contain chat IDs,
 tokens, endpoints, warning leases, migration phases, or rollback generations.
 
 ## Configuration
@@ -50,16 +56,19 @@ Set these as Cloudflare secrets, never as committed values:
 - `YETH_TELEGRAM_CHAT_ID`.
 - `TEAMS_TELEGRAM_CHAT_ID`.
 - `YBC_TELEGRAM_CHAT_ID`.
+- `DAO_TELEGRAM_CHAT_ID` when DAO delivery is enabled.
 - `ADMIN_TOKEN`: bearer token for `GET /status`.
 
-The committed variables are deliberately inert:
+The committed variables are:
 
 ```text
-ALERTS_STYFI_ENABLED=false
-ALERTS_VEYFI_ENABLED=false
-ALERTS_YETH_ENABLED=false
-ALERTS_TEAMS_ENABLED=false
-ALERTS_YBC_ENABLED=false
+ALERTS_STYFI_ENABLED=true
+ALERTS_VEYFI_ENABLED=true
+ALERTS_YETH_ENABLED=true
+ALERTS_TEAMS_ENABLED=true
+ALERTS_YBC_ENABLED=true
+ALERTS_DAO_ENABLED=false
+DAO_ALERT_VOTES_ENABLED=true
 CONFIRMATIONS=6
 MAX_MESSAGES_PER_RUN=5
 MAX_RANGES_PER_RUN=6
@@ -79,8 +88,8 @@ instead of the old free-tier request ledger:
 - one cron invocation per minute;
 - up to six 10,000-block ranges per domain run while catching up;
 - log-range halving only when the RPC explicitly rejects the range size;
-- block headers loaded only for event blocks and range terminals, not every
-  block in a range;
+- block headers loaded for event blocks and range terminals; DAO also uses
+  binary search to locate deadline blocks;
 - exact-block RPC batches limited to 25 calls;
 - log-aware transaction traces limited to 8 MiB and requested only for
   final-day YBC votes through a non-pinned weight aggregator;

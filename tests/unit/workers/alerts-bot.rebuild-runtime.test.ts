@@ -105,13 +105,14 @@ afterEach(() => {
 });
 
 describe("alerts rebuild registry and configuration", () => {
-  it("uses five independent active objects and keeps the DAO seam disabled", () => {
+  it("uses six independent active objects, including DAO", () => {
     expect(ALERT_DOMAIN_OBJECT_NAMES).toEqual({
       styfi: "alerts:styfi:v1",
       veyfi: "alerts:veyfi:v1",
       yeth: "alerts:yeth:v1",
       teams: "alerts:teams:v2",
       ybc: "alerts:ybc:v2",
+      dao: "alerts:dao:v1",
     });
     expect(ALERT_DOMAIN_GENESIS_BLOCKS).toEqual({
       styfi: 24_386_915,
@@ -119,15 +120,16 @@ describe("alerts rebuild registry and configuration", () => {
       yeth: 24_522_098,
       teams: 25_244_861,
       ybc: 25_228_044,
+      dao: 25_883_944,
     });
     expect(
-      ALERT_DOMAIN_REGISTRATIONS.filter(({ status }) => status === "disabled")
-        .map(({ id }) => id),
-    ).toEqual(["dao"]);
+      ALERT_DOMAIN_REGISTRATIONS.every(({ status }) => status === "active"),
+    ).toBe(true);
   });
 
   it("defaults all domains off and does not couple one missing chat to another", () => {
     expect(domainConfigs(baseEnv()).map(({ enabled }) => enabled)).toEqual([
+      false,
       false,
       false,
       false,
@@ -145,6 +147,7 @@ describe("alerts rebuild registry and configuration", () => {
       { domainId: "yeth", enabled: true, chatId: null },
       { domainId: "teams", enabled: false },
       { domainId: "ybc", enabled: false },
+      { domainId: "dao", enabled: false },
     ]);
   });
 
@@ -709,7 +712,7 @@ describe("minimal durable runtime", () => {
 });
 
 describe("worker routing and Telegram backoff", () => {
-  it("fans the cron out to exactly the five configured object names", async () => {
+  it("fans the cron out to exactly the six configured object names", async () => {
     const names: string[] = [];
     const namespace = {
       idFromName(name: string) {
@@ -730,6 +733,7 @@ describe("worker routing and Telegram backoff", () => {
         ALERTS_YETH_ENABLED: "true",
         ALERTS_TEAMS_ENABLED: "true",
         ALERTS_YBC_ENABLED: "true",
+        ALERTS_DAO_ENABLED: "true",
       }),
       { waitUntil(value) { pending = value; } },
     );
@@ -740,6 +744,7 @@ describe("worker routing and Telegram backoff", () => {
       "alerts:yeth:v1",
       "alerts:teams:v2",
       "alerts:ybc:v2",
+      "alerts:dao:v1",
     ]);
   });
 

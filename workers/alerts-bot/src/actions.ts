@@ -4,6 +4,7 @@ import {
   type AlertAction,
 } from "./product-types";
 import type { NormalizedAction } from "./types";
+import { isDaoAlertAction } from "./domains/dao/types";
 
 const DOMAIN_KINDS: Readonly<Record<ActiveAlertDomainId, ReadonlySet<string>>> = {
   styfi: new Set(["staked", "initiated_cooldown", "withdrew_from_cooldown"]),
@@ -32,17 +33,18 @@ const DOMAIN_KINDS: Readonly<Record<ActiveAlertDomainId, ReadonlySet<string>>> =
   ]),
   teams: new Set(),
   ybc: new Set(),
+  dao: new Set(),
 };
 
 export function actionEventId(action: AlertAction): string {
-  if (isProductAlertAction(action)) return action.eventId;
+  if (isProductAlertAction(action) || isDaoAlertAction(action)) return action.eventId;
   return action.source.kind === "synthetic"
     ? action.source.metricId
     : `${action.txHash.toLowerCase()}:${action.logIndex}`;
 }
 
 export function isSuppressedCatalogueAction(action: AlertAction): boolean {
-  if (isProductAlertAction(action)) return false;
+  if (isProductAlertAction(action) || isDaoAlertAction(action)) return false;
   if (action.kind === "penalty") return true;
   return (
     action.kind === "update" &&
@@ -95,7 +97,7 @@ export function validateDomainActions(
   let previousLogIndex = -1;
   for (const action of actions) {
     if (
-      isProductAlertAction(action)
+      isProductAlertAction(action) || isDaoAlertAction(action)
         ? action.domainId !== domainId
         : !DOMAIN_KINDS[domainId].has(action.kind)
     ) {

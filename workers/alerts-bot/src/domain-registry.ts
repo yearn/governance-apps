@@ -1,3 +1,5 @@
+import { DAO_DEPLOYMENT_BLOCK } from "./domains/dao/contracts";
+
 export const ALERT_DOMAIN_IDS = [
   "styfi",
   "veyfi",
@@ -10,7 +12,7 @@ export const ALERT_DOMAIN_IDS = [
 export type AlertDomainId = (typeof ALERT_DOMAIN_IDS)[number];
 export type ActiveAlertDomainId = Extract<
   AlertDomainId,
-  "styfi" | "veyfi" | "yeth" | "teams" | "ybc"
+  "styfi" | "veyfi" | "yeth" | "teams" | "ybc" | "dao"
 >;
 export type DisabledAlertDomainId = Exclude<AlertDomainId, ActiveAlertDomainId>;
 
@@ -20,6 +22,7 @@ export const ALERT_DOMAIN_OBJECT_NAMES = {
   yeth: "alerts:yeth:v1",
   teams: "alerts:teams:v2",
   ybc: "alerts:ybc:v2",
+  dao: "alerts:dao:v1",
 } as const satisfies Readonly<Record<ActiveAlertDomainId, string>>;
 
 export type AlertDomainObjectName =
@@ -32,6 +35,7 @@ export const ALERT_DOMAIN_GENESIS_BLOCKS = {
   yeth: 24_522_098,
   teams: 25_244_861,
   ybc: 25_228_044,
+  dao: DAO_DEPLOYMENT_BLOCK,
 } as const satisfies Readonly<Record<ActiveAlertDomainId, number>>;
 
 export type AlertFamily =
@@ -41,7 +45,8 @@ export type AlertFamily =
   | "liquid-locker"
   | "yeth"
   | "teams"
-  | "ybc";
+  | "ybc"
+  | "dao";
 
 export interface ActiveAlertDomainRegistration {
   readonly id: ActiveAlertDomainId;
@@ -103,9 +108,11 @@ const YBC_REGISTRATION = Object.freeze({
 
 const DAO_REGISTRATION = Object.freeze({
   id: "dao",
-  status: "disabled",
-  alertFamilies: Object.freeze([]),
-} satisfies DisabledAlertDomainRegistration);
+  status: "active",
+  objectName: ALERT_DOMAIN_OBJECT_NAMES.dao,
+  genesisBlock: ALERT_DOMAIN_GENESIS_BLOCKS.dao,
+  alertFamilies: Object.freeze(["dao"]),
+} satisfies ActiveAlertDomainRegistration);
 
 export const ACTIVE_ALERT_DOMAIN_REGISTRATIONS = Object.freeze([
   STYFI_REGISTRATION,
@@ -113,11 +120,11 @@ export const ACTIVE_ALERT_DOMAIN_REGISTRATIONS = Object.freeze([
   YETH_REGISTRATION,
   TEAMS_REGISTRATION,
   YBC_REGISTRATION,
+  DAO_REGISTRATION,
 ] satisfies readonly ActiveAlertDomainRegistration[]);
 
 export const ALERT_DOMAIN_REGISTRATIONS = Object.freeze([
   ...ACTIVE_ALERT_DOMAIN_REGISTRATIONS,
-  DAO_REGISTRATION,
 ] satisfies readonly AlertDomainRegistration[]);
 
 const REGISTRATION_BY_ID: Readonly<Record<AlertDomainId, AlertDomainRegistration>> =

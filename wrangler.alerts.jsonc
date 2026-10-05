@@ -18,6 +18,7 @@
   // wrangler secret put YETH_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
   // wrangler secret put TEAMS_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
   // wrangler secret put YBC_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
+  // wrangler secret put DAO_TELEGRAM_CHAT_ID --config wrangler.alerts.jsonc
   // wrangler secret put ADMIN_TOKEN --config wrangler.alerts.jsonc
   "vars": {
     // All domains fail closed until their final private chat is ready.
@@ -26,6 +27,9 @@
     "ALERTS_YETH_ENABLED": "true",
     "ALERTS_TEAMS_ENABLED": "true",
     "ALERTS_YBC_ENABLED": "true",
+    // Enable DAO after configuring its chat and reviewing private replay.
+    "ALERTS_DAO_ENABLED": "false",
+    "DAO_ALERT_VOTES_ENABLED": "true",
     "CONFIRMATIONS": "6",
     "MAX_MESSAGES_PER_RUN": "5",
     "MAX_RANGES_PER_RUN": "6",

@@ -12,6 +12,9 @@ import {
 } from "./account-block-context";
 import { renderAlertCatalogueAction } from "./catalogue-renderer";
 import { renderProductAlertAction } from "./product-renderer";
+import { isDaoAlertAction } from "./domains/dao/types";
+import { renderDaoAlert } from "./domains/dao/renderer";
+import { readDaoAlertContent, type DaoAlertContent } from "./domains/dao/content";
 import {
   isProductAlertAction,
   productAlertAddresses,
@@ -179,6 +182,7 @@ export async function renderCatalogueMessages(params: {
   const visible = params.actions.filter((action) => !isSuppressedCatalogueAction(action));
   validateDomainActions(params.domainId, visible);
   const output: RenderedAlertMessage[] = [];
+  const daoContent = new Map<string, DaoAlertContent | null>();
   const priceSource = createChainlinkYfiUsdPriceSource(params.rpc);
 
   for (const actions of groupsByBlock(visible)) {
@@ -191,6 +195,25 @@ export async function renderCatalogueMessages(params: {
       read: (requests: readonly RpcCallRequest[]) =>
         readAtBlock(params.rpc, block, requests),
     });
+    if (actions.every(isDaoAlertAction)) {
+      for (const action of actions) {
+        if (action.timestamp !== block.timestamp || action.blockHash !== block.hash ||
+            (action.source.kind === "synthetic" && action.source.blockHash !== block.hash)) {
+          throw new Error("dao_render_block_mismatch");
+        }
+        // Content is optional and fetched only for proposal announcements.
+        // Follow-up alerts retain the canonical proposal link even if IPFS is down.
+        let content: DaoAlertContent | null = null;
+        if (action.kind === "dao_proposal" && action.event === "proposed") {
+          const digest = action.proposal.digest;
+          if (!daoContent.has(digest)) daoContent.set(digest, await readDaoAlertContent(digest));
+          content = daoContent.get(digest) ?? null;
+        }
+        output.push({ eventId: action.eventId, blockNumber, html: renderDaoAlert(action, content) });
+      }
+      continue;
+    }
+    if (actions.some(isDaoAlertAction)) throw new Error("alert_action_family_mixed");
     if (actions.every(isProductAlertAction)) {
       const productActions = actions as readonly ProductAlertAction[];
       const ensNamesByAddress = await resolveAlertEnsNamesAtBlock({
