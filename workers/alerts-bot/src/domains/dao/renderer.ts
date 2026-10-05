@@ -43,13 +43,13 @@ function weight(value: string): string {
 }
 
 const titles = {
-  proposed: "New DAO proposal", vote: "DAO vote weight recorded", retracted: "DAO proposal retracted",
-  flagged: "DAO proposal flagged", vetoed: "DAO proposal vetoed", executed: "DAO execution confirmed",
-  discussion_ending: "DAO discussion period ending", voting_open: "DAO voting opened",
-  voting_ending: "DAO voting ending", vote_decay: "DAO vote weight decay started",
-  approved: "DAO proposal approved", rejected: "DAO proposal rejected", vetoed_result: "DAO voting closed — veto remains",
-  execution_ready: "DAO execution window opened", execution_ending: "DAO execution window ending",
-  expired: "DAO execution window expired",
+  proposed: "📝 New DAO proposal", vote: "🗳️ DAO vote weight recorded", retracted: "↩️ DAO proposal retracted",
+  flagged: "🚩 DAO proposal flagged", vetoed: "🛑 DAO proposal vetoed", executed: "✅ DAO execution confirmed",
+  discussion_ending: "💬 DAO discussion period ending", voting_open: "🗳️ DAO voting opened",
+  voting_ending: "⏰ DAO voting ending", vote_decay: "📉 DAO vote weight decay started",
+  approved: "👍 DAO proposal approved", rejected: "❌ DAO proposal rejected", vetoed_result: "🛑 DAO voting closed — veto remains",
+  execution_ready: "▶️ DAO execution window opened", execution_ending: "⏰ DAO execution window ending",
+  expired: "⌛ DAO execution window expired",
 } as const;
 
 export const DAO_CONFIGURATION_COPY: Readonly<Record<string, { title: string; effect: string; labels: Readonly<Record<string, string>> }>> = {
@@ -75,7 +75,8 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
   if (action.kind === "dao_configuration") {
     const copy = DAO_CONFIGURATION_COPY[action.event];
     if (!copy) throw new Error("dao_configuration_unsupported");
-    lines.push(`<b>DAO: ${copy.title}</b>`, "", `Contract: ${account(action.contract)} (${action.contract === DAO_VOTING ? "Voting" : "Voter"})`);
+    const icon = ["SetOperator", "PendingGuardian", "SetGuardian", "PendingManagement", "SetManagement"].includes(action.event) ? "🔐" : "⚙️";
+    lines.push(`<b>${icon} DAO: ${copy.title}</b>`, "", `Contract: ${account(action.contract)} (${action.contract === DAO_VOTING ? "Voting" : "Voter"})`);
     for (const [key, label] of Object.entries(copy.labels)) {
       const value = action.values[key];
       if (value === undefined) throw new Error("dao_configuration_value_missing");

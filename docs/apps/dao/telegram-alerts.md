@@ -30,6 +30,22 @@ Every message includes its observation time in UTC and the confirmed block numbe
 Transaction events link to Etherscan transactions. Deadline alerts link to their confirmed blocks.
 Proposal links include the chain and Voting address, so numeric proposal IDs remain unambiguous.
 
+Message headings use one emoji, following the other alert channels:
+
+| Emoji | Message type |
+| --- | --- |
+| 📝 | New proposal |
+| 🗳️ | Vote recorded or voting opened |
+| 💬 | Discussion ending |
+| ⏰ | Voting or execution deadline approaching |
+| 📉 | Vote weight decay started |
+| 👍 / ❌ | Proposal approved / rejected |
+| ▶️ / ✅ / ⌛ | Execution opens / completes / expires |
+| ↩️ / 🚩 / 🛑 | Retraction / flag / veto |
+| ⚙️ / 🔐 | Protocol configuration / role change |
+
+Text labels remain explicit, including when the same emoji groups related events.
+
 All proposal alert types use the verified title and available forum link, including votes, deadlines, results, moderation, and execution.
 New-proposal announcements also include a summary excerpt. The bot and website share the summary selection helper.
 An explicit Summary section takes precedence over author attribution below the title.
