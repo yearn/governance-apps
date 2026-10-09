@@ -22,7 +22,7 @@ describe("treasury dashboard", () => {
     expect(screen.queryByText("Closed positions")).not.toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Loans & allocations" }));
     expect(screen.queryByText("Snapshot details")).not.toBeInTheDocument();
-    expect(screen.queryByText("6 tracked positions unpriced")).not.toBeInTheDocument();
+    expect(screen.queryByText("6 unpriced holdings")).not.toBeInTheDocument();
     const history = screen.getByText("Closed positions").closest("details")!;
     expect(history).not.toHaveAttribute("open");
     await user.click(within(history).getByText("Closed positions"));
@@ -48,7 +48,7 @@ describe("treasury dashboard", () => {
     data.summary.unpricedHoldingCount += 350;
     show({ feed: data });
     expect(holding("yvUSD")).toBeVisible();
-    expect(screen.getByText("6 tracked positions unpriced")).toBeVisible();
+    expect(screen.getByText("356 unpriced holdings")).toBeVisible();
     const other = screen.getByTestId("treasury-collapsed-ychad-other");
     expect(within(other).getByRole("button")).toHaveAttribute("aria-expanded", "false");
     expect(within(other).getByText("350")).toBeVisible();
@@ -59,6 +59,32 @@ describe("treasury dashboard", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "Accountable team" }), "vaults");
     expect(screen.queryByTestId("treasury-collapsed-ychad-other")).not.toBeInTheDocument();
     expect(holding("yvUSD")).toBeVisible();
+  });
+
+  it("reports all unpriced holdings in the headline regardless of disclosures and filters", async () => {
+    const user = userEvent.setup();
+    const data = createTreasuryMockFeed("partial");
+    data.holdings = [data.holdings[0], data.holdings[2]];
+    data.holdings.push(...Array.from({ length: 228 }, (_, i) => ({
+      ...data.holdings[0],
+      id: "unpriced-other-" + i,
+      positionKey: null,
+      purpose: "unspecified" as const,
+      purposeNote: null,
+      accountableTeamId: null,
+      asset: { ...data.holdings[0].asset, symbol: "OTHER" + i, name: "Other token " + i, address: "0x" + (i + 100).toString(16).padStart(40, "0") },
+    })));
+    data.summary.holdingCount = 230;
+    data.summary.unpricedHoldingCount = 230;
+    show({ feed: data });
+    expect(screen.getAllByRole("button", { name: /^Position details —/ })).toHaveLength(2);
+    expect(screen.getByText("230 unpriced holdings")).toBeVisible();
+    expect(screen.queryByText("2 unpriced holdings")).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Treasury address" }), "treasury");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Accountable team" }), "vaults");
+    await user.click(screen.getByRole("button", { name: "Exclude YFI" }));
+    expect(screen.getAllByRole("button", { name: /^Position details —/ })).toHaveLength(1);
+    expect(screen.getByText("230 unpriced holdings")).toBeVisible();
   });
 
   it("defaults to portfolio and changes the valuation without hiding YFI holdings", async () => {
@@ -176,7 +202,7 @@ describe("treasury dashboard", () => {
     expect(screen.getByText(/Refresh unavailable/)).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent("Showing the last validated snapshot.");
     expect(holding("YFI")).toBeVisible();
-    expect(screen.getByText("6 tracked positions unpriced")).toBeVisible();
+    expect(screen.getByText("6 unpriced holdings")).toBeVisible();
     expect(screen.getByText("6 holdings without a price.")).not.toBeVisible();
   });
 

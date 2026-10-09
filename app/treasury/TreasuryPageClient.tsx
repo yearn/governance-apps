@@ -49,7 +49,6 @@ export function TreasuryDashboard({ feed, loading = false, failed = false, refre
   const allGroups = feed ? groupTreasuryAccounts(feed, feed.holdings, excludeYfi) : [];
   const allocations = feed?.allocations.filter((item) => !teamId || item.accountableTeamId === teamId) ?? [];
   const stale = feed ? isTreasuryStale(feed, now) : false;
-  const unpricedPrimary = allGroups.reduce((count, group) => count + group.primary.filter((holding) => (excludeYfi ? holding.valuation.usdValueExcludingYfi : holding.valuation.usdValue) === null).length, 0);
   const partial = feed && (feed.coverage.inventory !== "indexed" || feed.summary.unpricedHoldingCount > 0 || (excludeYfi && feed.summary.unknownYfiSplitCount > 0));
 
   return (
@@ -75,7 +74,7 @@ export function TreasuryDashboard({ feed, loading = false, failed = false, refre
                     <span>{copy.summaryScope}</span>
                     {!excludeYfi && feed.holdings.some((holding) => holding.valuation.redemption) ? <span>{copy.includesRedemptionReference}</span> : null}
                     {partial ? <span>{copy.partialValuation}</span> : null}
-                    {tab === "portfolio" && unpricedPrimary > 0 ? <span>{unpricedPrimary} {copy.unpricedPositions}</span> : null}
+                    {tab === "portfolio" && feed.summary.unpricedHoldingCount > 0 ? <span>{feed.summary.unpricedHoldingCount} {copy.unpricedPositions}</span> : null}
                   </div>
                 </div>
                 <button type="button" aria-pressed={excludeYfi} onClick={() => setExcludeYfi(!excludeYfi)} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs transition-[background-color,scale] hover:bg-surface-secondary active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none motion-reduce:active:scale-100">

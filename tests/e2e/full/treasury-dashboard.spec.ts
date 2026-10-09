@@ -33,7 +33,7 @@ test("treasury tabs and compact disclosures support keyboard navigation", async 
 test("treasury preserves unknown values and explicit operational states", async ({ page }) => {
   await page.goto("/treasury?scenario=partial");
   await expect(page.getByTestId("treasury-portfolio-value").getByRole("img", { name: "Not available" })).toHaveText("—");
-  await expect(page.getByText("6 tracked positions unpriced", { exact: true })).toBeVisible();
+  await expect(page.getByText("6 unpriced holdings", { exact: true })).toBeVisible();
   const snapshot = page.locator("details").filter({ has: page.locator("summary").filter({ hasText: "Snapshot details" }) });
   await expect(snapshot).not.toHaveAttribute("open", "");
   await snapshot.locator("summary").click();

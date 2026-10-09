@@ -25,7 +25,7 @@ export const treasuryCopy = {
   summaryScope: "All treasury addresses",
   partialValuation: "Partial value",
   pricedSubtotal: "Priced subtotal",
-  unpricedPositions: "tracked positions unpriced",
+  unpricedPositions: "unpriced holdings",
   allAccounts: "All addresses",
   allTeams: "All teams",
   accountFilter: "Treasury address",

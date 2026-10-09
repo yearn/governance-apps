@@ -20,7 +20,7 @@ Purpose and withdrawal conditions are separate. Strategic capital is part of the
 
 Loans & allocations uses a table with position, funding, current amount, team, and reference columns. Pending allocations show planned funding. Unknown amounts show a dash. Expected-return fields remain in the feed contract but do not appear in this view. Additional evidence and notes stay in row disclosures. OTC inventory distinguishes unreconciled funding from unsold st-yCRV shares and liquid yCRV. The UI does not add these token quantities together.
 
-Closed positions appear only in Loans & allocations, in a collapsed list. Snapshot details and the unpriced-position count appear only in Portfolio. The shared headline retains its partial-value label on both tabs. Each item has a disposition, a short note, and an evidence link.
+Closed positions appear only in Loans & allocations, in a collapsed list. Snapshot details and the unpriced-holdings count appear only in Portfolio. The count covers the complete snapshot, including collapsed rows, and does not change with account or team filters. The shared headline retains its partial-value label on both tabs. Each item has a disposition, a short note, and an evidence link.
 
 ## Data boundary
 
