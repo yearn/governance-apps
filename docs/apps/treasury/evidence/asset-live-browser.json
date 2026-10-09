@@ -1,0 +1,29 @@
+{
+  "block": 26156858,
+  "summary": {
+    "holdingCount": 370,
+    "pricedUsdValue": "15972367.495680926289261931",
+    "pricedUsdValueExcludingYfi": "14519978.521558716885413546",
+    "unpricedHoldingCount": 258,
+    "unknownYfiSplitCount": 0
+  },
+  "checks": [
+    "dyfi-reference-and-funding-status",
+    "dyfi-exact-payment-contract-link",
+    "dyfi-excluded-with-yfi-toggle",
+    "api-exact-match",
+    "three-address-groups",
+    "token-icons-loaded",
+    "eight-lookalike-contracts",
+    "canonical-issuer-link",
+    "320-layout",
+    "yfi-exclusion",
+    "robo-filter-preserves-headline",
+    "tab-specific-notes",
+    "otc-inventory-context",
+    "last-good-after-503"
+  ],
+  "pageErrors": [],
+  "sha256": "214bd81872e84f22564d1d3a0a4ced70dfae9c360f865e173a071af06fdee67f",
+  "consumerCodeCommit": "8817254bf6bb30ae950754736765774623e89d45"
+}

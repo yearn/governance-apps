@@ -1,6 +1,6 @@
 # Treasury MVP testing handoff
 
-The latest accepted pass is [Treasury compact tables](compact-ui-work-package.md), tagged `integration/treasury-m1` in both repositories.
+The latest accepted pass is [Treasury asset coverage and identity](asset-coverage-work-package.md), tagged `integration/treasury-m2` in both repositories. It supersedes the compact-table pass and includes typed dYFI redemption references.
 The sections below preserve the initial MVP record. Its snapshot values and test counts are historical.
 
 The dashboard and producer are integrated for testing. Production deployment and remote publication have not started.
@@ -68,10 +68,10 @@ Its source is the captured live snapshot at `http://127.0.0.1:3340/treasury.json
 The preview is local and temporary. It does not publish to R2 or automatically acquire new chain snapshots.
 The dashboard will mark this capture stale as it ages.
 
-To reproduce a current local snapshot, run from the producer repository:
+To reproduce a current local snapshot, configure `TREASURY_RPC_URL` with a capacity-qualified Ethereum endpoint. Then run from the producer repository. The expanded inventory can exceed anonymous public-provider limits.
 
 ```fish
-env TREASURY_RPC_TRANSPORT=http TREASURY_RPC_URL=https://ethereum-rpc.publicnode.com cargo run --locked --bin gov-apps-treasury -- local packaging/treasury-config.example.json /tmp/treasury-state /tmp/treasury.json
+env TREASURY_RPC_TRANSPORT=http cargo run --locked --bin gov-apps-treasury -- local packaging/treasury-config.example.json /tmp/treasury-state /tmp/treasury.json
 ```
 
 Use `run` instead of `local` for repeated local acquisition. The interval is 900 seconds after each completed cycle.

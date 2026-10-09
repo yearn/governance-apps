@@ -1,0 +1,1022 @@
+{
+  "blockNumber": 26156858,
+  "blockHash": "0x7e4de16faeb4e8dd861395e57a8ab6dc37e239184911b20ded81033d3ad76820",
+  "sha256": "214bd81872e84f22564d1d3a0a4ced70dfae9c360f865e173a071af06fdee67f",
+  "rawBalancesVerified": 370,
+  "pricedRowsRecomputed": 112,
+  "recordedRequests": 3701,
+  "distinctSuccessfulRequests": 2936,
+  "readBlocks": [
+    "0x18f1f3a"
+  ],
+  "summary": {
+    "holdingCount": 370,
+    "pricedUsdValue": "15972367.495680926289261931",
+    "pricedUsdValueExcludingYfi": "14519978.521558716885413546",
+    "unpricedHoldingCount": 258,
+    "unknownYfiSplitCount": 0
+  },
+  "visibleTrackedUnpricedCount": 3,
+  "visibleTrackedUnpriced": [
+    {
+      "id": "ychad:0x5afe3855358e112b5647b952709e6165e1c1eeee",
+      "groupId": "ychad",
+      "symbol": "SAFE",
+      "address": "0x5afe3855358e112b5647b952709e6165e1c1eeee"
+    },
+    {
+      "id": "ychad:0xaf988aff99d3d0cb870812c325c588d8d8cb7de8",
+      "groupId": "ychad",
+      "symbol": "SLP-KP3R-WETH",
+      "address": "0xaf988aff99d3d0cb870812c325c588d8d8cb7de8"
+    },
+    {
+      "id": "treasury:0xf165a634296800812b8b0607a75deddcd4d3cc88",
+      "groupId": "treasury",
+      "symbol": "yvCurve-reUSD-scrvUSD-f",
+      "address": "0xf165a634296800812b8b0607a75deddcd4d3cc88"
+    }
+  ],
+  "groups": [
+    {
+      "id": "ychad",
+      "primaryCount": 23,
+      "smallCount": 12,
+      "otherUnpricedCount": 64,
+      "lookalikeCount": 8,
+      "pricedUsdValue": "3843906.185391127537258005"
+    },
+    {
+      "id": "treasury",
+      "primaryCount": 51,
+      "smallCount": 17,
+      "otherUnpricedCount": 171,
+      "lookalikeCount": 0,
+      "pricedUsdValue": "9002354.279737006373348051"
+    },
+    {
+      "id": "robo-treasury",
+      "primaryCount": 4,
+      "smallCount": 8,
+      "otherUnpricedCount": 12,
+      "lookalikeCount": 0,
+      "pricedUsdValue": "3126107.030552792378655875"
+    }
+  ],
+  "oracles": [
+    {
+      "address": "0x8c110b94c5f1d347facf5e1e938ab2db60e3c9a8",
+      "decimals": 8,
+      "price": "9367",
+      "updated": 1791564683
+    },
+    {
+      "address": "0xfdfd9c85ad200c506cf9e21f1fd8dd01932fbb23",
+      "decimals": 8,
+      "price": "99858897",
+      "updated": 1791494519
+    },
+    {
+      "address": "0xf4030086522a5beea4988f8ca5b36dbc97bee88c",
+      "decimals": 8,
+      "price": "8252251513356",
+      "updated": 1791570107
+    },
+    {
+      "address": "0xcfe54b5cd566ab89272946f602d76ea879cab4a8",
+      "decimals": 8,
+      "price": "248042854115",
+      "updated": 1791571535
+    },
+    {
+      "address": "0xaed0c38402a5d19df6e4c03f4e2dced6e29c1ee9",
+      "decimals": 8,
+      "price": "99974727",
+      "updated": 1791572579
+    },
+    {
+      "address": "0xeef0c605546958c1f899b6fb336c20671f9cd49f",
+      "decimals": 8,
+      "price": "99928059",
+      "updated": 1791568151
+    },
+    {
+      "address": "0xec746ecf986e2927abd291a2a1716c940100f8ba",
+      "decimals": 8,
+      "price": "100025869",
+      "updated": 1791562007
+    },
+    {
+      "address": "0xff30586cd0f29ed462364c7e81375fc0c71219b1",
+      "decimals": 8,
+      "price": "99988719",
+      "updated": 1791553643
+    },
+    {
+      "address": "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419",
+      "decimals": 8,
+      "price": "248583347299",
+      "updated": 1791569447
+    },
+    {
+      "address": "0x2665701293fcbeb223d11a08d826563edcce423a",
+      "decimals": 8,
+      "price": "8293380842070",
+      "updated": 1791546023
+    },
+    {
+      "address": "0x3e7d1eab13ad0104d2750b8863b489d65364e32d",
+      "decimals": 8,
+      "price": "99905453",
+      "updated": 1791556739
+    },
+    {
+      "address": "0xd962fc30a72a84ce50161031391756bf2876af5d",
+      "decimals": 8,
+      "price": "206210112",
+      "updated": 1791556295
+    },
+    {
+      "address": "0xe33592594f72cc7ec8a05788be8e8455746c3a32",
+      "decimals": 8,
+      "price": "99739996",
+      "updated": 1791521003
+    },
+    {
+      "address": "0xa569d910839ae8865da8f8e70fffb0cba869f961",
+      "decimals": 8,
+      "price": "99947809",
+      "updated": 1791521939
+    },
+    {
+      "address": "0x8fffffd4afb6115b954bd326cbe7b4ba576818f6",
+      "decimals": 8,
+      "price": "99986510",
+      "updated": 1791556739
+    },
+    {
+      "address": "0xcd627aa160a6fa45eb793d19ef54f5062f20f33f",
+      "decimals": 8,
+      "price": "35797141",
+      "updated": 1791565571
+    },
+    {
+      "address": "0x3d7ae7e594f2f2091ad8798313450130d0aba3a0",
+      "decimals": 8,
+      "price": "100569500",
+      "updated": 1791520751
+    },
+    {
+      "address": "0x3f12643d3f6f874d39c2a4c9f2cd6f2dbac877fc",
+      "decimals": 8,
+      "price": "99926049",
+      "updated": 1791493667
+    },
+    {
+      "address": "0x9b4a96210bc8d9d55b1908b465d8b0de68b7ff83",
+      "decimals": 8,
+      "price": "99981172",
+      "updated": 1791558935
+    },
+    {
+      "address": "0xe5fa3a4e4208858addf2cdb4e12651e89f1f1a70",
+      "decimals": 8,
+      "price": "1278631271",
+      "updated": 1791571379
+    },
+    {
+      "address": "0xdc3ea94cd0ac27d9a86c180091e7f78c683d3699",
+      "decimals": 8,
+      "price": "23488154",
+      "updated": 1791562643
+    },
+    {
+      "address": "0xa027702dbb89fbd58938e4324ac03b58d812b0e1",
+      "decimals": 8,
+      "price": "234551260000",
+      "updated": 1791567911
+    },
+    {
+      "address": "0x164b276057258d81941e97b0a900d4c7b358bce0",
+      "decimals": 8,
+      "price": "309169566830",
+      "updated": 1791553427
+    },
+    {
+      "address": "0xdbd020caef83efd542f4de03e3cf0c28a4428bd5",
+      "decimals": 8,
+      "price": "2422626460",
+      "updated": 1791571655
+    },
+    {
+      "address": "0xc929ad75b72593967de83e7f7cda0493458261d9",
+      "decimals": 8,
+      "price": "9736404",
+      "updated": 1791562655
+    },
+    {
+      "address": "0x3ebeaca272ce4f60e800f6c5ee678f50d2882fd4",
+      "decimals": 18,
+      "price": "943551780714731536",
+      "updated": 1791567911
+    },
+    {
+      "address": "0x547a514d5e3769680ce22b2361c10ea13619e8a9",
+      "decimals": 8,
+      "price": "16821210388",
+      "updated": 1791570659
+    },
+    {
+      "address": "0x5c00128d4d1c2f4f652c267d7bcdd7ac99c16e16",
+      "decimals": 8,
+      "price": "617939810",
+      "updated": 1791542591
+    }
+  ],
+  "checks": [
+    {
+      "id": "robo-auction:0x861fe45742f70054917b65be18904662bd0dbd30:0x090185f2135308bad17527004364ebcc2d37e5f6",
+      "symbol": "SPELL",
+      "usd": "0.000272534152520453",
+      "excludingYfi": "0.000272534152520453",
+      "asOf": 1791564683
+    },
+    {
+      "id": "robo-auction:0x861fe45742f70054917b65be18904662bd0dbd30:0xa696a63cc78dffa1a63e9e50587c197387ff6c7e",
+      "symbol": "yvWBTC",
+      "usd": "0.168108389713623429",
+      "excludingYfi": "0.168108389713623429",
+      "asOf": 1791494519
+    },
+    {
+      "id": "robo-auction:0x861fe45742f70054917b65be18904662bd0dbd30:0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+      "symbol": "stETH",
+      "usd": "0.00000000000000248",
+      "excludingYfi": "0.00000000000000248",
+      "asOf": 1791571535
+    },
+    {
+      "id": "robo-auction:0xac8147746f9018377613e7b21755615e63103416:0xa696a63cc78dffa1a63e9e50587c197387ff6c7e",
+      "symbol": "yvWBTC",
+      "usd": "0.168108389713623429",
+      "excludingYfi": "0.168108389713623429",
+      "asOf": 1791494519
+    },
+    {
+      "id": "robo-auction:0xac8147746f9018377613e7b21755615e63103416:0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+      "symbol": "stETH",
+      "usd": "0.00000000000000248",
+      "excludingYfi": "0.00000000000000248",
+      "asOf": 1791571535
+    },
+    {
+      "id": "robo-custody:0xe6136a227e8e5b35dbbbfa635d218aaed22299a0:0x92545bce636e6ee91d88d2d017182cd0bd2fc22e",
+      "symbol": "yvDAI-2",
+      "usd": "0.000000000000000001",
+      "excludingYfi": "0.000000000000000001",
+      "asOf": 1791572579
+    },
+    {
+      "id": "robo-custody:0xe6136a227e8e5b35dbbbfa635d218aaed22299a0:0xbf319ddc2edc1eb6fdf9910e39b37be221c8805f",
+      "symbol": "yvcrvUSD-2",
+      "usd": "0.000000000000000005",
+      "excludingYfi": "0.000000000000000005",
+      "asOf": 1791568151
+    },
+    {
+      "id": "robo-treasury:0x0000000000085d4780b73119b644ae5ecd22b376",
+      "symbol": "TUSD",
+      "usd": "0.000100025869",
+      "excludingYfi": "0.000100025869",
+      "asOf": 1791562007
+    },
+    {
+      "id": "robo-treasury:0xa3931d71877c0e7a3148cb7eb4463524fec27fbd",
+      "symbol": "sUSDS",
+      "usd": "1352328.704690350081857552",
+      "excludingYfi": "1352328.704690350081857552",
+      "asOf": 1791553643
+    },
+    {
+      "id": "robo-treasury:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "symbol": "WETH",
+      "usd": "587783.115373943831338046",
+      "excludingYfi": "587783.115373943831338046",
+      "asOf": 1791569447
+    },
+    {
+      "id": "robo-treasury:0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+      "symbol": "cbBTC",
+      "usd": "595102.940745362191008",
+      "excludingYfi": "595102.940745362191008",
+      "asOf": 1791546023
+    },
+    {
+      "id": "robo-treasury:0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "symbol": "USDT",
+      "usd": "590891.93315379682568",
+      "excludingYfi": "590891.93315379682568",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x028ec7330ff87667b6dfb0d94b954c820195336c",
+      "symbol": "yvDAI-1",
+      "usd": "361189.150981904398003248",
+      "excludingYfi": "361189.150981904398003248",
+      "asOf": 1791572579
+    },
+    {
+      "id": "treasury:0x0e8a7717a4fd7694682e7005957dd5d7598bf14a",
+      "symbol": "yExptWBTC",
+      "usd": "612.39249378324566328",
+      "excludingYfi": "612.39249378324566328",
+      "asOf": 1791494519
+    },
+    {
+      "id": "treasury:0x1635b506a88fbf428465ad65d00e8d6b6e5846c3",
+      "symbol": "yvCurve-CVXETH",
+      "usd": "18056.666738809133938313",
+      "excludingYfi": "18056.666738809133938313",
+      "asOf": 1791556295
+    },
+    {
+      "id": "treasury:0x182863131f9a4630ff9e27830d945b1413e347e8",
+      "symbol": "yvUSDS-1",
+      "usd": "147718.434765194723259463",
+      "excludingYfi": "147718.434765194723259463",
+      "asOf": 1791553643
+    },
+    {
+      "id": "treasury:0x19d3364a399d251e894ac732651be8b0e4e85001",
+      "symbol": "yvDAI",
+      "usd": "24103.441599212577777438",
+      "excludingYfi": "24103.441599212577777438",
+      "asOf": 1791572579
+    },
+    {
+      "id": "treasury:0x1fc80cfcf5b345b904a0fb36d4222196ed9eb8a5",
+      "symbol": "yvCurve-DOLA-sUSDe-f",
+      "usd": "62851.213667049036442838",
+      "excludingYfi": "62851.213667049036442838",
+      "asOf": 1791521003
+    },
+    {
+      "id": "treasury:0x23346b04a7f55b8760e5860aa5a77383d63491cd",
+      "symbol": "ysyBOLD",
+      "usd": "209170.578514083503502546",
+      "excludingYfi": "209170.578514083503502546",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x241add131b9aaa7527132b752252b99420937adc",
+      "symbol": "yvCurve-USDT-crvUSD-f",
+      "usd": "14260.097540989743006037",
+      "excludingYfi": "14260.097540989743006037",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x27b5739e22ad9033bcbf192059122d163b60349d",
+      "symbol": "st-yCRV",
+      "usd": "308775.081426300336315155",
+      "excludingYfi": "308775.081426300336315155",
+      "asOf": 1791560051
+    },
+    {
+      "id": "treasury:0x342d24f2a3233f7ac8a7347fa239187bfd186066",
+      "symbol": "yvCurve-DOLA-sUSDS-f",
+      "usd": "38622.436345857701508227",
+      "excludingYfi": "38622.436345857701508227",
+      "asOf": 1791521003
+    },
+    {
+      "id": "treasury:0x378cb52b00f9d0921cb46dfc099cff73b42419dc",
+      "symbol": "yvLUSD",
+      "usd": "37.222174366825738631",
+      "excludingYfi": "37.222174366825738631",
+      "asOf": 1791520751
+    },
+    {
+      "id": "treasury:0x3b27f92c0e212c671ea351827edf93db27cc0c65",
+      "symbol": "YVUSDT",
+      "usd": "17196.45098180253941",
+      "excludingYfi": "17196.45098180253941",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x3f34a7ef4f17528cbffb7817060941bcdac924fa",
+      "symbol": "yvCurve-TriCRV-f",
+      "usd": "12143.453285043852939344",
+      "excludingYfi": "12143.453285043852939344",
+      "asOf": 1791565571
+    },
+    {
+      "id": "treasury:0x40d16fc0246ad3160ccc09b8d0d3a2cd28ae6c2f",
+      "symbol": "GHO",
+      "usd": "0.000133024237969919",
+      "excludingYfi": "0.000133024237969919",
+      "asOf": 1791493667
+    },
+    {
+      "id": "treasury:0x4282b8f159ee677559dc6a20cd478dd0bde75ff2",
+      "symbol": "yvCurve-frxUSD-crvUSD-f",
+      "usd": "418.96241889991142579",
+      "excludingYfi": "418.96241889991142579",
+      "asOf": 1791558935
+    },
+    {
+      "id": "treasury:0x4560b99c904aad03027b5178cca81584744ac01f",
+      "symbol": "yvCurve-cvxCRV",
+      "usd": "204.845105554331769552",
+      "excludingYfi": "204.845105554331769552",
+      "asOf": 1791565571
+    },
+    {
+      "id": "treasury:0x4ce9c93513dff543bc392870d57df8c04e89ba0a",
+      "symbol": "ysUSDS",
+      "usd": "0.004646892407130066",
+      "excludingYfi": "0.004646892407130066",
+      "asOf": 1791553643
+    },
+    {
+      "id": "treasury:0x5f18c75abdae578b483e5f43f12a39cf75b973a9",
+      "symbol": "yvUSDC",
+      "usd": "4295.1602157129861",
+      "excludingYfi": "4295.1602157129861",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x671a912c10bba0cfa74cfc2d6fba9ba1ed9530b2",
+      "symbol": "yvLINK",
+      "usd": "2607.588514586173518005",
+      "excludingYfi": "2607.588514586173518005",
+      "asOf": 1791571379
+    },
+    {
+      "id": "treasury:0x696d02db93291651ed510704c9b286841d506987",
+      "symbol": "yvUSD",
+      "usd": "1032567.8795648309015",
+      "excludingYfi": "1032567.8795648309015",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x6b175474e89094c44da98b954eedeac495271d0f",
+      "symbol": "DAI",
+      "usd": "0.000000999747269998",
+      "excludingYfi": "0.000000999747269998",
+      "asOf": 1791572579
+    },
+    {
+      "id": "treasury:0x6e9455d109202b426169f0d8f01a3332dae160f3",
+      "symbol": "yCRV LP",
+      "usd": "610591.572306730543322557",
+      "excludingYfi": "610591.572306730543322557",
+      "asOf": 1791560051
+    },
+    {
+      "id": "treasury:0x7158c1bee7a0fa5bd6affc77b2309991d7adcdd4",
+      "symbol": "yvUSDC",
+      "usd": "28.5349911103491",
+      "excludingYfi": "28.5349911103491",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x7356f09c294cb9c6428ac7327b24b0f29419c181",
+      "symbol": "yvSNX",
+      "usd": "0.041274217454655102",
+      "excludingYfi": "0.041274217454655102",
+      "asOf": 1791562643
+    },
+    {
+      "id": "treasury:0x75a291f0232add37d72dd1dcff55b715755ecdee",
+      "symbol": "yvCurve-CVX-ETH-f",
+      "usd": "25973.134486295409284484",
+      "excludingYfi": "25973.134486295409284484",
+      "asOf": 1791556295
+    },
+    {
+      "id": "treasury:0x7845ebf66c9575fc5f5a0dbb9a34a706ad997a3f",
+      "symbol": "yvCurve-3CryptoUSDT-f",
+      "usd": "19767.584130257541096748",
+      "excludingYfi": "19767.584130257541096748",
+      "asOf": 1791494519
+    },
+    {
+      "id": "treasury:0x790a60024bc3aea28385b60480f15a0771f26d09",
+      "symbol": "yvCurve-YFIETH",
+      "usd": "37209.673302677639070782",
+      "excludingYfi": "18770.393996769816721936",
+      "asOf": 1791567911
+    },
+    {
+      "id": "treasury:0x7ca00559b978cfde81297849be6151d3ccb408a9",
+      "symbol": "yvCurve-USDC-crvUSD-f",
+      "usd": "14353.40649070752458192",
+      "excludingYfi": "14353.40649070752458192",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x7da96a3891add058ada2e826306d812c638d87a7",
+      "symbol": "yvUSDT",
+      "usd": "41451.56945743996186",
+      "excludingYfi": "41451.56945743996186",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+      "symbol": "wstETH",
+      "usd": "9.7846050120823751",
+      "excludingYfi": "9.7846050120823751",
+      "asOf": 1791553427
+    },
+    {
+      "id": "treasury:0x8078198fc424986ae89ce4a910fc109587b6abf3",
+      "symbol": "yvCurve-3Crypto-f",
+      "usd": "12490.976304789772118068",
+      "excludingYfi": "12490.976304789772118068",
+      "asOf": 1791494519
+    },
+    {
+      "id": "treasury:0x828b154032950c8ff7cf8085d841723db2696056",
+      "symbol": "STETHETH_C-f",
+      "usd": "0.000000000000002882",
+      "excludingYfi": "0.000000000000002882",
+      "asOf": 1791569447
+    },
+    {
+      "id": "treasury:0x863687e4e9751b57f38b4b0eba04744c72d0f7b8",
+      "symbol": "yvFlexUSDC",
+      "usd": "1014391.5145672873695",
+      "excludingYfi": "1014391.5145672873695",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0x92545bce636e6ee91d88d2d017182cd0bd2fc22e",
+      "symbol": "yvDAI-2",
+      "usd": "196929.744681560521093261",
+      "excludingYfi": "196929.744681560521093261",
+      "asOf": 1791572579
+    },
+    {
+      "id": "treasury:0x9d39a5de30e57443bff2a8307a4256c8797a3497",
+      "symbol": "sUSDe",
+      "usd": "111910.303705164528759486",
+      "excludingYfi": "111910.303705164528759486",
+      "asOf": 1791521939
+    },
+    {
+      "id": "treasury:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "symbol": "USDC",
+      "usd": "25694.8731509532907",
+      "excludingYfi": "25694.8731509532907",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0xa354f35829ae975e850e23e9615b11da1b3dc4de",
+      "symbol": "YVUSDC",
+      "usd": "23915.3262432197256",
+      "excludingYfi": "23915.3262432197256",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0xa696a63cc78dffa1a63e9e50587c197387ff6c7e",
+      "symbol": "yvWBTC",
+      "usd": "3.197355647494406401",
+      "excludingYfi": "3.197355647494406401",
+      "asOf": 1791494519
+    },
+    {
+      "id": "treasury:0xa8ef50905352acd611f53640b001e48f2ea31d63",
+      "symbol": "yvCurve-cvxCRVv2-f",
+      "usd": "16.478529633631237823",
+      "excludingYfi": "16.478529633631237823",
+      "asOf": 1791565571
+    },
+    {
+      "id": "treasury:0xaa379c2aa72529d5ec0da8a41e2f41ed7fe4b48c",
+      "symbol": "yvCurve-3CryptoUSDC-f",
+      "usd": "66867.522473787671383523",
+      "excludingYfi": "66867.522473787671383523",
+      "asOf": 1791494519
+    },
+    {
+      "id": "treasury:0xac22e3a3cfe4dc82ffd4ffa7453729ca963ceb5a",
+      "symbol": "yvCurve-GHO-crvUSD-f",
+      "usd": "359.61989074106455797",
+      "excludingYfi": "359.61989074106455797",
+      "asOf": 1791493667
+    },
+    {
+      "id": "treasury:0xac333895ce1a73875cf7b4ecdc5a743c12f3d82b",
+      "symbol": "yvWETH",
+      "usd": "15.454338554336439126",
+      "excludingYfi": "15.454338554336439126",
+      "asOf": 1791569447
+    },
+    {
+      "id": "treasury:0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+      "symbol": "stETH",
+      "usd": "0.00000000000000248",
+      "excludingYfi": "0.00000000000000248",
+      "asOf": 1791571535
+    },
+    {
+      "id": "treasury:0xae7d8db82480e6d8e3873ecbf22cf17b3d8a7308",
+      "symbol": "yvUSDC-2",
+      "usd": "355649.546993123409",
+      "excludingYfi": "355649.546993123409",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0xaf322a2edf31490250fdeb0d712621484b09abb6",
+      "symbol": "yvUSDT",
+      "usd": "0.48254034082641",
+      "excludingYfi": "0.48254034082641",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0xba8e83cc28b54bb063984033df20f9a9f1220c24",
+      "symbol": "yvCurveLend-crvUSD-wstETH-f",
+      "usd": "295.472101687706739655",
+      "excludingYfi": "295.472101687706739655",
+      "asOf": 1791568151
+    },
+    {
+      "id": "treasury:0xbe53a109b494e5c9f97b9cd39fe969be68bf6204",
+      "symbol": "yvUSDC-1",
+      "usd": "1456718.3795146512387",
+      "excludingYfi": "1456718.3795146512387",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0xbf2bd27f8c4b38abdcad6d3e37445343cb0630ef",
+      "symbol": "yvCurve-TriCryptoGHO-f",
+      "usd": "812.433860240856705475",
+      "excludingYfi": "812.433860240856705475",
+      "asOf": 1791493667
+    },
+    {
+      "id": "treasury:0xbf319ddc2edc1eb6fdf9910e39b37be221c8805f",
+      "symbol": "yvcrvUSD-2",
+      "usd": "190384.370848816241493178",
+      "excludingYfi": "190384.370848816241493178",
+      "asOf": 1791568151
+    },
+    {
+      "id": "treasury:0xc00e94cb662c3520282e6f5717214004a7f26888",
+      "symbol": "COMP",
+      "usd": "188.720640411018481663",
+      "excludingYfi": "188.720640411018481663",
+      "asOf": 1791571655
+    },
+    {
+      "id": "treasury:0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f",
+      "symbol": "SNX",
+      "usd": "251.628701402550230681",
+      "excludingYfi": "251.628701402550230681",
+      "asOf": 1791562643
+    },
+    {
+      "id": "treasury:0xc1f3c276bf73396c020e8354bca581846171649d",
+      "symbol": "yvwstETH",
+      "usd": "0.280995283136303761",
+      "excludingYfi": "0.280995283136303761",
+      "asOf": 1791553427
+    },
+    {
+      "id": "treasury:0xc56413869c6cdf96496f2b1ef801fedbdfa7ddb0",
+      "symbol": "yvWETH-1",
+      "usd": "367330.85484872486356698",
+      "excludingYfi": "367330.85484872486356698",
+      "asOf": 1791569447
+    },
+    {
+      "id": "treasury:0xc97232527b62efb0d8ed38cf3ea103a6cca4037e",
+      "symbol": "yCRV LP",
+      "usd": "791.516355911332200721",
+      "excludingYfi": "791.516355911332200721",
+      "asOf": 1791560051
+    },
+    {
+      "id": "treasury:0xcf62f905562626cfcdd2261162a51fd02fc9c5b6",
+      "symbol": "sfrxUSD",
+      "usd": "120222.111370018537238374",
+      "excludingYfi": "120222.111370018537238374",
+      "asOf": 1791558935
+    },
+    {
+      "id": "treasury:0xd533a949740bb3306d119cc777fa900ba034cd52",
+      "symbol": "CRV",
+      "usd": "1539.277063",
+      "excludingYfi": "1539.277063",
+      "asOf": 1791565571
+    },
+    {
+      "id": "treasury:0xd7a540ba3626c0aa66e7db4088971d0cd64695b6",
+      "symbol": "yETH-Recovery",
+      "usd": "2014965.327999484175596174",
+      "excludingYfi": "2014965.327999484175596174",
+      "asOf": 1791569447
+    },
+    {
+      "id": "treasury:0xda816459f1ab5631232fe5e97a05bbbb94970c95",
+      "symbol": "YVDAI",
+      "usd": "9244.752128527254316222",
+      "excludingYfi": "9244.752128527254316222",
+      "asOf": 1791572579
+    },
+    {
+      "id": "treasury:0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "symbol": "USDT",
+      "usd": "221.00165082586947",
+      "excludingYfi": "221.00165082586947",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0xdb25ca703181e7484a155dd612b06f57e12be5f0",
+      "symbol": "YVYFI",
+      "usd": "9717.676706502409032897",
+      "excludingYfi": "0",
+      "asOf": 1791567911
+    },
+    {
+      "id": "treasury:0xe14d13d8b3b85af791b2aadd661cdbd5e6097db1",
+      "symbol": "yvYFI",
+      "usd": "40.125342087222391948",
+      "excludingYfi": "0",
+      "asOf": 1791567911
+    },
+    {
+      "id": "treasury:0xe2277cc76f806925dc6c9a5e4e5933605f43c3c4",
+      "symbol": "yvCurve-LUSD-crvUSD-f",
+      "usd": "2001.856381471018154144",
+      "excludingYfi": "2001.856381471018154144",
+      "asOf": 1791520751
+    },
+    {
+      "id": "treasury:0xe537b5cc158eb71037d4125bdd7538421981e6aa",
+      "symbol": "yvCurve-3Crypto",
+      "usd": "18.476051271072854322",
+      "excludingYfi": "18.476051271072854322",
+      "asOf": 1791494519
+    },
+    {
+      "id": "treasury:0xf11b141be4d1985e41c3aea99417e27603f67c4c",
+      "symbol": "yvWBTC",
+      "usd": "1.191591821205389602",
+      "excludingYfi": "1.191591821205389602",
+      "asOf": 1791494519
+    },
+    {
+      "id": "treasury:0xfb5137aa9e079db4b7c2929229caf503d0f6da96",
+      "symbol": "yvCurve-DOLA-crvUSD-f",
+      "usd": "11498.812763090169897678",
+      "excludingYfi": "11498.812763090169897678",
+      "asOf": 1791521003
+    },
+    {
+      "id": "treasury:0xfbd4d8bf19c67582168059332c46567563d0d75f",
+      "symbol": "yvCurve-USDC-USDT-f",
+      "usd": "248.479849703294273874",
+      "excludingYfi": "248.479849703294273874",
+      "asOf": 1791556739
+    },
+    {
+      "id": "treasury:0xfd0877d9095789caf24c98f7cce092fa8e120775",
+      "symbol": "yvTUSD",
+      "usd": "3400.130037924739565139",
+      "excludingYfi": "3400.130037924739565139",
+      "asOf": 1791562007
+    },
+    {
+      "id": "ychad:0x0000000000085d4780b73119b644ae5ecd22b376",
+      "symbol": "TUSD",
+      "usd": "3587.115712057949626328",
+      "excludingYfi": "3587.115712057949626328",
+      "asOf": 1791562007
+    },
+    {
+      "id": "ychad:0x028ec7330ff87667b6dfb0d94b954c820195336c",
+      "symbol": "yvDAI-1",
+      "usd": "315.027953490023959081",
+      "excludingYfi": "315.027953490023959081",
+      "asOf": 1791572579
+    },
+    {
+      "id": "ychad:0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e",
+      "symbol": "YFI",
+      "usd": "1337925.741177002129705278",
+      "excludingYfi": "0",
+      "asOf": 1791567911
+    },
+    {
+      "id": "ychad:0x111111111117dc0aa78b770fa6a738034120c302",
+      "symbol": "1INCH",
+      "usd": "14.495586903247161725",
+      "excludingYfi": "14.495586903247161725",
+      "asOf": 1791562655
+    },
+    {
+      "id": "ychad:0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+      "symbol": "WBTC",
+      "usd": "45585.02002595323540324",
+      "excludingYfi": "45585.02002595323540324",
+      "asOf": 1791494519
+    },
+    {
+      "id": "ychad:0x41252e8691e964f7de35156b68493bab6797a275",
+      "symbol": "dYFI",
+      "usd": "71.799837700542994543",
+      "excludingYfi": "0",
+      "asOf": 1791567911
+    },
+    {
+      "id": "ychad:0x4da27a545c0c5b758a6ba100e3a049001de870f5",
+      "symbol": "stkAAVE",
+      "usd": "8183.394558220112654336",
+      "excludingYfi": "8183.394558220112654336",
+      "asOf": 1791570659
+    },
+    {
+      "id": "ychad:0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
+      "symbol": "CVX",
+      "usd": "185.092208448227298767",
+      "excludingYfi": "185.092208448227298767",
+      "asOf": 1791556295
+    },
+    {
+      "id": "ychad:0x62b9c7356a2dc64a1969e19c23e4f579f9810aa7",
+      "symbol": "cvxCRV",
+      "usd": "119.301033878751225468",
+      "excludingYfi": "119.301033878751225468",
+      "asOf": 1791565571
+    },
+    {
+      "id": "ychad:0x671a912c10bba0cfa74cfc2d6fba9ba1ed9530b2",
+      "symbol": "yvLINK",
+      "usd": "0.000000000000000012",
+      "excludingYfi": "0.000000000000000012",
+      "asOf": 1791571379
+    },
+    {
+      "id": "ychad:0x6b175474e89094c44da98b954eedeac495271d0f",
+      "symbol": "DAI",
+      "usd": "551.595854026793709746",
+      "excludingYfi": "551.595854026793709746",
+      "asOf": 1791572579
+    },
+    {
+      "id": "ychad:0x790a60024bc3aea28385b60480f15a0771f26d09",
+      "symbol": "yvCurve-YFIETH",
+      "usd": "172884.840130970576708599",
+      "excludingYfi": "87211.638192301954926201",
+      "asOf": 1791567911
+    },
+    {
+      "id": "ychad:0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+      "symbol": "AAVE",
+      "usd": "0.011096736899885926",
+      "excludingYfi": "0.011096736899885926",
+      "asOf": 1791570659
+    },
+    {
+      "id": "ychad:0x8078198fc424986ae89ce4a910fc109587b6abf3",
+      "symbol": "yvCurve-3Crypto-f",
+      "usd": "0.000000000000001896",
+      "excludingYfi": "0.000000000000001896",
+      "asOf": 1791494519
+    },
+    {
+      "id": "ychad:0x828b154032950c8ff7cf8085d841723db2696056",
+      "symbol": "STETHETH_C-f",
+      "usd": "0.000000000000002882",
+      "excludingYfi": "0.000000000000002882",
+      "asOf": 1791569447
+    },
+    {
+      "id": "ychad:0x83f20f44975d03b1b09e64809b757c47f942beea",
+      "symbol": "sDAI",
+      "usd": "0.230322415462270255",
+      "excludingYfi": "0.230322415462270255",
+      "asOf": 1791572579
+    },
+    {
+      "id": "ychad:0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "symbol": "USDC",
+      "usd": "2792.5147439359755",
+      "excludingYfi": "2792.5147439359755",
+      "asOf": 1791556739
+    },
+    {
+      "id": "ychad:0xa354f35829ae975e850e23e9615b11da1b3dc4de",
+      "symbol": "YVUSDC",
+      "usd": "0.0000009998651",
+      "excludingYfi": "0.0000009998651",
+      "asOf": 1791556739
+    },
+    {
+      "id": "ychad:0xa696a63cc78dffa1a63e9e50587c197387ff6c7e",
+      "symbol": "yvWBTC",
+      "usd": "3.779142525620965917",
+      "excludingYfi": "3.779142525620965917",
+      "asOf": 1791494519
+    },
+    {
+      "id": "ychad:0xae7ab96520de3a18e5e111b5eaab095312d7fe84",
+      "symbol": "stETH",
+      "usd": "0.930762757472271384",
+      "excludingYfi": "0.930762757472271384",
+      "asOf": 1791571535
+    },
+    {
+      "id": "ychad:0xae7d8db82480e6d8e3873ecbf22cf17b3d8a7308",
+      "symbol": "yvUSDC-2",
+      "usd": "1224.9024333679445",
+      "excludingYfi": "1224.9024333679445",
+      "asOf": 1791556739
+    },
+    {
+      "id": "ychad:0xbe53a109b494e5c9f97b9cd39fe969be68bf6204",
+      "symbol": "yvUSDC-1",
+      "usd": "61944.3774040717028",
+      "excludingYfi": "61944.3774040717028",
+      "asOf": 1791556739
+    },
+    {
+      "id": "ychad:0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f",
+      "symbol": "SNX",
+      "usd": "0",
+      "excludingYfi": "0",
+      "asOf": 1791562643
+    },
+    {
+      "id": "ychad:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "symbol": "WETH",
+      "usd": "1636.501463684595459744",
+      "excludingYfi": "1636.501463684595459744",
+      "asOf": 1791569447
+    },
+    {
+      "id": "ychad:0xc18360217d8f7ab5e7c516566761ea12ce7f9d72",
+      "symbol": "ENS",
+      "usd": "3639.29932400086665178",
+      "excludingYfi": "3639.29932400086665178",
+      "asOf": 1791542591
+    },
+    {
+      "id": "ychad:0xc56413869c6cdf96496f2b1ef801fedbdfa7ddb0",
+      "symbol": "yvWETH-1",
+      "usd": "85525.086706540283718522",
+      "excludingYfi": "85525.086706540283718522",
+      "asOf": 1791569447
+    },
+    {
+      "id": "ychad:0xd533a949740bb3306d119cc777fa900ba034cd52",
+      "symbol": "CRV",
+      "usd": "2471.628356877304391276",
+      "excludingYfi": "2471.628356877304391276",
+      "asOf": 1791565571
+    },
+    {
+      "id": "ychad:0xd7a540ba3626c0aa66e7db4088971d0cd64695b6",
+      "symbol": "yETH-Recovery",
+      "usd": "1996552.375102568064228588",
+      "excludingYfi": "1996552.375102568064228588",
+      "asOf": 1791569447
+    },
+    {
+      "id": "ychad:0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "symbol": "USDT",
+      "usd": "269.04926325868546",
+      "excludingYfi": "269.04926325868546",
+      "asOf": 1791556739
+    },
+    {
+      "id": "ychad:0xdb25ca703181e7484a155dd612b06f57e12be5f0",
+      "symbol": "YVYFI",
+      "usd": "521.149814340655592475",
+      "excludingYfi": "0",
+      "asOf": 1791567911
+    },
+    {
+      "id": "ychad:0xdc035d45d973e3ec169d2276ddab16f1e407384f",
+      "symbol": "USDS",
+      "usd": "115403.1599007342",
+      "excludingYfi": "115403.1599007342",
+      "asOf": 1791553643
+    },
+    {
+      "id": "ychad:0xf29ae508698bdef169b89834f76704c3b205aedf",
+      "symbol": "yvSNX",
+      "usd": "0",
+      "excludingYfi": "0",
+      "asOf": 1791562643
+    },
+    {
+      "id": "ychad:native",
+      "symbol": "ETH",
+      "usd": "2497.765473660348010237",
+      "excludingYfi": "2497.765473660348010237",
+      "asOf": 1791569447
+    }
+  ]
+}

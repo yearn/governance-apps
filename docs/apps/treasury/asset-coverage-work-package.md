@@ -86,3 +86,57 @@ The current contract was enabled but also held no YFI.
 It quoted 0.010208084974058498 ETH for the treasury's 0.041430173248806861 dYFI.
 These observations are recorded in [redemption research](evidence/dyfi-redemption-research.json).
 They are dated observations, not continuing funding guarantees.
+
+
+## Accepted verification
+
+The final live snapshot uses Ethereum block **26,156,858** and contains 370 positive holdings.
+It prices **112 holdings**, compared with 50 in the previous preview.
+The main tables have **3 unpriced positions**, compared with 16 before this pass.
+These are SAFE, SLP-KP3R-WETH, yvCurve-reUSD-scrvUSD-f.
+
+The feed retains 258 unpriced balances in total.
+That total includes 247 other balances and 8 reviewed lookalikes.
+An unpriced balance is not assumed worthless or unsolicited.
+
+The producer now follows reviewed direct and composite feeds, nested vault conversions, proportional Curve pool assets, and bounded Curve EMA quotes.
+The ysyBOLD path converts through yBOLD into BOLD, then uses the reviewed BOLD/USDC pool quote.
+The BOLD quote uses the indexed StableSwap-NG oracle and its price timestamp, with explicit liquidity, age, and ratio bounds.
+No dollar peg is assumed.
+
+The [independent verification](evidence/asset-pricing-verification.json) checks all 370 emitted raw balances and all 112 priced rows.
+It reconstructs USD values, YFI exclusion, observation times, redemption funding, and both headline totals from recorded RPC inputs.
+The snapshot SHA-256 is `214bd81872e84f22564d1d3a0a4ced70dfae9c360f865e173a071af06fdee67f`.
+
+The [live browser record](evidence/asset-live-browser.json) verifies the exact producer payload through the frontend API.
+It covers loaded icons, eight lookalikes, funding labels, exact redemption payment details, YFI exclusion, address filters, OTC context, tab-specific notes, and retained data after an outage.
+Desktop and 320-pixel views were inspected. No page errors occurred.
+
+| Check | Result |
+| --- | --- |
+| Frontend typecheck and lint | Passed |
+| Full frontend unit suite | 1,903 tests passed across 181 files |
+| Browser smoke suite | 47 passed and one expected skip; one unchanged DAO initialization failure passed on isolated rerun |
+| Broad browser suite | 43 passed; two unchanged navigation/timing failures passed on isolated rerun |
+| Final treasury browser cases | All five passed; the new redemption test needed a selector correction for the qualified value cell |
+| Mobile polish regression | Redemption and maximum-length metadata cases passed after the pill adjustment |
+| Rust checks | Formatting, complete tests, strict Clippy, and release packaging passed |
+| Shared contract | Schema, registry, example, and 61 acceptance cases have exact byte parity |
+| Independent review | No remaining code or accounting blocker; provider capacity remains an operational prerequisite |
+
+## Integration and rollout
+
+The accepted milestone is `integration/treasury-m2` in both repositories' `agent/integration` lanes.
+The frontend consumer must be released with the paired producer because older strict consumers reject redemption metadata.
+The completed consumer code is `8817254bf6bb30ae950754736765774623e89d45`; the final documentation commit adds this evidence.
+No production deployment or remote publication occurred.
+
+The expanded snapshot needs a capacity-qualified RPC endpoint or local IPC for scheduled operation.
+An anonymous public endpoint returned HTTP 429 during the first acquisition.
+Verification used a temporary recording proxy with an 85-millisecond request gap; this proxy is not part of the shipped service.
+The final acquisition took 323.994 seconds for 3,701 requests.
+The recorded capture validates the financial output, not unattended public-provider capacity.
+Invalid acquisition preserves the last valid snapshot.
+
+The local preview remains `http://127.0.0.1:3339/treasury` with the recorded snapshot.
+It is a temporary testing view and marks that capture stale as it ages.
