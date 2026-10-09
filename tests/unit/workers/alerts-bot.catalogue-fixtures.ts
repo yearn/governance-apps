@@ -9,6 +9,7 @@ import {
   type AlertCatalogueRenderInput,
 } from "@/workers/alerts-bot/src/catalogue-renderer";
 import { PRODUCT_ALERT_INTRODUCTIONS } from "@/workers/alerts-bot/src/product-renderer";
+import { DAO_ALERT_INTRODUCTION } from "@/workers/alerts-bot/src/domains/dao/renderer";
 import type { ActiveAlertDomainId } from "@/workers/alerts-bot/src/domain-registry";
 import {
   buildYethRepaymentAlertActions,
@@ -1502,6 +1503,7 @@ export function renderAlertCatalogueFixture(
 ): string {
   return fixture.kind === "action"
     ? renderAlertCatalogueAction(fixture.input)
+    : fixture.domainId === "dao" ? DAO_ALERT_INTRODUCTION
     : fixture.domainId === "teams" || fixture.domainId === "ybc"
       ? PRODUCT_ALERT_INTRODUCTIONS[fixture.domainId]
       : ALERT_CATALOGUE_INTRODUCTIONS[fixture.domainId];

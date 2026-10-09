@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useGlobalData } from "@/lib/hooks/useGlobalData";
 import { useProtocol } from "@/state/protocol";
 import { resolveHeaderAppKey, resolveHeaderPrimaryNav } from "@/lib/header-nav";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { TypeMarkYearn } from "@/components/icons/TypeMarkYearn";
 import { HeaderNavMenu } from "@/components/header/HeaderNavMenu";
 import { MobileNavMenu } from "@/components/header/MobileNavMenu";
@@ -139,10 +139,7 @@ function EpochCountdownBadge({
   epoch: { currentEpoch: number; epochEnd: number };
   now: number;
 }) {
-  const [rem, setRem] = useState(0);
-  useEffect(() => {
-    setRem(Math.max(0, epoch.epochEnd - now));
-  }, [epoch, now]);
+  const rem = Math.max(0, epoch.epochEnd - now);
 
   const d = Math.floor(rem / 86400);
   const h = Math.floor((rem % 86400) / 3600);

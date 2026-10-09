@@ -11,6 +11,7 @@ import { copyTextToClipboard } from "@/lib/clipboard";
 import { formatUtcDateTime } from "@/lib/date";
 import {
   formatDaoBasisPoints,
+  getDaoDiscussionUrl,
   deriveDaoLifecycleFacts,
   parseDaoProposalContent,
   serializeDaoProposalRef,
@@ -25,12 +26,8 @@ import {
   DaoProposalMarkdown,
   DaoProposalMarkdownSource,
 } from "../../components/DaoProposalMarkdown";
-import { getButtonClassName } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import {
-  DaoBreadcrumbs,
-  daoRouteControlClassName,
-} from "../../components/DaoRouteFrame";
+import { DaoBreadcrumbs } from "../../components/DaoRouteFrame";
 import {
   ProposalHeadingFacts,
   ProposalTiming,
@@ -44,12 +41,14 @@ import {
 } from "../../route-state";
 
 export function ProposalDetail({
+  snapshotNotice = null,
   actionPanel = null,
   envelope,
   hostname,
   now: runtimeNow,
   requestedOrigin = null,
 }: {
+  snapshotNotice?: React.ReactNode;
   actionPanel?: React.ReactNode;
   envelope: DaoProposalReadEnvelope;
   hostname?: string;
@@ -102,22 +101,6 @@ export function ProposalDetail({
           ) : null}
         </div>
 
-        <dl className="grid min-w-0 gap-4 border-t border-border pt-5 sm:grid-cols-3">
-          <HeaderFact
-            label={daoCopy.labels.proposalId}
-            value={proposalId}
-            numeric
-          />
-          <HeaderFact
-            label={daoCopy.labels.status}
-            value={daoCopy.status[proposal.displayStatus]}
-          />
-          <HeaderFact
-            label={daoCopy.labels.type}
-            value={daoCopy.proposalType[proposal.type]}
-          />
-        </dl>
-
         <div className="grid min-w-0 gap-4 border-t border-border pt-5 md:grid-cols-2">
           <div className="min-w-0 space-y-1">
             <p className="text-xs font-bold text-text-secondary">
@@ -132,7 +115,12 @@ export function ProposalDetail({
           <ProposalTiming now={now} proposal={proposal} showExact />
         </div>
 
-        <DiscussionLink proposal={proposal} />
+        {getDaoDiscussionUrl(proposal.discussion.url) || snapshotNotice ? (
+          <div className="flex min-w-0 flex-col gap-x-6 gap-y-2 border-t border-border pt-3 sm:flex-row sm:items-start sm:justify-between">
+            <DiscussionLink proposal={proposal} />
+            {snapshotNotice}
+          </div>
+        ) : null}
         <ContentWarning proposal={proposal} />
       </Card>
 
@@ -192,37 +180,20 @@ export function ProposalDetail({
 }
 
 function DiscussionLink({ proposal }: { proposal: DaoProposal }) {
-  const discussion = proposal.discussion;
-  if (!discussion.url) {
-    return (
-      <p className="text-pretty text-sm font-bold text-text-secondary">
-        {daoCopy.detail.discussionUnavailable}
-      </p>
-    );
-  }
+  const url = getDaoDiscussionUrl(proposal.discussion.url);
+  if (!url) return null;
 
   return (
-    <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
-      <a
-        href={discussion.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={daoCopy.detail.forumAccessibleLabel}
-        className={getButtonClassName({
-          variant: "secondary",
-          size: "sm",
-          className: `${daoRouteControlClassName} max-w-full gap-1.5`,
-        })}
-      >
-        <span className="truncate">{daoCopy.detail.discussion}</span>
-        <IconLinkOut className="size-3.5 shrink-0" aria-hidden />
-      </a>
-      <p className="text-pretty text-xs font-bold text-text-secondary">
-        {discussion.state === "verified"
-          ? daoCopy.detail.discussionVerified
-          : daoCopy.detail.discussionUnverified}
-      </p>
-    </div>
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={daoCopy.detail.forumAccessibleLabel}
+      className="inline-flex min-h-10 w-fit max-w-full shrink-0 items-center gap-1.5 rounded text-sm font-bold text-yearn-blue transition-colors hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:text-blue-300 dark:hover:text-blue-200"
+    >
+      <span className="truncate">{daoCopy.detail.discussion}</span>
+      <IconLinkOut className="size-3.5 shrink-0" aria-hidden />
+    </a>
   );
 }
 
@@ -681,6 +652,11 @@ function DecodedCalls({ analysis }: { analysis: DaoAnalysis }) {
       <h4 className="text-balance text-base font-bold">
         {daoCopy.detail.orderedCalls}
       </h4>
+      {analysis.calls.some((call) => call.decodeStatus !== "verified") ? (
+        <p className="text-pretty text-sm leading-6 text-text-secondary">
+          {daoCopy.detail.rawCallsExplanation}
+        </p>
+      ) : null}
       <ol className="min-w-0 space-y-3">
         {analysis.calls.map((call) => (
           <DecodedCall
@@ -701,68 +677,48 @@ function DecodedCall({ call }: { call: DaoDecodedCall }) {
         ? daoCopy.detail.unknownCall
         : daoCopy.detail.failedDecoding;
   return (
-    <li className="min-w-0 space-y-4 rounded-box bg-surface-secondary/60 p-4">
+    <li className="min-w-0 space-y-3 rounded-box bg-surface-secondary/60 p-4">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <p className="font-number text-xs font-bold tabular-nums text-text-secondary">
           {daoCopy.detail.callNumber(call.index + 1)}
         </p>
         <Badge
-          variant={call.decodeStatus === "verified" ? "success" : "warning"}
-          className={cn(
-            "font-sans",
-            call.decodeStatus === "verified" &&
-              "dark:bg-green-950 dark:text-green-200"
-          )}
+          variant={call.decodeStatus === "failed" ? "warning" : "neutral"}
+          className="font-sans"
         >
           {stateLabel}
         </Badge>
       </div>
       <dl className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <TechnicalFact
-          label={daoCopy.detail.targetContract}
-          value={
-            call.contractName ?? daoCopy.detail.unknownContract
-          }
-        />
-        <div className="min-w-0 space-y-1">
+        {call.contractName ? (
+          <TechnicalFact label={daoCopy.detail.targetContract} value={call.contractName} />
+        ) : null}
+        <div className="min-w-0 space-y-1 sm:col-span-2">
           <dt className="text-xs font-bold text-text-secondary">
             {daoCopy.detail.target}
           </dt>
           <dd className="min-w-0">
             <AddressLink
               address={call.target}
+              label={call.target}
+              className="font-number"
               variant="compact"
               copyLabel={daoCopy.detail.copyValue(daoCopy.detail.target)}
               showCopyOnCoarsePointer
             />
           </dd>
         </div>
-        <TechnicalFact
-          label={daoCopy.detail.calldataSize}
-          value={daoCopy.detail.bytes(call.calldataBytes)}
-          numeric
-        />
-        <TechnicalFact
-          label={daoCopy.detail.function}
-          value={
-            call.functionSignature ?? daoCopy.detail.unavailableValue
-          }
-          code
-        />
-        <div className="min-w-0 space-y-1">
+        {call.functionSignature ? (
+          <TechnicalFact label={daoCopy.detail.function} value={call.functionSignature} code />
+        ) : null}
+        {call.verifiedSource ? <div className="min-w-0 space-y-1">
           <dt className="text-xs font-bold text-text-secondary">
             {daoCopy.detail.verifiedSource}
           </dt>
           <dd className="min-w-0">
-            {call.verifiedSource ? (
-              <VerifiedSourceLink source={call.verifiedSource} />
-            ) : (
-              <span className="text-sm text-text-secondary">
-                {daoCopy.detail.noVerifiedSource}
-              </span>
-            )}
+            <VerifiedSourceLink source={call.verifiedSource} />
           </dd>
-        </div>
+        </div> : null}
         {call.verifiedSource?.revision ? (
           <TechnicalFact
             label={daoCopy.detail.sourceRevision}
@@ -789,22 +745,27 @@ function DecodedCall({ call }: { call: DaoDecodedCall }) {
             code
           />
         ) : null}
-        {call.decodeStatus !== "verified" ? (
-          <>
-            <TechnicalFact
-              label={daoCopy.detail.selector}
-              value={call.selector ?? daoCopy.detail.unavailableValue}
-              code
-            />
-            <TechnicalFact
-              label={daoCopy.detail.calldata}
-              value={call.calldata}
-              code
-              fullWidth
-            />
-          </>
-        ) : null}
       </dl>
+      <details className="group/call min-w-0 border-t border-border">
+        <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 rounded text-sm font-bold text-text-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary [&::-webkit-details-marker]:hidden">
+          <span>{daoCopy.detail.callData}</span>
+          <span className="ml-auto font-number text-xs tabular-nums">{daoCopy.detail.bytes(call.calldataBytes)}</span>
+          <span aria-hidden="true" className="text-lg group-open/call:rotate-45">+</span>
+        </summary>
+        <dl className="grid min-w-0 gap-4 pt-2 sm:grid-cols-2">
+          <TechnicalFact
+            label={daoCopy.detail.selector}
+            value={call.selector ?? daoCopy.detail.noSelector}
+            code
+          />
+          <TechnicalFact
+            label={daoCopy.detail.calldata}
+            value={call.calldata}
+            code
+            fullWidth
+          />
+        </dl>
+      </details>
     </li>
   );
 }
@@ -1156,30 +1117,6 @@ function SectionHeading({
       <p className="max-w-3xl text-pretty text-sm leading-6 text-text-secondary">
         {description}
       </p>
-    </div>
-  );
-}
-
-function HeaderFact({
-  label,
-  numeric = false,
-  value,
-}: {
-  label: string;
-  numeric?: boolean;
-  value: string;
-}) {
-  return (
-    <div className="min-w-0 space-y-1">
-      <dt className="text-xs font-bold text-text-secondary">{label}</dt>
-      <dd
-        className={cn(
-          "break-words text-sm [overflow-wrap:anywhere]",
-          numeric && "font-number tabular-nums"
-        )}
-      >
-        {value}
-      </dd>
     </div>
   );
 }

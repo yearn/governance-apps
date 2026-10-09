@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import Link from "next/link";
+import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { AddressLink } from "@/components/ui/ExplorerLink";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -11,7 +12,7 @@ import type {
   DaoDisplayGroup,
   DaoProposal,
 } from "@/lib/clients/dao";
-import { parseDaoProposalContent } from "@/lib/clients/dao";
+import { getDaoDiscussionUrl, parseDaoProposalContent } from "@/lib/clients/dao";
 import {
   createDaoProposalHref,
   DAO_BOARD_GROUPS,
@@ -32,12 +33,14 @@ export function ProposalBoard({
   onSelectGroup,
   proposals,
   selectedGroup,
+  snapshotNotice = null,
 }: {
   hostname?: string;
   now: number;
   onSelectGroup?: (group: DaoDisplayGroup) => void;
   proposals: DaoProposal[];
   selectedGroup?: DaoDisplayGroup;
+  snapshotNotice?: ReactNode;
 }) {
   const counts = useMemo<DaoBoardGroupCounts>(
     () =>
@@ -125,6 +128,7 @@ export function ProposalBoard({
                 hostname={hostname}
               />
             ))}
+            {snapshotNotice ? <div className="px-4 py-2 md:px-5">{snapshotNotice}</div> : null}
           </Card>
         ) : (
           <FilteredEmptyState
@@ -132,6 +136,7 @@ export function ProposalBoard({
             earliestUpcomingVote={earliestUpcomingVote}
             filter={filter}
             onSelect={selectGroup}
+            snapshotNotice={snapshotNotice}
           />
         )}
       </div>
@@ -163,7 +168,7 @@ function ProposalBoardRow({
     >
       <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(15rem,21rem)] lg:items-center">
         <div className="min-w-0 space-y-3">
-          <ProposalHeadingFacts proposal={proposal} showExecutableActions />
+          <ProposalHeadingFacts proposal={proposal} />
 
           <div className="min-w-0 space-y-1.5">
             <p className="break-words font-number text-xs font-bold tabular-nums text-text-secondary [overflow-wrap:anywhere]">
@@ -215,13 +220,20 @@ function ProposalBoardRow({
 }
 
 function DiscussionState({ proposal }: { proposal: DaoProposal }) {
-  const label =
-    proposal.discussion.state === "verified"
-      ? daoCopy.board.discussionVerified
-      : proposal.discussion.state === "unverified"
-        ? daoCopy.board.discussionUnverified
-        : daoCopy.board.discussionUnavailable;
-  return <span className="text-pretty font-bold">{label}</span>;
+  const url = getDaoDiscussionUrl(proposal.discussion.url);
+  if (!url) return null;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={daoCopy.detail.forumAccessibleLabel}
+      className="relative z-10 inline-flex min-h-10 w-fit items-center gap-1.5 rounded font-bold text-yearn-blue transition-colors hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:text-blue-300 dark:hover:text-blue-200"
+    >
+      {daoCopy.detail.discussion}
+      <IconLinkOut className="size-3.5 shrink-0" aria-hidden />
+    </a>
+  );
 }
 
 function ProposalWarnings({ proposal }: { proposal: DaoProposal }) {
@@ -243,11 +255,13 @@ function FilteredEmptyState({
   earliestUpcomingVote,
   filter,
   onSelect,
+  snapshotNotice,
 }: {
   counts: Record<DaoDisplayGroup, number>;
   earliestUpcomingVote: number | null;
   filter: DaoDisplayGroup;
   onSelect: (filter: DaoDisplayGroup) => void;
+  snapshotNotice: ReactNode;
 }) {
   const empty = daoCopy.board.emptyByFilter[filter];
   return (
@@ -299,6 +313,7 @@ function FilteredEmptyState({
           {daoCopy.board.viewOtherFilters}
         </p>
       )}
+      {snapshotNotice ? <div className="border-t border-border pt-2">{snapshotNotice}</div> : null}
     </Card>
   );
 }

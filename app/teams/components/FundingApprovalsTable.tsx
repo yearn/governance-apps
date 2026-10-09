@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import type { Address } from "viem";
 import { cn } from "@/lib/cn";
 import { formatAddress } from "@/lib/format";
@@ -118,7 +118,9 @@ export function FundingApprovalsTable({
   const [selectedReturnApprovalId, setSelectedReturnApprovalId] = useState<string | null>(
     returnableApprovals[0]?.id ?? null
   );
-  const [claimRecipient, setClaimRecipient] = useState<string>(viewer?.address ?? "");
+  const [claimRecipient, setClaimRecipient] = useState<string>(
+    claimableApprovals[0]?.recipient ?? viewer?.address ?? ""
+  );
   const [claimAmount, setClaimAmount] = useState("");
   const [returnAmount, setReturnAmount] = useState("");
   const [claimErrors, setClaimErrors] = useState<ClaimErrors>(EMPTY_CLAIM_ERRORS);
@@ -159,48 +161,49 @@ export function FundingApprovalsTable({
     !returnExceedsAvailableBalance &&
     (returnAllowance.data ?? 0n) < returnAmountRaw;
   const isTxPending = isTeamsTxPending(txState);
-  const previousClaimApprovalIdRef = useRef<string | null>(selectedClaimApprovalId);
+  const nextClaimApprovalId = claimableApprovals.some(
+    (approval) => approval.id === selectedClaimApprovalId
+  ) ? selectedClaimApprovalId : claimableApprovals[0]?.id ?? null;
+  const nextReturnApprovalId = returnableApprovals.some(
+    (approval) => approval.id === selectedReturnApprovalId
+  ) ? selectedReturnApprovalId : returnableApprovals[0]?.id ?? null;
 
-  useEffect(() => {
-    if (
-      selectedClaimApprovalId &&
-      claimableApprovals.some((approval) => approval.id === selectedClaimApprovalId)
-    ) {
-      return;
-    }
+  if (nextClaimApprovalId !== selectedClaimApprovalId) {
+    setSelectedClaimApprovalId(nextClaimApprovalId);
+  }
+  if (nextReturnApprovalId !== selectedReturnApprovalId) {
+    setSelectedReturnApprovalId(nextReturnApprovalId);
+  }
 
-    setSelectedClaimApprovalId(claimableApprovals[0]?.id ?? null);
-  }, [claimableApprovals, selectedClaimApprovalId]);
+  const recipientDefault = selectedClaimApproval?.recipient ?? viewer?.address ?? "";
+  const [previousClaim, setPreviousClaim] = useState({
+    id: selectedClaimApprovalId,
+    recipient: selectedClaimApproval?.recipient,
+    viewer: viewer?.address,
+  });
+  const [previousReturnId, setPreviousReturnId] = useState(selectedReturnApprovalId);
 
-  useEffect(() => {
-    if (
-      selectedReturnApprovalId &&
-      returnableApprovals.some((approval) => approval.id === selectedReturnApprovalId)
-    ) {
-      return;
-    }
-
-    setSelectedReturnApprovalId(returnableApprovals[0]?.id ?? null);
-  }, [returnableApprovals, selectedReturnApprovalId]);
-
-  useEffect(() => {
-    const approvalChanged = previousClaimApprovalIdRef.current !== selectedClaimApprovalId;
-    previousClaimApprovalIdRef.current = selectedClaimApprovalId;
-
-    setClaimRecipient(selectedClaimApproval?.recipient ?? viewer?.address ?? "");
+  if (
+    previousClaim.id !== selectedClaimApprovalId ||
+    previousClaim.recipient !== selectedClaimApproval?.recipient ||
+    previousClaim.viewer !== viewer?.address
+  ) {
+    setPreviousClaim({
+      id: selectedClaimApprovalId,
+      recipient: selectedClaimApproval?.recipient,
+      viewer: viewer?.address,
+    });
+    setClaimRecipient(recipientDefault);
     setClaimAmount("");
     setClaimErrors(EMPTY_CLAIM_ERRORS);
-
-    if (approvalChanged) {
-      setClaimFeedback(null);
-    }
-  }, [selectedClaimApprovalId, selectedClaimApproval?.recipient, viewer?.address]);
-
-  useEffect(() => {
+    if (previousClaim.id !== selectedClaimApprovalId) setClaimFeedback(null);
+  }
+  if (previousReturnId !== selectedReturnApprovalId) {
+    setPreviousReturnId(selectedReturnApprovalId);
     setReturnAmount("");
     setReturnAmountError(null);
     setReturnFeedback(null);
-  }, [selectedReturnApprovalId]);
+  }
 
   if (team.fundingApprovals.length === 0) {
     return (

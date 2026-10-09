@@ -61,6 +61,7 @@ import {
 } from "./mock-services";
 import type { DaoAuthoringServices, DaoAuthoringRecovery } from "@/lib/clients/dao/authoring-services";
 import { daoProposeCopy } from "./messages";
+import { DaoMarkdownEditor } from "./DaoMarkdownEditor";
 import { createDaoProposalHref } from "../route-state";
 
 const FIELD_CLASS_NAME =
@@ -737,18 +738,14 @@ function DaoProposalAuthoringFormState({
                     )}
                   </span>
                 </div>
-                <textarea
-                  ref={markdownRef}
+                <DaoMarkdownEditor
+                  editorRef={markdownRef}
                   id="dao-proposal-markdown"
                   rows={16}
                   value={markdown}
                   spellCheck
                   aria-invalid={Boolean(errors.markdown)}
                   aria-describedby="dao-markdown-byte-count dao-markdown-grammar dao-markdown-validation"
-                  className={cn(
-                    TEXTAREA_CLASS_NAME,
-                    "min-h-80 resize-y font-number text-sm leading-6"
-                  )}
                   onChange={(event) => {
                     setMarkdown(event.target.value);
                     setErrors((current) => ({ ...current, markdown: undefined }));

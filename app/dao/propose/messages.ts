@@ -60,7 +60,7 @@ export const daoProposeCopy = {
     byteCount: (count: number, limit: number) =>
       `${count.toLocaleString("en-US")} / ${limit.toLocaleString("en-US")} UTF-8 bytes`,
     grammar:
-      "Use one H1, then one summary paragraph, followed by meaningful body content. Later headings use H2 through H4.",
+      "Start with one H1 and a summary paragraph. Use H2–H4 for body headings. Link to a section with [References](#references). Line numbers match validation messages.",
     validation: "Markdown validation",
     valid: "Document structure is valid",
   },

@@ -2,7 +2,7 @@
 
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { TxStatus } from "@/lib/tx/types";
 import type { YethAccountState, YethGlobalState } from "@/lib/clients/yeth";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
@@ -59,10 +59,26 @@ export function YethPageClient() {
   const redeem = useYethRedeemToEth();
   const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
   const [riskAccepted, setRiskAccepted] = useState(false);
-  const [claimHistory, setClaimHistory] = useState<ClaimHistoryRecord | null>(null);
+  const storedHistory = useSyncExternalStore(
+    subscribeClaimHistory,
+    getClaimHistorySnapshot,
+    () => null
+  );
+  const [sessionHistory, setSessionHistory] = useState<{
+    address: string;
+    record: ClaimHistoryRecord;
+  } | null>(null);
+  if (sessionHistory && sessionHistory.address !== address?.toLowerCase()) {
+    setSessionHistory(null);
+  }
+  const claimHistory = useMemo(() => {
+    if (!address) return null;
+    if (sessionHistory?.address === address.toLowerCase()) return sessionHistory.record;
+    return loadClaimHistory(address, storedHistory);
+  }, [address, sessionHistory, storedHistory]);
   const pendingClaimSnapshotRef = useRef<bigint | null>(null);
   const pendingRecoveredRef = useRef<bigint | null>(null);
-  const lastValidClaimDeadlineRef = useRef<number | null>(null);
+  const [lastValidClaimDeadline, setLastValidClaimDeadline] = useState<number | null>(null);
   const [, setCountdownTick] = useState(0);
   const now = nowSeconds();
 
@@ -74,21 +90,18 @@ export function YethPageClient() {
     () => normalizeClaimDeadline(global?.claimWindow.closesAt),
     [global?.claimWindow.closesAt]
   );
-  useEffect(() => {
-    if (normalizedClaimDeadline === null) return;
-    lastValidClaimDeadlineRef.current = normalizedClaimDeadline;
-  }, [normalizedClaimDeadline]);
-  const effectiveClaimDeadline =
-    normalizedClaimDeadline ?? lastValidClaimDeadlineRef.current;
+  if (
+    normalizedClaimDeadline !== null &&
+    normalizedClaimDeadline !== lastValidClaimDeadline
+  ) {
+    setLastValidClaimDeadline(normalizedClaimDeadline);
+  }
+  const effectiveClaimDeadline = normalizedClaimDeadline ?? lastValidClaimDeadline;
 
   const claimWindowClosed = useMemo(() => {
     if (effectiveClaimDeadline === null) return false;
     return now >= effectiveClaimDeadline;
   }, [effectiveClaimDeadline, now]);
-
-  useEffect(() => {
-    setClaimHistory(loadClaimHistory(address));
-  }, [address]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -143,7 +156,7 @@ export function YethPageClient() {
     };
 
     saveClaimHistory(address, record);
-    setClaimHistory(record);
+    setSessionHistory({ address: address.toLowerCase(), record });
     pendingClaimSnapshotRef.current = null;
     pendingRecoveredRef.current = null;
   }, [
@@ -226,11 +239,10 @@ export function YethPageClient() {
     return formatCountdown(effectiveClaimDeadline, now);
   }, [effectiveClaimDeadline, global, now]);
 
-  useEffect(() => {
-    if (!claimWindowClosed || !isRiskModalOpen) return;
+  if (claimWindowClosed && isRiskModalOpen) {
     setIsRiskModalOpen(false);
     setRiskAccepted(false);
-  }, [claimWindowClosed, isRiskModalOpen]);
+  }
 
   return (
     <>
@@ -689,11 +701,25 @@ function hasClaimHistoryRecord(record: ClaimHistoryRecord | null): boolean {
   return hasSnapshot || hasRecovered || hasClaimedAt || hasTxHash;
 }
 
-function loadClaimHistory(address: string | undefined): ClaimHistoryRecord | null {
-  if (typeof window === "undefined" || !address) return null;
+function subscribeClaimHistory(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  return () => window.removeEventListener("storage", onChange);
+}
+
+function getClaimHistorySnapshot(): string | null {
   try {
-    const raw = window.localStorage.getItem(CLAIM_HISTORY_STORAGE_KEY);
-    if (!raw) return null;
+    return window.localStorage.getItem(CLAIM_HISTORY_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function loadClaimHistory(
+  address: string,
+  raw: string | null
+): ClaimHistoryRecord | null {
+  if (!raw) return null;
+  try {
     const parsed = JSON.parse(raw) as Record<string, ClaimHistoryRecord | undefined>;
     return parsed[address.toLowerCase()] ?? null;
   } catch {

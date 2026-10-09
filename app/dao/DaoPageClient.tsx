@@ -167,7 +167,6 @@ export function DaoBoardView({
         showCount={state === "ready"}
       />
 
-      {snapshotNotice}
       {!isConnected ? <DaoWalletNotice /> : null}
 
       {isStale && lastGoodSnapshotTimestamp !== null ? (
@@ -209,6 +208,7 @@ export function DaoBoardView({
           >
             {daoCopy.navigation.createProposal}
           </Link>
+          {snapshotNotice ? <div className="border-t border-border pt-2">{snapshotNotice}</div> : null}
         </Card>
       ) : null}
 
@@ -219,6 +219,7 @@ export function DaoBoardView({
           hostname={hostname}
           selectedGroup={selectedGroup}
           onSelectGroup={onSelectGroup}
+          snapshotNotice={snapshotNotice}
         />
       ) : null}
     </DaoRouteFrame>

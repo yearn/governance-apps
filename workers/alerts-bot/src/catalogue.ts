@@ -12,6 +12,9 @@ import {
 } from "./account-block-context";
 import { renderAlertCatalogueAction } from "./catalogue-renderer";
 import { renderProductAlertAction } from "./product-renderer";
+import { isDaoAlertAction } from "./domains/dao/types";
+import { renderDaoAlert } from "./domains/dao/renderer";
+import { DaoAlertContentError, type DaoAlertContentReader } from "./domains/dao/content";
 import {
   isProductAlertAction,
   productAlertAddresses,
@@ -175,6 +178,7 @@ export async function renderCatalogueMessages(params: {
   readonly domainId: ActiveAlertDomainId;
   readonly actions: readonly AlertAction[];
   readonly rpc: RpcClient;
+  readonly daoContent?: Pick<DaoAlertContentReader, "read">;
 }): Promise<readonly RenderedAlertMessage[]> {
   const visible = params.actions.filter((action) => !isSuppressedCatalogueAction(action));
   validateDomainActions(params.domainId, visible);
@@ -191,6 +195,22 @@ export async function renderCatalogueMessages(params: {
       read: (requests: readonly RpcCallRequest[]) =>
         readAtBlock(params.rpc, block, requests),
     });
+    if (actions.every(isDaoAlertAction)) {
+      for (const action of actions) {
+        if (action.timestamp !== block.timestamp || action.blockHash !== block.hash ||
+            (action.source.kind === "synthetic" && action.source.blockHash !== block.hash)) {
+          throw new Error("dao_render_block_mismatch");
+        }
+        let content = null;
+        if (action.kind === "dao_proposal") {
+          if (!params.daoContent) throw new DaoAlertContentError("dao_content_service_missing");
+          content = await params.daoContent.read(action.proposal);
+        }
+        output.push({ eventId: action.eventId, blockNumber, html: renderDaoAlert(action, content) });
+      }
+      continue;
+    }
+    if (actions.some(isDaoAlertAction)) throw new Error("alert_action_family_mixed");
     if (actions.every(isProductAlertAction)) {
       const productActions = actions as readonly ProductAlertAction[];
       const ensNamesByAddress = await resolveAlertEnsNamesAtBlock({

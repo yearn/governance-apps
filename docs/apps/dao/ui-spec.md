@@ -84,19 +84,21 @@ Each item contains:
 - Yea/Nay bar and percentages;
 - `of votes cast` caption;
 - quiet execution indicator for executable proposals;
-- content or discussion warning only when needed.
+- a `Forum discussion` link when the proposal supplies a safe forum URL;
+- content warnings when retrieval or validation fails.
 
 Prefer a dense list on desktop and stacked rows on mobile. Do not create a large
 tile grid. Status, title, and timing must scan in that order.
 
 The hard-block order is `Execution blocked · <status> · Executable`, followed
-immediately by its reason. Suppress `Executable actions` only in that case.
+immediately by its reason. The `Executable` type badge appears once, without a duplicate action label.
 Lifecycle, moderation, guard, schedule, account, and simulation failures do not
 produce this proposal-level badge.
 
 The whole row opens the proposal through a stretched native link. Do not add a
 row `onClick` or button role. Address explorer and copy controls remain real,
-independent controls above the stretched link. The row focus ring must remain
+independent controls above the stretched link. Forum links follow the same rule.
+The row focus ring must remain
 visible. Proposal hrefs carry `?from=<group>`.
 
 ### Empty and error states
@@ -106,6 +108,11 @@ visible. Proposal hrefs carry `?from=<group>`.
 - No proposals at all: show a neutral empty state and proposal CTA.
 - Feed unavailable: keep the shell and show retry plus the last-good snapshot
   time when available.
+
+The list card footer shows compact snapshot freshness, such as `Snapshot · 2m ago`.
+The disclosure contains the exact UTC time and explains that status and countdowns describe that snapshot.
+The snapshot age uses the canonical block timestamp, not the feed publication time.
+Delayed updates and retained data after an error keep a visible message and a `Refresh` control.
 
 ## 4. Proposal detail
 
@@ -124,6 +131,19 @@ ignored. Show the proposal title as the route's only H1, followed by:
 - primary timing statement;
 - forum discussion link;
 - IPFS or content warning when applicable.
+
+The proposal ID, status, and type appear once in the header. Do not repeat them in a second metadata row.
+Place the forum link and snapshot freshness in the footer of the first proposal card.
+Use the same freshness disclosure as the proposal list. Do not place a separate snapshot banner above the breadcrumbs.
+
+Public forum links require an HTTPS URL on `gov.yearn.fi`, without credentials or a nonstandard port.
+The read view does not require category metadata to display the link.
+The feed does not provide a live category lookup, so absent metadata does not mean the topic failed validation.
+Do not show a missing-verification warning or a placeholder when no safe URL exists.
+Proposal authoring still validates the public topic and its approved category before publication.
+
+The content heading is `Proposal content`. Supporting copy explains that this text was recorded with the proposal.
+The lifecycle helper describes voting dates and recorded onchain events.
 
 The primary timing statement uses one clear line such as:
 
@@ -244,7 +264,13 @@ it does not own the underlying rule.
 
 Show exact script/hash integrity, supported frame order and raw targets, selectors and calldata. Missing bytes differ from empty signal bytes. Mismatched bytes and malformed supported framing block execution preparation. Unsupported Executor implementations show raw bytes and an unsupported-decoder explanation.
 
-Unknown calls stay unknown. Optional locally reviewed decoding may show function/arguments and its source. Proposer descriptions do not establish byte behavior. Remove historical simulation badges, pending-analysis loaders, engine/proof panels and backend analysis promises. Fresh transaction simulation belongs to the later execution confirmation flow; success is not a safety guarantee.
+Calls without a decoder show a neutral `Raw call data` label. One explanation states that missing decoding does not establish contract verification status.
+Each call shows its target with an explorer link and copy control. A `Call data` disclosure preserves the exact selector and calldata.
+The disclosure also remains available for decoded calls. Contract names, functions, arguments, and source references appear only when available.
+Failed decoding retains a warning label. Script hash mismatches retain an alert.
+
+Optional locally reviewed decoding can show function names, arguments, and its source. Proposer descriptions do not establish byte behavior.
+Fresh transaction simulation belongs to the execution confirmation flow. Success is not a safety guarantee.
 
 ### Technical details
 
@@ -290,7 +316,9 @@ Use one `Proposal Markdown` textarea beneath named Write and Preview tabs. The
 route H1 remains `Create proposal`; form sections are H2. Preview renders the
 parsed title at H3 and maps source H2 through H4 to H4 through H6. The first H1
 is the title, the following paragraph is the summary, and body content follows.
-Ordinary supporting links stay in Markdown.
+Ordinary supporting links stay in Markdown. Same-document section links such as
+`[References](#references)` work in Preview, final review, and proposal detail.
+Repeated headings use numeric suffixes such as `#references-1`.
 
 Show one tabular UTF-8 byte counter against the 32,768-byte limit and the stable
 domain errors below the editor. Tabs use `tablist`, `tab`, and `tabpanel`, with
@@ -298,6 +326,15 @@ Arrow, Home, and End keyboard behavior. A failed Review while Preview is active
 returns to Write, focuses the textarea, sets the deterministic UTF-16 caret to
 the first located error, and scrolls it into view. Focus waits until the Write
 textarea is mounted. Do not intercept Tab inside the textarea.
+
+Show source line numbers in a non-interactive gutter. Each number identifies one
+source line, including blank lines and a trailing empty line. Soft-wrapped text
+does not increment the number. The gutter follows textarea scrolling and updates
+when the content, editor size, or font metrics change. The native textarea keeps
+selection, undo, spellcheck, and keyboard navigation. Hide the gutter and its
+measurement mirror from assistive technology; the textarea label and validation
+description remain the accessible editing interface. Mock and live authoring
+use the same editor.
 
 Preview, final review, and detail share one safe AST renderer. Raw HTML and
 unsupported nodes never render, and `dangerouslySetInnerHTML` is forbidden.
@@ -385,7 +422,7 @@ bar or mock badge appears in the normal app.
 Required groups:
 
 - Persona: observer, voter, proposer, operator, guardian
-- Content: available, unavailable, invalid, unverified forum
+- Content: available, unavailable, invalid, safe forum URL without category metadata, absent or unsafe forum URL
 - Lifecycle: discussion, voting, approved, rejected, expired, retracted, flagged
 - Veto: before votes, after votes
 - Analysis: pending, decoded, partial, failed, hash mismatch
@@ -473,7 +510,7 @@ proposal interactions:
 The proposal board consumes each proposal's domain-provided `displayGroup` for
 the `Upcoming`, `Active`, and `Closed` filters. Rows remain dense on desktop and
 stack on smaller screens. Status, title, timing, author, vote percentages, the
-`of votes cast` caption, proposal type, discussion provenance, and content
+`of votes cast` caption, proposal type, safe forum link, and content
 failures stay visible without a wallet.
 
 When the active filter is empty, its empty state provides keyboard-accessible

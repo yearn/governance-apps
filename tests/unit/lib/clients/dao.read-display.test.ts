@@ -3,6 +3,7 @@ import {
   DAO_MOCK_FEED,
   deriveDaoProposalTimingDisplay,
   deriveDaoVoteDisplay,
+  getDaoDiscussionUrl,
   parseDaoProposalContent,
   resolveDaoProposalReadEnvelope,
 } from "@/lib/clients/dao";
@@ -16,6 +17,21 @@ function proposal(id: bigint) {
 }
 
 describe("DAO read display facts", () => {
+
+  it.each([
+    "javascript:alert(1)", "data:text/html,hi", "http://gov.yearn.fi/t/proposal/1",
+    "https://gov.yearn.fi.evil.example/t/proposal/1", "https://gov.yearn.fi@evil.example/t/proposal/1",
+    "https://evil.example@gov.yearn.fi/t/proposal/1", "https://gov.yearn.fi:8443/t/proposal/1", "not a URL",
+  ])("does not expose unsafe forum URL %s", (url) => {
+    expect(getDaoDiscussionUrl(url)).toBeNull();
+  });
+
+  it("keeps safe public forum links without a category lookup", () => {
+    const url = "https://gov.yearn.fi/t/proposal/14699";
+    expect(getDaoDiscussionUrl(url)).toBe(url);
+    expect(getDaoDiscussionUrl(null)).toBeNull();
+    expect(getDaoDiscussionUrl(undefined)).toBeNull();
+  });
 
   it("resolves detail data only through its serialized composite feed identity", () => {
     const value = proposal(2n);

@@ -21,7 +21,9 @@ Operational playbook:
 
 - Direct dependencies and devDependencies are pinned to exact versions in `/package.json`.
 - Dependency versions must be exact semver specifiers (`x.y.z`, with optional prerelease/build metadata).
-- Non-deterministic specifiers (tags like `latest`, ranges, git URLs, and protocol aliases) are rejected.
+- Tags, ranges, git URLs, and protocol aliases are rejected, except for two pinned TypeScript development aliases.
+- `@typescript/native` can alias an exact `typescript` release. `typescript` can alias an exact `@typescript/typescript6` release.
+- This exception supports the TypeScript 7 CLI alongside the compiler API required by Next.js and ESLint. Other alias names and targets remain rejected.
 - `packageManager` is pinned to an exact npm version and CI installs that exact npm version before dependency installation.
 - `package-lock.json` is required and must use `lockfileVersion >= 3`.
 - GitHub Actions are pinned to full commit SHAs with same-line version comments so Dependabot can update the SHA and human-readable version together.

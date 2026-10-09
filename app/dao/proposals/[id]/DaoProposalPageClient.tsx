@@ -115,7 +115,6 @@ export function DaoProposalView({
 }) {
   return (
     <DaoRouteFrame>
-      {snapshotNotice}
       {state !== "ready" ? (
         <header className="space-y-2 border-b border-border pb-6">
           <DaoBreadcrumbs
@@ -185,6 +184,7 @@ export function DaoProposalView({
 
       {state === "ready" && envelope ? (
         <ProposalDetail
+          snapshotNotice={snapshotNotice}
           actionPanel={actionPanel}
           envelope={envelope}
           hostname={hostname}

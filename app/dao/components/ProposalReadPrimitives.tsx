@@ -61,10 +61,8 @@ export function ProposalTypeBadge({ proposal }: { proposal: DaoProposal }) {
 
 export function ProposalHeadingFacts({
   proposal,
-  showExecutableActions = false,
 }: {
   proposal: DaoProposal;
-  showExecutableActions?: boolean;
 }) {
   const readiness = deriveDaoProposalExecutionReadiness(proposal);
   const isIntegrityBlocked = readiness.state === "integrity_blocked";
@@ -82,13 +80,6 @@ export function ProposalHeadingFacts({
         ) : null}
         <ProposalStatusBadge status={proposal.displayStatus} />
         <ProposalTypeBadge proposal={proposal} />
-        {showExecutableActions &&
-        proposal.type === "executable" &&
-        !isIntegrityBlocked ? (
-          <span className="text-pretty text-xs font-bold text-text-secondary">
-            {daoCopy.board.executableActions}
-          </span>
-        ) : null}
       </div>
       {isIntegrityBlocked ? (
         <p className="max-w-2xl text-pretty text-xs font-bold text-error-700 dark:text-red-300">

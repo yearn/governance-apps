@@ -8,22 +8,31 @@ import {
 } from "../../metadata";
 import { isDaoEnabled } from "@/lib/runtime/features";
 import { resolveRequestHostname } from "@/lib/runtime/request-host";
+import { daoProposalSharePath, readDaoProposalShareDetails } from "@/lib/server/dao-proposal-metadata";
+
+type DaoProposalPageProps = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string | string[]; chain?: string | string[]; voting?: string | string[] }>;
+};
 
 export const viewport = daoViewport;
 
-export function generateMetadata() {
-  return isDaoEnabled()
-    ? createDaoRouteMetadata("Proposal | DAO Governance")
-    : daoNotFoundMetadata;
+export async function generateMetadata({ params, searchParams }: DaoProposalPageProps) {
+  if (!isDaoEnabled()) return daoNotFoundMetadata;
+  const [{ id }, selection, requestHeaders] = await Promise.all([params, searchParams, headers()]);
+  const details = await readDaoProposalShareDetails({ id, ...selection });
+  return createDaoRouteMetadata(details?.title ?? "Proposal | DAO Governance", {
+    hostname: resolveRequestHostname(requestHeaders, ""),
+    path: details?.path ?? daoProposalSharePath({ id, ...selection }),
+    description: details?.description,
+    canonical: Boolean(details),
+  });
 }
 
 export default async function DaoProposalPage({
   params,
   searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ from?: string | string[]; chain?: string | string[]; voting?: string | string[] }>;
-}) {
+}: DaoProposalPageProps) {
   if (!isDaoEnabled()) {
     notFound();
   }

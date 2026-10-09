@@ -5,6 +5,7 @@ import {
 
 export interface AlertsEnv {
   ALERT_STATE: DurableObjectNamespace;
+  DAO_APP?: Pick<Fetcher, "fetch">;
   RPC_URL?: string;
   TELEGRAM_BOT_TOKEN?: string;
   STYFI_TELEGRAM_CHAT_ID?: string;
@@ -12,11 +13,14 @@ export interface AlertsEnv {
   YETH_TELEGRAM_CHAT_ID?: string;
   TEAMS_TELEGRAM_CHAT_ID?: string;
   YBC_TELEGRAM_CHAT_ID?: string;
+  DAO_TELEGRAM_CHAT_ID?: string;
   ALERTS_STYFI_ENABLED?: string;
   ALERTS_VEYFI_ENABLED?: string;
   ALERTS_YETH_ENABLED?: string;
   ALERTS_TEAMS_ENABLED?: string;
   ALERTS_YBC_ENABLED?: string;
+  ALERTS_DAO_ENABLED?: string;
+  DAO_ALERT_VOTES_ENABLED?: string;
   CONFIRMATIONS?: string;
   MAX_MESSAGES_PER_RUN?: string;
   MAX_RANGES_PER_RUN?: string;
@@ -41,6 +45,7 @@ export interface RuntimeConfig {
   readonly logRangeSize: number;
   readonly yethDailyCheckpointBlocks: number;
   readonly yethDailyMinDeltaWei: bigint;
+  readonly daoIncludeVotes: boolean;
 }
 
 const DOMAIN_ENV = {
@@ -63,6 +68,10 @@ const DOMAIN_ENV = {
   ybc: {
     enabled: "ALERTS_YBC_ENABLED",
     chat: "YBC_TELEGRAM_CHAT_ID",
+  },
+  dao: {
+    enabled: "ALERTS_DAO_ENABLED",
+    chat: "DAO_TELEGRAM_CHAT_ID",
   },
 } as const;
 
@@ -144,6 +153,7 @@ export function runtimeConfig(env: AlertsEnv): RuntimeConfig {
       "yeth_checkpoint",
     ),
     yethDailyMinDeltaWei: ethToWei(env.YETH_DAILY_MIN_DELTA_ETH),
+    daoIncludeVotes: env.DAO_ALERT_VOTES_ENABLED?.trim().toLowerCase() !== "false",
   });
 }
 

@@ -78,10 +78,12 @@ function renderSummary(
       total: bigint;
     };
   },
-  external: ExternalPosition[]
+  external: ExternalPosition[],
+  now = 1_799_999_999
 ) {
   return render(
     <AccountSummary
+      now={now}
       selectedAsset="stYFIx"
       onSelectAsset={vi.fn()}
       balances={balances}
@@ -94,6 +96,13 @@ function renderSummary(
 }
 
 describe("AccountSummary", () => {
+  it("marks a veYFI lock as unlocked at the supplied clock boundary", () => {
+    renderSummary(emptyBalances, externalPositions, 1_800_000_000);
+
+    expect(screen.getByText("Unlocked")).toBeInTheDocument();
+    expect(screen.queryByText("Locked")).not.toBeInTheDocument();
+  });
+
   it("renders ModeComparison only when balances are zero and no external positions exist", () => {
     renderSummary(emptyBalances, []);
 

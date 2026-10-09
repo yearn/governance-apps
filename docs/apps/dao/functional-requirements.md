@@ -254,6 +254,18 @@ before parsing; iterative validation checks every heading and work bound. A
 work-limit failure exposes an empty safe AST. The only accepted image context is
 one sole image in a top-level body paragraph after the summary.
 
+Same-document links such as `[References](#references)` are supported. Heading
+IDs use lowercase visible text, remove punctuation, and replace spaces with
+hyphens. Unicode letters, marks, numbers, underscores, and hyphens remain.
+Duplicate IDs receive numeric suffixes (`references-1`, `references-2`); an
+empty result uses `section`. Percent-encoded fragments are decoded once and
+checked against that character set. Empty fragments, malformed escapes,
+controls, and unsafe URL schemes remain invalid. The renderer prefixes IDs by
+context and rewrites fragment links to those IDs, so document headings cannot
+collide with application controls. Section links stay in the current tab and
+their targets can receive keyboard focus. Heading IDs are derived display data;
+the immutable source and canonical content bytes remain unchanged.
+
 The canonical content JSON uses the fixed field order and one final LF. Its
 SHA-256 digest is the onchain `bytes32`; its CID is CIDv1/raw/SHA-256/Base32.
 The linked forum may continue changing.

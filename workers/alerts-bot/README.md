@@ -1,7 +1,7 @@
 # Governance alerts bot
 
-One Cloudflare Worker scans confirmed Ethereum events and routes five alert
-domains to five Telegram chats. One Durable Object class is instantiated once
+One Cloudflare Worker scans confirmed Ethereum events and routes six alert
+domains to separate Telegram chats. One Durable Object class is instantiated once
 per domain:
 
 | Domain | Object name | Contents |
@@ -11,9 +11,10 @@ per domain:
 | yETH | `alerts:yeth:v1` | recovery claims, withdrawals, and protocol updates |
 | Teams | `alerts:teams:v2` | team lifecycle, accounting, funding, and bonuses |
 | YBC | `alerts:ybc:v2` | on-chain proposals, membership, rewards, and collective power |
+| DAO | `alerts:dao:v3` | proposals, votes, deadlines, moderation, execution, and governance configuration |
 
-DAO remains an explicit disabled registry entry. Teams and YBC are active
-domains whose committed production flags remain off pending private replay.
+All six committed delivery flags are enabled. New installations must configure
+their final chats before enabling delivery.
 
 ## Runtime model
 
@@ -45,12 +46,26 @@ share ledger without creating user alerts. Deposits and withdrawals still
 require their corresponding mint and burn events; standalone user burns fail
 closed.
 
+DAO reads the deployed Voting and pinned Voter contracts. It also locates
+deadline blocks when no contract event occurs. Reminders precede voting and
+execution deadlines by 24 hours and 1 hour. See the
+[DAO catalogue and rollout](../../docs/apps/dao/telegram-alerts.md).
+
+DAO proposal titles come from the website's `/api/dao-data` route through the
+`DAO_APP` service binding. The website owns `DAO_DATA_URL`; no duplicate feed
+configuration is needed. The bot verifies content against the on-chain digest
+and caches it for every proposal alert. Feed delays receive bounded retries.
+The bot makes no direct IPFS requests.
+
+DAO generation `v3` deliberately replays from block 25,883,944 after the website
+service-request fix, with enriched titles and message icons. It preserves both old DAO objects and all other
+streams. The authenticated status response includes each `objectName`.
+
 There is deliberately no health monitor or Telegram warning subsystem. Failures
 produce structured logs and appear in the authenticated status response.
 Failure logs identify the safe runtime stage and controlled RPC or Telegram
 error metadata without including provider payloads, credentials, destinations,
-message bodies, or account context. This can be revisited when DAO alerts add
-stronger operational requirements.
+message bodies, or account context. DAO protocol alerts share this error model.
 
 ## Configuration
 
@@ -64,12 +79,15 @@ Required secrets when any domain is enabled:
 - `YETH_TELEGRAM_CHAT_ID`
 - `TEAMS_TELEGRAM_CHAT_ID`
 - `YBC_TELEGRAM_CHAT_ID`
+- `DAO_TELEGRAM_CHAT_ID` when DAO is enabled
 - `ADMIN_TOKEN` for `GET /status`
 
-All domains are disabled in `wrangler.alerts.jsonc`. Enable them independently
+Control each domain independently
 with `ALERTS_STYFI_ENABLED`, `ALERTS_VEYFI_ENABLED`, `ALERTS_YETH_ENABLED`,
-`ALERTS_TEAMS_ENABLED`, and `ALERTS_YBC_ENABLED` after their final private
+`ALERTS_TEAMS_ENABLED`, `ALERTS_YBC_ENABLED`, and `ALERTS_DAO_ENABLED` after their final private
 chats, secrets, and replay reviews are ready.
+`DAO_ALERT_VOTES_ENABLED` defaults to `true`. Set it to `false` for lifecycle
+and configuration messages without individual Vote events.
 
 The paid Workers plan removes the old free-tier pressure to micro-budget every
 subrequest. The remaining bounds protect providers and Telegram without adding

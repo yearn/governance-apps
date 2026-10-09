@@ -229,6 +229,21 @@ describe("DAO proposal content", () => {
     expect(parsed.errors).toEqual([]);
   });
 
+  it("accepts section links and assigns unique heading IDs without changing the source", () => {
+    const markdown = "# Links\n\nSummary.\n\n## References\n\n[Read references](#references) and [Unicode](#r%C3%A9f%C3%A9rences).\n\n## References\n\n## References-1\n\n## Références\n\n## **Code** `API` & notes!\n\n## !!!\n";
+    const parsed = parseDaoProposalContent(content({ markdown }));
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.source).toBe(markdown);
+    expect(parsed.ast.children.filter((node) => node.type === "heading").map((node) => node.headingId)).toEqual([
+      "links", "references", "references-1", "references-1-1", "références", "code-api-notes", "section",
+    ]);
+  });
+
+  it.each(["#", "#%", "#%00", "#%0aevil", "#%5cevil", "#//evil.example", "#javascript:alert(1)", "javascript:alert(1)", "data:text/html,evil", "//evil.example", "http://example.com", "https://user:password@example.com"])("rejects unsafe or malformed link %s", (target) => {
+    const parsed = parseDaoProposalContent(content({ markdown: `# Links\n\nSummary.\n\n[Link](<${target}>)` }));
+    expect(parsed.errors.map((error) => error.code)).toContain("UNSAFE_LINK");
+  });
+
   it("resolves both attachment forms to the same authenticated raw block", () => {
     const manifest = [asset()];
     const relative = resolveDaoProposalAttachment(

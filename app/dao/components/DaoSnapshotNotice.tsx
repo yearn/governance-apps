@@ -19,19 +19,33 @@ export function DaoSnapshotNotice({ snapshot, error, onRetry }: {
   }, []);
   const age = snapshot && now !== null ? Math.max(0, now - snapshot.canonicalBlock.timestamp) : null;
   const stale = age !== null && age > DAO_FEED_STALE_SECONDS;
+  if (!snapshot) return null;
+
   return (
-    <div className="min-w-0 space-y-2 rounded-box bg-surface-secondary/60 p-4 text-sm" role={error ? "alert" : "status"}>
-      {snapshot ? <p className="font-number tabular-nums">
-        {daoCopy.feed.snapshot} <UtcTime timestamp={snapshot.canonicalBlock.timestamp} />
-        {age !== null ? " · " + daoCopy.feed.age(Math.floor(age / 60)) : ""}
-      </p> : null}
-      {snapshot ? <p className="text-text-secondary">{daoCopy.feed.snapshotTiming}</p> : null}
-      {stale ? <p>{daoCopy.feed.stale}</p> : null}
-      {error ? <p className="break-words [overflow-wrap:anywhere]">
-        {snapshot ? daoCopy.feed.lastGood + " " : ""}{error.message}
-      </p> : null}
-      {(error || stale) ? <Button variant="secondary" size="sm" onClick={onRetry}>{daoCopy.board.retry}</Button> : null}
-      <p className="text-text-secondary">{daoCopy.feed.trust}</p>
+    <div className="min-w-0 text-xs text-text-secondary" role={error ? "alert" : "status"}>
+      <div className="flex min-w-0 flex-wrap items-start gap-x-3">
+        <details className="group min-w-0 flex-1">
+          <summary className="flex min-h-10 w-fit cursor-pointer list-none items-center gap-2 rounded py-2 transition-colors hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
+            <span className="font-number tabular-nums">
+              {daoCopy.feed.snapshot}
+              {age !== null ? " · " + daoCopy.feed.age(Math.floor(age / 60)) : ""}
+            </span>
+            <span aria-hidden className="transition-transform group-open:rotate-45 motion-reduce:transition-none">+</span>
+          </summary>
+          <div className="max-w-lg space-y-1 pb-2 text-pretty leading-5">
+            <UtcTime timestamp={snapshot.canonicalBlock.timestamp} className="font-number tabular-nums" />
+            <p>{daoCopy.feed.snapshotTiming}</p>
+            <p>{daoCopy.feed.trust}</p>
+          </div>
+        </details>
+        {error || stale ? (
+          <Button variant="secondary" size="sm" className="min-h-10" onClick={onRetry}>
+            {daoCopy.feed.refresh}
+          </Button>
+        ) : null}
+      </div>
+      {error ? <p className="max-w-lg text-pretty leading-5">{daoCopy.feed.updateFailed} {daoCopy.feed.lastGood}</p>
+        : stale ? <p className="max-w-lg text-pretty leading-5">{daoCopy.feed.stale}</p> : null}
     </div>
   );
 }

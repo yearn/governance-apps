@@ -42,17 +42,19 @@ async function runEnabledDomains(env: AlertsEnv): Promise<void> {
 async function readStatuses(env: AlertsEnv): Promise<Response> {
   const statuses = await Promise.all(
     ACTIVE_ALERT_DOMAIN_REGISTRATIONS.map(async ({ id }) => {
+      const objectName = ALERT_DOMAIN_OBJECT_NAMES[id];
       try {
         const stub = env.ALERT_STATE.get(
-          env.ALERT_STATE.idFromName(ALERT_DOMAIN_OBJECT_NAMES[id]),
+          env.ALERT_STATE.idFromName(objectName),
         );
         const response = await stub.fetch(
           `https://alerts.internal/status?domain=${id}`,
         );
-        if (!response.ok) return { domain: id, status: "unavailable" };
-        return response.json();
+        if (!response.ok) return { domain: id, objectName, status: "unavailable" };
+        const status = await response.json<Record<string, unknown>>();
+        return { ...status, objectName };
       } catch {
-        return { domain: id, status: "unavailable" };
+        return { domain: id, objectName, status: "unavailable" };
       }
     }),
   );

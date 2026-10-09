@@ -12,10 +12,13 @@ import { resolveRequestHostname } from "@/lib/runtime/request-host";
 export const viewport = daoViewport;
 export const dynamic = "force-dynamic";
 
-export function generateMetadata() {
-  return isDaoEnabled()
-    ? createDaoRouteMetadata("Create proposal | DAO Governance")
-    : daoNotFoundMetadata;
+export async function generateMetadata() {
+  if (!isDaoEnabled()) return daoNotFoundMetadata;
+  const requestHeaders = await headers();
+  return createDaoRouteMetadata("Create proposal | DAO Governance", {
+    hostname: resolveRequestHostname(requestHeaders, ""),
+    path: "/propose",
+  });
 }
 
 export default async function DaoProposePage() {

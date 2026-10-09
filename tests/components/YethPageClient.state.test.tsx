@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   YETH_MANUAL_RECOVERY_CLAIM_URL,
   type YethAccountState,
@@ -195,6 +195,40 @@ describe("YethPageClient wallet state gating", () => {
       "href",
       "https://etherscan.io/tx/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     );
+  });
+
+  it("updates persisted history after a storage event from another tab", () => {
+    currentAccountState = buildAccountState({
+      claimableNowEth: 0n,
+      recoveryVaultShares: 0n,
+      snapshotLossEth: 0n,
+    });
+    render(<YethPageClient />);
+
+    act(() => {
+      window.localStorage.setItem("yeth_claim_history_v1", JSON.stringify({
+        [E2E_MOCK_ADDRESS.toLowerCase()]: {
+          snapshotLossEth: (10n * ONE).toString(),
+          recoveredEth: (4n * ONE).toString(),
+          claimedAt: CLOSES_AT - 3_600,
+          txHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        },
+      }));
+      window.dispatchEvent(new StorageEvent("storage", { key: "yeth_claim_history_v1" }));
+    });
+
+    expect(screen.getByText(yethCopy.page.completeTitle)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: yethCopy.fields.claimTx })).toBeInTheDocument();
+  });
+
+  it("keeps the last valid deadline when a later payload omits it", () => {
+    const { rerender } = render(<YethPageClient />);
+    currentGlobalState = buildGlobalState({ claimWindow: { closesAt: 0 } });
+    setFixedNow(CLOSES_AT + 10);
+    rerender(<YethPageClient />);
+
+    expect(screen.getByText(yethCopy.claimEnded.title)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Claim .* ETH & Exit/ })).not.toBeInTheDocument();
   });
 
   it("uses local current time for deadline gating even when feed asOf is stale", () => {

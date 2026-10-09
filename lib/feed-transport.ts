@@ -25,7 +25,8 @@ export async function withFeedRequest<T>(
   handleResponse: (
     response: Response,
     context: FeedRequestContext
-  ) => Promise<T>
+  ) => Promise<T>,
+  fetcher: (url: string, init: RequestInit) => Promise<Response> = fetch
 ): Promise<T> {
   const abortController = new AbortController();
   const deadlineAt = Date.now() + policy.requestTimeoutMs;
@@ -41,7 +42,7 @@ export async function withFeedRequest<T>(
 
   try {
     const response = await Promise.race([
-      fetch(url, {
+      fetcher(url, {
         ...policy.fetchOptions,
         signal: abortController.signal,
       }),

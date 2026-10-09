@@ -45,6 +45,18 @@ export type DaoProposalReadEnvelope = {
   proposal: DaoProposal;
 };
 
+/** A public forum link does not require optional live category metadata. */
+export function getDaoDiscussionUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "gov.yearn.fi" &&
+      !url.username && !url.password && !url.port ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Couples a proposal to the exact feed snapshot that surfaced it. Numeric IDs
  * are insufficient because proposal identity also includes chain and Voting.

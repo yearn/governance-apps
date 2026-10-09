@@ -8,6 +8,7 @@ The [closeout evidence](delivery/evidence/closeout-20260924/README.md) covers su
 | Purpose | Current entry point |
 | --- | --- |
 | Architecture, transaction checks, and recovery | [Live services](live-services.md) |
+| Telegram lifecycle, deadline, and operator alerts | [DAO alerts and rollout](telegram-alerts.md) |
 | Built local walkthrough and real producer snapshots | [Local validation](local-validation.md) |
 | Ordered production release and private operator inputs | [Production procedure](production-release.md) |
 | Preprod status, shared infrastructure, and historical preparation | [Preprod reference](preprod-validation.md) |

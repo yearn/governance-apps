@@ -96,10 +96,8 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
   const { data: veyfiAccount, isLoading: isVeyfiLoading } = useVeyfiAccount();
   const { data: veyfiStats } = useVeyfiStats();
   const { globalData } = useProtocol();
-  const { epochInfo } = useEpochClock({ tickMs: 60_000 });
+  const { epochInfo, now } = useEpochClock({ tickMs: 60_000 });
   const [selectedAsset, setSelectedAsset] = useState<StyfiAsset>();
-  const hasUserSelected = useRef(false);
-  const hasResolvedDefault = useRef(false);
   const cockpitRef = useRef<HTMLDivElement>(null);
   const { nudge, dismiss } = useCrossChainNudge({
     currentApp: "styfi",
@@ -111,12 +109,10 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
   } = useStyfiSnapshotProposals();
 
   const handleSelectAsset = useCallback((asset: StyfiAsset) => {
-    hasUserSelected.current = true;
     setSelectedAsset(asset);
   }, []);
 
   const handleHeroSelect = useCallback((asset: StyfiAsset) => {
-    hasUserSelected.current = true;
     setSelectedAsset(asset);
     setTimeout(() => {
       cockpitRef.current?.scrollIntoView({
@@ -126,27 +122,13 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
     }, 100);
   }, []);
 
-  useEffect(() => {
-    if (hasUserSelected.current || hasResolvedDefault.current) return;
-
-    if (!account) {
-      setSelectedAsset("stYFIx");
-      return;
-    }
-
+  // Resolve the initial selection once, without an effect-driven render.
+  if (selectedAsset === undefined && account) {
     const derived = deriveBalances(account);
-    const styfiBalance = derived.styfi.total;
-    const styfixBalance = derived.styfix.total;
-
-    if (styfixBalance > styfiBalance) {
-      setSelectedAsset("stYFIx");
-    } else if (styfiBalance > styfixBalance) {
-      setSelectedAsset("stYFI");
-    } else {
-      setSelectedAsset("stYFIx");
-    }
-    hasResolvedDefault.current = true;
-  }, [account]);
+    setSelectedAsset(
+      derived.styfi.total > derived.styfix.total ? "stYFI" : "stYFIx"
+    );
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -285,6 +267,7 @@ function StyfiPageShell({ hostname }: StyfiPageClientProps) {
         ) : null}
 
         <AccountSummary
+          now={now}
           selectedAsset={activeAsset}
           onSelectAsset={handleHeroSelect}
           balances={balances}

@@ -7,6 +7,32 @@ Use [live services](live-services.md) for trust boundaries and [publication oper
 The [fork runbook](local-fork-uat.md) covers deployed contracts on a disposable node and an offline content substitute.
 Completed acceptance procedures are historical. Do not reuse their state as disposable test data.
 
+## Public proposal review without a fork
+
+The board and proposal pages can read the public production feed without a wallet or local chain.
+This setup uses the existing application configuration. The variables apply only inside this Fish block and do not change environment files.
+
+From a checkout without private environment files, run:
+
+```fish
+begin
+    set -lx NEXT_PUBLIC_RUNTIME_MODE development
+    set -lx NEXT_PUBLIC_ENABLE_DAO true
+    set -lx NEXT_PUBLIC_USE_MOCKS false
+    set -lx NEXT_PUBLIC_E2E false
+    set -lx NEXT_PUBLIC_RPC_URLS http://127.0.0.1:8546
+    set -lx NEXT_PUBLIC_DAO_DEPLOYMENTS (string join '' < docs/apps/dao/examples/mainnet-deployments.json)
+    set -lx DAO_DATA_URL https://data.dao-ops.com/prod/dao.json
+    set -lx DAO_PUBLICATION_ENABLED false
+    npm run dev -- --hostname 127.0.0.1 --port 3421
+end
+```
+
+Open `http://127.0.0.1:3421/dao` with the wallet disconnected.
+The board, proposal content, forum links, script details, and sharing metadata use the public feed.
+Wallet actions require an appropriate RPC and the normal transaction checks. This walkthrough does not exercise them.
+For editor and transaction-flow coverage, use the mock browser suites below.
+
 ## Isolate each test environment
 
 Run from a checkout with no private `.env*` or `.dev.vars*` files.

@@ -6,6 +6,7 @@ import { IconCopy } from "@/components/icons/IconCopy";
 import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/cn";
+import { getDaoMarkdownFragmentId } from "@/lib/clients/dao/content";
 import type {
   DaoMarkdownNode,
   DaoParsedProposalContent,
@@ -44,6 +45,8 @@ export function DaoProposalMarkdown({
         className
       )}
       data-testid="dao-proposal-markdown"
+      id={omitTitle && parsed.ast.children[0]?.headingId ? headingDomId(parsed.ast.children[0].headingId, context) : undefined}
+      tabIndex={omitTitle ? -1 : undefined}
     >
       {nodes.map((node, index) => (
         <MarkdownNode
@@ -134,11 +137,16 @@ function MarkdownNode({
         6,
         sourceLevel + (context === "preview" ? 2 : 1)
       );
-      if (level === 2) return <h2 className={headingClass(level)}>{children}</h2>;
-      if (level === 3) return <h3 className={headingClass(level)}>{children}</h3>;
-      if (level === 4) return <h4 className={headingClass(level)}>{children}</h4>;
-      if (level === 5) return <h5 className={headingClass(level)}>{children}</h5>;
-      return <h6 className={headingClass(level)}>{children}</h6>;
+      const props = {
+        id: node.headingId ? headingDomId(node.headingId, context) : undefined,
+        tabIndex: -1,
+        className: headingClass(level),
+      };
+      if (level === 2) return <h2 {...props}>{children}</h2>;
+      if (level === 3) return <h3 {...props}>{children}</h3>;
+      if (level === 4) return <h4 {...props}>{children}</h4>;
+      if (level === 5) return <h5 {...props}>{children}</h5>;
+      return <h6 {...props}>{children}</h6>;
     }
     case "blockquote":
       return (
@@ -160,13 +168,20 @@ function MarkdownNode({
     case "listItem":
       return <li className="min-w-0 pl-1">{children}</li>;
     case "link": {
-      const href = resolveMarkdownHref(node.url ?? "", hostname);
+      const fragment = getDaoMarkdownFragmentId(node.url ?? "");
+      const href = fragment
+        ? `#${encodeURIComponent(headingDomId(fragment, context))}`
+        : resolveMarkdownHref(node.url ?? "", hostname);
       const internal =
         (node.url ?? "").startsWith("/") &&
         !(node.url ?? "").startsWith("//");
       const className =
         "inline rounded font-bold text-yearn-blue underline decoration-yearn-blue/40 underline-offset-4 transition-[color,text-decoration-color] duration-150 ease-out [overflow-wrap:anywhere] hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none dark:text-blue-300 dark:hover:text-blue-200";
-      return internal ? (
+      return fragment ? (
+        <a href={href} className={className}>
+          {children}
+        </a>
+      ) : internal ? (
         <Link href={href} className={className}>
           {children}
         </Link>
@@ -366,9 +381,13 @@ function resolveMarkdownHref(href: string, hostname?: string): string {
 
 function headingClass(level: number): string {
   return cn(
-    "max-w-full text-balance break-words font-bold [overflow-wrap:anywhere]",
+    "max-w-full scroll-mt-28 rounded text-balance break-words font-bold [overflow-wrap:anywhere] focus:outline-none focus-visible:ring-2 focus-visible:ring-text-primary",
     level <= 3 ? "text-xl md:text-2xl" : level === 4 ? "text-lg md:text-xl" : "text-base md:text-lg"
   );
+}
+
+function headingDomId(id: string, context: "detail" | "preview"): string {
+  return `dao-${context}-heading-${id}`;
 }
 
 function nodeKey(node: DaoMarkdownNode, index: number): string {

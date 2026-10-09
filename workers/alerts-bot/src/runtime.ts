@@ -66,6 +66,9 @@ import {
 } from "./telegram";
 import type { NormalizedAction } from "./types";
 import type { AlertAction } from "./product-types";
+import { createEmptyDaoState, loadDaoState, scanDaoBlocks } from "./domains/dao/scanner";
+import type { DaoAlertState } from "./domains/dao/types";
+import { DaoAlertContentError, DaoAlertContentReader } from "./domains/dao/content";
 
 const STATE_KEY = "state:v1";
 const RECEIPT_PREFIX = "sent:";
@@ -90,6 +93,7 @@ interface StoredDomainState {
   } | null;
   readonly teamsState: StoredTeamsState | null;
   readonly ybcState: StoredYbcState | null;
+  readonly daoState?: DaoAlertState | null;
 }
 
 interface ScanOutcome {
@@ -100,6 +104,8 @@ interface ScanOutcome {
   readonly yethDailyFlow: YethFlowSummary;
   readonly teamsState: TeamsState | null;
   readonly ybcState: YbcState | null;
+  readonly daoState?: DaoAlertState;
+  readonly terminalHash?: string;
 }
 
 class AlertRunError extends Error {
@@ -236,6 +242,7 @@ function initialState(domainId: ActiveAlertDomainId): StoredDomainState {
       domainId === "teams" ? serializeTeamsState(createEmptyTeamsState()) : null,
     ybcState:
       domainId === "ybc" ? serializeYbcState(createEmptyYbcState()) : null,
+    daoState: domainId === "dao" ? createEmptyDaoState() : null,
   });
 }
 
@@ -485,6 +492,17 @@ async function scanRange(params: {
   readonly requestedToBlock: number;
 }): Promise<ScanOutcome> {
   const fromBlock = params.state.cursorBlock + 1;
+  if (params.domainId === "dao") {
+    const scan = await scanDaoBlocks({
+      rpc: params.rpc, fromBlock, toBlock: params.requestedToBlock,
+      state: loadDaoState(params.state.daoState), includeVotes: params.config.daoIncludeVotes,
+    });
+    return {
+      terminalBlock: scan.terminalBlock, terminalHash: scan.terminalHash, actions: scan.actions,
+      daoState: scan.state, teamsState: null, ybcState: null, yethState: null,
+      yethMetrics: null, yethDailyFlow: { ...ZERO_FLOW },
+    };
+  }
   if (params.domainId === "styfi" || params.domainId === "veyfi") {
     const scan = await scanYfiRange({
       domainId: params.domainId,
@@ -788,6 +806,7 @@ export class AlertState implements DurableObject {
       }
 
       let messagesSent = 0;
+      const daoContent = domainId === "dao" ? new DaoAlertContentReader(this.env.DAO_APP, this.state.storage) : undefined;
       let lastTelegramSendAt = 0;
       let ranges = 0;
       while (
@@ -816,11 +835,12 @@ export class AlertState implements DurableObject {
         });
         stage = "terminal";
         const terminal = await rpc.getBlockByNumber(scan.terminalBlock);
-        if (terminal.number !== scan.terminalBlock) {
+        if (terminal.number !== scan.terminalBlock ||
+            (scan.terminalHash !== undefined && terminal.hash !== scan.terminalHash)) {
           throw new AlertRunError("terminal_block_invalid");
         }
         stage = "render";
-        const rendered = await renderCatalogueMessages({ domainId, actions: scan.actions, rpc });
+        const rendered = await renderCatalogueMessages({ domainId, actions: scan.actions, rpc, daoContent });
         const unsent = [] as typeof rendered[number][];
         for (const message of rendered) {
           stage = "receipt_read";
@@ -874,6 +894,7 @@ export class AlertState implements DurableObject {
             scan.teamsState === null ? stored.teamsState : serializeTeamsState(scan.teamsState),
           ybcState:
             scan.ybcState === null ? stored.ybcState : serializeYbcState(scan.ybcState),
+          daoState: scan.daoState ?? stored.daoState ?? null,
         };
         stage = "state_commit";
         await this.state.storage.put(STATE_KEY, stored);
@@ -901,7 +922,7 @@ export class AlertState implements DurableObject {
         console.warn(JSON.stringify({ event: "alert_run_delayed", domain: domainId, code: "telegram_rate_limited", retryAfterUntil }));
         return Response.json({ domain: domainId, outcome: "telegram_backoff" }, { status: 202 });
       }
-      const code = error instanceof AlertRunError ? error.code : "processing_failed";
+      const code = error instanceof AlertRunError || error instanceof DaoAlertContentError ? error.code : "processing_failed";
       const diagnostic = safeFailureDiagnostic(error);
       let errorStateRecorded = true;
       try {

@@ -15,6 +15,58 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test("keeps Markdown line numbers aligned through wrapping, scrolling, and resizing", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openAuthoring(page);
+  const source = `# Line numbers\n\nSummary.\n\n## Specification\n\n${"A long wrapped proposal paragraph with a link and meaningful text. ".repeat(12)}\n\n${"unbroken".repeat(100)}\n\n${Array.from({ length: 30 }, (_, index) => `Source line ${index + 1}`).join("\n")}\n`;
+  const editor = page.getByRole("textbox", { name: "Proposal Markdown" });
+  await editor.fill(source);
+  await page.evaluate(() => document.fonts.ready);
+  const gutter = page.getByTestId("dao-markdown-line-numbers");
+  await expect(gutter.locator(":scope > div")).toHaveCount(source.split("\n").length);
+
+  const assertAligned = async () => {
+    await expect.poll(async () => page.evaluate(() => {
+      const editor = document.querySelector<HTMLTextAreaElement>("#dao-proposal-markdown")!;
+      const mirror = document.querySelector<HTMLElement>('[data-testid="dao-markdown-line-mirror"]')!;
+      const gutter = document.querySelector<HTMLElement>('[data-testid="dao-markdown-line-numbers"]')!;
+      const mirrorTop = mirror.getBoundingClientRect().top;
+      const gutterTop = gutter.getBoundingClientRect().top;
+      return Math.max(
+        Math.abs(editor.scrollHeight - mirror.offsetHeight),
+        ...Array.from(mirror.children).map((line, index) => Math.abs(
+          line.getBoundingClientRect().top - mirrorTop - (gutter.children[index].getBoundingClientRect().top - gutterTop)
+        ))
+      );
+    })).toBeLessThanOrEqual(1);
+  };
+  await assertAligned();
+  await editor.evaluate((element: HTMLTextAreaElement) => { element.scrollTop = 500; });
+  await expect(gutter).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, -500)");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await assertAligned();
+  await editor.evaluate((element: HTMLTextAreaElement) => { element.style.height = "500px"; });
+  await assertAligned();
+  await expect(editor).toHaveValue(source);
+  await expectNoDocumentOverflow(page);
+});
+
+test("opens same-document section links with the keyboard in Markdown preview", async ({ page }) => {
+  await openAuthoring(page);
+  await page.getByRole("textbox", { name: "Proposal Markdown" }).fill(
+    `# Proposal links\n\nSummary.\n\n[Read references](#references-1)\n\n## References\n\n${"Supporting text. ".repeat(80)}\n\n## References\n\nThe second references section.`
+  );
+  await expect(page.getByText("Document structure is valid")).toBeVisible();
+  await page.getByRole("tab", { name: "Preview", exact: true }).click();
+  const link = page.getByRole("link", { name: "Read references" });
+  await link.focus();
+  await link.press("Enter");
+  await expect(page).toHaveURL(/#dao-preview-heading-references-1$/);
+  await expect(page.getByRole("heading", { name: "References", exact: true }).nth(1)).toBeFocused();
+  await expect(page.getByText("The second references section.", { exact: true })).toBeVisible();
+  await expect(page.context().pages()).toHaveLength(1);
+});
+
 test("authors, reviews, publishes, and submits a Signal proposal", async ({
   page,
 }) => {
