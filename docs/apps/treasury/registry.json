@@ -219,7 +219,7 @@
       "accountableTeamId": "ylockers",
       "counterparty": "yCRV OTC swapper",
       "originalFunding": [],
-      "originalFundingNote": null,
+      "originalFundingNote": "Aggregate funding has not been reconciled across inventory transfers and swapper migrations.",
       "plannedFunding": [],
       "expectedReturn": {
         "amounts": [],
@@ -232,7 +232,7 @@
         "sourceKind": "unavailable",
         "note": "A current amount has not been established in this registry."
       },
-      "note": "Track current attributable settlement inventory. Transfers between swappers do not create new funding.",
+      "note": "Unsold OTC inventory consists of st-yCRV vault shares and liquid yCRV held by the swapper. The swapper unwraps shares when needed and deposits sale proceeds into treasury vaults. Transfers between swappers do not create new funding.",
       "evidence": [
         {
           "label": "Approval",
@@ -241,6 +241,14 @@
         {
           "label": "Position",
           "url": "https://etherscan.io/address/0x1B7e6fB817112b036EAa4AE85479fF1C2E9330A2"
+        },
+        {
+          "label": "Swapper migration",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1530"
+        },
+        {
+          "label": "Inventory top-up",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1569"
         }
       ]
     },
