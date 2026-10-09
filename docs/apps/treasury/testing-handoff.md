@@ -1,6 +1,6 @@
 # Treasury MVP testing handoff
 
-The latest accepted pass is [Treasury asset coverage and identity](asset-coverage-work-package.md), tagged `integration/treasury-m2` in both repositories. It supersedes the compact-table pass and includes typed dYFI redemption references.
+The latest accepted pass is [Curve pricing and release preparation](curve-rollout-work-package.md), tagged `integration/treasury-m3` in both repositories. It extends nested Curve pricing, preserves current production history, and prepares the staged rollout.
 The sections below preserve the initial MVP record. Its snapshot values and test counts are historical.
 
 The dashboard and producer are integrated for testing. Production deployment and remote publication have not started.

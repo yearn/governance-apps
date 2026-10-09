@@ -1,0 +1,37 @@
+{
+  "frontendBase": "745da13b8eadc6159ed21ecdb341cc90682b4b93",
+  "block": 26157098,
+  "summary": {
+    "holdingCount": 370,
+    "pricedUsdValue": "16126834.5313406846986919",
+    "pricedUsdValueExcludingYfi": "14689119.82411304586120504",
+    "unpricedHoldingCount": 230,
+    "unknownYfiSplitCount": 0
+  },
+  "checks": [
+    "dyfi-reference-and-funding-status",
+    "dyfi-exact-payment-contract-link",
+    "dyfi-excluded-with-yfi-toggle",
+    "global-unpriced-count-includes-collapsed-holdings",
+    "curve-reusd-scrvusd-valued",
+    "curve-dola-scrvusd-valued",
+    "curve-ironbank-valued",
+    "api-exact-match",
+    "three-address-groups",
+    "token-icons-loaded",
+    "eight-lookalike-contracts",
+    "canonical-issuer-link",
+    "320-layout",
+    "yfi-exclusion",
+    "robo-filter-preserves-headline",
+    "tab-specific-notes",
+    "otc-inventory-context",
+    "last-good-after-503"
+  ],
+  "pageErrors": [],
+  "frontendSource": "899c5ca3bd8c9c0a681a8a5cf07a5dc7733c8ed8",
+  "previewAppFiles": {
+    "app/treasury/TreasuryPageClient.tsx": "29ea1770603e8e503fe133aad4c6a0968723afe43dd0d4d4c8ab1fd06d96779d",
+    "app/treasury/messages.ts": "a4d6a1a8363f30e26e6569d2a8530288cfe4675d4ebe6ef48a183fa61d1b2679"
+  }
+}

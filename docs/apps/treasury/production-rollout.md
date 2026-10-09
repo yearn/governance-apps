@@ -13,7 +13,7 @@ The user will associate `treasury.yearn.fi` with Cloudflare manually after share
 | Build flag | `NEXT_PUBLIC_ENABLE_TREASURY=true` | `NEXT_PUBLIC_ENABLE_TREASURY=true` |
 | Server runtime URL | `https://data.dao-ops.com/staging/treasury.json` | `https://data.dao-ops.com/prod/treasury.json` |
 | Initial app URL | Protected shared Worker URL plus `/treasury` | `https://app.dao-ops.com/treasury` |
-| Optional/final app hostname | `treasury-beta.dao-ops.com`, only if associated | `treasury.yearn.fi`, associated by the user |
+| App hostname | `treasury-beta.dao-ops.com`, after association | `treasury.yearn.fi`, associated by the user |
 
 Confirm the existing R2 bucket and its delivery domain before using these proposed feed URLs.
 The public flag defaults to `false` in both workflows. Set it in the matching GitHub environment before building.
@@ -33,6 +33,8 @@ On October 9, its latest successful [production run](https://github.com/yearn/go
 Its current remote `master` was `33b553b424a3857f8dbfc7676e2e2813a2d63570`. Recheck it before promotion.
 The local `origin` fork is not the observed production deployment repository.
 Review concurrent remote changes and retain them.
+Make the candidate commit available on a reviewed branch in that repository before preprod dispatch.
+Production `master` promotion follows preprod acceptance; the preprod workflow can check out the candidate branch or full SHA.
 
 Complete the repository checks:
 
@@ -82,6 +84,8 @@ Use an existing protected shared Worker or version URL with `/treasury`.
 Verify its access protection before sharing it.
 The existing `dao-beta.dao-ops.com` hostname rewrites paths into DAO and cannot act as a shared Treasury URL.
 The application understands `treasury-beta.dao-ops.com`, but repository changes do not create its DNS or Worker association.
+Associate and protect that hostname before accepting navigation from the other beta apps; their Treasury links use this hostname.
+The shared Worker path remains suitable for initial isolated validation.
 
 Check:
 
@@ -124,6 +128,7 @@ This release requires no DAO database migration or existing feed rewrite.
 ## 6. Associate the final hostname
 
 The user adds `treasury.yearn.fi` to the production Worker through Cloudflare.
+Coordinate this immediately after shared-host validation: enabled links from the other production apps already use this hostname.
 A DNS record alone does not establish the Worker association.
 Verify TLS, `https://treasury.yearn.fi/`, `/api/treasury-data`, app navigation, and polling after the change.
 
