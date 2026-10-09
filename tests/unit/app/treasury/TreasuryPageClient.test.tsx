@@ -15,6 +15,23 @@ function holding(symbol: string) {
 }
 
 describe("treasury dashboard", () => {
+  it("keeps snapshot coverage in Portfolio and closed history in Loans", async () => {
+    const user = userEvent.setup();
+    show({ feed: createTreasuryMockFeed("partial") });
+    expect(screen.getByText("Snapshot details")).toBeVisible();
+    expect(screen.queryByText("Closed positions")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Loans & allocations" }));
+    expect(screen.queryByText("Snapshot details")).not.toBeInTheDocument();
+    expect(screen.queryByText("6 tracked positions unpriced")).not.toBeInTheDocument();
+    const history = screen.getByText("Closed positions").closest("details")!;
+    expect(history).not.toHaveAttribute("open");
+    await user.click(within(history).getByText("Closed positions"));
+    expect(history).toHaveAttribute("open");
+    await user.click(screen.getByRole("tab", { name: "Portfolio" }));
+    expect(screen.queryByText("Closed positions")).not.toBeInTheDocument();
+    expect(screen.getByText("Snapshot details")).toBeVisible();
+  });
+
   it("keeps a large unpriced inventory unmounted until expanded and preserves meaningful positions", async () => {
     const user = userEvent.setup();
     const data = createTreasuryMockFeed("partial");
@@ -145,7 +162,7 @@ describe("treasury dashboard", () => {
     show();
     const yfi = holding("YFI");
     const icon = yfi.querySelector("img")!;
-    expect(icon.src).toMatch(/^https:\/\/token-assets-one\.vercel\.app\/api\/tokens\/1\/0x[0-9a-f]{40}\/logo-128\.png$/);
+    expect(icon.src).toMatch(/^https:\/\/raw\.githubusercontent\.com\/yearn\/tokenAssets\/[a-f0-9]{40}\/tokens\/1\/0x[0-9a-f]{40}\/logo-128\.png$/);
     fireEvent.error(icon);
     expect(yfi.querySelector("img")).toBeNull();
     expect(within(yfi).getByText("YF")).toBeVisible();

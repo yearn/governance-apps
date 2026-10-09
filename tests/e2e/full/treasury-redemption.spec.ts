@@ -1,0 +1,31 @@
+import { expect, test } from "@playwright/test";
+
+test("dYFI reference remains qualified and readable on mobile", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto("/treasury?scenario=redemption");
+  await expect(page.getByTestId("treasury-portfolio-value")).toHaveText("$2,977,236");
+  await expect(page.getByText("Includes redemption reference", { exact: true })).toBeVisible();
+  const button = page.getByRole("button", { name: "Position details — dYFI at ychad.eth", exact: true });
+  const row = page.getByRole("row").filter({ has: button });
+  await expect(row.getByRole("cell").nth(2)).toHaveText(/^\$3,000/);
+  await expect(row.getByText("Redemption reference", { exact: true })).toBeVisible();
+  await expect(row.getByText("Awaiting YFI funding", { exact: true })).toBeVisible();
+  expect(await row.getByRole("cell").nth(2).evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await button.click();
+  await expect(page.getByText("1.250000000000000001 ETH", { exact: true })).toBeVisible();
+  await expect(page.getByText("0 YFI", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Redemption contract: 0x4707c855323545223fa2ba4150a83950f6f53b6e", exact: true })).toHaveAttribute("href", "https://etherscan.io/address/0x4707c855323545223fa2ba4150a83950f6f53b6e");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("treasury-dyfi-reference-mobile.png"), fullPage: true });
+  await page.getByRole("button", { name: "Exclude YFI", exact: true }).click();
+  await expect(page.getByTestId("treasury-portfolio-value")).toHaveText("$2,974,236");
+  await expect(page.getByText("Includes redemption reference", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Redemption reference", { exact: true })).toHaveCount(0);
+  await expect(row.getByRole("cell").nth(2)).toHaveText(/^\$0/);
+  await expect(row.getByText("Awaiting YFI funding", { exact: true })).toBeVisible();
+  await page.goto("/treasury?scenario=redemption-funded");
+  await expect(page.getByText("Awaiting YFI funding", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Position details — dYFI at ychad.eth", exact: true }).click();
+  await expect(page.getByText("YFI funding available", { exact: true })).toBeVisible();
+  await expect(page.getByText("12 YFI", { exact: true })).toBeVisible();
+});

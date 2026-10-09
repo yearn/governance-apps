@@ -8,19 +8,19 @@ Portfolio shows balances at configured treasury addresses and attributable Robo 
 
 The portfolio uses compact tables grouped by address. Robo destination and custody addresses share one group. Empty addresses do not create tables.
 
-Rows with known values below $100 stay in a collapsed group. The threshold uses the full value, including YFI. Curated, annotated, and operating positions without prices remain visible. Other unpriced tokens stay in a separate disclosure; an unknown value does not mean dust or spam.
+Rows with known values below $100 stay in a collapsed group. The threshold uses the full value, including YFI. Curated, annotated, and operating positions without prices remain visible. Other unpriced tokens stay in a separate disclosure. Eight reviewed lookalike contracts have their own disclosure. An unknown value does not mean dust or spam.
 
 Each group subtotal includes its collapsed priced balances. Subtotals add producer values with exact decimal arithmetic. The headline remains the producer summary.
 
-Rows show token icons, balances, values, and small purpose pills. Expanded details show custody, withdrawal conditions, valuation sources, and accountable teams. Icons use the same fixed token service as yearn.fi, keyed by chain and token address. Vaults can use the supplied underlying asset icon. Image failures show a neutral fallback. Mobile rows use compact balance precision; expanded rows retain the usual six-decimal display.
+Rows show token icons, balances, values, and small purpose pills. Expanded details show custody, withdrawal conditions, valuation sources, and accountable teams. Icons use reviewed Yearn files and token-list image references, keyed by chain and token address. Unlisted assets use the fixed Yearn token service. Vaults can use the supplied underlying asset icon. Image failures show a neutral fallback. Mobile rows use compact balance precision; expanded rows retain the usual six-decimal display.
 
 The value summary covers all addresses. Address and team filters change the list only. The YFI control changes valuations, but retains asset balances.
 
 Purpose and withdrawal conditions are separate. Strategic capital is part of the portfolio, but the app does not describe portfolio value as spendable capital.
 
-Loans & allocations uses a table with position, funding, current amount, team, and reference columns. Pending allocations show planned funding. Unknown amounts show a dash. Expected-return fields remain in the feed contract but do not appear in this view. Additional evidence and notes stay in row disclosures.
+Loans & allocations uses a table with position, funding, current amount, team, and reference columns. Pending allocations show planned funding. Unknown amounts show a dash. Expected-return fields remain in the feed contract but do not appear in this view. Additional evidence and notes stay in row disclosures. OTC inventory distinguishes unreconciled funding from unsold st-yCRV shares and liquid yCRV. The UI does not add these token quantities together.
 
-Closed positions remain in a collapsed list. Each item has a disposition, a short note, and an evidence link.
+Closed positions appear only in Loans & allocations, in a collapsed list. Snapshot details and the unpriced-position count appear only in Portfolio. The shared headline retains its partial-value label on both tabs. Each item has a disposition, a short note, and an evidence link.
 
 ## Data boundary
 
@@ -96,3 +96,13 @@ npm run test:e2e:full
 Merge the feed contract before this frontend package. The example and parser are shared with the producer. No dependency changes are necessary.
 
 The first release includes portfolio and allocation reads. Historical valuation, write actions, and detailed Robo auction tracking remain outside this package.
+
+## dYFI redemption reference
+
+Direct dYFI uses a net redemption reference supplied by the producer. It is included in the portfolio value, even when the redemption contract needs YFI funding. This reference is not an executable sale price. The row identifies the reference and shows funding shortages. The headline states when it includes a redemption reference. Excluding YFI removes the reference value and its valuation labels; the funding status remains visible.
+
+Expanded details show the exact ETH payment, available YFI, and redemption contract. The UI formats these amounts without calculating redemption economics. The funding status describes inventory for this holding at the snapshot, not a reservation or guarantee of execution.
+
+Feed V1 adds optional `valuation.redemption` with `contract`, `ethRequiredRaw`, `yfiAvailableRaw`, and `fundingStatus`. It is required for priced direct Ethereum dYFI and forbidden for unavailable valuations or other assets. The current redemption contract is pinned by semantic validation. ETH payment must be positive; a zero net USD reference remains valid. Funding status must agree with available YFI and the holding balance. Raw amounts retain uint256 bounds.
+
+Roll out the updated consumer before the producer emits this field. Existing V1 feeds without priced dYFI remain valid. Older strict consumers reject the new property and retain their last valid snapshot. Regenerate the TypeScript boundary with `node scripts/generate-treasury-contract.mjs`. The shared acceptance corpus covers the additive field and its accounting constraints.

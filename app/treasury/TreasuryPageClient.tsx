@@ -73,8 +73,9 @@ export function TreasuryDashboard({ feed, loading = false, failed = false, refre
                   </p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-secondary">
                     <span>{copy.summaryScope}</span>
+                    {!excludeYfi && feed.holdings.some((holding) => holding.valuation.redemption) ? <span>{copy.includesRedemptionReference}</span> : null}
                     {partial ? <span>{copy.partialValuation}</span> : null}
-                    {unpricedPrimary > 0 ? <span>{unpricedPrimary} {copy.unpricedPositions}</span> : null}
+                    {tab === "portfolio" && unpricedPrimary > 0 ? <span>{unpricedPrimary} {copy.unpricedPositions}</span> : null}
                   </div>
                 </div>
                 <button type="button" aria-pressed={excludeYfi} onClick={() => setExcludeYfi(!excludeYfi)} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs transition-[background-color,scale] hover:bg-surface-secondary active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary motion-reduce:transition-none motion-reduce:active:scale-100">
@@ -138,14 +139,14 @@ export function TreasuryDashboard({ feed, loading = false, failed = false, refre
             {tab === "portfolio" ? (
               <section id="treasury-panel-portfolio" role="tabpanel" aria-labelledby="treasury-tab-portfolio" className="space-y-6">
                 {groups.length ? groups.map((group) => <TreasuryAccountHoldings key={group.id} feed={feed} group={group} excludeYfi={excludeYfi} />) : <EmptyState text={feed.holdings.length ? copy.emptyFiltered : copy.emptyTitle} />}
+                <SnapshotDetails feed={feed} excludeYfi={excludeYfi} />
               </section>
             ) : (
-              <section id="treasury-panel-allocations" role="tabpanel" aria-labelledby="treasury-tab-allocations">
+              <section id="treasury-panel-allocations" role="tabpanel" aria-labelledby="treasury-tab-allocations" className="space-y-6">
                 {allocations.length ? <TreasuryAllocations feed={feed} allocations={allocations} /> : <EmptyState text={copy.emptyAllocations} />}
+                <TreasuryHistory history={feed.history} />
               </section>
             )}
-            <SnapshotDetails feed={feed} excludeYfi={excludeYfi} />
-            <TreasuryHistory history={feed.history} />
           </>
         ) : null}
       </div>

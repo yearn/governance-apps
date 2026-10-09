@@ -57,6 +57,7 @@ export function TreasuryAllocations({ feed, allocations }: { feed: TreasuryFeed;
             const team = feed.teams.find((entry) => entry.id === allocation.accountableTeamId);
             const open = expanded === allocation.id;
             const pending = allocation.status === "pending";
+            const inventory = allocation.kind === "inventory";
             const reference = allocation.evidence[0];
             return (
               <Fragment key={allocation.id}>
@@ -70,8 +71,8 @@ export function TreasuryAllocations({ feed, allocations }: { feed: TreasuryFeed;
                       </span>
                     </button>
                   </TableCell>
-                  <TableCell className="px-2 py-2 text-right"><Amounts values={allocation.originalFunding} /></TableCell>
-                  <TableCell className="px-2 py-2 text-right md:px-3"><Amounts values={allocation.outstanding.amounts} /></TableCell>
+                  <TableCell className="px-2 py-2 text-right">{inventory && !allocation.originalFunding.length ? <span className="text-[10px] text-text-secondary sm:text-xs">{copy.fundingUnreconciled}</span> : <Amounts values={allocation.originalFunding} />}</TableCell>
+                  <TableCell className="px-2 py-2 text-right md:px-3">{inventory ? <span className="mb-1 block text-[10px] text-text-secondary">{copy.unsoldInventory}</span> : null}<Amounts values={allocation.outstanding.amounts} /></TableCell>
                   <TableCell className="hidden px-3 py-2 text-xs text-text-secondary md:table-cell">{team?.label ?? <MissingValue />}</TableCell>
                   <TableCell className="hidden px-3 py-2 md:table-cell">{reference ? <a className={treasuryLinkClass} href={reference.url} target="_blank" rel="noopener noreferrer">{reference.label} ↗<span className="sr-only"> — {allocation.title}</span></a> : <MissingValue />}</TableCell>
                 </TableRow>

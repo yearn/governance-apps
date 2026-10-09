@@ -1,0 +1,84 @@
+{
+  "recordedAt": "2026-10-09T18:58:02.526Z",
+  "policy": "Include the net redemption reference, show funding status, and exclude it from the YFI-free total.",
+  "sources": [
+    "https://docs.yearn.fi/developers/addresses/veyfi-contracts",
+    "https://docs.yearn.fi/contributing/governance/veyfi",
+    "https://eth.blockscout.com/api/v2/smart-contracts/0x4707C855323545223fA2bA4150A83950F6F53b6E"
+  ],
+  "currentContract": {
+    "blockNumber": "26156726",
+    "blockHash": "0xb2d3ed1f205422473730b46f8cd2f5f6b6ab3c8b8c98303951a0d71ec2cf9bc1",
+    "blockTimestamp": "1791571463",
+    "address": "0x4707C855323545223fA2bA4150A83950F6F53b6E",
+    "treasuryAmount": "41430173248806861",
+    "sourceVerified": true,
+    "constructor": [
+      [
+        "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+        {
+          "name": "yfi",
+          "type": "address"
+        }
+      ],
+      [
+        "0x41252E8691e964f7DE35156B68493bAb6797a275",
+        {
+          "name": "d_yfi",
+          "type": "address"
+        }
+      ],
+      [
+        "0x90c1f9220d90d3966FbeE24045EDd73E1d588aD5",
+        {
+          "name": "ve_yfi",
+          "type": "address"
+        }
+      ],
+      [
+        "0xdDddddDD0005d49D9b508BF034B036aaB5818bCF",
+        {
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      [
+        "0x3EbEACa272Ce4f60E800f6C5EE678f50D2882fd4",
+        {
+          "name": "price_feed",
+          "type": "address"
+        }
+      ],
+      [
+        "10000000000000000000",
+        {
+          "name": "scaling_factor",
+          "type": "uint256"
+        }
+      ]
+    ],
+    "killed": false,
+    "ethRequiredOne": "246392524423065972",
+    "ethRequiredTreasury": "10208084974058498",
+    "discount": "738866981697150771",
+    "latestYfiEthPrice": "943551780714731536",
+    "yfiInventory": "0",
+    "dyfiSupply": "108149433080406153403"
+  },
+  "legacySite": {
+    "blockNumber": "26156726",
+    "legacyApp": [
+      {
+        "url": "https://legacy-veyfi.yearn.fi/_next/static/chunks/pages/_app-177cd69fa3bde074.js",
+        "addresses": [
+          "0x7dC3A74F0684fc026f9163C6D5c3C99fda2cf60a"
+        ]
+      }
+    ],
+    "oldContract": {
+      "address": "0x7dC3A74F0684fc026f9163C6D5c3C99fda2cf60a",
+      "killed": true,
+      "yfiBalance": "0"
+    }
+  }
+}

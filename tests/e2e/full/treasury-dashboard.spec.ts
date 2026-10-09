@@ -2,12 +2,17 @@ import { expect, test } from "@playwright/test";
 
 test("treasury tabs and compact disclosures support keyboard navigation", async ({ page }) => {
   await page.goto("/treasury");
+  await expect(page.getByText("Closed positions", { exact: true })).toHaveCount(0);
   const portfolio = page.getByRole("tab", { name: "Portfolio", exact: true });
   const loans = page.getByRole("tab", { name: "Loans & allocations", exact: true });
   await portfolio.focus();
   await page.keyboard.press("ArrowRight");
   await expect(loans).toBeFocused();
   await expect(loans).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByText("Snapshot details", { exact: true })).toHaveCount(0);
+  const inventory = page.getByTestId("treasury-allocation-ycrv-otc-inventory");
+  await expect(inventory.getByText("Not reconciled", { exact: true })).toBeVisible();
+  await expect(inventory.getByText("Unsold inventory", { exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Funded", exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Current", exact: true })).toBeVisible();
   const aerodrome = page.getByTestId("treasury-allocation-aerodrome-liquidity-loan");
@@ -108,6 +113,10 @@ test("treasury wraps maximum-length metadata and sources at 320 pixels", async (
   const otherPosition = other.getByRole("button", { name: /Position details/ });
   await otherPosition.click();
   await expect(otherPosition).toBeVisible();
+  const lookalikes = page.getByTestId("treasury-collapsed-ychad-lookalikes");
+  await lookalikes.getByRole("button", { name: /Unverified lookalikes/ }).click();
+  await lookalikes.getByRole("button", { name: /Position details/ }).click();
+  await expect(lookalikes.getByRole("link", { name: "USDC issuer reference ↗" })).toHaveAttribute("href", "https://developers.circle.com/stablecoins/usdc-contract-addresses");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.addStyleTag({ content: "html { font-size: 125%; }" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

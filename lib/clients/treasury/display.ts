@@ -1,4 +1,5 @@
 import { formatUnits } from "viem";
+import { treasuryLookalike } from "./asset-identity";
 import type { TreasuryFeed } from "@/lib/schemas/treasury-feed";
 import type { TreasuryFilter, TreasuryHolding } from "./types";
 import { TREASURY_FEED_STALE_SECONDS } from "./feed";
@@ -67,15 +68,16 @@ function sortHoldings(holdings: TreasuryHolding[], excludeYfi = false): Treasury
 
 /** Display buckets only. Unknown prices never imply a small or worthless balance. */
 export function groupTreasuryHoldings(holdings: TreasuryHolding[], excludeYfi = false) {
-  const primary: TreasuryHolding[] = [], small: TreasuryHolding[] = [], other: TreasuryHolding[] = [];
+  const primary: TreasuryHolding[] = [], small: TreasuryHolding[] = [], other: TreasuryHolding[] = [], lookalikes: TreasuryHolding[] = [];
   for (const holding of holdings) {
     if (BigInt(holding.balanceRaw) === 0n) continue;
+    if (treasuryLookalike(holding.asset)) { lookalikes.push(holding); continue; }
     const curated = Boolean(holding.purposeNote?.trim()) || holding.positionKey !== null || holding.accountableTeamId !== null || ["strategic", "product-seed"].includes(holding.purpose);
     const value = holding.valuation.usdValue;
     if (value !== null) (usdUnits(value) < usdUnits(TREASURY_SMALL_BALANCE_USD) ? small : primary).push(holding);
     else (curated || holding.purpose === "operating" ? primary : other).push(holding);
   }
-  return { primary: sortHoldings(primary, excludeYfi), small: sortHoldings(small, excludeYfi), other: sortHoldings(other, excludeYfi) };
+  return { primary: sortHoldings(primary, excludeYfi), small: sortHoldings(small, excludeYfi), other: sortHoldings(other, excludeYfi), lookalikes: sortHoldings(lookalikes, excludeYfi) };
 }
 
 export type TreasuryAccountGroup = {
@@ -85,6 +87,7 @@ export type TreasuryAccountGroup = {
   primary: TreasuryHolding[];
   small: TreasuryHolding[];
   other: TreasuryHolding[];
+  lookalikes: TreasuryHolding[];
   pricedUsdValue: string | null;
   unpricedCount: number;
 };

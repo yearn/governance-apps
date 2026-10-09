@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { treasuryLookalike } from "@/lib/clients/treasury/asset-identity";
 import { UtcTime } from "@/components/ui/UtcTime";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { formatTreasuryAmount, treasuryAddressHref, type TreasuryAccountGroup } from "@/lib/clients/treasury/display";
@@ -26,6 +27,7 @@ export function TreasuryAccountHoldings({ feed, group, excludeYfi }: {
         {group.primary.length ? <TreasuryHoldings feed={feed} holdings={group.primary} excludeYfi={excludeYfi} label={label} /> : null}
         {group.small.length ? <HoldingDisclosure feed={feed} holdings={group.small} excludeYfi={excludeYfi} label={copy.smallHoldings} id={group.id + "-small"} /> : null}
         {group.other.length ? <HoldingDisclosure feed={feed} holdings={group.other} excludeYfi={excludeYfi} label={copy.otherHoldings} id={group.id + "-other"} /> : null}
+        {group.lookalikes.length ? <HoldingDisclosure feed={feed} holdings={group.lookalikes} excludeYfi={excludeYfi} label={copy.lookalikeHoldings} id={group.id + "-lookalikes"} /> : null}
       </div>
     </section>
   );
@@ -76,16 +78,18 @@ export function TreasuryHoldings({ feed, holdings, excludeYfi, label }: {
                     <TreasuryAssetIcon asset={holding.underlying?.asset ?? holding.asset} />
                     <span className="min-w-0">
                       <span className="block break-words text-xs font-bold sm:text-sm">{holding.asset.symbol}</span>
-                      {purpose ? <span className="mt-0.5 inline-block rounded bg-surface-secondary px-1.5 py-0.5 text-[10px] text-text-secondary">{purpose}</span> : null}
+                      {purpose ? <span className="mt-0.5 inline-block whitespace-nowrap rounded bg-surface-secondary px-1.5 py-0.5 text-[10px] text-text-secondary">{purpose}</span> : null}
                     </span>
-                    <span className="ml-auto text-text-secondary"><Chevron open={open} /></span>
+                    <span className={"ml-auto text-text-secondary" + (purpose ? " self-start mt-0.5" : "")}><Chevron open={open} /></span>
                   </button>
                 </TableCell>
                 <TableCell className="whitespace-nowrap px-1.5 py-2 text-right font-sans text-xs tabular-nums sm:px-2 sm:font-number sm:text-sm" title={fullBalance}>
-                  <span className="sm:hidden">{compactBalance}</span><span className="hidden sm:inline">{fullBalance}</span>
+                  <span className="block truncate sm:hidden">{compactBalance}</span><span className="hidden truncate sm:block">{fullBalance}</span>
                 </TableCell>
                 <TableCell className="whitespace-nowrap px-2 py-2 text-right font-sans text-xs tabular-nums sm:px-4 sm:font-number sm:text-sm">
                   <UsdValue value={value} />
+                  {holding.valuation.redemption && !excludeYfi ? <span className="mt-0.5 block whitespace-normal font-sans text-[10px] leading-tight text-text-secondary">{copy.redemptionReference}</span> : null}
+                  {holding.valuation.redemption?.fundingStatus === "awaiting-yfi" ? <span className="mt-0.5 block whitespace-normal font-sans text-[10px] leading-tight text-text-secondary">{copy.awaitingYfiFunding}</span> : null}
                   {holding.valuation.status === "stale" ? <span className="mt-0.5 block font-sans text-[10px] text-text-secondary">{copy.priceStale}</span> : null}
                 </TableCell>
               </TableRow>
@@ -107,10 +111,20 @@ export function TreasuryHoldings({ feed, holdings, excludeYfi, label }: {
 function HoldingDetails({ feed, holding }: { feed: TreasuryFeed; holding: TreasuryHolding }) {
   const account = feed.accounts.find((entry) => entry.id === holding.accountId);
   const team = feed.teams.find((entry) => entry.id === holding.accountableTeamId);
+  const lookalike = treasuryLookalike(holding.asset);
   return (
     <dl className="grid min-w-0 gap-x-6 gap-y-3 text-xs leading-5 [overflow-wrap:anywhere] sm:grid-cols-2 lg:grid-cols-3">
       <div><dt className="text-text-secondary">{copy.assetName}</dt><dd>{holding.asset.name}</dd></div>
+      {lookalike ? <div><dt className="text-text-secondary">{copy.identity}</dt><dd>{copy.lookalikeNote} <a className={treasuryLinkClass} href={lookalike.source} target="_blank" rel="noopener noreferrer">{lookalike.symbol} {copy.issuerReference} ↗</a><span className="block">{lookalike.address}</span></dd></div> : null}
       <div><dt className="text-text-secondary">{copy.quantity}</dt><dd className="font-number tabular-nums">{formatTreasuryAmount(holding.balanceRaw, holding.asset.decimals)} {holding.asset.symbol}</dd></div>
+      {holding.valuation.redemption ? (
+        <>
+          <div><dt className="text-text-secondary">{copy.redemptionFunding}</dt><dd>{holding.valuation.redemption.fundingStatus === "funded" ? copy.redemptionFunded : copy.awaitingYfiFunding}</dd></div>
+          <div><dt className="text-text-secondary">{copy.redemptionEthRequired}</dt><dd className="font-number tabular-nums">{formatTreasuryAmount(holding.valuation.redemption.ethRequiredRaw, 18, 18)} ETH</dd></div>
+          <div><dt className="text-text-secondary">{copy.redemptionYfiAvailable}</dt><dd className="font-number tabular-nums">{formatTreasuryAmount(holding.valuation.redemption.yfiAvailableRaw, 18, 18)} YFI</dd></div>
+          <div><dt className="text-text-secondary">{copy.redemptionContract}</dt><dd><a className={treasuryLinkClass} href={treasuryAddressHref(holding.valuation.redemption.contract)} target="_blank" rel="noopener noreferrer" title={holding.valuation.redemption.contract} aria-label={copy.redemptionContract + ": " + holding.valuation.redemption.contract}>{holding.valuation.redemption.contract.slice(0, 6)}…{holding.valuation.redemption.contract.slice(-4)} ↗</a></dd></div>
+        </>
+      ) : null}
       {holding.purposeNote ? <div><dt className="text-text-secondary">{copy.purpose}</dt><dd>{holding.purposeNote}</dd></div> : null}
       <div><dt className="text-text-secondary">{copy.withdrawal}</dt><dd>{copy.withdrawalLabels[holding.withdrawal.status]}{holding.withdrawal.note ? " · " + holding.withdrawal.note : ""}</dd></div>
       {team ? <div><dt className="text-text-secondary">{copy.team}</dt><dd>{team.label}</dd></div> : null}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { treasuryAssetIconUrl, formatTreasuryUsd } from "@/lib/clients/treasury/display";
+import { formatTreasuryUsd } from "@/lib/clients/treasury/display";
+import { treasuryAssetIconSource } from "@/lib/clients/treasury/asset-icons";
 import type { TreasuryAsset } from "@/lib/schemas/treasury-feed";
 import { treasuryCopy as copy } from "../messages";
 
@@ -17,13 +18,13 @@ export function UsdValue({ value }: { value: string | null }) {
 }
 
 export function TreasuryAssetIcon({ asset, small = false }: { asset: TreasuryAsset; small?: boolean }) {
-  const source = treasuryAssetIconUrl(asset);
+  const source = treasuryAssetIconSource(asset);
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const size = small ? "size-4 text-[8px]" : "size-7 text-[10px]";
   return (
     <span aria-hidden="true" className={"relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-secondary font-bold text-text-secondary outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10 " + size}>
       {failedSource === source ? asset.symbol.slice(0, 2).toUpperCase() : (
-        // The source is constructed from a fixed verified token service.
+        // Sources are reviewed exact-address URLs or the fixed Yearn token service.
         // eslint-disable-next-line @next/next/no-img-element
         <img src={source} alt="" loading="lazy" className="size-full object-contain" onError={() => setFailedSource(source)} />
       )}
