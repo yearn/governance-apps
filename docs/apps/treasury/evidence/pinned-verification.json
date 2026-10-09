@@ -1,0 +1,248 @@
+{
+  "blockNumber": 26155891,
+  "blockHash": "0x097c3acfa39c4c43018b078e1b535afbbc91b0b6784154a2821886e2c22a79a3",
+  "oracleChecks": [
+    {
+      "symbol": "YFI",
+      "address": "0xA027702dbb89fbd58938e4324ac03B58d812b0E1",
+      "description": "YFI / USD",
+      "decimals": 8,
+      "price": "2295.03585711",
+      "updatedAt": "1791559415"
+    },
+    {
+      "symbol": "USDC",
+      "address": "0x8fFfFfd4AfB6115b954Bd326cbe7B4BA576818f6",
+      "description": "USDC / USD",
+      "decimals": 8,
+      "price": "0.9998651",
+      "updatedAt": "1791556739"
+    },
+    {
+      "symbol": "USDT",
+      "address": "0x3E7d1eAB13ad0104d2750B8863b489D65364e32D",
+      "description": "USDT / USD",
+      "decimals": 8,
+      "price": "0.99905453",
+      "updatedAt": "1791556739"
+    },
+    {
+      "symbol": "DAI",
+      "address": "0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9",
+      "description": "DAI / USD",
+      "decimals": 8,
+      "price": "0.99954232",
+      "updatedAt": "1791558083"
+    },
+    {
+      "symbol": "USDS",
+      "address": "0xfF30586cD0F29eD462364C7e81375FC0C71219b1",
+      "description": "USDS / USD",
+      "decimals": 8,
+      "price": "0.99988719",
+      "updatedAt": "1791553643"
+    },
+    {
+      "symbol": "WETH",
+      "address": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+      "description": "ETH / USD",
+      "decimals": 8,
+      "price": "2483.54692947",
+      "updatedAt": "1791558563"
+    },
+    {
+      "symbol": "crvUSD",
+      "address": "0xEEf0C605546958c1f899b6fB336C20671f9cD49F",
+      "description": "CRVUSD / USD",
+      "decimals": 8,
+      "price": "0.99890801",
+      "updatedAt": "1791481739"
+    },
+    {
+      "symbol": "cbBTC",
+      "address": "0x2665701293fCbEB223D11A08D826563EDcCE423A",
+      "description": "cbBTC / USD",
+      "decimals": 8,
+      "price": "82933.8084207",
+      "updatedAt": "1791546023"
+    },
+    {
+      "symbol": "stETH",
+      "address": "0xCfE54B5cD566aB89272946F602D76Ea879CAb4a8",
+      "description": "STETH / USD",
+      "decimals": 8,
+      "price": "2488.25521852",
+      "updatedAt": "1791560651"
+    }
+  ],
+  "holdingChecks": [
+    {
+      "id": "robo-treasury:0xa3931d71877c0e7a3148cb7eb4463524fec27fbd",
+      "raw": "1215993036493347179096238",
+      "matches": true,
+      "underlyingMatches": true,
+      "underlyingRaw": "1352462621657123697318335"
+    },
+    {
+      "id": "robo-treasury:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "raw": "236453134033531602814",
+      "matches": true
+    },
+    {
+      "id": "robo-treasury:0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+      "raw": "717563744",
+      "matches": true
+    },
+    {
+      "id": "treasury:0x23346b04a7f55b8760e5860aa5a77383d63491cd",
+      "raw": "191450500212135349201050",
+      "matches": true
+    },
+    {
+      "id": "treasury:0x696d02db93291651ed510704c9b286841d506987",
+      "raw": "999319223819",
+      "matches": true,
+      "underlyingMatches": true,
+      "underlyingRaw": "1032675336143"
+    },
+    {
+      "id": "treasury:0x6e9455d109202b426169f0d8f01a3332dae160f3",
+      "raw": "1635663402457648510049146",
+      "matches": true
+    },
+    {
+      "id": "treasury:0x863687e4e9751b57f38b4b0eba04744c72d0f7b8",
+      "raw": "1000000000000",
+      "matches": true,
+      "underlyingMatches": true,
+      "underlyingRaw": "1014514818716"
+    },
+    {
+      "id": "treasury:0xc97232527b62efb0d8ed38cf3ea103a6cca4037e",
+      "raw": "3065591443342779585126",
+      "matches": true
+    },
+    {
+      "id": "ychad:native",
+      "raw": "1004799999999998395",
+      "matches": true
+    }
+  ],
+  "allocationChecks": [
+    {
+      "id": "resupply-loan",
+      "token": "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
+      "raw": "326889211657729434352734",
+      "matches": true
+    },
+    {
+      "id": "lqty-delegated-stake",
+      "token": "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D",
+      "raw": "15641249132646765103764",
+      "matches": true
+    },
+    {
+      "id": "veyfi-matching-reserve",
+      "token": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+      "raw": "735375326150313924",
+      "matches": true
+    },
+    {
+      "id": "ycrv-otc-inventory",
+      "token": "0x27B5739e22ad9033bcBf192059122d163b60349D",
+      "raw": "160267977159827803419652",
+      "matches": true
+    },
+    {
+      "id": "ycrv-otc-inventory",
+      "token": "0xFCc5c47bE19d06BF83eB04298b026F81069ff65b",
+      "raw": "12341868450861169578298",
+      "matches": true
+    }
+  ],
+  "blockMatches": true,
+  "custodyChecks": [
+    {
+      "id": "robo-custody:0x05f0357d5473de607f2220ec150e7a402041e38d",
+      "managementMatches": true,
+      "treasuryMatches": true
+    },
+    {
+      "id": "robo-custody:0x088eef928995ccacd679245e6ec0aefe522feeaa",
+      "managementMatches": true,
+      "roboMatches": true,
+      "treasuryMatches": true
+    },
+    {
+      "id": "robo-custody:0xe9103491c7d0a0215a027bface596e81fe73561d",
+      "managementMatches": true,
+      "roboMatches": true,
+      "treasuryMatches": true
+    },
+    {
+      "id": "robo-custody:0xe6136a227e8e5b35dbbbfa635d218aaed22299a0",
+      "managementMatches": true,
+      "roboMatches": true,
+      "children": [
+        {
+          "address": "0xe9103491C7D0A0215a027bFAce596e81FE73561d",
+          "included": true
+        },
+        {
+          "address": "0x088EeF928995CcACd679245E6Ec0AefE522feeaA",
+          "included": true
+        }
+      ]
+    },
+    {
+      "id": "robo-custody:0x8e6a115bd8e24d2d86a1aaccc56221e5bd4577ba",
+      "managementMatches": true,
+      "treasuryMatches": true
+    },
+    {
+      "id": "robo-auction:0x861fe45742f70054917b65be18904662bd0dbd30",
+      "receiverMatches": true
+    },
+    {
+      "id": "robo-auction:0xac8147746f9018377613e7b21755615e63103416",
+      "receiverMatches": true
+    },
+    {
+      "id": "robo-custody:0x3a005a2508f1c56af806b1d9690ef1b22e6d06cd",
+      "managementMatches": true,
+      "treasuryMatches": true
+    },
+    {
+      "id": "robo-auction:0xd4e4ee4b59179d9ba7ddd9aa5a038f9e0d4f0dca",
+      "receiverMatches": true
+    },
+    {
+      "id": "robo-auction:0xf49a5656c8a14632d40da688eb00f56d3f9231a1",
+      "receiverMatches": true
+    },
+    {
+      "id": "robo-auction:0x5005cfabf4d6d75bd32f9159693379d639cdaf4a",
+      "receiverMatches": true
+    },
+    {
+      "id": "robo-auction:0xa1a932cd3a258c3c2776df2fd2c5f6ce48c848c8",
+      "receiverMatches": true
+    }
+  ],
+  "extraHoldings": [
+    {
+      "id": "robo-custody:0xe6136a227e8e5b35dbbbfa635d218aaed22299a0:0x92545bce636e6ee91d88d2d017182cd0bd2fc22e",
+      "raw": "2",
+      "matches": true
+    },
+    {
+      "id": "robo-custody:0xe6136a227e8e5b35dbbbfa635d218aaed22299a0:0xbf319ddc2edc1eb6fdf9910e39b37be221c8805f",
+      "raw": "6",
+      "matches": true
+    }
+  ],
+  "valuationChecks": {
+    "count": 28,
+    "failures": []
+  }
+}

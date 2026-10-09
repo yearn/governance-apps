@@ -1,0 +1,13 @@
+{
+  "blockNumber": 26155942,
+  "blockHash": "0xfdebcdb95787db2dec8455a0d15b70de7ed98342e10d1d9deecce39a7f74e553",
+  "holdings": 370,
+  "accounts": 15,
+  "mode": "live",
+  "apiMatchesProducer": true,
+  "desktopAndMobile": true,
+  "filtersAndTabs": true,
+  "yfiToggle": true,
+  "retainedOnError": true,
+  "pageErrors": []
+}
