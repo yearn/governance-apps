@@ -6,6 +6,8 @@ import { createTreasuryClient } from "@/lib/clients/treasury/client";
 import { parseTreasuryMockScenario } from "@/lib/clients/treasury/mock";
 import { isTreasuryMockRuntimeEnabled } from "@/lib/runtime/features";
 import { useDocumentVisibility, useIsRouteActive } from "./usePollingGate";
+import { useHostname } from "./useHostname";
+import { resolveHostPrefix } from "@/lib/runtime/host-routing";
 
 function subscribeLocation(onChange: () => void) {
   window.addEventListener("popstate", onChange);
@@ -20,7 +22,9 @@ export function useTreasury() {
   const scenario = mocks ? parseTreasuryMockScenario(new URLSearchParams(search).get("scenario")) : "ready";
   const client = useMemo(() => createTreasuryClient(scenario), [scenario]);
   const visible = useDocumentVisibility();
-  const routeActive = useIsRouteActive(["/treasury"]);
+  const pathActive = useIsRouteActive(["/treasury"]);
+  const hostname = useHostname();
+  const routeActive = pathActive || (hostname !== undefined && resolveHostPrefix(hostname) === "/treasury");
   const [now, setNow] = useState(0);
   useEffect(() => {
     const update = () => setNow(Math.floor(Date.now() / 1000));

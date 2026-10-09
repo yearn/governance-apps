@@ -75,7 +75,11 @@ Scenario queries have no effect in the live client. A failed live request never 
 
 Production keeps the route, endpoint, and navigation link disabled unless `NEXT_PUBLIC_ENABLE_TREASURY=true`. Mocks remain disabled in production.
 
-This package does not add a treasury hostname or deployment configuration. Release approval remains a separate step.
+Both deployment workflows pass `NEXT_PUBLIC_ENABLE_TREASURY` from their GitHub environment variables to validation, build, and deployment. The flag defaults to `false`. Changing it requires a new build; setting a Worker runtime variable alone does not change client enablement.
+
+The app recognizes `treasury.yearn.fi` and the optional `treasury-beta.dao-ops.com` alias. Shared hosts retain `/treasury`. This routing support does not register either hostname: Wrangler routes remain unchanged. First validate the existing protected preprod Worker URL at `/treasury`. Then validate production at `app.dao-ops.com/treasury`. The operator associates the final production hostname manually and checks the association after each deployment.
+
+Set `TREASURY_DATA_URL` separately on the target Worker to the approved public HTTPS JSON endpoint. Existing deployment commands preserve dashboard variables with `--keep-vars`. No browser R2 credentials or R2 Worker binding is needed. Release approval remains a separate step.
 
 ## Validation
 
@@ -106,3 +110,9 @@ Expanded details show the exact ETH payment, available YFI, and redemption contr
 Feed V1 adds optional `valuation.redemption` with `contract`, `ethRequiredRaw`, `yfiAvailableRaw`, and `fundingStatus`. It is required for priced direct Ethereum dYFI and forbidden for unavailable valuations or other assets. The current redemption contract is pinned by semantic validation. ETH payment must be positive; a zero net USD reference remains valid. Funding status must agree with available YFI and the holding balance. Raw amounts retain uint256 bounds.
 
 Roll out the updated consumer before the producer emits this field. Existing V1 feeds without priced dYFI remain valid. Older strict consumers reject the new property and retain their last valid snapshot. Regenerate the TypeScript boundary with `node scripts/generate-treasury-contract.mjs`. The shared acceptance corpus covers the additive field and its accounting constraints.
+
+## Release routing validation
+
+Run `npm run test:e2e:treasury-rollout` for the enabled build. Run `npm run test:e2e:treasury-rollout -- --disabled` for the disabled build. Each command copies tracked source and locked dependencies to temporary storage, without local environment files. It builds with explicit fixture inputs and tests the shared path and both recognized treasury hostnames. The enabled browser receives a live-shaped fixture through its same-origin feed request. The real endpoint separately checks missing runtime configuration and disabled-route responses. These checks do not contact R2 or prove deployed configuration.
+
+The deployment workflows run typecheck, lint, unit tests, production environment validation, a fresh OpenNext build, and the Worker size check. Browser rollout checks remain an explicit release gate. Preserve the existing application flags, runtime values, and bindings. No treasury DNS record or Worker custom domain is created by this package.

@@ -1,4 +1,5 @@
 export const GOVERNANCE_APP_PATHS = {
+  treasury: "/treasury",
   dao: "/dao",
   styfi: "/styfi",
   veyfi: "/veyfi",
@@ -11,6 +12,7 @@ export type GovernanceApp = keyof typeof GOVERNANCE_APP_PATHS;
 export type GovernanceAppPath = (typeof GOVERNANCE_APP_PATHS)[GovernanceApp];
 
 export const GOVERNANCE_APP_PROD_HOSTS: Record<GovernanceApp, string> = {
+  treasury: "treasury.yearn.fi",
   dao: "dao.yearn.fi",
   styfi: "styfi.yearn.fi",
   veyfi: "veyfi.yearn.fi",
@@ -20,6 +22,7 @@ export const GOVERNANCE_APP_PROD_HOSTS: Record<GovernanceApp, string> = {
 };
 
 export const GOVERNANCE_APP_PREPROD_HOSTS: Record<GovernanceApp, string> = {
+  treasury: "treasury-beta.dao-ops.com",
   dao: "dao-beta.dao-ops.com",
   styfi: "styfi-beta.dao-ops.com",
   veyfi: "veyfi-beta.dao-ops.com",

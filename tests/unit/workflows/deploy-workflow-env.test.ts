@@ -10,6 +10,7 @@ const expectedRuntimeEnv: Record<string, string> = {
   NEXT_PUBLIC_USE_MOCKS: '"false"',
   NEXT_PUBLIC_E2E: '"false"',
   NEXT_PUBLIC_ENABLE_DEBUG_UI: '"false"',
+  NEXT_PUBLIC_ENABLE_TREASURY: "${{ vars.NEXT_PUBLIC_ENABLE_TREASURY || 'false' }}",
   NEXT_PUBLIC_ENABLE_TEAMS:
     "${{ vars.NEXT_PUBLIC_ENABLE_TEAMS || secrets.NEXT_PUBLIC_ENABLE_TEAMS || 'false' }}",
   NEXT_PUBLIC_ENABLE_YBC:

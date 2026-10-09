@@ -25,6 +25,7 @@ function isAppKey(value: string | null): value is HeaderAppKey {
 }
 
 function appKeyFromPrefix(prefix: string | null): HeaderAppKey | null {
+  if (prefix === APP_NAV.treasury.path) return "treasury";
   if (prefix === APP_NAV.dao.path) return "dao";
   if (prefix === APP_NAV.styfi.path) return "styfi";
   if (prefix === APP_NAV.veyfi.path) return "veyfi";

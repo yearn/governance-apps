@@ -16,10 +16,14 @@ describe("treasury rollout", () => {
     expect(isTreasuryMockRuntimeEnabled({ NEXT_PUBLIC_RUNTIME_MODE: "development" })).toBe(false);
     expect(isTreasuryMockRuntimeEnabled({ NEXT_PUBLIC_RUNTIME_MODE: "development", NEXT_PUBLIC_USE_MOCKS: "true" })).toBe(true);
   });
-  it("supports path navigation without introducing a treasury hostname", () => {
+  it("supports shared paths and exact treasury host routing", () => {
     expect(resolveHeaderPrimaryNav("/treasury", "treasury", "app.dao-ops.com")).toEqual({ label: "Treasury", path: "/treasury" });
     expect(resolveHeaderAppKey("/treasury-other", null, "app.dao-ops.com")).toBeNull();
-    expect(resolveHostPrefix("treasury.yearn.fi")).toBeNull();
+    expect(resolveHostPrefix("treasury.yearn.fi")).toBe("/treasury");
+    expect(resolveHostPrefix("treasury-beta.dao-ops.com")).toBe("/treasury");
+    expect(resolveHostPrefix("treasury.yearn.fi.evil.example")).toBeNull();
+    expect(resolveHeaderPrimaryNav("/", null, "treasury.yearn.fi")).toEqual({ label: "Treasury", path: "/" });
+    expect(resolveHeaderPrimaryNav("/treasury", null, "treasury-beta.dao-ops.com")).toEqual({ label: "Treasury", path: "/" });
     expect(resolveHeadProbePath("/treasury", null)).toBe("/treasury");
   });
 });
