@@ -1,3 +1,4 @@
+import acceptance from "@/docs/apps/treasury/examples/acceptance-cases.json";
 import { describe, expect, it } from "vitest";
 import Ajv from "ajv";
 import { execFileSync } from "node:child_process";
@@ -117,5 +118,19 @@ describe("reviewed treasury decisions", () => {
     expect(ybc.expectedReturn.terms).toBe("unknown");
     expect(ybc.expectedReturn.note).toMatch(/YIP/);
     expect(ybc.outstanding.amounts).toBeNull();
+  });
+});
+
+describe("portable producer/consumer acceptance", () => {
+  it.each(acceptance.cases)("$name", testCase => {
+    const value = structuredClone(example);
+    for (const mutation of testCase.set) {
+      let target: unknown = value;
+      for (const key of mutation.path.slice(0, -1)) target = (target as Record<string | number, unknown>)[key];
+      (target as Record<string | number, unknown>)[mutation.path.at(-1)!] = mutation.value;
+    }
+    expect(accepts(value), JSON.stringify(accepts.errors)).toBe(testCase.schema);
+    if (testCase.consumer) expect(() => parseTreasuryFeed(value)).not.toThrow();
+    else expect(() => parseTreasuryFeed(value)).toThrow();
   });
 });

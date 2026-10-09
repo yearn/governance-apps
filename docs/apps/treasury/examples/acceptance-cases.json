@@ -1,0 +1,716 @@
+{
+  "version": 1,
+  "description": "Apply each case independently to treasury.example.json. schema is structural acceptance; consumer includes accounting semantics.",
+  "cases": [
+    {
+      "name": "valid fixture",
+      "schema": true,
+      "consumer": true,
+      "set": []
+    },
+    {
+      "name": "uint256 maximum",
+      "schema": true,
+      "consumer": true,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "balanceRaw"
+          ],
+          "value": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        }
+      ]
+    },
+    {
+      "name": "uint256 overflow",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "balanceRaw"
+          ],
+          "value": "115792089237316195423570985008687907853269984665640564039457584007913129639936"
+        }
+      ]
+    },
+    {
+      "name": "numeric amount instead of raw string",
+      "schema": false,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "balanceRaw"
+          ],
+          "value": 100
+        }
+      ]
+    },
+    {
+      "name": "exponent amount",
+      "schema": false,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "balanceRaw"
+          ],
+          "value": "1e18"
+        }
+      ]
+    },
+    {
+      "name": "zero custody balance",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "balanceRaw"
+          ],
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "name": "unknown holder",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "accountId"
+          ],
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "name": "unknown team",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "accountableTeamId"
+          ],
+          "value": "unknown"
+        }
+      ]
+    },
+    {
+      "name": "duplicate custody with different display key",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            1
+          ],
+          "value": {
+            "id": "alias",
+            "accountId": "ychad",
+            "positionKey": null,
+            "asset": {
+              "chainId": 1,
+              "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+              "symbol": "YFI",
+              "name": "YFI",
+              "decimals": 18
+            },
+            "balanceRaw": "1200000000000000000000",
+            "underlying": null,
+            "valuation": {
+              "usdValue": "6000000",
+              "usdValueExcludingYfi": "0",
+              "source": "Fixture valuation",
+              "asOf": 1791547140,
+              "status": "current"
+            },
+            "purpose": "strategic",
+            "purposeNote": "Held for strategic use.",
+            "withdrawal": {
+              "status": "available",
+              "note": null
+            },
+            "accountableTeamId": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "case insensitive duplicate account",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "accounts",
+            1,
+            "address"
+          ],
+          "value": "0xfeb4acf3df3cdea7399794d0869ef76a6efaff52"
+        }
+      ]
+    },
+    {
+      "name": "active position also in history",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "history",
+            0,
+            "id"
+          ],
+          "value": "resupply-loan"
+        }
+      ]
+    },
+    {
+      "name": "external allocation as portfolio position",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "positionKey"
+          ],
+          "value": "resupply-loan"
+        }
+      ]
+    },
+    {
+      "name": "closed position as portfolio position",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "positionKey"
+          ],
+          "value": "usdm-offboarding-via-ylockers"
+        }
+      ]
+    },
+    {
+      "name": "wrong portfolio network",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "chainId"
+          ],
+          "value": 8453
+        }
+      ]
+    },
+    {
+      "name": "wrong underlying network",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            2,
+            "underlying",
+            "asset",
+            "chainId"
+          ],
+          "value": 8453
+        }
+      ]
+    },
+    {
+      "name": "receipt is its own underlying",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            2,
+            "underlying",
+            "asset"
+          ],
+          "value": {
+            "chainId": 1,
+            "address": "0x696d02Db93291651ED510704c9b286841d506987",
+            "symbol": "yvUSD",
+            "name": "yvUSD",
+            "decimals": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "inconsistent decimals for same asset",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            2,
+            "originalFunding",
+            0,
+            "asset",
+            "decimals"
+          ],
+          "value": 6
+        }
+      ]
+    },
+    {
+      "name": "invalid native decimals",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            5,
+            "asset",
+            "decimals"
+          ],
+          "value": 6
+        }
+      ]
+    },
+    {
+      "name": "current valuation lacks source",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "source"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "current valuation lacks amount",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "usdValue"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "current valuation lacks date",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "asOf"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "unavailable valuation masquerades as zero",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation"
+          ],
+          "value": {
+            "usdValue": "0",
+            "usdValueExcludingYfi": "0",
+            "source": null,
+            "asOf": null,
+            "status": "unavailable"
+          }
+        }
+      ]
+    },
+    {
+      "name": "valuation follows block",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "asOf"
+          ],
+          "value": 1791547141
+        }
+      ]
+    },
+    {
+      "name": "block follows generation",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "blockTimestamp"
+          ],
+          "value": 1791547201
+        }
+      ]
+    },
+    {
+      "name": "direct YFI not excluded",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "usdValueExcludingYfi"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "YFI excluded value exceeds total",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            1,
+            "valuation",
+            "usdValueExcludingYfi"
+          ],
+          "value": "999999999"
+        }
+      ]
+    },
+    {
+      "name": "incorrect portfolio subtotal",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "summary",
+            "pricedUsdValue"
+          ],
+          "value": "999"
+        }
+      ]
+    },
+    {
+      "name": "incorrect unpriced count",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "summary",
+            "unpricedHoldingCount"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "name": "incorrect valuation coverage",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "coverage",
+            "valuation"
+          ],
+          "value": "partial"
+        }
+      ]
+    },
+    {
+      "name": "pending already funded",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            7,
+            "originalFunding"
+          ],
+          "value": [
+            {
+              "asset": {
+                "chainId": 1,
+                "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "symbol": "USDC",
+                "name": "USDC",
+                "decimals": 6
+              },
+              "raw": "200000000000"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pending claims outstanding balance",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            7,
+            "outstanding"
+          ],
+          "value": {
+            "amounts": [
+              {
+                "asset": {
+                  "chainId": 1,
+                  "address": "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
+                  "symbol": "crvUSD",
+                  "name": "crvUSD",
+                  "decimals": 18
+                },
+                "raw": "326715095021527855501651"
+              }
+            ],
+            "asOf": 1791547140,
+            "sourceKind": "onchain",
+            "note": "Fixture debt includes accrued interest."
+          }
+        }
+      ]
+    },
+    {
+      "name": "unavailable outstanding has an observation date",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            1,
+            "outstanding",
+            "asOf"
+          ],
+          "value": 1791547140
+        }
+      ]
+    },
+    {
+      "name": "measured outstanding lacks amount",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            0,
+            "outstanding",
+            "amounts"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "measured outstanding has empty amount list",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            0,
+            "outstanding",
+            "amounts"
+          ],
+          "value": []
+        }
+      ]
+    },
+    {
+      "name": "outstanding follows block",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            0,
+            "outstanding",
+            "asOf"
+          ],
+          "value": 1791547141
+        }
+      ]
+    },
+    {
+      "name": "historical funding overflow",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            0,
+            "originalFunding",
+            0,
+            "raw"
+          ],
+          "value": "115792089237316195423570985008687907853269984665640564039457584007913129639936"
+        }
+      ]
+    },
+    {
+      "name": "duplicate asset in expected return",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            2,
+            "expectedReturn",
+            "amounts"
+          ],
+          "value": [
+            {
+              "asset": {
+                "chainId": 1,
+                "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+                "symbol": "YFI",
+                "name": "YFI",
+                "decimals": 18
+              },
+              "raw": "33000000000000000000"
+            },
+            {
+              "asset": {
+                "chainId": 1,
+                "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+                "symbol": "YFI",
+                "name": "YFI",
+                "decimals": 18
+              },
+              "raw": "33000000000000000000"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "closure date is in the future",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "history",
+            0,
+            "closedAt"
+          ],
+          "value": 1791547201
+        }
+      ]
+    },
+    {
+      "name": "unsafe evidence URL",
+      "schema": false,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            0,
+            "evidence",
+            0,
+            "url"
+          ],
+          "value": "javascript:alert(1)"
+        }
+      ]
+    },
+    {
+      "name": "spoofed source hostname",
+      "schema": false,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "allocations",
+            0,
+            "evidence",
+            0,
+            "url"
+          ],
+          "value": "https://github.com.evil.test/"
+        }
+      ]
+    },
+    {
+      "name": "unsupported version",
+      "schema": false,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "version"
+          ],
+          "value": 2
+        }
+      ]
+    }
+  ]
+}
