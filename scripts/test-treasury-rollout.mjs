@@ -18,7 +18,7 @@ for (const file of files) {
   await copyFile(join(source, file), target);
 }
 console.log("Isolated treasury rollout evidence: " + workspace);
-await cp(join(source, "node_modules"), join(workspace, "node_modules"), { recursive: true, mode: constants.COPYFILE_FICLONE });
+await cp(join(source, "node_modules"), join(workspace, "node_modules"), { recursive: true, mode: constants.COPYFILE_FICLONE, verbatimSymlinks: true });
 
 const disabled = process.argv.includes("--disabled");
 const port = process.env.E2E_PORT ?? "3371";
