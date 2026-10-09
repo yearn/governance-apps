@@ -10,6 +10,8 @@ export type TreasuryHolding = TreasuryFeed["holdings"][number];
 export type TreasuryAllocation = TreasuryFeed["allocations"][number];
 export type TreasuryAsset = TreasuryHolding["asset"];
 const UINT256_MAX = (1n << 256n) - 1n;
+const DYFI_ADDRESS = "0x41252e8691e964f7de35156b68493bab6797a275";
+const DYFI_REDEMPTION = "0x4707c855323545223fa2ba4150a83950f6f53b6e";
 const YFI_ADDRESS = "0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e";
 
 export class TreasuryFeedError extends Error {
@@ -88,6 +90,18 @@ export function validateTreasuryFeedSemantics(feed: TreasuryFeed): void {
       checkAmounts([h.underlying]);
     }
     const v = h.valuation;
+    const isDyfi = h.asset.address?.toLowerCase() === DYFI_ADDRESS;
+    requireFact(!isDyfi || v.status === "unavailable" || v.redemption !== undefined, "Priced dYFI requires redemption metadata.");
+    if (v.redemption) {
+      requireFact(isDyfi && h.asset.decimals === 18, "Redemption metadata requires the exact Ethereum dYFI asset.");
+      requireFact(v.redemption.contract.toLowerCase() === DYFI_REDEMPTION, "Unsupported dYFI redemption contract.");
+      requireFact(v.status !== "unavailable" && v.usdValue !== null && v.usdValueExcludingYfi !== null && usdUnits(v.usdValueExcludingYfi) === 0n, "Redemption reference requires a priced valuation with no YFI-free value.");
+      checkRaw(v.redemption.ethRequiredRaw);
+      checkRaw(v.redemption.yfiAvailableRaw);
+      requireFact(BigInt(v.redemption.ethRequiredRaw) > 0n, "Redemption ETH payment must be positive.");
+      const funded = BigInt(v.redemption.yfiAvailableRaw) >= BigInt(h.balanceRaw);
+      requireFact(v.redemption.fundingStatus === (funded ? "funded" : "awaiting-yfi"), "Redemption funding status differs from available YFI.");
+    }
     if (v.status === "unavailable") {
       requireFact(v.usdValue === null && v.usdValueExcludingYfi === null && v.source === null && v.asOf === null, "Unavailable valuation must remain null.");
     } else {

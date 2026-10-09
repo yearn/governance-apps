@@ -19,8 +19,8 @@ function emit(node) {
   }
   let result;
   if (node.type === "object") {
-    if (node.additionalProperties !== false || Object.keys(node.properties).some((key) => !node.required.includes(key))) throw new Error("Only strict required objects supported");
-    return "z.strictObject({\n" + Object.entries(node.properties).map(([key, value]) => "  " + key + ": " + emit(value) + ",").join("\n") + "\n})";
+    if (node.additionalProperties !== false) throw new Error("Only strict objects supported");
+    return "z.strictObject({\n" + Object.entries(node.properties).map(([key, value]) => "  " + key + ": " + emit(value) + (node.required.includes(key) ? "" : ".optional()") + ",").join("\n") + "\n})";
   }
   if (node.type === "array") return "z.array(" + emit(node.items) + ").max(" + node.maxItems + ")";
   if (node.type === "integer") result = "z.number().int().min(" + node.minimum + ").max(" + node.maximum + ")";

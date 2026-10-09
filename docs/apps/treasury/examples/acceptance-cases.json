@@ -732,6 +732,781 @@
           "value": "2974235.8248070"
         }
       ]
+    },
+    {
+      "name": "valid unfunded dYFI reference",
+      "schema": true,
+      "consumer": true,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        }
+      ]
+    },
+    {
+      "name": "valid funded dYFI reference at exact balance",
+      "schema": true,
+      "consumer": true,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption",
+            "yfiAvailableRaw"
+          ],
+          "value": "1200000000000000000000"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption",
+            "fundingStatus"
+          ],
+          "value": "funded"
+        }
+      ]
+    },
+    {
+      "name": "valid zero net dYFI reference",
+      "schema": true,
+      "consumer": true,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "usdValue"
+          ],
+          "value": "0"
+        },
+        {
+          "path": [
+            "summary",
+            "pricedUsdValue"
+          ],
+          "value": "2974235.824807"
+        }
+      ]
+    },
+    {
+      "name": "redemption metadata on another token",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e"
+        }
+      ]
+    },
+    {
+      "name": "redemption metadata wrong contract",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption",
+            "contract"
+          ],
+          "value": "0x1111111111111111111111111111111111111111"
+        }
+      ]
+    },
+    {
+      "name": "redemption metadata wrong decimals",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "decimals"
+          ],
+          "value": 6
+        }
+      ]
+    },
+    {
+      "name": "redemption funding claims absent YFI",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption",
+            "fundingStatus"
+          ],
+          "value": "funded"
+        }
+      ]
+    },
+    {
+      "name": "redemption funding ignores sufficient YFI",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption",
+            "yfiAvailableRaw"
+          ],
+          "value": "1200000000000000000000"
+        }
+      ]
+    },
+    {
+      "name": "redemption ETH amount overflow",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption",
+            "ethRequiredRaw"
+          ],
+          "value": "115792089237316195423570985008687907853269984665640564039457584007913129639936"
+        }
+      ]
+    },
+    {
+      "name": "redemption YFI amount overflow",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption",
+            "yfiAvailableRaw"
+          ],
+          "value": "115792089237316195423570985008687907853269984665640564039457584007913129639936"
+        }
+      ]
+    },
+    {
+      "name": "redemption zero ETH payment",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption",
+            "ethRequiredRaw"
+          ],
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "name": "redemption missing fields",
+      "schema": false,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "redemption unknown field",
+      "schema": false,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption",
+            "unexpected"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "name": "redemption null metadata",
+      "schema": false,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "redemption has YFI-free value",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "usdValueExcludingYfi"
+          ],
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "unavailable reference retains metadata",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation"
+          ],
+          "value": {
+            "usdValue": null,
+            "usdValueExcludingYfi": null,
+            "source": null,
+            "asOf": null,
+            "status": "unavailable",
+            "redemption": {
+              "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+              "ethRequiredRaw": "1250000000000000000",
+              "yfiAvailableRaw": "0",
+              "fundingStatus": "awaiting-yfi"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "null reference value retains metadata",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "usdValue"
+          ],
+          "value": null
+        }
+      ]
+    },
+    {
+      "name": "priced dYFI lacks metadata",
+      "schema": true,
+      "consumer": false,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation"
+          ],
+          "value": {
+            "usdValue": "6000000",
+            "usdValueExcludingYfi": "0",
+            "source": "Fixture valuation",
+            "asOf": 1791547140,
+            "status": "current"
+          }
+        }
+      ]
+    },
+    {
+      "name": "dYFI reference accepts equivalent decimal zero",
+      "schema": true,
+      "consumer": true,
+      "set": [
+        {
+          "path": [
+            "holdings",
+            0,
+            "asset",
+            "address"
+          ],
+          "value": "0x41252e8691e964f7de35156b68493bab6797a275"
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "redemption"
+          ],
+          "value": {
+            "contract": "0x4707c855323545223fa2ba4150a83950f6f53b6e",
+            "ethRequiredRaw": "1250000000000000000",
+            "yfiAvailableRaw": "0",
+            "fundingStatus": "awaiting-yfi"
+          }
+        },
+        {
+          "path": [
+            "holdings",
+            0,
+            "valuation",
+            "usdValueExcludingYfi"
+          ],
+          "value": "0.0"
+        }
+      ]
     }
   ]
 }

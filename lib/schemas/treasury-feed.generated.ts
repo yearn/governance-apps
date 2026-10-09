@@ -37,12 +37,20 @@ export const TreasuryAmountSchema = z.strictObject({
 
 export const TreasuryUsdSchema = z.string().regex(new RegExp("^(0|[1-9][0-9]{0,35})(\\.[0-9]{1,18})?$"));
 
+export const TreasuryRedemptionSchema = z.strictObject({
+  contract: TreasuryAddressSchema,
+  ethRequiredRaw: TreasuryRawSchema,
+  yfiAvailableRaw: TreasuryRawSchema,
+  fundingStatus: z.enum(["funded","awaiting-yfi"]),
+});
+
 export const TreasuryValuationSchema = z.strictObject({
   usdValue: TreasuryUsdSchema.nullable(),
   usdValueExcludingYfi: TreasuryUsdSchema.nullable(),
   source: z.string().min(1).max(200).nullable(),
   asOf: z.number().int().min(0).max(253402300799).nullable(),
   status: z.enum(["current","stale","unavailable"]),
+  redemption: TreasuryRedemptionSchema.optional(),
 });
 
 export const TreasuryHoldingSchema = z.strictObject({

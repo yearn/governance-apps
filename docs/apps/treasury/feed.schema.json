@@ -323,6 +323,9 @@
             "stale",
             "unavailable"
           ]
+        },
+        "redemption": {
+          "$ref": "#/$defs/Redemption"
         }
       }
     },
@@ -780,6 +783,34 @@
             "maxLength": 360
           },
           "maxItems": 32
+        }
+      }
+    },
+    "Redemption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract",
+        "ethRequiredRaw",
+        "yfiAvailableRaw",
+        "fundingStatus"
+      ],
+      "properties": {
+        "contract": {
+          "$ref": "#/$defs/Address"
+        },
+        "ethRequiredRaw": {
+          "$ref": "#/$defs/Raw"
+        },
+        "yfiAvailableRaw": {
+          "$ref": "#/$defs/Raw"
+        },
+        "fundingStatus": {
+          "type": "string",
+          "enum": [
+            "funded",
+            "awaiting-yfi"
+          ]
         }
       }
     }
