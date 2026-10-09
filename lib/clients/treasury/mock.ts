@@ -26,7 +26,7 @@ export function createTreasuryMockFeed(scenario: TreasuryMockScenario = "ready")
     feed.holdings[0].asset.symbol = "W".repeat(40);
     feed.holdings[0].asset.name = "N".repeat(120);
     feed.holdings[0].valuation.source = "chainlink:0x" + "a".repeat(188);
-    feed.holdings.push({ ...structuredClone(feed.holdings[0]), id: "unclassified-example", positionKey: null, accountableTeamId: null, purpose: "unspecified", asset: { ...feed.holdings[0].asset, address: "0x9999999999999999999999999999999999999999", symbol: "X".repeat(40) }, valuation: { usdValue: null, usdValueExcludingYfi: null, source: null, asOf: null, status: "unavailable" } });
+    feed.holdings.push({ ...structuredClone(feed.holdings[0]), id: "unclassified-example", purposeNote: null, positionKey: null, accountableTeamId: null, purpose: "unspecified", asset: { ...feed.holdings[0].asset, address: "0x9999999999999999999999999999999999999999", symbol: "X".repeat(40) }, valuation: { usdValue: null, usdValueExcludingYfi: null, source: null, asOf: null, status: "unavailable" } });
     feed.summary.holdingCount += 1;
     feed.summary.unpricedHoldingCount += 1;
     feed.coverage.valuation = "partial";

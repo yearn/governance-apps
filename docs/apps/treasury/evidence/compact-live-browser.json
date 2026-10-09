@@ -1,0 +1,23 @@
+{
+  "block": 26156292,
+  "summary": {
+    "holdingCount": 370,
+    "pricedUsdValue": "14011899.327771669675278035",
+    "pricedUsdValueExcludingYfi": "12679311.997652701726519648",
+    "unpricedHoldingCount": 320,
+    "unknownYfiSplitCount": 0
+  },
+  "checks": [
+    "api-exact-match",
+    "visible-token-icons-loaded",
+    "three-address-groups",
+    "16-tracked-unpriced",
+    "yfi-exclusion",
+    "robo-filter-preserves-headline",
+    "no-expected-return-column",
+    "pending-funding",
+    "390-and-320-layout",
+    "last-good-after-503"
+  ],
+  "pageErrors": []
+}

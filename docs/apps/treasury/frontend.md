@@ -6,13 +6,19 @@ The treasury app is a read-only route at `/treasury`. It uses the shared Yearn h
 
 Portfolio shows balances at configured treasury addresses and attributable Robo Treasury inventory. The producer supplies every displayed valuation.
 
-Priced holdings appear in descending value order. Curated unpriced positions remain visible. Other unpriced holdings stay in a collapsed group.
+The portfolio uses compact tables grouped by address. Robo destination and custody addresses share one group. Empty addresses do not create tables.
+
+Rows with known values below $100 stay in a collapsed group. The threshold uses the full value, including YFI. Curated, annotated, and operating positions without prices remain visible. Other unpriced tokens stay in a separate disclosure; an unknown value does not mean dust or spam.
+
+Each group subtotal includes its collapsed priced balances. Subtotals add producer values with exact decimal arithmetic. The headline remains the producer summary.
+
+Rows show token icons, balances, values, and small purpose pills. Expanded details show custody, withdrawal conditions, valuation sources, and accountable teams. Icons use the same fixed token service as yearn.fi, keyed by chain and token address. Vaults can use the supplied underlying asset icon. Image failures show a neutral fallback. Mobile rows use compact balance precision; expanded rows retain the usual six-decimal display.
 
 The value summary covers all addresses. Address and team filters change the list only. The YFI control changes valuations, but retains asset balances.
 
 Purpose and withdrawal conditions are separate. Strategic capital is part of the portfolio, but the app does not describe portfolio value as spendable capital.
 
-Loans & allocations shows original funding, expected returns, and current amounts separately. Pending allocations show planned funding. Unknown amounts remain unknown.
+Loans & allocations uses a table with position, funding, current amount, team, and reference columns. Pending allocations show planned funding. Unknown amounts show a dash. Expected-return fields remain in the feed contract but do not appear in this view. Additional evidence and notes stay in row disclosures.
 
 Closed positions remain in a collapsed list. Each item has a disposition, a short note, and an evidence link.
 

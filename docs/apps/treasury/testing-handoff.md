@@ -1,5 +1,8 @@
 # Treasury MVP testing handoff
 
+The latest accepted pass is [Treasury compact tables](compact-ui-work-package.md), tagged `integration/treasury-m1` in both repositories.
+The sections below preserve the initial MVP record. Its snapshot values and test counts are historical.
+
 The dashboard and producer are integrated for testing. Production deployment and remote publication have not started.
 
 ## Accepted code
