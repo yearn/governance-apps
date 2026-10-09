@@ -1,6 +1,7 @@
 import { resolveHostPrefix } from "@/lib/runtime/host-routing";
 
 const APP_NAV = {
+  treasury: { label: "Treasury", path: "/treasury" },
   dao: { label: "DAO Governance", path: "/dao" },
   styfi: { label: "stYFI", path: "/styfi" },
   veyfi: { label: "veYFI", path: "/veyfi" },
@@ -13,6 +14,7 @@ export type HeaderAppKey = keyof typeof APP_NAV;
 
 function isAppKey(value: string | null): value is HeaderAppKey {
   return (
+    value === "treasury" ||
     value === "dao" ||
     value === "styfi" ||
     value === "veyfi" ||
@@ -37,6 +39,7 @@ function matchesAppPath(pathname: string, path: string): boolean {
 }
 
 function appKeyFromPathname(pathname: string): HeaderAppKey | null {
+  if (matchesAppPath(pathname, APP_NAV.treasury.path)) return "treasury";
   if (matchesAppPath(pathname, APP_NAV.dao.path)) return "dao";
   if (matchesAppPath(pathname, APP_NAV.styfi.path)) return "styfi";
   if (matchesAppPath(pathname, APP_NAV.veyfi.path)) return "veyfi";

@@ -9,6 +9,7 @@ import { LogoYearnGlyph } from "@/components/icons/LogoYearnGlyph";
 import { LogoYearnMark } from "@/components/icons/LogoYearnMark";
 import {
   isDaoEnabled,
+  isTreasuryEnabled,
   isTeamsEnabled,
   isYbcEnabled,
   isYethEnabled,
@@ -256,9 +257,12 @@ const daoLink: AppLink = {
   }),
 };
 
+const treasuryLink: AppLink = { name: "Treasury", href: "/treasury", icon: createElement(LogoYearnGlyph, { className: "size-5", backClassName: "text-yearn-blue", frontClassName: "text-white" }) };
+
 export const APP_LINKS: AppLink[] = [
   ...coreAppLinks,
   ...(isDaoEnabled() ? [daoLink] : []),
+  ...(isTreasuryEnabled() ? [treasuryLink] : []),
   ...(isTeamsEnabled() ? [teamsLink] : []),
   ...(isYethEnabled() ? [yethLink] : []),
   ...(isYbcEnabled() ? [ybcLink] : []),
