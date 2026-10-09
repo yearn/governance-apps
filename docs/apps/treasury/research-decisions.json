@@ -1,0 +1,501 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-09",
+  "basis": "Original handoff, verified research and user decisions in this conversation. This is the agreed case disposition, not a fresh portfolio balance snapshot or a production data schema.",
+  "sourceFile": "treasury-research.json from treasury-agent-handoff.zip",
+  "counts": {
+    "active_returnable": 7,
+    "pending_funding": 1,
+    "portfolio": 4,
+    "settled": 10,
+    "written_off": 1,
+    "excluded_by_decision": 3,
+    "unfunded_or_rejected": 3,
+    "outside_scope": 3
+  },
+  "cases": [
+    {
+      "researchAlias": "C01",
+      "positionKey": "resupply-loan",
+      "classification": "active_returnable",
+      "accountableTeamId": "ylockers",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Partly repaid; outstanding principal and interest tracked from loan accounting",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0xc17aae2d838507c412bc6e9e9cf28f92188a1c9fef9928d933557e5aabc75149",
+        "https://etherscan.io/tx/0xe9e236d7f5dc412b27d829da9df0c27542c58a5e9c4e027254fb43098d2941e8",
+        "https://etherscan.io/address/0x4c0ffc2b96f3c6b048ef85d1a4744c8e36b5b6f6#readContract",
+        "https://gov.yearn.fi/t/yip-86-resupply-bad-debt-repayment-loan/14516"
+      ]
+    },
+    {
+      "researchAlias": "C02",
+      "positionKey": "sherlock-bounty-deposit",
+      "classification": "active_returnable",
+      "accountableTeamId": "curation",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Current refundable entitlement must be established separately from original deposit value.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2025-09-23",
+      "evidence": [
+        "https://etherscan.io/tx/0x3e045ced19590db8905d8a69c2f0fd0acd4f90301cf6356742e735cd7caa0964",
+        "https://etherscan.io/tx/0x29c0365b7556fa7e140ee038b99bfc44d26a433f407b765c4f20c0ec905f5d44",
+        "https://etherscan.io/address/0x666B8EbFbF4D5f0CE56962a25635CfF563F13161",
+        "https://github.com/yearn/chief-multisig-officer/pull/1460"
+      ]
+    },
+    {
+      "researchAlias": "C06",
+      "positionKey": "aerodrome-liquidity-loan",
+      "classification": "active_returnable",
+      "accountableTeamId": "ylockers",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Original assets are the provisional return target. Do not use the entire mixed LP balance as treasury principal. The separate 20,000 USDC bribe payment is excluded.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0x47a49d5593bd0feb03bc442e1f169ec86f893a441b1b8035e04426b6445517a7",
+        "https://basescan.org/tx/0xa2505dd97f8ca3ae6364031eb01cea93a2ae72c8fb07d9db7e0e103e2a78f9a6",
+        "https://basescan.org/address/0xcf9fDe11a7Ab556184529442f9fCA37FB6220970",
+        "https://github.com/yearn/chief-multisig-officer/pull/1391"
+      ]
+    },
+    {
+      "researchAlias": "C08",
+      "positionKey": "ycrv-otc-inventory",
+      "classification": "active_returnable",
+      "accountableTeamId": "ylockers",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Track attributable inventory and settlements; migrations are not new funding.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0x6a1996554455945f9ba5f58b831c86f9afaeb1a5c36b9166099a7d3ac0106803",
+        "https://etherscan.io/tx/0x154d359958584984bee6d831f8488b5642d1356610d19595c28ca7169afff315",
+        "https://etherscan.io/address/0x1B7e6fB817112b036EAa4AE85479fF1C2E9330A2",
+        "https://github.com/yearn/chief-multisig-officer/pull/1444"
+      ]
+    },
+    {
+      "researchAlias": "R05",
+      "positionKey": "lqty-delegated-stake",
+      "classification": "active_returnable",
+      "accountableTeamId": "ylockers",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Treasury ownership and returnability confirmed by user; stake refreshed at block 26155552.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0xaa0fb388d92aacfc3f015e4c81c94417e1fd7da35069cf3471a8b72dbc6818e8",
+        "https://etherscan.io/tx/0x26eee497598828c4bfeff90db79a5f9e222dba03b8c7c9e0366d65d6adaed13d",
+        "https://etherscan.io/address/0xF46Caca833D39E1DC783F4A3027915Aa697dc617",
+        "https://github.com/yearn/chief-multisig-officer/pull/1563"
+      ]
+    },
+    {
+      "researchAlias": "B02",
+      "positionKey": "veyfi-matching-reserve",
+      "classification": "active_returnable",
+      "accountableTeamId": "dao-ops",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Only the unmatched reserve is recoverable; the original 42 YFI is not all outstanding.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0xd782e3923961ea7462584d61e0e37cf10289158a8cc338adb77b3ad38c72c459",
+        "https://etherscan.io/address/0x572b0675b0A815d1970C1310fE4AA8884FEaaaCc",
+        "https://github.com/yearn/chief-multisig-officer/pull/1261"
+      ]
+    },
+    {
+      "researchAlias": "B03",
+      "positionKey": "ybc-strategic-allocation",
+      "classification": "active_returnable",
+      "accountableTeamId": "dao-ops",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Do not attribute the entire current YBC stYFI balance to the original allocation.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0xb4ac1132862a2f8cfd954fdcdca1867db3a43cd1571efa261f44fc89f20b3edf",
+        "https://etherscan.io/address/0xd6AFd78C05f0d425F2b46359746dD44991dCB315",
+        "https://github.com/yearn/chief-multisig-officer/pull/1746"
+      ]
+    },
+    {
+      "researchAlias": "C14",
+      "positionKey": "stonk-usdg-allocation",
+      "classification": "pending_funding",
+      "accountableTeamId": "curation",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Last verified as queued/unexecuted on 2026-10-09. This classification review did not refresh execution state. Exclude from funded and outstanding totals until execution is verified.",
+      "evidenceCheckedAt": "2026-10-09T11:13:19Z",
+      "evidenceDate": "2026-10-09",
+      "evidence": [
+        "https://gist.github.com/spalen0/f2cf576d060c1fb80fa63f0279d199a8"
+      ]
+    },
+    {
+      "researchAlias": "C09",
+      "positionKey": "ycrv-liquidity",
+      "classification": "portfolio",
+      "accountableTeamId": "ylockers",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Portfolio holding",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0xb770fca0421d783d916bd5cb2ce689eb91fe550954f3bf1e8861003b414193e9",
+        "https://etherscan.io/tx/0xb5fab720ce4b8502b96807ef237db35745154093cb7c021cbcc47f5602fd062c",
+        "https://etherscan.io/address/0x93a62da5a14c80f265dabc077fcee437b1a0efde",
+        "https://github.com/yearn/chief-multisig-officer/pull/682"
+      ]
+    },
+    {
+      "researchAlias": "T03",
+      "positionKey": "yvusd-seed",
+      "classification": "portfolio",
+      "accountableTeamId": "vaults",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Portfolio holding",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0x657ddc79be63b11b87cfc2b0e5742603b5e25d756c2d73fa94b791714f7e6e58",
+        "https://etherscan.io/address/0x696d02Db93291651ED510704c9b286841d506987",
+        "https://github.com/yearn/chief-multisig-officer/pull/1688"
+      ]
+    },
+    {
+      "researchAlias": "T05",
+      "positionKey": "flex-usdc-seed",
+      "classification": "portfolio",
+      "accountableTeamId": "vaults",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Portfolio holding",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0x4dd0f0f8c36ead2663f8b01decaecd8f7b77c3e6b934fc0eb8a9e6f005d4a799",
+        "https://etherscan.io/address/0x863687e4E9751b57F38b4B0ebA04744C72d0f7B8",
+        "https://github.com/yearn/chief-multisig-officer/pull/1724"
+      ]
+    },
+    {
+      "researchAlias": "B01",
+      "positionKey": "ybold-investment-proceeds",
+      "classification": "portfolio",
+      "accountableTeamId": "vaults",
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Portfolio holding",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0x1301365f410e2edb310959de5978934d2cb74cf7bffe38c08b0da6705bd43781",
+        "https://etherscan.io/tx/0xf2da27b10d9b561b994ff882fabfd884fd6f1eeea13df59e788b2e5d355bc383",
+        "https://etherscan.io/address/0x23346B04a7f55b8760E5860AA5A77383D63491cD",
+        "https://github.com/yearn/chief-multisig-officer/pull/1663"
+      ]
+    },
+    {
+      "researchAlias": "C03",
+      "positionKey": "usdm-offboarding-via-ylockers",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Returned as vault shares",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2025-05-21",
+      "evidence": [
+        "https://etherscan.io/tx/0xc4a8bd0a6cc3521477d8cbec55f5c7acde0c5b58646716147ec090afcd6b64c3",
+        "https://etherscan.io/tx/0x5ecd78e00521427f0f168453093b67d691103f435e3dcb5a5f0f249328f151cd",
+        "https://github.com/yearn/chief-multisig-officer/pull/1546"
+      ]
+    },
+    {
+      "researchAlias": "C04",
+      "positionKey": "synthetix-susd-lp-refund",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Retain the observed refund receipt; do not infer broader historical entitlement from it.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/tx/0x0cd39ae948acafcc1dbb8794623d6fb5a0905ddfc0a01b2a22eff354106b1a1b",
+        "https://etherscan.io/address/0x99F4176EE457afedFfCB1839c7aB7A030a5e4A92",
+        "https://github.com/yearn/chief-multisig-officer/pull/1603"
+      ]
+    },
+    {
+      "researchAlias": "C05",
+      "positionKey": "yfarm-treasury-farming-allocation",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Principal returned",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2024-05-30",
+      "evidence": [
+        "https://etherscan.io/tx/0xbba7203991249680ee7f5a08e7fc907b7ddd6925badd12659d1a2ae86c764163",
+        "https://etherscan.io/tx/0x99245f3108e223bf8da2516ac539cb8d4f6663f23783732df2fe16e9462abf08",
+        "https://github.com/yearn/chief-multisig-officer/pull/1161"
+      ]
+    },
+    {
+      "researchAlias": "C07",
+      "positionKey": "bearn-farming-liquidity",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Principal and costs returned",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2025-10-23",
+      "evidence": [
+        "https://etherscan.io/tx/0xdea0955bd716bf439f1355712afbcee2e0abceb36c3ef47d8aeb27ed0dd1f798",
+        "https://etherscan.io/tx/0x57db92d54dcecc446633193b6fe05151ccfafb2c7b88fe0b5d9482232f34a1d4",
+        "https://gov.yearn.fi/t/yip-83-bearn-bip-yip-2/14456/4"
+      ]
+    },
+    {
+      "researchAlias": "C10",
+      "positionKey": "yfi-woofy-otc-liquidity-loan",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Fully withdrawn",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://explorer.fantom.network/tx/0x47bebf1740620616adb89b1c9850c558834446d040fdaa7166b03ebfd2950d54",
+        "https://explorer.fantom.network/tx/0x7cd54da3fba65f0729bfaba812e33e950470df5de6cda381d0ef734fbdf61e7a",
+        "https://explorer.fantom.network/address/0xfa42022707f02cffc80557b166d625d52346dd6d",
+        "https://github.com/yearn/chief-multisig-officer/pull/385"
+      ]
+    },
+    {
+      "researchAlias": "R02",
+      "positionKey": "snx-susd-rescue-via-ytrades",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Historical repayment terms remain undocumented. This closure does not claim full repayment; no active receivable remains in the agreed dashboard list.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2022-03-01",
+      "evidence": [
+        "https://etherscan.io/tx/0x04fe27a24b7264e02d607664f6a8b26cd1f6d335594cfa548546fd8f78d661a4",
+        "https://etherscan.io/tx/0x9141639bf8cc26fb8843e4c6dc5e1d70e718f2106ed49910b72544c2c5512e58",
+        "https://github.com/yearn/chief-multisig-officer/pull/336"
+      ]
+    },
+    {
+      "researchAlias": "R03",
+      "positionKey": "dyfi-eth-liquidity-seed",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Exit and later buyback route verified; pooled-asset attribution limitation preserved.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2024-11-20",
+      "evidence": [
+        "https://etherscan.io/tx/0x066c32f02fc0908d55b6651afcfb20473ec3d99363de222f2e8f4a7e0c66462e",
+        "https://etherscan.io/tx/0x3b4dced39f9c241f958b2220c238b46979359869c3c9d731a456adc85229b2ef",
+        "https://github.com/yearn/chief-multisig-officer/pull/1078"
+      ]
+    },
+    {
+      "researchAlias": "R04",
+      "positionKey": "ytrades-v3-initial-deposits",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Custody settled; returned as V3 shares",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2024-03-18",
+      "evidence": [
+        "https://etherscan.io/tx/0x670c8602dfd12d53be45490b9a8c2d57129faf9129df191a434e0ef4f0274826",
+        "https://etherscan.io/tx/0x0532f4fbc9b8b105b240f7a37084af6749d30ae03c540191bfb69019c036290c",
+        "https://github.com/yearn/chief-multisig-officer/pull/1222"
+      ]
+    },
+    {
+      "researchAlias": "T01",
+      "positionKey": "idle-euler-rescue-tranche",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Exited; proceeds returned",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2023-05-02",
+      "evidence": [
+        "https://etherscan.io/tx/0x41c8428fd361c54bb80cdac752e31622915ac626dd1e9270f02af1dc2c84d1f9",
+        "https://etherscan.io/tx/0xd1e7b71b967648aab5f4cbcca2f565faf5f7348a1ccc59752ca947c2cc335035",
+        "https://github.com/yearn/chief-multisig-officer/pull/929"
+      ]
+    },
+    {
+      "researchAlias": "T02",
+      "positionKey": "lazyape-yla-basket",
+      "classification": "settled",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Proceeds reconciled and largely returned. ETH attribution and dust notes retained as accepted historical details, without an active residual claim.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2025-05-24",
+      "evidence": [
+        "https://etherscan.io/tx/0x1d4e974db2d60ebd994410fcd793c5db771af9a14660015faf94cbdaec285009",
+        "https://etherscan.io/tx/0xbdb035ef518d8799e8d178430a58265343d2f0ea4950e75d27eb28a8659833fb",
+        "https://etherscan.io/address/0x5f0845101857d2A91627478e302357860b1598a1",
+        "https://github.com/yearn/chief-multisig-officer/pull/9"
+      ]
+    },
+    {
+      "researchAlias": "R06",
+      "positionKey": "fantom-liquidation-via-eoa",
+      "classification": "written_off",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "No repayment claim is implied.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://explorer.fantom.network/tx/0x2ad96abf441136111a502dd96677083d2d2fa51eafcf50f8e16ce8d198f8f4e9",
+        "https://explorer.fantom.network/address/0xC6387E937Bcef8De3334f80EDC623275d42457ff",
+        "https://github.com/yearn/chief-multisig-officer/pull/992"
+      ]
+    },
+    {
+      "researchAlias": "C11",
+      "positionKey": "scream-rescue-debt-takeover",
+      "classification": "excluded_by_decision",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Do not label repaid.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://explorer.fantom.network/tx/0x4cce3039726c5fa28f2cc3074d81ccc4a29fa84a8fba3b7de0ca6f7cb2a679e3",
+        "https://explorer.fantom.network/address/0x8D9AED9882b4953a0c9fa920168fa1FDfA0eBE75",
+        "https://github.com/yearn/chief-multisig-officer/pull/509"
+      ]
+    },
+    {
+      "researchAlias": "C12",
+      "positionKey": "solidly-solidex-treasury-lps",
+      "classification": "excluded_by_decision",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Do not label repaid.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://explorer.fantom.network/tx/0x9dcd47e3e42eab9570871302d52ad0e9db4f2ba15a28fc38a404462d91c46d40",
+        "https://explorer.fantom.network/tx/0x7cd54da3fba65f0729bfaba812e33e950470df5de6cda381d0ef734fbdf61e7a",
+        "https://explorer.fantom.network/address/0xc0e2830724c946a6748ddfe09753613cd38f6767",
+        "https://github.com/yearn/chief-multisig-officer/pull/329"
+      ]
+    },
+    {
+      "researchAlias": "C13",
+      "positionKey": "beets-fbeets-treasury-liquidity",
+      "classification": "excluded_by_decision",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Do not label repaid.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://explorer.fantom.network/tx/0x90c1dfdf6c96aaa91bf28f4c37478d0f0d73d310085ba69f58ab84d6d4619d15",
+        "https://explorer.fantom.network/tx/0x92f1ebf22779b5ba9100f8037dd8fbba0f96eb9d27c54376e13c2b1565cddeb3",
+        "https://explorer.fantom.network/address/0x0ED4940391386c0f3c931EED03E0B9697146F042",
+        "https://github.com/yearn/chief-multisig-officer/pull/398"
+      ]
+    },
+    {
+      "researchAlias": "R01",
+      "positionKey": "sms-aave-wind-down-advance",
+      "classification": "unfunded_or_rejected",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Excluded",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/address/0x16388463d60FFE0661Cf7F1f31a7D658aC790ff7",
+        "https://github.com/yearn/chief-multisig-officer/pull/228"
+      ]
+    },
+    {
+      "researchAlias": "T04",
+      "positionKey": "yvbtc-lender-borrower-seed",
+      "classification": "unfunded_or_rejected",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Excluded",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2026-10-06",
+      "evidence": [
+        "https://etherscan.io/address/0x52A52d224573fCBDD6e8353cE1D0591563Fc3Bb4",
+        "https://github.com/yearn/chief-multisig-officer/pull/1717"
+      ]
+    },
+    {
+      "researchAlias": "X04",
+      "positionKey": "wintermute-yip-74-proposal",
+      "classification": "unfunded_or_rejected",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Excluded",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2023-09-25",
+      "evidence": [
+        "https://medium.com/iearn/yearn-finance-ynewsletter-69-f445ec1e8ada"
+      ]
+    },
+    {
+      "researchAlias": "X01",
+      "positionKey": "unit-maker-borrowing-by-yearn",
+      "classification": "outside_scope",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Outside this MVP scope",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2022-11-09",
+      "evidence": [
+        "https://etherscan.io/tx/0x5687497fde2705c61e29f6ef43f0343f9d2f568695c9599e0548054607463fe6",
+        "https://github.com/yearn/chief-multisig-officer/pull/47"
+      ]
+    },
+    {
+      "researchAlias": "X02",
+      "positionKey": "balancer-grant-custody",
+      "classification": "outside_scope",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Outside loans-given scope; grant settlement historical",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2024-07-23",
+      "evidence": [
+        "https://etherscan.io/tx/0x05681fd5be0e925bb720450418d20eda99bb22adc72be3d702de70368d7cd3ea",
+        "https://github.com/yearn/chief-multisig-officer/pull/935"
+      ]
+    },
+    {
+      "researchAlias": "X03",
+      "positionKey": "usnd-loss-coverage-conversion",
+      "classification": "outside_scope",
+      "accountableTeamId": null,
+      "decisionDate": "2026-10-09",
+      "decisionBasis": "Retain any historical conversion limitations without treating paid loss coverage as a loan.",
+      "evidenceCheckedAt": "2026-10-06",
+      "evidenceDate": "2025-10-11",
+      "evidence": [
+        "https://arbiscan.io/tx/0xcdf04e2e4dab62af77948a3a0fa8786754d977ed28dfdbb3be081e78b8683722",
+        "https://arbiscan.io/tx/0xa0c7a625abf0e61322ef8f6f590bb62a20bf165dd7532ad5c89a80aeb21a1481",
+        "https://github.com/yearn/chief-multisig-officer/pull/1634"
+      ]
+    }
+  ]
+}

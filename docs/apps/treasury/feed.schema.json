@@ -1,0 +1,787 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yearn.fi/schemas/treasury-feed-v1.json",
+  "title": "Yearn Treasury feed v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "chainId",
+    "mode",
+    "generatedAt",
+    "blockNumber",
+    "blockHash",
+    "blockTimestamp",
+    "registryRevision",
+    "accounts",
+    "teams",
+    "holdings",
+    "allocations",
+    "history",
+    "summary",
+    "coverage"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "chainId": {
+      "const": 1
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "live",
+        "fixture"
+      ]
+    },
+    "generatedAt": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 253402300799
+    },
+    "blockNumber": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "blockHash": {
+      "$ref": "#/$defs/Hash"
+    },
+    "blockTimestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 253402300799
+    },
+    "registryRevision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "accounts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Account"
+      },
+      "maxItems": 64
+    },
+    "teams": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Team"
+      },
+      "maxItems": 32
+    },
+    "holdings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Holding"
+      },
+      "maxItems": 2000
+    },
+    "allocations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Allocation"
+      },
+      "maxItems": 128
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/History"
+      },
+      "maxItems": 128
+    },
+    "summary": {
+      "$ref": "#/$defs/Summary"
+    },
+    "coverage": {
+      "$ref": "#/$defs/Coverage"
+    }
+  },
+  "$defs": {
+    "Address": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$"
+    },
+    "Hash": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{64}$"
+    },
+    "Key": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9:_-]{0,159}$"
+    },
+    "Raw": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 78
+    },
+    "Usd": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,35})(\\.[0-9]{1,18})?$"
+    },
+    "Asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chainId",
+        "address",
+        "symbol",
+        "name",
+        "decimals"
+      ],
+      "properties": {
+        "chainId": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "address": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Address"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "symbol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 36
+        }
+      }
+    },
+    "Amount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset",
+        "raw"
+      ],
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset"
+        },
+        "raw": {
+          "$ref": "#/$defs/Raw"
+        }
+      }
+    },
+    "Evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^https://(etherscan\\.io|basescan\\.org|github\\.com|gov\\.yearn\\.fi|app\\.safe\\.global|snapshot\\.org)/[^\\s]*$"
+        }
+      }
+    },
+    "Team": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "registryTeamId"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "registryTeamId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "address",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Key"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "address": {
+          "$ref": "#/$defs/Address"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "wallet",
+            "robo-inventory"
+          ]
+        }
+      }
+    },
+    "Valuation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "usdValue",
+        "usdValueExcludingYfi",
+        "source",
+        "asOf",
+        "status"
+      ],
+      "properties": {
+        "usdValue": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Usd"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usdValueExcludingYfi": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Usd"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "asOf": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 253402300799
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "current",
+            "stale",
+            "unavailable"
+          ]
+        }
+      }
+    },
+    "Holding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "accountId",
+        "positionKey",
+        "asset",
+        "balanceRaw",
+        "underlying",
+        "valuation",
+        "purpose",
+        "purposeNote",
+        "withdrawal",
+        "accountableTeamId"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Key"
+        },
+        "accountId": {
+          "$ref": "#/$defs/Key"
+        },
+        "positionKey": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Key"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "asset": {
+          "$ref": "#/$defs/Asset"
+        },
+        "balanceRaw": {
+          "$ref": "#/$defs/Raw"
+        },
+        "underlying": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Amount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "valuation": {
+          "$ref": "#/$defs/Valuation"
+        },
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "operating",
+            "strategic",
+            "product-seed",
+            "conversion",
+            "unspecified"
+          ]
+        },
+        "purposeNote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 360
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "withdrawal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "note"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "available",
+                "restricted",
+                "unknown"
+              ]
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 360
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "accountableTeamId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Key"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Outstanding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amounts",
+        "asOf",
+        "sourceKind",
+        "note"
+      ],
+      "properties": {
+        "amounts": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Amount"
+              },
+              "maxItems": 8
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "asOf": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 253402300799
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sourceKind": {
+          "type": "string",
+          "enum": [
+            "onchain",
+            "curated",
+            "unavailable"
+          ]
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 360
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ExpectedReturn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amounts",
+        "terms",
+        "note"
+      ],
+      "properties": {
+        "amounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 8
+        },
+        "terms": {
+          "type": "string",
+          "enum": [
+            "confirmed",
+            "provisional",
+            "unknown"
+          ]
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 360
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "kind",
+        "status",
+        "accountableTeamId",
+        "counterparty",
+        "originalFunding",
+        "originalFundingNote",
+        "plannedFunding",
+        "expectedReturn",
+        "outstanding",
+        "note",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Key"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "loan",
+            "deposit",
+            "inventory",
+            "delegated-stake",
+            "strategic",
+            "reserve",
+            "managed"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "pending"
+          ]
+        },
+        "accountableTeamId": {
+          "$ref": "#/$defs/Key"
+        },
+        "counterparty": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "originalFunding": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 8
+        },
+        "originalFundingNote": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 360
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plannedFunding": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Amount"
+          },
+          "maxItems": 8
+        },
+        "expectedReturn": {
+          "$ref": "#/$defs/ExpectedReturn"
+        },
+        "outstanding": {
+          "$ref": "#/$defs/Outstanding"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 480
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "maxItems": 8
+        }
+      }
+    },
+    "History": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "status",
+        "closedAt",
+        "note",
+        "evidence"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Key"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "settled",
+            "written-off",
+            "excluded",
+            "unfunded"
+          ]
+        },
+        "closedAt": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 253402300799
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 360
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "maxItems": 3
+        }
+      }
+    },
+    "Summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "holdingCount",
+        "pricedUsdValue",
+        "pricedUsdValueExcludingYfi",
+        "unpricedHoldingCount",
+        "unknownYfiSplitCount"
+      ],
+      "properties": {
+        "holdingCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "pricedUsdValue": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Usd"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pricedUsdValueExcludingYfi": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Usd"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unpricedHoldingCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "unknownYfiSplitCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000
+        }
+      }
+    },
+    "Coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inventory",
+        "valuation",
+        "warnings"
+      ],
+      "properties": {
+        "inventory": {
+          "type": "string",
+          "enum": [
+            "indexed",
+            "registry-only"
+          ]
+        },
+        "valuation": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "partial",
+            "unavailable"
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 360
+          },
+          "maxItems": 32
+        }
+      }
+    }
+  }
+}

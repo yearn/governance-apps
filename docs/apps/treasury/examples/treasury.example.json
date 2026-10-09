@@ -1,0 +1,937 @@
+{
+  "version": 1,
+  "chainId": 1,
+  "mode": "fixture",
+  "generatedAt": 1791547200,
+  "blockNumber": 26155515,
+  "blockHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+  "blockTimestamp": 1791547140,
+  "registryRevision": "c3642464d46a05052627a88ff5d9d372b14bb62aa8fcdb46df523e2a5fdbc37c",
+  "accounts": [
+    {
+      "id": "ychad",
+      "label": "ychad.eth",
+      "address": "0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52",
+      "kind": "wallet"
+    },
+    {
+      "id": "treasury",
+      "label": "treasury.ychad.eth",
+      "address": "0x93A62dA5a14C80f265DAbC077fCEE437B1a0Efde",
+      "kind": "wallet"
+    },
+    {
+      "id": "robo-treasury",
+      "label": "Robo Treasury",
+      "address": "0xEf77cc176c748d291EfB6CdC982c5744fC7211c8",
+      "kind": "wallet"
+    }
+  ],
+  "teams": [
+    {
+      "id": "ylockers",
+      "label": "yLockers",
+      "registryTeamId": null
+    },
+    {
+      "id": "vaults",
+      "label": "Vaults",
+      "registryTeamId": null
+    },
+    {
+      "id": "curation",
+      "label": "Curation",
+      "registryTeamId": null
+    },
+    {
+      "id": "dao-ops",
+      "label": "DAO Ops",
+      "registryTeamId": null
+    }
+  ],
+  "holdings": [
+    {
+      "id": "ychad-yfi",
+      "accountId": "ychad",
+      "positionKey": null,
+      "asset": {
+        "chainId": 1,
+        "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+        "symbol": "YFI",
+        "name": "YFI",
+        "decimals": 18
+      },
+      "balanceRaw": "1200000000000000000000",
+      "underlying": null,
+      "valuation": {
+        "usdValue": "6000000",
+        "usdValueExcludingYfi": "0",
+        "source": "Fixture valuation",
+        "asOf": 1791547140,
+        "status": "current"
+      },
+      "purpose": "strategic",
+      "purposeNote": "Held for strategic use.",
+      "withdrawal": {
+        "status": "available",
+        "note": null
+      },
+      "accountableTeamId": null
+    },
+    {
+      "id": "ychad-usdc",
+      "accountId": "ychad",
+      "positionKey": null,
+      "asset": {
+        "chainId": 1,
+        "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "symbol": "USDC",
+        "name": "USDC",
+        "decimals": 6
+      },
+      "balanceRaw": "850000000000",
+      "underlying": null,
+      "valuation": {
+        "usdValue": "850000",
+        "usdValueExcludingYfi": "850000",
+        "source": "Fixture valuation",
+        "asOf": 1791547140,
+        "status": "current"
+      },
+      "purpose": "operating",
+      "purposeNote": null,
+      "withdrawal": {
+        "status": "available",
+        "note": null
+      },
+      "accountableTeamId": null
+    },
+    {
+      "id": "treasury-yvusd",
+      "accountId": "treasury",
+      "positionKey": "yvusd-seed",
+      "asset": {
+        "chainId": 1,
+        "address": "0x696d02Db93291651ED510704c9b286841d506987",
+        "symbol": "yvUSD",
+        "name": "yvUSD",
+        "decimals": 6
+      },
+      "balanceRaw": "999319223819",
+      "underlying": {
+        "asset": {
+          "chainId": 1,
+          "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+          "symbol": "USDC",
+          "name": "USDC",
+          "decimals": 6
+        },
+        "raw": "1032046889006"
+      },
+      "valuation": {
+        "usdValue": "1032046.889006",
+        "usdValueExcludingYfi": "1032046.889006",
+        "source": "Fixture valuation",
+        "asOf": 1791547140,
+        "status": "current"
+      },
+      "purpose": "product-seed",
+      "purposeNote": "Treasury capital supports a Yearn product.",
+      "withdrawal": {
+        "status": "unknown",
+        "note": "Underlying value does not prove immediate withdrawal capacity."
+      },
+      "accountableTeamId": "vaults"
+    },
+    {
+      "id": "treasury-flex",
+      "accountId": "treasury",
+      "positionKey": "flex-usdc-seed",
+      "asset": {
+        "chainId": 1,
+        "address": "0x863687e4E9751b57F38b4B0ebA04744C72d0f7B8",
+        "symbol": "yvFlexUSDC",
+        "name": "yvFlexUSDC",
+        "decimals": 6
+      },
+      "balanceRaw": "1000000000000",
+      "underlying": {
+        "asset": {
+          "chainId": 1,
+          "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+          "symbol": "USDC",
+          "name": "USDC",
+          "decimals": 6
+        },
+        "raw": "1014188935801"
+      },
+      "valuation": {
+        "usdValue": "1014188.935801",
+        "usdValueExcludingYfi": "1014188.935801",
+        "source": "Fixture valuation",
+        "asOf": 1791547140,
+        "status": "current"
+      },
+      "purpose": "product-seed",
+      "purposeNote": "Treasury capital supports a Yearn product.",
+      "withdrawal": {
+        "status": "unknown",
+        "note": "Underlying value does not prove immediate withdrawal capacity."
+      },
+      "accountableTeamId": "vaults"
+    },
+    {
+      "id": "robo-weth",
+      "accountId": "robo-treasury",
+      "positionKey": null,
+      "asset": {
+        "chainId": 1,
+        "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "symbol": "WETH",
+        "name": "WETH",
+        "decimals": 18
+      },
+      "balanceRaw": "25000000000000000000",
+      "underlying": null,
+      "valuation": {
+        "usdValue": "75000",
+        "usdValueExcludingYfi": "75000",
+        "source": "Fixture valuation",
+        "asOf": 1791547140,
+        "status": "current"
+      },
+      "purpose": "operating",
+      "purposeNote": null,
+      "withdrawal": {
+        "status": "available",
+        "note": null
+      },
+      "accountableTeamId": null
+    },
+    {
+      "id": "ychad-eth",
+      "accountId": "ychad",
+      "positionKey": null,
+      "asset": {
+        "chainId": 1,
+        "address": null,
+        "symbol": "ETH",
+        "name": "Ether",
+        "decimals": 18
+      },
+      "balanceRaw": "1000000000000000000",
+      "underlying": null,
+      "valuation": {
+        "usdValue": "3000",
+        "usdValueExcludingYfi": "3000",
+        "source": "Fixture valuation",
+        "asOf": 1791547140,
+        "status": "current"
+      },
+      "purpose": "operating",
+      "purposeNote": null,
+      "withdrawal": {
+        "status": "available",
+        "note": null
+      },
+      "accountableTeamId": null
+    }
+  ],
+  "allocations": [
+    {
+      "id": "resupply-loan",
+      "title": "Resupply loan",
+      "kind": "loan",
+      "status": "active",
+      "accountableTeamId": "ylockers",
+      "counterparty": "Resupply",
+      "originalFunding": [
+        {
+          "asset": {
+            "chainId": 1,
+            "address": "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
+            "symbol": "crvUSD",
+            "name": "crvUSD",
+            "decimals": 18
+          },
+          "raw": "1130000000000000000000000"
+        }
+      ],
+      "originalFundingNote": "Principal denominated in crvUSD; funded using vault shares.",
+      "plannedFunding": [],
+      "expectedReturn": {
+        "amounts": [],
+        "terms": "confirmed",
+        "note": null
+      },
+      "outstanding": {
+        "amounts": [
+          {
+            "asset": {
+              "chainId": 1,
+              "address": "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
+              "symbol": "crvUSD",
+              "name": "crvUSD",
+              "decimals": 18
+            },
+            "raw": "326715095021527855501651"
+          }
+        ],
+        "asOf": 1791547140,
+        "sourceKind": "onchain",
+        "note": "Fixture debt includes accrued interest."
+      },
+      "note": "Contract debt includes accrued interest. Repayments include interest and must not be subtracted directly from original principal.",
+      "evidence": [
+        {
+          "label": "Approval",
+          "url": "https://gov.yearn.fi/t/yip-86-resupply-bad-debt-repayment-loan/14516"
+        },
+        {
+          "label": "Position",
+          "url": "https://etherscan.io/address/0x4c0ffc2b96f3c6b048ef85d1a4744c8e36b5b6f6#readContract"
+        }
+      ]
+    },
+    {
+      "id": "sherlock-bounty-deposit",
+      "title": "Sherlock bounty deposit",
+      "kind": "deposit",
+      "status": "active",
+      "accountableTeamId": "curation",
+      "counterparty": "Sherlock",
+      "originalFunding": [
+        {
+          "asset": {
+            "chainId": 1,
+            "address": "0xBe53a109b494E5c9f97B9cd39fE969BE68Bf6204",
+            "symbol": "yvUSDC-1",
+            "name": "yvUSDC-1",
+            "decimals": 6
+          },
+          "raw": "24280687336"
+        }
+      ],
+      "originalFundingNote": "Original deposit was approximately 25,000 USDC equivalent, transferred as vault shares.",
+      "plannedFunding": [],
+      "expectedReturn": {
+        "amounts": [],
+        "terms": "unknown",
+        "note": null
+      },
+      "outstanding": {
+        "amounts": null,
+        "asOf": null,
+        "sourceKind": "unavailable",
+        "note": "A current amount has not been established in this registry."
+      },
+      "note": "Recoverable bounty deposit. The refundable amount is not yet confirmed.",
+      "evidence": [
+        {
+          "label": "Approval",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1460"
+        },
+        {
+          "label": "Position",
+          "url": "https://etherscan.io/address/0x666B8EbFbF4D5f0CE56962a25635CfF563F13161"
+        },
+        {
+          "label": "Original funding",
+          "url": "https://etherscan.io/tx/0x3e045ced19590db8905d8a69c2f0fd0acd4f90301cf6356742e735cd7caa0964"
+        }
+      ]
+    },
+    {
+      "id": "aerodrome-liquidity-loan",
+      "title": "Aerodrome liquidity loan",
+      "kind": "loan",
+      "status": "active",
+      "accountableTeamId": "ylockers",
+      "counterparty": "yLockers",
+      "originalFunding": [
+        {
+          "asset": {
+            "chainId": 1,
+            "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+            "symbol": "YFI",
+            "name": "YFI",
+            "decimals": 18
+          },
+          "raw": "33000000000000000000"
+        },
+        {
+          "asset": {
+            "chainId": 1,
+            "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+            "symbol": "WETH",
+            "name": "WETH",
+            "decimals": 18
+          },
+          "raw": "61000000000000000000"
+        }
+      ],
+      "originalFundingNote": null,
+      "plannedFunding": [],
+      "expectedReturn": {
+        "amounts": [
+          {
+            "asset": {
+              "chainId": 1,
+              "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+              "symbol": "YFI",
+              "name": "YFI",
+              "decimals": 18
+            },
+            "raw": "33000000000000000000"
+          },
+          {
+            "asset": {
+              "chainId": 1,
+              "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+              "symbol": "WETH",
+              "name": "WETH",
+              "decimals": 18
+            },
+            "raw": "61000000000000000000"
+          }
+        ],
+        "terms": "provisional",
+        "note": "Original funding is the provisional return target."
+      },
+      "outstanding": {
+        "amounts": null,
+        "asOf": null,
+        "sourceKind": "unavailable",
+        "note": "A current amount has not been established in this registry."
+      },
+      "note": "Return target is the original assets. The current LP also includes other capital; the full LP balance is not attributed to treasury.",
+      "evidence": [
+        {
+          "label": "Approval",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1391"
+        },
+        {
+          "label": "Position",
+          "url": "https://basescan.org/address/0xcf9fDe11a7Ab556184529442f9fCA37FB6220970"
+        }
+      ]
+    },
+    {
+      "id": "ycrv-otc-inventory",
+      "title": "yCRV OTC inventory",
+      "kind": "inventory",
+      "status": "active",
+      "accountableTeamId": "ylockers",
+      "counterparty": "yCRV OTC swapper",
+      "originalFunding": [],
+      "originalFundingNote": null,
+      "plannedFunding": [],
+      "expectedReturn": {
+        "amounts": [],
+        "terms": "unknown",
+        "note": null
+      },
+      "outstanding": {
+        "amounts": null,
+        "asOf": null,
+        "sourceKind": "unavailable",
+        "note": "A current amount has not been established in this registry."
+      },
+      "note": "Track current attributable settlement inventory. Transfers between swappers do not create new funding.",
+      "evidence": [
+        {
+          "label": "Approval",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1444"
+        },
+        {
+          "label": "Position",
+          "url": "https://etherscan.io/address/0x1B7e6fB817112b036EAa4AE85479fF1C2E9330A2"
+        }
+      ]
+    },
+    {
+      "id": "lqty-delegated-stake",
+      "title": "LQTY stake",
+      "kind": "delegated-stake",
+      "status": "active",
+      "accountableTeamId": "ylockers",
+      "counterparty": "yLockers",
+      "originalFunding": [
+        {
+          "asset": {
+            "chainId": 1,
+            "address": "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D",
+            "symbol": "LQTY",
+            "name": "LQTY",
+            "decimals": 18
+          },
+          "raw": "15641249132646765103764"
+        }
+      ],
+      "originalFundingNote": null,
+      "plannedFunding": [],
+      "expectedReturn": {
+        "amounts": [
+          {
+            "asset": {
+              "chainId": 1,
+              "address": "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D",
+              "symbol": "LQTY",
+              "name": "LQTY",
+              "decimals": 18
+            },
+            "raw": "15641249132646765103764"
+          }
+        ],
+        "terms": "confirmed",
+        "note": null
+      },
+      "outstanding": {
+        "amounts": [
+          {
+            "asset": {
+              "chainId": 1,
+              "address": "0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D",
+              "symbol": "LQTY",
+              "name": "LQTY",
+              "decimals": 18
+            },
+            "raw": "15641249132646765103764"
+          }
+        ],
+        "asOf": 1791547140,
+        "sourceKind": "onchain",
+        "note": "Fixture delegated stake."
+      },
+      "note": "Treasury-owned LQTY remains staked through the yLockers proxy and is returnable.",
+      "evidence": [
+        {
+          "label": "Approval",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1563"
+        },
+        {
+          "label": "Position",
+          "url": "https://etherscan.io/address/0xF46Caca833D39E1DC783F4A3027915Aa697dc617"
+        }
+      ]
+    },
+    {
+      "id": "veyfi-matching-reserve",
+      "title": "veYFI matching reserve",
+      "kind": "reserve",
+      "status": "active",
+      "accountableTeamId": "dao-ops",
+      "counterparty": "veYFI matching program",
+      "originalFunding": [
+        {
+          "asset": {
+            "chainId": 1,
+            "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+            "symbol": "YFI",
+            "name": "YFI",
+            "decimals": 18
+          },
+          "raw": "42000000000000000000"
+        }
+      ],
+      "originalFundingNote": null,
+      "plannedFunding": [],
+      "expectedReturn": {
+        "amounts": [],
+        "terms": "confirmed",
+        "note": null
+      },
+      "outstanding": {
+        "amounts": [
+          {
+            "asset": {
+              "chainId": 1,
+              "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+              "symbol": "YFI",
+              "name": "YFI",
+              "decimals": 18
+            },
+            "raw": "735375326150313924"
+          }
+        ],
+        "asOf": 1791547140,
+        "sourceKind": "onchain",
+        "note": "Fixture unmatched reserve."
+      },
+      "note": "Only the unmatched YFI reserve is recoverable. Completed matching is not outstanding debt.",
+      "evidence": [
+        {
+          "label": "Approval",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1261"
+        },
+        {
+          "label": "Position",
+          "url": "https://etherscan.io/address/0x572b0675b0A815d1970C1310fE4AA8884FEaaaCc"
+        }
+      ]
+    },
+    {
+      "id": "ybc-strategic-allocation",
+      "title": "YBC strategic allocation",
+      "kind": "strategic",
+      "status": "active",
+      "accountableTeamId": "dao-ops",
+      "counterparty": "YBC",
+      "originalFunding": [
+        {
+          "asset": {
+            "chainId": 1,
+            "address": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+            "symbol": "YFI",
+            "name": "YFI",
+            "decimals": 18
+          },
+          "raw": "200000000000000000000"
+        }
+      ],
+      "originalFundingNote": null,
+      "plannedFunding": [],
+      "expectedReturn": {
+        "amounts": [],
+        "terms": "unknown",
+        "note": "Returnable through a YIP if needed; the exact redemption amount is not established."
+      },
+      "outstanding": {
+        "amounts": null,
+        "asOf": null,
+        "sourceKind": "unavailable",
+        "note": "A current amount has not been established in this registry."
+      },
+      "note": "The original allocation is 200 YFI. Return requires a YIP; the full current YBC balance includes other additions.",
+      "evidence": [
+        {
+          "label": "Approval",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1746"
+        },
+        {
+          "label": "Position",
+          "url": "https://etherscan.io/address/0xd6AFd78C05f0d425F2b46359746dD44991dCB315"
+        }
+      ]
+    },
+    {
+      "id": "stonk-usdg-allocation",
+      "title": "Stonk USDG allocation",
+      "kind": "managed",
+      "status": "pending",
+      "accountableTeamId": "curation",
+      "counterparty": "SAM / Stonk",
+      "originalFunding": [],
+      "originalFundingNote": null,
+      "plannedFunding": [
+        {
+          "asset": {
+            "chainId": 1,
+            "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "symbol": "USDC",
+            "name": "USDC",
+            "decimals": 6
+          },
+          "raw": "200000000000"
+        }
+      ],
+      "expectedReturn": {
+        "amounts": [],
+        "terms": "unknown",
+        "note": null
+      },
+      "outstanding": {
+        "amounts": null,
+        "asOf": null,
+        "sourceKind": "unavailable",
+        "note": "A current amount has not been established in this registry."
+      },
+      "note": "Planned managed allocation. Verify execution and attributable custody before treating it as funded.",
+      "evidence": [
+        {
+          "label": "Approval",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1763"
+        },
+        {
+          "label": "Safe proposal",
+          "url": "https://app.safe.global/transactions/tx?safe=eth:0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52&id=multisig_0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52_0x1259754dcb5ff2a5b95e4dc0d91d10fce8c23a8f77c661830d9023dfeeb25729"
+        }
+      ]
+    }
+  ],
+  "history": [
+    {
+      "id": "usdm-offboarding-via-ylockers",
+      "title": "USDM offboarding via yLockers",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Returned as vault shares.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1546"
+        }
+      ]
+    },
+    {
+      "id": "synthetix-susd-lp-refund",
+      "title": "Synthetix sUSD LP refund",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Settled.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1603"
+        },
+        {
+          "label": "Refund",
+          "url": "https://etherscan.io/tx/0x5524f8f348f506485bf7deca67e4d0321c6a321fe8b6c50107513d8f347f04bc"
+        }
+      ]
+    },
+    {
+      "id": "yfarm-treasury-farming-allocation",
+      "title": "yFarm treasury farming allocation",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Principal returned.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1161"
+        }
+      ]
+    },
+    {
+      "id": "bearn-farming-liquidity",
+      "title": "Bearn farming liquidity",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Principal and costs returned.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://gov.yearn.fi/t/yip-83-bearn-bip-yip-2/14456/4"
+        }
+      ]
+    },
+    {
+      "id": "yfi-woofy-otc-liquidity-loan",
+      "title": "YFI/WOOFY OTC liquidity loan",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Fully withdrawn.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/385"
+        }
+      ]
+    },
+    {
+      "id": "snx-susd-rescue-via-ytrades",
+      "title": "SNX/sUSD rescue via yTrades",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Closed after review.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/336"
+        }
+      ]
+    },
+    {
+      "id": "dyfi-eth-liquidity-seed",
+      "title": "dYFI/ETH liquidity seed",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Closed after review.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1078"
+        }
+      ]
+    },
+    {
+      "id": "ytrades-v3-initial-deposits",
+      "title": "yTrades V3 initial deposits",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Custody settled; returned as V3 shares.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1222"
+        }
+      ]
+    },
+    {
+      "id": "idle-euler-rescue-tranche",
+      "title": "Idle Euler rescue tranche",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Exited; proceeds returned.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/929"
+        }
+      ]
+    },
+    {
+      "id": "lazyape-yla-basket",
+      "title": "LazyApe YLA basket",
+      "status": "settled",
+      "closedAt": null,
+      "note": "Closed after review.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/9"
+        }
+      ]
+    },
+    {
+      "id": "fantom-liquidation-via-eoa",
+      "title": "Fantom liquidation via EOA",
+      "status": "written-off",
+      "closedAt": null,
+      "note": "Closed by user decision.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/992"
+        }
+      ]
+    },
+    {
+      "id": "scream-rescue-debt-takeover",
+      "title": "Scream rescue / debt takeover",
+      "status": "excluded",
+      "closedAt": null,
+      "note": "Closed / ignored.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/509"
+        }
+      ]
+    },
+    {
+      "id": "solidly-solidex-treasury-lps",
+      "title": "Solidly / Solidex treasury LPs",
+      "status": "excluded",
+      "closedAt": null,
+      "note": "Closed / ignored.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/329"
+        }
+      ]
+    },
+    {
+      "id": "beets-fbeets-treasury-liquidity",
+      "title": "BEETS / fBEETS treasury liquidity",
+      "status": "excluded",
+      "closedAt": null,
+      "note": "Closed / ignored.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/398"
+        }
+      ]
+    },
+    {
+      "id": "sms-aave-wind-down-advance",
+      "title": "SMS Aave wind-down advance",
+      "status": "unfunded",
+      "closedAt": null,
+      "note": "Excluded.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/228"
+        }
+      ]
+    },
+    {
+      "id": "yvbtc-lender-borrower-seed",
+      "title": "yvBTC lender/borrower seed",
+      "status": "unfunded",
+      "closedAt": null,
+      "note": "Excluded.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1717"
+        }
+      ]
+    },
+    {
+      "id": "wintermute-yip-74-proposal",
+      "title": "Wintermute YIP-74 proposal",
+      "status": "unfunded",
+      "closedAt": null,
+      "note": "Excluded.",
+      "evidence": []
+    },
+    {
+      "id": "unit-maker-borrowing-by-yearn",
+      "title": "Unit / Maker borrowing by Yearn",
+      "status": "excluded",
+      "closedAt": null,
+      "note": "Outside this MVP scope.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/47"
+        }
+      ]
+    },
+    {
+      "id": "balancer-grant-custody",
+      "title": "Balancer grant custody",
+      "status": "excluded",
+      "closedAt": null,
+      "note": "Outside loans-given scope; grant settlement historical.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/935"
+        }
+      ]
+    },
+    {
+      "id": "usnd-loss-coverage-conversion",
+      "title": "USND loss coverage / conversion",
+      "status": "excluded",
+      "closedAt": null,
+      "note": "Outside loans-given scope.",
+      "evidence": [
+        {
+          "label": "Evidence",
+          "url": "https://github.com/yearn/chief-multisig-officer/pull/1634"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "holdingCount": 6,
+    "pricedUsdValue": "8974235.824807",
+    "pricedUsdValueExcludingYfi": "2974235.824807",
+    "unpricedHoldingCount": 0,
+    "unknownYfiSplitCount": 0
+  },
+  "coverage": {
+    "inventory": "registry-only",
+    "valuation": "complete",
+    "warnings": [
+      "Demonstration amounts. This is not a live treasury snapshot."
+    ]
+  }
+}
