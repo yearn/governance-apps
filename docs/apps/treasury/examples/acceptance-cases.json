@@ -711,6 +711,27 @@
           "value": 2
         }
       ]
+    },
+    {
+      "name": "equivalent USD precision",
+      "schema": true,
+      "consumer": true,
+      "set": [
+        {
+          "path": [
+            "summary",
+            "pricedUsdValue"
+          ],
+          "value": "8974235.8248070"
+        },
+        {
+          "path": [
+            "summary",
+            "pricedUsdValueExcludingYfi"
+          ],
+          "value": "2974235.8248070"
+        }
+      ]
     }
   ]
 }
