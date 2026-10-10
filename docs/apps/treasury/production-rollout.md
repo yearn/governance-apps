@@ -13,7 +13,7 @@ The user will associate `treasury.yearn.fi` with Cloudflare manually after share
 | Build flag | `NEXT_PUBLIC_ENABLE_TREASURY=true` | `NEXT_PUBLIC_ENABLE_TREASURY=true` |
 | Server runtime URL | `https://data.dao-ops.com/staging/treasury.json` | `https://data.dao-ops.com/prod/treasury.json` |
 | Initial app URL | Protected shared Worker URL plus `/treasury` | `https://app.dao-ops.com/treasury` |
-| App hostname | `treasury-beta.dao-ops.com`, after association | `treasury.yearn.fi`, associated by the user |
+| App hostname | `treasury-beta.dao-ops.com`, declared in preprod configuration | `treasury.yearn.fi`, associated by the user |
 
 Confirm the existing R2 bucket and its delivery domain before using these proposed feed URLs.
 The public flag defaults to `false` in both workflows. Set it in the matching GitHub environment before building.
@@ -83,8 +83,9 @@ Record the workflow source, checked-out commit, resulting Worker version, and de
 Use an existing protected shared Worker or version URL with `/treasury`.
 Verify its access protection before sharing it.
 The existing `dao-beta.dao-ops.com` hostname rewrites paths into DAO and cannot act as a shared Treasury URL.
-The application understands `treasury-beta.dao-ops.com`, but repository changes do not create its DNS or Worker association.
-Associate and protect that hostname before accepting navigation from the other beta apps; their Treasury links use this hostname.
+The preprod configuration declares `treasury-beta.dao-ops.com` as a Worker Custom Domain.
+A preprod deployment applies its Worker association and DNS configuration.
+Verify the association and Cloudflare Access protection before accepting navigation from the other beta apps; their Treasury links use this hostname.
 The shared Worker path remains suitable for initial isolated validation.
 
 Check:
@@ -133,8 +134,9 @@ A DNS record alone does not establish the Worker association.
 Verify TLS, `https://treasury.yearn.fi/`, `/api/treasury-data`, app navigation, and polling after the change.
 
 The source contains hostname routing and header behavior for Treasury.
-Wrangler route files remain unchanged.
-[Wrangler manages configured routes](https://developers.cloudflare.com/workers/wrangler/configuration/), so check the manual association after every deployment.
+`wrangler.preprod.jsonc` manages the Treasury beta Custom Domain.
+The production domain remains manually associated.
+[Wrangler manages configured routes](https://developers.cloudflare.com/workers/wrangler/configuration/), so check the production domain association after every deployment.
 `--keep-vars` preserves runtime variables; it does not promise to preserve manually added routes.
 [Cloudflare Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/) describes the dashboard association.
 
