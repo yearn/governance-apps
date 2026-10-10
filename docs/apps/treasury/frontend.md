@@ -28,7 +28,7 @@ The domain client reads `/api/treasury-data`. The endpoint reads the fixed serve
 
 Both transport layers limit each request to ten seconds and two MiB. They reject malformed UTF-8, invalid accounting relationships, and example data.
 
-The endpoint requires HTTPS in production. Preview configuration can use HTTP on exactly `localhost`, `127.0.0.1`, or `[::1]`. Credentials and redirects are not accepted.
+The endpoint requires HTTPS in production. Preview configuration can use HTTP on exactly `localhost`, `127.0.0.1`, or `[::1]`. Credentials and redirects are not accepted. Both fetches use `redirect: "manual"` and reject non-success responses. The deployed Cloudflare runtime rejects `redirect: "error"` before it sends a request.
 
 Failed requests retain the last valid snapshot. Older publications and conflicting publications cannot replace it. A lower block or a conflicting block hash or timestamp also fails validation. Observations more than one minute ahead are rejected.
 

@@ -29,7 +29,13 @@ describe("treasury live transport", () => {
     const fetchMock = vi.fn().mockResolvedValue(response(live()));
     vi.stubGlobal("fetch", fetchMock);
     expect((await fetchTreasuryFeed()).allocations).toHaveLength(8);
-    expect(fetchMock).toHaveBeenCalledWith("/api/treasury-data", expect.objectContaining({ cache: "no-store", redirect: "error", signal: expect.any(AbortSignal) }));
+    expect(fetchMock).toHaveBeenCalledWith("/api/treasury-data", expect.objectContaining({ cache: "no-store", redirect: "manual", signal: expect.any(AbortSignal) }));
+  });
+
+  it("rejects a browser-filtered redirect response", async () => {
+    // Browsers expose manual redirects as opaque responses with status zero.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.error()));
+    await expect(fetchTreasuryFeed()).rejects.toMatchObject({ kind: "unavailable" });
   });
 
   it("never accepts example data from the live endpoint", async () => {
@@ -97,6 +103,28 @@ describe("treasury live transport", () => {
 });
 
 describe("treasury feed proxy", () => {
+  it.each([301, 302, 303, 307, 308])("rejects upstream redirects without following them (%s)", async (status) => {
+    vi.stubEnv("NEXT_PUBLIC_RUNTIME_MODE", "production");
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_TREASURY", "true");
+    vi.stubEnv("TREASURY_DATA_URL", "https://operator.example/treasury.json");
+    const cancel = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(new ReadableStream({ cancel }), {
+      status,
+      headers: { location: "https://other.example/treasury.json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await GET();
+
+    expect(result.status).toBe(502);
+    expect(await result.json()).toEqual({ error: "Treasury upstream is unavailable." });
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+      "https://operator.example/treasury.json",
+      expect.objectContaining({ redirect: "manual" }),
+    );
+  });
+
   it.each(["localhost", "127.0.0.1", "[::1]"])("permits only explicit loopback HTTP outside production (%s)", async (host) => {
     vi.stubEnv("NEXT_PUBLIC_RUNTIME_MODE", "preview");
     vi.stubEnv("TREASURY_DATA_URL", "http://" + host + ":8080/treasury.json");

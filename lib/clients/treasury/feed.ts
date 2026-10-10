@@ -6,7 +6,8 @@ export const TREASURY_FEED_POLICY: FeedTransportPolicy = {
   maximumPayloadBytes: TREASURY_FEED_MAX_PAYLOAD_BYTES,
   fatalUtf8: true,
   requestTimeoutMs: 10_000,
-  fetchOptions: { cache: "no-store", redirect: "error" },
+  // Workers rejects redirect: "error"; both callers reject non-OK responses.
+  fetchOptions: { cache: "no-store", redirect: "manual" },
   createPayloadTooLargeError: () => new TreasuryFeedError("oversized", "Treasury feed exceeds the payload limit."),
   createTimeoutError: () => new TreasuryFeedError("timeout", "Treasury feed request timed out."),
   payloadTooLargeCancelReason: "Treasury payload limit",
