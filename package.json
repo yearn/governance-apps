@@ -46,7 +46,7 @@
     "mdast-util-gfm-table": "2.0.0",
     "micromark-extension-gfm-table": "2.1.1",
     "multiformats": "14.0.5",
-    "next": "16.4.1",
+    "next": "16.4.2",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hot-toast": "2.6.0",
