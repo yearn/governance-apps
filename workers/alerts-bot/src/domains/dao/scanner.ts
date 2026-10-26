@@ -86,16 +86,11 @@ interface DecodedLog {
 }
 
 async function readCollectiveAccounts(rpc: RpcClient, block: RpcBlock) {
-  try {
-    const values = await reads(rpc, block, DAO_VOTER, ["ybc", "delegated_staking"]);
-    const ybc = address.parse(String(values[0]).toLowerCase());
-    const delegated = address.parse(String(values[1]).toLowerCase());
-    if (ybc === delegated || ybc === zeroAddress || delegated === zeroAddress) return null;
-    return { ybc, delegated };
-  } catch {
-    // Optional display labels must not prevent delivery of confirmed votes.
-    return null;
-  }
+  const values = await reads(rpc, block, DAO_VOTER, ["ybc", "delegated_staking"]);
+  const ybc = address.parse(String(values[0]).toLowerCase());
+  const delegated = address.parse(String(values[1]).toLowerCase());
+  if (ybc === delegated || ybc === zeroAddress || delegated === zeroAddress) return null;
+  return { ybc, delegated };
 }
 
 function decode(log: CanonicalProductLog): DecodedLog {

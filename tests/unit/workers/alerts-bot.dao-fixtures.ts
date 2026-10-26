@@ -86,7 +86,7 @@ export function daoRpc(options: {
   proposal?: DaoAlertProposal | ((block: number, id: string) => DaoAlertProposal);
   config?: DaoAlertConfiguration | ((block: number) => DaoAlertConfiguration);
   genesis?: number;
-  collectiveAccounts?: typeof collectiveAccounts | null;
+  collectiveAccounts?: typeof collectiveAccounts | Error;
 } = {}) {
   const block = (number: number): RpcBlock => ({
     number, hash: hash(number), parentHash: hash(number - 1), timestamp: (options.startTime ?? voteStart - 172_800) + (number - DAO_DEPLOYMENT_BLOCK) * 12,
@@ -109,7 +109,7 @@ export function daoRpc(options: {
         case "decay_length": result = BigInt(config.decayLength ?? 0); break;
         case "ybc":
         case "delegated_staking": {
-          if (options.collectiveAccounts === null) throw new Error("test_collective_accounts_unavailable");
+          if (options.collectiveAccounts instanceof Error) throw options.collectiveAccounts;
           const accounts = options.collectiveAccounts ?? collectiveAccounts;
           result = decoded.functionName === "ybc" ? accounts.ybc : accounts.delegated;
           break;

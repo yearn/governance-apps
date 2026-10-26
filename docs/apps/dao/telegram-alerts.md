@@ -37,8 +37,8 @@ starts a new group to preserve log order. It never adds replacement weights to
 derive turnout. Large batches show the first five accounts and the number of
 remaining accounts, with the transaction link for the complete records.
 Different transactions and proposals remain separate alerts.
-Confirmed collective accounts use short YBC and Delegated labels; their alerts have
-a YBC marker. Unavailable or changing source configuration leaves neutral labels.
+Confirmed collective accounts use YBC and Delegated labels, with a YBC marker.
+Unknown Voters or changing sources leave neutral labels; failed reads retry.
 
 Message headings use one emoji, following the other alert channels:
 

@@ -157,7 +157,7 @@ describe("DAO confirmed scanner", () => {
 
   it("uses confirmed collective roles rather than the number of account updates", async () => {
     const accounts = { ybc: ACCOUNT, delegated: GUARDIAN };
-    const voteLogs = (accounts: string[]) => accounts.map((account, i) =>
+    const voteLogs = (addresses: string[]) => addresses.map((account, i) =>
       daoLog(DAO_EVENTS, "Vote", { account, idx: 0n, weight: 5n, yea: 10_000n }, G, i));
     const logs = voteLogs([accounts.ybc, accounts.delegated, collectiveAccounts.ybc]);
     const { rpc, call } = daoRpc({ startTime: voteStart + 12, logs, collectiveAccounts: accounts });
@@ -170,15 +170,24 @@ describe("DAO confirmed scanner", () => {
     expect(renderDaoAlert(unrelated.actions[0]!)).not.toContain(" · YBC</b>");
   });
 
-  it.each(["unknown Voter", "unavailable roles", "SetYBC", "SetDelegatedStaking", "SetVoteParameters"])(
+  it.each([new TypeError("Network unavailable"), new RpcRequestError("RPC unavailable", "eth_call")])(
+    "propagates failed collective account reads without changing state: %s", async error => {
+      const { rpc } = daoRpc({ startTime: voteStart + 12, logs: ybcDaoVoteLogs(), collectiveAccounts: error });
+      const state = trackedState();
+      const before = structuredClone(state);
+      await expect(scanDaoBlocks({ rpc, fromBlock: G, toBlock: G, state })).rejects.toBe(error);
+      expect(state).toEqual(before);
+    },
+  );
+
+  it.each(["unknown Voter", "SetYBC", "SetDelegatedStaking", "SetVoteParameters"])(
     "keeps neutral account labels with %s", async kind => {
       const logs = ybcDaoVoteLogs();
       if (kind === "SetYBC") logs.push(daoLog(DAO_VOTER_EVENTS, kind, { ybc: ACCOUNT }, G, 3, DAO_VOTER));
       if (kind === "SetDelegatedStaking") logs.push(daoLog(DAO_VOTER_EVENTS, kind, { staking: ACCOUNT }, G, 3, DAO_VOTER));
       if (kind === "SetVoteParameters") logs.push(daoLog(DAO_EVENTS, kind, { length: 1n, voter: DAO_VOTER }, G, 3));
       const { rpc } = daoRpc({ startTime: voteStart + 12, logs,
-        config: kind === "unknown Voter" ? { ...configuration, voter: ACCOUNT } : configuration,
-        collectiveAccounts: kind === "unavailable roles" ? null : collectiveAccounts });
+        config: kind === "unknown Voter" ? { ...configuration, voter: ACCOUNT } : configuration });
       const result = await scanDaoBlocks({ rpc, fromBlock: G, toBlock: G, state: createEmptyDaoState() });
       const action = result.actions[0]!;
       if (action.kind !== "dao_proposal" || action.event !== "vote") throw new Error("test_vote_missing");

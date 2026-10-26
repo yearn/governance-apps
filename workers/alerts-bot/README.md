@@ -46,12 +46,11 @@ share ledger without creating user alerts. Deposits and withdrawals still
 require their corresponding mint and burn events; standalone user burns fail
 closed.
 
-DAO reads the deployed Voting and pinned Voter contracts. It also locates
-deadline blocks when no contract event occurs. Reminders precede voting and
-execution deadlines by 24 hours and 1 hour. Consecutive Vote logs from the same
-transaction and proposal share one message, including YBC collective account
-updates. See the
-[DAO catalogue and rollout](../../docs/apps/dao/telegram-alerts.md).
+DAO reads the deployed Voting and pinned Voter contracts and locates deadline
+blocks when no contract event occurs. Reminders precede voting and execution
+deadlines by 24 hours and 1 hour. Consecutive Vote logs from the same transaction
+and proposal share one message, including YBC collective account updates.
+See the [DAO catalogue and rollout](../../docs/apps/dao/telegram-alerts.md).
 
 DAO proposal titles come from the website's `/api/dao-data` route through the
 `DAO_APP` service binding. The website owns `DAO_DATA_URL`; no duplicate feed
