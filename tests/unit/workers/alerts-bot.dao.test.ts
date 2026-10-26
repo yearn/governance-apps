@@ -363,7 +363,7 @@ describe("DAO message catalogue", () => {
   });
 
   it("matches the approved historical vote template and footer order", () => {
-    const base = daoAction("vote", { ...proposal, id: "2", votes: "1762291976828952204004", yea: "1762291976828952204004" });
+    const base = daoAction("vote", { ...proposal, id: "2", epoch: 18, votes: "1762291976828952204004", yea: "1762291976828952204004" });
     if (base.kind !== "dao_proposal" || base.event !== "vote") throw new Error("test_vote_missing");
     const tx = "0x13cc67c6090c28e96a787b521b6af4275f546577de9f0ec26209dfec1f07dff4";
     const html = renderDaoAlert({ ...base, timestamp: 1_793_015_627, txHash: tx, votes: [{
@@ -377,6 +377,12 @@ describe("DAO message catalogue", () => {
     expect(html.endsWith("26 Oct, 11:53 UTC")).toBe(true);
     for (const prose of ["Voting open", "Observed:", "Ethereum block", "Proposal state and totals", "≈"]) expect(html).not.toContain(prose);
     expect(html).toMatchSnapshot("approved vote template");
+  });
+
+  it.each([[voteEnd - 1, true], [voteEnd, false]])("marks approval live only before voting closes: %s", (timestamp, live) => {
+    const html = renderDaoAlert({ ...daoAction("vote"), timestamp });
+    expect(html.includes("Approval 60% (live) · Required 50%")).toBe(live);
+    if (!live) expect(html).toContain("Approval 60% · Required 50%");
   });
 
   it.each([[0, "Against"], [10_000, "For"], [6_125, "61.25% For · 38.75% Against"]])("renders support %i without YBC wording", (supportBps, choice) => {

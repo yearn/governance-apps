@@ -26,7 +26,7 @@ The committed DAO flag is enabled. Existing streams retain their configuration.
 | Guardian vetoes | The contract reason and permanent execution block. Voting remains available only when the proposal was not also retracted. |
 | Vetoed voting closes | Final totals with an explicit reminder that voting cannot remove the veto. |
 
-Every message ends with its observation time in UTC.
+All dates use `26 Oct, 11:53 UTC`, including the observation time at the end.
 Transaction events link to Etherscan transactions. Deadline alerts link to their confirmed blocks.
 Proposal links include the chain and Voting address, so numeric proposal IDs remain unambiguous.
 
@@ -34,6 +34,7 @@ Votes show Account, Vote, and Weight for each individual voter, rounded to two
 decimals. YBC participants use `Weight: total (personal + YBC)`; other voters have
 no YBC annotation. Confirmed collective accounts are hidden. Tiny positive
 weights display as `<0.01` instead of zero.
+Approval is marked `(live)` while voting remains open.
 
 Consecutive Vote logs share an alert only within the same transaction and
 proposal; intervening events keep their order. Batches show up to five voters

@@ -10,7 +10,7 @@ Vote: <b>For</b>
 Weight: <b>71.28</b> (31.06 + YBC)
 
 For 6 · Against 4
-Approval 60% · Required 50%
+Approval 60% (live) · Required 50%
 
 - <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
 - <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
@@ -28,7 +28,7 @@ Vote: <b>For</b>
 Weight: <b>71.28</b> (31.06 + YBC)
 
 For 1,762.29 · Against 0
-Approval 100% · Required 50%
+Approval 100% (live) · Required 50%
 
 - <a href="https://dao.yearn.fi/proposals/2?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
 - <a href="https://gov.yearn.fi/t/budget-request-dao-ops-5/14722">Discussion</a>
@@ -42,7 +42,7 @@ exports[`DAO message catalogue > renders approved with proposal identity, eviden
 
 <b>&lt;test&gt; · #0</b>
 
-The vote passed. Execution window: 2026-11-27 00:00:00 UTC to 2026-12-10 00:00:00 UTC.
+The vote passed. Execution window: 27 Nov, 00:00 UTC to 10 Dec, 00:00 UTC.
 
 For 6 · Against 4
 Approval 60% · Required 50%
@@ -60,7 +60,7 @@ exports[`DAO message catalogue > renders discussion_ending with proposal identit
 
 <b>&lt;test&gt; · #0</b>
 
-Voting opens: 2026-11-19 00:00:00 UTC
+Voting opens: 19 Nov, 00:00 UTC
 Review the proposal and add feedback before voting opens.
 
 - <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
@@ -335,7 +335,7 @@ exports[`DAO message catalogue > renders execution_ending with proposal identity
 
 <b>&lt;test&gt; · #0</b>
 
-Execution deadline: 2026-12-10 00:00:00 UTC
+Execution deadline: 10 Dec, 00:00 UTC
 The time window is open. Review the exact script and run a fresh execution simulation in the app.
 
 For 6 · Against 4
@@ -354,7 +354,7 @@ exports[`DAO message catalogue > renders execution_ready with proposal identity,
 
 <b>&lt;test&gt; · #0</b>
 
-Execution deadline: 2026-12-10 00:00:00 UTC
+Execution deadline: 10 Dec, 00:00 UTC
 The time window is open. Review the exact script and run a fresh execution simulation in the app.
 
 For 6 · Against 4
@@ -373,7 +373,7 @@ exports[`DAO message catalogue > renders expired with proposal identity, evidenc
 
 <b>&lt;test&gt; · #0</b>
 
-Execution deadline: 2026-12-10 00:00:00 UTC
+Execution deadline: 10 Dec, 00:00 UTC
 The approved proposal was not executed before its window closed. It can no longer be executed.
 
 For 6 · Against 4
@@ -408,10 +408,10 @@ exports[`DAO message catalogue > renders proposed with proposal identity, eviden
 untrusted &amp; text
 
 Proposer: <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>
-Voting opens: 2026-11-19 00:00:00 UTC
-Voting closes: 2026-11-26 00:00:00 UTC
+Voting opens: 19 Nov, 00:00 UTC
+Voting closes: 26 Nov, 00:00 UTC
 Approval threshold: 50% of cast weight, with positive turnout.
-Execution window: 2026-11-27 00:00:00 UTC to 2026-12-10 00:00:00 UTC.
+Execution window: 27 Nov, 00:00 UTC to 10 Dec, 00:00 UTC.
 Read the proposal and join the discussion before voting.
 Execution is restricted to operator <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>.
 
@@ -460,7 +460,7 @@ exports[`DAO message catalogue > renders vetoed with proposal identity, evidence
 
 The guardian permanently blocked execution.
 Reason: &lt;b&gt;untrusted &amp; reason&lt;/b&gt;
-Voting remains open until 2026-11-26 00:00:00 UTC. Further votes cannot remove the veto.
+Voting remains open until 26 Nov, 00:00 UTC. Further votes cannot remove the veto.
 
 - <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
 - <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
@@ -497,7 +497,7 @@ Vote: <b>For</b>
 Weight: <b>5</b>
 
 For 6 · Against 4
-Approval 60% · Required 50%
+Approval 60% (live) · Required 50%
 
 - <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
 - <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
@@ -511,7 +511,7 @@ exports[`DAO message catalogue > renders vote_decay with proposal identity, evid
 
 <b>&lt;test&gt; · #0</b>
 
-Voting closes: 2026-11-26 00:00:00 UTC
+Voting closes: 26 Nov, 00:00 UTC
 The current Voter reduces the weight of new personal votes as the deadline approaches. Already recorded votes do not decay automatically.
 
 - <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
@@ -526,7 +526,7 @@ exports[`DAO message catalogue > renders voting_ending with proposal identity, e
 
 <b>&lt;test&gt; · #0</b>
 
-Voting closes: 2026-11-26 00:00:00 UTC
+Voting closes: 26 Nov, 00:00 UTC
 Open the proposal to review it and submit your vote.
 
 - <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
@@ -541,7 +541,7 @@ exports[`DAO message catalogue > renders voting_open with proposal identity, evi
 
 <b>&lt;test&gt; · #0</b>
 
-Voting closes: 2026-11-26 00:00:00 UTC
+Voting closes: 26 Nov, 00:00 UTC
 Open the proposal to review it and submit your vote.
 
 - <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>

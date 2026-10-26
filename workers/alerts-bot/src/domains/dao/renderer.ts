@@ -4,6 +4,8 @@ import { daoIsSignal, daoTiming } from "./lifecycle";
 import type { DaoAlertAction, DaoVoteAction } from "./types";
 import type { DaoAlertContent } from "./content";
 
+const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 export const DAO_ALERT_INTRODUCTION = "<b>Yearn DAO governance activity</b>\n\n" +
   "This channel tracks proposals, votes, deadlines, results, retractions, flags, vetoes, executions, and governance configuration on Ethereum.\n\n" +
   "Alerts use confirmed blocks. Historical replay includes historical deadlines; always check the app before acting. " +
@@ -30,7 +32,8 @@ function account(value: string): string {
 }
 
 function time(seconds: number): string {
-  return new Date(seconds * 1_000).toISOString().replace("T", " ").replace(".000Z", " UTC");
+  const date = new Date(seconds * 1_000);
+  return `${date.getUTCDate()} ${months[date.getUTCMonth()]}, ${date.toISOString().slice(11, 16)} UTC`;
 }
 
 function percent(bps: number | bigint): string {
@@ -43,12 +46,6 @@ function weight(value: string): string {
   if (raw > 0n && rounded === 0n) return "&lt;0.01";
   const [whole, fraction] = formatUnits(rounded, 2).split(".");
   return whole!.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (fraction ? `.${fraction}` : "");
-}
-
-function observedTime(seconds: number): string {
-  const date = new Date(seconds * 1_000);
-  const month = date.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
-  return `${date.getUTCDate()} ${month}, ${date.toISOString().slice(11, 16)} UTC`;
 }
 
 function voteLines(action: DaoVoteAction): string[] {
@@ -159,7 +156,7 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     if (["vote", "approved", "rejected", "vetoed_result", "execution_ready", "execution_ending", "expired"].includes(action.event)) {
       const votes = BigInt(p.votes);
       lines.push("", `For ${weight(p.yea)} · Against ${weight((votes - BigInt(p.yea)).toString())}`,
-        `Approval ${votes === 0n ? "no cast weight" : percent(BigInt(p.yea) * 10_000n / votes)} · Required ${percent(p.threshold)}`);
+        `Approval ${votes === 0n ? "no cast weight" : percent(BigInt(p.yea) * 10_000n / votes)}${votingAllowed ? " (live)" : ""} · Required ${percent(p.threshold)}`);
     }
     if (!signal && ["proposed", "approved", "execution_ready", "execution_ending"].includes(action.event)) {
       lines.push(c.executeGuard ? `Execution is restricted to operator ${account(c.operator)}.` : "Execution is permissionless.");
@@ -175,7 +172,7 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     if (!/^0x[0-9a-f]{64}$/.test(action.txHash)) throw new Error("dao_render_tx_invalid");
     links.push(`- <a href="https://etherscan.io/tx/${action.txHash}">Transaction</a>`);
   } else links.push(`- <a href="https://etherscan.io/block/${action.blockNumber}">Confirmed block</a>`);
-  lines.push("", ...links, "", observedTime(action.timestamp));
+  lines.push("", ...links, "", time(action.timestamp));
   const html = lines.join("\n");
   if (html.length > 4_096) throw new Error("dao_message_too_long");
   return html;
