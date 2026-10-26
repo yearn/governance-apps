@@ -1,0 +1,96 @@
+{
+  "source": {
+    "url": "https://data.dao-ops.com/prod/dao.json",
+    "feedSchema": "yearn.dao.feed.v2",
+    "observedAt": 1793036886,
+    "snapshotBlock": {
+      "number": "26278447",
+      "hash": "0x3f15cb1342b1153dcd3eee118275fb2df22570791de0364bd5f1e7d3f7146b06",
+      "timestamp": 1793036783
+    },
+    "bodySha256": "e5ef88d3d69a3718223fb6a5368d461276b73657c9402ca2753cec8911a057ad",
+    "contractRevision": "9395d5e6fffdfe21fda32af94d32fca1a4f7840b",
+    "note": "Public producer history, replayed with per-account replacement and integer truncation; not an independent RPC proof."
+  },
+  "proposalId": "0",
+  "votingAddress": "0x543e8871562a8c53e8b6a26835aeecb3a5a13070",
+  "threshold": "5000",
+  "transactionHash": "0x6b8a0d2a38e0fddd6e61890020a70c9fa47e60e612d53cb35d1c097002f9e5c3",
+  "block": {
+    "blockNumber": "26183615",
+    "blockHash": "0x18596e86bb951cb04b441db02c10a7c55785f467a37bf9694235a901b2af2c90",
+    "timestamp": 1791895031,
+    "transactionHash": "0x6b8a0d2a38e0fddd6e61890020a70c9fa47e60e612d53cb35d1c097002f9e5c3",
+    "transactionIndex": 91,
+    "logIndex": 328
+  },
+  "previousContributions": [
+    {
+      "account": "0x9cc96683eee232f52c0968b4f4bc1a0f312c0306",
+      "weight": "0",
+      "yea": "0"
+    },
+    {
+      "account": "0x9c42461aa8422926e3aef7b1c6e3743597149d79",
+      "weight": "427722440655328768425",
+      "yea": "427722440655328768425"
+    },
+    {
+      "account": "0xd6afd78c05f0d425f2b46359746dd44991dcb315",
+      "weight": "209310543413402000000",
+      "yea": "209310543413402000000"
+    }
+  ],
+  "events": [
+    {
+      "type": "vote",
+      "log": {
+        "blockNumber": "26183615",
+        "blockHash": "0x18596e86bb951cb04b441db02c10a7c55785f467a37bf9694235a901b2af2c90",
+        "timestamp": 1791895031,
+        "transactionHash": "0x6b8a0d2a38e0fddd6e61890020a70c9fa47e60e612d53cb35d1c097002f9e5c3",
+        "transactionIndex": 91,
+        "logIndex": 328
+      },
+      "account": "0x9cc96683eee232f52c0968b4f4bc1a0f312c0306",
+      "weight": "286540361247869000000",
+      "yea": "0"
+    },
+    {
+      "type": "vote",
+      "log": {
+        "blockNumber": "26183615",
+        "blockHash": "0x18596e86bb951cb04b441db02c10a7c55785f467a37bf9694235a901b2af2c90",
+        "timestamp": 1791895031,
+        "transactionHash": "0x6b8a0d2a38e0fddd6e61890020a70c9fa47e60e612d53cb35d1c097002f9e5c3",
+        "transactionIndex": 91,
+        "logIndex": 329
+      },
+      "account": "0x9c42461aa8422926e3aef7b1c6e3743597149d79",
+      "weight": "427722440655328768425",
+      "yea": "2255"
+    },
+    {
+      "type": "vote",
+      "log": {
+        "blockNumber": "26183615",
+        "blockHash": "0x18596e86bb951cb04b441db02c10a7c55785f467a37bf9694235a901b2af2c90",
+        "timestamp": 1791895031,
+        "transactionHash": "0x6b8a0d2a38e0fddd6e61890020a70c9fa47e60e612d53cb35d1c097002f9e5c3",
+        "transactionIndex": 91,
+        "logIndex": 330
+      },
+      "account": "0xd6afd78c05f0d425f2b46359746dd44991dcb315",
+      "weight": "209310543413402000000",
+      "yea": "2255"
+    }
+  ],
+  "before": {
+    "votes": "847843494998474768425",
+    "yea": "847843494998474768425"
+  },
+  "after": {
+    "votes": "1134383856246343768425",
+    "yea": "354461448837242788279"
+  }
+}

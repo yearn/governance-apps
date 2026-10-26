@@ -50,6 +50,12 @@ DAO reads the deployed Voting and pinned Voter contracts. It also locates
 deadline blocks when no contract event occurs. Reminders precede voting and
 execution deadlines by 24 hours and 1 hour. See the
 [DAO catalogue and rollout](../../docs/apps/dao/telegram-alerts.md).
+Each transaction and proposal has one vote message and receipt. Personal rows,
+YBC/stYFIx collective changes, and a threshold bar share that message.
+Canonical parent-state replay supplies transaction changes when totals reconcile.
+Optional history failures fall back to labelled end-of-block totals.
+Legacy per-log receipts suppress already reported rows during an interrupted upgrade.
+The grouping change preserves the current DAO object and cursor.
 
 DAO proposal titles come from the website's `/api/dao-data` route through the
 `DAO_APP` service binding. The website owns `DAO_DATA_URL`; no duplicate feed
@@ -87,7 +93,7 @@ with `ALERTS_STYFI_ENABLED`, `ALERTS_VEYFI_ENABLED`, `ALERTS_YETH_ENABLED`,
 `ALERTS_TEAMS_ENABLED`, `ALERTS_YBC_ENABLED`, and `ALERTS_DAO_ENABLED` after their final private
 chats, secrets, and replay reviews are ready.
 `DAO_ALERT_VOTES_ENABLED` defaults to `true`. Set it to `false` for lifecycle
-and configuration messages without individual Vote events.
+and configuration messages without grouped Vote messages.
 
 The paid Workers plan removes the old free-tier pressure to micro-budget every
 subrequest. The remaining bounds protect providers and Telegram without adding

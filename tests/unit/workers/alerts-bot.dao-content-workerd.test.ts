@@ -63,9 +63,9 @@ describe("DAO content through a workerd service binding", () => {
     expect(response.status).toBe(200);
     const result = await response.json() as { content: { title: string }; announcement: string; vote: string };
     expect(result.content.title).toBe("Fund research");
-    expect(result.announcement).toContain("<b>Fund research</b>");
+    expect(result.announcement).toContain("<b>Fund research · #0</b>");
     expect(result.announcement).toContain("Publish the research results.");
-    expect(result.vote).toContain("<b>Fund research</b>");
+    expect(result.vote).toContain("<b>Fund research · #0</b>");
     expect(result.announcement).not.toContain("Proposal title unavailable");
   });
 

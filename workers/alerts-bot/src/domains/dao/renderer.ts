@@ -1,8 +1,11 @@
 import { formatUnits } from "viem";
 import { DAO_EXECUTOR, DAO_VOTER, DAO_VOTING } from "./contracts";
-import { daoIsSignal, daoPasses, daoTiming } from "./lifecycle";
+import { approval, approvalBar, approvalChange, thresholdStatus } from "./vote-display";
+import { daoIsSignal, daoTiming } from "./lifecycle";
 import type { DaoAlertAction } from "./types";
 import type { DaoAlertContent } from "./content";
+
+const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export const DAO_ALERT_INTRODUCTION = "<b>Yearn DAO governance activity</b>\n\n" +
   "This channel tracks proposals, votes, deadlines, results, retractions, flags, vetoes, executions, and governance configuration on Ethereum.\n\n" +
@@ -30,7 +33,8 @@ function account(value: string): string {
 }
 
 function time(seconds: number): string {
-  return new Date(seconds * 1_000).toISOString().replace("T", " ").replace(".000Z", " UTC");
+  const date = new Date(seconds * 1_000);
+  return `${date.getUTCDate()} ${months[date.getUTCMonth()]}, ${date.toISOString().slice(11, 16)} UTC`;
 }
 
 function percent(bps: number | bigint): string {
@@ -38,12 +42,15 @@ function percent(bps: number | bigint): string {
 }
 
 function weight(value: string): string {
-  // Exact units; no float conversions or misleading zero after rounding.
-  return formatUnits(BigInt(value), 18);
+  const raw = BigInt(value);
+  const rounded = (raw + 5_000_000_000_000_000n) / 10_000_000_000_000_000n;
+  if (raw > 0n && rounded === 0n) return "&lt;0.01";
+  const [whole, fraction] = formatUnits(rounded, 2).split(".");
+  return whole!.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (fraction ? `.${fraction}` : "");
 }
 
 const titles = {
-  proposed: "📝 New DAO proposal", vote: "🗳️ DAO vote weight recorded", retracted: "↩️ DAO proposal retracted",
+  proposed: "📝 New DAO proposal", vote: "🗳️ DAO vote", retracted: "↩️ DAO proposal retracted",
   flagged: "🚩 DAO proposal flagged", vetoed: "🛑 DAO proposal vetoed", executed: "✅ DAO execution confirmed",
   discussion_ending: "💬 DAO discussion period ending", voting_open: "🗳️ DAO voting opened",
   voting_ending: "⏰ DAO voting ending", vote_decay: "📉 DAO vote weight decay started",
@@ -70,8 +77,9 @@ export const DAO_CONFIGURATION_COPY: Readonly<Record<string, { title: string; ef
   SetYBCWeightAggregator: { title: "YBC weight aggregator changed", effect: "YBC member votes use this aggregator to determine their collective vote share.", labels: { aggregator: "Weight aggregator" } },
 };
 
-export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent | null = null): string {
+export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent | null = null, maxVoteRows = 8): string {
   const lines: string[] = [];
+  const links: string[] = [];
   if (action.kind === "dao_configuration") {
     const copy = DAO_CONFIGURATION_COPY[action.event];
     if (!copy) throw new Error("dao_configuration_unsupported");
@@ -85,7 +93,7 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     lines.push("", copy.effect);
     if (action.event === "SetVoteParameters" && action.values.voter !== DAO_VOTER) lines.push("The Voter changed to an unreviewed implementation. Decay reminders are unavailable; review bot coverage before relying on it.");
     if (action.event === "SetExecuteParameters" && action.values.executor !== DAO_EXECUTOR) lines.push("The Executor changed to an unreviewed implementation. Review app compatibility before execution.");
-    lines.push("", '<a href="https://dao.yearn.fi/">Open DAO</a>');
+    links.push('- <a href="https://dao.yearn.fi/">DAO</a>');
   } else {
     const p = action.proposal;
     const c = action.configuration;
@@ -93,9 +101,7 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     const signal = daoIsSignal(p);
     const votingAllowed = !p.retracted && !p.flagged && action.timestamp >= t.voteStart && action.timestamp < t.voteEnd;
     const link = `https://dao.yearn.fi/proposals/${p.id}?chain=1&voting=${DAO_VOTING}`;
-    lines.push(`<b>${titles[action.event]}</b>`, "", `<a href="${escape(link)}">Proposal #${p.id}</a> · ${signal ? "Signal" : "Executable"}`);
-    if (content?.title) lines.push(`<b>${text(content.title, 140)}</b>`);
-    else lines.push("Proposal title unavailable. Open the proposal for details.");
+    lines.push(`<b>${titles[action.event]}</b>`, "", `<b>${content?.title ? `${text(content.title, 140)} · #${p.id}` : `Proposal #${p.id}`}</b>`);
     if (action.event === "proposed" && content?.summary) lines.push(text(content.summary, 300));
     lines.push("");
     if (action.event === "proposed") {
@@ -104,8 +110,20 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
         signal ? "This is a signal proposal with no executable actions." : `Execution window: ${time(t.executeStart)} to ${time(t.executeEnd)}.`,
         "Read the proposal and join the discussion before voting.");
     } else if (action.event === "vote") {
-      lines.push(`Vote account: ${account(action.actor!)}`, `Recorded weight: ${weight(action.weight!)} · For: ${percent(action.supportBps!)}`,
-        "Collective accounts can be updated by YBC votes. This event can replace earlier weight; it is not a count of new voters.");
+      for (const vote of action.votes.slice(0, maxVoteRows)) {
+        const choice = vote.supportBps === 10_000 ? "FOR" : vote.supportBps === 0 ? "AGAINST"
+          : `${percent(vote.supportBps)} For · ${percent(10_000 - vote.supportBps)} Against`;
+        lines.push(`${account(vote.account)} · <b>${choice}</b>`,
+          `${action.rolesVerified ? "Personal" : "Recorded"} weight: <b>${weight(vote.weight)}</b>`);
+      }
+      if (action.votes.length > maxVoteRows) lines.push(`+${action.votes.length - maxVoteRows} more vote updates · see Transaction`);
+      if (action.previouslyReported) lines.push(`${action.previouslyReported} vote update(s) reported earlier. Totals cover the whole transaction.`);
+      if (!action.rolesVerified) lines.push("Account roles unavailable; these are recorded account updates.");
+      if (action.collective) {
+        const { before, after } = action.collective;
+        lines.push("", `YBC vote (includes stYFIx): <b>${escape(before ? approval(before) + " → " : "")}${escape(approval(after))} For</b>`,
+          `Collective weight: ${weight(after.votes)}`);
+      } else if (action.collectiveUpdated) lines.push("", "YBC collective vote updated (includes stYFIx).");
     } else if (action.event === "retracted") {
       lines.push("The proposal author retracted this proposal. Voting and execution are unavailable.");
     } else if (action.event === "flagged") {
@@ -133,28 +151,40 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
       lines.push(`Execution deadline: ${time(t.executeEnd)}`, "The time window is open. Review the exact script and run a fresh execution simulation in the app.");
     }
     if (["vote", "approved", "rejected", "vetoed_result", "execution_ready", "execution_ending", "expired"].includes(action.event)) {
-      const votes = BigInt(p.votes);
-      lines.push("", `For: ${weight(p.yea)} · Against: ${weight((votes - BigInt(p.yea)).toString())}`,
-        `Approval: ${votes === 0n ? "no cast weight" : percent(BigInt(p.yea) * 10_000n / votes)} · Required: ${percent(p.threshold)}`);
-      if (action.timestamp < t.voteEnd) lines.push(`Current tally: ${daoPasses(p) ? "meets" : "does not meet"} the threshold. The result is not final.`);
+      const tally = action.event === "vote" && action.tally ? action.tally.after : p;
+      const before = action.event === "vote" ? action.tally?.before : null;
+      const label = action.event === "vote" ? (action.tally ? "Transaction approval" : "Approval at end of block") : "Approval";
+      lines.push("", `${label}: <b>${escape(before ? approval(before) + " → " : "")}${escape(approval(tally))}</b>${escape(before ? approvalChange(before, tally) : "")}`,
+        `<pre>${escape(approvalBar(tally, p.threshold))}</pre>`,
+        `For ${weight(tally.yea)} · Against ${weight((BigInt(tally.votes) - BigInt(tally.yea)).toString())}`);
+      if (action.event === "vote") {
+        if (p.vetoed) lines.push("<b>Guardian veto at end of block · Execution blocked</b>");
+        else if (p.flagged || p.retracted) lines.push("<b>Voting unavailable at end of block</b>");
+        else if (votingAllowed) lines.push(`<b>${escape(thresholdStatus(tally, p.threshold))}</b> · Voting open`);
+        else lines.push("Voting closed");
+        lines.push(`Voting closes: ${time(t.voteEnd)}`);
+        if (!action.tally) lines.push("Change unavailable; totals include all votes in this block.");
+      }
     }
     if (!signal && ["proposed", "approved", "execution_ready", "execution_ending"].includes(action.event)) {
       lines.push(c.executeGuard ? `Execution is restricted to operator ${account(c.operator)}.` : "Execution is permissionless.");
       if (c.executor !== DAO_EXECUTOR) lines.push("The Executor is unreviewed. The app can block execution until compatibility is verified.");
     }
-    if (p.vetoed && action.event !== "vetoed") lines.push("Guardian veto: execution is permanently blocked.");
+    if (p.vetoed && action.event !== "vetoed" && action.event !== "vote") lines.push("Guardian veto: execution is permanently blocked.");
     if (p.retracted && action.event !== "retracted" && action.event !== "flagged") lines.push("The proposal is retracted at the end of this block.");
     const discussion = content?.discussionUrl ? escape(content.discussionUrl) : null;
-    if (discussion && discussion.length <= 512) lines.push("", `<a href="${discussion}">Discussion</a>`);
-    lines.push("", `<a href="${escape(link)}">Open proposal</a>`);
+    links.push(`- <a href="${escape(link)}">Proposal</a>`);
+    if (discussion && discussion.length <= 512) links.push(`- <a href="${discussion}">Discussion</a>`);
   }
-  lines.push(`Observed: ${time(action.timestamp)} · Ethereum block ${action.blockNumber}`);
   if (action.source.kind === "onchain") {
     if (!/^0x[0-9a-f]{64}$/.test(action.txHash)) throw new Error("dao_render_tx_invalid");
-    lines.push(`<a href="https://etherscan.io/tx/${action.txHash}">Transaction</a>`);
-  } else lines.push(`<a href="https://etherscan.io/block/${action.blockNumber}">Confirmed block</a>`);
-  if (action.kind === "dao_proposal") lines.push("Proposal state and totals are from the end of this confirmed block.");
+    links.push(`- <a href="https://etherscan.io/tx/${action.txHash}">Transaction</a>`);
+  } else links.push(`- <a href="https://etherscan.io/block/${action.blockNumber}">Confirmed block</a>`);
+  lines.push("", ...links, "", time(action.timestamp));
   const html = lines.join("\n");
-  if (html.length > 4_096) throw new Error("dao_message_too_long");
+  if (html.length > 4_096) {
+    if (action.kind === "dao_proposal" && action.event === "vote" && maxVoteRows > 0) return renderDaoAlert(action, content, maxVoteRows - 1);
+    throw new Error("dao_message_too_long");
+  }
   return html;
 }
