@@ -16,6 +16,7 @@ import { daoTiming, pendingDaoMilestones } from "./lifecycle";
 import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState, DaoTrackedProposal, DaoVoteAction, DaoVoteUpdate } from "./types";
 
 const collectiveAccountChanges = new Set(["SetYBC", "SetDelegatedStaking", "SetVoteParameters"]);
+const voteTopic = encodeEventTopics({ abi: DAO_EVENTS, eventName: "Vote" })[0];
 const uint = z.string().regex(/^(0|[1-9][0-9]{0,77})$/);
 const address = z.string().regex(/^0x[0-9a-f]{40}$/);
 const hash = z.string().regex(/^0x[0-9a-f]{64}$/);
@@ -94,7 +95,7 @@ async function readCollectiveAccounts(rpc: RpcClient, block: RpcBlock) {
   return { ybc, delegated };
 }
 
-function recordedYbcWeight(trace: RpcCallTraceFrame, firstLogIndex: number, action: DaoVoteAction, vote: DaoVoteUpdate): bigint {
+function findVoterFrame(trace: RpcCallTraceFrame, firstLogIndex: number, action: DaoVoteAction, vote: DaoVoteUpdate): RpcCallTraceFrame {
   const topics = encodeEventTopics({ abi: DAO_EVENTS, eventName: "Vote",
     args: { account: vote.account as Address, idx: BigInt(action.proposal.id) } }) as readonly Hex[];
   const data = encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }], [BigInt(vote.weight), BigInt(vote.supportBps)]);
@@ -103,7 +104,7 @@ function recordedYbcWeight(trace: RpcCallTraceFrame, firstLogIndex: number, acti
   const visit = (frame: RpcCallTraceFrame) => {
     if (frame.error !== null) return;
     for (const log of frame.logs) {
-      if (log.address === DAO_VOTING && log.topics[0] === topics[0]) firstTraceIndex = Math.min(firstTraceIndex, log.index);
+      if (log.address === DAO_VOTING && log.topics[0] === voteTopic) firstTraceIndex = Math.min(firstTraceIndex, log.index);
     }
     if (frame.to === DAO_VOTER && frame.from === vote.account) {
       const log = frame.calls.filter(call => call.to === DAO_VOTING && call.error === null).flatMap(call => call.logs).find(log =>
@@ -117,17 +118,26 @@ function recordedYbcWeight(trace: RpcCallTraceFrame, firstLogIndex: number, acti
   // Trace log indices are transaction-relative; receipt log indices are block-relative.
   const matches = frames.filter(item => item.index - firstTraceIndex === vote.logIndex - firstLogIndex);
   if (matches.length !== 1) throw new Error("dao_vote_trace_frame_mismatch");
-  const input = encodeFunctionData({ abi: DAO_READS, functionName: "weight", args: [vote.account as Address] });
-  const frame = matches[0]!.frame;
+  return matches[0]!.frame;
+}
+
+function memberWeightFrom(frame: RpcCallTraceFrame, account: string): bigint {
   const votingCalls = frame.calls.filter(call => call.to === DAO_VOTING && call.error === null &&
-    call.logs.some(log => log.address === DAO_VOTING && log.topics[0] === topics[0]));
+    call.logs.some(log => log.address === DAO_VOTING && log.topics[0] === voteTopic));
+  // Voter._vote emits one personal vote, plus two collective votes for positive YBC member weight.
   if (votingCalls.length === 1) return 0n;
-  const calls = frame.calls.filter(call => call.type === "STATICCALL" && call.from === DAO_VOTER &&
+  const input = encodeFunctionData({ abi: DAO_READS, functionName: "weight", args: [account as Address] });
+  const weightCalls = frame.calls.filter(call => call.type === "STATICCALL" && call.from === DAO_VOTER &&
     call.input === input && call.error === null);
-  if (votingCalls.length !== 3 || calls.length !== 1 || calls[0]!.output === null || !/^0x[0-9a-f]{64}$/.test(calls[0]!.output) || BigInt(calls[0]!.output) === 0n) {
+  const weightCall = weightCalls.length === 1 ? weightCalls[0] : undefined;
+  if (votingCalls.length !== 3 || !weightCall) throw new Error("dao_vote_trace_weight_invalid");
+  const output = weightCall.output;
+  if (output === null || !/^0x[0-9a-f]{64}$/.test(output)) {
     throw new Error("dao_vote_trace_weight_invalid");
   }
-  return BigInt(calls[0]!.output);
+  const weight = BigInt(output);
+  if (weight === 0n) throw new Error("dao_vote_trace_weight_invalid");
+  return weight;
 }
 
 async function addVoteInfluence(rpc: RpcClient, block: RpcBlock, actions: readonly DaoAlertAction[]): Promise<readonly DaoAlertAction[]> {
@@ -160,7 +170,8 @@ async function addVoteInfluence(rpc: RpcClient, block: RpcBlock, actions: readon
     return { ...action, votes: action.votes.map(vote => {
       if (vote.role !== "voter") return vote;
       // Later transfers can change current member weight without changing recorded participation.
-      const member = recordedYbcWeight(trace, firstIndices.get(action.txHash)!, action, vote);
+      const frame = findVoterFrame(trace, firstIndices.get(action.txHash)!, action, vote);
+      const member = memberWeightFrom(frame, vote.account);
       if (member === 0n) return vote;
       const total = totals.get(action.proposal.id)!;
       if (member > total || pool.ybc === undefined || pool.delegated === undefined) throw new Error("dao_vote_influence_invalid");
