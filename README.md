@@ -30,6 +30,20 @@ npm run dev
 Open `http://localhost:3000/<route>`. Set `NEXT_PUBLIC_USE_MOCKS=true` for the
 deterministic mock clients and shared debug controls.
 
+For UI testing with a fixed test wallet, start a mock session:
+
+```fish
+env NEXT_PUBLIC_RUNTIME_MODE=development \
+  NEXT_PUBLIC_USE_MOCKS=true \
+  NEXT_PUBLIC_E2E=true \
+  npm run dev
+```
+
+This uses a simulated connected wallet. It needs no wallet private key or
+deployment credentials. Use a checkout without production environment files.
+For wallet-connect testing, set `NEXT_PUBLIC_E2E=false`. See the
+[mock controls guide](docs/shared/mock-toggles.md) for scenarios and reset options.
+
 ## Validation
 
 Run these checks for every meaningful change:
