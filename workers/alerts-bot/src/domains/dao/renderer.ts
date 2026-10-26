@@ -1,7 +1,7 @@
 import { formatUnits } from "viem";
 import { DAO_EXECUTOR, DAO_VOTER, DAO_VOTING } from "./contracts";
 import { daoIsSignal, daoPasses, daoTiming } from "./lifecycle";
-import type { DaoAlertAction } from "./types";
+import type { DaoAlertAction, DaoVoteAction } from "./types";
 import type { DaoAlertContent } from "./content";
 
 export const DAO_ALERT_INTRODUCTION = "<b>Yearn DAO governance activity</b>\n\n" +
@@ -40,6 +40,19 @@ function percent(bps: number | bigint): string {
 function weight(value: string): string {
   // Exact units; no float conversions or misleading zero after rounding.
   return formatUnits(BigInt(value), 18);
+}
+
+function voteLines(action: DaoVoteAction): string[] {
+  // A multicall can update a collective repeatedly. Show each account's final record once.
+  const votes = [...new Map(action.votes.map(vote => [vote.account, vote])).values()];
+  if (votes.length === 0) throw new Error("dao_vote_updates_missing");
+  const visible = votes.slice(0, 5);
+  return [
+    "Recorded account weights:",
+    ...visible.map(vote => `${account(vote.account)} · Weight: ${weight(vote.weight)} · For: ${percent(vote.supportBps)}`),
+    ...(votes.length > visible.length ? [`${votes.length - visible.length} more account updates. See the transaction for all records.`] : []),
+    "YBC votes can update collective accounts. These records can replace earlier weight; they are not a count of new voters.",
+  ];
 }
 
 const titles = {
@@ -104,8 +117,7 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
         signal ? "This is a signal proposal with no executable actions." : `Execution window: ${time(t.executeStart)} to ${time(t.executeEnd)}.`,
         "Read the proposal and join the discussion before voting.");
     } else if (action.event === "vote") {
-      lines.push(`Vote account: ${account(action.actor!)}`, `Recorded weight: ${weight(action.weight!)} · For: ${percent(action.supportBps!)}`,
-        "Collective accounts can be updated by YBC votes. This event can replace earlier weight; it is not a count of new voters.");
+      lines.push(...voteLines(action));
     } else if (action.event === "retracted") {
       lines.push("The proposal author retracted this proposal. Voting and execution are unavailable.");
     } else if (action.event === "flagged") {

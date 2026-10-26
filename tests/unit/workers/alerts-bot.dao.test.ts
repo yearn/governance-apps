@@ -8,7 +8,7 @@ import { daoMilestones, daoPasses, daoTiming, pendingDaoMilestones } from "@/wor
 import { renderDaoAlert, DAO_CONFIGURATION_COPY } from "@/workers/alerts-bot/src/domains/dao/renderer";
 import { RpcRequestError } from "@/workers/alerts-bot/src/rpc";
 import type { DaoAlertAction } from "@/workers/alerts-bot/src/domains/dao/types";
-import { ACCOUNT, configuration, daoAction, daoLog, daoRpc, hash, proposal, trackedState, voteEnd, voteStart } from "./alerts-bot.dao-fixtures";
+import { ACCOUNT, configuration, daoAction, daoLog, daoRpc, hash, proposal, trackedState, voteEnd, voteStart, ybcDaoVoteLogs } from "./alerts-bot.dao-fixtures";
 
 describe("DAO contract coverage and lifecycle", () => {
   it("pins the same deployed Voting and Voter as the app", () => {
@@ -117,11 +117,80 @@ describe("DAO confirmed scanner", () => {
       daoLog(DAO_EVENTS, "Vote", { account: ACCOUNT, idx: 0n, weight: 7n, yea: 6_000n }, G, 1)];
     const { rpc } = daoRpc({ startTime: voteStart + 12, logs });
     const result = await scanDaoBlocks({ rpc, fromBlock: G, toBlock: G, state: trackedState(proposal, [`voting_open:${voteStart}`]) });
-    expect(result.actions).toHaveLength(2);
-    expect(result.actions[1]).toMatchObject({ event: "vote", weight: "7", supportBps: 6_000, proposal: { votes: proposal.votes, yea: proposal.yea } });
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toMatchObject({ event: "vote", votes: [
+      { account: ACCOUNT, weight: "5", supportBps: 10_000, logIndex: 0 },
+      { account: ACCOUNT, weight: "7", supportBps: 6_000, logIndex: 1 },
+    ], proposal: { votes: proposal.votes, yea: proposal.yea } });
+    const html = renderDaoAlert(result.actions[0]!);
+    expect(html).toContain("Weight: 0.000000000000000007 · For: 60%");
+    expect(html).not.toContain("0.000000000000000005");
     const muted = await scanDaoBlocks({ rpc, fromBlock: G, toBlock: G, state: trackedState(proposal, [`voting_open:${voteStart}`]), includeVotes: false });
     expect(muted.actions).toEqual([]);
     expect(muted.state.proposals["0"]!.proposal.votes).toBe(proposal.votes);
+  });
+
+  it("groups a YBC vote with its two collective updates using the final event's receipt key", async () => {
+    const logs = ybcDaoVoteLogs();
+    const { rpc } = daoRpc({ startTime: voteStart + 12, logs: [...logs].reverse() });
+    const result = await scanDaoBlocks({ rpc, fromBlock: G, toBlock: G, state: trackedState(proposal, [`voting_open:${voteStart}`]) });
+    expect(result.actions).toHaveLength(1);
+    expect(result.actions[0]).toMatchObject({
+      event: "vote", eventId: `dao:${logs[0]!.transactionHash}:2:Vote`,
+      logIndex: 0, source: { kind: "onchain", logIndex: 0 },
+      votes: [
+        { account: "0x1d70e9414b639286665df4794ff5c7ea538b4eac", weight: "31064793252156000000", logIndex: 0 },
+        { account: "0x9c42461aa8422926e3aef7b1c6e3743597149d79", weight: "431027945257047456616", logIndex: 1 },
+        { account: "0xd6afd78c05f0d425f2b46359746dd44991dcb315", weight: "213818835516958000000", logIndex: 2 },
+      ],
+    });
+    const html = renderDaoAlert(result.actions[0]!);
+    expect(html.match(/For: 100%/g)).toHaveLength(3);
+    expect(html).toContain("Weight: 431.027945257047456616");
+    expect(html.match(/Current tally:/g)).toHaveLength(1);
+    expect(html.match(/etherscan.io\/tx\//g)).toHaveLength(1);
+    expect(html).toMatchSnapshot("YBC vote summary");
+  });
+
+  it("keeps transactions, proposals and intervening configuration alerts separate", async () => {
+    const tx2 = hash(777);
+    const logs = [
+      ...ybcDaoVoteLogs(),
+      daoLog(DAO_EVENTS, "SetThreshold", { threshold: 6_000n }, G, 3),
+      ...ybcDaoVoteLogs(0n, 4),
+      ...ybcDaoVoteLogs(1n, 7),
+      ...ybcDaoVoteLogs(0n, 10),
+      ...ybcDaoVoteLogs(0n, 13).map(log => ({ ...log, transactionHash: tx2 })),
+    ];
+    const { rpc } = daoRpc({ startTime: voteStart + 12, logs, proposal: (_block, id) => ({ ...proposal, id }) });
+    const initial = trackedState(proposal, [`voting_open:${voteStart}`]);
+    const state = { ...initial, proposals: { ...initial.proposals, "1": { ...initial.proposals["0"]!, proposal: { ...proposal, id: "1" } } } };
+    const result = await scanDaoBlocks({ rpc, fromBlock: G, toBlock: G, state });
+    expect(result.actions).toMatchObject([
+      { event: "vote", logIndex: 0, proposal: { id: "0" }, eventId: `dao:${logs[0]!.transactionHash}:2:Vote` },
+      { event: "SetThreshold", logIndex: 3 },
+      { event: "vote", logIndex: 4, proposal: { id: "0" }, eventId: `dao:${logs[0]!.transactionHash}:6:Vote` },
+      { event: "vote", logIndex: 7, proposal: { id: "1" } },
+      { event: "vote", logIndex: 10, proposal: { id: "0" } },
+      { event: "vote", logIndex: 13, proposal: { id: "0" }, txHash: tx2 },
+    ]);
+    expect(result.actions.filter(a => a.kind === "dao_proposal" && a.event === "vote").map(a => a.votes.length)).toEqual([3, 3, 3, 3, 3]);
+  });
+
+  it("summarizes multiple personal votes and the final collective records in one multicall", async () => {
+    const logs = [...ybcDaoVoteLogs(),
+      daoLog(DAO_EVENTS, "Vote", { account: ACCOUNT, idx: 0n, weight: 5n, yea: 0n }, G, 3),
+      daoLog(DAO_EVENTS, "Vote", { account: "0x9c42461aa8422926e3aef7b1c6e3743597149d79", idx: 0n, weight: 431n, yea: 6_000n }, G, 4),
+      daoLog(DAO_EVENTS, "Vote", { account: "0xd6afd78c05f0d425f2b46359746dd44991dcb315", idx: 0n, weight: 213n, yea: 6_000n }, G, 5),
+    ];
+    const result = await scanDaoBlocks({ rpc: daoRpc({ startTime: voteStart + 12, logs }).rpc, fromBlock: G, toBlock: G,
+      state: trackedState(proposal, [`voting_open:${voteStart}`]) });
+    expect(result.actions).toHaveLength(1);
+    const html = renderDaoAlert(result.actions[0]!);
+    expect(html.match(/etherscan.io\/address\//g)).toHaveLength(4);
+    expect(html.match(/For: 60%/g)).toHaveLength(2);
+    expect(html).toContain("Weight: 0.000000000000000431");
+    expect(html).not.toContain("431.027945257047456616");
   });
 
   it("re-evaluates active proposals after a timing configuration change", async () => {
@@ -176,6 +245,20 @@ describe("DAO confirmed scanner", () => {
 });
 
 describe("DAO message catalogue", () => {
+  it("bounds large vote batches while retaining exact final weights and transaction evidence", () => {
+    const base = daoAction("vote");
+    if (base.kind !== "dao_proposal" || base.event !== "vote") throw new Error("test_vote_missing");
+    const votes = Array.from({ length: 100 }, (_, i) => ({
+      account: `0x${(i + 1).toString(16).padStart(40, "0")}`, weight: ((1n << 256n) - 1n).toString(), supportBps: 10_000, logIndex: i,
+    }));
+    const html = renderDaoAlert({ ...base, votes }, { title: "x".repeat(140), summary: "", discussionUrl: "https://gov.yearn.fi/" + "x".repeat(480) });
+    expect(html.length).toBeLessThanOrEqual(4_096);
+    expect(html.match(/etherscan.io\/address\//g)).toHaveLength(5);
+    expect(html).toContain("95 more account updates. See the transaction for all records.");
+    expect(html).toContain("115792089237316195423570985008687907853269984665640564039457.584007913129639935");
+    expect(html).toContain(`etherscan.io/tx/${base.txHash}`);
+  });
+
   const events = ["proposed", "vote", "retracted", "flagged", "vetoed", "executed", "discussion_ending", "voting_open", "voting_ending", "vote_decay", "approved", "rejected", "vetoed_result", "execution_ready", "execution_ending", "expired"] as const;
   it.each(events)("renders %s with proposal identity, evidence and bounded HTML", event => {
     const html = renderDaoAlert(daoAction(event), { title: "<test>", summary: "untrusted & text", discussionUrl: "https://gov.yearn.fi/t/example/123" });

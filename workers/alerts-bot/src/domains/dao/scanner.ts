@@ -13,7 +13,7 @@ import {
   DAO_VOTER, DAO_VOTER_EVENTS, DAO_VOTING,
 } from "./contracts";
 import { daoTiming, pendingDaoMilestones } from "./lifecycle";
-import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState, DaoTrackedProposal } from "./types";
+import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState, DaoTrackedProposal, DaoVoteAction, DaoVoteUpdate } from "./types";
 
 const uint = z.string().regex(/^(0|[1-9][0-9]{0,77})$/);
 const address = z.string().regex(/^0x[0-9a-f]{40}$/);
@@ -205,14 +205,30 @@ export async function scanDaoBlocks(params: {
       if ((event === "flagged" || event === "vetoed") && new TextEncoder().encode(String(args.reason)).length > 256) {
         throw new Error("dao_reason_invalid");
       }
-      if (event === "vote" && params.includeVotes === false) continue;
+      if (event === "vote") {
+        if (params.includeVotes === false) continue;
+        const vote: DaoVoteUpdate = {
+          account: String(args.account).toLowerCase(), weight: String(args.weight),
+          supportBps: Number(args.yea), logIndex: log.logIndex,
+        };
+        const previous = actions.at(-1);
+        const group = previous?.kind === "dao_proposal" && previous.event === "vote" &&
+          previous.txHash === log.transactionHash && previous.proposal.id === p.id ? previous : undefined;
+        const action: DaoVoteAction = {
+          ...base, kind: "dao_proposal", event, proposal: p, configuration,
+          // Keep the first log's order/source; the last log's receipt covers the whole group.
+          logIndex: group?.logIndex ?? base.logIndex,
+          source: group?.source ?? base.source,
+          votes: [...(group?.votes ?? []), vote],
+        };
+        if (group) actions[actions.length - 1] = action;
+        else actions.push(action);
+        continue;
+      }
       actions.push({
         ...base, kind: "dao_proposal", event, proposal: p, configuration,
-        actor: event === "proposed" ? p.proposer : event === "vote" ? String(args.account).toLowerCase()
-          : event === "executed" ? String(args.executor).toLowerCase() : undefined,
+        actor: event === "proposed" ? p.proposer : event === "executed" ? String(args.executor).toLowerCase() : undefined,
         reason: event === "flagged" || event === "vetoed" ? String(args.reason) : undefined,
-        weight: event === "vote" ? String(args.weight) : undefined,
-        supportBps: event === "vote" ? Number(args.yea) : undefined,
       });
     } else {
       actions.push({

@@ -12,7 +12,7 @@ The committed DAO flag is enabled. Existing streams retain their configuration.
 | Proposal created | Proposal link, type, proposer, threshold, voting dates, and execution permissions. Read the proposal and join its discussion. |
 | Discussion ending | Reminders 24 hours and 1 hour before voting opens. |
 | Voting opens | Voting deadline and a link to the proposal. |
-| Vote recorded | Account, effective weight, support share, and final block totals. Collective account updates can replace earlier weight. |
+| Vote recorded | Related account updates from one transaction and proposal, with recorded weights, support shares, and final block totals. Collective account updates can replace earlier weight. |
 | Voting ending | Reminders 24 hours and 1 hour before voting closes. |
 | Vote weight decay | Notice at the first block where the pinned Voter reduces new personal vote weight. Existing votes do not decay automatically. |
 | Voting closes | Approval or rejection, final totals, and threshold. Zero turnout fails even when the threshold is zero. |
@@ -29,6 +29,14 @@ The committed DAO flag is enabled. Existing streams retain their configuration.
 Every message includes its observation time in UTC and the confirmed block number.
 Transaction events link to Etherscan transactions. Deadline alerts link to their confirmed blocks.
 Proposal links include the chain and Voting address, so numeric proposal IDs remain unambiguous.
+
+YBC member votes also update delegated staking and YBC collective accounts. The
+scanner groups consecutive Vote logs by transaction and proposal, and the message
+shows the final record for each account in that group once. Any intervening event
+starts a new group to preserve log order. It never adds replacement weights to
+derive turnout. Large batches show the first five accounts and the number of
+remaining accounts, with the transaction link for the complete records.
+Different transactions and proposals remain separate alerts.
 
 Message headings use one emoji, following the other alert channels:
 
@@ -112,6 +120,9 @@ Cancelled or elapsed reminder windows do not produce current-action messages.
 
 The worker sends at most five messages per domain run.
 Receipts prevent resending accepted messages when a run reaches its cap or restarts.
+Grouped votes use the last source Vote log's existing receipt key.
+All source Vote log indexes remain in the scanned action. Grouping uses the
+existing `alerts:dao:v3` object and saved cursor; it requires no replay or storage migration.
 The cursor and proposal state advance only after all messages for the scanned block have receipts.
 Telegram `retry_after` pauses delivery without consuming the block.
 The existing duplicate window remains: Telegram can accept a message before its receipt reaches durable storage.
@@ -126,7 +137,7 @@ This extension does not send infrastructure warnings to Telegram.
 | --- | --- | --- |
 | `DAO_TELEGRAM_CHAT_ID` | Cloudflare secret for the final DAO chat | Managed on the deployed Worker |
 | `ALERTS_DAO_ENABLED` | Enable DAO scanning and delivery | `true` |
-| `DAO_ALERT_VOTES_ENABLED` | Include each Vote event | `true` |
+| `DAO_ALERT_VOTES_ENABLED` | Include grouped vote messages | `true` |
 | `DAO_APP` | Service binding to the website's configured feed route | `governance-apps` |
 
 The existing `RPC_URL`, `TELEGRAM_BOT_TOKEN`, and `ADMIN_TOKEN` are shared.

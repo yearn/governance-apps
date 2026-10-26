@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 import { decodeFunctionData, encodeAbiParameters, encodeEventTopics, encodeFunctionResult, type Abi, type Hex } from "viem";
-import { DAO_DEPLOYMENT_BLOCK, DAO_EPOCH, DAO_EXECUTOR, DAO_GENESIS, DAO_READS, DAO_VOTER, DAO_VOTING } from "@/workers/alerts-bot/src/domains/dao/contracts";
+import { DAO_DEPLOYMENT_BLOCK, DAO_EPOCH, DAO_EVENTS, DAO_EXECUTOR, DAO_GENESIS, DAO_READS, DAO_VOTER, DAO_VOTING } from "@/workers/alerts-bot/src/domains/dao/contracts";
 import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState } from "@/workers/alerts-bot/src/domains/dao/types";
 import type { RpcBlock, RpcCallRequest, RpcClient, RpcLog } from "@/workers/alerts-bot/src/rpc";
 
@@ -41,13 +41,17 @@ export function daoAction(event: Extract<DaoAlertAction, { kind: "dao_proposal" 
   if (event === "flagged") observed.flagged = true;
   if (event === "vetoed" || event === "vetoed_result") observed.vetoed = true;
   if (event === "executed") observed.executed = true;
-  return {
-    domainId: "dao", kind: "dao_proposal", event, eventId: `test:${event}`, blockNumber: DAO_DEPLOYMENT_BLOCK,
+  const base = {
+    domainId: "dao", kind: "dao_proposal", eventId: `test:${event}`, blockNumber: DAO_DEPLOYMENT_BLOCK,
     blockHash: hash(DAO_DEPLOYMENT_BLOCK),
     timestamp, logIndex: 0, txHash: onchain ? hash(999) : "",
-    source: onchain ? { kind: "onchain", txHash: hash(999), logIndex: 0 }
-      : { kind: "synthetic", metricId: `test:${event}`, blockHash: hash(DAO_DEPLOYMENT_BLOCK), orderingIndex: 0 },
-    proposal: observed, configuration, actor: ACCOUNT, weight: "5000000000000000000", supportBps: 10_000,
+    source: onchain ? { kind: "onchain" as const, txHash: hash(999), logIndex: 0 }
+      : { kind: "synthetic" as const, metricId: `test:${event}`, blockHash: hash(DAO_DEPLOYMENT_BLOCK), orderingIndex: 0 },
+    proposal: observed, configuration,
+  } as const;
+  if (event === "vote") return { ...base, event, votes: [{ account: ACCOUNT, weight: "5000000000000000000", supportBps: 10_000, logIndex: 0 }] };
+  return {
+    ...base, event, actor: ACCOUNT,
     reason: "<b>untrusted & reason</b>",
   };
 }
@@ -61,6 +65,15 @@ export function daoLog(abi: Abi, name: string, args: Record<string, unknown>, bl
     topics: encodeEventTopics({ abi, eventName: name, args } as never) as string[],
     data: encodeAbiParameters(inputs, inputs.map(i => args[i.name!])),
   };
+}
+
+// Account/weight payloads from mainnet transaction 0x13cc67c6090c28e96a787b521b6af4275f546577de9f0ec26209dfec1f07dff4.
+export function ybcDaoVoteLogs(idx = 0n, firstLogIndex = 0): RpcLog[] {
+  return [
+    { account: "0x1d70e9414b639286665df4794ff5c7ea538b4eac", weight: 31_064793252156000000n },
+    { account: "0x9c42461aa8422926e3aef7b1c6e3743597149d79", weight: 431_027945257047456616n },
+    { account: "0xd6afd78c05f0d425f2b46359746dd44991dcb315", weight: 213_818835516958000000n },
+  ].map((vote, i) => daoLog(DAO_EVENTS, "Vote", { ...vote, idx, yea: 10_000n }, DAO_DEPLOYMENT_BLOCK, firstLogIndex + i));
 }
 
 export function daoRpc(options: {
