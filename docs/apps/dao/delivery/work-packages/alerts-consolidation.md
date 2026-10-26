@@ -64,3 +64,11 @@ If those reads fail or disagree, it explicitly labels final-block totals and omi
 
 Keep this branch available for review. Integration, deployment, and private-chat
 acceptance remain separate maintainer steps.
+
+## CI follow-up
+
+The first GitHub run exposed an existing modal-test timing race.
+The dialog can appear before its passive effect moves focus.
+The test now waits for focus before checking keyboard trapping and restoration.
+Modal implementation and application behavior are unchanged.
+The exact CI test command, typecheck, and lint pass locally after the correction.
