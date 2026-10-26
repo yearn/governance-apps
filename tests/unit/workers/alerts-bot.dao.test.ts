@@ -394,20 +394,22 @@ describe("DAO message catalogue", () => {
     const html = renderDaoAlert({ ...base, timestamp: 1_793_015_627, txHash: tx,
       account: "0x1d70e9414b639286665df4794ff5c7ea538b4eac", weight: "31064793252156000000", ybcCollectiveUpdated: true, supportBps: 10_000, logIndex: 611,
     }, { title: "BR: DAO-ops 5", summary: "", discussionUrl: "https://gov.yearn.fi/t/budget-request-dao-ops-5/14722" });
+    expect(html).toContain("<b>🗳️ DAO vote</b>\n<b>BR: DAO-ops 5 · #2</b>\n\nAccount:");
     expect(html).toContain("Weight: 31.06 | +YBC");
-    expect(html).toContain("For 1,762.29 · Against 0");
-    expect(html).toContain("Required 50%\n\n- <a href=\"https://dao.yearn.fi/proposals/2");
+    expect(html).toContain("Weight: 31.06 | +YBC\nFor 1,762.29 · Against 0\n\nApproval 100% · Required 50%");
+    expect(html).toContain("Required 50%\n\n<a href=\"https://dao.yearn.fi/proposals/2");
+    expect(html).toContain("</a> · <a href=\"https://gov.yearn.fi/t/budget-request-dao-ops-5/14722\">Discussion</a> · <a href=\"https://etherscan.io/tx/");
     expect(html.indexOf(">Proposal</a>")).toBeLessThan(html.indexOf(">Discussion</a>"));
     expect(html.indexOf(">Discussion</a>")).toBeLessThan(html.indexOf(">Transaction</a>"));
-    expect(html.endsWith("26 Oct, 11:53 UTC")).toBe(true);
+    expect(html.endsWith(">Transaction</a>\n26 Oct, 11:53 UTC")).toBe(true);
     for (const prose of ["Voting open", "Observed:", "Ethereum block", "Proposal state and totals", "≈"]) expect(html).not.toContain(prose);
     expect(html).toMatchSnapshot("approved vote template");
   });
 
-  it.each([[voteEnd - 1, true], [voteEnd, false]])("marks approval live only before voting closes: %s", (timestamp, live) => {
+  it.each([voteEnd - 1, voteEnd])("omits a live suffix on vote approval at %s", timestamp => {
     const html = renderDaoAlert({ ...daoAction("vote"), timestamp });
-    expect(html.includes("Approval 60% (live) · Required 50%")).toBe(live);
-    if (!live) expect(html).toContain("Approval 60% · Required 50%");
+    expect(html).toContain("Approval 60% · Required 50%");
+    expect(html).not.toContain("(live)");
   });
 
   it.each([[0, "Against"], [10_000, "For"], [6_125, "61.25% For · 38.75% Against"]])("renders support %i without YBC wording", (supportBps, choice) => {

@@ -35,13 +35,15 @@ decimals. When a member's vote also updates the YBC collective accounts, the lin
 `Weight: 31.06 | +YBC`. Other voters have no YBC marker. The marker does not assign
 an amount of the collective vote to the member. Confirmed collective accounts are hidden. Tiny positive
 weights display as `<0.01` instead of zero.
-Approval is marked `(live)` while voting remains open.
+Vote alerts put blank lines before Account, Approval, and the inline links.
+The approval line does not use a live-status suffix.
 
 Each personal Vote log produces one alert, including when several members vote
 in one transaction. Confirmed collective updates provide YBC influence context
 without separate alerts. If account roles cannot be verified, each Vote log is
-reported neutrally. Event order is preserved. The footer lists Proposal,
-Discussion, Transaction, then the UTC observation time, omitting unavailable links.
+reported neutrally. Event order is preserved. The vote footer lists Proposal,
+Discussion, and Transaction on one line, followed by the UTC observation time;
+unavailable links are omitted.
 
 Message headings use one emoji, following the other alert channels:
 

@@ -92,7 +92,7 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     lines.push("", copy.effect);
     if (action.event === "SetVoteParameters" && action.values.voter !== DAO_VOTER) lines.push("The Voter changed to an unreviewed implementation. Decay reminders are unavailable; review bot coverage before relying on it.");
     if (action.event === "SetExecuteParameters" && action.values.executor !== DAO_EXECUTOR) lines.push("The Executor changed to an unreviewed implementation. Review app compatibility before execution.");
-    links.push('- <a href="https://dao.yearn.fi/">DAO</a>');
+    links.push('<a href="https://dao.yearn.fi/">DAO</a>');
   } else {
     const p = action.proposal;
     const c = action.configuration;
@@ -100,7 +100,9 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     const signal = daoIsSignal(p);
     const votingAllowed = !p.retracted && !p.flagged && action.timestamp >= t.voteStart && action.timestamp < t.voteEnd;
     const link = `https://dao.yearn.fi/proposals/${p.id}?chain=1&voting=${DAO_VOTING}`;
-    lines.push(`<b>${titles[action.event]}</b>`, "", `<b>${content?.title ? `${text(content.title, 140)} · #${p.id}` : `Proposal #${p.id}`}</b>`);
+    lines.push(`<b>${titles[action.event]}</b>`);
+    if (action.event !== "vote") lines.push("");
+    lines.push(`<b>${content?.title ? `${text(content.title, 140)} · #${p.id}` : `Proposal #${p.id}`}</b>`);
     if (action.event === "proposed" && content?.summary) lines.push(text(content.summary, 300));
     lines.push("");
     if (action.event === "proposed") {
@@ -141,8 +143,10 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     }
     if (["vote", "approved", "rejected", "vetoed_result", "execution_ready", "execution_ending", "expired"].includes(action.event)) {
       const votes = BigInt(p.votes);
-      lines.push("", `For ${weight(p.yea)} · Against ${weight((votes - BigInt(p.yea)).toString())}`,
-        `Approval ${votes === 0n ? "no cast weight" : percent(BigInt(p.yea) * 10_000n / votes)}${votingAllowed ? " (live)" : ""} · Required ${percent(p.threshold)}`);
+      if (action.event !== "vote") lines.push("");
+      lines.push(`For ${weight(p.yea)} · Against ${weight((votes - BigInt(p.yea)).toString())}`);
+      if (action.event === "vote") lines.push("");
+      lines.push(`Approval ${votes === 0n ? "no cast weight" : percent(BigInt(p.yea) * 10_000n / votes)} · Required ${percent(p.threshold)}`);
     }
     if (!signal && ["proposed", "approved", "execution_ready", "execution_ending"].includes(action.event)) {
       lines.push(c.executeGuard ? `Execution is restricted to operator ${account(c.operator)}.` : "Execution is permissionless.");
@@ -151,14 +155,18 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     if (p.vetoed && action.event !== "vetoed") lines.push("Guardian veto: execution is permanently blocked.");
     if (p.retracted && action.event !== "retracted" && action.event !== "flagged") lines.push("The proposal is retracted at the end of this block.");
     const discussion = content?.discussionUrl ? escape(content.discussionUrl) : null;
-    links.push(`- <a href="${escape(link)}">Proposal</a>`);
-    if (discussion && discussion.length <= 512) links.push(`- <a href="${discussion}">Discussion</a>`);
+    links.push(`<a href="${escape(link)}">Proposal</a>`);
+    if (discussion && discussion.length <= 512) links.push(`<a href="${discussion}">Discussion</a>`);
   }
   if (action.source.kind === "onchain") {
     if (!/^0x[0-9a-f]{64}$/.test(action.txHash)) throw new Error("dao_render_tx_invalid");
-    links.push(`- <a href="https://etherscan.io/tx/${action.txHash}">Transaction</a>`);
-  } else links.push(`- <a href="https://etherscan.io/block/${action.blockNumber}">Confirmed block</a>`);
-  lines.push("", ...links, "", time(action.timestamp));
+    links.push(`<a href="https://etherscan.io/tx/${action.txHash}">Transaction</a>`);
+  } else links.push(`<a href="https://etherscan.io/block/${action.blockNumber}">Confirmed block</a>`);
+  if (action.kind === "dao_proposal" && action.event === "vote") {
+    lines.push("", links.join(" · "), time(action.timestamp));
+  } else {
+    lines.push("", ...links.map(link => `- ${link}`), "", time(action.timestamp));
+  }
   const html = lines.join("\n");
   if (html.length > 4_096) throw new Error("dao_message_too_long");
   return html;
