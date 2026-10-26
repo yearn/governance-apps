@@ -79,8 +79,8 @@ describe("DAO durable delivery", () => {
     const first = setup(env);
     expect(await (await first.run()).json()).toMatchObject({ outcome: "message_cap", cursorBlock: G - 1, messagesSent: 1 });
     const summary = vi.mocked(sendMessage).mock.calls[0]![1];
-    expect(summary.match(/etherscan.io\/address\//g)).toHaveLength(3);
-    expect(summary).toContain("Weight: 431.027945257047456616");
+    expect(summary.match(/etherscan.io\/address\//g)).toHaveLength(1);
+    expect(summary).toContain("Weight: <b>71.28</b> (31.06 + YBC)");
     const retry = setup(env, first.storage);
     expect(await (await retry.run()).json()).toMatchObject({ outcome: "caught_up", cursorBlock: G, messagesSent: 1 });
     expect(sendMessage).toHaveBeenCalledTimes(2);
@@ -115,7 +115,7 @@ describe("DAO durable delivery", () => {
     expect(await (await setup(env, storage).run()).json()).toMatchObject({ outcome: "caught_up", cursorBlock: G, messagesSent: 1 });
     expect(sendMessage).toHaveBeenCalledOnce();
     expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain(`etherscan.io/address/${ACCOUNT}`);
-    expect(vi.mocked(sendMessage).mock.calls[0]![1].match(/etherscan.io\/address\//g)).toHaveLength(4);
+    expect(vi.mocked(sendMessage).mock.calls[0]![1].match(/etherscan.io\/address\//g)).toHaveLength(2);
     await setup(env, storage).run();
     expect(sendMessage).toHaveBeenCalledOnce();
   });
@@ -167,7 +167,7 @@ describe("DAO durable delivery", () => {
     const retry = setup({ DAO_APP: { fetch: async () => Response.json(daoContentFeed()) } }, first.storage);
     expect(await (await retry.run()).json()).toMatchObject({ outcome: "caught_up", cursorBlock: G });
     expect(sendMessage).toHaveBeenCalledOnce();
-    expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain("<b>Fund research</b>");
+    expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain("<b>Fund research · #0</b>");
     expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain("Publish the research results.");
     expect(first.storage.values.get("state:v1")).toMatchObject({ lastErrorCode: null });
   });
