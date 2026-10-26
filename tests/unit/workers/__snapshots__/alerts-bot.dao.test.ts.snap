@@ -2,7 +2,6 @@
 
 exports[`DAO confirmed scanner > folds YBC and stYFIx into one vote message with stable source identities > YBC consolidated vote 1`] = `
 "<b>🗳️ DAO vote</b>
-
 <b>Proposal #0</b>
 
 <a href="https://etherscan.io/address/0x1d70e9414b639286665df4794ff5c7ea538b4eac">0x1d70…4eac</a> · <b>FOR</b>
@@ -20,15 +19,12 @@ For 6 · Against 4
 Voting closes: 26 Nov, 00:00 UTC
 Change unavailable; totals include all votes in this block.
 
-- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
-- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
-
+<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a> · <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
 19 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > matches the approved historical vote template and footer order > approved vote template 1`] = `
 "<b>🗳️ DAO vote</b>
-
 <b>BR: DAO-ops 5 · #2</b>
 
 <a href="https://etherscan.io/address/0x1d70e9414b639286665df4794ff5c7ea538b4eac">0x1d70…4eac</a> · <b>FOR</b>
@@ -45,10 +41,7 @@ For 1,762.29 · Against 0
 Voting closes: 29 Oct, 00:00 UTC
 Change unavailable; totals include all votes in this block.
 
-- <a href="https://dao.yearn.fi/proposals/2?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
-- <a href="https://gov.yearn.fi/t/budget-request-dao-ops-5/14722">Discussion</a>
-- <a href="https://etherscan.io/tx/0x13cc67c6090c28e96a787b521b6af4275f546577de9f0ec26209dfec1f07dff4">Transaction</a>
-
+<a href="https://dao.yearn.fi/proposals/2?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a> · <a href="https://gov.yearn.fi/t/budget-request-dao-ops-5/14722">Discussion</a> · <a href="https://etherscan.io/tx/0x13cc67c6090c28e96a787b521b6af4275f546577de9f0ec26209dfec1f07dff4">Transaction</a>
 26 Oct, 11:53 UTC"
 `;
 
@@ -522,7 +515,6 @@ Guardian veto: execution is permanently blocked.
 
 exports[`DAO message catalogue > renders vote with proposal identity, evidence and bounded HTML 1`] = `
 "<b>🗳️ DAO vote</b>
-
 <b>&lt;test&gt; · #0</b>
 
 <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a> · <b>FOR</b>
@@ -537,10 +529,7 @@ For 6 · Against 4
 Voting closes: 26 Nov, 00:00 UTC
 Change unavailable; totals include all votes in this block.
 
-- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
-- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
-- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
-
+<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a> · <a href="https://gov.yearn.fi/t/example/123">Discussion</a> · <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
 19 Nov, 00:00 UTC"
 `;
 

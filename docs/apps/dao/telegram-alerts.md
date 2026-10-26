@@ -59,7 +59,7 @@ Those restrictions are labelled as end-of-block observations.
 The voting deadline remains visible. Final result and execution alerts remain separate.
 
 The footer lists Proposal, Discussion, Transaction, then the UTC observation time,
-omitting unavailable links.
+omitting unavailable links. Vote messages put these links on one line.
 
 Message headings use one emoji, following the other alert channels:
 

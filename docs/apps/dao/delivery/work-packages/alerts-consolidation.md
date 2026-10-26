@@ -10,6 +10,8 @@ This package supersedes the proposed vote presentation in
 It builds on Wavy's role identification, weight formatting, footer, and tests from
 head `cc3e9d9081731a146dd3306aaa87d7cd95e3e2b6`.
 That revision already removed the earlier estimate of each member's collective influence.
+The compact vote header and footer also retain the layout improvement in
+`d022f6152f709d43d41cf2325290e1be855435d9`.
 
 Acceptance criteria:
 
@@ -36,7 +38,9 @@ The specialist audit covers contract replacement semantics, grouping, and receip
 Validation on 26 October 2026 passed typecheck, lint, and 2,490 tests across 226 files.
 The alert Worker dry-run build passed. A 390 px Chromium HTML preview had no horizontal overflow.
 Native Telegram rendering and live delivery were not tested.
-Record independent review results in the PR.
+Independent code review and specialist audit of the implementation reported no blocking findings.
+The specialist also ran 92 focused tests successfully.
+Record the final formatting review in the PR.
 
 ## Integrator notes
 
