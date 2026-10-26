@@ -5,7 +5,7 @@ import { sendMessage, TelegramRateLimitError } from "@/workers/alerts-bot/src/te
 import { DAO_DEPLOYMENT_BLOCK as G, DAO_EVENTS } from "@/workers/alerts-bot/src/domains/dao/contracts";
 import { DAO_EMPTY_SCRIPT_HASH } from "@/lib/clients/dao/domain";
 import type { AlertsEnv } from "@/workers/alerts-bot/src/config";
-import { ACCOUNT, daoLog, daoRpc, hash, trackedState, voteStart } from "./alerts-bot.dao-fixtures";
+import { ACCOUNT, daoLog, daoRpc, hash, trackedState, voteStart, ybcDaoVoteLogs } from "./alerts-bot.dao-fixtures";
 import { contentProposal, daoContentFeed } from "./alerts-bot.dao-content-fixtures";
 
 vi.mock("@/workers/alerts-bot/src/rpc", async importOriginal => ({ ...await importOriginal<typeof import("@/workers/alerts-bot/src/rpc")>(), createRpcClient: vi.fn() }));
@@ -68,6 +68,69 @@ describe("DAO durable delivery", () => {
     expect(sendMessage).toHaveBeenCalledTimes(2);
   });
 
+  it("sends a YBC vote once across a message cap and object restart", async () => {
+    const logs = [...ybcDaoVoteLogs(), {
+      ...daoLog(DAO_EVENTS, "Vote", { account: ACCOUNT, idx: 0n, weight: 1n, yea: 0n }, G, 3),
+      transactionHash: hash(777),
+    }];
+    const { rpc } = daoRpc({ startTime: voteStart + 12, proposal: contentProposal, logs });
+    vi.mocked(createRpcClient).mockReturnValue(rpc);
+    const env = { DAO_APP: { fetch: async () => Response.json(daoContentFeed()) } };
+    const first = setup(env);
+    expect(await (await first.run()).json()).toMatchObject({ outcome: "message_cap", cursorBlock: G - 1, messagesSent: 1 });
+    const summary = vi.mocked(sendMessage).mock.calls[0]![1];
+    expect(summary.match(/etherscan.io\/address\//g)).toHaveLength(1);
+    expect(summary).toContain("Weight: <b>71.28</b> (31.06 + YBC)");
+    const retry = setup(env, first.storage);
+    expect(await (await retry.run()).json()).toMatchObject({ outcome: "caught_up", cursorBlock: G, messagesSent: 1 });
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(sendMessage).mock.calls[1]![1]).toContain(`etherscan.io/tx/${hash(777)}`);
+    await retry.run();
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries the complete vote summary after a Telegram rate limit", async () => {
+    const { rpc } = daoRpc({ startTime: voteStart + 12, proposal: contentProposal, logs: ybcDaoVoteLogs() });
+    vi.mocked(createRpcClient).mockReturnValue(rpc);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.mocked(sendMessage).mockRejectedValueOnce(new TelegramRateLimitError(30));
+    const env = { DAO_APP: { fetch: async () => Response.json(daoContentFeed()) } };
+    const first = setup(env);
+    expect(await (await first.run()).json()).toMatchObject({ outcome: "telegram_backoff" });
+    const saved = first.storage.values.get("state:v1") as Record<string, unknown>;
+    expect(saved.cursorBlock).toBe(G - 1);
+    first.storage.values.set("state:v1", { ...saved, telegramRetryAfterUntil: 0 });
+    expect(await (await setup(env, first.storage).run()).json()).toMatchObject({ outcome: "caught_up", messagesSent: 1 });
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(sendMessage).mock.calls[0]![1]).toBe(vi.mocked(sendMessage).mock.calls[1]![1]);
+  });
+
+  it.each([1, 3])("includes unsent personal votes when an old deployment sent %i logs of a multicall", async sent => {
+    const logs = [...ybcDaoVoteLogs(), daoLog(DAO_EVENTS, "Vote", { account: ACCOUNT, idx: 0n, weight: 1n, yea: 0n }, G, 3)];
+    const { rpc } = daoRpc({ startTime: voteStart + 12, proposal: contentProposal, logs });
+    vi.mocked(createRpcClient).mockReturnValue(rpc);
+    const env = { DAO_APP: { fetch: async () => Response.json(daoContentFeed()) } };
+    const { storage } = setup(env);
+    for (const log of logs.slice(0, sent)) storage.values.set(`sent:dao:${log.transactionHash}:${log.logIndex}:Vote`, true);
+    expect(await (await setup(env, storage).run()).json()).toMatchObject({ outcome: "caught_up", cursorBlock: G, messagesSent: 1 });
+    expect(sendMessage).toHaveBeenCalledOnce();
+    expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain(`etherscan.io/address/${ACCOUNT}`);
+    expect(vi.mocked(sendMessage).mock.calls[0]![1].match(/etherscan.io\/address\//g)).toHaveLength(2);
+    await setup(env, storage).run();
+    expect(sendMessage).toHaveBeenCalledOnce();
+  });
+
+  it("does not resend a fully delivered vote group from an older deployment", async () => {
+    const logs = ybcDaoVoteLogs();
+    const { rpc } = daoRpc({ startTime: voteStart + 12, proposal: contentProposal, logs });
+    vi.mocked(createRpcClient).mockReturnValue(rpc);
+    const env = { DAO_APP: { fetch: async () => Response.json(daoContentFeed()) } };
+    const { storage } = setup(env);
+    for (const log of logs) storage.values.set(`sent:dao:${log.transactionHash}:${log.logIndex}:Vote`, true);
+    expect(await (await setup(env, storage).run()).json()).toMatchObject({ outcome: "caught_up", cursorBlock: G, messagesSent: 0 });
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
   it("does not commit deadline state until all messages are sent", async () => {
     const { rpc } = daoRpc({ startTime: voteStart, proposal: contentProposal });
     vi.mocked(createRpcClient).mockReturnValue(rpc);
@@ -104,7 +167,7 @@ describe("DAO durable delivery", () => {
     const retry = setup({ DAO_APP: { fetch: async () => Response.json(daoContentFeed()) } }, first.storage);
     expect(await (await retry.run()).json()).toMatchObject({ outcome: "caught_up", cursorBlock: G });
     expect(sendMessage).toHaveBeenCalledOnce();
-    expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain("<b>Fund research</b>");
+    expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain("<b>Fund research · #0</b>");
     expect(vi.mocked(sendMessage).mock.calls[0]![1]).toContain("Publish the research results.");
     expect(first.storage.values.get("state:v1")).toMatchObject({ lastErrorCode: null });
   });
