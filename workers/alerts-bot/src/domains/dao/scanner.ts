@@ -1,6 +1,6 @@
 import {
   decodeEventLog, decodeFunctionResult, encodeAbiParameters, encodeFunctionData,
-  keccak256, type Hex,
+  keccak256, zeroAddress, type Hex,
 } from "viem";
 import { z } from "zod";
 import { ALERT_RPC_MAX_BATCH_SIZE, RpcRequestError, type RpcBlock, type RpcClient } from "../../rpc";
@@ -83,6 +83,19 @@ interface DecodedLog {
   readonly log: CanonicalProductLog;
   readonly name: string;
   readonly args: Record<string, unknown>;
+}
+
+async function readCollectiveAccounts(rpc: RpcClient, block: RpcBlock) {
+  try {
+    const values = await reads(rpc, block, DAO_VOTER, ["ybc", "delegated_staking"]);
+    const ybc = address.parse(String(values[0]).toLowerCase());
+    const delegated = address.parse(String(values[1]).toLowerCase());
+    if (ybc === delegated || ybc === zeroAddress || delegated === zeroAddress) return null;
+    return { ybc, delegated };
+  } catch {
+    // Optional display labels must not prevent delivery of confirmed votes.
+    return null;
+  }
 }
 
 function decode(log: CanonicalProductLog): DecodedLog {
@@ -175,6 +188,11 @@ export async function scanDaoBlocks(params: {
     assertCanonicalProductLog(log, terminal);
     return decode(log);
   });
+  // End-block roles cannot identify accounts reliably if their configuration changed in this block.
+  const collectiveAccounts = params.includeVotes !== false && configuration.voter === DAO_VOTER &&
+    events.some(event => event.name === "Vote") &&
+    !events.some(event => ["SetYBC", "SetDelegatedStaking", "SetVoteParameters"].includes(event.name))
+    ? await readCollectiveAccounts(rpc, terminal) : null;
   const ids = new Set(Object.keys(params.state.proposals));
   for (const event of events) {
     if (event.log.address === DAO_VOTING && proposalEvents[event.name]) ids.add(String(event.args.idx));
@@ -207,8 +225,11 @@ export async function scanDaoBlocks(params: {
       }
       if (event === "vote") {
         if (params.includeVotes === false) continue;
+        const account = String(args.account).toLowerCase();
         const vote: DaoVoteUpdate = {
-          account: String(args.account).toLowerCase(), weight: String(args.weight),
+          account, weight: String(args.weight),
+          role: collectiveAccounts === null ? undefined : account === collectiveAccounts.ybc ? "ybc"
+            : account === collectiveAccounts.delegated ? "delegated" : "voter",
           supportBps: Number(args.yea), logIndex: log.logIndex,
         };
         const previous = actions.at(-1);

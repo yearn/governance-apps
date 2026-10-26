@@ -42,21 +42,21 @@ function weight(value: string): string {
   return formatUnits(BigInt(value), 18);
 }
 
+const voteLabels = { voter: "Voter", ybc: "YBC", delegated: "Delegated" } as const;
+
 function voteLines(action: DaoVoteAction): string[] {
   // A multicall can update a collective repeatedly. Show each account's final record once.
   const votes = [...new Map(action.votes.map(vote => [vote.account, vote])).values()];
   if (votes.length === 0) throw new Error("dao_vote_updates_missing");
   const visible = votes.slice(0, 5);
   return [
-    "Recorded account weights:",
-    ...visible.map(vote => `${account(vote.account)} · Weight: ${weight(vote.weight)} · For: ${percent(vote.supportBps)}`),
-    ...(votes.length > visible.length ? [`${votes.length - visible.length} more account updates. See the transaction for all records.`] : []),
-    "YBC votes can update collective accounts. These records can replace earlier weight; they are not a count of new voters.",
+    ...visible.map(vote => `${vote.role ? voteLabels[vote.role] : "Account"}: ${account(vote.account)} · Weight: ${weight(vote.weight)} · For: ${percent(vote.supportBps)}`),
+    ...(votes.length > visible.length ? [`+${votes.length - visible.length} more accounts`] : []),
   ];
 }
 
 const titles = {
-  proposed: "📝 New DAO proposal", vote: "🗳️ DAO vote weight recorded", retracted: "↩️ DAO proposal retracted",
+  proposed: "📝 New DAO proposal", vote: "🗳️ DAO vote recorded", retracted: "↩️ DAO proposal retracted",
   flagged: "🚩 DAO proposal flagged", vetoed: "🛑 DAO proposal vetoed", executed: "✅ DAO execution confirmed",
   discussion_ending: "💬 DAO discussion period ending", voting_open: "🗳️ DAO voting opened",
   voting_ending: "⏰ DAO voting ending", vote_decay: "📉 DAO vote weight decay started",
@@ -106,7 +106,8 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
     const signal = daoIsSignal(p);
     const votingAllowed = !p.retracted && !p.flagged && action.timestamp >= t.voteStart && action.timestamp < t.voteEnd;
     const link = `https://dao.yearn.fi/proposals/${p.id}?chain=1&voting=${DAO_VOTING}`;
-    lines.push(`<b>${titles[action.event]}</b>`, "", `<a href="${escape(link)}">Proposal #${p.id}</a> · ${signal ? "Signal" : "Executable"}`);
+    const ybc = action.event === "vote" && action.votes.some(vote => vote.role === "ybc" || vote.role === "delegated");
+    lines.push(`<b>${titles[action.event]}${ybc ? " · YBC" : ""}</b>`, "", `<a href="${escape(link)}">Proposal #${p.id}</a> · ${signal ? "Signal" : "Executable"}`);
     if (content?.title) lines.push(`<b>${text(content.title, 140)}</b>`);
     else lines.push("Proposal title unavailable. Open the proposal for details.");
     if (action.event === "proposed" && content?.summary) lines.push(text(content.summary, 300));

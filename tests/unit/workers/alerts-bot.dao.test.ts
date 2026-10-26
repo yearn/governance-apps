@@ -8,7 +8,7 @@ import { daoMilestones, daoPasses, daoTiming, pendingDaoMilestones } from "@/wor
 import { renderDaoAlert, DAO_CONFIGURATION_COPY } from "@/workers/alerts-bot/src/domains/dao/renderer";
 import { RpcRequestError } from "@/workers/alerts-bot/src/rpc";
 import type { DaoAlertAction } from "@/workers/alerts-bot/src/domains/dao/types";
-import { ACCOUNT, configuration, daoAction, daoLog, daoRpc, hash, proposal, trackedState, voteEnd, voteStart, ybcDaoVoteLogs } from "./alerts-bot.dao-fixtures";
+import { ACCOUNT, GUARDIAN, collectiveAccounts, configuration, daoAction, daoLog, daoRpc, hash, proposal, trackedState, voteEnd, voteStart, ybcDaoVoteLogs } from "./alerts-bot.dao-fixtures";
 
 describe("DAO contract coverage and lifecycle", () => {
   it("pins the same deployed Voting and Voter as the app", () => {
@@ -139,18 +139,55 @@ describe("DAO confirmed scanner", () => {
       event: "vote", eventId: `dao:${logs[0]!.transactionHash}:2:Vote`,
       logIndex: 0, source: { kind: "onchain", logIndex: 0 },
       votes: [
-        { account: "0x1d70e9414b639286665df4794ff5c7ea538b4eac", weight: "31064793252156000000", logIndex: 0 },
-        { account: "0x9c42461aa8422926e3aef7b1c6e3743597149d79", weight: "431027945257047456616", logIndex: 1 },
-        { account: "0xd6afd78c05f0d425f2b46359746dd44991dcb315", weight: "213818835516958000000", logIndex: 2 },
+        { account: "0x1d70e9414b639286665df4794ff5c7ea538b4eac", weight: "31064793252156000000", logIndex: 0, role: "voter" },
+        { account: collectiveAccounts.delegated, weight: "431027945257047456616", logIndex: 1, role: "delegated" },
+        { account: collectiveAccounts.ybc, weight: "213818835516958000000", logIndex: 2, role: "ybc" },
       ],
     });
     const html = renderDaoAlert(result.actions[0]!);
+    expect(html).toContain("<b>🗳️ DAO vote recorded · YBC</b>");
+    for (const label of ["Voter", "Delegated", "YBC"]) expect(html).toContain(`${label}: <a href=`);
+    expect(html).not.toContain("replace earlier weight");
     expect(html.match(/For: 100%/g)).toHaveLength(3);
     expect(html).toContain("Weight: 431.027945257047456616");
     expect(html.match(/Current tally:/g)).toHaveLength(1);
     expect(html.match(/etherscan.io\/tx\//g)).toHaveLength(1);
     expect(html).toMatchSnapshot("YBC vote summary");
   });
+
+  it("uses confirmed collective roles rather than the number of account updates", async () => {
+    const accounts = { ybc: ACCOUNT, delegated: GUARDIAN };
+    const voteLogs = (accounts: string[]) => accounts.map((account, i) =>
+      daoLog(DAO_EVENTS, "Vote", { account, idx: 0n, weight: 5n, yea: 10_000n }, G, i));
+    const logs = voteLogs([accounts.ybc, accounts.delegated, collectiveAccounts.ybc]);
+    const { rpc, call } = daoRpc({ startTime: voteStart + 12, logs, collectiveAccounts: accounts });
+    const result = await scanDaoBlocks({ rpc, fromBlock: G, toBlock: G, state: createEmptyDaoState() });
+    expect(result.actions[0]).toMatchObject({ votes: [{ role: "ybc" }, { role: "delegated" }, { role: "voter" }] });
+    expect(call.mock.calls.every(([, ref]) => ref.blockHash === hash(G) && ref.requireCanonical)).toBe(true);
+    const unrelated = await scanDaoBlocks({ rpc: daoRpc({ startTime: voteStart + 12,
+      logs: voteLogs([ACCOUNT, GUARDIAN, "0x3333333333333333333333333333333333333333"]) }).rpc,
+      fromBlock: G, toBlock: G, state: createEmptyDaoState() });
+    expect(renderDaoAlert(unrelated.actions[0]!)).not.toContain(" · YBC</b>");
+  });
+
+  it.each(["unknown Voter", "unavailable roles", "SetYBC", "SetDelegatedStaking", "SetVoteParameters"])(
+    "keeps neutral account labels with %s", async kind => {
+      const logs = ybcDaoVoteLogs();
+      if (kind === "SetYBC") logs.push(daoLog(DAO_VOTER_EVENTS, kind, { ybc: ACCOUNT }, G, 3, DAO_VOTER));
+      if (kind === "SetDelegatedStaking") logs.push(daoLog(DAO_VOTER_EVENTS, kind, { staking: ACCOUNT }, G, 3, DAO_VOTER));
+      if (kind === "SetVoteParameters") logs.push(daoLog(DAO_EVENTS, kind, { length: 1n, voter: DAO_VOTER }, G, 3));
+      const { rpc } = daoRpc({ startTime: voteStart + 12, logs,
+        config: kind === "unknown Voter" ? { ...configuration, voter: ACCOUNT } : configuration,
+        collectiveAccounts: kind === "unavailable roles" ? null : collectiveAccounts });
+      const result = await scanDaoBlocks({ rpc, fromBlock: G, toBlock: G, state: createEmptyDaoState() });
+      const action = result.actions[0]!;
+      if (action.kind !== "dao_proposal" || action.event !== "vote") throw new Error("test_vote_missing");
+      expect(action.votes.every(vote => vote.role === undefined)).toBe(true);
+      const html = renderDaoAlert(action);
+      expect(html).not.toContain(" · YBC</b>");
+      expect(html.match(/Account: <a href=/g)).toHaveLength(3);
+    },
+  );
 
   it("keeps transactions, proposals and intervening configuration alerts separate", async () => {
     const tx2 = hash(777);
@@ -245,16 +282,19 @@ describe("DAO confirmed scanner", () => {
 });
 
 describe("DAO message catalogue", () => {
-  it("bounds large vote batches while retaining exact final weights and transaction evidence", () => {
+  it.each([5, 6, 100])("bounds %i account rows while retaining exact weights and transaction evidence", count => {
     const base = daoAction("vote");
     if (base.kind !== "dao_proposal" || base.event !== "vote") throw new Error("test_vote_missing");
-    const votes = Array.from({ length: 100 }, (_, i) => ({
+    const votes = Array.from({ length: count }, (_, i) => ({
       account: `0x${(i + 1).toString(16).padStart(40, "0")}`, weight: ((1n << 256n) - 1n).toString(), supportBps: 10_000, logIndex: i,
+      role: i === count - 1 ? "ybc" as const : "voter" as const,
     }));
     const html = renderDaoAlert({ ...base, votes }, { title: "x".repeat(140), summary: "", discussionUrl: "https://gov.yearn.fi/" + "x".repeat(480) });
     expect(html.length).toBeLessThanOrEqual(4_096);
     expect(html.match(/etherscan.io\/address\//g)).toHaveLength(5);
-    expect(html).toContain("95 more account updates. See the transaction for all records.");
+    if (count > 5) expect(html).toContain(`+${count - 5} more accounts`);
+    else expect(html).not.toContain("more accounts");
+    expect(html).toContain(" · YBC</b>");
     expect(html).toContain("115792089237316195423570985008687907853269984665640564039457.584007913129639935");
     expect(html).toContain(`etherscan.io/tx/${base.txHash}`);
   });

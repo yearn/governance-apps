@@ -1,16 +1,14 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`DAO confirmed scanner > groups a YBC vote with its two collective updates using the final event's receipt key > YBC vote summary 1`] = `
-"<b>🗳️ DAO vote weight recorded</b>
+"<b>🗳️ DAO vote recorded · YBC</b>
 
 <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
 Proposal title unavailable. Open the proposal for details.
 
-Recorded account weights:
-<a href="https://etherscan.io/address/0x1d70e9414b639286665df4794ff5c7ea538b4eac">0x1d70…4eac</a> · Weight: 31.064793252156 · For: 100%
-<a href="https://etherscan.io/address/0x9c42461aa8422926e3aef7b1c6e3743597149d79">0x9c42…9d79</a> · Weight: 431.027945257047456616 · For: 100%
-<a href="https://etherscan.io/address/0xd6afd78c05f0d425f2b46359746dd44991dcb315">0xd6af…b315</a> · Weight: 213.818835516958 · For: 100%
-YBC votes can update collective accounts. These records can replace earlier weight; they are not a count of new voters.
+Voter: <a href="https://etherscan.io/address/0x1d70e9414b639286665df4794ff5c7ea538b4eac">0x1d70…4eac</a> · Weight: 31.064793252156 · For: 100%
+Delegated: <a href="https://etherscan.io/address/0x9c42461aa8422926e3aef7b1c6e3743597149d79">0x9c42…9d79</a> · Weight: 431.027945257047456616 · For: 100%
+YBC: <a href="https://etherscan.io/address/0xd6afd78c05f0d425f2b46359746dd44991dcb315">0xd6af…b315</a> · Weight: 213.818835516958 · For: 100%
 
 For: 6 · Against: 4
 Approval: 60% · Required: 50%
@@ -480,14 +478,12 @@ Proposal state and totals are from the end of this confirmed block."
 `;
 
 exports[`DAO message catalogue > renders vote with proposal identity, evidence and bounded HTML 1`] = `
-"<b>🗳️ DAO vote weight recorded</b>
+"<b>🗳️ DAO vote recorded</b>
 
 <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
 <b>&lt;test&gt;</b>
 
-Recorded account weights:
-<a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a> · Weight: 5 · For: 100%
-YBC votes can update collective accounts. These records can replace earlier weight; they are not a count of new voters.
+Account: <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a> · Weight: 5 · For: 100%
 
 For: 6 · Against: 4
 Approval: 60% · Required: 50%

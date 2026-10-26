@@ -55,6 +55,7 @@ interface DaoActionBase {
 
 export interface DaoVoteUpdate {
   readonly account: string;
+  readonly role?: "voter" | "ybc" | "delegated";
   readonly weight: string;
   readonly supportBps: number;
   readonly logIndex: number;

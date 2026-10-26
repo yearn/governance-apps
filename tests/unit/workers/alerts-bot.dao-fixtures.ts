@@ -6,6 +6,10 @@ import type { RpcBlock, RpcCallRequest, RpcClient, RpcLog } from "@/workers/aler
 
 export const ACCOUNT = "0x1111111111111111111111111111111111111111";
 export const GUARDIAN = "0x2222222222222222222222222222222222222222";
+export const collectiveAccounts = {
+  ybc: "0xd6afd78c05f0d425f2b46359746dd44991dcb315",
+  delegated: "0x9c42461aa8422926e3aef7b1c6e3743597149d79",
+};
 export const hash = (n: number): Hex => `0x${n.toString(16).padStart(64, "0")}`;
 export const configuration: DaoAlertConfiguration = {
   voteStart: DAO_EPOCH / 2, executeDelay: 86_400, executeGuard: true,
@@ -71,8 +75,8 @@ export function daoLog(abi: Abi, name: string, args: Record<string, unknown>, bl
 export function ybcDaoVoteLogs(idx = 0n, firstLogIndex = 0): RpcLog[] {
   return [
     { account: "0x1d70e9414b639286665df4794ff5c7ea538b4eac", weight: 31_064793252156000000n },
-    { account: "0x9c42461aa8422926e3aef7b1c6e3743597149d79", weight: 431_027945257047456616n },
-    { account: "0xd6afd78c05f0d425f2b46359746dd44991dcb315", weight: 213_818835516958000000n },
+    { account: collectiveAccounts.delegated, weight: 431_027945257047456616n },
+    { account: collectiveAccounts.ybc, weight: 213_818835516958000000n },
   ].map((vote, i) => daoLog(DAO_EVENTS, "Vote", { ...vote, idx, yea: 10_000n }, DAO_DEPLOYMENT_BLOCK, firstLogIndex + i));
 }
 
@@ -82,6 +86,7 @@ export function daoRpc(options: {
   proposal?: DaoAlertProposal | ((block: number, id: string) => DaoAlertProposal);
   config?: DaoAlertConfiguration | ((block: number) => DaoAlertConfiguration);
   genesis?: number;
+  collectiveAccounts?: typeof collectiveAccounts | null;
 } = {}) {
   const block = (number: number): RpcBlock => ({
     number, hash: hash(number), parentHash: hash(number - 1), timestamp: (options.startTime ?? voteStart - 172_800) + (number - DAO_DEPLOYMENT_BLOCK) * 12,
@@ -102,6 +107,13 @@ export function daoRpc(options: {
         case "executor": result = config.executor; break;
         case "operator": result = config.operator; break;
         case "decay_length": result = BigInt(config.decayLength ?? 0); break;
+        case "ybc":
+        case "delegated_staking": {
+          if (options.collectiveAccounts === null) throw new Error("test_collective_accounts_unavailable");
+          const accounts = options.collectiveAccounts ?? collectiveAccounts;
+          result = decoded.functionName === "ybc" ? accounts.ybc : accounts.delegated;
+          break;
+        }
         case "proposals": {
           const p = typeof options.proposal === "function" ? options.proposal(number, String(decoded.args![0])) : options.proposal ?? proposal;
           result = { proposer: p.proposer, epoch: BigInt(p.epoch), ipfs: p.digest, script_hash: p.scriptHash,
