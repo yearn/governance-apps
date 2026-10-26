@@ -12,7 +12,7 @@ The committed DAO flag is enabled. Existing streams retain their configuration.
 | Proposal created | Proposal link, type, proposer, threshold, voting dates, and execution permissions. Read the proposal and join its discussion. |
 | Discussion ending | Reminders 24 hours and 1 hour before voting opens. |
 | Voting opens | Voting deadline and a link to the proposal. |
-| Vote recorded | Account, effective weight, support share, and final block totals. Collective account updates can replace earlier weight. |
+| Vote recorded | Individual accounts, choices, personal and YBC-inclusive weights, and confirmed proposal totals. |
 | Voting ending | Reminders 24 hours and 1 hour before voting closes. |
 | Vote weight decay | Notice at the first block where the pinned Voter reduces new personal vote weight. Existing votes do not decay automatically. |
 | Voting closes | Approval or rejection, final totals, and threshold. Zero turnout fails even when the threshold is zero. |
@@ -26,9 +26,20 @@ The committed DAO flag is enabled. Existing streams retain their configuration.
 | Guardian vetoes | The contract reason and permanent execution block. Voting remains available only when the proposal was not also retracted. |
 | Vetoed voting closes | Final totals with an explicit reminder that voting cannot remove the veto. |
 
-Every message includes its observation time in UTC and the confirmed block number.
+All dates use `26 Oct, 11:53 UTC`, including the observation time at the end.
 Transaction events link to Etherscan transactions. Deadline alerts link to their confirmed blocks.
 Proposal links include the chain and Voting address, so numeric proposal IDs remain unambiguous.
+
+Votes show Account, Vote, and Weight for each individual voter, rounded to two
+decimals. YBC participants use `Weight: total (personal + YBC)`; other voters have
+no YBC annotation. Confirmed collective accounts are hidden. Tiny positive
+weights display as `<0.01` instead of zero.
+Approval is marked `(live)` while voting remains open.
+
+Consecutive Vote logs share an alert only within the same transaction and
+proposal; intervening events keep their order. Batches show up to five voters
+and `+N more accounts`. The footer lists Proposal, Discussion, Transaction, then
+the UTC observation time, omitting unavailable links.
 
 Message headings use one emoji, following the other alert channels:
 
@@ -64,7 +75,7 @@ A feed request occurs at most once per run when uncached content is needed.
 Cached content remains usable during feed outages and after restarts.
 For uncached content, feed failures or producer delays preserve the cursor and retry on the next cron.
 These retries continue for ten minutes from the first failure for that proposal and digest.
-After ten minutes, alerts continue with the proposal ID, link, and an explicit title-unavailable notice.
+After ten minutes, alerts continue with the proposal ID and links.
 The bot keeps trying the feed on later runs and caches content when it becomes available.
 Controlled errors appear in `/status`; fallback warnings appear in structured logs without content or credentials.
 The `dao_content_feed_failed` log identifies the failure stage, HTTP status when available, and a controlled error kind.
@@ -104,6 +115,9 @@ The pinned Voter starts decay strictly after its configured boundary; the bot fo
 
 RPC reads use the observation block hash with `requireCanonical: true`.
 Proposal totals describe the end of the block, including all collective vote updates in that block.
+YBC influence uses the block's change in participating weight for a single member;
+when several members vote on one proposal in a block, current member weights are
+used, best effort. Personal weight includes LL/veYFI and vote decay.
 The scanner does not infer unique voters, sum replacement votes, or identify moderation callers from transaction senders.
 
 Historical replay includes historical deadlines. Message timestamps describe those historical observations.
@@ -112,6 +126,7 @@ Cancelled or elapsed reminder windows do not produce current-action messages.
 
 The worker sends at most five messages per domain run.
 Receipts prevent resending accepted messages when a run reaches its cap or restarts.
+Grouped votes use the last source Vote log's existing receipt key.
 The cursor and proposal state advance only after all messages for the scanned block have receipts.
 Telegram `retry_after` pauses delivery without consuming the block.
 The existing duplicate window remains: Telegram can accept a message before its receipt reaches durable storage.
@@ -126,7 +141,7 @@ This extension does not send infrastructure warnings to Telegram.
 | --- | --- | --- |
 | `DAO_TELEGRAM_CHAT_ID` | Cloudflare secret for the final DAO chat | Managed on the deployed Worker |
 | `ALERTS_DAO_ENABLED` | Enable DAO scanning and delivery | `true` |
-| `DAO_ALERT_VOTES_ENABLED` | Include each Vote event | `true` |
+| `DAO_ALERT_VOTES_ENABLED` | Include grouped vote messages | `true` |
 | `DAO_APP` | Service binding to the website's configured feed route | `governance-apps` |
 
 The existing `RPC_URL`, `TELEGRAM_BOT_TOKEN`, and `ADMIN_TOKEN` are shared.
