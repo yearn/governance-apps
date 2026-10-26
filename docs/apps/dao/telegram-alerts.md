@@ -114,9 +114,9 @@ The pinned Voter starts decay strictly after its configured boundary; the bot fo
 
 RPC reads use the observation block hash with `requireCanonical: true`.
 Proposal totals describe the end of the block, including all collective vote updates in that block.
-YBC influence uses each member's vote-time weight from a successful Voter call
-trace and the proposal's participating weight and collective pools at that block.
-It is separate from personal weight, which includes LL/veYFI and vote decay.
+YBC influence uses vote-time member weight, since later transfers can change it,
+with confirmed-block participation and collective pools. It requires a successful
+Voter call trace. Personal weight includes LL/veYFI and vote decay.
 The scanner does not infer unique voters, sum replacement votes, or identify moderation callers from transaction senders.
 
 Historical replay includes historical deadlines. Message timestamps describe those historical observations.

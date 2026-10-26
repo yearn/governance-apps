@@ -15,6 +15,7 @@ import {
 import { daoTiming, pendingDaoMilestones } from "./lifecycle";
 import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState, DaoTrackedProposal, DaoVoteAction, DaoVoteUpdate } from "./types";
 
+const collectiveAccountChanges = new Set(["SetYBC", "SetDelegatedStaking", "SetVoteParameters"]);
 const uint = z.string().regex(/^(0|[1-9][0-9]{0,77})$/);
 const address = z.string().regex(/^0x[0-9a-f]{40}$/);
 const hash = z.string().regex(/^0x[0-9a-f]{64}$/);
@@ -158,7 +159,7 @@ async function addVoteInfluence(rpc: RpcClient, block: RpcBlock, actions: readon
     if (!trace || !pool) return action;
     return { ...action, votes: action.votes.map(vote => {
       if (vote.role !== "voter") return vote;
-      // Use vote-time membership weight with confirmed-block pool totals, matching the proposal tally.
+      // Later transfers can change current member weight without changing recorded participation.
       const member = recordedYbcWeight(trace, firstIndices.get(action.txHash)!, action, vote);
       if (member === 0n) return vote;
       const total = totals.get(action.proposal.id)!;
@@ -262,7 +263,7 @@ export async function scanDaoBlocks(params: {
   // End-block roles cannot identify accounts reliably if their configuration changed in this block.
   const collectiveAccounts = params.includeVotes !== false && configuration.voter === DAO_VOTER &&
     events.some(event => event.name === "Vote") &&
-    !events.some(event => ["SetYBC", "SetDelegatedStaking", "SetVoteParameters"].includes(event.name))
+    !events.some(event => collectiveAccountChanges.has(event.name))
     ? await readCollectiveAccounts(rpc, terminal) : null;
   const ids = new Set(Object.keys(params.state.proposals));
   for (const event of events) {
