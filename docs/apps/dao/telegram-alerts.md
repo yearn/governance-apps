@@ -115,9 +115,9 @@ The pinned Voter starts decay strictly after its configured boundary; the bot fo
 
 RPC reads use the observation block hash with `requireCanonical: true`.
 Proposal totals describe the end of the block, including all collective vote updates in that block.
-YBC influence uses vote-time member weight, since later transfers can change it,
-with confirmed-block participation and collective pools. It requires a successful
-Voter call trace. Personal weight includes LL/veYFI and vote decay.
+YBC influence uses the block's change in participating weight for a single member;
+when several members vote on one proposal in a block, current member weights are
+used, best effort. Personal weight includes LL/veYFI and vote decay.
 The scanner does not infer unique voters, sum replacement votes, or identify moderation callers from transaction senders.
 
 Historical replay includes historical deadlines. Message timestamps describe those historical observations.
@@ -127,8 +127,6 @@ Cancelled or elapsed reminder windows do not produce current-action messages.
 The worker sends at most five messages per domain run.
 Receipts prevent resending accepted messages when a run reaches its cap or restarts.
 Grouped votes use the last source Vote log's existing receipt key.
-All source Vote log indexes remain in the scanned action. Grouping uses the
-existing `alerts:dao:v3` object and saved cursor; it requires no replay or storage migration.
 The cursor and proposal state advance only after all messages for the scanned block have receipts.
 Telegram `retry_after` pauses delivery without consuming the block.
 The existing duplicate window remains: Telegram can accept a message before its receipt reaches durable storage.

@@ -46,11 +46,11 @@ share ledger without creating user alerts. Deposits and withdrawals still
 require their corresponding mint and burn events; standalone user burns fail
 closed.
 
-DAO reads the deployed Voting and pinned Voter contracts and locates deadline
-blocks when no contract event occurs. Reminders precede voting and execution
-deadlines by 24 hours and 1 hour. Consecutive Vote logs from the same transaction
-and proposal share one message, including YBC collective account updates.
-See the [DAO catalogue and rollout](../../docs/apps/dao/telegram-alerts.md).
+DAO reads the deployed Voting and pinned Voter contracts. It also locates
+deadline blocks when no contract event occurs. Reminders precede voting and
+execution deadlines by 24 hours and 1 hour. See the
+[DAO catalogue and rollout](../../docs/apps/dao/telegram-alerts.md).
+Consecutive Vote logs from the same transaction and proposal share one message.
 
 DAO proposal titles come from the website's `/api/dao-data` route through the
 `DAO_APP` service binding. The website owns `DAO_DATA_URL`; no duplicate feed
@@ -72,8 +72,8 @@ message bodies, or account context. DAO protocol alerts share this error model.
 
 Required secrets when any domain is enabled:
 
-- `RPC_URL` (archive-capable; DAO YBC influence and non-pinned final-day YBC votes
-  require Geth-compatible `debug_traceTransaction` call traces with logs)
+- `RPC_URL` (archive-capable; YBC additionally requires Geth-compatible
+  `debug_traceTransaction` call traces with logs for non-pinned final-day votes)
 - `TELEGRAM_BOT_TOKEN`
 - `STYFI_TELEGRAM_CHAT_ID`
 - `VEYFI_TELEGRAM_CHAT_ID`
@@ -94,8 +94,8 @@ The paid Workers plan removes the old free-tier pressure to micro-budget every
 subrequest. The remaining bounds protect providers and Telegram without adding
 a general request governor: 10,000-block log ranges, at most six ranges per
 domain run, RPC batches of 25, and five Telegram messages per domain run.
-Transaction call traces are capped at 8 MiB. DAO influence uses vote-time traces;
-the YBC stream traces only final-day votes whose aggregator weight cannot be
+Transaction call traces are capped at 8 MiB and are requested only when a
+final-day YBC vote used an aggregator whose vote-time weight cannot be
 reconstructed from the pinned wrapper's packing rule.
 Configuration parsing requires exactly six confirmations and rejects overrides
 above any of those range or message limits.

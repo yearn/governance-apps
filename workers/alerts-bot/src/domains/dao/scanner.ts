@@ -1,9 +1,9 @@
 import {
-  decodeEventLog, decodeFunctionResult, encodeAbiParameters, encodeEventTopics, encodeFunctionData,
-  keccak256, zeroAddress, type Address, type Hex,
+  decodeEventLog, decodeFunctionResult, encodeAbiParameters, encodeFunctionData,
+  keccak256, zeroAddress, type Hex,
 } from "viem";
 import { z } from "zod";
-import { ALERT_RPC_MAX_BATCH_SIZE, RpcRequestError, type RpcBlock, type RpcCallTraceFrame, type RpcClient } from "../../rpc";
+import { ALERT_RPC_MAX_BATCH_SIZE, RpcRequestError, type RpcBlock, type RpcClient } from "../../rpc";
 import {
   assertCanonicalProductLog, canonicalProductLog, exactBlock, onchainSource,
   productEventId, sortProductLogs, type CanonicalProductLog,
@@ -15,8 +15,7 @@ import {
 import { daoTiming, pendingDaoMilestones } from "./lifecycle";
 import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState, DaoTrackedProposal, DaoVoteAction, DaoVoteUpdate } from "./types";
 
-const collectiveAccountChanges = new Set(["SetYBC", "SetDelegatedStaking", "SetVoteParameters"]);
-const voteTopic = encodeEventTopics({ abi: DAO_EVENTS, eventName: "Vote" })[0];
+const collectiveAccountChanges = new Set(["SetYBC", "SetDelegatedStaking", "SetVoteParameters", "SetYBCWeightAggregator"]);
 const uint = z.string().regex(/^(0|[1-9][0-9]{0,77})$/);
 const address = z.string().regex(/^0x[0-9a-f]{40}$/);
 const hash = z.string().regex(/^0x[0-9a-f]{64}$/);
@@ -47,14 +46,14 @@ export function loadDaoState(value: unknown): DaoAlertState {
   return stateSchema.parse(value);
 }
 
-async function reads(rpc: RpcClient, block: RpcBlock, target: string, names: readonly string[], args: readonly (readonly unknown[])[] = []) {
+async function reads(rpc: RpcClient, blockHash: string, target: string, names: readonly string[], args: readonly (readonly unknown[])[] = []) {
   const results: unknown[] = [];
   for (let offset = 0; offset < names.length; offset += ALERT_RPC_MAX_BATCH_SIZE) {
     const batch = names.slice(offset, offset + ALERT_RPC_MAX_BATCH_SIZE);
     const values = await rpc.call(batch.map((functionName, i) => ({
       to: target,
       data: encodeFunctionData({ abi: DAO_READS, functionName, args: args[offset + i] ?? [] } as never),
-    })), { blockHash: block.hash, requireCanonical: true });
+    })), { blockHash, requireCanonical: true });
     if (values.length !== batch.length) throw new Error("dao_read_incomplete");
     for (const [i, functionName] of batch.entries()) {
       results.push(decodeFunctionResult({ abi: DAO_READS, functionName, data: values[i] as Hex } as never));
@@ -65,12 +64,12 @@ async function reads(rpc: RpcClient, block: RpcBlock, target: string, names: rea
 
 async function readConfiguration(rpc: RpcClient, block: RpcBlock): Promise<DaoAlertConfiguration> {
   const [genesis, voteStart, executeDelay, executeGuard, voter, executor, operator] = await reads(
-    rpc, block, DAO_VOTING, ["genesis", "vote_start", "execute_delay", "execute_guard", "voter", "executor", "operator"],
+    rpc, block.hash, DAO_VOTING, ["genesis", "vote_start", "execute_delay", "execute_guard", "voter", "executor", "operator"],
   );
   if (genesis !== BigInt(DAO_GENESIS)) throw new Error("dao_genesis_mismatch");
   let decayLength: number | null = null;
   if (String(voter).toLowerCase() === DAO_VOTER) {
-    const [voterGenesis, decay] = await reads(rpc, block, DAO_VOTER, ["genesis", "decay_length"]);
+    const [voterGenesis, decay] = await reads(rpc, block.hash, DAO_VOTER, ["genesis", "decay_length"]);
     if (voterGenesis !== genesis) throw new Error("dao_voter_genesis_mismatch");
     decayLength = Number(decay);
   }
@@ -88,93 +87,56 @@ interface DecodedLog {
 }
 
 async function readCollectiveAccounts(rpc: RpcClient, block: RpcBlock) {
-  const values = await reads(rpc, block, DAO_VOTER, ["ybc", "delegated_staking"]);
+  const values = await reads(rpc, block.hash, DAO_VOTER, ["ybc", "delegated_staking"]);
   const ybc = address.parse(String(values[0]).toLowerCase());
   const delegated = address.parse(String(values[1]).toLowerCase());
   if (ybc === delegated || ybc === zeroAddress || delegated === zeroAddress) return null;
   return { ybc, delegated };
 }
 
-function findVoterFrame(trace: RpcCallTraceFrame, firstLogIndex: number, action: DaoVoteAction, vote: DaoVoteUpdate): RpcCallTraceFrame {
-  const topics = encodeEventTopics({ abi: DAO_EVENTS, eventName: "Vote",
-    args: { account: vote.account as Address, idx: BigInt(action.proposal.id) } }) as readonly Hex[];
-  const data = encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }], [BigInt(vote.weight), BigInt(vote.supportBps)]);
-  const frames: { frame: RpcCallTraceFrame; index: number }[] = [];
-  let firstTraceIndex = Infinity;
-  const visit = (frame: RpcCallTraceFrame) => {
-    if (frame.error !== null) return;
-    for (const log of frame.logs) {
-      if (log.address === DAO_VOTING && log.topics[0] === voteTopic) firstTraceIndex = Math.min(firstTraceIndex, log.index);
-    }
-    if (frame.to === DAO_VOTER && frame.from === vote.account) {
-      const log = frame.calls.filter(call => call.to === DAO_VOTING && call.error === null).flatMap(call => call.logs).find(log =>
-        log.address === DAO_VOTING && log.data === data && log.topics.length === topics.length &&
-        log.topics.every((topic, i) => topic === topics[i]?.toLowerCase()));
-      if (log) frames.push({ frame, index: log.index });
-    }
-    for (const call of frame.calls) visit(call);
-  };
-  visit(trace);
-  // Trace log indices are transaction-relative; receipt log indices are block-relative.
-  const matches = frames.filter(item => item.index - firstTraceIndex === vote.logIndex - firstLogIndex);
-  if (matches.length !== 1) throw new Error("dao_vote_trace_frame_mismatch");
-  return matches[0]!.frame;
-}
-
-function memberWeightFrom(frame: RpcCallTraceFrame, account: string): bigint {
-  const votingCalls = frame.calls.filter(call => call.to === DAO_VOTING && call.error === null &&
-    call.logs.some(log => log.address === DAO_VOTING && log.topics[0] === voteTopic));
-  // Voter._vote emits one personal vote, plus two collective votes for positive YBC member weight.
-  if (votingCalls.length === 1) return 0n;
-  const input = encodeFunctionData({ abi: DAO_READS, functionName: "weight", args: [account as Address] });
-  const weightCalls = frame.calls.filter(call => call.type === "STATICCALL" && call.from === DAO_VOTER &&
-    call.input === input && call.error === null);
-  const weightCall = weightCalls.length === 1 ? weightCalls[0] : undefined;
-  if (votingCalls.length !== 3 || !weightCall) throw new Error("dao_vote_trace_weight_invalid");
-  const output = weightCall.output;
-  if (output === null || !/^0x[0-9a-f]{64}$/.test(output)) {
-    throw new Error("dao_vote_trace_weight_invalid");
-  }
-  const weight = BigInt(output);
-  if (weight === 0n) throw new Error("dao_vote_trace_weight_invalid");
-  return weight;
-}
-
 async function addVoteInfluence(rpc: RpcClient, block: RpcBlock, actions: readonly DaoAlertAction[]): Promise<readonly DaoAlertAction[]> {
   const groups = actions.filter((action): action is DaoVoteAction => action.kind === "dao_proposal" && action.event === "vote");
-  const pools = new Map<string, { ybc?: bigint; delegated?: bigint }>();
-  const transactions = new Set<string>();
-  const firstIndices = new Map<string, number>();
+  const pools = new Map<string, { ybc: bigint; delegated: bigint; members: string[] }>();
   for (const action of groups) {
-    firstIndices.set(action.txHash, Math.min(firstIndices.get(action.txHash) ?? Infinity, action.votes[0]!.logIndex));
-    for (const vote of action.votes) {
+    for (const [i, vote] of action.votes.entries()) {
       if (vote.role !== "ybc" && vote.role !== "delegated") continue;
-      const pool = pools.get(action.proposal.id) ?? {};
+      const pool = pools.get(action.proposal.id) ?? { ybc: 0n, delegated: 0n, members: [] };
       pool[vote.role] = BigInt(vote.weight);
+      if (vote.role === "delegated" && action.votes[i - 1]?.role === "voter" && action.votes[i + 1]?.role === "ybc") {
+        pool.members.push(action.votes[i - 1]!.account);
+      }
       pools.set(action.proposal.id, pool);
-      transactions.add(action.txHash);
     }
   }
-  if (transactions.size === 0) return actions;
-  if (!rpc.traceTransactionByHash) throw new Error("dao_vote_trace_unavailable");
-  const traces = new Map<string, RpcCallTraceFrame>();
-  for (const tx of transactions) traces.set(tx, await rpc.traceTransactionByHash(tx));
-  const ids = [...pools.keys()];
-  const values = await reads(rpc, block, DAO_VOTER, ids.map(() => "ybc_votes"), ids.map(id => [DAO_VOTING, BigInt(id)]));
-  const totals = new Map(ids.map((id, i) => [id, (values[i] as readonly [bigint, bigint])[0]]));
+  const ids = [...pools.keys()].filter(id => pools.get(id)!.members.length > 0);
+  if (ids.length === 0) return actions;
+  const names = ids.map(() => "ybc_votes");
+  const args = ids.map(id => [DAO_VOTING, BigInt(id)]);
+  const [values, previous] = await Promise.all([
+    reads(rpc, block.hash, DAO_VOTER, names, args),
+    reads(rpc, block.parentHash, DAO_VOTER, names, args),
+  ]);
+  const totals = new Map(ids.map((id, i) => {
+    const total = (values[i] as readonly [bigint, bigint])[0];
+    return [id, { total, delta: total - (previous[i] as readonly [bigint, bigint])[0] }];
+  }));
+  const accounts = [...new Set(ids.flatMap(id => pools.get(id)!.members.length > 1 ? pools.get(id)!.members : []))];
+  const weights = new Map<string, bigint>();
+  if (accounts.length > 0) {
+    const [aggregator] = await reads(rpc, block.hash, DAO_VOTER, ["ybc_weight_aggregator"]);
+    const values = await reads(rpc, block.hash, String(aggregator), accounts.map(() => "weight"), accounts.map(account => [account]));
+    for (const [i, account] of accounts.entries()) weights.set(account, values[i] as bigint);
+  }
   return actions.map(action => {
     if (action.kind !== "dao_proposal" || action.event !== "vote") return action;
-    const trace = traces.get(action.txHash);
     const pool = pools.get(action.proposal.id);
-    if (!trace || !pool) return action;
+    if (!pool) return action;
     return { ...action, votes: action.votes.map(vote => {
-      if (vote.role !== "voter") return vote;
-      // Later transfers can change current member weight without changing recorded participation.
-      const frame = findVoterFrame(trace, firstIndices.get(action.txHash)!, action, vote);
-      const member = memberWeightFrom(frame, vote.account);
-      if (member === 0n) return vote;
-      const total = totals.get(action.proposal.id)!;
-      if (member > total || pool.ybc === undefined || pool.delegated === undefined) throw new Error("dao_vote_influence_invalid");
+      if (vote.role !== "voter" || !pool.members.includes(vote.account)) return vote;
+      const { total, delta } = totals.get(action.proposal.id)!;
+      // One member's recorded weight is exact; same-block batches use current weight, best effort.
+      const weight = pool.members.length === 1 ? delta : weights.get(vote.account)!;
+      const member = weight > total ? total : weight;
       const share = pool.ybc * member / total + pool.delegated * member / total;
       return share === 0n ? vote : { ...vote, totalWeight: String(BigInt(vote.weight) + share) };
     }) };
@@ -281,7 +243,7 @@ export async function scanDaoBlocks(params: {
     if (event.log.address === DAO_VOTING && proposalEvents[event.name]) ids.add(String(event.args.idx));
   }
   const orderedIds = [...ids].sort((a, b) => BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0);
-  const values = await reads(rpc, terminal, DAO_VOTING, orderedIds.map(() => "proposals"), orderedIds.map(id => [BigInt(id)]));
+  const values = await reads(rpc, terminal.hash, DAO_VOTING, orderedIds.map(() => "proposals"), orderedIds.map(id => [BigInt(id)]));
   const proposals: Record<string, DaoTrackedProposal> = {};
   for (const [i, id] of orderedIds.entries()) {
     proposals[id] = { proposal: proposalFromRead(id, values[i]), notified: [...(params.state.proposals[id]?.notified ?? [])] };
