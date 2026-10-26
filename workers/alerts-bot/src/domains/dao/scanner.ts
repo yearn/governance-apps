@@ -1,6 +1,6 @@
 import {
   decodeEventLog, decodeFunctionResult, encodeAbiParameters, encodeFunctionData,
-  keccak256, type Hex,
+  keccak256, zeroAddress, type Hex,
 } from "viem";
 import { z } from "zod";
 import { ALERT_RPC_MAX_BATCH_SIZE, RpcRequestError, type RpcBlock, type RpcClient } from "../../rpc";
@@ -12,9 +12,11 @@ import {
   DAO_DEPLOYMENT_BLOCK, DAO_EPOCH, DAO_EVENTS, DAO_GENESIS, DAO_READS,
   DAO_VOTER, DAO_VOTER_EVENTS, DAO_VOTING,
 } from "./contracts";
+import { buildDaoVoteActions } from "./vote-summary";
 import { daoTiming, pendingDaoMilestones } from "./lifecycle";
-import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState, DaoTrackedProposal } from "./types";
+import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState, DaoTrackedProposal, RawDaoVoteAction } from "./types";
 
+const collectiveAccountChanges = new Set(["SetYBC", "SetDelegatedStaking", "SetVoteParameters", "SetYBCWeightAggregator"]);
 const uint = z.string().regex(/^(0|[1-9][0-9]{0,77})$/);
 const address = z.string().regex(/^0x[0-9a-f]{40}$/);
 const hash = z.string().regex(/^0x[0-9a-f]{64}$/);
@@ -45,14 +47,14 @@ export function loadDaoState(value: unknown): DaoAlertState {
   return stateSchema.parse(value);
 }
 
-async function reads(rpc: RpcClient, block: RpcBlock, target: string, names: readonly string[], args: readonly (readonly unknown[])[] = []) {
+async function reads(rpc: RpcClient, blockHash: string, target: string, names: readonly string[], args: readonly (readonly unknown[])[] = []) {
   const results: unknown[] = [];
   for (let offset = 0; offset < names.length; offset += ALERT_RPC_MAX_BATCH_SIZE) {
     const batch = names.slice(offset, offset + ALERT_RPC_MAX_BATCH_SIZE);
     const values = await rpc.call(batch.map((functionName, i) => ({
       to: target,
       data: encodeFunctionData({ abi: DAO_READS, functionName, args: args[offset + i] ?? [] } as never),
-    })), { blockHash: block.hash, requireCanonical: true });
+    })), { blockHash, requireCanonical: true });
     if (values.length !== batch.length) throw new Error("dao_read_incomplete");
     for (const [i, functionName] of batch.entries()) {
       results.push(decodeFunctionResult({ abi: DAO_READS, functionName, data: values[i] as Hex } as never));
@@ -63,12 +65,12 @@ async function reads(rpc: RpcClient, block: RpcBlock, target: string, names: rea
 
 async function readConfiguration(rpc: RpcClient, block: RpcBlock): Promise<DaoAlertConfiguration> {
   const [genesis, voteStart, executeDelay, executeGuard, voter, executor, operator] = await reads(
-    rpc, block, DAO_VOTING, ["genesis", "vote_start", "execute_delay", "execute_guard", "voter", "executor", "operator"],
+    rpc, block.hash, DAO_VOTING, ["genesis", "vote_start", "execute_delay", "execute_guard", "voter", "executor", "operator"],
   );
   if (genesis !== BigInt(DAO_GENESIS)) throw new Error("dao_genesis_mismatch");
   let decayLength: number | null = null;
   if (String(voter).toLowerCase() === DAO_VOTER) {
-    const [voterGenesis, decay] = await reads(rpc, block, DAO_VOTER, ["genesis", "decay_length"]);
+    const [voterGenesis, decay] = await reads(rpc, block.hash, DAO_VOTER, ["genesis", "decay_length"]);
     if (voterGenesis !== genesis) throw new Error("dao_voter_genesis_mismatch");
     decayLength = Number(decay);
   }
@@ -83,6 +85,14 @@ interface DecodedLog {
   readonly log: CanonicalProductLog;
   readonly name: string;
   readonly args: Record<string, unknown>;
+}
+
+async function readCollectiveAccounts(rpc: RpcClient, block: RpcBlock) {
+  const values = await reads(rpc, block.hash, DAO_VOTER, ["ybc", "delegated_staking"]);
+  const ybc = address.parse(String(values[0]).toLowerCase());
+  const delegated = address.parse(String(values[1]).toLowerCase());
+  if (ybc === delegated || ybc === zeroAddress || delegated === zeroAddress) return null;
+  return { ybc, delegated };
 }
 
 function decode(log: CanonicalProductLog): DecodedLog {
@@ -175,18 +185,24 @@ export async function scanDaoBlocks(params: {
     assertCanonicalProductLog(log, terminal);
     return decode(log);
   });
+  // End-block roles cannot identify accounts reliably if their configuration changed in this block.
+  const collectiveAccounts = params.includeVotes !== false && configuration.voter === DAO_VOTER &&
+    events.some(event => event.name === "Vote") &&
+    !events.some(event => collectiveAccountChanges.has(event.name))
+    ? await readCollectiveAccounts(rpc, terminal).catch(() => { console.warn("dao_vote_roles_unavailable"); return null; }) : null;
   const ids = new Set(Object.keys(params.state.proposals));
   for (const event of events) {
     if (event.log.address === DAO_VOTING && proposalEvents[event.name]) ids.add(String(event.args.idx));
   }
   const orderedIds = [...ids].sort((a, b) => BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0);
-  const values = await reads(rpc, terminal, DAO_VOTING, orderedIds.map(() => "proposals"), orderedIds.map(id => [BigInt(id)]));
+  const values = await reads(rpc, terminal.hash, DAO_VOTING, orderedIds.map(() => "proposals"), orderedIds.map(id => [BigInt(id)]));
   const proposals: Record<string, DaoTrackedProposal> = {};
   for (const [i, id] of orderedIds.entries()) {
     proposals[id] = { proposal: proposalFromRead(id, values[i]), notified: [...(params.state.proposals[id]?.notified ?? [])] };
   }
 
   const actions: DaoAlertAction[] = [];
+  const voteActions: RawDaoVoteAction[] = [];
   for (const { log, name, args } of events) {
     const base = {
       domainId: "dao" as const, blockNumber: toBlock, blockHash: terminal.hash, logIndex: log.logIndex,
@@ -205,14 +221,19 @@ export async function scanDaoBlocks(params: {
       if ((event === "flagged" || event === "vetoed") && new TextEncoder().encode(String(args.reason)).length > 256) {
         throw new Error("dao_reason_invalid");
       }
-      if (event === "vote" && params.includeVotes === false) continue;
+      if (event === "vote") {
+        if (params.includeVotes === false) continue;
+        const account = String(args.account).toLowerCase();
+        voteActions.push({
+          ...base, kind: "dao_proposal", event, proposal: p, configuration,
+          account, weight: String(args.weight), supportBps: Number(args.yea),
+        });
+        continue;
+      }
       actions.push({
         ...base, kind: "dao_proposal", event, proposal: p, configuration,
-        actor: event === "proposed" ? p.proposer : event === "vote" ? String(args.account).toLowerCase()
-          : event === "executed" ? String(args.executor).toLowerCase() : undefined,
+        actor: event === "proposed" ? p.proposer : event === "executed" ? String(args.executor).toLowerCase() : undefined,
         reason: event === "flagged" || event === "vetoed" ? String(args.reason) : undefined,
-        weight: event === "vote" ? String(args.weight) : undefined,
-        supportBps: event === "vote" ? Number(args.yea) : undefined,
       });
     } else {
       actions.push({
@@ -222,6 +243,13 @@ export async function scanDaoBlocks(params: {
       });
     }
   }
+
+  actions.push(...await buildDaoVoteActions({
+    votes: voteActions, block: terminal, collectiveAccounts,
+    newProposalIds: new Set(events.filter(e => e.name === "Propose").map(e => String(e.args.idx))),
+    read: (hash, names, args) => reads(rpc, hash, DAO_VOTING, names, args),
+  }));
+  actions.sort((a, b) => a.logIndex - b.logIndex);
 
   let ordering = (events.at(-1)?.log.logIndex ?? -1) + 1;
   for (const id of orderedIds) {

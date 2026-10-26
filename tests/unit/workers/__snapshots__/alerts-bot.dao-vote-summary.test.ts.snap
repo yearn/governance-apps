@@ -1,0 +1,23 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DAO vote replay > replays the real gov-apps-stats threshold crossing without double-counting collectives 1`] = `
+"<b>🗳️ DAO vote</b>
+<b>Historical vote example · #0</b>
+
+<a href="https://etherscan.io/address/0x9cc96683eee232f52c0968b4f4bc1a0f312c0306">0x9cc9…0306</a> · <b>AGAINST</b>
+Personal weight: <b>286.54</b>
+
+YBC vote (includes stYFIx): <b>100% → 22.55% For</b>
+Collective weight: 637.03
+
+Transaction approval: <b>100% → 31.25%</b> (−68.75 pp)
+<pre>0%       50%     100%
+██████░░░░│░░░░░░░░░░
+          ↑ required 50%</pre>
+For 354.46 · Against 779.92
+<b>Below threshold · 18.75 pp short</b> · Voting open
+Voting closes: 15 Oct, 00:00 UTC
+
+<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a> · <a href="https://etherscan.io/tx/0x6b8a0d2a38e0fddd6e61890020a70c9fa47e60e612d53cb35d1c097002f9e5c3">Transaction</a>
+13 Oct, 12:37 UTC"
+`;

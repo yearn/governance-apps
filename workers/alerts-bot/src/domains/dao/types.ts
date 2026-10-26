@@ -53,16 +53,39 @@ interface DaoActionBase {
   readonly timestamp: number;
 }
 
-export type DaoAlertAction = DaoActionBase & (
+export type RawDaoVoteAction = DaoActionBase & {
+  readonly kind: "dao_proposal";
+  readonly event: "vote";
+  readonly proposal: DaoAlertProposal;
+  readonly configuration: DaoAlertConfiguration;
+  readonly account: string;
+  readonly weight: string;
+  readonly supportBps: number;
+};
+
+export interface DaoVoteTally {
+  readonly votes: string;
+  readonly yea: string;
+}
+
+export type DaoVoteAction = Omit<RawDaoVoteAction, "account" | "weight" | "supportBps"> & {
+  readonly votes: readonly Pick<RawDaoVoteAction, "account" | "weight" | "supportBps" | "eventId">[];
+  readonly sourceEventIds: readonly string[];
+  readonly rolesVerified: boolean;
+  readonly collectiveUpdated: boolean;
+  readonly tally: { readonly before: DaoVoteTally; readonly after: DaoVoteTally } | null;
+  readonly collective: { readonly before: DaoVoteTally | null; readonly after: DaoVoteTally } | null;
+  readonly previouslyReported?: number;
+};
+
+export type DaoAlertAction = DaoVoteAction | (DaoActionBase & (
   | {
       readonly kind: "dao_proposal";
-      readonly event: "proposed" | "vote" | "retracted" | "flagged" | "vetoed" | "executed" | DaoLifecycleKind;
+      readonly event: "proposed" | "retracted" | "flagged" | "vetoed" | "executed" | DaoLifecycleKind;
       readonly proposal: DaoAlertProposal;
       readonly configuration: DaoAlertConfiguration;
       readonly actor?: string;
       readonly reason?: string;
-      readonly weight?: string;
-      readonly supportBps?: number;
       readonly deadline?: number;
     }
   | {
@@ -71,7 +94,7 @@ export type DaoAlertAction = DaoActionBase & (
       readonly event: string;
       readonly values: Readonly<Record<string, string | boolean>>;
     }
-);
+));
 
 export function isDaoAlertAction(action: unknown): action is DaoAlertAction {
   return typeof action === "object" && action !== null &&

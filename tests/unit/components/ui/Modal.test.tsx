@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Modal } from "@/components/ui/Modal";
 
@@ -26,7 +26,8 @@ describe("Modal keyboard behavior", () => {
     expect(dialog).toHaveAttribute("aria-modal", "true");
     const close = within(dialog).getByRole("button", { name: "Close dialog" });
     const last = within(dialog).getByRole("button", { name: "Last control" });
-    expect(close).toHaveFocus();
+    // The dialog can render before its passive effect moves focus.
+    await waitFor(() => expect(close).toHaveFocus());
     expect(document.body.style.overflow).toBe("hidden");
     fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
     expect(last).toHaveFocus();

@@ -67,7 +67,8 @@ import {
 import type { NormalizedAction } from "./types";
 import type { AlertAction } from "./product-types";
 import { createEmptyDaoState, loadDaoState, scanDaoBlocks } from "./domains/dao/scanner";
-import type { DaoAlertState } from "./domains/dao/types";
+import { isDaoAlertAction, type DaoAlertState } from "./domains/dao/types";
+import { pendingDaoVote } from "./domains/dao/delivery";
 import { DaoAlertContentError, DaoAlertContentReader } from "./domains/dao/content";
 
 const STATE_KEY = "state:v1";
@@ -857,7 +858,19 @@ export class AlertState implements DurableObject {
           throw new AlertRunError("terminal_block_invalid");
         }
         stage = "render";
-        const rendered = await renderCatalogueMessages({ domainId, actions: scan.actions, rpc, daoContent });
+        const pendingActions: AlertAction[] = [];
+        for (const action of scan.actions) {
+          if (isDaoAlertAction(action) && action.kind === "dao_proposal" && action.event === "vote") {
+            stage = "receipt_read";
+            const pending = await pendingDaoVote(action, {
+              read: async id => await this.state.storage.get<boolean>(`${RECEIPT_PREFIX}${id}`) === true,
+              mark: async id => { await this.state.storage.put(`${RECEIPT_PREFIX}${id}`, true); },
+            });
+            if (pending) pendingActions.push(pending);
+          } else pendingActions.push(action);
+        }
+        stage = "render";
+        const rendered = await renderCatalogueMessages({ domainId, actions: pendingActions, rpc, daoContent });
         const unsent = [] as typeof rendered[number][];
         for (const message of rendered) {
           stage = "receipt_read";

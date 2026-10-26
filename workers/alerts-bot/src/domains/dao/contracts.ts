@@ -49,4 +49,7 @@ export const DAO_READS = parseAbi([
   "function executor() view returns (address)",
   "function operator() view returns (address)",
   "function decay_length() view returns (uint256)",
+  "function votes(address,uint256) view returns (uint256 weight,uint256 yea)",
+  "function ybc() view returns (address)",
+  "function delegated_staking() view returns (address)",
 ]);

@@ -1,40 +1,84 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`DAO confirmed scanner > folds YBC and stYFIx into one vote message with stable source identities > YBC consolidated vote 1`] = `
+"<b>🗳️ DAO vote</b>
+<b>Proposal #0</b>
+
+<a href="https://etherscan.io/address/0x1d70e9414b639286665df4794ff5c7ea538b4eac">0x1d70…4eac</a> · <b>FOR</b>
+Personal weight: <b>31.06</b>
+
+YBC vote (includes stYFIx): <b>100% For</b>
+Collective weight: 644.85
+
+Approval at end of block: <b>60%</b>
+<pre>0%       50%     100%
+██████████│██░░░░░░░░
+          ↑ required 50%</pre>
+For 6 · Against 4
+<b>Currently passing · 10 pp above threshold</b> · Voting open
+Voting closes: 26 Nov, 00:00 UTC
+Change unavailable; totals include all votes in this block.
+
+<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a> · <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+19 Nov, 00:00 UTC"
+`;
+
+exports[`DAO message catalogue > matches the approved historical vote template and footer order > approved vote template 1`] = `
+"<b>🗳️ DAO vote</b>
+<b>BR: DAO-ops 5 · #2</b>
+
+<a href="https://etherscan.io/address/0x1d70e9414b639286665df4794ff5c7ea538b4eac">0x1d70…4eac</a> · <b>FOR</b>
+Personal weight: <b>31.06</b>
+
+YBC collective vote updated (includes stYFIx).
+
+Approval at end of block: <b>100%</b>
+<pre>0%       50%     100%
+██████████│██████████
+          ↑ required 50%</pre>
+For 1,762.29 · Against 0
+<b>Currently passing · 50 pp above threshold</b> · Voting open
+Voting closes: 29 Oct, 00:00 UTC
+Change unavailable; totals include all votes in this block.
+
+<a href="https://dao.yearn.fi/proposals/2?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a> · <a href="https://gov.yearn.fi/t/budget-request-dao-ops-5/14722">Discussion</a> · <a href="https://etherscan.io/tx/0x13cc67c6090c28e96a787b521b6af4275f546577de9f0ec26209dfec1f07dff4">Transaction</a>
+26 Oct, 11:53 UTC"
+`;
+
 exports[`DAO message catalogue > renders approved with proposal identity, evidence and bounded HTML 1`] = `
 "<b>👍 DAO proposal approved</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
-The vote passed. Execution window: 2026-11-27 00:00:00 UTC to 2026-12-10 00:00:00 UTC.
+The vote passed. Execution window: 27 Nov, 00:00 UTC to 10 Dec, 00:00 UTC.
 
-For: 6 · Against: 4
-Approval: 60% · Required: 50%
+Approval: <b>60%</b>
+<pre>0%       50%     100%
+██████████│██░░░░░░░░
+          ↑ required 50%</pre>
+For 6 · Against 4
 Execution is restricted to operator <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-26 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+26 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders discussion_ending with proposal identity, evidence and bounded HTML 1`] = `
 "<b>💬 DAO discussion period ending</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
-Voting opens: 2026-11-19 00:00:00 UTC
+Voting opens: 19 Nov, 00:00 UTC
 Review the proposal and add feedback before voting opens.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-18 23:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+18 Nov, 23:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voter.PendingManagement 1`] = `
@@ -45,9 +89,10 @@ Pending management: <a href="https://etherscan.io/address/0x11111111111111111111
 
 The current management retains authority until the pending management accepts.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voter.SetDecayLength 1`] = `
@@ -58,9 +103,10 @@ Decay interval (seconds): 5000
 
 Late votes lose weight over this interval before the epoch ends. Zero disables decay.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voter.SetDelegatedStaking 1`] = `
@@ -71,9 +117,10 @@ Delegated staking: <a href="https://etherscan.io/address/0x111111111111111111111
 
 YBC member votes can update the collective vote for this account.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voter.SetManagement 1`] = `
@@ -84,9 +131,10 @@ Management: <a href="https://etherscan.io/address/0x1111111111111111111111111111
 
 The new management controls this contract's configuration.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voter.SetYBC 1`] = `
@@ -97,9 +145,10 @@ YBC: <a href="https://etherscan.io/address/0x11111111111111111111111111111111111
 
 The Voter checks membership and updates collective votes through this YBC contract.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voter.SetYBCWeightAggregator 1`] = `
@@ -110,9 +159,10 @@ Weight aggregator: <a href="https://etherscan.io/address/0x111111111111111111111
 
 YBC member votes use this aggregator to determine their collective vote share.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.PendingGuardian 1`] = `
@@ -123,9 +173,10 @@ Pending guardian: <a href="https://etherscan.io/address/0x1111111111111111111111
 
 The current guardian retains authority until the pending guardian accepts.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.PendingManagement 1`] = `
@@ -136,9 +187,10 @@ Pending management: <a href="https://etherscan.io/address/0x11111111111111111111
 
 The current management retains authority until the pending management accepts.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.SetExecuteParameters 1`] = `
@@ -152,9 +204,10 @@ Executor: <a href="https://etherscan.io/address/0x111111111111111111111111111111
 These rules apply to existing proposals too. A guarded execution requires the current operator.
 The Executor changed to an unreviewed implementation. Review app compatibility before execution.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.SetGuardian 1`] = `
@@ -165,9 +218,10 @@ Guardian: <a href="https://etherscan.io/address/0x111111111111111111111111111111
 
 The guardian can veto proposals and change the operator.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.SetHooks 1`] = `
@@ -178,9 +232,10 @@ Hooks: <a href="https://etherscan.io/address/0x111111111111111111111111111111111
 
 Hooks affect proposal, retraction, and vote processing. Operators should review the new contract.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.SetManagement 1`] = `
@@ -191,9 +246,10 @@ Management: <a href="https://etherscan.io/address/0x1111111111111111111111111111
 
 The new management controls this contract's configuration.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.SetOperator 1`] = `
@@ -204,9 +260,10 @@ Operator: <a href="https://etherscan.io/address/0x111111111111111111111111111111
 
 The operator can flag proposals without votes and execute approved proposals when execution is guarded.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.SetProposeParameters 1`] = `
@@ -219,9 +276,10 @@ Blacklist contract: <a href="https://etherscan.io/address/0x11111111111111111111
 
 New proposals use these requirements. The blacklist address identifies the contract that checks proposer access.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.SetThreshold 1`] = `
@@ -232,9 +290,10 @@ Approval threshold (basis points): 5000
 
 Only new proposals use this threshold. Existing proposals retain their creation-time threshold.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.SetVoteParameters 1`] = `
@@ -247,9 +306,10 @@ Voter: <a href="https://etherscan.io/address/0x111111111111111111111111111111111
 The voting window and Voter apply to existing proposals too. Review active deadlines in the app.
 The Voter changed to an unreviewed implementation. Decay reminders are unavailable; review bot coverage before relying on it.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders every Voting and Voter configuration event > Voting.SetWeightMeasure 1`] = `
@@ -260,272 +320,260 @@ Weight measure: <a href="https://etherscan.io/address/0x111111111111111111111111
 
 Future vote calls use the new weight measure. Existing recorded weights remain until a vote update.
 
-<a href="https://dao.yearn.fi/">Open DAO</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>"
+- <a href="https://dao.yearn.fi/">DAO</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000018b1c38">Transaction</a>
+
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders executed with proposal identity, evidence and bounded HTML 1`] = `
 "<b>✅ DAO execution confirmed</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
 Executor account: <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>
 The proposal's on-chain execution completed successfully.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-27 00:00:12 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
-Proposal state and totals are from the end of this confirmed block."
+27 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders execution_ending with proposal identity, evidence and bounded HTML 1`] = `
 "<b>⏰ DAO execution window ending</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
-Execution deadline: 2026-12-10 00:00:00 UTC
+Execution deadline: 10 Dec, 00:00 UTC
 The time window is open. Review the exact script and run a fresh execution simulation in the app.
 
-For: 6 · Against: 4
-Approval: 60% · Required: 50%
+Approval: <b>60%</b>
+<pre>0%       50%     100%
+██████████│██░░░░░░░░
+          ↑ required 50%</pre>
+For 6 · Against 4
 Execution is restricted to operator <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-12-09 23:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+9 Dec, 23:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders execution_ready with proposal identity, evidence and bounded HTML 1`] = `
 "<b>▶️ DAO execution window opened</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
-Execution deadline: 2026-12-10 00:00:00 UTC
+Execution deadline: 10 Dec, 00:00 UTC
 The time window is open. Review the exact script and run a fresh execution simulation in the app.
 
-For: 6 · Against: 4
-Approval: 60% · Required: 50%
+Approval: <b>60%</b>
+<pre>0%       50%     100%
+██████████│██░░░░░░░░
+          ↑ required 50%</pre>
+For 6 · Against 4
 Execution is restricted to operator <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-27 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+27 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders expired with proposal identity, evidence and bounded HTML 1`] = `
 "<b>⌛ DAO execution window expired</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
-Execution deadline: 2026-12-10 00:00:00 UTC
+Execution deadline: 10 Dec, 00:00 UTC
 The approved proposal was not executed before its window closed. It can no longer be executed.
 
-For: 6 · Against: 4
-Approval: 60% · Required: 50%
+Approval: <b>60%</b>
+<pre>0%       50%     100%
+██████████│██░░░░░░░░
+          ↑ required 50%</pre>
+For 6 · Against 4
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-12-10 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+10 Dec, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders flagged with proposal identity, evidence and bounded HTML 1`] = `
 "<b>🚩 DAO proposal flagged</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
 The operator flagged this proposal. Voting and execution are blocked.
 Reason: &lt;b&gt;untrusted &amp; reason&lt;/b&gt;
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-18 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
-Proposal state and totals are from the end of this confirmed block."
+18 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders proposed with proposal identity, evidence and bounded HTML 1`] = `
 "<b>📝 New DAO proposal</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 untrusted &amp; text
 
 Proposer: <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>
-Voting opens: 2026-11-19 00:00:00 UTC
-Voting closes: 2026-11-26 00:00:00 UTC
+Voting opens: 19 Nov, 00:00 UTC
+Voting closes: 26 Nov, 00:00 UTC
 Approval threshold: 50% of cast weight, with positive turnout.
-Execution window: 2026-11-27 00:00:00 UTC to 2026-12-10 00:00:00 UTC.
+Execution window: 27 Nov, 00:00 UTC to 10 Dec, 00:00 UTC.
 Read the proposal and join the discussion before voting.
 Execution is restricted to operator <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-17 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
-Proposal state and totals are from the end of this confirmed block."
+17 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders rejected with proposal identity, evidence and bounded HTML 1`] = `
 "<b>❌ DAO proposal rejected</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
 The final approval share was below the proposal threshold. The proposal did not pass.
 
-For: 0 · Against: 10
-Approval: 0% · Required: 50%
+Approval: <b>0%</b>
+<pre>0%       50%     100%
+░░░░░░░░░░│░░░░░░░░░░
+          ↑ required 50%</pre>
+For 0 · Against 10
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-26 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+26 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders retracted with proposal identity, evidence and bounded HTML 1`] = `
 "<b>↩️ DAO proposal retracted</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
 The proposal author retracted this proposal. Voting and execution are unavailable.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-18 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
-Proposal state and totals are from the end of this confirmed block."
+18 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders vetoed with proposal identity, evidence and bounded HTML 1`] = `
 "<b>🛑 DAO proposal vetoed</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
 The guardian permanently blocked execution.
 Reason: &lt;b&gt;untrusted &amp; reason&lt;/b&gt;
-Voting remains open until 2026-11-26 00:00:00 UTC. Further votes cannot remove the veto.
+Voting remains open until 26 Nov, 00:00 UTC. Further votes cannot remove the veto.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-19 00:00:12 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
-Proposal state and totals are from the end of this confirmed block."
+19 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders vetoed_result with proposal identity, evidence and bounded HTML 1`] = `
 "<b>🛑 DAO voting closed — veto remains</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
 Voting has closed. The guardian veto still blocks execution regardless of the vote totals.
 
-For: 6 · Against: 4
-Approval: 60% · Required: 50%
+Approval: <b>60%</b>
+<pre>0%       50%     100%
+██████████│██░░░░░░░░
+          ↑ required 50%</pre>
+For 6 · Against 4
 Guardian veto: execution is permanently blocked.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-26 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+26 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders vote with proposal identity, evidence and bounded HTML 1`] = `
-"<b>🗳️ DAO vote weight recorded</b>
+"<b>🗳️ DAO vote</b>
+<b>&lt;test&gt; · #0</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a> · <b>FOR</b>
+Personal weight: <b>5</b>
 
-Vote account: <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>
-Recorded weight: 5 · For: 100%
-Collective accounts can be updated by YBC votes. This event can replace earlier weight; it is not a count of new voters.
+Approval at end of block: <b>60%</b>
+<pre>0%       50%     100%
+██████████│██░░░░░░░░
+          ↑ required 50%</pre>
+For 6 · Against 4
+<b>Currently passing · 10 pp above threshold</b> · Voting open
+Voting closes: 26 Nov, 00:00 UTC
+Change unavailable; totals include all votes in this block.
 
-For: 6 · Against: 4
-Approval: 60% · Required: 50%
-Current tally: meets the threshold. The result is not final.
-
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
-
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-19 00:00:12 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
-Proposal state and totals are from the end of this confirmed block."
+<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a> · <a href="https://gov.yearn.fi/t/example/123">Discussion</a> · <a href="https://etherscan.io/tx/0x00000000000000000000000000000000000000000000000000000000000003e7">Transaction</a>
+19 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders vote_decay with proposal identity, evidence and bounded HTML 1`] = `
 "<b>📉 DAO vote weight decay started</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
-Voting closes: 2026-11-26 00:00:00 UTC
+Voting closes: 26 Nov, 00:00 UTC
 The current Voter reduces the weight of new personal votes as the deadline approaches. Already recorded votes do not decay automatically.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-25 00:00:01 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+25 Nov, 00:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders voting_ending with proposal identity, evidence and bounded HTML 1`] = `
 "<b>⏰ DAO voting ending</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
-Voting closes: 2026-11-26 00:00:00 UTC
+Voting closes: 26 Nov, 00:00 UTC
 Open the proposal to review it and submit your vote.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-25 23:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+25 Nov, 23:00 UTC"
 `;
 
 exports[`DAO message catalogue > renders voting_open with proposal identity, evidence and bounded HTML 1`] = `
 "<b>🗳️ DAO voting opened</b>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal #0</a> · Executable
-<b>&lt;test&gt;</b>
+<b>&lt;test&gt; · #0</b>
 
-Voting closes: 2026-11-26 00:00:00 UTC
+Voting closes: 26 Nov, 00:00 UTC
 Open the proposal to review it and submit your vote.
 
-<a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Proposal</a>
+- <a href="https://gov.yearn.fi/t/example/123">Discussion</a>
+- <a href="https://etherscan.io/block/25883944">Confirmed block</a>
 
-<a href="https://dao.yearn.fi/proposals/0?chain=1&amp;voting=0x543e8871562a8c53e8b6a26835aeecb3a5a13070">Open proposal</a>
-Observed: 2026-11-19 00:00:00 UTC · Ethereum block 25883944
-<a href="https://etherscan.io/block/25883944">Confirmed block</a>
-Proposal state and totals are from the end of this confirmed block."
+19 Nov, 00:00 UTC"
 `;
