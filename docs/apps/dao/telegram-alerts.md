@@ -36,10 +36,11 @@ no YBC annotation. Confirmed collective accounts are hidden. Tiny positive
 weights display as `<0.01` instead of zero.
 Approval is marked `(live)` while voting remains open.
 
-Consecutive Vote logs share an alert only within the same transaction and
-proposal; intervening events keep their order. Batches show up to five voters
-and `+N more accounts`. The footer lists Proposal, Discussion, Transaction, then
-the UTC observation time, omitting unavailable links.
+Each personal Vote log produces one alert, including when several members vote
+in one transaction. Confirmed collective updates provide YBC influence context
+without separate alerts. If account roles cannot be verified, each Vote log is
+reported neutrally. Event order is preserved. The footer lists Proposal,
+Discussion, Transaction, then the UTC observation time, omitting unavailable links.
 
 Message headings use one emoji, following the other alert channels:
 
@@ -126,7 +127,7 @@ Cancelled or elapsed reminder windows do not produce current-action messages.
 
 The worker sends at most five messages per domain run.
 Receipts prevent resending accepted messages when a run reaches its cap or restarts.
-Grouped votes use the last source Vote log's existing receipt key.
+Each personal vote uses its own source log's existing receipt key.
 The cursor and proposal state advance only after all messages for the scanned block have receipts.
 Telegram `retry_after` pauses delivery without consuming the block.
 The existing duplicate window remains: Telegram can accept a message before its receipt reaches durable storage.
@@ -141,7 +142,7 @@ This extension does not send infrastructure warnings to Telegram.
 | --- | --- | --- |
 | `DAO_TELEGRAM_CHAT_ID` | Cloudflare secret for the final DAO chat | Managed on the deployed Worker |
 | `ALERTS_DAO_ENABLED` | Enable DAO scanning and delivery | `true` |
-| `DAO_ALERT_VOTES_ENABLED` | Include grouped vote messages | `true` |
+| `DAO_ALERT_VOTES_ENABLED` | Include individual vote messages | `true` |
 | `DAO_APP` | Service binding to the website's configured feed route | `governance-apps` |
 
 The existing `RPC_URL`, `TELEGRAM_BOT_TOKEN`, and `ADMIN_TOKEN` are shared.
@@ -185,6 +186,10 @@ For a new installation, keep DAO disabled until the destination secret is config
 
 To pause DAO delivery, set `ALERTS_DAO_ENABLED=false` and deploy the configuration.
 Its stored cursor and receipts remain available when delivery resumes.
+Before switching a live grouped build, drain pending delivery, pause scheduled
+runs, and wait for any in-flight run to finish. Recheck authenticated `/status`
+for `caughtUp: true` with no saved error or Telegram backoff before deploying.
+Resume with the same cursor and object name; no receipt migration is needed.
 Do not change the object name for routine deployments or reuse another stream's cursor.
 Another deliberate full replay requires a new DAO generation in a reviewed change, following the shared runbook.
 

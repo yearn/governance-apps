@@ -53,7 +53,7 @@ export function daoAction(event: Extract<DaoAlertAction, { kind: "dao_proposal" 
       : { kind: "synthetic" as const, metricId: `test:${event}`, blockHash: hash(DAO_DEPLOYMENT_BLOCK), orderingIndex: 0 },
     proposal: observed, configuration,
   } as const;
-  if (event === "vote") return { ...base, event, votes: [{ account: ACCOUNT, weight: "5000000000000000000", supportBps: 10_000, logIndex: 0 }] };
+  if (event === "vote") return { ...base, event, account: ACCOUNT, weight: "5000000000000000000", supportBps: 10_000 };
   return {
     ...base, event, actor: ACCOUNT,
     reason: "<b>untrusted & reason</b>",

@@ -53,21 +53,15 @@ interface DaoActionBase {
   readonly timestamp: number;
 }
 
-export interface DaoVoteUpdate {
-  readonly account: string;
-  readonly role?: "voter" | "ybc" | "delegated";
-  readonly weight: string;
-  readonly totalWeight?: string;
-  readonly supportBps: number;
-  readonly logIndex: number;
-}
-
 export type DaoVoteAction = DaoActionBase & {
   readonly kind: "dao_proposal";
   readonly event: "vote";
   readonly proposal: DaoAlertProposal;
   readonly configuration: DaoAlertConfiguration;
-  readonly votes: readonly DaoVoteUpdate[];
+  readonly account: string;
+  readonly weight: string;
+  readonly supportBps: number;
+  readonly totalWeight?: string;
 };
 
 export type DaoAlertAction = DaoVoteAction | (DaoActionBase & (

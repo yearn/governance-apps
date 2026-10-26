@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`DAO confirmed scanner > groups a YBC vote with its two collective updates using the final event's receipt key > YBC vote summary 1`] = `
+exports[`DAO confirmed scanner > emits one personal alert with YBC influence and its original receipt key > YBC personal vote 1`] = `
 "<b>🗳️ DAO vote</b>
 
 <b>Proposal #0</b>

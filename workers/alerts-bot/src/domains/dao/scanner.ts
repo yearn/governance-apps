@@ -13,7 +13,7 @@ import {
   DAO_VOTER, DAO_VOTER_EVENTS, DAO_VOTING,
 } from "./contracts";
 import { daoTiming, pendingDaoMilestones } from "./lifecycle";
-import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState, DaoTrackedProposal, DaoVoteAction, DaoVoteUpdate } from "./types";
+import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState, DaoTrackedProposal } from "./types";
 
 const collectiveAccountChanges = new Set(["SetYBC", "SetDelegatedStaking", "SetVoteParameters", "SetYBCWeightAggregator"]);
 const uint = z.string().regex(/^(0|[1-9][0-9]{0,77})$/);
@@ -94,20 +94,13 @@ async function readCollectiveAccounts(rpc: RpcClient, block: RpcBlock) {
   return { ybc, delegated };
 }
 
-async function addVoteInfluence(rpc: RpcClient, block: RpcBlock, actions: readonly DaoAlertAction[]): Promise<readonly DaoAlertAction[]> {
-  const groups = actions.filter((action): action is DaoVoteAction => action.kind === "dao_proposal" && action.event === "vote");
-  const pools = new Map<string, { ybc: bigint; delegated: bigint; members: string[] }>();
-  for (const action of groups) {
-    for (const [i, vote] of action.votes.entries()) {
-      if (vote.role !== "ybc" && vote.role !== "delegated") continue;
-      const pool = pools.get(action.proposal.id) ?? { ybc: 0n, delegated: 0n, members: [] };
-      pool[vote.role] = BigInt(vote.weight);
-      if (vote.role === "delegated" && action.votes[i - 1]?.role === "voter" && action.votes[i + 1]?.role === "ybc") {
-        pool.members.push(action.votes[i - 1]!.account);
-      }
-      pools.set(action.proposal.id, pool);
-    }
-  }
+interface DaoVotePool {
+  ybc: bigint;
+  delegated: bigint;
+  members: string[];
+}
+
+async function addVoteInfluence(rpc: RpcClient, block: RpcBlock, actions: readonly DaoAlertAction[], pools: ReadonlyMap<string, DaoVotePool>): Promise<readonly DaoAlertAction[]> {
   const ids = [...pools.keys()].filter(id => pools.get(id)!.members.length > 0);
   if (ids.length === 0) return actions;
   const names = ids.map(() => "ybc_votes");
@@ -130,16 +123,13 @@ async function addVoteInfluence(rpc: RpcClient, block: RpcBlock, actions: readon
   return actions.map(action => {
     if (action.kind !== "dao_proposal" || action.event !== "vote") return action;
     const pool = pools.get(action.proposal.id);
-    if (!pool) return action;
-    return { ...action, votes: action.votes.map(vote => {
-      if (vote.role !== "voter" || !pool.members.includes(vote.account)) return vote;
-      const { total, delta } = totals.get(action.proposal.id)!;
-      // One member's recorded weight is exact; same-block batches use current weight, best effort.
-      const weight = pool.members.length === 1 ? delta : weights.get(vote.account)!;
-      const member = weight > total ? total : weight;
-      const share = pool.ybc * member / total + pool.delegated * member / total;
-      return share === 0n ? vote : { ...vote, totalWeight: String(BigInt(vote.weight) + share) };
-    }) };
+    if (!pool?.members.includes(action.account)) return action;
+    const { total, delta } = totals.get(action.proposal.id)!;
+    // One member's recorded weight is exact; same-block batches use current weight, best effort.
+    const weight = pool.members.length === 1 ? delta : weights.get(action.account)!;
+    const member = weight > total ? total : weight;
+    const share = pool.ybc * member / total + pool.delegated * member / total;
+    return share === 0n ? action : { ...action, totalWeight: String(BigInt(action.weight) + share) };
   });
 }
 
@@ -250,7 +240,8 @@ export async function scanDaoBlocks(params: {
   }
 
   const actions: DaoAlertAction[] = [];
-  for (const { log, name, args } of events) {
+  const pools = new Map<string, DaoVotePool>();
+  for (const [i, { log, name, args }] of events.entries()) {
     const base = {
       domainId: "dao" as const, blockNumber: toBlock, blockHash: terminal.hash, logIndex: log.logIndex,
       txHash: log.transactionHash, source: onchainSource(log), timestamp: terminal.timestamp!,
@@ -271,24 +262,24 @@ export async function scanDaoBlocks(params: {
       if (event === "vote") {
         if (params.includeVotes === false) continue;
         const account = String(args.account).toLowerCase();
-        const vote: DaoVoteUpdate = {
-          account, weight: String(args.weight),
-          role: collectiveAccounts === null ? undefined : account === collectiveAccounts.ybc ? "ybc"
-            : account === collectiveAccounts.delegated ? "delegated" : "voter",
-          supportBps: Number(args.yea), logIndex: log.logIndex,
-        };
-        const previous = actions.at(-1);
-        const group = previous?.kind === "dao_proposal" && previous.event === "vote" &&
-          previous.txHash === log.transactionHash && previous.proposal.id === p.id ? previous : undefined;
-        const action: DaoVoteAction = {
+        if (collectiveAccounts !== null) {
+          const pool = pools.get(p.id) ?? { ybc: 0n, delegated: 0n, members: [] };
+          pools.set(p.id, pool);
+          if (account === collectiveAccounts.ybc || account === collectiveAccounts.delegated) {
+            pool[account === collectiveAccounts.ybc ? "ybc" : "delegated"] = BigInt(String(args.weight));
+            continue;
+          }
+          if ([collectiveAccounts.delegated, collectiveAccounts.ybc].every((expectedAccount, offset) => {
+            const next = events[i + offset + 1];
+            return next?.log.address === DAO_VOTING && next.name === "Vote" &&
+              next.log.transactionHash === log.transactionHash && String(next.args.idx) === p.id &&
+              String(next.args.account).toLowerCase() === expectedAccount;
+          })) pool.members.push(account);
+        }
+        actions.push({
           ...base, kind: "dao_proposal", event, proposal: p, configuration,
-          // Keep the first log's order/source; the last log's receipt covers the whole group.
-          logIndex: group?.logIndex ?? base.logIndex,
-          source: group?.source ?? base.source,
-          votes: [...(group?.votes ?? []), vote],
-        };
-        if (group) actions[actions.length - 1] = action;
-        else actions.push(action);
+          account, weight: String(args.weight), supportBps: Number(args.yea),
+        });
         continue;
       }
       actions.push({
@@ -327,5 +318,5 @@ export async function scanDaoBlocks(params: {
     if (p.retracted || p.flagged || p.executed || terminal.timestamp! >= daoTiming(p, configuration).executeEnd) delete proposals[id];
   }
   const state = loadDaoState({ version: 1, configuration, proposals });
-  return { terminalBlock: toBlock, terminalHash: terminal.hash, state, actions: await addVoteInfluence(rpc, terminal, actions) };
+  return { terminalBlock: toBlock, terminalHash: terminal.hash, state, actions: await addVoteInfluence(rpc, terminal, actions, pools) };
 }

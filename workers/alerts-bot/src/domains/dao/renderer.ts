@@ -1,7 +1,7 @@
 import { formatUnits } from "viem";
 import { DAO_EXECUTOR, DAO_VOTER, DAO_VOTING } from "./contracts";
 import { daoIsSignal, daoTiming } from "./lifecycle";
-import type { DaoAlertAction, DaoVoteAction } from "./types";
+import type { DaoAlertAction } from "./types";
 import type { DaoAlertContent } from "./content";
 
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -46,23 +46,6 @@ function weight(value: string): string {
   if (raw > 0n && rounded === 0n) return "&lt;0.01";
   const [whole, fraction] = formatUnits(rounded, 2).split(".");
   return whole!.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (fraction ? `.${fraction}` : "");
-}
-
-function voteLines(action: DaoVoteAction): string[] {
-  if (action.votes.length === 0) throw new Error("dao_vote_updates_missing");
-  const votes = [...new Map(action.votes.filter(vote => vote.role !== "ybc" && vote.role !== "delegated")
-    .map(vote => [vote.account, vote])).values()];
-  const visible = votes.slice(0, 5);
-  return [
-    ...visible.flatMap((vote, i) => [
-      ...(i > 0 ? [""] : []),
-      `Account: ${account(vote.account)}`,
-      `Vote: <b>${vote.supportBps === 10_000 ? "For" : vote.supportBps === 0 ? "Against"
-        : `${percent(vote.supportBps)} For · ${percent(10_000 - vote.supportBps)} Against`}</b>`,
-      `Weight: <b>${weight(vote.totalWeight ?? vote.weight)}</b>${vote.totalWeight ? ` (${weight(vote.weight)} + YBC)` : ""}`,
-    ]),
-    ...(votes.length > visible.length ? [`+${votes.length - visible.length} more accounts`] : []),
-  ];
 }
 
 const titles = {
@@ -126,7 +109,10 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
         signal ? "This is a signal proposal with no executable actions." : `Execution window: ${time(t.executeStart)} to ${time(t.executeEnd)}.`,
         "Read the proposal and join the discussion before voting.");
     } else if (action.event === "vote") {
-      lines.push(...voteLines(action));
+      lines.push(`Account: ${account(action.account)}`,
+        `Vote: <b>${action.supportBps === 10_000 ? "For" : action.supportBps === 0 ? "Against"
+          : `${percent(action.supportBps)} For · ${percent(10_000 - action.supportBps)} Against`}</b>`,
+        `Weight: <b>${weight(action.totalWeight ?? action.weight)}</b>${action.totalWeight ? ` (${weight(action.weight)} + YBC)` : ""}`);
     } else if (action.event === "retracted") {
       lines.push("The proposal author retracted this proposal. Voting and execution are unavailable.");
     } else if (action.event === "flagged") {
