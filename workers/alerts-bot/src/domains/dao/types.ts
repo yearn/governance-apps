@@ -57,6 +57,7 @@ export interface DaoVoteUpdate {
   readonly account: string;
   readonly role?: "voter" | "ybc" | "delegated";
   readonly weight: string;
+  readonly totalWeight?: string;
   readonly supportBps: number;
   readonly logIndex: number;
 }

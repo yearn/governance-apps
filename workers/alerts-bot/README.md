@@ -72,8 +72,8 @@ message bodies, or account context. DAO protocol alerts share this error model.
 
 Required secrets when any domain is enabled:
 
-- `RPC_URL` (archive-capable; YBC additionally requires Geth-compatible
-  `debug_traceTransaction` call traces with logs for non-pinned final-day votes)
+- `RPC_URL` (archive-capable; DAO YBC influence and non-pinned final-day YBC votes
+  require Geth-compatible `debug_traceTransaction` call traces with logs)
 - `TELEGRAM_BOT_TOKEN`
 - `STYFI_TELEGRAM_CHAT_ID`
 - `VEYFI_TELEGRAM_CHAT_ID`

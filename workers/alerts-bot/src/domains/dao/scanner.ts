@@ -1,9 +1,9 @@
 import {
-  decodeEventLog, decodeFunctionResult, encodeAbiParameters, encodeFunctionData,
-  keccak256, zeroAddress, type Hex,
+  decodeEventLog, decodeFunctionResult, encodeAbiParameters, encodeEventTopics, encodeFunctionData,
+  keccak256, zeroAddress, type Address, type Hex,
 } from "viem";
 import { z } from "zod";
-import { ALERT_RPC_MAX_BATCH_SIZE, RpcRequestError, type RpcBlock, type RpcClient } from "../../rpc";
+import { ALERT_RPC_MAX_BATCH_SIZE, RpcRequestError, type RpcBlock, type RpcCallTraceFrame, type RpcClient } from "../../rpc";
 import {
   assertCanonicalProductLog, canonicalProductLog, exactBlock, onchainSource,
   productEventId, sortProductLogs, type CanonicalProductLog,
@@ -91,6 +91,82 @@ async function readCollectiveAccounts(rpc: RpcClient, block: RpcBlock) {
   const delegated = address.parse(String(values[1]).toLowerCase());
   if (ybc === delegated || ybc === zeroAddress || delegated === zeroAddress) return null;
   return { ybc, delegated };
+}
+
+function recordedYbcWeight(trace: RpcCallTraceFrame, firstLogIndex: number, action: DaoVoteAction, vote: DaoVoteUpdate): bigint {
+  const topics = encodeEventTopics({ abi: DAO_EVENTS, eventName: "Vote",
+    args: { account: vote.account as Address, idx: BigInt(action.proposal.id) } }) as readonly Hex[];
+  const data = encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }], [BigInt(vote.weight), BigInt(vote.supportBps)]);
+  const frames: { frame: RpcCallTraceFrame; index: number }[] = [];
+  let firstTraceIndex = Infinity;
+  const visit = (frame: RpcCallTraceFrame) => {
+    if (frame.error !== null) return;
+    for (const log of frame.logs) {
+      if (log.address === DAO_VOTING && log.topics[0] === topics[0]) firstTraceIndex = Math.min(firstTraceIndex, log.index);
+    }
+    if (frame.to === DAO_VOTER && frame.from === vote.account) {
+      const log = frame.calls.filter(call => call.to === DAO_VOTING && call.error === null).flatMap(call => call.logs).find(log =>
+        log.address === DAO_VOTING && log.data === data && log.topics.length === topics.length &&
+        log.topics.every((topic, i) => topic === topics[i]?.toLowerCase()));
+      if (log) frames.push({ frame, index: log.index });
+    }
+    for (const call of frame.calls) visit(call);
+  };
+  visit(trace);
+  // Trace log indices are transaction-relative; receipt log indices are block-relative.
+  const matches = frames.filter(item => item.index - firstTraceIndex === vote.logIndex - firstLogIndex);
+  if (matches.length !== 1) throw new Error("dao_vote_trace_frame_mismatch");
+  const input = encodeFunctionData({ abi: DAO_READS, functionName: "weight", args: [vote.account as Address] });
+  const frame = matches[0]!.frame;
+  const votingCalls = frame.calls.filter(call => call.to === DAO_VOTING && call.error === null &&
+    call.logs.some(log => log.address === DAO_VOTING && log.topics[0] === topics[0]));
+  if (votingCalls.length === 1) return 0n;
+  const calls = frame.calls.filter(call => call.type === "STATICCALL" && call.from === DAO_VOTER &&
+    call.input === input && call.error === null);
+  if (votingCalls.length !== 3 || calls.length !== 1 || calls[0]!.output === null || !/^0x[0-9a-f]{64}$/.test(calls[0]!.output) || BigInt(calls[0]!.output) === 0n) {
+    throw new Error("dao_vote_trace_weight_invalid");
+  }
+  return BigInt(calls[0]!.output);
+}
+
+async function addVoteInfluence(rpc: RpcClient, block: RpcBlock, actions: readonly DaoAlertAction[]): Promise<readonly DaoAlertAction[]> {
+  const groups = actions.filter((action): action is DaoVoteAction => action.kind === "dao_proposal" && action.event === "vote");
+  const pools = new Map<string, { ybc?: bigint; delegated?: bigint }>();
+  const transactions = new Set<string>();
+  const firstIndices = new Map<string, number>();
+  for (const action of groups) {
+    firstIndices.set(action.txHash, Math.min(firstIndices.get(action.txHash) ?? Infinity, action.votes[0]!.logIndex));
+    for (const vote of action.votes) {
+      if (vote.role !== "ybc" && vote.role !== "delegated") continue;
+      const pool = pools.get(action.proposal.id) ?? {};
+      pool[vote.role] = BigInt(vote.weight);
+      pools.set(action.proposal.id, pool);
+      transactions.add(action.txHash);
+    }
+  }
+  if (transactions.size === 0) return actions;
+  if (!rpc.traceTransactionByHash) throw new Error("dao_vote_trace_unavailable");
+  const traces = new Map<string, RpcCallTraceFrame>();
+  for (const tx of transactions) traces.set(tx, await rpc.traceTransactionByHash(tx));
+  const ids = [...pools.keys()];
+  const values = await reads(rpc, block, DAO_VOTER, ids.map(() => "ybc_votes"), ids.map(id => [DAO_VOTING, BigInt(id)]));
+  const totals = new Map(ids.map((id, i) => [id, (values[i] as readonly [bigint, bigint])[0]]));
+  return actions.map(action => {
+    if (action.kind !== "dao_proposal" || action.event !== "vote") return action;
+    const trace = traces.get(action.txHash);
+    const pool = pools.get(action.proposal.id);
+    if (!trace || !pool) return action;
+    return { ...action, votes: action.votes.map(vote => {
+      if (vote.role !== "voter") return vote;
+      // Use vote-time membership weight with confirmed-block pool totals, matching the proposal tally.
+      const member = recordedYbcWeight(trace, firstIndices.get(action.txHash)!, action, vote);
+      if (member === 0n) return vote;
+      const total = totals.get(action.proposal.id)!;
+      if (member > total || pool.ybc === undefined || pool.delegated === undefined) throw new Error("dao_vote_influence_invalid");
+      const share = pool.ybc * member / total + pool.delegated * member / total;
+      return share === 0n ? vote : { ...vote, totalWeight: String(BigInt(vote.weight) + share) };
+    }) };
+  });
 }
 
 function decode(log: CanonicalProductLog): DecodedLog {
@@ -277,5 +353,5 @@ export async function scanDaoBlocks(params: {
     if (p.retracted || p.flagged || p.executed || terminal.timestamp! >= daoTiming(p, configuration).executeEnd) delete proposals[id];
   }
   const state = loadDaoState({ version: 1, configuration, proposals });
-  return { terminalBlock: toBlock, terminalHash: terminal.hash, state, actions };
+  return { terminalBlock: toBlock, terminalHash: terminal.hash, state, actions: await addVoteInfluence(rpc, terminal, actions) };
 }

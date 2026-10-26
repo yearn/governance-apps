@@ -1,8 +1,8 @@
 import { vi } from "vitest";
-import { decodeFunctionData, encodeAbiParameters, encodeEventTopics, encodeFunctionResult, type Abi, type Hex } from "viem";
+import { decodeEventLog, decodeFunctionData, encodeAbiParameters, encodeEventTopics, encodeFunctionData, encodeFunctionResult, type Abi, type Address, type Hex } from "viem";
 import { DAO_DEPLOYMENT_BLOCK, DAO_EPOCH, DAO_EVENTS, DAO_EXECUTOR, DAO_GENESIS, DAO_READS, DAO_VOTER, DAO_VOTING } from "@/workers/alerts-bot/src/domains/dao/contracts";
 import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState } from "@/workers/alerts-bot/src/domains/dao/types";
-import type { RpcBlock, RpcCallRequest, RpcClient, RpcLog } from "@/workers/alerts-bot/src/rpc";
+import type { RpcBlock, RpcCallRequest, RpcCallTraceFrame, RpcClient, RpcLog } from "@/workers/alerts-bot/src/rpc";
 
 export const ACCOUNT = "0x1111111111111111111111111111111111111111";
 export const GUARDIAN = "0x2222222222222222222222222222222222222222";
@@ -80,6 +80,30 @@ export function ybcDaoVoteLogs(idx = 0n, firstLogIndex = 0): RpcLog[] {
   ].map((vote, i) => daoLog(DAO_EVENTS, "Vote", { ...vote, idx, yea: 10_000n }, DAO_DEPLOYMENT_BLOCK, firstLogIndex + i));
 }
 
+export function daoVoteTrace(logs: RpcLog[], memberWeights: Record<string, bigint> = {}, accounts = collectiveAccounts): RpcCallTraceFrame {
+  const votes = [...logs].sort((a, b) => a.logIndex! - b.logIndex!).flatMap(log => {
+    if (log.address !== DAO_VOTING) return [];
+    const event = decodeEventLog({ abi: DAO_EVENTS, topics: log.topics as [Hex, ...Hex[]], data: log.data as Hex });
+    return event.eventName === "Vote" ? [{ log, account: event.args.account!.toLowerCase() }] : [];
+  });
+  const frame = (from: string, to: string): RpcCallTraceFrame => ({ type: "CALL", from, to, input: "0x", output: "0x", error: null, calls: [], logs: [] });
+  const calls = votes.flatMap(({ log, account }, i) => {
+    if (account === accounts.ybc || account === accounts.delegated) return [];
+    const related = [log];
+    const member = votes[i + 1]?.account === accounts.delegated && votes[i + 2]?.account === accounts.ybc;
+    if (member) related.push(votes[i + 1]!.log, votes[i + 2]!.log);
+    const children: RpcCallTraceFrame[] = related.map(vote => ({ ...frame(DAO_VOTER, DAO_VOTING), logs: [{
+      address: DAO_VOTING, topics: vote.topics, data: vote.data, position: 0, index: vote.logIndex! - votes[0]!.log.logIndex!,
+    }] }));
+    if (member) children.splice(1, 0, { ...frame(DAO_VOTER, ACCOUNT), type: "STATICCALL",
+      input: encodeFunctionData({ abi: DAO_READS, functionName: "weight", args: [account as Address] }),
+      output: encodeFunctionResult({ abi: DAO_READS, functionName: "weight", result: memberWeights[account] ?? 31_064793252156000000n }),
+    });
+    return [{ ...frame(account, DAO_VOTER), calls: children }];
+  });
+  return { ...frame(ACCOUNT, ACCOUNT), calls };
+}
+
 export function daoRpc(options: {
   startTime?: number;
   logs?: RpcLog[];
@@ -87,6 +111,9 @@ export function daoRpc(options: {
   config?: DaoAlertConfiguration | ((block: number) => DaoAlertConfiguration);
   genesis?: number;
   collectiveAccounts?: typeof collectiveAccounts | Error;
+  memberWeights?: Record<string, bigint>;
+  ybcVoteWeight?: bigint;
+  trace?: RpcCallTraceFrame | Error;
 } = {}) {
   const block = (number: number): RpcBlock => ({
     number, hash: hash(number), parentHash: hash(number - 1), timestamp: (options.startTime ?? voteStart - 172_800) + (number - DAO_DEPLOYMENT_BLOCK) * 12,
@@ -107,6 +134,7 @@ export function daoRpc(options: {
         case "executor": result = config.executor; break;
         case "operator": result = config.operator; break;
         case "decay_length": result = BigInt(config.decayLength ?? 0); break;
+        case "ybc_votes": result = [options.ybcVoteWeight ?? 498_161318374483000000n, 0n]; break;
         case "ybc":
         case "delegated_staking": {
           if (options.collectiveAccounts instanceof Error) throw options.collectiveAccounts;
@@ -128,6 +156,11 @@ export function daoRpc(options: {
   });
   const rpc = {
     call, getBlockNumber: vi.fn(async () => DAO_DEPLOYMENT_BLOCK + 6),
+    traceTransactionByHash: vi.fn(async (tx: string) => {
+      if (options.trace instanceof Error) throw options.trace;
+      const accounts = options.collectiveAccounts instanceof Error ? collectiveAccounts : options.collectiveAccounts;
+      return options.trace ?? daoVoteTrace((options.logs ?? []).filter(log => log.transactionHash === tx), options.memberWeights, accounts);
+    }),
     getBlockByNumber: vi.fn(async (n: number) => block(n)),
     getLogs: vi.fn(async ({ fromBlock, toBlock }: { fromBlock: number; toBlock: number }) =>
       (options.logs ?? []).filter(l => l.blockNumber! >= fromBlock && l.blockNumber! <= toBlock)),
