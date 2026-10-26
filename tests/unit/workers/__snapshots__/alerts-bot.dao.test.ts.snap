@@ -7,7 +7,7 @@ exports[`DAO confirmed scanner > emits one personal alert with YBC influence and
 
 Account: <a href="https://etherscan.io/address/0x1d70e9414b639286665df4794ff5c7ea538b4eac">0x1d70…4eac</a>
 Vote: <b>For</b>
-Weight: <b>71.28</b> (31.06 + YBC)
+Weight: 31.06 | +YBC
 
 For 6 · Against 4
 Approval 60% (live) · Required 50%
@@ -25,7 +25,7 @@ exports[`DAO message catalogue > matches the approved historical vote template a
 
 Account: <a href="https://etherscan.io/address/0x1d70e9414b639286665df4794ff5c7ea538b4eac">0x1d70…4eac</a>
 Vote: <b>For</b>
-Weight: <b>71.28</b> (31.06 + YBC)
+Weight: 31.06 | +YBC
 
 For 1,762.29 · Against 0
 Approval 100% (live) · Required 50%
@@ -494,7 +494,7 @@ exports[`DAO message catalogue > renders vote with proposal identity, evidence a
 
 Account: <a href="https://etherscan.io/address/0x1111111111111111111111111111111111111111">0x1111…1111</a>
 Vote: <b>For</b>
-Weight: <b>5</b>
+Weight: 5
 
 For 6 · Against 4
 Approval 60% (live) · Required 50%

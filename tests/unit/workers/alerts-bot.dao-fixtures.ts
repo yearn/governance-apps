@@ -53,7 +53,7 @@ export function daoAction(event: Extract<DaoAlertAction, { kind: "dao_proposal" 
       : { kind: "synthetic" as const, metricId: `test:${event}`, blockHash: hash(DAO_DEPLOYMENT_BLOCK), orderingIndex: 0 },
     proposal: observed, configuration,
   } as const;
-  if (event === "vote") return { ...base, event, account: ACCOUNT, weight: "5000000000000000000", supportBps: 10_000 };
+  if (event === "vote") return { ...base, event, account: ACCOUNT, weight: "5000000000000000000", supportBps: 10_000, ybcCollectiveUpdated: false };
   return {
     ...base, event, actor: ACCOUNT,
     reason: "<b>untrusted & reason</b>",
@@ -87,8 +87,6 @@ export function daoRpc(options: {
   config?: DaoAlertConfiguration | ((block: number) => DaoAlertConfiguration);
   genesis?: number;
   collectiveAccounts?: typeof collectiveAccounts | Error;
-  memberWeights?: Record<string, bigint> | Error;
-  ybcVoteWeight?: (block: number, id: string) => bigint;
 } = {}) {
   const block = (number: number): RpcBlock => ({
     number, hash: hash(number), parentHash: hash(number - 1), timestamp: (options.startTime ?? voteStart - 172_800) + (number - DAO_DEPLOYMENT_BLOCK) * 12,
@@ -109,14 +107,6 @@ export function daoRpc(options: {
         case "executor": result = config.executor; break;
         case "operator": result = config.operator; break;
         case "decay_length": result = BigInt(config.decayLength ?? 0); break;
-        case "ybc_votes": result = [options.ybcVoteWeight?.(number, String(decoded.args![1])) ??
-          (number < DAO_DEPLOYMENT_BLOCK ? 467_096525122327000000n : 498_161318374483000000n), 0n]; break;
-        case "ybc_weight_aggregator": result = "0xadb7228a85fcd24e3cfc8c58e2d4b9f03e1468d9"; break;
-        case "weight": {
-          if (options.memberWeights instanceof Error) throw options.memberWeights;
-          result = options.memberWeights?.[String(decoded.args![0]).toLowerCase()] ?? 31_064793252156000000n;
-          break;
-        }
         case "ybc":
         case "delegated_staking": {
           if (options.collectiveAccounts instanceof Error) throw options.collectiveAccounts;

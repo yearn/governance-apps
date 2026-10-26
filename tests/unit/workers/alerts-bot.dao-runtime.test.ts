@@ -77,7 +77,7 @@ describe("DAO durable delivery", () => {
     expect(await (await first.run()).json()).toMatchObject({ outcome: "message_cap", cursorBlock: G - 1, messagesSent: 1 });
     const summary = vi.mocked(sendMessage).mock.calls[0]![1];
     expect(summary.match(/etherscan.io\/address\//g)).toHaveLength(1);
-    expect(summary).toContain("Weight: <b>71.28</b> (31.06 + YBC)");
+    expect(summary).toContain("Weight: 31.06 | +YBC");
     expect(first.storage.values.get(`sent:dao:${logs[0]!.transactionHash}:0:Vote`)).toBe(true);
     expect(first.storage.values.has(`sent:dao:${logs[0]!.transactionHash}:2:Vote`)).toBe(false);
     const retry = setup(env, first.storage);

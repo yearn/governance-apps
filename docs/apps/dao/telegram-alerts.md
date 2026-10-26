@@ -12,7 +12,7 @@ The committed DAO flag is enabled. Existing streams retain their configuration.
 | Proposal created | Proposal link, type, proposer, threshold, voting dates, and execution permissions. Read the proposal and join its discussion. |
 | Discussion ending | Reminders 24 hours and 1 hour before voting opens. |
 | Voting opens | Voting deadline and a link to the proposal. |
-| Vote recorded | Individual accounts, choices, personal and YBC-inclusive weights, and confirmed proposal totals. |
+| Vote recorded | Individual accounts, choices, recorded personal weights, YBC collective-update markers, and confirmed proposal totals. |
 | Voting ending | Reminders 24 hours and 1 hour before voting closes. |
 | Vote weight decay | Notice at the first block where the pinned Voter reduces new personal vote weight. Existing votes do not decay automatically. |
 | Voting closes | Approval or rejection, final totals, and threshold. Zero turnout fails even when the threshold is zero. |
@@ -30,9 +30,10 @@ All dates use `26 Oct, 11:53 UTC`, including the observation time at the end.
 Transaction events link to Etherscan transactions. Deadline alerts link to their confirmed blocks.
 Proposal links include the chain and Voting address, so numeric proposal IDs remain unambiguous.
 
-Votes show Account, Vote, and Weight for each individual voter, rounded to two
-decimals. YBC participants use `Weight: total (personal + YBC)`; other voters have
-no YBC annotation. Confirmed collective accounts are hidden. Tiny positive
+Votes show Account, Vote, and the recorded personal Weight for each individual voter, rounded to two
+decimals. When a member's vote also updates the YBC collective accounts, the line reads
+`Weight: 31.06 | +YBC`. Other voters have no YBC marker. The marker does not assign
+an amount of the collective vote to the member. Confirmed collective accounts are hidden. Tiny positive
 weights display as `<0.01` instead of zero.
 Approval is marked `(live)` while voting remains open.
 
@@ -116,9 +117,9 @@ The pinned Voter starts decay strictly after its configured boundary; the bot fo
 
 RPC reads use the observation block hash with `requireCanonical: true`.
 Proposal totals describe the end of the block, including all collective vote updates in that block.
-YBC influence uses the block's change in participating weight for a single member;
-when several members vote on one proposal in a block, current member weights are
-used, best effort. Personal weight includes LL/veYFI and vote decay.
+The `+YBC` marker requires the member's personal Vote log to be followed by both
+collective Vote logs in the same transaction. The bot does not calculate individual
+YBC shares. Personal weight includes LL/veYFI and vote decay.
 The scanner does not infer unique voters, sum replacement votes, or identify moderation callers from transaction senders.
 
 Historical replay includes historical deadlines. Message timestamps describe those historical observations.

@@ -61,7 +61,7 @@ export type DaoVoteAction = DaoActionBase & {
   readonly account: string;
   readonly weight: string;
   readonly supportBps: number;
-  readonly totalWeight?: string;
+  readonly ybcCollectiveUpdated: boolean;
 };
 
 export type DaoAlertAction = DaoVoteAction | (DaoActionBase & (

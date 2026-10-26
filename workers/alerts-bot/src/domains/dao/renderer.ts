@@ -112,7 +112,7 @@ export function renderDaoAlert(action: DaoAlertAction, content: DaoAlertContent 
       lines.push(`Account: ${account(action.account)}`,
         `Vote: <b>${action.supportBps === 10_000 ? "For" : action.supportBps === 0 ? "Against"
           : `${percent(action.supportBps)} For · ${percent(10_000 - action.supportBps)} Against`}</b>`,
-        `Weight: <b>${weight(action.totalWeight ?? action.weight)}</b>${action.totalWeight ? ` (${weight(action.weight)} + YBC)` : ""}`);
+        `Weight: ${weight(action.weight)}${action.ybcCollectiveUpdated ? " | +YBC" : ""}`);
     } else if (action.event === "retracted") {
       lines.push("The proposal author retracted this proposal. Voting and execution are unavailable.");
     } else if (action.event === "flagged") {

@@ -51,7 +51,8 @@ deadline blocks when no contract event occurs. Reminders precede voting and
 execution deadlines by 24 hours and 1 hour. See the
 [DAO catalogue and rollout](../../docs/apps/dao/telegram-alerts.md).
 Each personal Vote log has its own message and receipt. Confirmed collective
-updates supply YBC influence context without separate messages.
+updates add a `+YBC` marker without assigning a collective amount or sending
+separate messages.
 
 DAO proposal titles come from the website's `/api/dao-data` route through the
 `DAO_APP` service binding. The website owns `DAO_DATA_URL`; no duplicate feed
