@@ -53,31 +53,16 @@ interface DaoActionBase {
   readonly timestamp: number;
 }
 
-export interface DaoVoteUpdate {
-  readonly account: string;
-  readonly role?: "voter" | "ybc" | "delegated";
-  readonly weight: string;
-  readonly totalWeight?: string;
-  readonly supportBps: number;
-  readonly logIndex: number;
-}
-
-export type DaoVoteAction = DaoActionBase & {
-  readonly kind: "dao_proposal";
-  readonly event: "vote";
-  readonly proposal: DaoAlertProposal;
-  readonly configuration: DaoAlertConfiguration;
-  readonly votes: readonly DaoVoteUpdate[];
-};
-
-export type DaoAlertAction = DaoVoteAction | (DaoActionBase & (
+export type DaoAlertAction = DaoActionBase & (
   | {
       readonly kind: "dao_proposal";
-      readonly event: "proposed" | "retracted" | "flagged" | "vetoed" | "executed" | DaoLifecycleKind;
+      readonly event: "proposed" | "vote" | "retracted" | "flagged" | "vetoed" | "executed" | DaoLifecycleKind;
       readonly proposal: DaoAlertProposal;
       readonly configuration: DaoAlertConfiguration;
       readonly actor?: string;
       readonly reason?: string;
+      readonly weight?: string;
+      readonly supportBps?: number;
       readonly deadline?: number;
     }
   | {
@@ -86,7 +71,7 @@ export type DaoAlertAction = DaoVoteAction | (DaoActionBase & (
       readonly event: string;
       readonly values: Readonly<Record<string, string | boolean>>;
     }
-));
+);
 
 export function isDaoAlertAction(action: unknown): action is DaoAlertAction {
   return typeof action === "object" && action !== null &&

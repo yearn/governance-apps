@@ -140,7 +140,7 @@ describe("DAO website feed content", () => {
     await vi.advanceTimersByTimeAsync(1);
     expect(await setup(feed, storage).reader.read(contentProposal)).toBeNull();
     expect(warn).toHaveBeenCalledWith(JSON.stringify({ event: "dao_content_unavailable", proposalId: "0", reason: "dao_content_missing" }));
-    expect(renderDaoAlert(daoAction("vote"), null)).toContain("<b>Proposal #0</b>");
+    expect(renderDaoAlert(daoAction("vote"), null)).toContain("Proposal title unavailable");
     expect(await setup(daoContentFeed(), storage).reader.read(contentProposal)).toEqual(expectedContent);
   });
 
@@ -156,7 +156,8 @@ describe("DAO proposal identity in delivered messages", () => {
     const { rpc } = daoRpc({ startTime: action.timestamp });
     const { reader } = setup();
     const messages = await renderCatalogueMessages({ domainId: "dao", actions: [action], rpc, daoContent: reader });
-    expect(messages[0]!.html).toContain("<b>Fund research · #0</b>");
+    expect(messages[0]!.html).toContain("<b>Fund research</b>");
+    expect(messages[0]!.html).toContain("Proposal #0");
     expect(messages[0]!.html.includes("Publish the research results.")).toBe(event === "proposed");
     expect(messages[0]!.html).not.toContain("Author: DAO contributors");
   });

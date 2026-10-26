@@ -1,15 +1,11 @@
 import { vi } from "vitest";
 import { decodeFunctionData, encodeAbiParameters, encodeEventTopics, encodeFunctionResult, type Abi, type Hex } from "viem";
-import { DAO_DEPLOYMENT_BLOCK, DAO_EPOCH, DAO_EVENTS, DAO_EXECUTOR, DAO_GENESIS, DAO_READS, DAO_VOTER, DAO_VOTING } from "@/workers/alerts-bot/src/domains/dao/contracts";
+import { DAO_DEPLOYMENT_BLOCK, DAO_EPOCH, DAO_EXECUTOR, DAO_GENESIS, DAO_READS, DAO_VOTER, DAO_VOTING } from "@/workers/alerts-bot/src/domains/dao/contracts";
 import type { DaoAlertAction, DaoAlertConfiguration, DaoAlertProposal, DaoAlertState } from "@/workers/alerts-bot/src/domains/dao/types";
 import type { RpcBlock, RpcCallRequest, RpcClient, RpcLog } from "@/workers/alerts-bot/src/rpc";
 
 export const ACCOUNT = "0x1111111111111111111111111111111111111111";
 export const GUARDIAN = "0x2222222222222222222222222222222222222222";
-export const collectiveAccounts = {
-  ybc: "0xd6afd78c05f0d425f2b46359746dd44991dcb315",
-  delegated: "0x9c42461aa8422926e3aef7b1c6e3743597149d79",
-};
 export const hash = (n: number): Hex => `0x${n.toString(16).padStart(64, "0")}`;
 export const configuration: DaoAlertConfiguration = {
   voteStart: DAO_EPOCH / 2, executeDelay: 86_400, executeGuard: true,
@@ -45,17 +41,13 @@ export function daoAction(event: Extract<DaoAlertAction, { kind: "dao_proposal" 
   if (event === "flagged") observed.flagged = true;
   if (event === "vetoed" || event === "vetoed_result") observed.vetoed = true;
   if (event === "executed") observed.executed = true;
-  const base = {
-    domainId: "dao", kind: "dao_proposal", eventId: `test:${event}`, blockNumber: DAO_DEPLOYMENT_BLOCK,
+  return {
+    domainId: "dao", kind: "dao_proposal", event, eventId: `test:${event}`, blockNumber: DAO_DEPLOYMENT_BLOCK,
     blockHash: hash(DAO_DEPLOYMENT_BLOCK),
     timestamp, logIndex: 0, txHash: onchain ? hash(999) : "",
-    source: onchain ? { kind: "onchain" as const, txHash: hash(999), logIndex: 0 }
-      : { kind: "synthetic" as const, metricId: `test:${event}`, blockHash: hash(DAO_DEPLOYMENT_BLOCK), orderingIndex: 0 },
-    proposal: observed, configuration,
-  } as const;
-  if (event === "vote") return { ...base, event, votes: [{ account: ACCOUNT, weight: "5000000000000000000", supportBps: 10_000, logIndex: 0 }] };
-  return {
-    ...base, event, actor: ACCOUNT,
+    source: onchain ? { kind: "onchain", txHash: hash(999), logIndex: 0 }
+      : { kind: "synthetic", metricId: `test:${event}`, blockHash: hash(DAO_DEPLOYMENT_BLOCK), orderingIndex: 0 },
+    proposal: observed, configuration, actor: ACCOUNT, weight: "5000000000000000000", supportBps: 10_000,
     reason: "<b>untrusted & reason</b>",
   };
 }
@@ -71,24 +63,12 @@ export function daoLog(abi: Abi, name: string, args: Record<string, unknown>, bl
   };
 }
 
-// Account/weight payloads from mainnet transaction 0x13cc67c6090c28e96a787b521b6af4275f546577de9f0ec26209dfec1f07dff4.
-export function ybcDaoVoteLogs(idx = 0n, firstLogIndex = 0): RpcLog[] {
-  return [
-    { account: "0x1d70e9414b639286665df4794ff5c7ea538b4eac", weight: 31_064793252156000000n },
-    { account: collectiveAccounts.delegated, weight: 431_027945257047456616n },
-    { account: collectiveAccounts.ybc, weight: 213_818835516958000000n },
-  ].map((vote, i) => daoLog(DAO_EVENTS, "Vote", { ...vote, idx, yea: 10_000n }, DAO_DEPLOYMENT_BLOCK, firstLogIndex + i));
-}
-
 export function daoRpc(options: {
   startTime?: number;
   logs?: RpcLog[];
   proposal?: DaoAlertProposal | ((block: number, id: string) => DaoAlertProposal);
   config?: DaoAlertConfiguration | ((block: number) => DaoAlertConfiguration);
   genesis?: number;
-  collectiveAccounts?: typeof collectiveAccounts | Error;
-  memberWeights?: Record<string, bigint> | Error;
-  ybcVoteWeight?: (block: number, id: string) => bigint;
 } = {}) {
   const block = (number: number): RpcBlock => ({
     number, hash: hash(number), parentHash: hash(number - 1), timestamp: (options.startTime ?? voteStart - 172_800) + (number - DAO_DEPLOYMENT_BLOCK) * 12,
@@ -109,21 +89,6 @@ export function daoRpc(options: {
         case "executor": result = config.executor; break;
         case "operator": result = config.operator; break;
         case "decay_length": result = BigInt(config.decayLength ?? 0); break;
-        case "ybc_votes": result = [options.ybcVoteWeight?.(number, String(decoded.args![1])) ??
-          (number < DAO_DEPLOYMENT_BLOCK ? 467_096525122327000000n : 498_161318374483000000n), 0n]; break;
-        case "ybc_weight_aggregator": result = "0xadb7228a85fcd24e3cfc8c58e2d4b9f03e1468d9"; break;
-        case "weight": {
-          if (options.memberWeights instanceof Error) throw options.memberWeights;
-          result = options.memberWeights?.[String(decoded.args![0]).toLowerCase()] ?? 31_064793252156000000n;
-          break;
-        }
-        case "ybc":
-        case "delegated_staking": {
-          if (options.collectiveAccounts instanceof Error) throw options.collectiveAccounts;
-          const accounts = options.collectiveAccounts ?? collectiveAccounts;
-          result = decoded.functionName === "ybc" ? accounts.ybc : accounts.delegated;
-          break;
-        }
         case "proposals": {
           const p = typeof options.proposal === "function" ? options.proposal(number, String(decoded.args![0])) : options.proposal ?? proposal;
           result = { proposer: p.proposer, epoch: BigInt(p.epoch), ipfs: p.digest, script_hash: p.scriptHash,
