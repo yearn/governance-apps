@@ -186,10 +186,6 @@ For a new installation, keep DAO disabled until the destination secret is config
 
 To pause DAO delivery, set `ALERTS_DAO_ENABLED=false` and deploy the configuration.
 Its stored cursor and receipts remain available when delivery resumes.
-Before switching a live grouped build, drain pending delivery, pause scheduled
-runs, and wait for any in-flight run to finish. Recheck authenticated `/status`
-for `caughtUp: true` with no saved error or Telegram backoff before deploying.
-Resume with the same cursor and object name; no receipt migration is needed.
 Do not change the object name for routine deployments or reuse another stream's cursor.
 Another deliberate full replay requires a new DAO generation in a reviewed change, following the shared runbook.
 
