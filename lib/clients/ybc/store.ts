@@ -231,6 +231,8 @@ function syncProposal(
   proposal: YbcProposalRecord,
   data: Pick<YbcMockDataV1, "me" | "asOf">
 ): YbcProposalRecord {
+  const recordedVote = proposal.voteRecords?.find((vote) => vote.voter.toLowerCase() === data.me.address?.toLowerCase());
+  proposal = { ...proposal, viewerVote: data.me.address ? { hasVoted: Boolean(recordedVote), choice: recordedVote?.choice ?? null } : undefined };
   if (TERMINAL_PROPOSAL_PHASES.has(proposal.phase)) {
     return normalizeTerminalProposal(proposal);
   }
@@ -240,9 +242,7 @@ function syncProposal(
     !!data.me.address &&
     data.me.address.toLowerCase() === proposal.proposer.toLowerCase();
   const thresholdMet = getThresholdMet(proposal);
-  const hasRecordedMockVote =
-    proposal.actions.disabledReason?.toLowerCase().includes("mock yea vote recorded") ||
-    proposal.actions.disabledReason?.toLowerCase().includes("mock nay vote recorded");
+  const hasRecordedMockVote = Boolean(recordedVote);
 
   if (data.asOf < proposal.timing.votingStartsAt) {
     return {

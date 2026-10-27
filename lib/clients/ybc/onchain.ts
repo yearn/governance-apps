@@ -630,6 +630,30 @@ function mapProposal(
       yea: fromBaseUnits(proposal.yea),
       nay: fromBaseUnits(proposal.nay),
     },
+    voteRecords: context.feedVotes
+      .filter((vote) => vote.proposalId === proposal.id)
+      .toSorted((a, b) => b.blockNumber - a.blockNumber || b.logIndex - a.logIndex)
+      .map((vote) => ({
+        id: vote.id,
+        voter: vote.voter as Address,
+        choice: vote.yea ? "yea" as const : "nay" as const,
+        weight: fromBaseUnits(vote.weight),
+        timestamp: vote.timestamp,
+        transactionHash: vote.txHash as `0x${string}`,
+      })),
+    viewerVote: context.normalizedAccount && context.actionStateTrusted && context.isMainnetAccount
+      ? {
+          hasVoted: getHasVoted(proposal.id, context),
+          choice: getHasVoted(proposal.id, context)
+            ? (() => {
+                const vote = context.feedVotes.find((entry) =>
+                  entry.proposalId === proposal.id &&
+                  normalizeAddress(entry.voter) === context.normalizedAccount);
+                return vote ? (vote.yea ? "yea" as const : "nay" as const) : null;
+              })()
+            : null,
+        }
+      : undefined,
     timing: {
       createdAt,
       discussionStartsAt: createdAt,

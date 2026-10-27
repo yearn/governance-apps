@@ -124,7 +124,9 @@ describe("YBC mock proposal helpers", () => {
     expect(proposal?.votes.yea).toBe("11250");
     expect(proposal?.votes.nay).toBe("9000");
     expect(proposal?.actions.canVote).toBe(false);
-    expect(proposal?.actions.disabledReason).toMatch(/mock yea vote/i);
+    expect(proposal?.viewerVote).toEqual({ hasVoted: true, choice: "yea" });
+    expect(proposal?.voteRecords?.[0]).toMatchObject({ voter: initial.me.address, choice: "yea", weight: initial.me.weight.effectiveWeight });
+    expect(proposal?.actions.disabledReason).toMatch(/Your yea vote is recorded/i);
   });
 
   it("executes awaiting-execution proposals into a terminal state", () => {

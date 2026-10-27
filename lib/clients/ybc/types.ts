@@ -137,6 +137,15 @@ export type YbcProposalBoardRecord = {
   items: YbcProposalRecord[];
 };
 
+export type YbcVoteRecord = {
+  id: string;
+  voter: Address;
+  choice: YbcVoteChoice;
+  weight: YbcAmount;
+  timestamp: UnixSeconds | null;
+  transactionHash: `0x${string}` | null;
+};
+
 export type YbcProposalRecord = {
   id: string;
   type: YbcProposalType;
@@ -151,6 +160,8 @@ export type YbcProposalRecord = {
     yea: YbcAmount;
     nay: YbcAmount;
   };
+  voteRecords?: YbcVoteRecord[];
+  viewerVote?: { hasVoted: boolean; choice: YbcVoteChoice | null };
   timing: YbcProposalTiming;
   actions: {
     canRetract: boolean;

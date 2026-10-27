@@ -23,6 +23,40 @@ function parseFeed(value: unknown): YbcFeed {
 }
 
 describe("YBC feed mapper", () => {
+  it("maps individual vote records without inventing missing timestamps", () => {
+    const feed = parseFeed(feedExample);
+    const event = feed.votes[0]!;
+    const proposal = mapYbcFeedToPageState(feed).data.proposals.items.find((proposal) => proposal.id === `YBC-${event.proposalId}`)!;
+    expect(proposal.voteRecords?.[0]).toMatchObject({
+      voter: event.voter,
+      choice: event.yea ? "yea" : "nay",
+      transactionHash: event.txHash,
+      timestamp: event.timestamp,
+    });
+    expect(proposal.viewerVote).toBeUndefined();
+  });
+
+  it("keeps wallet participation unknown for an untrusted or wrong-network read", () => {
+    const feed = parseFeed(feedExample);
+    const voter = feed.votes[0]!.voter as Address;
+    expect(mapYbcFeedToPageState(feed, voter).data.proposals.items.every((proposal) => proposal.viewerVote === undefined)).toBe(true);
+    expect(mapYbcFeedToPageState(feed, voter, {
+      actionStateTrusted: true, canonicalBlockTimestamp: feed.generatedAt, walletChainId: 10,
+    }).data.proposals.items.every((proposal) => proposal.viewerVote === undefined)).toBe(true);
+  });
+
+  it("shows the recorded choice only when the trusted wallet read says it voted", () => {
+    const feed = parseFeed(feedExample);
+    const event = feed.votes[0]!;
+    const voter = event.voter as Address;
+    const options = { actionStateTrusted: true, canonicalBlockTimestamp: feed.generatedAt };
+    const proposal = mapYbcFeedToPageState(feed, voter, options).data.proposals.items.find((proposal) => proposal.id === `YBC-${event.proposalId}`)!;
+    expect(proposal.viewerVote).toEqual({ hasVoted: true, choice: event.yea ? "yea" : "nay" });
+    const overlay = { isMember: true, isOperator: false, staked: 0n, weight: 1n, proposalStatusById: {}, votedByProposalId: { [event.proposalId]: false } };
+    const newer = mapYbcFeedToPageState(feed, voter, { ...options, walletOverlay: overlay }).data.proposals.items.find((item) => item.id === proposal.id)!;
+    expect(newer.viewerVote).toEqual({ hasVoted: false, choice: null });
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
