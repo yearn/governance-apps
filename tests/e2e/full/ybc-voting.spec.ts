@@ -20,7 +20,7 @@ for (const width of [360, 1440]) {
     await proposal.getByRole("button", { name: "Vote nay", exact: true }).click();
     await expect(proposal.getByText("You voted nay")).toBeVisible();
     await expect(proposal.getByRole("button", { name: "Vote nay", exact: true })).toHaveCount(0);
-    await expect(proposal.getByRole("table", { name: "Voting record" }).getByRole("row")).toHaveCount(4);
+    await expect(proposal.getByRole("table", { name: "Voting record" }).getByRole("rowgroup").getByRole("row")).toHaveCount(3);
     await proposal.getByRole("searchbox", { name: "Search voters" }).fill("no-such-voter");
     await expect(proposal.getByText("No voters match your search.")).toBeVisible();
     await proposal.getByRole("searchbox", { name: "Search voters" }).fill("");
