@@ -1,3 +1,4 @@
+import { VoteResultsBar } from "@/components/ui/VoteResultsBar";
 import { Badge, type BadgeProps } from "@/components/ui/Badge";
 import { UtcTime } from "@/components/ui/UtcTime";
 import { TransactionLink } from "@/components/ui/ExplorerLink";
@@ -134,21 +135,10 @@ export function ProposalVoteSummary({
 
   return (
     <div className="min-w-0 space-y-2">
-      <div
-        aria-hidden="true"
-        className="flex h-2.5 w-full overflow-hidden rounded-full bg-neutral-200"
-      >
-        <span
-          aria-hidden="true"
-          className="h-full bg-yearn-blue motion-reduce:transition-none"
-          style={{ width: `${vote.yeaPercentTenths / 10}%` }}
-        />
-        <span
-          aria-hidden="true"
-          className="h-full bg-neutral-500 motion-reduce:transition-none"
-          style={{ width: `${vote.nayPercentTenths / 10}%` }}
-        />
-      </div>
+      <VoteResultsBar className="h-2.5" segments={[
+        { kind: "yea", widthPercent: vote.yeaPercentTenths / 10 },
+        { kind: "nay", widthPercent: vote.nayPercentTenths / 10 },
+      ]} />
       <p className="font-number text-sm font-bold tabular-nums">
         {daoCopy.detail.voteBreakdown(vote.yeaPercent, vote.nayPercent)}
       </p>

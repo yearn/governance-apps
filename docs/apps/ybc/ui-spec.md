@@ -115,6 +115,17 @@ Always show:
 
 This distinction is required because YBC weight ramps over epochs.
 
+Zero stake shows a muted “No stake” state with an empty track and no maturity
+percentage or date. Membership remains separate from stake activation.
+For positive stakes, derive activation from effective weight divided by full target
+weight. Show the remaining weight separately. Existing active weight stays visible
+when additional stake ramps. Do not infer individual deposit batches from aggregate
+weight data. Fully active positions hide stale maturity dates.
+
+Table and Cards views share the same activation component and the shared ProgressBar.
+On narrow screens, table rows reflow so stake state remains visible without sideways
+scrolling. An all-zero roster has a persistent “No YFI staked yet” explanation.
+
 ## 5.2 Make timing obvious
 
 Every proposal should clearly show:
@@ -136,6 +147,9 @@ Show:
 - expulsion threshold
 - current yea / total
 - clear passing / failing state
+
+DAO and YBC share VoteResultsBar: Yearn blue for yea and neutral gray for nay.
+Domain clients retain their own vote calculations and copy.
 
 Threshold visualization should include a marker or goal line so the user can see how
 close the proposal is to passing before reading the numeric values.

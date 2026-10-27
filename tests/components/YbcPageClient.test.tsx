@@ -174,7 +174,7 @@ describe("YbcPageClient", () => {
         name: ybcCopy.members.columns.maturity,
       })
     ).toBeInTheDocument();
-    expect(screen.getAllByText("5,650 weight").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("5,800 weight").length).toBeGreaterThanOrEqual(1);
   });
 
   it("opens and focuses a proposal from a Telegram deep link", async () => {
@@ -479,7 +479,7 @@ describe("YbcPageClient", () => {
     expect(
       screen.getAllByText(ybcCopy.members.states.you).length
     ).toBeGreaterThan(0);
-    expect(screen.getAllByText("50%").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("50% active").length).toBeGreaterThan(0);
   });
 
   it("renders member rewards with a shared-claim handoff across host surfaces", async () => {

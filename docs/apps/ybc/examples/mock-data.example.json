@@ -16,10 +16,10 @@
         },
         "hero": {
           "collectiveAddress": "0x9999999999999999999999999999999999999999",
-          "memberCount": 3,
-          "internalWeight": "5650",
+          "memberCount": 6,
+          "internalWeight": "5800",
           "delegatedWeight": "100000",
-          "totalInfluence": "105650",
+          "totalInfluence": "105800",
           "currentEpoch": 11,
           "activeProposalCount": 2,
           "awaitingExecutionCount": 1
@@ -41,10 +41,10 @@
         },
         "roster": {
           "totals": {
-            "rawStaked": "5900",
-            "effectiveWeight": "5650",
-            "targetWeight": "5900",
-            "rampingMemberCount": 1
+            "rawStaked": "6180",
+            "effectiveWeight": "5800",
+            "targetWeight": "6180",
+            "rampingMemberCount": 3
           },
           "members": [
             {
@@ -98,6 +98,60 @@
               "sources": {
                 "stYFI": "3000",
                 "stYFIx": "1200",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000101",
+              "ens": "claire-ybc.eth",
+              "status": "active",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "0",
+                "effectiveWeight": "0",
+                "targetWeight": "0",
+                "maturityBps": 0,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "0",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000102",
+              "ens": "devon-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "80",
+                "effectiveWeight": "0",
+                "targetWeight": "80",
+                "maturityBps": 0,
+                "maturesAt": 1776804800
+              },
+              "sources": {
+                "stYFI": "80",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000103",
+              "ens": "erin-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "200",
+                "effectiveWeight": "150",
+                "targetWeight": "200",
+                "maturityBps": 7500,
+                "maturesAt": 1776804800
+              },
+              "sources": {
+                "stYFI": "200",
+                "stYFIx": "0",
                 "migratedVeYfi": "0"
               }
             }
@@ -356,10 +410,10 @@
         },
         "hero": {
           "collectiveAddress": "0x9999999999999999999999999999999999999999",
-          "memberCount": 3,
-          "internalWeight": "5650",
+          "memberCount": 6,
+          "internalWeight": "5800",
           "delegatedWeight": "100000",
-          "totalInfluence": "105650",
+          "totalInfluence": "105800",
           "currentEpoch": 11,
           "activeProposalCount": 2,
           "awaitingExecutionCount": 1
@@ -381,10 +435,10 @@
         },
         "roster": {
           "totals": {
-            "rawStaked": "5900",
-            "effectiveWeight": "5650",
-            "targetWeight": "5900",
-            "rampingMemberCount": 1
+            "rawStaked": "6180",
+            "effectiveWeight": "5800",
+            "targetWeight": "6180",
+            "rampingMemberCount": 3
           },
           "members": [
             {
@@ -438,6 +492,60 @@
               "sources": {
                 "stYFI": "3000",
                 "stYFIx": "1200",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000101",
+              "ens": "claire-ybc.eth",
+              "status": "active",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "0",
+                "effectiveWeight": "0",
+                "targetWeight": "0",
+                "maturityBps": 0,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "0",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000102",
+              "ens": "devon-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "80",
+                "effectiveWeight": "0",
+                "targetWeight": "80",
+                "maturityBps": 0,
+                "maturesAt": 1776804800
+              },
+              "sources": {
+                "stYFI": "80",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000103",
+              "ens": "erin-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "200",
+                "effectiveWeight": "150",
+                "targetWeight": "200",
+                "maturityBps": 7500,
+                "maturesAt": 1776804800
+              },
+              "sources": {
+                "stYFI": "200",
+                "stYFIx": "0",
                 "migratedVeYfi": "0"
               }
             }
@@ -711,10 +819,10 @@
         },
         "hero": {
           "collectiveAddress": "0x9999999999999999999999999999999999999999",
-          "memberCount": 3,
-          "internalWeight": "5650",
+          "memberCount": 6,
+          "internalWeight": "5800",
           "delegatedWeight": "100000",
-          "totalInfluence": "105650",
+          "totalInfluence": "105800",
           "currentEpoch": 11,
           "activeProposalCount": 2,
           "awaitingExecutionCount": 1
@@ -736,10 +844,10 @@
         },
         "roster": {
           "totals": {
-            "rawStaked": "5900",
-            "effectiveWeight": "5650",
-            "targetWeight": "5900",
-            "rampingMemberCount": 1
+            "rawStaked": "6180",
+            "effectiveWeight": "5800",
+            "targetWeight": "6180",
+            "rampingMemberCount": 3
           },
           "members": [
             {
@@ -793,6 +901,60 @@
               "sources": {
                 "stYFI": "3000",
                 "stYFIx": "1200",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000101",
+              "ens": "claire-ybc.eth",
+              "status": "active",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "0",
+                "effectiveWeight": "0",
+                "targetWeight": "0",
+                "maturityBps": 0,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "0",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000102",
+              "ens": "devon-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "80",
+                "effectiveWeight": "0",
+                "targetWeight": "80",
+                "maturityBps": 0,
+                "maturesAt": 1776804800
+              },
+              "sources": {
+                "stYFI": "80",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000103",
+              "ens": "erin-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "200",
+                "effectiveWeight": "150",
+                "targetWeight": "200",
+                "maturityBps": 7500,
+                "maturesAt": 1776804800
+              },
+              "sources": {
+                "stYFI": "200",
+                "stYFIx": "0",
                 "migratedVeYfi": "0"
               }
             }
@@ -1066,10 +1228,10 @@
         },
         "hero": {
           "collectiveAddress": "0x9999999999999999999999999999999999999999",
-          "memberCount": 3,
-          "internalWeight": "5650",
+          "memberCount": 6,
+          "internalWeight": "5800",
           "delegatedWeight": "100000",
-          "totalInfluence": "105650",
+          "totalInfluence": "105800",
           "currentEpoch": 11,
           "activeProposalCount": 2,
           "awaitingExecutionCount": 1
@@ -1091,10 +1253,10 @@
         },
         "roster": {
           "totals": {
-            "rawStaked": "5900",
-            "effectiveWeight": "5650",
-            "targetWeight": "5900",
-            "rampingMemberCount": 1
+            "rawStaked": "6180",
+            "effectiveWeight": "5800",
+            "targetWeight": "6180",
+            "rampingMemberCount": 3
           },
           "members": [
             {
@@ -1148,6 +1310,60 @@
               "sources": {
                 "stYFI": "3000",
                 "stYFIx": "1200",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000101",
+              "ens": "claire-ybc.eth",
+              "status": "active",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "0",
+                "effectiveWeight": "0",
+                "targetWeight": "0",
+                "maturityBps": 0,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "0",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000102",
+              "ens": "devon-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "80",
+                "effectiveWeight": "0",
+                "targetWeight": "80",
+                "maturityBps": 0,
+                "maturesAt": 1776804800
+              },
+              "sources": {
+                "stYFI": "80",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000103",
+              "ens": "erin-ybc.eth",
+              "status": "ramping",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "200",
+                "effectiveWeight": "150",
+                "targetWeight": "200",
+                "maturityBps": 7500,
+                "maturesAt": 1776804800
+              },
+              "sources": {
+                "stYFI": "200",
+                "stYFIx": "0",
                 "migratedVeYfi": "0"
               }
             }

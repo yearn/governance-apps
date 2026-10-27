@@ -38,3 +38,19 @@ unknown. Local browser tests use deterministic mock data and simulated transacti
 
 This package adds no dependency, contract write, deployment configuration, or production
 exposure. Product acceptance and live preproduction validation remain separate gates.
+
+## Member activation and shared components
+
+Owner feedback requested clear zero-stake states and closer reuse of DAO components.
+
+- Zero stake is empty, even if an older maturity field says 100%.
+- Positive stake with no active weight shows 0% active and its remaining weight.
+- Partial activation preserves current weight and shows only the remaining weight as ramping.
+- Fully active stakes omit old maturity dates. Removed members have no active progress.
+- The wallet summary, roster table, and roster cards use the same activation component.
+- DAO's detailed and compact vote bars and YBC's vote bars use one shared VoteResultsBar.
+- Preview fixtures include no stake, new stake, 50%, 75%, and fully active states.
+
+The feed provides aggregate weights, not deposit batches. The UI does not attribute
+remaining weight to a particular deposit or estimate an unavailable maturity date.
+This follow-up changes display state only; voting and proposal permissions are unchanged.

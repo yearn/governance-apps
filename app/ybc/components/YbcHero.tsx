@@ -1,10 +1,9 @@
+import { MemberWeightProgress } from "./MemberWeightProgress";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { AddressLink } from "@/components/ui/ExplorerLink";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { UtcTime } from "@/components/ui/UtcTime";
-import { formatDecimalAmount, formatPercent } from "@/lib/format";
+import { formatDecimalAmount } from "@/lib/format";
 import type { YbcMockDataV1 } from "@/lib/clients/ybc";
 import { ybcCopy as copy } from "../messages";
 
@@ -51,11 +50,7 @@ export function YbcHero({ data }: { data: YbcMockDataV1 }) {
                   [copy.hero.perspective.targetWeight, formatDecimalAmount(weight.targetWeight, 2)],
                 ].map(([label, value]) => <div key={label} className="min-w-0 space-y-1"><dt className="text-xs text-text-secondary">{label}</dt><dd className="break-words font-number text-sm font-bold [overflow-wrap:anywhere]">{value}</dd></div>)}
               </dl>
-              <div className="space-y-2 border-t border-border pt-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-secondary"><span>{copy.hero.perspective.maturity}</span><span className="font-number">{formatPercent(weight.maturityBps / 10_000, 0)}</span></div>
-                <ProgressBar value={weight.maturityBps / 100} className="h-1.5 bg-surface-secondary" />
-                <p className="break-words text-xs leading-5 text-text-secondary [overflow-wrap:anywhere]">{weight.maturesAt ? <>{copy.members.states.maturesOn} <UtcTime timestamp={weight.maturesAt} format="date" /> UTC</> : weight.maturityBps >= 10_000 ? copy.members.states.fullyMatured : copy.members.states.ramping}</p>
-              </div>
+              <div className="border-t border-border pt-3"><MemberWeightProgress weight={weight} /></div>
             </> : <p className="text-sm leading-6 text-text-secondary">{copy.hero.perspective.observerBody}</p>}
           </Card>
         </div>
