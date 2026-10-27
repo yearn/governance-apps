@@ -184,7 +184,7 @@ export const ybcCopy = {
     stats: {
       members: "Members",
       epoch: "Current epoch",
-      activeProposals: "Active proposals",
+      activeProposals: "Discussion & voting",
       awaitingExecution: "Awaiting execution",
     },
     perspective: {
