@@ -23,9 +23,9 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Observer view", level: 2 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Membership proposals", level: 2 })).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Raw staked" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Effective weight" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Target weight" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Staked YFI" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Active weight" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Full weight" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(
     /Snapshot|off[ -]?chain voting|stYFIx delegation|delegation (?:gained|lost)/i,
   );
