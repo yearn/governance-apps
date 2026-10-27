@@ -93,8 +93,8 @@ Approved shell map:
   visible as separate values in both Table and Cards views.
 - Proposals maps addition and expulsion proposals through discussion, voting, awaiting
   execution, executed, and expired terminal states.
-- Proposal cards keep phase, target, proposer, and next action visible in the summary.
-  The timeline, threshold marker, votes, and action buttons live inside each disclosure.
+- Proposal rows show phase, member, proposer, deadline, vote split, threshold, and wallet participation.
+  Each disclosure contains the action area, timeline, and voting record.
 - Rewards shows YBC rewards and points claims to the shared rewards route.
 - Operator is conditional and limited to membership, operator, hooks, threshold,
   and reward status controls.
@@ -217,11 +217,33 @@ Proposal, reward, operator, and last-updated timestamps use the shared UTC forma
 Action timing comes from the verified Mainnet block and canonical proposal status, not
 the publisher's `generatedAt` value.
 
-Proposal cards should use disclosures so long proposal history stays scannable. When
-there are fewer than three proposals, keep cards open by default. When there are three
-or more, keep discussion, voting, awaiting-execution, and otherwise actionable
-proposals open; collapse terminal history by default. Collapsed cards must still show
-the proposal id, type, phase, target, proposer, and next action.
+Proposal rows start collapsed. A proposal deep link selects the correct filter and opens
+the matching row. Users can close that row and change filters after they open the link.
+
+The Active filter contains discussion, voting, and execution-ready proposals. History
+contains executed, expired, failed, and retracted proposals. All contains both groups.
+The board selects Active when active proposals exist. Otherwise, it selects History.
+Search matches proposal IDs, member names, proposer names, and canonical addresses.
+Rows use newest-first order.
+
+The New proposal button opens the membership form. Observers see a persistent member
+requirement. The form retains address validation and the shared transaction pipeline.
+Proposal errors appear beside the affected action.
+
+Each row shows the yea/nay split and a threshold marker before expansion. Zero votes
+show an empty bar and no passing claim. Threshold comparisons use exact integer values.
+The displayed percentage does not control action eligibility.
+
+The voting record shows the voter, choice, weight, UTC date, and transaction link.
+The domain mapper retains feed vote events. Canonical totals remain separate from the
+record list because individual records can arrive later. Missing records and missing
+dates have explicit states. Search and pagination limit the visible records to ten.
+The record does not claim completeness or independent verification of each event.
+
+Wallet participation uses the existing trusted wallet context. A recorded choice appears
+only when the wallet has voted and a matching event exists. Untrusted reads and
+wrong-network reads do not produce a wallet participation claim.
+Actions retain the existing domain permissions and shared transaction flow.
 
 Supported proposal actions:
 - propose addition

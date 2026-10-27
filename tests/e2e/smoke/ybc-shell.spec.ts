@@ -21,7 +21,7 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
   await expect(page.getByText("Mock MVP scope")).toHaveCount(0);
   await expect(page.getByText("Total collective voting power", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Observer view", level: 2 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Proposal Board", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Membership proposals", level: 2 })).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Raw staked" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Effective weight" })).toBeVisible();
@@ -32,7 +32,7 @@ test("renders the YBC overview and operator panel states", async ({ page }) => {
   await page.getByRole("button", { name: /Cards/i }).click();
   await expect(page.getByRole("table")).toHaveCount(0);
 
-  await expect(page.getByRole("heading", { name: "Proposal Board", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Membership proposals", level: 2 })).toBeVisible();
 
   await expect(
     page.getByRole("heading", {

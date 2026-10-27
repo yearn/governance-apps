@@ -445,6 +445,7 @@ function getYbcIdentityAddresses(
     ...data.proposals.items.flatMap((proposal) => [
       proposal.proposer,
       proposal.targetAccount,
+      ...(proposal.voteRecords?.map((vote) => vote.voter) ?? []),
     ]),
     ...(data.me.address ? [data.me.address] : []),
   ];
