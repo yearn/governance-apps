@@ -254,7 +254,7 @@ export const ybcCopy = {
       remaining: (amount: string) => `${amount} weight still ramping`,
       noStakesTitle: "No YFI staked yet",
       noStakesBody: "Members have no active stake. Weight activation starts when YFI is staked.",
-      activationHelp: "Blue shows active voting weight. The unfilled portion is still ramping.",
+      activationHelp: "For staked YFI, blue shows active weight and gray shows weight still ramping.",
       emptyTitle: "No members yet",
       emptyBody:
         "Member records appear here once the collective has roster data.",
