@@ -33,6 +33,7 @@ Historical review evidence:
 - [`teams-ybc-production-plan.md`](teams-ybc-production-plan.md)
 - [`rpc-reliance-reduction-roadmap.md`](rpc-reliance-reduction-roadmap.md)
 - [`testing.md`](testing.md)
+- [`master-branch-protection.md`](master-branch-protection.md)
 - [`cloudflare-worker-size.md`](cloudflare-worker-size.md)
   - Future deployment directions: per-app Workers, OpenNext multi-worker, and static SPA options.
 - [`mock-toggles.md`](mock-toggles.md)
