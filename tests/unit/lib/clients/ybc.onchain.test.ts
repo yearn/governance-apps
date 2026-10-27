@@ -39,6 +39,13 @@ describe("YBC feed mapper", () => {
     expect(data.roster.members[0]!.status).toBe("ramping");
     expect(data.roster.members[0]!.weight.rawStaked).toBe("0.000000000000000001");
     expect(data.roster.members[0]!.weight.maturityBps).toBe(0);
+    expect(data.roster.totals.rawStaked).toBe("0.000000000000000001");
+    expect(data.roster.totals.targetWeight).toBe("0.000000000000000001");
+    expect(data.roster.totals.effectiveWeight).toBe("0");
+    feed.members[0]!.effectiveWeight = "1";
+    const active = mapYbcFeedToPageState(feed).data;
+    expect(active.roster.totals.effectiveWeight).toBe("0.000000000000000001");
+    expect(active.hero.internalWeight).toBe("0.000000000000000001");
   });
 
   it("maps individual vote records without inventing missing timestamps", () => {

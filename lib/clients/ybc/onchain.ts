@@ -1,5 +1,5 @@
 import { getYbcWeightSummary } from "./weight-display";
-import { formatUnits, isAddress, type Address, type PublicClient } from "viem";
+import { formatUnits, parseUnits, isAddress, type Address, type PublicClient } from "viem";
 import { YbcAbi } from "@/lib/abis/Ybc";
 import { YbcElectionAbi } from "@/lib/abis/YbcElection";
 import { YbcWeightAggregatorAbi } from "@/lib/abis/YbcWeightAggregator";
@@ -1338,6 +1338,5 @@ function trimDecimal(value: string, fractionDigits: number) {
 }
 
 function sumDisplayAmounts(values: string[]) {
-  const sum = values.reduce((total, value) => total + Number(value), 0);
-  return Number.isFinite(sum) ? trimDecimal(String(sum), 4) : "0";
+  return formatUnits(values.reduce((total, value) => total + parseUnits(value, 18), 0n), 18);
 }
