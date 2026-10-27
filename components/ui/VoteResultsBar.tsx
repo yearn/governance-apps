@@ -28,7 +28,7 @@ type VoteResultsBarProps = HTMLAttributes<HTMLDivElement> & {
 export function VoteResultsBar({ segments, thresholdPercent, className, ...props }: VoteResultsBarProps) {
   const visible = segments.filter((segment) => segment.widthPercent > 0);
   return (
-    <div aria-hidden="true" className={cn("relative flex h-3 w-full rounded-full bg-neutral-200 dark:bg-neutral-800", className)} {...props}>
+    <div aria-hidden="true" className={cn("relative flex h-3 w-full rounded-full bg-neutral-200", className)} {...props}>
       {visible.map((segment, index) => {
         const center = visible.slice(0, index).reduce((sum, part) => sum + part.widthPercent, 0) + segment.widthPercent / 2;
         const fill = <span className={cn("block h-full w-full", voteSegmentClassName(segment.kind), index === 0 && "rounded-l-full", index === visible.length - 1 && "rounded-r-full")} />;

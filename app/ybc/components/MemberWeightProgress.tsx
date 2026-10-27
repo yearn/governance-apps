@@ -15,7 +15,7 @@ export function MemberWeightProgress({ weight, removed = false }: { weight: YbcW
       <p className="font-number text-xs font-bold tabular-nums text-text-secondary">{label}</p>
       <ProgressBar
         value={inactive ? 0 : summary.activeBps / 100}
-        className="h-2.5 bg-neutral-200 dark:bg-neutral-800"
+        className="h-2.5 bg-neutral-200"
         role={inactive ? undefined : "progressbar"}
         aria-hidden={inactive || undefined}
         aria-label={inactive ? undefined : ybcCopy.members.columns.maturity}
