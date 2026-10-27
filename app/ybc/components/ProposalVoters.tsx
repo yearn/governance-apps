@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TransactionLink } from "@/components/ui/ExplorerLink";
 import { UtcTime } from "@/components/ui/UtcTime";
@@ -9,9 +9,11 @@ import type { YbcProposalRecord } from "@/lib/clients/ybc";
 import { getYbcIdentity, type YbcIdentityMap } from "../identity";
 import { MemberIdentity } from "./MemberIdentity";
 import { ybcCopy } from "../messages";
+import { useEnsIdentityLookup } from "@/lib/hooks/useEnsIdentities";
+import { useProtocol } from "@/state/protocol";
 
 const PAGE_SIZE = 10;
-export function ProposalVoters({ proposal, identities }: { proposal: YbcProposalRecord; identities: YbcIdentityMap }) {
+export function ProposalVoters({ proposal, identities, onVisibleAddressesChange }: { proposal: YbcProposalRecord; identities: YbcIdentityMap; onVisibleAddressesChange?: (addresses: string[]) => void }) {
   const copy = ybcCopy.voters;
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
@@ -21,6 +23,10 @@ export function ProposalVoters({ proposal, identities }: { proposal: YbcProposal
   const lastPage = Math.max(0, Math.ceil(filtered.length / PAGE_SIZE) - 1);
   const currentPage = Math.min(page, lastPage);
   const rows = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const visibleAddresses = rows.map((row) => row.voter).join(",");
+  useEffect(() => {
+    onVisibleAddressesChange?.(visibleAddresses ? visibleAddresses.split(",") : []);
+  }, [visibleAddresses, onVisibleAddressesChange]);
   return (
     <section className="min-w-0 space-y-4 border-t border-border pt-5" aria-label={copy.title}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -47,4 +53,31 @@ export function ProposalVoters({ proposal, identities }: { proposal: YbcProposal
       </div> : null}
     </section>
   );
+}
+
+/** Resolve only the visible voter page, separately from the roster lookup. */
+export function ConnectedProposalVoters({ proposal, identities }: { proposal: YbcProposalRecord; identities: YbcIdentityMap }) {
+  const { mainnetPublicClient } = useProtocol();
+  const [addresses, setAddresses] = useState<string[]>([]);
+  const lookup = useEnsIdentityLookup(mainnetPublicClient, addresses);
+  const batchKey = addresses.map((address) => address.toLowerCase()).sort().join(",");
+  const [snapshot, setSnapshot] = useState({
+    latest: lookup.identities, batchKey, owner: mainnetPublicClient, settled: lookup.settled,
+    resolved: lookup.identities,
+  });
+  if (snapshot.latest !== lookup.identities || snapshot.batchKey !== batchKey ||
+      snapshot.owner !== mainnetPublicClient || snapshot.settled !== lookup.settled) {
+    const resolved = snapshot.owner === mainnetPublicClient ? { ...snapshot.resolved } : {};
+    if (lookup.settled) {
+      for (const address of addresses) delete resolved[address.toLowerCase()];
+      Object.assign(resolved, lookup.identities);
+    }
+    setSnapshot({ latest: lookup.identities, batchKey, owner: mainnetPublicClient, settled: lookup.settled, resolved });
+  }
+  const voterIdentities = { ...identities };
+  for (const [address, label] of Object.entries(snapshot.resolved)) {
+    const identity = getYbcIdentity(identities, address);
+    if (identity.source !== "local") voterIdentities[address] = { ...identity, label, source: "ens" };
+  }
+  return <ProposalVoters proposal={proposal} identities={voterIdentities} onVisibleAddressesChange={setAddresses} />;
 }

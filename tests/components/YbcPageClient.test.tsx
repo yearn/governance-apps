@@ -433,6 +433,7 @@ describe("YbcPageClient", () => {
 
     render(<YbcPageContent data={data} />);
 
+    fireEvent.click(within(screen.getByRole("article", { name: /YBC-8/ })).getByText("Details"));
     await waitFor(() => {
       expect(screen.getByText("Proposal guest")).toBeInTheDocument();
     });

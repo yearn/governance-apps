@@ -228,16 +228,20 @@ Rows use newest-first order.
 
 The New proposal button opens the membership form. Observers see a persistent member
 requirement. The form retains address validation and the shared transaction pipeline.
-Proposal errors appear beside the affected action.
+Proposal errors appear beside the affected action. When an action moves a proposal
+to History, a completion notice receives focus and links to that proposal.
 
 Each row shows the yea/nay split and a threshold marker before expansion. Zero votes
 show an empty bar and no passing claim. Threshold comparisons use exact integer values.
+Percentages retain two decimal places at threshold boundaries.
 The displayed percentage does not control action eligibility.
 
 The voting record shows the voter, choice, weight, UTC date, and transaction link.
 The domain mapper retains feed vote events. Canonical totals remain separate from the
 record list because individual records can arrive later. Missing records and missing
 dates have explicit states. Search and pagination limit the visible records to ten.
+ENS lookups cover the visible voter page separately from the roster.
+Closed disclosures do not request voter identities.
 The record does not claim completeness or independent verification of each event.
 
 Wallet participation uses the existing trusted wallet context. A recorded choice appears

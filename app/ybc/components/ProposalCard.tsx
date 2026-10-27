@@ -13,7 +13,7 @@ import { cn } from "@/lib/cn";
 import { getYbcIdentity, type YbcIdentityMap } from "../identity";
 import { ybcCopy } from "../messages";
 import { ProposalVoteResults } from "./ProposalVoteResults";
-import { ProposalVoters } from "./ProposalVoters";
+import { ConnectedProposalVoters, ProposalVoters } from "./ProposalVoters";
 
 type ProposalCardProps = {
   proposal: YbcProposalRecord;
@@ -25,6 +25,7 @@ type ProposalCardProps = {
   actionPending?: boolean;
   actionError?: string | null;
   focused?: boolean;
+  resolveVoterEns?: boolean;
 };
 
 const badgeVariantByPhase = {
@@ -32,7 +33,7 @@ const badgeVariantByPhase = {
   executed: "success", expired: "neutral", failed: "error", retracted: "neutral",
 } as const;
 
-export function ProposalCard({ proposal, identities, onRetract, onVote, onExecute, transactionPending = false, actionPending = false, actionError, focused = false }: ProposalCardProps) {
+export function ProposalCard({ proposal, identities, onRetract, onVote, onExecute, transactionPending = false, actionPending = false, actionError, focused = false, resolveVoterEns = false }: ProposalCardProps) {
   const copy = ybcCopy.proposal;
   const [isOpen, setIsOpen] = useState(focused);
   const [wasFocused, setWasFocused] = useState(focused);
@@ -76,7 +77,7 @@ export function ProposalCard({ proposal, identities, onRetract, onVote, onExecut
             <IconChevron className="size-4 transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
           </span>
         </summary>
-        <div className="space-y-6 border-t border-border p-4 md:p-6">
+        {isOpen ? <div className="space-y-6 border-t border-border p-4 md:p-6">
           <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
             <div className="min-w-0 space-y-5">
               <div className="space-y-4">
@@ -108,8 +109,8 @@ export function ProposalCard({ proposal, identities, onRetract, onVote, onExecut
               <TimelineStepper aria-label={copy.timelineLabel(proposal.id)} steps={getTimelineRows(proposal)} className="mt-4" />
             </div>
           </div>
-          <ProposalVoters proposal={proposal} identities={identities} />
-        </div>
+          {resolveVoterEns ? <ConnectedProposalVoters proposal={proposal} identities={identities} /> : <ProposalVoters proposal={proposal} identities={identities} />}
+        </div> : null}
       </details>
     </div>
   );
@@ -121,10 +122,10 @@ function getActionDescription(proposal: YbcProposalRecord) {
   if (proposal.phase === "executed") return copy.executedBody;
   if (proposal.phase === "failed") return copy.failedBody;
   if (proposal.phase === "retracted") return copy.retractedBody;
+  if (proposal.actions.canExecute) return copy.executeBody;
   if (proposal.viewerVote?.hasVoted) return proposal.viewerVote.choice ? copy.recordedBody(proposal.viewerVote.choice) : copy.recordedUnknown;
   if (proposal.actions.disabledReason) return proposal.actions.disabledReason;
   if (proposal.actions.canVote) return copy.voteBody;
-  if (proposal.actions.canExecute) return copy.executeBody;
   if (proposal.actions.canRetract) return copy.retractBody;
   return copy.actionsUnavailable;
 }

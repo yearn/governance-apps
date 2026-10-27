@@ -128,7 +128,7 @@ test("contains YBC identity and timestamp layouts at 360px", async ({
   await expect(proposals).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
   await expect(statusTimestamp).toBeVisible();
-  await expect(page.getByText(longEnsName, { exact: true }).first()).toBeVisible();
+  await expect(members.getByText(longEnsName, { exact: true }).first()).toBeVisible();
   await expect(page.getByText("ENS", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Generated", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Local", { exact: true })).toHaveCount(0);

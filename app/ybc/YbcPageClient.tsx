@@ -74,7 +74,7 @@ export function YbcPageClient({
     latencyMs,
   });
   const ensAddresses = useMemo(
-    () => getYbcIdentityAddresses(ybcState.data),
+    () => getYbcIdentityAddresses(ybcState.data, false),
     [ybcState.data]
   );
   const verifiedEns = useYbcEnsIdentities(
@@ -322,6 +322,7 @@ export function YbcPageContent({
       id="proposals"
       data={data}
       identities={identities}
+      resolveVoterEns={!trustRecordEns}
       createProposal={createProposal}
       retractProposal={retractProposal}
       voteOnProposal={voteOnProposal}
@@ -434,8 +435,9 @@ export function YbcDataStatusNotice({
   );
 }
 
-function getYbcIdentityAddresses(
-  data: YbcMockDataV1 | null | undefined
+export function getYbcIdentityAddresses(
+  data: YbcMockDataV1 | null | undefined,
+  includeVoters = true
 ): string[] {
   if (!data) return [];
 
@@ -445,7 +447,7 @@ function getYbcIdentityAddresses(
     ...data.proposals.items.flatMap((proposal) => [
       proposal.proposer,
       proposal.targetAccount,
-      ...(proposal.voteRecords?.map((vote) => vote.voter) ?? []),
+      ...(includeVoters ? proposal.voteRecords?.map((vote) => vote.voter) ?? [] : []),
     ]),
     ...(data.me.address ? [data.me.address] : []),
   ];

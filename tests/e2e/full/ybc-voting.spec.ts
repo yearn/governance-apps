@@ -48,3 +48,19 @@ test("a history deep link opens the correct filter and can be collapsed", async 
   await expect(page.getByRole("tab", { name: /^All/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: /^All/ })).toBeFocused();
 });
+
+test("execution in the Active filter preserves a result and keyboard focus", async ({ page }) => {
+  await page.goto("/ybc");
+  await waitForTestBridge(page);
+  await resetBridge(page);
+  await setYbcPerspective(page, "member-ramping");
+  const proposal = page.getByRole("article", { name: /YBC-6/ });
+  await proposal.locator("summary").click();
+  await proposal.getByRole("button", { name: "Execute proposal" }).click();
+  await expect(proposal).toHaveCount(0);
+  const completion = page.getByRole("status").filter({ hasText: "YBC-6 is executed." });
+  await expect(completion).toBeFocused();
+  await completion.getByRole("button", { name: "View proposal" }).click();
+  await expect(page.getByRole("tab", { name: /History/ })).toHaveAttribute("aria-selected", "true");
+  await expect(proposal.locator("summary")).toBeFocused();
+});

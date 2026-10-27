@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isAddress } from "viem";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -15,6 +15,7 @@ import { ybcCopy } from "../messages";
 type ProposalBoardProps = {
   data: YbcMockDataV1;
   identities: YbcIdentityMap;
+  resolveVoterEns?: boolean;
   id?: string;
   createProposal?: (type: YbcProposalType, targetAddress?: string) => void | Promise<void>;
   executeProposal?: (proposalId: string) => void | Promise<void>;
@@ -29,7 +30,7 @@ type ProposalBoardProps = {
 type Group = "active" | "history" | "all";
 const GROUPS: Group[] = ["active", "history", "all"];
 
-export function ProposalBoard({ data, identities, id, createProposal, executeProposal, proposalTargetRequired = false, proposalTxState, resetProposalTx, focusedProposalId = null, retractProposal, voteOnProposal }: ProposalBoardProps) {
+export function ProposalBoard({ data, identities, resolveVoterEns = false, id, createProposal, executeProposal, proposalTargetRequired = false, proposalTxState, resetProposalTx, focusedProposalId = null, retractProposal, voteOnProposal }: ProposalBoardProps) {
   const copy = ybcCopy.proposalBoard;
   const items = data.proposals.items;
   const counts = {
@@ -51,6 +52,15 @@ export function ProposalBoard({ data, identities, id, createProposal, executePro
   const [targetError, setTargetError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [actionPhase, setActionPhase] = useState<string | null>(null);
+  const completionRef = useRef<HTMLDivElement>(null);
+  const actedProposal = items.find((proposal) => proposal.id === actionId);
+  const completion = actedProposal && actionPhase !== actedProposal.phase &&
+    getYbcProposalGroup(actedProposal) === "history" && group === "active" ? actedProposal : null;
+  const completionKey = completion ? `${completion.id}:${completion.phase}` : null;
+  useEffect(() => {
+    if (completionKey) completionRef.current?.focus();
+  }, [completionKey]);
   const transactionPending = ["signing", "submitted", "mining"].includes(proposalTxState?.status ?? "");
   const transactionError = proposalTxState?.status === "error" ? proposalTxState.errorMessage : null;
   const error = actionError ?? transactionError;
@@ -63,6 +73,7 @@ export function ProposalBoard({ data, identities, id, createProposal, executePro
   const runAction = (action: () => void | Promise<void>, proposalId: string | null = null) => {
     setActionError(null);
     setActionId(proposalId);
+    setActionPhase(items.find((proposal) => proposal.id === proposalId)?.phase ?? null);
     resetProposalTx?.();
     try { void Promise.resolve(action()).catch((error: unknown) => setActionError(error instanceof Error && error.message ? error.message : copy.actionFailed)); }
     catch (error) { setActionError(error instanceof Error && error.message ? error.message : copy.actionFailed); }
@@ -102,6 +113,13 @@ export function ProposalBoard({ data, identities, id, createProposal, executePro
         </div>
         {targetError || (actionId === null && error) ? <p id="ybc-target-error" role="alert" className="text-sm text-red-700 dark:text-red-300">{targetError ?? error}</p> : null}
       </Card> : null}
+      {completion ? <div ref={completionRef} tabIndex={-1} role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-box border border-border bg-surface px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary">
+        <p className="text-sm">{copy.actionComplete(completion.id, completion.phase)}</p>
+        <Button size="sm" variant="secondary" onClick={() => {
+          setGroup("history"); setSearch(completion.id);
+          window.requestAnimationFrame(() => document.querySelector<HTMLElement>(`#ybc-proposal-${completion.id} summary`)?.focus());
+        }}>{copy.viewProposal}</Button>
+      </div> : null}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <div className="max-w-full overflow-x-auto">
           <Tabs aria-label={copy.filterLabel} activeTab={group} onChange={(value) => { if (GROUPS.includes(value as Group)) setGroup(value as Group); }}
@@ -114,7 +132,7 @@ export function ProposalBoard({ data, identities, id, createProposal, executePro
       <div id={`ybc-panel-${group}`} role="tabpanel" aria-labelledby={`ybc-filter-${group}`} tabIndex={0} className="min-w-0 rounded-box focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary">
         <p className="sr-only" aria-live="polite">{copy.resultCount(visible.length)}</p>
         {visible.length ? <Card className="min-w-0 divide-y divide-border p-0 shadow-none">
-          {visible.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} identities={identities} focused={proposal.id === focusedProposalId}
+          {visible.map((proposal) => <ProposalCard key={proposal.id} proposal={proposal} identities={identities} resolveVoterEns={resolveVoterEns} focused={proposal.id === focusedProposalId}
             onRetract={retractProposal ? () => runAction(() => retractProposal(proposal.id), proposal.id) : undefined}
             onVote={voteOnProposal ? (choice) => runAction(() => voteOnProposal(proposal.id, choice), proposal.id) : undefined}
             onExecute={executeProposal ? () => runAction(() => executeProposal(proposal.id), proposal.id) : undefined}
