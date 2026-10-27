@@ -1,0 +1,33 @@
+{
+  "name": "master-merge-access",
+  "target": "branch",
+  "enforcement": "disabled",
+  "conditions": {
+    "ref_name": {
+      "include": [
+        "refs/heads/master"
+      ],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [
+    {
+      "actor_id": 130217224,
+      "actor_type": "User",
+      "bypass_mode": "pull_request"
+    },
+    {
+      "actor_id": 117271860,
+      "actor_type": "User",
+      "bypass_mode": "pull_request"
+    }
+  ],
+  "rules": [
+    {
+      "type": "update",
+      "parameters": {
+        "update_allows_fetch_and_merge": false
+      }
+    }
+  ]
+}
