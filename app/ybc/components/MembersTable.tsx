@@ -150,7 +150,7 @@ function MemberCard({ member, ...props }: MemberProps) {
   const muted = getYbcWeightSummary(member.weight).state === "empty" || member.status === "removed";
   return (
     <Card data-member-address={member.address} data-state={props.isCurrentMember ? "current" : undefined} className={cn("flex min-w-0 flex-col gap-4 p-4 shadow-none", muted && "bg-surface-secondary/50")}>
-      <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1">
+      <div className="flex min-h-20 min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1">
         <div className="min-w-0 flex-1"><MemberIdentity {...props} /></div>
         <MemberStatus member={member} />
       </div>
@@ -160,7 +160,7 @@ function MemberCard({ member, ...props }: MemberProps) {
           <dd className="break-words font-number text-sm font-bold tabular-nums [overflow-wrap:anywhere]">{formatDecimalAmount(member.weight[key], 2)}</dd>
         </div>)}
       </dl>
-      <div className="mt-auto border-t border-border pt-4"><MemberWeightProgress weight={member.weight} removed={member.status === "removed"} /></div>
+      <div className="border-t border-border pt-4"><MemberWeightProgress weight={member.weight} removed={member.status === "removed"} /></div>
     </Card>
   );
 }
