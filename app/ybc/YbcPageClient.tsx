@@ -308,6 +308,7 @@ export function YbcPageContent({
 
   const membersSection = (
     <MembersTable
+      key="members"
       aliases={aliases}
       identities={identities}
       roster={data.roster}
@@ -319,6 +320,7 @@ export function YbcPageContent({
   );
   const proposalsSection = (
     <ProposalBoard
+      key="proposals"
       id="proposals"
       data={data}
       identities={identities}

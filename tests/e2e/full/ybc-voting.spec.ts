@@ -54,6 +54,10 @@ test("execution in the Active filter preserves a result and keyboard focus", asy
   await waitForTestBridge(page);
   await resetBridge(page);
   await setYbcPerspective(page, "member-ramping");
+  await page.evaluate(async () => {
+    await window.__TEST__?.patchYbcProposal?.("YBC-8", { phase: "retracted" });
+    await window.__TEST__?.patchYbcProposal?.("YBC-7", { phase: "failed" });
+  });
   const proposal = page.getByRole("article", { name: /YBC-6/ });
   await proposal.locator("summary").click();
   await proposal.getByRole("button", { name: "Execute proposal" }).click();

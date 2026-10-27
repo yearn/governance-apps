@@ -3,7 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ProposalCard } from "@/app/ybc/components/ProposalCard";
 import { ConnectedProposalVoters } from "@/app/ybc/components/ProposalVoters";
-import { getYbcIdentityAddresses, YbcPageClient } from "@/app/ybc/YbcPageClient";
+import { getYbcIdentityAddresses, YbcPageClient, YbcPageContent } from "@/app/ybc/YbcPageClient";
 import { buildYbcIdentityMap } from "@/app/ybc/identity";
 import { cloneYbcMockScenarioData } from "@/lib/clients/ybc/mock";
 import { resetYbcMockStore } from "@/lib/clients/ybc/store";
@@ -57,6 +57,23 @@ describe("YBC voting detail regressions", () => {
     await user.click(within(completion).getByRole("button", { name: "View proposal" }));
     expect(screen.getByRole("tab", { name: /History/ })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("article", { name: /YBC-6/ })).toBeInTheDocument();
+  });
+
+
+  it("preserves the completion notice when the last active proposal changes the section order", async () => {
+    const user = userEvent.setup();
+    const data = cloneYbcMockScenarioData("member-ramping");
+    const ready = data.proposals.items.find((proposal) => proposal.phase === "awaiting-execution")!;
+    data.proposals.items = [ready];
+    const executeProposal = vi.fn();
+    const { rerender } = render(<YbcPageContent data={data} executeProposal={executeProposal} />);
+    await user.click(within(screen.getByRole("article")).getByText("Details"));
+    await user.click(screen.getByRole("button", { name: "Execute proposal" }));
+    expect(executeProposal).toHaveBeenCalledWith(ready.id);
+    rerender(<YbcPageContent data={{ ...data, proposals: { ...data.proposals, items: [{ ...ready, phase: "executed" }] } }} executeProposal={executeProposal} />);
+    const completion = screen.getByText("YBC-6 is executed. The proposal is now in History.").parentElement!;
+    expect(completion).toHaveFocus();
+    expect(within(completion).getByRole("button", { name: "View proposal" })).toBeVisible();
   });
 
   it("keeps historical voters out of the primary ENS batch and resolves each visible voter page", async () => {
