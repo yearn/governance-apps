@@ -317,6 +317,26 @@ describe("DAO proposal action panel", () => {
     expect(screen.getByText(/history will update after.*indexed/i)).toBeVisible();
   });
 
+  it("handles Escape immediately after reopening the vote dialog", () => {
+    renderFixture("voting");
+    fireEvent.click(screen.getByRole("radio", { name: "Yea" }));
+    const trigger = screen.getByRole("button", { name: "Review vote" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" })
+    );
+    fireEvent.click(trigger);
+
+    const dialog = screen.getByRole("dialog", { name: "Confirm your vote" });
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(handlers.onVote).not.toHaveBeenCalled();
+  });
+
   it("restores focus to the vote trigger when a dialog closes", async () => {
     renderFixture("voting");
     fireEvent.click(screen.getByRole("radio", { name: "Yea" }));

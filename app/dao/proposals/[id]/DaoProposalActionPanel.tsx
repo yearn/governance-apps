@@ -6,6 +6,7 @@ import { ProposalTitleCorrection } from "../../components/ProposalTitleCorrectio
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type KeyboardEvent,
@@ -882,21 +883,18 @@ function AccessibleDialog({
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
     const returnFocus = returnFocusRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const focusTimer = window.setTimeout(() => {
-      const target = dialogRef.current?.querySelector<HTMLElement>(
-        "[data-autofocus]:not(:disabled), button:not(:disabled), input:not(:disabled), textarea:not(:disabled)"
-      );
-      target?.focus();
-    }, 0);
+    const target = dialogRef.current?.querySelector<HTMLElement>(
+      "[data-autofocus]:not(:disabled), button:not(:disabled), input:not(:disabled), textarea:not(:disabled)"
+    );
+    target?.focus();
     return () => {
-      window.clearTimeout(focusTimer);
       document.body.style.overflow = previousOverflow;
-      window.setTimeout(() => returnFocus?.focus(), 0);
+      returnFocus?.focus();
     };
   }, [open, returnFocusRef]);
 
