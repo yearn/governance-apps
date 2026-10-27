@@ -23,6 +23,24 @@ function parseFeed(value: unknown): YbcFeed {
 }
 
 describe("YBC feed mapper", () => {
+  it("keeps a zero-stake member empty instead of fully mature", () => {
+    const feed = parseFeed(feedExample);
+    feed.members[0] = { ...feed.members[0]!, upstreamStaked: "0", effectiveWeight: "0", weightMaturityBps: 10000, maturesAt: feed.generatedAt + 86400 };
+    const data = mapYbcFeedToPageState(feed, feed.members[0]!.address as Address).data;
+    expect(data.me.isMember).toBe(true);
+    expect(data.me.weight).toMatchObject({ rawStaked: "0", maturityBps: 0, maturesAt: null });
+    expect(data.roster.totals.rampingMemberCount).toBe(0);
+  });
+
+  it("preserves sub-display-unit stake when deriving activation", () => {
+    const feed = parseFeed(feedExample);
+    feed.members[0] = { ...feed.members[0]!, upstreamStaked: "1", effectiveWeight: "0", weightMaturityBps: 10000 };
+    const data = mapYbcFeedToPageState(feed).data;
+    expect(data.roster.members[0]!.status).toBe("ramping");
+    expect(data.roster.members[0]!.weight.rawStaked).toBe("0.000000000000000001");
+    expect(data.roster.members[0]!.weight.maturityBps).toBe(0);
+  });
+
   it("maps individual vote records without inventing missing timestamps", () => {
     const feed = parseFeed(feedExample);
     const event = feed.votes[0]!;

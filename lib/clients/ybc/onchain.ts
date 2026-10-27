@@ -1,3 +1,4 @@
+import { getYbcWeightSummary } from "./weight-display";
 import { formatUnits, isAddress, type Address, type PublicClient } from "viem";
 import { YbcAbi } from "@/lib/abis/Ybc";
 import { YbcElectionAbi } from "@/lib/abis/YbcElection";
@@ -44,7 +45,7 @@ const ZERO_WEIGHT: YbcWeightRecord = {
   rawStaked: "0",
   effectiveWeight: "0",
   targetWeight: "0",
-  maturityBps: 10_000,
+  maturityBps: 0,
   maturesAt: null,
 };
 const TERMINAL_PHASES = new Set<YbcProposalPhase>([
@@ -459,11 +460,11 @@ export function mapYbcFeedToPageState(
           rawStaked:
             options.walletOverlay.staked === null
               ? currentMember.weight.rawStaked
-              : fromBaseUnits(options.walletOverlay.staked.toString()),
+              : formatUnits(options.walletOverlay.staked, 18),
           effectiveWeight:
             options.walletOverlay.weight === null
               ? currentMember.weight.effectiveWeight
-              : fromBaseUnits(options.walletOverlay.weight.toString()),
+              : formatUnits(options.walletOverlay.weight, 18),
         }
       : currentMember?.weight ?? ZERO_WEIGHT;
   const pendingRewards = currentMember
@@ -522,7 +523,7 @@ export function mapYbcFeedToPageState(
         ),
         rampingMemberCount: members.filter(
           (member) =>
-            member.status === "ramping" && Number(member.weight.targetWeight) > 0
+            member.status !== "removed" && getYbcWeightSummary(member.weight).state === "ramping"
         ).length,
       },
       members,
@@ -576,22 +577,15 @@ function mapMember(feed: YbcFeed, member: YbcFeedMember): YbcMemberRecord {
 }
 
 function mapWeight(member: YbcFeedMember): YbcWeightRecord {
-  const targetRaw = BigInt(member.upstreamStaked);
-  const effectiveRaw = BigInt(member.effectiveWeight);
-  const maturityBps =
-    targetRaw === 0n
-      ? 10_000
-      : member.weightMaturityBps > 0
-        ? member.weightMaturityBps
-        : Number((effectiveRaw * 10_000n) / targetRaw);
-
-  return {
-    rawStaked: fromBaseUnits(member.upstreamStaked),
-    effectiveWeight: fromBaseUnits(member.effectiveWeight),
-    targetWeight: fromBaseUnits(member.upstreamStaked),
-    maturityBps: clampBps(maturityBps),
+  const weight = {
+    rawStaked: formatUnits(BigInt(member.upstreamStaked), 18),
+    effectiveWeight: formatUnits(BigInt(member.effectiveWeight), 18),
+    targetWeight: formatUnits(BigInt(member.upstreamStaked), 18),
+    maturityBps: 0,
     maturesAt: member.maturesAt,
   };
+  const summary = getYbcWeightSummary(weight);
+  return { ...weight, maturityBps: summary.activeBps, maturesAt: summary.maturesAt };
 }
 
 function mapMemberStatus(
@@ -599,7 +593,7 @@ function mapMemberStatus(
   weight: YbcWeightRecord
 ): YbcMemberStatus {
   if (member.status === "removed") return "removed";
-  if (Number(weight.targetWeight) > 0 && weight.maturityBps < 10_000) {
+  if (getYbcWeightSummary(weight).state === "ramping") {
     return "ramping";
   }
   return "active";
@@ -1346,8 +1340,4 @@ function trimDecimal(value: string, fractionDigits: number) {
 function sumDisplayAmounts(values: string[]) {
   const sum = values.reduce((total, value) => total + Number(value), 0);
   return Number.isFinite(sum) ? trimDecimal(String(sum), 4) : "0";
-}
-
-function clampBps(value: number) {
-  return Math.min(Math.max(value, 0), 10_000);
 }

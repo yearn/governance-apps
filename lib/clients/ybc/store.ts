@@ -1,5 +1,7 @@
 "use client";
 
+import { getYbcWeightSummary } from "./weight-display";
+
 import type { Address } from "viem";
 import type { YbcTestBridgeAdapter } from "@/lib/test-bridge";
 import { nowSeconds } from "@/lib/mocks/time";
@@ -169,6 +171,9 @@ function syncEpoch(data: YbcMockDataV1, asOf: number) {
 }
 
 function syncMember(member: YbcMemberRecord, asOf: number): YbcMemberRecord {
+  if (getYbcWeightSummary(member.weight).state === "empty") {
+    return { ...member, status: member.status === "ramping" ? "active" : member.status, weight: { ...member.weight, maturityBps: 0, maturesAt: null } };
+  }
   if (member.weight.maturesAt === null) {
     return member;
   }
@@ -371,7 +376,7 @@ function normalizeYbcData(input: YbcMockDataV1): YbcMockDataV1 {
     targetWeight: formatAmount(
       sumAmounts(activeMembers.map((member) => member.weight.targetWeight))
     ),
-    rampingMemberCount: activeMembers.filter((member) => member.status === "ramping")
+    rampingMemberCount: activeMembers.filter((member) => getYbcWeightSummary(member.weight).state === "ramping")
       .length,
   };
   const epoch = syncEpoch(input, input.asOf);
