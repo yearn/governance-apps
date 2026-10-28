@@ -1,14 +1,14 @@
 import { formatUnits, parseUnits } from "viem";
 import type { YbcMemberRecord, YbcWeightRecord } from "./types";
 
-export type YbcWeightState = "empty" | "ramping" | "active" | "unavailable";
+export type YbcWeightState = "empty" | "ramping" | "active" | "unavailable" | "below-precision";
 
 export function getYbcWeightSummary(weight: YbcWeightRecord) {
   const staked = parseUnits(weight.rawStaked, 18);
   const target = parseUnits(weight.targetWeight, 18);
   const effective = parseUnits(weight.effectiveWeight, 18);
   const hasStake = staked > 0n;
-  const state: YbcWeightState = !hasStake ? "empty" : target <= 0n ? "unavailable" : effective < target ? "ramping" : "active";
+  const state: YbcWeightState = !hasStake ? "empty" : target <= 0n ? (staked < 1_000_000n ? "below-precision" : "unavailable") : effective < target ? "ramping" : "active";
   // Basis points are a display ratio, never an eligibility or write input.
   // Floor it so a nearly complete position cannot claim 100% activation.
   const activeBps = !hasStake || target <= 0n ? 0 : Math.min(10_000, Number(effective * 10_000n / target));

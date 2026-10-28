@@ -1,3 +1,4 @@
+import { quantizeYbcWeight } from "./weight-schedule";
 import { getYbcWeightSummary } from "./weight-display";
 import { formatUnits, parseUnits, isAddress, type Address, type PublicClient } from "viem";
 import { YbcAbi } from "@/lib/abis/Ybc";
@@ -580,7 +581,7 @@ function mapWeight(member: YbcFeedMember): YbcWeightRecord {
   const weight = {
     rawStaked: formatUnits(BigInt(member.upstreamStaked), 18),
     effectiveWeight: formatUnits(BigInt(member.effectiveWeight), 18),
-    targetWeight: formatUnits(BigInt(member.upstreamStaked), 18),
+    targetWeight: formatUnits(quantizeYbcWeight(BigInt(member.upstreamStaked)), 18),
     maturityBps: 0,
     maturesAt: member.maturesAt,
   };

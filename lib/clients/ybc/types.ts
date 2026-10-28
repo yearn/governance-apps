@@ -65,7 +65,21 @@ export type YbcMockScenario = {
   data: YbcMockDataV1;
 };
 
+export type YbcGovernancePower = {
+  ownPower: YbcAmount;
+  delegatedPower: YbcAmount;
+  collectivePower: YbcAmount;
+  totalPower: YbcAmount;
+  timestamp: UnixSeconds;
+  members: Record<string, { directPower: YbcAmount; exiting: YbcAmount | null; maturesAt: UnixSeconds | null }>;
+};
+
+export type YbcSystemVotingPower = Omit<YbcGovernancePower, "members"> & { daoTotalPower: YbcAmount };
+
 export type YbcMockDataV1 = {
+  systemPower?: YbcSystemVotingPower;
+  governancePower?: YbcGovernancePower;
+
   version: 1;
   generatedAt: UnixSeconds;
   asOf: UnixSeconds;

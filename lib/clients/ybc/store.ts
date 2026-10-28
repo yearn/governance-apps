@@ -1,5 +1,7 @@
 "use client";
 
+import { createMockYbcGovernancePower, createMockYbcSystemVotingPower } from "./member-display";
+
 import { getYbcWeightSummary } from "./weight-display";
 
 import type { Address } from "viem";
@@ -415,6 +417,8 @@ function normalizeYbcData(input: YbcMockDataV1): YbcMockDataV1 {
   const delegatedWeight = parseAmount(input.hero.delegatedWeight);
   const normalized: YbcMockDataV1 = {
     ...input,
+    systemPower: createMockYbcSystemVotingPower({ ...input, roster: { totals: rosterTotals, members: syncedMembers } }),
+    governancePower: createMockYbcGovernancePower({ ...input, roster: { totals: rosterTotals, members: syncedMembers } }),
     epoch,
     hero: {
       ...input.hero,

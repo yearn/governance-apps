@@ -1,4 +1,85 @@
 export const ybcCopy = {
+overview: {
+  "total": "Available YBC voting power",
+  "totalHelp": "Members’ own DAO power plus the stYFIx delegation and YBC-held power they can steer. These are current available weights, before late-vote decay—not votes already cast. Actual influence depends on participation.",
+  "daoTotal": "DAO total",
+  "ofDao": "of DAO voting power",
+  "other": "Other DAO voting power",
+  "shareUnavailable": "DAO share unavailable",
+  "breakdown": "DAO voting power breakdown",
+  "barLabel": "YBC share of DAO voting power: show breakdown",
+  "barHelp": "Percentages are shares of all DAO power. Patterned blue includes the stYFIx delegation and YBC-held power. Available power is before voting-time decay; actual influence depends on participation.",
+  "own": "Members’ own power",
+  "ownHelp": "The sum of current direct DAO voting power held by YBC members, including eligible staked positions and migrated veYFI. This is separate from their internal YBC weight.",
+  "pools": "Power steered by YBC",
+  "poolsHelp": "YBC steers the stYFIx delegation and voting power held by the collective. Members split this influence according to the YBC weight of those who vote.",
+  "delegated": "stYFIx delegation",
+  "held": "YBC-held power",
+  "ownShort": "Members’ own",
+  "poolsShort": "Delegated + collective",
+  "loading": "Reading voting power…",
+  "unavailable": "DAO power breakdown unavailable",
+  "snapshot": "Current power · before proposal-specific decay",
+  "roles": {
+    "observer": {
+      "label": "Observer",
+      "help": "You can browse YBC without membership. Connect a member wallet to vote on membership proposals. Wallet status does not change the collective figures."
+    },
+    "member": {
+      "label": "Member",
+      "help": "Your connected wallet is a YBC member. Its current weight determines participation in membership votes and its share of YBC's DAO influence."
+    },
+    "operator": {
+      "label": "Operator",
+      "help": "Your connected wallet has YBC operator access. The Operator tab contains membership controls and governance settings."
+    }
+  }
+},
+memberOverview: {
+  "title": "Members",
+  "description": "See how voting weight is distributed across the collective.",
+  "stake": "Staked YFI",
+  "stakeHelp": "Current active stake in YFI-equivalent units, including supported liquid-locker positions. This excludes amounts already unstaking. It is not the same as voting weight.",
+  "weight": "YBC weight",
+  "weightHelp": "Current voting weight inside YBC. New stake and new membership gain weight over four 14-day epochs. Unstaking reduces this weight immediately.",
+  "share": "YBC share",
+  "shareHelp": "This member's current YBC weight divided by all active members’ YBC weight. It estimates the split of pooled DAO power if everyone participates; each proposal uses only participating members.",
+  "position": "Position",
+  "positionHelp": "Activating means existing stake is still gaining YBC weight. Unstaking means withdrawn stake remains in a withdrawal stream. Both can happen together. Dates assume no further position changes.",
+  "totalStake": "Members’ active stake",
+  "totalWeight": "Total YBC weight",
+  "table": "Table",
+  "distribution": "Distribution",
+  "distributionTitle": "Voting weight distribution",
+  "distributionHelp": "Share of current YBC weight. This is a governance allocation, not asset ownership. Actual DAO influence depends on which members vote.",
+  "allMembers": "All members",
+  "selection": "Selected member",
+  "emptyChart": "No voting weight yet",
+  "emptyChartBody": "The distribution appears when members have positive YBC weight.",
+  "shareOfYbc": "of YBC weight",
+  "selectMember": "Select a member to inspect their position.",
+  "direct": "Own DAO power",
+  "full": "Weight at full activation",
+  "fullHelp": "The weight this stake can reach if the position does not change. YBC rounds stake down to its on-chain packing precision.",
+  "unknownQueue": "Withdrawal status unavailable"
+},
+position: {
+  "activating": "Activating",
+  "active": "Active",
+  "leaving": "Unstaking",
+  "leavingHelp": "Stake in withdrawal streams, including amounts already unlocked but not withdrawn. It no longer contributes to YBC weight. Liquid-locker amounts are shown in YFI-equivalent units.",
+  "leavingAmount": "YFI-equivalent leaving",
+  "fullOn": "Full weight",
+  "estimatedFullOn": "Full weight est.",
+  "dateUnavailable": "Activation date unavailable",
+  "empty": "No active stake",
+  "belowPrecision": "Below voting precision"
+},
+rewardHandoff: {
+  "title": "Your rewards, together in stYFI",
+  "body": "YBC income is included in the shared stYFI rewards flow. Check your wallet’s claimable amount and claim there alongside your other staking rewards.",
+  "cta": "View and claim rewards in stYFI"
+},
   app: {
     slug: "ybc",
     routeKey: "/ybc",

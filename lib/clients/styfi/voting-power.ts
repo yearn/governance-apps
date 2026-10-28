@@ -88,6 +88,35 @@ export function deriveYbcVotingInfluence(input: {
   };
 }
 
+export async function readGovernanceWeightSources(
+  publicClient: PublicClient,
+  blockNumber: bigint,
+  deployment: Pick<DaoDeployment, "votingAddress" | "supportedVoters"> = { votingAddress: STYFI_GOVERNANCE.voting, supportedVoters: [STYFI_GOVERNANCE.voter] },
+) {
+  const [measure, voter] = await publicClient.multicall({
+    blockNumber,
+    allowFailure: false,
+    contracts: [
+      { address: deployment.votingAddress, abi: votingAbi, functionName: "weight_measure" },
+      { address: deployment.votingAddress, abi: votingAbi, functionName: "voter" },
+    ],
+  });
+  if (!deployment.supportedVoters.some((address) => address.toLowerCase() === voter.toLowerCase())) {
+    throw new Error("The current DAO voter is not supported.");
+  }
+  const [aggregator, delegatedStaking, ybc, memberAggregator] = await publicClient.multicall({
+    blockNumber,
+    allowFailure: false,
+    contracts: [
+      { address: measure, abi: measureAbi, functionName: "weight_aggregator" },
+      { address: voter, abi: voterAbi, functionName: "delegated_staking" },
+      { address: voter, abi: voterAbi, functionName: "ybc" },
+      { address: voter, abi: voterAbi, functionName: "ybc_weight_aggregator" },
+    ],
+  });
+  return { measure, voter, aggregator, delegatedStaking, ybc, memberAggregator };
+}
+
 export async function readStyfiVotingPower({
   publicClient,
   account,
@@ -111,28 +140,8 @@ export async function readStyfiVotingPower({
     throw new Error("The voting power snapshot is unavailable.");
   }
   const blockNumber = block.number;
-  const [measure, voter] = await publicClient.multicall({
-    blockNumber,
-    allowFailure: false,
-    contracts: [
-      { address: deployment.votingAddress, abi: votingAbi, functionName: "weight_measure" },
-      { address: deployment.votingAddress, abi: votingAbi, functionName: "voter" },
-    ],
-  });
-  if (!deployment.supportedVoters.some((address) => address.toLowerCase() === voter.toLowerCase())) {
-    throw new Error("The current DAO voter is not supported.");
-  }
+  const { measure, aggregator, delegatedStaking, ybc, memberAggregator } = await readGovernanceWeightSources(publicClient, blockNumber, deployment);
   if (expectedMeasure && measure.toLowerCase() !== expectedMeasure.toLowerCase()) throw new Error("The voting-power index uses another weight measure.");
-  const [aggregator, delegatedStaking, ybc, memberAggregator] = await publicClient.multicall({
-    blockNumber,
-    allowFailure: false,
-    contracts: [
-      { address: measure, abi: measureAbi, functionName: "weight_aggregator" },
-      { address: voter, abi: voterAbi, functionName: "delegated_staking" },
-      { address: voter, abi: voterAbi, functionName: "ybc" },
-      { address: voter, abi: voterAbi, functionName: "ybc_weight_aggregator" },
-    ],
-  });
   const [directPower, stakedPower, delegatedBalance, isYbcMember, memberWeight] = await publicClient.multicall({
     blockNumber,
     allowFailure: false,

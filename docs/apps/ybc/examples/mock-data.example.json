@@ -16,7 +16,7 @@
         },
         "hero": {
           "collectiveAddress": "0x9999999999999999999999999999999999999999",
-          "memberCount": 6,
+          "memberCount": 7,
           "internalWeight": "5800",
           "delegatedWeight": "100000",
           "totalInfluence": "105800",
@@ -151,6 +151,24 @@
               },
               "sources": {
                 "stYFI": "200",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000104",
+              "ens": "grace-ybc.eth",
+              "status": "active",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "0",
+                "effectiveWeight": "0",
+                "targetWeight": "0",
+                "maturityBps": 0,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "0",
                 "stYFIx": "0",
                 "migratedVeYfi": "0"
               }
@@ -393,6 +411,58 @@
             "disabledReason": "Connect a member wallet to view claimable rewards."
           },
           "periods": []
+        },
+        "governancePower": {
+          "ownPower": "6180",
+          "delegatedPower": "8000",
+          "collectivePower": "2000",
+          "totalPower": "16180",
+          "timestamp": 1776200000,
+          "members": {
+            "0x1111111111111111111111111111111111111111": {
+              "directPower": "500",
+              "exiting": "0",
+              "maturesAt": 1777420800
+            },
+            "0x2222222222222222222222222222222222222222": {
+              "directPower": "1200",
+              "exiting": "100",
+              "maturesAt": null
+            },
+            "0x3333333333333333333333333333333333333333": {
+              "directPower": "4200",
+              "exiting": "0",
+              "maturesAt": null
+            },
+            "0x0000000000000000000000000000000000000101": {
+              "directPower": "0",
+              "exiting": "0",
+              "maturesAt": null
+            },
+            "0x0000000000000000000000000000000000000102": {
+              "directPower": "80",
+              "exiting": "0",
+              "maturesAt": 1776804800
+            },
+            "0x0000000000000000000000000000000000000103": {
+              "directPower": "200",
+              "exiting": "25",
+              "maturesAt": 1776804800
+            },
+            "0x0000000000000000000000000000000000000104": {
+              "directPower": "0",
+              "exiting": "35",
+              "maturesAt": null
+            }
+          }
+        },
+        "systemPower": {
+          "ownPower": "6180",
+          "delegatedPower": "8000",
+          "collectivePower": "2000",
+          "totalPower": "16180",
+          "timestamp": 1776200000,
+          "daoTotalPower": "40000"
         }
       }
     },
@@ -410,7 +480,7 @@
         },
         "hero": {
           "collectiveAddress": "0x9999999999999999999999999999999999999999",
-          "memberCount": 6,
+          "memberCount": 7,
           "internalWeight": "5800",
           "delegatedWeight": "100000",
           "totalInfluence": "105800",
@@ -545,6 +615,24 @@
               },
               "sources": {
                 "stYFI": "200",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000104",
+              "ens": "grace-ybc.eth",
+              "status": "active",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "0",
+                "effectiveWeight": "0",
+                "targetWeight": "0",
+                "maturityBps": 0,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "0",
                 "stYFIx": "0",
                 "migratedVeYfi": "0"
               }
@@ -802,6 +890,58 @@
               "finalized": true
             }
           ]
+        },
+        "governancePower": {
+          "ownPower": "6180",
+          "delegatedPower": "8000",
+          "collectivePower": "2000",
+          "totalPower": "16180",
+          "timestamp": 1776200000,
+          "members": {
+            "0x1111111111111111111111111111111111111111": {
+              "directPower": "500",
+              "exiting": "0",
+              "maturesAt": 1777420800
+            },
+            "0x2222222222222222222222222222222222222222": {
+              "directPower": "1200",
+              "exiting": "100",
+              "maturesAt": null
+            },
+            "0x3333333333333333333333333333333333333333": {
+              "directPower": "4200",
+              "exiting": "0",
+              "maturesAt": null
+            },
+            "0x0000000000000000000000000000000000000101": {
+              "directPower": "0",
+              "exiting": "0",
+              "maturesAt": null
+            },
+            "0x0000000000000000000000000000000000000102": {
+              "directPower": "80",
+              "exiting": "0",
+              "maturesAt": 1776804800
+            },
+            "0x0000000000000000000000000000000000000103": {
+              "directPower": "200",
+              "exiting": "25",
+              "maturesAt": 1776804800
+            },
+            "0x0000000000000000000000000000000000000104": {
+              "directPower": "0",
+              "exiting": "35",
+              "maturesAt": null
+            }
+          }
+        },
+        "systemPower": {
+          "ownPower": "6180",
+          "delegatedPower": "8000",
+          "collectivePower": "2000",
+          "totalPower": "16180",
+          "timestamp": 1776200000,
+          "daoTotalPower": "40000"
         }
       }
     },
@@ -819,7 +959,7 @@
         },
         "hero": {
           "collectiveAddress": "0x9999999999999999999999999999999999999999",
-          "memberCount": 6,
+          "memberCount": 7,
           "internalWeight": "5800",
           "delegatedWeight": "100000",
           "totalInfluence": "105800",
@@ -954,6 +1094,24 @@
               },
               "sources": {
                 "stYFI": "200",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000104",
+              "ens": "grace-ybc.eth",
+              "status": "active",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "0",
+                "effectiveWeight": "0",
+                "targetWeight": "0",
+                "maturityBps": 0,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "0",
                 "stYFIx": "0",
                 "migratedVeYfi": "0"
               }
@@ -1211,6 +1369,58 @@
               "finalized": true
             }
           ]
+        },
+        "governancePower": {
+          "ownPower": "6180",
+          "delegatedPower": "8000",
+          "collectivePower": "2000",
+          "totalPower": "16180",
+          "timestamp": 1776200000,
+          "members": {
+            "0x1111111111111111111111111111111111111111": {
+              "directPower": "500",
+              "exiting": "0",
+              "maturesAt": 1777420800
+            },
+            "0x2222222222222222222222222222222222222222": {
+              "directPower": "1200",
+              "exiting": "100",
+              "maturesAt": null
+            },
+            "0x3333333333333333333333333333333333333333": {
+              "directPower": "4200",
+              "exiting": "0",
+              "maturesAt": null
+            },
+            "0x0000000000000000000000000000000000000101": {
+              "directPower": "0",
+              "exiting": "0",
+              "maturesAt": null
+            },
+            "0x0000000000000000000000000000000000000102": {
+              "directPower": "80",
+              "exiting": "0",
+              "maturesAt": 1776804800
+            },
+            "0x0000000000000000000000000000000000000103": {
+              "directPower": "200",
+              "exiting": "25",
+              "maturesAt": 1776804800
+            },
+            "0x0000000000000000000000000000000000000104": {
+              "directPower": "0",
+              "exiting": "35",
+              "maturesAt": null
+            }
+          }
+        },
+        "systemPower": {
+          "ownPower": "6180",
+          "delegatedPower": "8000",
+          "collectivePower": "2000",
+          "totalPower": "16180",
+          "timestamp": 1776200000,
+          "daoTotalPower": "40000"
         }
       }
     },
@@ -1228,7 +1438,7 @@
         },
         "hero": {
           "collectiveAddress": "0x9999999999999999999999999999999999999999",
-          "memberCount": 6,
+          "memberCount": 7,
           "internalWeight": "5800",
           "delegatedWeight": "100000",
           "totalInfluence": "105800",
@@ -1363,6 +1573,24 @@
               },
               "sources": {
                 "stYFI": "200",
+                "stYFIx": "0",
+                "migratedVeYfi": "0"
+              }
+            },
+            {
+              "address": "0x0000000000000000000000000000000000000104",
+              "ens": "grace-ybc.eth",
+              "status": "active",
+              "joinedAt": 1776113600,
+              "weight": {
+                "rawStaked": "0",
+                "effectiveWeight": "0",
+                "targetWeight": "0",
+                "maturityBps": 0,
+                "maturesAt": null
+              },
+              "sources": {
+                "stYFI": "0",
                 "stYFIx": "0",
                 "migratedVeYfi": "0"
               }
@@ -1667,6 +1895,58 @@
             "distributorFunded": true,
             "lastSyncedAt": 1776199000
           }
+        },
+        "governancePower": {
+          "ownPower": "6180",
+          "delegatedPower": "8000",
+          "collectivePower": "2000",
+          "totalPower": "16180",
+          "timestamp": 1776200000,
+          "members": {
+            "0x1111111111111111111111111111111111111111": {
+              "directPower": "500",
+              "exiting": "0",
+              "maturesAt": 1777420800
+            },
+            "0x2222222222222222222222222222222222222222": {
+              "directPower": "1200",
+              "exiting": "100",
+              "maturesAt": null
+            },
+            "0x3333333333333333333333333333333333333333": {
+              "directPower": "4200",
+              "exiting": "0",
+              "maturesAt": null
+            },
+            "0x0000000000000000000000000000000000000101": {
+              "directPower": "0",
+              "exiting": "0",
+              "maturesAt": null
+            },
+            "0x0000000000000000000000000000000000000102": {
+              "directPower": "80",
+              "exiting": "0",
+              "maturesAt": 1776804800
+            },
+            "0x0000000000000000000000000000000000000103": {
+              "directPower": "200",
+              "exiting": "25",
+              "maturesAt": 1776804800
+            },
+            "0x0000000000000000000000000000000000000104": {
+              "directPower": "0",
+              "exiting": "35",
+              "maturesAt": null
+            }
+          }
+        },
+        "systemPower": {
+          "ownPower": "6180",
+          "delegatedPower": "8000",
+          "collectivePower": "2000",
+          "totalPower": "16180",
+          "timestamp": 1776200000,
+          "daoTotalPower": "40000"
         }
       }
     }

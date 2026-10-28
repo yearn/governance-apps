@@ -1,56 +1,111 @@
 # YBC voting interface refresh
 
-Status: local implementation for product review.
+Status: local follow-up to PR #139, for product review.
 
 ## Scope
 
-This package updates the overview and membership proposal board. It also exposes vote
-events that the existing feed already supplies. The roster, rewards route, and operator
-permissions retain their existing behavior.
+The overview shows available YBC voting power and its share of all DAO voting power.
+A full-width bar uses the shared DAO component: solid blue for members' own power,
+patterned blue for power steered by YBC, and gray for other DAO power. Hover, focus,
+or tap the bar for amounts and percentages.
+Proposals, Members, and Rewards use the same line tabs as DAO. The Operator tab
+remains limited to authorized wallets.
 
-## Review findings
+The proposal board retains collapsed rows, lifecycle filters, voting records,
+precise threshold comparisons, and the existing transaction pipeline.
 
-| Area | Previous behavior | New behavior |
-| --- | --- | --- |
-| Overview | Large nested cards repeated weight and viewer information. | Compact collective metrics and a separate wallet summary. |
-| Proposal list | Several expanded cards hid later proposals. | Collapsed rows show deadlines, results, and participation. |
-| History | Active and closed proposals shared one long list. | Active, History, and All filters with search. |
-| Voting status | Eligible voters could see an unavailable-action message. | Action copy follows permissions and recorded participation. |
-| Voting record | The page discarded individual feed events. | Searchable records show identities, choices, weights, dates, and transactions. |
-| Thresholds | Rounded values could imply that a near-threshold result passed. | Exact integer comparisons determine the displayed threshold state. |
-| Identity | Interactive explorer controls sat inside disclosure summaries. | Canonical addresses appear inside expanded details and voter rows. |
+## Overview and member positions
+
+- Show available YBC voting power as members' own power plus the stYFIx and YBC pools.
+- Read the system total from the validated DAO voting-power index. Verify membership,
+  direct member power, and both pools at that index's canonical block.
+- The roster feed supplies candidate addresses only; it can use a different block.
+  Check the complete member count and indexed per-account weights before showing a share.
+- Reject stale totals (over 300 seconds or across an epoch), reorgs, and inconsistent sums.
+  Recheck freshness while the page remains open.
+- Without a verified nonzero denominator, show DAO share unavailable and an empty bar.
+  Independently verified absolute YBC power can remain visible.
+- Member position reads remain at the roster snapshot block.
+- Exclude pool addresses from the members' own total to prevent double counting.
+- Explain that actual influence depends on participation and voting time.
+- Keep the observer, member, or operator explanation in a compact accessible badge.
+- Remove epoch, proposal counts, and the separate wallet summary from the header.
+- Use Table by default, with Distribution as a saved preference.
+- Show staked YFI, current YBC weight, share of YBC weight, and position state.
+- Use shared tooltips to explain these terms. YBC share describes collective voting
+  allocation, not ownership of the underlying delegated stake.
+
+The distribution chart uses current YBC weights. Hover, focus, click, Enter, or
+Space selects a member and shows their position. The legend includes zero-weight
+members. Removed members contribute no weight. An all-zero roster has an empty state.
+
+## Activation and withdrawal states
+
+Zero stake shows No stake. Positive stake below the contract's weight precision
+shows Below voting precision. Neither state shows activation progress.
+
+For an activating position, show current weight, attainable full weight, and the
+date full weight becomes available if the position does not change. The projection
+uses the contract's four packed epoch slots, including YBC's membership ramp.
+Round full weight down to the contract's 1e6-wei precision.
+
+Read withdrawal streams from stYFI and the three liquid locker depositors. Sum
+unwithdrawn amounts in YFI equivalents. Do not apply the locker scale twice.
+Unstaking includes unlocked funds that have not been withdrawn. It can appear
+alongside Activating because withdrawals and new deposits can overlap.
+
+Position badges have a consistent visible height, separate from their larger touch
+targets. Rows reserve two lines for position details and use equal vertical padding.
+Desktop rows have the same minimum height and can grow for enlarged text.
+
+The UI does not infer deposit batches from aggregate weights. If verified schedule
+data is unavailable, label a feed date as an estimate. Failed withdrawal reads
+remain unknown. Do not interpret them as zero withdrawals.
+
+## Rewards
+
+stYFI owns the shared claim flow and already accounts for YBC reward income.
+The Rewards tab explains this and links directly to stYFI's rewards section.
+It does not repeat unverified reward balances or add another claim action.
+Observers can follow the link because they may hold stYFI outside YBC.
+
+## Shared components
+
+Use the existing Tabs, Table, Tooltip, VoteResultsBar, ViewToggle, MemberIdentity,
+and UTC date components. DAO and YBC share VoteResultsBar, with Yearn blue for
+yea and neutral gray for nay. The distribution chart is a small accessible SVG;
+this package adds no chart dependency.
 
 ## Acceptance criteria
 
-- Desktop and 360px layouts contain proposal names, addresses, dates, and controls.
-- Keyboard users can select filters and open or close proposal details.
-- Proposal deep links select the matching filter and remain usable with browser history.
-- Empty, observer, blocked, recorded-vote, and closed states have persistent explanations.
-- Vote records remain separate from canonical aggregate totals.
-- Proposal actions use the existing transaction pipeline and eligibility checks.
-- Required repository checks pass before the implementation is ready for review.
+- Desktop and 360px layouts contain names, addresses, dates, and controls.
+- Tabs support keyboard selection, deep links, and browser history.
+- Proposal links open the matching row and preserve unrelated query parameters.
+- Switching tabs retains proposal filters and member display preferences.
+- Help controls work with hover, focus, touch, and Escape.
+- No-stake, activating, active, unstaking, and overlapping states are distinct.
+- Missing DAO power shows unavailable values, never internal YBC weight as a substitute.
+- Canonical proposal totals remain separate from individual feed events.
+- Proposal and operator permissions remain unchanged.
+- Required repository checks and independent reviews pass.
 
-## Limits
+## Limits and sources
 
-Individual feed events are source records. The app does not independently verify every
-event or infer that the record list is complete. An unavailable vote choice remains
-unknown. Local browser tests use deterministic mock data and simulated transactions.
+Browser checks use deterministic mocks and simulated transactions. Live contract
+reads require a verified feed block and fail closed on roster or weight mismatch.
+Individual vote events remain publisher records; the app does not prove completeness.
 
-This package adds no dependency, contract write, deployment configuration, or production
-exposure. Product acceptance and live preproduction validation remain separate gates.
+The weight schedule follows
+[YBCWeightAggregator](https://github.com/yearn/stYFI/blob/9389a7c/contracts/ybc/YBCWeightAggregator.vy).
+The power split follows
+[Voter](https://github.com/yearn/stYFI/blob/001dda500be30e16d0837f8e7e05a75c8fe9710f/contracts/governance/Voter.vy).
+Withdrawal amounts follow
+[StakedYFI](https://github.com/yearn/stYFI/blob/001dda500be30e16d0837f8e7e05a75c8fe9710f/contracts/StakedYFI.vy)
+and
+[LiquidLockerDepositor](https://github.com/yearn/stYFI/blob/001dda500be30e16d0837f8e7e05a75c8fe9710f/contracts/LiquidLockerDepositor.vy).
 
-## Member activation and shared components
-
-Owner feedback requested clear zero-stake states and closer reuse of DAO components.
-
-- Zero stake is empty, even if an older maturity field says 100%.
-- Positive stake with no active weight shows 0% active and its remaining weight.
-- Partial activation preserves current weight and shows only the remaining weight as ramping.
-- Fully active stakes omit old maturity dates. Removed members have no active progress.
-- The wallet summary, roster table, and roster cards use the same activation component.
-- DAO's detailed and compact vote bars and YBC's vote bars use one shared VoteResultsBar.
-- Preview fixtures include no stake, new stake, 50%, 75%, and fully active states.
-
-The feed provides aggregate weights, not deposit batches. The UI does not attribute
-remaining weight to a particular deposit or estimate an unavailable maturity date.
-This follow-up changes display state only; voting and proposal permissions are unchanged.
+The shared voting-power endpoint is available when either DAO or YBC is enabled.
+The YBC percentage requires NEXT_PUBLIC_DAO_VOTING_POWER_URL; without it, the
+absolute overview remains available. No feature flags or deployments are enabled.
+No dependencies or contract writes change.
+Product acceptance and live preproduction validation remain separate gates.

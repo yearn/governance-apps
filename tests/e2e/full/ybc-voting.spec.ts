@@ -8,7 +8,7 @@ for (const width of [360, 1440]) {
     await waitForTestBridge(page);
     await resetBridge(page);
     await setYbcPerspective(page, "member-ramping");
-    await expect(page.getByRole("heading", { name: "Your voting weight" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "About member access" })).toBeVisible();
     const proposal = page.getByRole("article", { name: /YBC-7/ });
     await expect(proposal).not.toHaveAttribute("open");
     await expect(proposal.getByText("55% Yea").first()).toBeVisible();

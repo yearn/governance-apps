@@ -32,15 +32,15 @@ describe("YBC feed mapper", () => {
     expect(data.roster.totals.rampingMemberCount).toBe(0);
   });
 
-  it("preserves sub-display-unit stake when deriving activation", () => {
+  it("preserves tiny stake while respecting YBC voting precision", () => {
     const feed = parseFeed(feedExample);
     feed.members[0] = { ...feed.members[0]!, upstreamStaked: "1", effectiveWeight: "0", weightMaturityBps: 10000 };
     const data = mapYbcFeedToPageState(feed).data;
-    expect(data.roster.members[0]!.status).toBe("ramping");
+    expect(data.roster.members[0]!.status).toBe("active");
     expect(data.roster.members[0]!.weight.rawStaked).toBe("0.000000000000000001");
     expect(data.roster.members[0]!.weight.maturityBps).toBe(0);
     expect(data.roster.totals.rawStaked).toBe("0.000000000000000001");
-    expect(data.roster.totals.targetWeight).toBe("0.000000000000000001");
+    expect(data.roster.totals.targetWeight).toBe("0");
     expect(data.roster.totals.effectiveWeight).toBe("0");
     feed.members[0]!.effectiveWeight = "1";
     const active = mapYbcFeedToPageState(feed).data;

@@ -1,5 +1,6 @@
 "use client";
 
+import { createMockYbcGovernancePower, createMockYbcSystemVotingPower } from "./member-display";
 import type { Address } from "viem";
 import mockData from "@/docs/apps/ybc/examples/mock-data.example.json";
 import type { YbcClient, YbcPageState, YbcPrototypeScenarioId } from "./client";
@@ -80,6 +81,8 @@ export function createEmptyYbcMockData(): YbcMockDataV1 {
   data.rewards.claimable = "0";
   data.rewards.accruing = "0";
   data.rewards.periods = [];
+  data.governancePower = createMockYbcGovernancePower(data);
+  data.systemPower = createMockYbcSystemVotingPower(data);
 
   return data;
 }
