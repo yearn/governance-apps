@@ -65,7 +65,21 @@ export type YbcMockScenario = {
   data: YbcMockDataV1;
 };
 
+export type YbcGovernancePower = {
+  ownPower: YbcAmount;
+  delegatedPower: YbcAmount;
+  collectivePower: YbcAmount;
+  totalPower: YbcAmount;
+  timestamp: UnixSeconds;
+  members: Record<string, { directPower: YbcAmount; exiting: YbcAmount | null; maturesAt: UnixSeconds | null }>;
+};
+
+export type YbcSystemVotingPower = Omit<YbcGovernancePower, "members"> & { daoTotalPower: YbcAmount };
+
 export type YbcMockDataV1 = {
+  systemPower?: YbcSystemVotingPower;
+  governancePower?: YbcGovernancePower;
+
   version: 1;
   generatedAt: UnixSeconds;
   asOf: UnixSeconds;
@@ -137,6 +151,15 @@ export type YbcProposalBoardRecord = {
   items: YbcProposalRecord[];
 };
 
+export type YbcVoteRecord = {
+  id: string;
+  voter: Address;
+  choice: YbcVoteChoice;
+  weight: YbcAmount;
+  timestamp: UnixSeconds | null;
+  transactionHash: `0x${string}` | null;
+};
+
 export type YbcProposalRecord = {
   id: string;
   type: YbcProposalType;
@@ -151,6 +174,8 @@ export type YbcProposalRecord = {
     yea: YbcAmount;
     nay: YbcAmount;
   };
+  voteRecords?: YbcVoteRecord[];
+  viewerVote?: { hasVoted: boolean; choice: YbcVoteChoice | null };
   timing: YbcProposalTiming;
   actions: {
     canRetract: boolean;

@@ -1,5 +1,9 @@
 "use client";
 
+import { createMockYbcGovernancePower, createMockYbcSystemVotingPower } from "./member-display";
+
+import { getYbcWeightSummary } from "./weight-display";
+
 import type { Address } from "viem";
 import type { YbcTestBridgeAdapter } from "@/lib/test-bridge";
 import { nowSeconds } from "@/lib/mocks/time";
@@ -169,6 +173,9 @@ function syncEpoch(data: YbcMockDataV1, asOf: number) {
 }
 
 function syncMember(member: YbcMemberRecord, asOf: number): YbcMemberRecord {
+  if (getYbcWeightSummary(member.weight).state === "empty") {
+    return { ...member, status: member.status === "ramping" ? "active" : member.status, weight: { ...member.weight, maturityBps: 0, maturesAt: null } };
+  }
   if (member.weight.maturesAt === null) {
     return member;
   }
@@ -231,6 +238,8 @@ function syncProposal(
   proposal: YbcProposalRecord,
   data: Pick<YbcMockDataV1, "me" | "asOf">
 ): YbcProposalRecord {
+  const recordedVote = proposal.voteRecords?.find((vote) => vote.voter.toLowerCase() === data.me.address?.toLowerCase());
+  proposal = { ...proposal, viewerVote: data.me.address ? { hasVoted: Boolean(recordedVote), choice: recordedVote?.choice ?? null } : undefined };
   if (TERMINAL_PROPOSAL_PHASES.has(proposal.phase)) {
     return normalizeTerminalProposal(proposal);
   }
@@ -240,9 +249,7 @@ function syncProposal(
     !!data.me.address &&
     data.me.address.toLowerCase() === proposal.proposer.toLowerCase();
   const thresholdMet = getThresholdMet(proposal);
-  const hasRecordedMockVote =
-    proposal.actions.disabledReason?.toLowerCase().includes("mock yea vote recorded") ||
-    proposal.actions.disabledReason?.toLowerCase().includes("mock nay vote recorded");
+  const hasRecordedMockVote = Boolean(recordedVote);
 
   if (data.asOf < proposal.timing.votingStartsAt) {
     return {
@@ -371,7 +378,7 @@ function normalizeYbcData(input: YbcMockDataV1): YbcMockDataV1 {
     targetWeight: formatAmount(
       sumAmounts(activeMembers.map((member) => member.weight.targetWeight))
     ),
-    rampingMemberCount: activeMembers.filter((member) => member.status === "ramping")
+    rampingMemberCount: activeMembers.filter((member) => getYbcWeightSummary(member.weight).state === "ramping")
       .length,
   };
   const epoch = syncEpoch(input, input.asOf);
@@ -410,6 +417,8 @@ function normalizeYbcData(input: YbcMockDataV1): YbcMockDataV1 {
   const delegatedWeight = parseAmount(input.hero.delegatedWeight);
   const normalized: YbcMockDataV1 = {
     ...input,
+    systemPower: createMockYbcSystemVotingPower({ ...input, roster: { totals: rosterTotals, members: syncedMembers } }),
+    governancePower: createMockYbcGovernancePower({ ...input, roster: { totals: rosterTotals, members: syncedMembers } }),
     epoch,
     hero: {
       ...input.hero,

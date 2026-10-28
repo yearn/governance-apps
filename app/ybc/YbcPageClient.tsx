@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Tabs } from "@/components/ui/Tabs";
+import { useYbcGovernancePower } from "@/lib/hooks/useYbcGovernancePower";
+import { useYbcSystemVotingPower } from "@/lib/hooks/useYbcSystemVotingPower";
+import type { YbcGovernancePower, YbcSystemVotingPower } from "@/lib/clients/ybc";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { UtcTime } from "@/components/ui/UtcTime";
@@ -33,6 +37,10 @@ type YbcPageClientProps = {
 
 type YbcPageContentProps = {
   data: YbcMockDataV1;
+  power?: YbcGovernancePower | null;
+  powerLoading?: boolean;
+  systemPower?: YbcSystemVotingPower | null;
+  systemLoading?: boolean;
   hostname?: string | null;
   trustRecordEns?: boolean;
   verifiedEns?: Record<string, string>;
@@ -57,11 +65,7 @@ type YbcPageContentProps = {
 };
 
 const SECTION_HASHES = new Set(["overview", "members", "proposals", "rewards", "admin"]);
-const PRIORITY_PROPOSAL_PHASES = new Set([
-  "discussion",
-  "voting",
-  "awaiting-execution",
-]);
+type YbcTab = "proposals" | "members" | "rewards" | "admin";
 
 export function YbcPageClient({
   scenarioOverride,
@@ -73,8 +77,10 @@ export function YbcPageClient({
     scenarioOverride,
     latencyMs,
   });
+  const powerQuery = useYbcGovernancePower(mainnetPublicClient, ybcState.backend === "feed" ? ybcState.feed : null);
+  const systemQuery = useYbcSystemVotingPower(mainnetPublicClient, ybcState.backend === "feed" ? ybcState.feed : null);
   const ensAddresses = useMemo(
-    () => getYbcIdentityAddresses(ybcState.data),
+    () => getYbcIdentityAddresses(ybcState.data, false),
     [ybcState.data]
   );
   const verifiedEns = useYbcEnsIdentities(
@@ -159,6 +165,10 @@ export function YbcPageClient({
     <>
       <YbcPageContent
         data={data}
+        power={ybcState.backend === "mock" ? data.governancePower : powerQuery.isError ? null : powerQuery.data ?? null}
+        powerLoading={ybcState.backend === "feed" && powerQuery.isLoading}
+        systemPower={ybcState.backend === "mock" ? data.systemPower : systemQuery.data}
+        systemLoading={ybcState.backend === "feed" && systemQuery.isLoading}
         hostname={hostname}
         trustRecordEns={ybcState.backend === "mock"}
         verifiedEns={verifiedEns}
@@ -190,6 +200,10 @@ export function YbcPageClient({
 
 export function YbcPageContent({
   data,
+  power = data.governancePower,
+  powerLoading = false,
+  systemPower = data.systemPower,
+  systemLoading = false,
   hostname,
   trustRecordEns = true,
   verifiedEns = {},
@@ -207,6 +221,7 @@ export function YbcPageContent({
   warningMessage,
 }: YbcPageContentProps) {
   const [focusedProposalId, setFocusedProposalId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<YbcTab>("proposals");
   const {
     aliases,
     clearAliases,
@@ -214,9 +229,7 @@ export function YbcPageContent({
     setAlias,
   } = useYbcMemberAliases();
   const showOperatorSection = Boolean(data.admin && data.me.isOperator);
-  const hasPriorityProposals = data.proposals.items.some((proposal) =>
-    PRIORITY_PROPOSAL_PHASES.has(proposal.phase)
-  );
+  const proposalIds = data.proposals.items.map(proposal => proposal.id).join("|");
   const visibleIdentityAddresses = useMemo(
     () => getYbcIdentityAddresses(data),
     [data]
@@ -244,73 +257,56 @@ export function YbcPageContent({
   );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const applyHash = () => {
-      const hash = window.location.hash.replace(/^#/, "");
-      if (!SECTION_HASHES.has(hash)) return;
-      if (hash === "admin" && !showOperatorSection) return;
-
-      window.requestAnimationFrame(() => {
-        scrollToHashTarget(hash);
-      });
-    };
-
-    applyHash();
-    window.addEventListener("hashchange", applyHash);
-    return () => window.removeEventListener("hashchange", applyHash);
-  }, [showOperatorSection]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const applyProposalLink = () => {
+    const applyLocation = () => {
       const url = new URL(window.location.href);
+      const hash = url.hash.slice(1);
       const rawProposal = url.searchParams.get("proposal");
-      if (rawProposal === null) {
-        setFocusedProposalId(null);
-        return;
-      }
-      const proposalId = /^\d+$/.test(rawProposal)
-        ? `YBC-${BigInt(rawProposal).toString()}`
-        : null;
-      const exists = proposalId !== null && data.proposals.items.some(
-        (proposal) => proposal.id === proposalId
-      );
-      if (!exists) {
+      let selected: YbcTab = hash === "members" || hash === "rewards" || (hash === "admin" && showOperatorSection) ? hash as YbcTab : "proposals";
+      const proposalId = rawProposal !== null && /^\d+$/.test(rawProposal) ? `YBC-${BigInt(rawProposal).toString()}` : null;
+      const exists = proposalId !== null && proposalIds.split("|").includes(proposalId);
+      if (rawProposal !== null && !exists) {
         url.searchParams.delete("proposal");
         url.hash = "proposals";
-        window.history.replaceState(
-          window.history.state,
-          "",
-          `${url.pathname}${url.search}${url.hash}`
-        );
-        setFocusedProposalId(null);
-        return;
+        window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+        selected = "proposals";
       }
-      setFocusedProposalId(proposalId);
-      window.requestAnimationFrame(() => {
-        document.getElementById(`ybc-proposal-${proposalId}`)?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      });
+      setActiveTab(selected);
+      setFocusedProposalId(exists ? proposalId : null);
+      if (exists && selected === "proposals") {
+        window.requestAnimationFrame(() => document.getElementById(`ybc-proposal-${proposalId}`)?.scrollIntoView?.({ block: "center" }));
+      } else if (SECTION_HASHES.has(hash) && (hash !== "admin" || showOperatorSection)) {
+        window.requestAnimationFrame(() => scrollToHashTarget(hash === "overview" ? "overview" : "ybc-panels"));
+      }
     };
-
-    applyProposalLink();
-    window.addEventListener("popstate", applyProposalLink);
-    window.addEventListener("hashchange", applyProposalLink);
+    applyLocation();
+    window.addEventListener("hashchange", applyLocation);
+    window.addEventListener("popstate", applyLocation);
     return () => {
-      window.removeEventListener("popstate", applyProposalLink);
-      window.removeEventListener("hashchange", applyProposalLink);
+      window.removeEventListener("hashchange", applyLocation);
+      window.removeEventListener("popstate", applyLocation);
     };
-  }, [data.proposals.items]);
+  }, [showOperatorSection, proposalIds]);
+
+  const selectTab = (tab: string) => {
+    setActiveTab(tab as YbcTab);
+    const url = new URL(window.location.href);
+    url.hash = tab;
+    if (tab !== "proposals") {
+      url.searchParams.delete("proposal");
+      setFocusedProposalId(null);
+    }
+    if (url.href !== window.location.href) {
+      window.history.pushState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  };
 
   const membersSection = (
     <MembersTable
+      key="members"
       aliases={aliases}
       identities={identities}
       roster={data.roster}
+      power={power}
       currentAddress={data.me.address}
       onClearAliases={clearAliases}
       onResetAlias={resetAlias}
@@ -319,9 +315,11 @@ export function YbcPageContent({
   );
   const proposalsSection = (
     <ProposalBoard
+      key="proposals"
       id="proposals"
       data={data}
       identities={identities}
+      resolveVoterEns={!trustRecordEns}
       createProposal={createProposal}
       retractProposal={retractProposal}
       voteOnProposal={voteOnProposal}
@@ -338,8 +336,8 @@ export function YbcPageContent({
       className="bg-app text-text-primary"
       aria-busy={isRefreshing || undefined}
     >
-      <YbcHero data={data} />
-      <main className="container mx-auto space-y-8 px-4 py-8 md:px-6 md:py-10">
+      <YbcHero data={data} power={power} powerLoading={powerLoading} systemPower={systemPower} systemLoading={systemLoading} />
+      <main className="container mx-auto space-y-6 px-4 pb-10 pt-4 md:px-6">
         <YbcDataStatusNotice
           isRefreshing={isRefreshing}
           lastUpdatedAt={lastUpdatedAt}
@@ -347,18 +345,21 @@ export function YbcPageContent({
           readStatus={readStatus}
           warningMessage={warningMessage}
         />
-        {hasPriorityProposals ? proposalsSection : membersSection}
-        {hasPriorityProposals ? membersSection : proposalsSection}
-        <RewardsCard id="rewards" data={data} hostname={hostname} />
-
-        {showOperatorSection ? (
-          <OperatorPanel
-            id="admin"
-            identities={identities}
-            data={data}
-            createProposal={createProposal}
-          />
-        ) : null}
+        <Tabs variant="line" aria-label={copy.hero.navigation} activeTab={activeTab} onChange={selectTab}
+          getTabId={id => `ybc-tab-${id}`} getPanelId={id => `ybc-panel-${id}`}
+          tabs={["proposals", "members", "rewards", ...(showOperatorSection ? ["admin"] : [])].map(id => ({ id, label: copy.sections[id as YbcTab] }))} />
+        <div id="ybc-panels" className="scroll-mt-24">
+          <div id="ybc-panel-proposals" role="tabpanel" aria-labelledby="ybc-tab-proposals" tabIndex={0} hidden={activeTab !== "proposals"}>{proposalsSection}</div>
+          <div id="ybc-panel-members" role="tabpanel" aria-labelledby="ybc-tab-members" tabIndex={0} hidden={activeTab !== "members"}>{membersSection}</div>
+          <div id="ybc-panel-rewards" role="tabpanel" aria-labelledby="ybc-tab-rewards" tabIndex={0} hidden={activeTab !== "rewards"}><RewardsCard id="rewards" data={data} hostname={hostname} /></div>
+          {showOperatorSection ? <div id="ybc-panel-admin" role="tabpanel" aria-labelledby="ybc-tab-admin" tabIndex={0} hidden={activeTab !== "admin"}>
+            <OperatorPanel id="admin" identities={identities} data={data} createProposal={createProposal ? type => {
+              selectTab("proposals");
+              window.requestAnimationFrame(() => document.getElementById("ybc-panel-proposals")?.focus());
+              return createProposal(type);
+            } : undefined} />
+          </div> : null}
+        </div>
       </main>
     </div>
   );
@@ -434,8 +435,9 @@ export function YbcDataStatusNotice({
   );
 }
 
-function getYbcIdentityAddresses(
-  data: YbcMockDataV1 | null | undefined
+export function getYbcIdentityAddresses(
+  data: YbcMockDataV1 | null | undefined,
+  includeVoters = true
 ): string[] {
   if (!data) return [];
 
@@ -445,6 +447,7 @@ function getYbcIdentityAddresses(
     ...data.proposals.items.flatMap((proposal) => [
       proposal.proposer,
       proposal.targetAccount,
+      ...(includeVoters ? proposal.voteRecords?.map((vote) => vote.voter) ?? [] : []),
     ]),
     ...(data.me.address ? [data.me.address] : []),
   ];

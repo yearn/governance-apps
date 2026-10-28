@@ -64,56 +64,52 @@ Recommended initial structure:
 
 ## 4. Information architecture
 
-Default structure:
+The compact overview stays above shared line tabs:
 
-1. Overview summary.
-2. Action-prioritized proposal feed when proposals are in discussion, voting, or awaiting execution.
-3. Member roster table by default, with Cards available as a saved preference.
-4. Rewards.
-5. Operator panel, shown only for operator/admin perspectives.
+1. Proposals (default).
+2. Members.
+3. Rewards.
+4. Operator, for authorized wallets only.
 
-Default landing state: command-center overview.
+The overview shows available YBC voting power and its share of all DAO voting
+power. The two blue segments distinguish members' own power from power YBC steers. A compact role badge explains observer, member, or operator
+access on hover or focus. Epoch and proposal counts stay out of the headline.
 
-Design alignment follows the root `DESIGN.md` product baseline. YBC should keep its
-governance-board shape while matching the polished governance app family: restrained
-neutral surfaces, 8px cards and controls, compact tabular numbers, persistent terminal
-and blocked-action copy, and no decorative dashboard tropes. Proposal lifecycle and
-member weight hierarchy should carry the experience, not visual ornament.
+Use the root DESIGN.md baseline: neutral surfaces, compact tabular numbers, and
+shared controls. Inactive tab panels retain filters and preferences.
 
-The route should render the core command-center sections on one page instead of forcing
-members, proposals, rewards, and operator controls behind line tabs. When there are
-discussion, voting, or awaiting-execution proposals, the proposal feed renders above
-the member roster so actionable governance work is not buried.
-
-Approved shell map:
-
-- Overview shows one total collective voting-power value for active members, member count, current epoch,
-  active proposals, and proposals awaiting execution.
-- Members keeps raw stake, effective voting weight, target weight, maturity progress,
-  visible as separate values in both Table and Cards views.
-- Proposals maps addition and expulsion proposals through discussion, voting, awaiting
-  execution, executed, and expired terminal states.
-- Proposal cards keep phase, target, proposer, and next action visible in the summary.
-  The timeline, threshold marker, votes, and action buttons live inside each disclosure.
-- Rewards shows YBC rewards and points claims to the shared rewards route.
-- Operator is conditional and limited to membership, operator, hooks, threshold,
-  and reward status controls.
-- Deep links such as `#overview`, `#members`, `#proposals`, `#rewards`, and `#admin`
-  should scroll to the matching section.
-- A link in the form `?proposal=<numeric-id>#proposals` opens, scrolls to, and
-  highlights the matching proposal. Invalid or unknown IDs are removed while
-  preserving other query parameters and forcing the safe `#proposals` fallback.
+Deep links #proposals, #members, #rewards, and #admin select the matching tab.
+The operator panel remains permission scoped. #overview returns to the default.
+A ?proposal=<numeric-id>#proposals link selects the proper filter and opens the row.
+Invalid or unknown IDs are removed while preserving other query parameters.
+Browser Back and Forward restore tab selection.
 
 ## 5. Core UX rules
 
-## 5.1 Separate raw stake from effective weight
+## 5.1 Separate stake, weight, and DAO power
 
-Always show:
-- raw staked amount
-- effective voting weight now
-- fully matured target weight
+Staked YFI is the member's current stake in YFI equivalents. YBC weight is the
+amount active for collective allocation after the YBC membership and deposit ramps.
+YBC share is the member's percentage of the collective's current voting weight.
 
-This distinction is required because YBC weight ramps over epochs.
+Explain these values with shared tooltips. They do not describe asset ownership.
+Read members' own DAO power separately through WeightMeasure. The stYFIx and YBC
+pools form the power steered by YBC; exclude those addresses from the own-power sum.
+Show unavailable values when the verified reads fail.
+
+Zero stake has a muted No stake state. Positive stake below contract precision has
+a Below voting precision state. Neither shows an activation date.
+For activating positions, show current weight, attainable full weight, and a full
+weight date instead of a progress bar. Use verified packed epoch slots when
+available; label fallback feed dates as estimates. The date assumes no further
+position changes.
+
+Unstaking is independent of activation. It includes withdrawal streams from stYFI
+and liquid lockers, including unlocked funds not yet withdrawn. Show both states
+when they overlap. Failed stream reads remain unknown.
+
+Table and Distribution views share the position component. On narrow screens,
+table rows reflow without horizontal scrolling. An all-zero chart has an empty state.
 
 ## 5.2 Make timing obvious
 
@@ -137,6 +133,9 @@ Show:
 - current yea / total
 - clear passing / failing state
 
+DAO and YBC share VoteResultsBar: Yearn blue for yea and neutral gray for nay.
+Domain clients retain their own vote calculations and copy.
+
 Threshold visualization should include a marker or goal line so the user can see how
 close the proposal is to passing before reading the numeric values.
 
@@ -148,10 +147,9 @@ explanations are not enough.
 
 ## 5.4 Keep rewards simple
 
-Show:
-- member’s YBC-related rewards
-- statement that rewards are claimed through the shared reward flow
-- CTA that points to the shared rewards route instead of duplicating reward claims
+stYFI owns the shared rewards claim flow, including YBC rewards. The Rewards tab
+explains this and links to the rewards section in stYFI. Do not duplicate balances
+or claim controls. Keep the link available to observers.
 
 ## 5.5 Keep identity canonical
 
@@ -175,32 +173,36 @@ at 360px. The canonical address remains a Mainnet Etherscan target on coarse poi
 
 ## 6. Hero section
 
-Recommended hero stats:
+Show available YBC voting power and a full-width shared VoteResultsBar for:
 
-- total collective voting power for active members
-- member count
-- current epoch
-- active proposals
-- proposals awaiting execution
+- members' own DAO power in solid blue;
+- power steered by YBC in patterned blue;
+- all other DAO power in gray.
 
-## 7. Members table
+The whole bar represents the DAO total. Its popover shows the breakdown, with
+all percentages relative to that same total. Do not show separate large callouts.
 
-The default roster view is Table. Cards remain available through a saved view toggle.
+Explain that actual influence depends on participation and voting time.
+Keep role help in a small badge. Omit the separate wallet summary.
 
-Columns:
-- member
-- status
-- raw staked
-- effective weight
-- target weight
-- maturity progress
+## 7. Members table and distribution
 
-Cards show:
-- maturity progress bar
-- effective vs target weight
+Table is the default. Distribution is a saved alternative using the shared view toggle.
 
-Names and canonical addresses use the same identity treatment in the roster, proposal
-cards, viewer summary, and operator panel.
+Table columns:
+
+- member;
+- staked YFI;
+- YBC weight, with attainable full weight for activating positions;
+- share of current YBC weight;
+- position and full-weight date.
+
+The interactive donut uses current YBC weights. Hover, focus, click, Enter, or Space
+selects a member and displays their stake, weight, share, and position. The legend
+also lists members with zero weight. Removed members do not affect the denominator.
+
+Names and canonical addresses use the same identity treatment in the roster,
+proposal cards, chart details, and operator panel.
 
 ## 8. Proposal board
 
@@ -217,11 +219,37 @@ Proposal, reward, operator, and last-updated timestamps use the shared UTC forma
 Action timing comes from the verified Mainnet block and canonical proposal status, not
 the publisher's `generatedAt` value.
 
-Proposal cards should use disclosures so long proposal history stays scannable. When
-there are fewer than three proposals, keep cards open by default. When there are three
-or more, keep discussion, voting, awaiting-execution, and otherwise actionable
-proposals open; collapse terminal history by default. Collapsed cards must still show
-the proposal id, type, phase, target, proposer, and next action.
+Proposal rows start collapsed. A proposal deep link selects the correct filter and opens
+the matching row. Users can close that row and change filters after they open the link.
+
+The Active filter contains discussion, voting, and execution-ready proposals. History
+contains executed, expired, failed, and retracted proposals. All contains both groups.
+The board selects Active when active proposals exist. Otherwise, it selects History.
+Search matches proposal IDs, member names, proposer names, and canonical addresses.
+Rows use newest-first order.
+
+The New proposal button opens the membership form. Observers see a persistent member
+requirement. The form retains address validation and the shared transaction pipeline.
+Proposal errors appear beside the affected action. When an action moves a proposal
+to History, a completion notice receives focus and links to that proposal.
+
+Each row shows the yea/nay split and a threshold marker before expansion. Zero votes
+show an empty bar and no passing claim. Threshold comparisons use exact integer values.
+Percentages retain two decimal places at threshold boundaries.
+The displayed percentage does not control action eligibility.
+
+The voting record shows the voter, choice, weight, UTC date, and transaction link.
+The domain mapper retains feed vote events. Canonical totals remain separate from the
+record list because individual records can arrive later. Missing records and missing
+dates have explicit states. Search and pagination limit the visible records to ten.
+ENS lookups cover the visible voter page separately from the roster.
+Closed disclosures do not request voter identities.
+The record does not claim completeness or independent verification of each event.
+
+Wallet participation uses the existing trusted wallet context. A recorded choice appears
+only when the wallet has voted and a matching event exists. Untrusted reads and
+wrong-network reads do not produce a wallet participation claim.
+Actions retain the existing domain permissions and shared transaction flow.
 
 Supported proposal actions:
 - propose addition
@@ -309,3 +337,17 @@ The notice stays hidden during loading, feed errors, stale data, and closed voti
 Both features require `NEXT_PUBLIC_ENABLE_GOVERNANCE_DISCOVERY=true` in production.
 Development and preview enable them by default.
 See [shared discovery delivery notes](../../shared/discovery-20261013.md) for validation and rollout details.
+
+### DAO system share and row consistency
+
+Use a full-width shared VoteResultsBar for all DAO voting power. The two blue
+segments show members’ own power and power steered by YBC. Gray shows other DAO
+power. Keep the split amounts and percentages in accessible hover, focus, and tap
+help. Show only the available YBC amount, its share, and the DAO total outside it.
+Read the numerator and denominator at the same verified DAO index block. If the
+total is missing, stale, zero, or inconsistent, show an empty bar and unavailable
+share. Do not substitute raw stake or internal YBC weight for DAO voting power.
+
+Keep position badges equal in visible height even when an adjacent badge has a
+larger touch target. Reserve two lines for position details, align badges at the
+center, and use equal cell padding. Rows can grow when text wraps or is enlarged.

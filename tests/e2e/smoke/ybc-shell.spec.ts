@@ -8,58 +8,28 @@ import {
 } from "../utils";
 
 test("renders the YBC overview and operator panel states", async ({ page }) => {
-  await page.goto("/ybc");
-  await waitForTestBridge(page);
-  await resetBridge(page);
-
-  await expect(
-    page.getByRole("heading", { name: "Yearn Builder's Collective", level: 1 })
-  ).toBeVisible();
-  await expect(page.getByText("/ybc")).toHaveCount(0);
-  await expect(page.getByText("Accepted shell map")).toHaveCount(0);
-  await expect(page.getByText("Mock interactions")).toHaveCount(0);
-  await expect(page.getByText("Mock MVP scope")).toHaveCount(0);
-  await expect(page.getByText("Total collective voting power", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Observer view", level: 2 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Proposal Board", level: 2 })).toBeVisible();
-  await expect(page.getByRole("table")).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Raw staked" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Effective weight" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Target weight" })).toBeVisible();
-  await expect(page.locator("body")).not.toContainText(
-    /Snapshot|off[ -]?chain voting|stYFIx delegation|delegation (?:gained|lost)/i,
-  );
-  await page.getByRole("button", { name: /Cards/i }).click();
+  await page.goto("/ybc"); await waitForTestBridge(page); await resetBridge(page);
+  await expect(page.getByRole("heading",{name:"Yearn Builder's Collective",level:1})).toBeVisible();
+  await expect(page.getByRole("button",{name:"About observer access"})).toBeVisible();
+  await expect(page.getByText("Available YBC voting power",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"YBC share of DAO voting power: show breakdown"}).click();
+  await expect(page.getByText("Members’ own power",{exact:true})).toBeVisible();
+  await expect(page.getByText("Power steered by YBC",{exact:true})).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("heading",{name:"Membership proposals",level:2})).toBeVisible();
   await expect(page.getByRole("table")).toHaveCount(0);
-
-  await expect(page.getByRole("heading", { name: "Proposal Board", level: 2 })).toBeVisible();
-
-  await expect(
-    page.getByRole("heading", {
-      name: "Rewards",
-      exact: true,
-      level: 2,
-    })
-  ).toBeVisible();
-  await expect(
-    page.getByText("Connect a member wallet to view YBC rewards")
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Shared rewards unavailable" })
-  ).toBeDisabled();
-  await expect(
-    page.getByRole("heading", { name: "Operator Panel", level: 2 })
-  ).toHaveCount(0);
-
-  await setYbcPerspective(page, "operator");
-
-  await expect(
-    page.getByRole("heading", { name: "Operators and management" })
-  ).toBeVisible();
+  await page.getByRole("tab",{name:"Members",exact:true}).click();
+  await expect(page.getByRole("table",{name:"Members"})).toBeVisible();
+  await page.getByRole("tab",{name:"Rewards",exact:true}).click();
+  await expect(page.getByRole("link",{name:"View and claim rewards in stYFI"})).toHaveAttribute("href","/styfi?focus=rewards");
+  await expect(page.getByRole("tab",{name:"Operator",exact:true})).toHaveCount(0);
+  await setYbcPerspective(page,"operator");
+  await page.getByRole("tab",{name:"Operator",exact:true}).click();
+  await expect(page.getByRole("heading",{name:"Operators and management"})).toBeVisible();
   await expect(page.getByText("Governance hooks")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Start add member flow" })).toBeVisible();
-
-  await setYbcEmptyBoard(page, true);
+  await expect(page.getByRole("button",{name:"Start add member flow"})).toBeVisible();
+  await setYbcEmptyBoard(page,true);
+  await page.getByRole("tab",{name:"Proposals",exact:true}).click();
   await expect(page.getByText("No proposal history")).toBeVisible();
 });
 
@@ -124,22 +94,24 @@ test("contains YBC identity and timestamp layouts at 360px", async ({
     }
   );
 
+  await page.getByRole("tab", { name: "Members", exact: true }).click();
   await expect(members).toBeVisible();
-  await expect(proposals).toBeVisible();
+  await expect(proposals).toBeHidden();
   await expect(page.getByRole("table")).toBeVisible();
   await expect(statusTimestamp).toBeVisible();
-  await expect(page.getByText(longEnsName, { exact: true }).first()).toBeVisible();
+  await expect(members.getByText(longEnsName, { exact: true }).first()).toBeVisible();
   await expect(page.getByText("ENS", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Generated", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Local", { exact: true })).toHaveCount(0);
   await expectNoDocumentOverflow(page);
   await expectWithinViewport(members, 360);
-  await expectWithinViewport(proposals, 360);
+
   await expectWithinViewport(statusTimestamp, 360);
 
-  await page.getByRole("button", { name: /Cards/i }).click();
-
+  await page.getByRole("button", { name: "Distribution", exact: true }).click();
   await expect(page.getByRole("table")).toHaveCount(0);
+  await expectNoDocumentOverflow(page);
+  await page.getByRole("button", { name: "Table", exact: true }).click();
   const editNameButton = page
     .getByRole("button", { name: /^Edit name:/i })
     .first();
@@ -171,7 +143,7 @@ test("contains YBC identity and timestamp layouts at 360px", async ({
   ).toBeVisible();
   await expectNoDocumentOverflow(page);
   await expectWithinViewport(members, 360);
-  await expectWithinViewport(proposals, 360);
+
   await expectWithinViewport(statusTimestamp, 360);
 });
 
@@ -194,6 +166,7 @@ test.describe("touch identity controls", () => {
       await page.evaluate(() => window.matchMedia("(pointer: coarse)").matches)
     ).toBe(true);
 
+    await page.getByRole("tab", { name: "Members", exact: true }).click();
     const addressLink = page
       .locator("#members")
       .getByRole("link", {

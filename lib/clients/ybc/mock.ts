@@ -1,5 +1,6 @@
 "use client";
 
+import { createMockYbcGovernancePower, createMockYbcSystemVotingPower } from "./member-display";
 import type { Address } from "viem";
 import mockData from "@/docs/apps/ybc/examples/mock-data.example.json";
 import type { YbcClient, YbcPageState, YbcPrototypeScenarioId } from "./client";
@@ -80,6 +81,8 @@ export function createEmptyYbcMockData(): YbcMockDataV1 {
   data.rewards.claimable = "0";
   data.rewards.accruing = "0";
   data.rewards.periods = [];
+  data.governancePower = createMockYbcGovernancePower(data);
+  data.systemPower = createMockYbcSystemVotingPower(data);
 
   return data;
 }
@@ -178,7 +181,24 @@ export function getYbcMockScenario(id: YbcScenarioId): YbcMockScenario {
 }
 
 export function cloneYbcMockScenarioData(id: YbcScenarioId): YbcMockDataV1 {
-  return cloneValue(getScenarioOrThrow(id).data);
+  const data = cloneValue(getScenarioOrThrow(id).data);
+  const voters = data.roster.members.filter((member) => member.address.toLowerCase() !== data.me.address?.toLowerCase());
+  data.proposals.items = data.proposals.items.map((proposal) => ({
+    ...proposal,
+    voteRecords: (["yea", "nay"] as const).flatMap((choice, index) => {
+      const voter = voters[index];
+      return voter && Number(proposal.votes[choice]) > 0 ? [{
+        id: `${proposal.id}-seed-${choice}`,
+        voter: voter.address,
+        choice,
+        weight: proposal.votes[choice],
+        timestamp: proposal.timing.votingStartsAt,
+        transactionHash: null,
+      }] : [];
+    }),
+    viewerVote: data.me.address ? { hasVoted: false, choice: null } : undefined,
+  }));
+  return data;
 }
 
 export function cloneAllYbcMockScenarioData(): Record<
@@ -327,6 +347,8 @@ export function createYbcMockProposal(
       yea: "0",
       nay: "0",
     },
+    voteRecords: [],
+    viewerVote: { hasVoted: false, choice: null },
     timing: {
       createdAt,
       discussionStartsAt: createdAt,
@@ -378,7 +400,7 @@ export function voteOnYbcMockProposal(
   choice: YbcVoteChoice
 ): YbcMockDataV1 {
   const voterWeight = parseAmount(data.me.weight.effectiveWeight);
-  if (!data.me.canVote || voterWeight <= 0) {
+  if (!data.me.address || !data.me.canVote || voterWeight <= 0) {
     return data;
   }
 
@@ -400,6 +422,15 @@ export function voteOnYbcMockProposal(
       return {
         ...proposal,
         outcome: nextBps >= proposal.thresholdBps ? "passing" : "failing",
+        viewerVote: { hasVoted: true, choice },
+        voteRecords: [{
+          id: `${proposal.id}-${data.me.address}`,
+          voter: data.me.address!,
+          choice,
+          weight: data.me.weight.effectiveWeight,
+          timestamp: data.asOf,
+          transactionHash: null,
+        }, ...(proposal.voteRecords ?? [])],
         votes: {
           total: formatAmount(nextTotal),
           yea: formatAmount(nextYea),
@@ -412,8 +443,8 @@ export function voteOnYbcMockProposal(
           nextAction: "none",
           disabledReason:
             choice === "yea"
-              ? "Mock yea vote recorded."
-              : "Mock nay vote recorded.",
+              ? "Your yea vote is recorded."
+              : "Your nay vote is recorded.",
         },
       };
     })

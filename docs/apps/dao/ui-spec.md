@@ -577,7 +577,9 @@ the pending event. Wallet rejection, revert, and network failure create no
 pending action.
 
 Confirmation dialogs are modal, trap focus, close with Escape or the backdrop,
-and restore focus to their trigger. Action targets remain at least 40 pixels,
+and restore focus to their trigger. Focus moves into each dialog before it is
+painted, including after a quick close and reopen, so Escape works immediately.
+Action targets remain at least 40 pixels,
 focus remains visible, and reduced-motion mode removes interactive transitions.
 
 ## 13. M2 assembled mock account presentation

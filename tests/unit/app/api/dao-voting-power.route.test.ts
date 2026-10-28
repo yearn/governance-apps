@@ -8,11 +8,12 @@ const read = vi.mocked(fetchDaoVotingPowerSnapshot);
 beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_RUNTIME_MODE", "production");
   vi.stubEnv("NEXT_PUBLIC_ENABLE_DAO", "true");
+  vi.stubEnv("NEXT_PUBLIC_ENABLE_YBC", "false");
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.resetAllMocks(); });
 
 describe("DAO voting-power proxy", () => {
-  it("keeps the proxy disabled when the DAO rollout is off", async () => {
+  it("keeps the proxy disabled when both DAO and YBC rollouts are off", async () => {
     vi.stubEnv("NEXT_PUBLIC_ENABLE_DAO", "false");
     vi.stubEnv("NEXT_PUBLIC_DAO_VOTING_POWER_URL", "https://data.example/prod/voting-power.json");
     const response = await GET();
@@ -21,6 +22,13 @@ describe("DAO voting-power proxy", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
+  it("allows the YBC overview when only the YBC rollout is enabled", async () => {
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_DAO", "false");
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_YBC", "true");
+    vi.stubEnv("NEXT_PUBLIC_DAO_VOTING_POWER_URL", "https://data.example/power.json");
+    read.mockResolvedValue({ version: 1 } as Awaited<ReturnType<typeof read>>);
+    expect((await GET()).status).toBe(200);
+  });
   it("returns an unavailable response without requesting an unconfigured feed", async () => {
     vi.stubEnv("NEXT_PUBLIC_DAO_VOTING_POWER_URL", "");
     const response = await GET();

@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import Link from "next/link";
 import { UtcTime } from "@/components/ui/UtcTime";
-import { Tooltip } from "@/components/ui/Tooltip";
+import { VoteResultsBar, voteSegmentClassName } from "@/components/ui/VoteResultsBar";
 import { AddressLink } from "@/components/ui/ExplorerLink";
 import { IconLinkOut } from "@/components/icons/IconLinkOut";
 import { deriveDaoVoteResults, type DaoVoteResultSegment } from "@/lib/clients/dao/vote-results";
@@ -14,14 +14,6 @@ import { resolveGovernanceAppHref } from "@/lib/governance-links";
 import { isDaoMockRuntimeEnabled } from "@/lib/runtime/features";
 import { cn } from "@/lib/cn";
 import { daoCopy } from "../messages";
-
-const SEGMENT_COLORS: Record<DaoVoteResultSegment["kind"], string> = {
-  yea: "bg-yearn-blue dark:bg-blue-400",
-  "ybc-yea": "bg-blue-800 dark:bg-blue-200",
-  "ybc-nay": "bg-neutral-800 dark:bg-neutral-300",
-  nay: "bg-neutral-500",
-};
-const YBC_PATTERN = "bg-[repeating-linear-gradient(135deg,transparent,transparent_3px,rgba(255,255,255,0.45)_3px,rgba(255,255,255,0.45)_5px)] dark:bg-[repeating-linear-gradient(135deg,transparent,transparent_3px,rgba(0,0,0,0.35)_3px,rgba(0,0,0,0.35)_5px)]";
 
 export function ProposalVoteResults({ proposal, hostname }: { proposal: DaoProposal; hostname?: string }) {
   const [highlightYbc, setHighlightYbc] = useState(true);
@@ -35,7 +27,6 @@ export function ProposalVoteResults({ proposal, hostname }: { proposal: DaoPropo
   if (!vote) return <p className="text-sm text-text-secondary">{daoCopy.voteResults.unavailable}</p>;
   const highlighted = highlightYbc && ybc.state === "voted";
   const segments = highlighted ? results.highlightedSegments : results.canonicalSegments;
-  const visibleSegments = segments.filter((part) => part.units > 0);
   const segmentLabel = (part: DaoVoteResultSegment) => daoCopy.voteResults.segmentLabels[part.kind];
 
   return (
@@ -56,22 +47,11 @@ export function ProposalVoteResults({ proposal, hostname }: { proposal: DaoPropo
           {copy.explore}<IconLinkOut className="size-3.5" aria-hidden />
         </Link>
       </div>
-      <div aria-hidden="true" data-testid="dao-total-vote-bar" className="flex h-3 w-full rounded-full bg-neutral-200 dark:bg-neutral-800">
-        {visibleSegments.map((part, index) => {
-          // Position the popup from the segment's visual center, away from the
-          // card edges. Only the painted ends are rounded; popups remain unclipped.
-          const center = visibleSegments.slice(0, index).reduce((sum, segment) => sum + segment.widthPercent, 0) + part.widthPercent / 2;
-          return (
-            <span key={part.kind} data-vote-segment={part.kind} className="h-full" style={{ width: `${part.widthPercent}%` }}>
-              <Tooltip className="h-full w-full align-top" align={center < 33 ? "start" : center > 67 ? "end" : "center"} content={
-                <span className="block w-44 max-w-full text-pretty"><strong className="font-bold">{segmentLabel(part)}</strong><br />{daoCopy.voteResults.share(part.shareOfTotalPercent)}</span>
-              }>
-                <span className={cn("h-full w-full", SEGMENT_COLORS[part.kind], part.kind.startsWith("ybc-") && YBC_PATTERN, index === 0 && "rounded-l-full", index === visibleSegments.length - 1 && "rounded-r-full")} />
-              </Tooltip>
-            </span>
-          );
-        })}
-      </div>
+      <VoteResultsBar data-testid="dao-total-vote-bar" segments={segments.map((part) => ({
+        kind: part.kind,
+        widthPercent: part.widthPercent,
+        tooltip: <span className="block w-44 max-w-full text-pretty"><strong className="font-bold">{segmentLabel(part)}</strong><br />{daoCopy.voteResults.share(part.shareOfTotalPercent)}</span>,
+      }))} />
       <div className="space-y-2" data-testid="dao-canonical-vote-totals">
         <p className="font-number text-sm font-bold tabular-nums">{daoCopy.detail.voteBreakdown(vote.yeaPercent, vote.nayPercent)}</p>
         <p className="text-pretty font-number text-xs tabular-nums text-text-secondary">{daoCopy.detail.voteCaption(vote.thresholdPercent)}</p>
@@ -116,7 +96,7 @@ function VoteFact({ label, value, marker }: { label: string; value: string; mark
   return (
     <div className="min-w-0 space-y-1">
       <dt className="flex items-center gap-1.5 text-pretty text-[11px] font-bold text-text-secondary">
-        {marker ? <span aria-hidden="true" className={cn("size-2.5 shrink-0 rounded-sm", SEGMENT_COLORS[marker], YBC_PATTERN)} /> : null}{label}
+        {marker ? <span aria-hidden="true" className={cn("size-2.5 shrink-0 rounded-sm", voteSegmentClassName(marker))} /> : null}{label}
       </dt>
       <dd className="break-words font-number text-xs tabular-nums [overflow-wrap:anywhere]">{value}</dd>
     </div>
