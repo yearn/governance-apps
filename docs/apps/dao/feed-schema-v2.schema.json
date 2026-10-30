@@ -39,295 +39,14 @@
       "maxItems": 8,
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "votingAddress": {
-            "$ref": "#/definitions/__schema3"
-          },
-          "proposalCount": {
-            "$ref": "#/definitions/__schema1"
-          },
-          "configuration": {
-            "type": "object",
-            "properties": {
-              "voteStart": {
-                "$ref": "#/definitions/__schema1"
-              },
-              "executeDelay": {
-                "$ref": "#/definitions/__schema1"
-              },
-              "executeGuard": {
-                "type": "boolean"
-              },
-              "threshold": {
-                "$ref": "#/definitions/__schema1"
-              },
-              "voter": {
-                "$ref": "#/definitions/__schema3"
-              },
-              "executor": {
-                "$ref": "#/definitions/__schema3"
-              }
-            },
-            "required": [
-              "voteStart",
-              "executeDelay",
-              "executeGuard",
-              "threshold",
-              "voter",
-              "executor"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "votingAddress",
-          "proposalCount",
-          "configuration"
-        ],
-        "additionalProperties": false
+        "$ref": "#/definitions/__schema3"
       }
     },
     "proposals": {
       "maxItems": 10000,
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "votingAddress": {
-            "$ref": "#/definitions/__schema3"
-          },
-          "id": {
-            "$ref": "#/definitions/__schema1"
-          },
-          "proposer": {
-            "$ref": "#/definitions/__schema3"
-          },
-          "epoch": {
-            "$ref": "#/definitions/__schema1"
-          },
-          "contentDigest": {
-            "$ref": "#/definitions/__schema2"
-          },
-          "scriptHash": {
-            "$ref": "#/definitions/__schema2"
-          },
-          "threshold": {
-            "$ref": "#/definitions/__schema1"
-          },
-          "votes": {
-            "$ref": "#/definitions/__schema1"
-          },
-          "yea": {
-            "$ref": "#/definitions/__schema1"
-          },
-          "retracted": {
-            "type": "boolean"
-          },
-          "executed": {
-            "type": "boolean"
-          },
-          "flagged": {
-            "type": "boolean"
-          },
-          "vetoed": {
-            "type": "boolean"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PROPOSED",
-              "RETRACTED",
-              "VOTING",
-              "PASSED",
-              "FAILED",
-              "EXECUTED",
-              "EXPIRED",
-              "FLAGGED",
-              "VETOED"
-            ]
-          },
-          "scriptBytes": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 4098,
-                "pattern": "^0x(?:[0-9a-f]{2})*$"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "contentBytes": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 174764
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "events": {
-            "minItems": 1,
-            "maxItems": 100000,
-            "type": "array",
-            "items": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "propose"
-                    },
-                    "log": {
-                      "$ref": "#/definitions/__schema4"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "log"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "retract"
-                    },
-                    "log": {
-                      "$ref": "#/definitions/__schema4"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "log"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "flag"
-                    },
-                    "log": {
-                      "$ref": "#/definitions/__schema4"
-                    },
-                    "reason": {
-                      "type": "string",
-                      "maxLength": 256
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "log",
-                    "reason"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "veto"
-                    },
-                    "log": {
-                      "$ref": "#/definitions/__schema4"
-                    },
-                    "reason": {
-                      "type": "string",
-                      "maxLength": 256
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "log",
-                    "reason"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "execute"
-                    },
-                    "log": {
-                      "$ref": "#/definitions/__schema4"
-                    },
-                    "executor": {
-                      "$ref": "#/definitions/__schema3"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "log",
-                    "executor"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "const": "vote"
-                    },
-                    "log": {
-                      "$ref": "#/definitions/__schema4"
-                    },
-                    "account": {
-                      "$ref": "#/definitions/__schema3"
-                    },
-                    "weight": {
-                      "$ref": "#/definitions/__schema1"
-                    },
-                    "yea": {
-                      "$ref": "#/definitions/__schema1"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "log",
-                    "account",
-                    "weight",
-                    "yea"
-                  ],
-                  "additionalProperties": false
-                }
-              ]
-            }
-          }
-        },
-        "required": [
-          "votingAddress",
-          "id",
-          "proposer",
-          "epoch",
-          "contentDigest",
-          "scriptHash",
-          "threshold",
-          "votes",
-          "yea",
-          "retracted",
-          "executed",
-          "flagged",
-          "vetoed",
-          "status",
-          "scriptBytes",
-          "contentBytes",
-          "events"
-        ],
-        "additionalProperties": false
+        "$ref": "#/definitions/__schema5"
       }
     }
   },
@@ -356,10 +75,300 @@
       "pattern": "^0x[0-9a-f]{64}$"
     },
     "__schema3": {
+      "type": "object",
+      "properties": {
+        "votingAddress": {
+          "$ref": "#/definitions/__schema4"
+        },
+        "proposalCount": {
+          "$ref": "#/definitions/__schema1"
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "voteStart": {
+              "$ref": "#/definitions/__schema1"
+            },
+            "executeDelay": {
+              "$ref": "#/definitions/__schema1"
+            },
+            "executeGuard": {
+              "type": "boolean"
+            },
+            "threshold": {
+              "$ref": "#/definitions/__schema1"
+            },
+            "voter": {
+              "$ref": "#/definitions/__schema4"
+            },
+            "executor": {
+              "$ref": "#/definitions/__schema4"
+            }
+          },
+          "required": [
+            "voteStart",
+            "executeDelay",
+            "executeGuard",
+            "threshold",
+            "voter",
+            "executor"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "votingAddress",
+        "proposalCount",
+        "configuration"
+      ],
+      "additionalProperties": false
+    },
+    "__schema4": {
       "type": "string",
       "pattern": "^0x[0-9a-f]{40}$"
     },
-    "__schema4": {
+    "__schema5": {
+      "type": "object",
+      "properties": {
+        "votingAddress": {
+          "$ref": "#/definitions/__schema4"
+        },
+        "id": {
+          "$ref": "#/definitions/__schema1"
+        },
+        "proposer": {
+          "$ref": "#/definitions/__schema4"
+        },
+        "epoch": {
+          "$ref": "#/definitions/__schema1"
+        },
+        "contentDigest": {
+          "$ref": "#/definitions/__schema2"
+        },
+        "scriptHash": {
+          "$ref": "#/definitions/__schema2"
+        },
+        "threshold": {
+          "$ref": "#/definitions/__schema1"
+        },
+        "votes": {
+          "$ref": "#/definitions/__schema1"
+        },
+        "yea": {
+          "$ref": "#/definitions/__schema1"
+        },
+        "retracted": {
+          "type": "boolean"
+        },
+        "executed": {
+          "type": "boolean"
+        },
+        "flagged": {
+          "type": "boolean"
+        },
+        "vetoed": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PROPOSED",
+            "RETRACTED",
+            "VOTING",
+            "PASSED",
+            "FAILED",
+            "EXECUTED",
+            "EXPIRED",
+            "FLAGGED",
+            "VETOED"
+          ]
+        },
+        "scriptBytes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 4098,
+              "pattern": "^0x(?:[0-9a-f]{2})*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contentBytes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 174764
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "events": {
+          "minItems": 1,
+          "maxItems": 100000,
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/__schema6"
+          }
+        }
+      },
+      "required": [
+        "votingAddress",
+        "id",
+        "proposer",
+        "epoch",
+        "contentDigest",
+        "scriptHash",
+        "threshold",
+        "votes",
+        "yea",
+        "retracted",
+        "executed",
+        "flagged",
+        "vetoed",
+        "status",
+        "scriptBytes",
+        "contentBytes",
+        "events"
+      ],
+      "additionalProperties": false
+    },
+    "__schema6": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "propose"
+            },
+            "log": {
+              "$ref": "#/definitions/__schema7"
+            }
+          },
+          "required": [
+            "type",
+            "log"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "retract"
+            },
+            "log": {
+              "$ref": "#/definitions/__schema7"
+            }
+          },
+          "required": [
+            "type",
+            "log"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "flag"
+            },
+            "log": {
+              "$ref": "#/definitions/__schema7"
+            },
+            "reason": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "type",
+            "log",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "veto"
+            },
+            "log": {
+              "$ref": "#/definitions/__schema7"
+            },
+            "reason": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "type",
+            "log",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "execute"
+            },
+            "log": {
+              "$ref": "#/definitions/__schema7"
+            },
+            "executor": {
+              "$ref": "#/definitions/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "log",
+            "executor"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "vote"
+            },
+            "log": {
+              "$ref": "#/definitions/__schema7"
+            },
+            "account": {
+              "$ref": "#/definitions/__schema4"
+            },
+            "weight": {
+              "$ref": "#/definitions/__schema1"
+            },
+            "yea": {
+              "$ref": "#/definitions/__schema1"
+            }
+          },
+          "required": [
+            "type",
+            "log",
+            "account",
+            "weight",
+            "yea"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema7": {
       "type": "object",
       "properties": {
         "blockNumber": {
@@ -375,10 +384,10 @@
           "$ref": "#/definitions/__schema2"
         },
         "transactionIndex": {
-          "$ref": "#/definitions/__schema5"
+          "$ref": "#/definitions/__schema8"
         },
         "logIndex": {
-          "$ref": "#/definitions/__schema5"
+          "$ref": "#/definitions/__schema8"
         }
       },
       "required": [
@@ -391,7 +400,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema5": {
+    "__schema8": {
       "type": "integer",
       "minimum": 0,
       "maximum": 9007199254740991

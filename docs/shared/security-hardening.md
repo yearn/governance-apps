@@ -103,6 +103,8 @@ Rules:
 The application uses Zod 4.6.6 to address
 [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
 Bounded DAO collection tests verify rejection before element parsing begins.
+The regenerated DAO JSON Schema hoists shared definitions and uses `oneOf` for distinct event types.
+These output changes preserve the accepted feed contract.
 This patch does not add limits to schemas with unbounded collections or to HTTP response bodies.
 
 The Undici override pins every installed copy to 7.30.1, which includes the
