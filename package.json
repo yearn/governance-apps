@@ -38,7 +38,7 @@
     "validate:worker-runtime": "node ./scripts/check-worker-runtime.mjs"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "1.20.12",
+    "@opennextjs/cloudflare": "1.20.13",
     "@rainbow-me/rainbowkit": "2.2.11",
     "@tanstack/react-query": "5.90.10",
     "clsx": "2.1.1",
