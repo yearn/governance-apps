@@ -42,6 +42,8 @@ Historical review evidence:
 - [`security-hardening.md`](security-hardening.md)
 - [`security-hardening-backlog.md`](security-hardening-backlog.md)
 
+- [`oath-wallet.md`](oath-wallet.md) documents the shared Oath Wallet connection entry.
+
 ## Shared Work Packages
 
 These packages record the Teams/YBC delivery history. They are not templates
