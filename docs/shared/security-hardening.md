@@ -98,7 +98,26 @@ Rules:
 - npm does not currently provide per-package release-age exclusions, so this override disables the age gate for the install run; reviewers must treat the lockfile diff as part of the exception review.
 - Remove the override once the package version is older than 7 days or the emergency is resolved.
 
-### 2.5 DAO immutable attachment boundary
+### 2.5 Zod and Undici security updates (2026-10-30)
+
+The application uses Zod 4.6.6 to address
+[GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
+Bounded DAO collection tests verify rejection before element parsing begins.
+This patch does not add limits to schemas with unbounded collections or to HTTP response bodies.
+
+The Undici override pins every installed copy to 7.30.1, which includes the
+[October security fixes](https://github.com/nodejs/undici/releases/tag/v7.30.1).
+Both versions meet the seven-day release-age policy. The install-script allowlist is unchanged.
+
+Two wallet SDK dependencies still require Zod 3:
+`@coinbase/cdp-sdk` uses 3.25.76 and `@reown/appkit-wallet` uses 3.22.4.
+They remain advisory findings. Their runtime exposure is not established by the lockfile.
+A global Zod 4 override breaks their declared API compatibility and is not a safe patch.
+The wallet dependency review in [#123](https://github.com/yearn/governance-apps/issues/123)
+must retain these findings until supported SDK changes or separate containment work resolves them.
+A wallet UI migration alone does not prove their removal.
+
+### 2.6 DAO immutable attachment boundary
 
 DAO proposal content uses one authenticated-manifest model. The onchain
 `bytes32` is the SHA-256 digest of the exact fixed-order canonical content JSON,
