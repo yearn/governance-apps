@@ -12,6 +12,7 @@ import { mainnet } from "wagmi/chains";
 import { defineChain, http, fallback } from "viem";
 import { E2E_MOCK_ADDRESS } from "@/lib/constants";
 import { assertProductionRuntimeInvariants } from "@/lib/runtime/invariants";
+import { oathWallet } from "./oath-wallet";
 import { createE2EMockConnector } from "./e2e-mock-connector";
 
 assertProductionRuntimeInvariants("web3/wagmi");
@@ -107,6 +108,7 @@ export const wagmiConfig = isE2E
             metaMaskWallet,
             safeWallet,
             rabbyWallet,
+            oathWallet,
             walletConnectWallet,
           ],
         },

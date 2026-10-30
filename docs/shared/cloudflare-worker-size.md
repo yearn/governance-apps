@@ -61,7 +61,9 @@ in version control and keep preprod fully sampled for release validation.
 ## Immediate Reduction
 
 The default RainbowKit wallet list is intentionally limited to injected
-wallets, MetaMask, Safe, Rabby, and WalletConnect. Coinbase Wallet, Rainbow
+wallets, MetaMask, Safe, Rabby, Oath Wallet, and WalletConnect. Oath uses the
+existing WalletConnect connector and a local SVG; it adds no wallet SDK or
+dependency. Coinbase Wallet, Rainbow
 Wallet, Ledger, Ready, and Trust are excluded from the production list because
 their SDK graph is traced into the OpenNext server function and pushes the
 compressed Worker over the former 3 MiB free-plan cap when reintroduced together.
