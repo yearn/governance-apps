@@ -43,7 +43,9 @@ The account dialog reuses the shared address copy and explorer controls. Wallet 
 
 Known wallet images are local assets with provenance in `public/wallets/`. Unknown wallets can supply bounded data images. The app renders these as inert images and does not fetch arbitrary image URLs. Images and wallet identifiers do not authenticate a provider.
 
-The QR retains the original local encoder, medium error correction, and four-module quiet zone. A center-logo candidate failed comparative scan checks, so the code stays plain. No runtime dependency was added.
+The QR retains the original local encoder, medium error correction, and four-module quiet zone. The preview adds a small Yearn mark to tested symbol sizes. Other sizes stay plain. Use plain QR removes the mark without changing the code or pairing request. Use branded QR restores it. No runtime dependency was added.
+
+The centered mark caused no additional failures in 128 matched browser-rendered scenarios across three software decoders. These checks do not establish phone-camera compatibility. Compare both versions on real wallets before rollout.
 
 The WalletConnect SDK loads when a connection or stored session needs it. A missing project ID disables mobile pairing with an explanation. The application does not substitute a fake project ID.
 
@@ -84,6 +86,16 @@ This suite needs a build or development server with `NEXT_PUBLIC_E2E=false` and 
 
 The wallet suite covers two installed providers, selected-provider requests, account changes, network rejection/retry, reconnect/disconnect, late approval, focus, and narrow screens.
 
+An optional live-relay test verifies that the QR toggle preserves the pending request and URI. It also checks that the toggle opens no additional connection. This test disables trace, screenshot, and video artifacts because pairing URIs contain session material.
+
+With a configured preview running, use:
+
+```sh
+WALLETCONNECT_LIVE_QA=true E2E_REUSE_SERVER=true NEXT_PUBLIC_RUNTIME_MODE=development npm run test:e2e:wallet -- --grep "retains the pending pairing"
+```
+
+This test requires relay access and a valid project ID in the preview build. It stays skipped in the default suite.
+
 Protocol unit tests use an injected SDK fixture. They cover session permissions and lifecycle behavior without a relay. Neither these tests nor phone-sized browser windows prove real wallet compatibility.
 
 ### Human acceptance
@@ -99,13 +111,14 @@ Record the device, OS, browser, wallet version, result, and observed error for e
 7. Reject a connection, then retry.
 8. Close a pending request, then approve the old wallet prompt.
 9. Verify that the old approval does not reconnect the app.
-10. Scan the desktop QR with iPhone MetaMask.
-11. Repeat with iPhone Rabby.
-12. Open the page in iPhone Safari and use each explicit wallet launch button.
-13. Return to Safari after approval.
-14. Repeat reconnect, disconnect, rejection, and expiry on the phone.
-15. Open an allowed app route in Safe. The launcher route intentionally disallows framing.
-16. Verify the Safe account, chain, disconnect behavior, and transaction review on a controlled test environment.
+10. Scan the branded desktop QR with iPhone MetaMask.
+11. For a new request, select Use plain QR and repeat the scan.
+12. Repeat both versions with iPhone Rabby.
+13. Open the page in iPhone Safari and use each explicit wallet launch button.
+14. Return to Safari after approval.
+15. Repeat reconnect, disconnect, rejection, and expiry on the phone.
+16. Open an allowed app route in Safe. The launcher route intentionally disallows framing.
+17. Verify the Safe account, chain, disconnect behavior, and transaction review on a controlled test environment.
 
 Android Chrome pairing, return, reconnect, and rejection also need release acceptance. The current owner evaluation targets iPhone and desktop wallets.
 

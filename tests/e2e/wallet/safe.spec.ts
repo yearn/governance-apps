@@ -1,7 +1,13 @@
 import { expect, test } from "@playwright/test";
 
+const pendingProxyRequests = new Set<Promise<void>>();
+
 test.afterEach(async ({ page }) => {
-  // Finish local proxy responses before Playwright closes the iframe context.
+  // Drain before removing handlers: Playwright can disable interception when
+  // the first handler finishes, while another proxy response is still pending.
+  while (pendingProxyRequests.size > 0) {
+    await Promise.all(pendingProxyRequests);
+  }
   await page.unrouteAll({ behavior: "wait" });
 });
 
@@ -12,10 +18,18 @@ test("connects the Safe account in a trusted iframe and preserves an explicit di
   // cannot embed a raw loopback HTTP URL under modern browser network policy.
   const child = "https://app.dao-ops.com/styfi";
   await page.route("https://app.dao-ops.com/**", async (route) => {
-    const requestUrl = new URL(route.request().url());
-    const localUrl = new URL(requestUrl.pathname + requestUrl.search, baseURL);
-    const response = await route.fetch({ url: localUrl.href });
-    await route.fulfill({ response });
+    const proxyRequest = (async () => {
+      const requestUrl = new URL(route.request().url());
+      const localUrl = new URL(requestUrl.pathname + requestUrl.search, baseURL);
+      const response = await route.fetch({ url: localUrl.href });
+      await route.fulfill({ response });
+    })();
+    pendingProxyRequests.add(proxyRequest);
+    try {
+      await proxyRequest;
+    } finally {
+      pendingProxyRequests.delete(proxyRequest);
+    }
   });
   const html = `<!doctype html><html><body><script>
     window.safeRequests = [];
