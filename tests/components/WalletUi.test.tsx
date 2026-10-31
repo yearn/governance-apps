@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Connector } from "wagmi";
 import {
   WalletUiProvider,
@@ -90,6 +90,10 @@ beforeEach(() => {
   state.pairing = { status: "idle" };
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("app-owned wallet controls", () => {
   it("lists multiple injected wallets without a duplicate generic entry or initializing WalletConnect", async () => {
     const user = userEvent.setup();
@@ -110,6 +114,56 @@ describe("app-owned wallet controls", () => {
     expect(screen.queryByRole("button", { name: /Safe app/ })).not.toBeInTheDocument();
     expect(wc.getProvider).not.toHaveBeenCalled();
     expect(safe.getProvider).not.toHaveBeenCalled();
+  });
+
+  it("offers three official wallet downloads with stable order and focus during one opening", async () => {
+    const user = userEvent.setup();
+    const view = renderWallet();
+    const random = vi.spyOn(Math, "random").mockReturnValue(0);
+    await user.click(screen.getByText("Connect test wallet"));
+    await user.click(screen.getByText("Need a wallet?"));
+    const links = screen.getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual(["Rabby", "Ambire", "MetaMask"]);
+    expect(screen.getByRole("link", { name: "Ambire" })).toHaveAttribute("href", "https://www.ambire.com/");
+    expect(screen.getByRole("link", { name: "MetaMask" })).toHaveAttribute("href", "https://metamask.io/download/");
+    expect(screen.getByRole("link", { name: "Rabby" })).toHaveAttribute("href", "https://rabby.io/");
+    for (const link of links) {
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      expect(link.querySelector("img")).toHaveAttribute("alt", "");
+    }
+
+    const ambire = screen.getByRole("link", { name: "Ambire" });
+    ambire.focus();
+    random.mockReturnValue(0.999);
+    view.rerender(<WalletUiProvider><Controls /></WalletUiProvider>);
+    expect(screen.getAllByRole("link")).toEqual(links);
+    expect(ambire).toHaveFocus();
+    await user.click(screen.getByText("Need a wallet?"));
+    await user.click(screen.getByText("Need a wallet?"));
+    expect(screen.getAllByRole("link")).toEqual(links);
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByText("Connect test wallet"));
+    await user.click(screen.getByText("Need a wallet?"));
+    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(["MetaMask", "Rabby", "Ambire"]);
+    expect(screen.queryByText(/Install a wallet, then reload/)).not.toBeInTheDocument();
+  });
+
+  it("can select each of the six wallet download orders without favoring a position", async () => {
+    const user = userEvent.setup();
+    renderWallet();
+    const random = vi.spyOn(Math, "random");
+    const orders = new Set<string>();
+    for (const first of [0, 0.34, 0.67]) {
+      for (const second of [0, 0.5]) {
+        random.mockReturnValueOnce(first).mockReturnValueOnce(second);
+        await user.click(screen.getByText("Connect test wallet"));
+        await user.click(screen.getByText("Need a wallet?"));
+        orders.add(screen.getAllByRole("link").map((link) => link.textContent).join(","));
+        await user.keyboard("{Escape}");
+      }
+    }
+    expect(orders.size).toBe(6);
   });
 
   it("keeps missing mobile pairing disabled and explains the alternative", async () => {
@@ -141,6 +195,8 @@ describe("app-owned wallet controls", () => {
     renderWallet();
     await user.click(screen.getByText("Connect test wallet"));
     await user.click(await screen.findByRole("button", { name: /MetaMask/ }));
+    expect(screen.getByRole("status")).toHaveTextContent("Waiting for your wallet…");
+    expect(screen.queryByText(/If you cancel, dismiss/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Close dialog" }));
     await act(async () => request.resolve({}));
     expect(state.disconnect).toHaveBeenCalledWith({ connector: state.connectors[0] });
@@ -156,7 +212,7 @@ describe("app-owned wallet controls", () => {
     await user.click(screen.getByRole("button", { name: "Close dialog" }));
     await user.click(screen.getByText("Connect test wallet"));
     await user.click(await screen.findByRole("button", { name: /MetaMask/ }));
-    expect(screen.getByRole("alert")).toHaveTextContent("A request is still open");
+    expect(screen.getByRole("alert")).toHaveTextContent("Request already open");
     expect(state.connect).toHaveBeenCalledOnce();
     await act(async () => request.resolve({}));
     expect(state.disconnect).toHaveBeenCalledWith({ connector: state.connectors[0] });
@@ -177,7 +233,8 @@ describe("app-owned wallet controls", () => {
     expect(screen.getByRole("img", { name: "WalletConnect pairing QR code" })).toHaveAttribute("src", expect.stringContaining("data:image/"));
     expect(screen.getByRole("link", { name: "Open MetaMask" })).toHaveAttribute("href", `metamask://wc?uri=${encodeURIComponent(uri)}`);
     expect(screen.getByRole("link", { name: "Open Rabby" })).toHaveAttribute("href", `rabby://walletconnect?uri=${encodeURIComponent(uri)}`);
-    expect(screen.getByText("After approving, return to this tab.")).toBeVisible();
+    expect(screen.queryByText(/return to this tab/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Waiting for your wallet…");
     await user.click(screen.getByRole("button", { name: "Copy connection link" }));
     expect(await navigator.clipboard.readText()).toBe(uri);
     await user.click(screen.getByText("Connection link", { exact: true }));
@@ -197,6 +254,7 @@ describe("app-owned wallet controls", () => {
     setPairing({ status: "expired" });
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("expired");
+    expect(screen.queryByText(/fresh QR code/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(state.connect).toHaveBeenCalledTimes(2);
   });

@@ -39,19 +39,23 @@ WalletConnect still requires its project and gateway. Its Community License stil
 
 All domains use one connect, account, and network dialog. Installed EIP-6963 wallets appear separately. The generic injected connector remains a fallback. Safe uses the official connector and the established trusted origins.
 
+Need a wallet lists official downloads for MetaMask, Rabby, and [Ambire](https://www.ambire.com/). Each connect-dialog opening shuffles the three choices with equal selection probabilities. Their order stays fixed during that opening.
+
 The account dialog reuses the shared address copy and explorer controls. Wallet and Ethereum images identify the current connection. Switch stays neutral. Disconnect uses the existing red action style.
 
 Known wallet images are local assets with provenance in `public/wallets/`. Unknown wallets can supply bounded data images. The app renders these as inert images and does not fetch arbitrary image URLs. Images and wallet identifiers do not authenticate a provider.
 
-The QR retains the original local encoder, medium error correction, and four-module quiet zone. The preview adds a small Yearn mark to tested symbol sizes. Other sizes stay plain. Use plain QR removes the mark without changing the code or pairing request. Use branded QR restores it. No runtime dependency was added.
+The QR retains the original local encoder, medium error correction, and four-module quiet zone. A small Yearn mark appears on a circular white plate for tested symbol sizes. Other sizes stay plain. There is no style toggle. No runtime dependency was added.
 
-The centered mark caused no additional failures in 128 matched browser-rendered scenarios across three software decoders. These checks do not establish phone-camera compatibility. Compare both versions on real wallets before rollout.
+Software decoder checks do not establish phone-camera compatibility. The current QR needs real-wallet acceptance before rollout.
 
 The WalletConnect SDK loads when a connection or stored session needs it. A missing project ID disables mobile pairing with an explanation. The application does not substitute a fake project ID.
 
 Wallet approval is separate from a transaction. The connection dialog supplies a QR code, a copyable URI, and explicit MetaMask/Rabby launch buttons. Phone users return to the browser manually when their operating system does not return automatically.
 
-Closing a pending request cancels its use by the application. Universal Provider cannot abort the underlying proposal. A late approval is disconnected. A retry waits until that proposal settles. The UI explains how to reject the old request.
+Closing a pending request cancels its use by the application. The adapter expires only the Sign Client proposal that matches this attempt's pairing topic. A new request starts after the SDK approval promise settles. Late approvals are disconnected, including orphan sessions from a settlement race. Unrelated proposals and newer sessions remain intact. If targeted expiry is unavailable, the existing retry fence remains.
+
+This uses exposed proposal and expirer APIs in the pinned WalletConnect 2.26.0 SDK. Its high-level abort method is a no-op. Cancellation and late-settlement regressions must pass before an SDK upgrade. The site cannot dismiss a wallet application's own prompt.
 
 The connector validates expiry, approved methods, events, chain-specific accounts, and session updates. Unsupported signing methods cannot fall through to public RPC. Public reads use the configured transport.
 
@@ -86,7 +90,7 @@ This suite needs a build or development server with `NEXT_PUBLIC_E2E=false` and 
 
 The wallet suite covers two installed providers, selected-provider requests, account changes, network rejection/retry, reconnect/disconnect, late approval, focus, and narrow screens.
 
-An optional live-relay test verifies that the QR toggle preserves the pending request and URI. It also checks that the toggle opens no additional connection. This test disables trace, screenshot, and video artifacts because pairing URIs contain session material.
+An optional live-relay test verifies that the Connection link disclosure preserves the pending request, URI, and QR image. Two cancel/retry cycles must each produce a fresh URI without a pending-request error. This test disables trace, screenshot, and video artifacts because pairing URIs contain session material.
 
 With a configured preview running, use:
 
@@ -111,14 +115,16 @@ Record the device, OS, browser, wallet version, result, and observed error for e
 7. Reject a connection, then retry.
 8. Close a pending request, then approve the old wallet prompt.
 9. Verify that the old approval does not reconnect the app.
-10. Scan the branded desktop QR with iPhone MetaMask.
-11. For a new request, select Use plain QR and repeat the scan.
-12. Repeat both versions with iPhone Rabby.
-13. Open the page in iPhone Safari and use each explicit wallet launch button.
-14. Return to Safari after approval.
-15. Repeat reconnect, disconnect, rejection, and expiry on the phone.
-16. Open an allowed app route in Safe. The launcher route intentionally disallows framing.
-17. Verify the Safe account, chain, disconnect behavior, and transaction review on a controlled test environment.
+10. Scan the desktop QR with iPhone MetaMask.
+11. Repeat the scan with iPhone Rabby.
+12. Open the page in iPhone Safari and use each explicit wallet launch button.
+13. Return to Safari after approval.
+14. Repeat reconnect, disconnect, rejection, and expiry on the phone.
+15. Open Need a wallet and verify all three official download links.
+16. Verify that their order stays fixed during keyboard navigation.
+17. Reopen the connect dialog and verify that the choices can appear in a different order.
+18. Open an allowed app route in Safe. The launcher route intentionally disallows framing.
+19. Verify the Safe account, chain, disconnect behavior, and transaction review on a controlled test environment.
 
 Android Chrome pairing, return, reconnect, and rejection also need release acceptance. The current owner evaluation targets iPhone and desktop wallets.
 

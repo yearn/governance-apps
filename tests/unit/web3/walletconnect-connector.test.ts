@@ -40,17 +40,29 @@ function deferred<T>() {
 class FakeProvider implements UniversalWalletProvider {
   session: WalletSession | undefined;
   storedSession: WalletSession | undefined;
+  orphanSessions = new Map<string, WalletSession>();
+  proposals: Array<{ id: number; pairingTopic?: string }> = [];
+  uri = "wc:test-topic@2?relay-protocol=irn&symKey=test-key";
   client = {
     session: {
       get: (topic: string) => {
-        if (!this.storedSession || this.storedSession.topic !== topic) throw new Error("No session");
-        return this.storedSession;
+        if (this.storedSession?.topic === topic) return this.storedSession;
+        const orphan = this.orphanSessions.get(topic);
+        if (orphan) return orphan;
+        throw new Error("No session");
       },
       update: async (topic: string, changes: Partial<WalletSession>) => {
         this.storedSession = { ...this.client.session.get(topic), ...changes };
       },
     },
-    on: (event: "session_extend" | "session_expire", listener: (event: { topic: string }) => void) => {
+    proposal: { getAll: () => this.proposals },
+    core: { expirer: { set: vi.fn((key: string | number, expiry: number) => { void key; void expiry; }) } },
+    disconnect: vi.fn(async ({ topic }: { topic: string; reason: { code: number; message: string } }) => {
+      this.orphanSessions.delete(topic);
+    }),
+    on: (event: "session_extend" | "session_expire" | "session_connect", listener: (event: {
+      topic?: string; session?: WalletSession & { pairingTopic?: string };
+    }) => void) => {
       this.on(`client_${event}`, listener as (...args: unknown[]) => void);
     },
   };
@@ -60,7 +72,7 @@ class FakeProvider implements UniversalWalletProvider {
   nextSession = session();
   approval: ReturnType<typeof deferred<WalletSession>> | undefined;
   connect = vi.fn(async () => {
-    this.emit("display_uri", "wc:test-topic@2?relay-protocol=irn&symKey=test-key");
+    this.emit("display_uri", this.uri);
     this.session = this.approval ? await this.approval.promise : this.nextSession;
     this.storedSession = this.session;
     this.emit("connect", this.session);
@@ -302,6 +314,149 @@ describe("WalletConnect approved sessions", () => {
 });
 
 describe("WalletConnect cancellation and lifetime", () => {
+  it("expires only this proposal and permits retry as soon as its SDK approval drains", async () => {
+    const { connector, sdk } = runtime();
+    sdk.approval = deferred<WalletSession>();
+    sdk.proposals = [{ id: 11, pairingTopic: "test-topic" }, { id: 12, pairingTopic: "other-topic" }];
+    sdk.client.core.expirer.set.mockImplementation((key) => {
+      sdk.proposals = sdk.proposals.filter((proposal) => proposal.id !== key);
+      sdk.approval!.reject(new Error("Proposal expired"));
+    });
+    const rejected = expect(connector.connect()).rejects.toThrow("rejected");
+    await untilPairing();
+    cancelWalletConnectPairing();
+    await rejected;
+    await vi.waitFor(() => expect(sdk.listeners.get("display_uri")?.size).toBe(0));
+    expect(sdk.client.core.expirer.set).toHaveBeenCalledExactlyOnceWith(11, 0);
+    expect(sdk.proposals).toEqual([{ id: 12, pairingTopic: "other-topic" }]);
+    expect(sdk.disconnect).not.toHaveBeenCalled();
+    expect(sdk.client.disconnect).not.toHaveBeenCalled();
+    sdk.approval = undefined;
+    sdk.uri = "wc:next-topic@2?relay-protocol=irn&symKey=next-key";
+    expect((await connector.connect()).accounts).toEqual([getAddress(A)]);
+    expect(sdk.connect).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["missing", "other", "ambiguous", "throws", "unavailable"] as const)(
+    "keeps cancellation fenced when proposal expiry is %s",
+    async (mode) => {
+      const { connector, sdk } = runtime();
+      sdk.approval = deferred<WalletSession>();
+      sdk.proposals = mode === "other" ? [{ id: 12, pairingTopic: "other-topic" }]
+        : mode === "ambiguous" ? [{ id: 11, pairingTopic: "test-topic" }, { id: 12, pairingTopic: "test-topic" }]
+        : mode === "throws" ? [{ id: 11, pairingTopic: "test-topic" }] : [];
+      if (mode === "throws") sdk.client.core.expirer.set.mockImplementation(() => { throw new Error("Unavailable"); });
+      if (mode === "unavailable") (sdk.client as UniversalWalletProvider["client"]).proposal = undefined;
+      const rejected = expect(connector.connect()).rejects.toThrow("rejected");
+      await untilPairing();
+      cancelWalletConnectPairing();
+      await rejected;
+      await expect(connector.connect()).rejects.toMatchObject({ code: "WALLET_REQUEST_PENDING" });
+      if (mode !== "throws") expect(sdk.client.core.expirer.set).not.toHaveBeenCalled();
+      expect(sdk.client.disconnect).not.toHaveBeenCalled();
+      sdk.approval.resolve(session());
+      await vi.waitFor(() => expect(sdk.disconnect).toHaveBeenCalledOnce());
+      expect(await connector.isAuthorized()).toBe(false);
+    },
+  );
+
+  it("privately captures and expires the URI when cancellation precedes its display", async () => {
+    const { connector, sdk } = runtime();
+    sdk.approval = deferred<WalletSession>();
+    const display = deferred<void>();
+    sdk.connect.mockImplementationOnce(async () => {
+      await display.promise;
+      sdk.proposals = [{ id: 11, pairingTopic: "test-topic" }];
+      sdk.emit("display_uri", sdk.uri);
+      return await sdk.approval!.promise;
+    });
+    sdk.client.core.expirer.set.mockImplementation(() => sdk.approval!.reject(new Error("Proposal expired")));
+    const rejected = expect(connector.connect()).rejects.toThrow("rejected");
+    await vi.waitFor(() => expect(sdk.connect).toHaveBeenCalledOnce());
+    cancelWalletConnectPairing();
+    await rejected;
+    expect(getWalletConnectPairing().uri).toBeUndefined();
+    display.resolve();
+    await vi.waitFor(() => expect(sdk.client.core.expirer.set).toHaveBeenCalledExactlyOnceWith(11, 0));
+    await vi.waitFor(() => expect(sdk.listeners.get("display_uri")?.size).toBe(0));
+    expect(getWalletConnectPairing().uri).toBeUndefined();
+    sdk.approval = undefined;
+    sdk.uri = "wc:next-topic@2?relay-protocol=irn&symKey=next-key";
+    expect((await connector.connect()).accounts).toEqual([getAddress(A)]);
+  });
+
+  it("disconnects an approval that wins the targeted-expiry race before retry", async () => {
+    const { connector, sdk } = runtime();
+    sdk.approval = deferred<WalletSession>();
+    sdk.proposals = [{ id: 11, pairingTopic: "test-topic" }];
+    sdk.client.core.expirer.set.mockImplementation(() => sdk.approval!.resolve(session()));
+    const rejected = expect(connector.connect()).rejects.toThrow("rejected");
+    await untilPairing();
+    cancelWalletConnectPairing();
+    await rejected;
+    await vi.waitFor(() => expect(sdk.disconnect).toHaveBeenCalledOnce());
+    expect(await connector.isAuthorized()).toBe(false);
+  });
+
+  it.each([false, true])("removes only an abandoned SDK session with relay failure %s", async (relayFails) => {
+    const { connector, sdk } = runtime();
+    sdk.approval = deferred<WalletSession>();
+    sdk.proposals = [{ id: 11, pairingTopic: "test-topic" }];
+    sdk.client.core.expirer.set.mockImplementation(() => sdk.approval!.reject(new Error("Proposal expired")));
+    const rejected = expect(connector.connect()).rejects.toThrow("rejected");
+    await untilPairing();
+    cancelWalletConnectPairing();
+    await rejected;
+    await vi.waitFor(() => expect(sdk.listeners.get("display_uri")?.size).toBe(0));
+    sdk.approval = undefined;
+    sdk.uri = "wc:next-topic@2?relay-protocol=irn&symKey=next-key";
+    sdk.nextSession = session({ topic: "new-session" });
+    await connector.connect();
+    const orphan = { ...session({ topic: "orphan-session" }), pairingTopic: "test-topic" };
+    sdk.orphanSessions.set(orphan.topic, orphan);
+    if (relayFails) {
+      sdk.client.disconnect.mockRejectedValueOnce(new Error("Relay unavailable"));
+      sdk.client.core.expirer.set.mockImplementation((key) => {
+        if (typeof key === "string") sdk.orphanSessions.delete(key);
+      });
+    }
+    sdk.emit("client_session_connect", { session: orphan });
+    await vi.waitFor(() => expect(sdk.client.disconnect).toHaveBeenCalledExactlyOnceWith({
+      topic: "orphan-session", reason: { code: 6000, message: "User disconnected." },
+    }));
+    if (relayFails) {
+      await vi.waitFor(() => expect(sdk.client.core.expirer.set).toHaveBeenLastCalledWith("orphan-session", 0));
+      expect(sdk.client.core.expirer.set.mock.calls).toEqual([[11, 0], ["orphan-session", 0]]);
+      expect(sdk.orphanSessions.has("orphan-session")).toBe(false);
+    }
+    expect(sdk.disconnect).not.toHaveBeenCalled();
+    expect(sdk.session?.topic).toBe("new-session");
+    expect(await connector.isAuthorized()).toBe(true);
+    sdk.emit("client_session_connect", { session: { ...sdk.session, pairingTopic: "next-topic" } });
+    expect(sdk.client.disconnect).toHaveBeenCalledOnce();
+  });
+
+
+  it("waits for the cancelled operation to drain before removing a raw orphan session", async () => {
+    const { connector, sdk } = runtime();
+    sdk.approval = deferred<WalletSession>();
+    sdk.proposals = [{ id: 11, pairingTopic: "test-topic" }];
+    const rejected = expect(connector.connect()).rejects.toThrow("rejected");
+    await untilPairing();
+    cancelWalletConnectPairing();
+    await rejected;
+    const orphan = { ...session({ topic: "orphan-session" }), pairingTopic: "test-topic" };
+    sdk.orphanSessions.set(orphan.topic, orphan);
+    sdk.emit("client_session_connect", { session: orphan });
+    for (let step = 0; step < 10; step++) await Promise.resolve();
+    expect(sdk.client.disconnect).not.toHaveBeenCalled();
+    sdk.approval.reject(new Error("Proposal expired"));
+    await vi.waitFor(() => expect(sdk.client.disconnect).toHaveBeenCalledExactlyOnceWith({
+      topic: "orphan-session", reason: { code: 6000, message: "User disconnected." },
+    }));
+    expect(sdk.disconnect).not.toHaveBeenCalled();
+  });
+
   it("cancels immediately, fences retry, and disconnects a late approval", async () => {
     const { connector, sdk } = runtime();
     sdk.approval = deferred<WalletSession>();

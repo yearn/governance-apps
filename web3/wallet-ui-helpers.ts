@@ -4,22 +4,22 @@ export function walletErrorMessage(error: unknown, action: "connect" | "switch" 
   for (let depth = 0; depth < 6 && current && typeof current === "object"; depth += 1) {
     const value = current as { code?: unknown; name?: unknown; cause?: unknown };
     if (value.code === "WALLET_REQUEST_PENDING") {
-      return "A previous connection request is still pending. Reject it in your wallet, or wait for it to expire, then try again.";
+      return "Request still pending. Reject it in your wallet or wait for expiry.";
     }
     if (value.code === 4001 || value.name === "UserRejectedRequestError") {
-      return "Request declined in your wallet. You can try again.";
+      return "Request declined.";
     }
     if (value.code === -32002) {
-      return "A request is already open in your wallet. Open your wallet to continue or dismiss it.";
+      return "Request already open. Continue in your wallet.";
     }
     if (value.code === 4902) {
-      return "This network is not available in your wallet. Add Ethereum Mainnet in your wallet, then try again.";
+      return "Add Ethereum Mainnet in your wallet.";
     }
     current = value.cause;
   }
-  if (action === "switch") return "Could not switch networks. Open your wallet and select Ethereum Mainnet, then try again.";
-  if (action === "disconnect") return "Could not disconnect. Try again, or disconnect this site in your wallet.";
-  return "Could not connect to your wallet. Check your wallet and internet connection, then try again.";
+  if (action === "switch") return "Select Ethereum Mainnet in your wallet.";
+  if (action === "disconnect") return "Could not disconnect. Try again.";
+  return "Could not connect. Try again.";
 }
 
 /** Source-verified wallet routes. Navigation happens only on an explicit link click. */

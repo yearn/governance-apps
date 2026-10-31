@@ -161,7 +161,7 @@ test("does not retain an injected approval after cancellation", async ({ page })
   await page.evaluate(() => { window.walletQA.hold = true; });
   await openConnect(page);
   await page.getByRole("button", { name: /Rabby.*Detected/ }).click();
-  await expect(page.getByText("Waiting for your wallet…")).toBeVisible();
+  await expect(page.getByText("Continue in Rabby", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page.evaluate(() => window.walletQA.resolve?.());
   await expect.poll(() => page.evaluate(() => window.walletQA.calls.rabby.includes("wallet_revokePermissions"))).toBe(true);

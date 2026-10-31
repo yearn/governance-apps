@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import encodeQR from "qr";
 import { LogoYearnMark } from "@/components/icons/LogoYearnMark";
 
-/** The plain fallback keeps the same locally encoded image and pairing payload. */
+/** Add a small local Yearn mark while preserving the existing QR encoding. */
 export function WalletPairingQr({ uri }: { uri: string }) {
-  const [plain, setPlain] = useState(false);
   const image = useMemo(() => {
     try {
       const src = encodeQR(uri, "data-url", { scale: 5, border: 4, ecc: "medium" });
@@ -37,7 +36,7 @@ export function WalletPairingQr({ uri }: { uri: string }) {
           alt="WalletConnect pairing QR code"
           className="block h-auto w-full"
         />
-        {!plain && image.markSize && (
+        {image.markSize && (
           <span
             aria-hidden="true"
             data-testid="wallet-pairing-qr-mark"
@@ -48,6 +47,7 @@ export function WalletPairingQr({ uri }: { uri: string }) {
               width: `${image.markSize}%`,
               height: `${image.markSize}%`,
               background: "#fff",
+              borderRadius: "50%",
               color: "#000",
               pointerEvents: "none",
             }}
@@ -63,15 +63,6 @@ export function WalletPairingQr({ uri }: { uri: string }) {
           </span>
         )}
       </div>
-      {image.markSize && (
-        <button
-          type="button"
-          className="mt-1 w-full rounded py-1 text-xs text-text-secondary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
-          onClick={() => setPlain((value) => !value)}
-        >
-          {plain ? "Use branded QR" : "Use plain QR"}
-        </button>
-      )}
     </div>
   );
 }

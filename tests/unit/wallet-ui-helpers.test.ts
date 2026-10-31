@@ -8,7 +8,7 @@ describe("wallet error copy", () => {
 
   it("explains the previous pairing fence without exposing SDK details", () => {
     expect(walletErrorMessage({ cause: { code: "WALLET_REQUEST_PENDING", message: "sensitive" } }, "connect"))
-      .toBe("A previous connection request is still pending. Reject it in your wallet, or wait for it to expire, then try again.");
+      .toBe("Request still pending. Reject it in your wallet or wait for expiry.");
   });
 
   it("explains an existing wallet prompt", () => {
@@ -18,8 +18,8 @@ describe("wallet error copy", () => {
   it("never reflects raw provider messages or pairing secrets", () => {
     const error = { message: "wc:secret?long-connection-token", cause: {} };
     expect(walletErrorMessage(error, "connect")).not.toContain("secret");
-    expect(walletErrorMessage(error, "switch")).toContain("select Ethereum Mainnet");
-    expect(walletErrorMessage(error, "disconnect")).toContain("disconnect this site");
+    expect(walletErrorMessage(error, "switch")).toContain("Select Ethereum Mainnet");
+    expect(walletErrorMessage(error, "disconnect")).toBe("Could not disconnect. Try again.");
   });
 
   it("bounds traversal of cyclic provider errors", () => {

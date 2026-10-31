@@ -23,7 +23,13 @@ export type UniversalWalletProvider = {
       get(topic: string): WalletSession;
       update(topic: string, changes: Partial<WalletSession>): void | Promise<void>;
     };
-    on(event: "session_extend" | "session_expire", listener: (event: { topic: string }) => void): unknown;
+    on(event: "session_extend" | "session_expire" | "session_connect", listener: (event: {
+      topic?: string;
+      session?: WalletSession & { pairingTopic?: string };
+    }) => void): unknown;
+    proposal?: { getAll(): Array<{ id: number; pairingTopic?: string }> };
+    core?: { expirer: { set(key: string | number, expiry: number): void } };
+    disconnect?(params: { topic: string; reason: { code: number; message: string } }): Promise<void>;
   };
   rpcProviders?: { eip155?: { getDefaultChain(): string } };
   connect(options: ConnectOptions): Promise<WalletSession | undefined>;
@@ -82,6 +88,11 @@ export function walletConnect(parameters: WalletConnectParameters) {
     let attempt = 0;
     let pairingOperation: Promise<unknown> | undefined;
     let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+    const cancelledPairings = new Map<string, { expiresAt: number; drained: Promise<void> }>();
+    const pruneCancelledPairings = () => {
+      for (const [topic, value] of cancelledPairings)
+        if (value.expiresAt <= Date.now()) cancelledPairings.delete(topic);
+    };
     const providerListeners = new Map<string, Set<(...args: unknown[]) => void>>();
 
     const emitProvider = (event: string, ...args: unknown[]) =>
@@ -242,8 +253,29 @@ export function walletConnect(parameters: WalletConnectParameters) {
             : await (await import("@walletconnect/universal-provider")).default.init(options);
           provider = initialized;
           await disableInheritedDeepLinks(initialized);
+          initialized.client.on("session_connect", ({ session }) => {
+            pruneCancelledPairings();
+            const cancelled = session?.pairingTopic && cancelledPairings.get(session.pairingTopic);
+            if (!cancelled || !session) return;
+            // Expiry can race an SDK settlement that already read its proposal.
+            // Wait for the original operation, then remove only that orphan session.
+            void cancelled.drained.then(async () => {
+              try {
+                initialized.client.session.get(session.topic);
+                try {
+                  await initialized.client.disconnect?.({
+                    topic: session.topic,
+                    reason: { code: 6000, message: "User disconnected." },
+                  });
+                } catch {
+                  // Local expiry also removes an orphan if relay acknowledgement fails.
+                  initialized.client.core?.expirer.set(session.topic, 0);
+                }
+              } catch { /* Already removed, or SDK storage is unavailable. */ }
+            });
+          });
           initialized.client.on("session_extend", ({ topic }) => {
-            if (topic !== initialized.session?.topic) return;
+            if (!topic || topic !== initialized.session?.topic) return;
             void (async () => {
               initialized.session = initialized.client.session.get(topic);
               await disableInheritedDeepLinks(initialized);
@@ -251,7 +283,7 @@ export function walletConnect(parameters: WalletConnectParameters) {
             })().catch(() => disconnectState("error", "Wallet session storage is unavailable. Connect again."));
           });
           initialized.client.on("session_expire", ({ topic }) => {
-            if (topic === initialized.session?.topic)
+            if (topic && topic === initialized.session?.topic)
               disconnectState("expired", "Your wallet session expired. Connect again.");
           });
           const restoredChain = parseWalletChainId(initialized.rpcProviders?.eip155?.getDefaultChain());
@@ -339,6 +371,7 @@ export function walletConnect(parameters: WalletConnectParameters) {
           updateWalletConnectPairing({ status: "error", error: error.message });
           throw error;
         }
+        pruneCancelledPairings();
         const target = chainId ?? config.chains[0].id;
         if (!config.chains.some((chain) => chain.id === target))
           throw rpcError(4902, "This network is not supported by this app.");
@@ -346,11 +379,33 @@ export function walletConnect(parameters: WalletConnectParameters) {
         let cancelled = false;
         let timer: ReturnType<typeof setTimeout> | undefined;
         let displayUri: ((...args: unknown[]) => void) | undefined;
+        let pairingTopic: string | undefined;
+        let resolveDrained: () => void = () => {};
+        const drained = new Promise<void>((resolve) => { resolveDrained = resolve; });
+        const expireCancelledProposal = () => {
+          const client = provider?.client;
+          if (!pairingTopic || !client?.proposal || !client.core?.expirer || !client.disconnect) return;
+          try {
+            const proposals = client.proposal.getAll().filter((value) => value.pairingTopic === pairingTopic);
+            // Do not expire a session, another attempt, or an ambiguous SDK record.
+            if (proposals.length !== 1 || !Number.isSafeInteger(proposals[0].id) || proposals[0].id <= 0) return;
+            const topic = pairingTopic;
+            const record = { expiresAt: Date.now() + pairingLifetime * 2, drained };
+            cancelledPairings.set(topic, record);
+            setTimeout(() => {
+              if (cancelledPairings.get(topic) === record) cancelledPairings.delete(topic);
+            }, pairingLifetime * 2);
+            // Pinned Sign Client rejects approval through its proposal_expire handler.
+            // Pairing deletion alone and UP's deprecated abort API do not do this.
+            client.core.expirer.set(proposals[0].id, 0);
+          } catch { /* Keep the operation fenced if SDK cancellation is unavailable. */ }
+        };
         let rejectCancelled: (error: Error) => void = () => {};
         const cancelledPromise = new Promise<never>((_, reject) => { rejectCancelled = reject; });
         const cancel = (expired = false) => {
           if (id !== attempt || cancelled) return;
           cancelled = true;
+          expireCancelledProposal();
           void setDisconnected(true);
           updateWalletConnectPairing({
             status: expired ? "expired" : "cancelled",
@@ -375,9 +430,15 @@ export function walletConnect(parameters: WalletConnectParameters) {
           if (!sdk.session) {
             if (isReconnecting) throw rpcError(4100, "No authorized wallet session was found.");
             displayUri = (...args: unknown[]) => {
-              if (cancelled || id !== attempt || typeof args[0] !== "string") return;
+              if (id !== attempt || typeof args[0] !== "string") return;
               const uri = args[0];
-              if (!/^wc:[^@]+@2\?/.test(uri)) return;
+              const match = /^wc:([^@]+)@2\?/.exec(uri);
+              if (!match) return;
+              pairingTopic = match[1];
+              if (cancelled) {
+                expireCancelledProposal();
+                return;
+              }
               const expiry = Number(new URLSearchParams(uri.split("?")[1]).get("expiryTimestamp"));
               const expiresAt = Math.min(
                 Number.isFinite(expiry) && expiry > 0 ? expiry * 1000 : Infinity,
@@ -435,12 +496,13 @@ export function walletConnect(parameters: WalletConnectParameters) {
           };
         })();
         pairingOperation = operation;
-        // Keep a cancelled proposal fenced until its SDK promise settles. UP's abort API is a no-op.
+        // Keep a cancelled proposal fenced until targeted expiry or a wallet response settles the SDK.
         void operation.catch(() => {}).finally(() => {
           if (provider && displayUri) provider.removeListener("display_uri", displayUri);
           if (timer) clearTimeout(timer);
           if (pairingOperation === operation) pairingOperation = undefined;
           if (id === attempt) setWalletConnectPairingCancel(undefined);
+          resolveDrained();
         });
         try {
           const result = await Promise.race([operation, cancelledPromise]);

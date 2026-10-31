@@ -73,6 +73,21 @@ const iconActionClass = "inline-flex size-10 shrink-0 items-center justify-cente
 const rowClass =
   "flex min-h-14 w-full items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-left text-text-primary transition-colors hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary disabled:cursor-not-allowed disabled:opacity-50";
 
+const walletDownloads = [
+  { id: "io.metamask", name: "MetaMask", href: "https://metamask.io/download/" },
+  { id: "io.rabby", name: "Rabby", href: "https://rabby.io/" },
+  { id: "com.ambire.wallet", name: "Ambire", href: "https://www.ambire.com/" },
+];
+
+function shuffleWalletDownloads() {
+  const choices = [...walletDownloads];
+  for (let index = choices.length - 1; index > 0; index -= 1) {
+    const other = Math.floor(Math.random() * (index + 1));
+    [choices[index], choices[other]] = [choices[other], choices[index]];
+  }
+  return choices;
+}
+
 export function WalletUiProvider({ children }: { children: ReactNode }) {
   const account = useAccount();
   const connectors = useConnectors();
@@ -86,6 +101,7 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
     () => walletConnectPairingServerSnapshot,
   );
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [downloads, setDownloads] = useState(walletDownloads);
   const [available, setAvailable] = useState<readonly Connector[]>([]);
   const [discovering, setDiscovering] = useState(false);
   const [selected, setSelected] = useState<Connector | null>(null);
@@ -149,11 +165,12 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const open = useCallback((next: Panel) => {
+    if (next === "connect" && panel !== "connect") setDownloads(shuffleWalletDownloads());
     clearAttempt();
     setError(null);
     setCopied(null);
     setPanel(next);
-  }, [clearAttempt]);
+  }, [clearAttempt, panel]);
 
   const value = useMemo(() => ({
     openConnectModal: () => open("connect"),
@@ -165,7 +182,7 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
     if (pendingRef.current) return;
     if (injectedRequests.current.has(connector.uid)) {
       setSelected(connector);
-      setError("A request is still open in this wallet. Respond to that request before you try again.");
+      setError("Request already open. Continue in your wallet.");
       return;
     }
     if (connector.id !== "walletConnect") injectedRequests.current.add(connector.uid);
@@ -259,7 +276,7 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
                   </button>
                 ))}
                 {discovering && <p role="status" className="py-2">Finding wallets…</p>}
-                {!discovering && available.length === 0 && <p className="rounded-xl bg-surface-secondary p-3">No browser wallet detected. Connect a mobile wallet below.</p>}
+                {!discovering && available.length === 0 && <p className="rounded-xl bg-surface-secondary p-3">No browser wallet detected.</p>}
                 <button
                   type="button"
                   className={rowClass}
@@ -277,10 +294,13 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
               </div>
               <details className="border-t border-border pt-3">
                 <summary className="cursor-pointer py-1 text-text-primary">Need a wallet?</summary>
-                <p className="mt-2">Install a wallet, then reload this page.</p>
-                <div className="mt-2 flex flex-wrap gap-3">
-                  <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Get MetaMask</a>
-                  <a href="https://rabby.io/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Get Rabby</a>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                  {downloads.map((wallet) => (
+                    <a key={wallet.id} href={wallet.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded py-2 underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary">
+                      <WalletBrandIcon id={wallet.id} className="size-5 shrink-0" />
+                      {wallet.name}
+                    </a>
+                  ))}
                 </div>
               </details>
             </>
@@ -300,10 +320,10 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
                   <p className="min-w-0 break-words font-medium text-text-primary">{connectionPending ? `Continue in ${selected.name}` : `Connect ${selected.name}`}</p>
                 </div>
               )}
-              {connectionPending && <p role="status" className={selectedWalletConnect ? "sr-only" : undefined}>Waiting for your wallet…</p>}
-              {selectedWalletConnect && pairing.status === "expired" && <p role="alert">Connection request expired. Try again.</p>}
+              {connectionPending && <p role="status" className="sr-only">Waiting for your wallet…</p>}
+              {selectedWalletConnect && pairing.status === "expired" && <p role="alert">Request expired.</p>}
               {selectedWalletConnect && pairing.status === "cancelled" && <p role="status">Connection cancelled.</p>}
-              {selectedWalletConnect && pairing.status === "error" && !error && <p role="alert">Could not start pairing. Check your connection, then retry.</p>}
+              {selectedWalletConnect && pairing.status === "error" && !error && <p role="alert">Could not connect. Try again.</p>}
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {!connectionPending && (
                   <Button variant="secondary" size="sm" className={walletActionClass} onClick={() => { pendingRef.current = false; void choose(selected); }}>
@@ -314,7 +334,6 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
                   {connectionPending ? "Cancel" : "Choose another wallet"}
                 </Button>
               </div>
-              {connectionPending && !selectedWalletConnect && <p className="text-xs">If you cancel, dismiss the request in your wallet too.</p>}
             </>
           )}
 
@@ -403,7 +422,7 @@ function PairingPanel({
   onCopy: (uri: string) => void;
 }) {
   if (!uri) {
-    return <p>{status === "connecting" || status === "idle" ? "Preparing connection…" : "Start a new request for a fresh QR code."}</p>;
+    return status === "connecting" || status === "idle" ? <p>Preparing connection…</p> : null;
   }
 
   return (
@@ -427,7 +446,6 @@ function PairingPanel({
           ) : null;
         })}
       </div>
-      <p className="text-center text-xs">After approving, return to this tab.</p>
       <div className="flex items-start gap-2">
         <details className="min-w-0 flex-1">
           <summary className="cursor-pointer rounded py-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary">Connection link</summary>
