@@ -39,6 +39,12 @@ WalletConnect still requires its project and gateway. Its Community License stil
 
 All domains use one connect, account, and network dialog. Installed EIP-6963 wallets appear separately. The generic injected connector remains a fallback. Safe uses the official connector and the established trusted origins.
 
+The account dialog reuses the shared address copy and explorer controls. Wallet and Ethereum images identify the current connection. Switch stays neutral. Disconnect uses the existing red action style.
+
+Known wallet images are local assets with provenance in `public/wallets/`. Unknown wallets can supply bounded data images. The app renders these as inert images and does not fetch arbitrary image URLs. Images and wallet identifiers do not authenticate a provider.
+
+The QR retains the original local encoder, medium error correction, and four-module quiet zone. A center-logo candidate failed comparative scan checks, so the code stays plain. No runtime dependency was added.
+
 The WalletConnect SDK loads when a connection or stored session needs it. A missing project ID disables mobile pairing with an explanation. The application does not substitute a fake project ID.
 
 Wallet approval is separate from a transaction. The connection dialog supplies a QR code, a copyable URI, and explicit MetaMask/Rabby launch buttons. Phone users return to the browser manually when their operating system does not return automatically.

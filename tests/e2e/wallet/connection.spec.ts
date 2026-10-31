@@ -125,7 +125,7 @@ test("restores the selected wallet, follows account events, and respects disconn
   expect(await page.evaluate(() => window.walletQA.calls.rabby)).not.toContain("eth_requestAccounts");
   await page.evaluate(address => window.walletQA.emit("rabby", "accountsChanged", [address]), addresses.changed);
   await page.getByRole("button", { name: /0x3333/i }).first().click();
-  await expect(page.getByTestId("wallet-account-address")).toHaveText(addresses.changed);
+  await expect(page.getByTestId("wallet-account-address").getByRole("link", { name: `View Ethereum address ${addresses.changed} on Etherscan` })).toHaveAttribute("href", `https://etherscan.io/address/${addresses.changed}`);
   await page.getByRole("button", { name: "Disconnect", exact: true }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: /^Connect wallet$/i }).first()).toBeVisible();
@@ -175,6 +175,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 568 }
     await page.evaluate(() => {
       document.documentElement.style.fontSize = "32px";
       document.documentElement.classList.add("dark");
+      document.documentElement.dataset.theme = "soft-dark";
     });
     await openConnect(page);
     const dialog = page.getByRole("dialog");
@@ -214,6 +215,7 @@ for (const width of [320, 390]) {
       await page.evaluate(() => {
         document.documentElement.style.fontSize = "32px";
         document.documentElement.classList.add("dark");
+        document.documentElement.dataset.theme = "soft-dark";
       });
       await page.getByRole("button", { name: "Open navigation menu" }).click();
       await page.getByRole("button", { name: "Connect Wallet", exact: true }).click();
@@ -237,7 +239,7 @@ for (const width of [320, 390]) {
 
       await page.evaluate(() => { window.walletQA.hold = true; });
       await dialog.getByRole("button", { name: /Rabby.*Detected/ }).click();
-      const cancel = dialog.getByRole("button", { name: "Cancel and choose another wallet" });
+      const cancel = dialog.getByRole("button", { name: "Cancel", exact: true });
       await cancel.scrollIntoViewIfNeeded();
       const textFits = await cancel.evaluate((button) => {
         const control = button.getBoundingClientRect();

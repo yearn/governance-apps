@@ -177,7 +177,11 @@ describe("app-owned wallet controls", () => {
     expect(screen.getByRole("img", { name: "WalletConnect pairing QR code" })).toHaveAttribute("src", expect.stringContaining("data:image/"));
     expect(screen.getByRole("link", { name: "Open MetaMask" })).toHaveAttribute("href", `metamask://wc?uri=${encodeURIComponent(uri)}`);
     expect(screen.getByRole("link", { name: "Open Rabby" })).toHaveAttribute("href", `rabby://walletconnect?uri=${encodeURIComponent(uri)}`);
-    expect(screen.getByText(/Your phone may not return automatically/)).toBeVisible();
+    expect(screen.getByText("After approving, return to this tab.")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Copy connection link" }));
+    expect(await navigator.clipboard.readText()).toBe(uri);
+    await user.click(screen.getByText("Connection link", { exact: true }));
+    expect(screen.getByText(uri, { exact: true })).toBeVisible();
     await user.keyboard("{Escape}");
     expect(state.cancel).toHaveBeenCalledOnce();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -204,7 +208,7 @@ describe("app-owned wallet controls", () => {
     await user.click(screen.getByText("Connect test wallet"));
     await user.click(screen.getByRole("button", { name: /WalletConnect/ }));
     setPairing({ status: "pending", uri });
-    await user.click(screen.getByRole("button", { name: "Cancel and choose another wallet" }));
+    await user.click(screen.getByRole("button", { name: /^Cancel$/ }));
     expect(state.cancel).toHaveBeenCalledOnce();
     expect(await screen.findByRole("button", { name: /MetaMask/ })).toBeVisible();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
@@ -241,10 +245,12 @@ describe("app-owned wallet controls", () => {
     state.account = { address, isConnected: true, chainId: 1, connector: { name: "Rabby", type: "injected" } };
     renderWallet();
     await user.click(screen.getByText("Open account"));
-    expect(await screen.findByTestId("wallet-account-address")).toHaveTextContent(address);
-    expect(screen.getByRole("link", { name: /View on explorer/ })).toHaveAttribute("href", `https://etherscan.io/address/${address}`);
+    const identity = await screen.findByTestId("wallet-account-address");
+    expect(within(identity).getByRole("link", { name: `View Ethereum address ${address} on Etherscan` })).toHaveAttribute("href", `https://etherscan.io/address/${address}`);
+    expect(screen.getByText("Rabby", { exact: true })).toBeVisible();
+    expect(screen.queryByText(/revoke token approvals/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Copy address" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Address copied");
+    expect(await screen.findByRole("status")).toHaveTextContent("address copied");
     expect(await navigator.clipboard.readText()).toBe(address);
     await user.click(screen.getByRole("button", { name: /^Disconnect$/ }));
     expect(state.disconnect).toHaveBeenCalledOnce();

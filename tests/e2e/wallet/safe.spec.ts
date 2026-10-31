@@ -41,8 +41,8 @@ test("connects the Safe account in a trusted iframe and preserves an explicit di
   const accountButton = app.getByRole("button", { name: /0x4444/i }).first();
   await expect(accountButton).toBeVisible({ timeout: 20_000 });
   await accountButton.click();
-  await expect(app.getByTestId("wallet-account-address")).toHaveText(address);
-  await expect(app.getByText("Connected with Safe", { exact: true })).toBeVisible();
+  await expect(app.getByTestId("wallet-account-address").getByRole("link", { name: `View Ethereum address ${address} on Etherscan` })).toHaveAttribute("href", `https://etherscan.io/address/${address}`);
+  await expect(app.getByRole("dialog").getByText("Safe", { exact: true })).toBeVisible();
   await app.getByRole("button", { name: "Disconnect", exact: true }).click();
   await page.reload();
   await expect(app.getByRole("button", { name: /^Connect wallet$/i }).first()).toBeVisible();

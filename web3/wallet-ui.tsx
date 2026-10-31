@@ -11,7 +11,6 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import encodeQR from "qr";
 import {
   useAccount,
   useChains,
@@ -24,6 +23,11 @@ import {
 import { Modal } from "@/components/ui/Modal";
 import { Button, getButtonClassName } from "@/components/ui/Button";
 import { IconWallet } from "@/components/icons/IconWallet";
+import { IconCopy } from "@/components/icons/IconCopy";
+import { IconCheck } from "@/components/icons/IconCheck";
+import { AddressLink } from "@/components/ui/ExplorerLink";
+import { EthereumIcon, WalletBrandIcon } from "@/components/wallet/WalletBrandIcon";
+import { WalletPairingQr } from "./WalletPairingQr";
 import { formatAddress } from "@/lib/format";
 import {
   cancelWalletConnectPairing,
@@ -64,6 +68,7 @@ export function useChainModal() {
 
 const walletActionClass = "h-auto min-h-10 min-w-0 whitespace-normal break-words px-3 py-3 text-center";
 const fullWalletActionClass = `${walletActionClass} w-full`;
+const iconActionClass = "inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-surface-secondary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary";
 
 const rowClass =
   "flex min-h-14 w-full items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-left text-text-primary transition-colors hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary disabled:cursor-not-allowed disabled:opacity-50";
@@ -198,7 +203,7 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
       await navigator.clipboard.writeText(text);
       setCopied(label);
     } catch {
-      setCopied("Copy is unavailable in this browser. Select and copy the text below.");
+      setCopied("Copy unavailable. Expand Connection link to copy it.");
     }
   };
 
@@ -227,7 +232,7 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
   const selectedWalletConnect = selected?.id === "walletConnect";
   const pairingStopped = ["cancelled", "expired", "error"].includes(pairing.status);
   const connectionPending = pending && !(selectedWalletConnect && pairingStopped);
-  const title = panel === "account" ? "Your wallet" : panel === "network" ? "Switch network" : selectedWalletConnect ? "Connect with WalletConnect" : "Connect wallet";
+  const title = panel === "account" ? "Your wallet" : panel === "network" ? "Switch network" : selectedWalletConnect ? "WalletConnect" : "Connect wallet";
 
   return (
     <WalletUiContext.Provider value={value}>
@@ -243,21 +248,18 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
         <div className="space-y-4 text-sm text-text-secondary">
           {panel === "connect" && !selected && (
             <>
-              <p>Choose a wallet to connect to Yearn. Connecting does not request a transaction.</p>
               <div className="space-y-2" aria-label="Available wallets">
                 {available.map((connector) => (
                   <button key={connector.uid} type="button" className={rowClass} onClick={() => void choose(connector)}>
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-secondary" aria-hidden>
-                      <IconWallet className="size-5" />
-                    </span>
+                    <WalletBrandIcon id={connector.id} name={connector.name} icon={connector.icon} className="size-9 shrink-0 rounded-lg" />
                     <span className="min-w-0 flex-1">
                       <span className="block break-words font-medium">{connector.name === "Injected" ? "Browser wallet" : connector.name}</span>
                       <span className="block text-xs text-text-tertiary">{connector.type === "safe" ? "Safe app" : "Detected"}</span>
                     </span>
                   </button>
                 ))}
-                {discovering && <p role="status" className="py-2">Looking for installed wallets…</p>}
-                {!discovering && available.length === 0 && <p className="rounded-xl bg-surface-secondary p-3">No browser wallet detected. Use a mobile wallet below, or open this page in your wallet’s browser.</p>}
+                {discovering && <p role="status" className="py-2">Finding wallets…</p>}
+                {!discovering && available.length === 0 && <p className="rounded-xl bg-surface-secondary p-3">No browser wallet detected. Connect a mobile wallet below.</p>}
                 <button
                   type="button"
                   className={rowClass}
@@ -265,17 +267,17 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
                   onClick={() => walletConnect && void choose(walletConnect)}
                   aria-describedby={!walletConnect ? "walletconnect-unavailable" : undefined}
                 >
-                  <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">⌁</span>
+                  <WalletBrandIcon id="walletConnect" className="size-9 shrink-0 rounded-lg" />
                   <span className="min-w-0 flex-1 break-words">
                     <span className="block font-medium">WalletConnect</span>
-                    <span className="block text-xs text-text-tertiary">Scan a QR code or open a mobile wallet</span>
+                    <span className="block text-xs text-text-tertiary">QR code · Mobile wallets</span>
                   </span>
                 </button>
-                {!walletConnect && <p id="walletconnect-unavailable" className="text-xs">Mobile pairing is unavailable on this site. Use a browser wallet.</p>}
+                {!walletConnect && <p id="walletconnect-unavailable" className="text-xs">Mobile pairing is unavailable. Use a browser wallet.</p>}
               </div>
               <details className="border-t border-border pt-3">
                 <summary className="cursor-pointer py-1 text-text-primary">Need a wallet?</summary>
-                <p className="mt-2">Install a wallet from its official website, then reload this page.</p>
+                <p className="mt-2">Install a wallet, then reload this page.</p>
                 <div className="mt-2 flex flex-wrap gap-3">
                   <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Get MetaMask</a>
                   <a href="https://rabby.io/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Get Rabby</a>
@@ -293,41 +295,67 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
                   onCopy={(uri) => void copy(uri, "Connection link copied")}
                 />
               ) : (
-                <div className="rounded-xl bg-surface-secondary p-4">
-                  <p className="font-medium text-text-primary">{connectionPending ? `Continue in ${selected.name}` : `Connect ${selected.name}`}</p>
-                  <p className="mt-2">Open your wallet and approve the connection request. You can return here after you respond.</p>
+                <div className="flex items-center gap-3 rounded-xl bg-surface-secondary p-4">
+                  <WalletBrandIcon id={selected.id} name={selected.name} icon={selected.icon} className="size-10 shrink-0 rounded-lg" />
+                  <p className="min-w-0 break-words font-medium text-text-primary">{connectionPending ? `Continue in ${selected.name}` : `Connect ${selected.name}`}</p>
                 </div>
               )}
-              {connectionPending && <p role="status">Waiting for your wallet…</p>}
-              {selectedWalletConnect && pairing.status === "expired" && <p role="alert">This connection request expired. Start a new request to try again.</p>}
-              {selectedWalletConnect && pairing.status === "cancelled" && <p role="status">Connection request cancelled.</p>}
-              {selectedWalletConnect && pairing.status === "error" && !error && <p role="alert">Could not start mobile pairing. Check your connection and try again.</p>}
-              {!connectionPending && (
-                <Button variant="secondary" className={fullWalletActionClass} onClick={() => { pendingRef.current = false; void choose(selected); }}>
-                  Try again
+              {connectionPending && <p role="status" className={selectedWalletConnect ? "sr-only" : undefined}>Waiting for your wallet…</p>}
+              {selectedWalletConnect && pairing.status === "expired" && <p role="alert">Connection request expired. Try again.</p>}
+              {selectedWalletConnect && pairing.status === "cancelled" && <p role="status">Connection cancelled.</p>}
+              {selectedWalletConnect && pairing.status === "error" && !error && <p role="alert">Could not start pairing. Check your connection, then retry.</p>}
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {!connectionPending && (
+                  <Button variant="secondary" size="sm" className={walletActionClass} onClick={() => { pendingRef.current = false; void choose(selected); }}>
+                    Try again
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" className={walletActionClass} onClick={() => { clearAttempt(); setError(null); setCopied(null); }}>
+                  {connectionPending ? "Cancel" : "Choose another wallet"}
                 </Button>
-              )}
-              <Button variant="ghost" className={fullWalletActionClass} onClick={() => { clearAttempt(); setError(null); setCopied(null); }}>
-                {connectionPending ? "Cancel and choose another wallet" : "Choose another wallet"}
-              </Button>
-              {connectionPending && !selectedWalletConnect && <p className="text-xs">If you cancel here, dismiss the open request in your wallet too.</p>}
+              </div>
+              {connectionPending && !selectedWalletConnect && <p className="text-xs">If you cancel, dismiss the request in your wallet too.</p>}
             </>
           )}
 
           {panel === "account" && account.address && (
             <>
-              <div className="rounded-xl bg-surface-secondary p-4">
-                <p className="text-xs">Connected with {account.connector?.name ?? "your wallet"}</p>
-                <p className="mt-2 break-all font-mono text-sm text-text-primary" data-testid="wallet-account-address">{account.address}</p>
-                <p className="mt-2 text-xs">{account.chainId === 1 ? "Ethereum Mainnet" : `Unsupported network (${account.chainId ?? "unknown"})`}</p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1">
+                <WalletBrandIcon id={account.connector?.id} name={account.connector?.name} icon={account.connector?.icon} className="size-12 shrink-0 rounded-xl" />
+                <div className="min-w-0 flex-1 basis-48">
+                  <p className="break-words text-sm font-medium text-text-primary">{account.connector?.name ?? "Connected wallet"}</p>
+                  <div data-testid="wallet-account-address">
+                    <AddressLink
+                      address={account.address}
+                      variant="compact"
+                      showCopyOnCoarsePointer
+                      className="[&>a]:text-base [&>a]:font-semibold [&>a]:text-text-primary"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Button variant="secondary" size="sm" className={walletActionClass} onClick={() => void copy(account.address!, "Address copied")}>Copy address</Button>
-                <a href={`https://etherscan.io/address/${account.address}`} target="_blank" rel="noopener noreferrer" className={getButtonClassName({ variant: "secondary", size: "sm", className: walletActionClass })}>View on explorer<span className="sr-only"> (opens a new tab)</span></a>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-surface-secondary px-3 py-2">
+                <div className="flex min-w-0 flex-1 basis-40 items-center gap-2">
+                  {account.chainId === 1
+                    ? <EthereumIcon className="size-6 shrink-0" />
+                    : <IconWallet className="size-6 shrink-0 text-text-tertiary" aria-hidden />}
+                  <span className="min-w-0 break-words text-sm text-text-primary">
+                    {account.chainId === 1 ? "Ethereum Mainnet" : `Unsupported network (${account.chainId ?? "unknown"})`}
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" className={`${walletActionClass} py-2 text-xs`} aria-label="Switch network" onClick={() => open("network")}>Switch</Button>
               </div>
-              <Button variant="secondary" className={fullWalletActionClass} onClick={() => open("network")}>Switch network</Button>
-              <Button variant="secondary" className={fullWalletActionClass} isLoading={disconnect.isPending} onClick={() => void doDisconnect()}>Disconnect</Button>
-              <p className="text-xs">Disconnecting removes this site’s connection. It does not revoke token approvals.</p>
+              <div className="flex justify-end border-t border-border pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`${walletActionClass} text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-300 dark:hover:bg-red-950/50 dark:hover:text-red-200`}
+                  isLoading={disconnect.isPending}
+                  onClick={() => void doDisconnect()}
+                >
+                  Disconnect
+                </Button>
+              </div>
             </>
           )}
 
@@ -340,20 +368,21 @@ export function WalletUiProvider({ children }: { children: ReactNode }) {
 
           {panel === "network" && (
             <>
-              <p>Yearn uses Ethereum Mainnet. Confirm any network request in your wallet.</p>
               {chains.map((chain) => (
                 <Button
                   key={chain.id}
                   variant="secondary"
-                  className={fullWalletActionClass}
+                  className={`${fullWalletActionClass} justify-start gap-3 text-left`}
                   isLoading={switchChain.isPending}
                   disabled={account.chainId === chain.id}
                   onClick={() => void changeNetwork(chain.id)}
                 >
-                  {chain.id === 1 ? "Ethereum Mainnet" : chain.name}{account.chainId === chain.id ? " · Connected" : ""}
+                  {chain.id === 1 && <EthereumIcon className="size-7 shrink-0" />}
+                  <span className="min-w-0 flex-1 break-words">{chain.id === 1 ? "Ethereum Mainnet" : chain.name}</span>
+                  {account.chainId === chain.id && <><IconCheck className="size-5 shrink-0" aria-hidden /><span className="sr-only">Connected</span></>}
                 </Button>
               ))}
-              {account.connector?.type === "safe" && <p className="text-xs">Safe accounts belong to one network. Open the correct Safe account if a switch is unavailable.</p>}
+              {account.connector?.type === "safe" && <p className="text-xs">To change networks, open the matching Safe account.</p>}
             </>
           )}
           {error && <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{error}</p>}
@@ -373,49 +402,41 @@ function PairingPanel({
   status: string;
   onCopy: (uri: string) => void;
 }) {
-  const image = useMemo(() => {
-    if (!uri) return null;
-    try {
-      return encodeQR(uri, "data-url", { scale: 5, border: 4, ecc: "medium" });
-    } catch {
-      return null;
-    }
-  }, [uri]);
-
   if (!uri) {
-    return <p>{status === "connecting" || status === "idle" ? "Preparing a secure connection…" : "Start a new connection request to get a fresh QR code."}</p>;
+    return <p>{status === "connecting" || status === "idle" ? "Preparing connection…" : "Start a new request for a fresh QR code."}</p>;
   }
 
   return (
     <div className="space-y-3">
-      <p>Scan this code with your wallet’s scanner.</p>
-      {image ? (
-        <div className="mx-auto w-fit max-w-full rounded-xl bg-white p-2">
-          {/* The QR image is generated locally. It contains no remote image URL. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image} width={256} height={256} alt="WalletConnect pairing QR code" className="h-auto max-h-64 w-full max-w-64" />
-        </div>
-      ) : <p role="alert">Could not draw the QR code. Copy the connection link instead.</p>}
-      <div className="space-y-2">
-        <p className="font-medium text-text-primary">Use a wallet on this device</p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {(["metamask", "rabby"] as const).map((wallet) => {
-            const href = walletLaunchUrl(wallet, uri);
-            return href ? (
-              <a key={wallet} href={href} className={getButtonClassName({ variant: "secondary", size: "sm", className: walletActionClass })}>
-                Open {wallet === "metamask" ? "MetaMask" : "Rabby"}
-              </a>
-            ) : null;
-          })}
-        </div>
-        <p className="text-xs">Open an installed wallet, approve the request, then return to this browser tab. Your phone may not return automatically.</p>
+      <WalletPairingQr uri={uri} />
+      <p className="text-center text-xs">Scan with your wallet</p>
+      <div className="flex flex-wrap gap-2">
+        {(["metamask", "rabby"] as const).map((wallet) => {
+          const href = walletLaunchUrl(wallet, uri);
+          const name = wallet === "metamask" ? "MetaMask" : "Rabby";
+          return href ? (
+            <a
+              key={wallet}
+              href={href}
+              aria-label={`Open ${name}`}
+              className={getButtonClassName({ variant: "secondary", size: "sm", className: `${walletActionClass} flex-1 basis-32 gap-2` })}
+            >
+              <WalletBrandIcon id={wallet === "metamask" ? "io.metamask" : "io.rabby"} className="size-5 shrink-0" />
+              <span className="min-w-0 break-words">{name}</span>
+            </a>
+          ) : null;
+        })}
       </div>
-      <Button variant="secondary" className={fullWalletActionClass} onClick={() => onCopy(uri)}>Copy connection link</Button>
-      <details>
-        <summary className="cursor-pointer py-1">Show connection link</summary>
-        <p className="mt-2 break-all rounded-lg bg-surface-secondary p-3 font-mono text-xs select-all">{uri}</p>
-      </details>
-      <p className="text-xs">Keep this request private. After you approve it in your wallet, return to this browser tab.</p>
+      <p className="text-center text-xs">After approving, return to this tab.</p>
+      <div className="flex items-start gap-2">
+        <details className="min-w-0 flex-1">
+          <summary className="cursor-pointer rounded py-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary">Connection link</summary>
+          <p className="mt-1 break-all rounded-lg bg-surface-secondary p-3 font-mono text-xs select-all">{uri}</p>
+        </details>
+        <button type="button" className={iconActionClass} aria-label="Copy connection link" title="Copy link" onClick={() => onCopy(uri)}>
+          <IconCopy className="size-4" aria-hidden />
+        </button>
+      </div>
     </div>
   );
 }
