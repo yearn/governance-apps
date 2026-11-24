@@ -7,7 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Address, PublicClient } from "viem";
 import { useAccount } from "wagmi";
 import type {
@@ -198,32 +198,33 @@ export function useYbcState(
     canonicalSnapshot.isFetchedAfterMount &&
     !canonicalSnapshot.isError &&
     walletOverlayTrusted;
+  const queryClient = useQueryClient();
+  const [previous, setPrevious] = useState<{
+    client: PublicClient;
+    cache: typeof queryClient;
+    feed: YbcFeed;
+    snapshot: YbcCanonicalSnapshot;
+  } | null>(null);
+  if (!usesMockBackend && mainnetPublicClient && ybcFeed.data && canonicalSnapshot.data &&
+      canonicalSnapshot.isFetchedAfterMount && !canonicalSnapshot.isError &&
+      (previous?.feed !== ybcFeed.data || previous.snapshot !== canonicalSnapshot.data ||
+       previous.client !== mainnetPublicClient || previous.cache !== queryClient)) {
+    setPrevious({ client: mainnetPublicClient, cache: queryClient, feed: ybcFeed.data, snapshot: canonicalSnapshot.data });
+  }
+  const retained = !canonicalSnapshot.data && previous?.client === mainnetPublicClient &&
+    previous?.cache === queryClient ? previous : null;
+  const displayFeed = retained?.feed ?? ybcFeed.data;
+  const displaySnapshot = retained?.snapshot ?? canonicalSnapshot.data;
   const feedPageState = useMemo(() => {
-    if (
-      usesMockBackend ||
-      !ybcFeed.data ||
-      !canonicalSnapshot.data
-    ) {
-      return null;
-    }
-
-    return mapYbcFeedToPageState(ybcFeed.data, address ?? null, {
+    if (usesMockBackend || !displayFeed || !displaySnapshot) return null;
+    return mapYbcFeedToPageState(displayFeed, address ?? null, {
       actionStateTrusted,
-      canonicalBlockTimestamp:
-        canonicalSnapshot.data.blockTimestamp,
-      proposalStatusById: canonicalSnapshot.data.proposalStatusById,
+      canonicalBlockTimestamp: displaySnapshot.blockTimestamp,
+      proposalStatusById: displaySnapshot.proposalStatusById,
       walletChainId: chainId,
-      walletOverlay: walletOverlay.data ?? null,
+      walletOverlay: retained ? null : walletOverlay.data ?? null,
     });
-  }, [
-    actionStateTrusted,
-    address,
-    canonicalSnapshot.data,
-    chainId,
-    usesMockBackend,
-    walletOverlay.data,
-    ybcFeed.data,
-  ]);
+  }, [actionStateTrusted, address, chainId, displayFeed, displaySnapshot, retained, usesMockBackend, walletOverlay.data]);
   const feedError = useMemo(() => {
     if (usesMockBackend) return null;
     if (feedPageState) return null;
@@ -235,7 +236,7 @@ export function useYbcState(
     if (canonicalSnapshot.isError) {
       return new Error("Unknown YBC snapshot verification error");
     }
-    if (!ybcFeed.isLoading && !feedPageState) {
+    if (!ybcFeed.isLoading && !canonicalSnapshot.isLoading && !feedPageState) {
       return new Error("No valid YBC feed payload is available.");
     }
     return null;
@@ -243,6 +244,7 @@ export function useYbcState(
     feedPageState,
     canonicalSnapshot.error,
     canonicalSnapshot.isError,
+    canonicalSnapshot.isLoading,
     usesMockBackend,
     ybcFeed.error,
     ybcFeed.isError,
@@ -321,7 +323,8 @@ export function useYbcState(
           canonicalSnapshotError: canonicalSnapshot.isError
             ? canonicalSnapshot.error
             : null,
-          feedError: ybcFeed.isError ? ybcFeed.error : null,
+          feedError: ybcFeed.isError ? ybcFeed.error : retained && !canonicalSnapshot.isError
+            ? new Error("Showing the previous YBC snapshot while the new publication is verified.") : null,
           isConnected,
           publicClientAvailable: Boolean(mainnetPublicClient),
           walletOverlayError: walletOverlay.error,
@@ -337,14 +340,11 @@ export function useYbcState(
       data: feedPageState?.data ?? null,
       error: feedError,
       executeProposal: undefined,
-      feed: ybcFeed.data ?? null,
+      feed: displayFeed ?? null,
       writeFeed:
         actionStateTrusted && ybcFeed.data ? ybcFeed.data : null,
       isError: feedError !== null,
-      isLoading:
-        ybcFeed.isLoading ||
-        canonicalSnapshot.isLoading ||
-        (!feedPageState && !feedError),
+      isLoading: !feedPageState && !feedError,
       isRefreshing:
         ybcFeed.isFetching ||
         canonicalSnapshot.isFetching ||

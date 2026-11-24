@@ -1,5 +1,7 @@
 # Yearn Builder's Collective
 
+The board keeps the last verified public snapshot visible while it checks a new publication. Wallet actions resume after the current snapshot and account checks succeed.
+
 The voter list can show addresses and saved names before a wallet connects. Live ENS lookups use the connected Mainnet client.
 
 App name / slug: `ybc`

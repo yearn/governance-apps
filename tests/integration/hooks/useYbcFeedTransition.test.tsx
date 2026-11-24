@@ -271,6 +271,7 @@ describe("useYbcState feed refresh trust", () => {
         "0x2222222222222222222222222222222222222222222222222222222222222222",
       blockNumber: feedA.blockNumber + 1,
     });
+    const verifyingB = createDeferred<bigint>();
     const pendingProposalCount = createDeferred<bigint>();
     let holdARevalidation = false;
     let aRevalidationHeld = false;
@@ -294,6 +295,9 @@ describe("useYbcState feed refresh trust", () => {
         functionName: string;
         blockNumber?: bigint;
       }) => {
+        if (functionName === "num_proposals" && blockNumber === BigInt(feedB.blockNumber)) {
+          return verifyingB.promise;
+        }
         if (
           holdARevalidation &&
           functionName === "num_proposals" &&
@@ -323,6 +327,12 @@ describe("useYbcState feed refresh trust", () => {
     act(() => {
       queryClient.setQueryData(ybcKeys.feed(), feedB);
     });
+    await waitFor(() => expect(result.current.readStatus).toBe("stale"));
+    expect(result.current.feed?.blockHash).toBe(feedA.blockHash);
+    expect(result.current.data?.proposals.items.length).toBeGreaterThan(0);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.writeFeed).toBeNull();
+    verifyingB.resolve(1n);
     await waitFor(() => {
       expect(result.current.feed?.blockHash).toBe(feedB.blockHash);
       expect(result.current.readStatus).toBe("current");
