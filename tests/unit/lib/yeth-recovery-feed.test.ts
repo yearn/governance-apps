@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { parseRecoveryFeed, referenceSchema, uint } from "@/lib/clients/yeth/recovery/feed-schema";
 import { recoverySourceUrl, fetchRecoveryEnvelope } from "@/lib/clients/yeth/recovery/feed-server";
 import { buildRecoverySnapshot } from "@/lib/clients/yeth/recovery/feed-adapter";
@@ -214,6 +214,23 @@ describe("recovery feed boundaries", () => {
     expect(() => recoverySourceUrl("https://evil.test/yeth-recovery.json")).toThrow();
     expect(() => recoverySourceUrl("http://127.0.0.1/yeth-recovery.json",true)).toThrow();
     expect(recoverySourceUrl("http://127.0.0.1:9999/yeth-recovery.json",false).hostname).toBe("127.0.0.1");
+  });
+  it("reads only the head again on a warm poll and still validates the new head", async () => {
+    const f = fixture();
+    const cache = {};
+    const fetcher = vi.fn(async (input: string | URL | Request) => {
+      const path = new URL(String(input)).pathname.replace("/prod/", "");
+      return new Response(path === "yeth-recovery.json" ? JSON.stringify(f.head) : f.bodies[path]);
+    });
+    const read = () => fetchRecoveryEnvelope(recoverySourceUrl(), fetcher, NOW, cache);
+    const first = await read();
+    expect(fetcher.mock.calls.length).toBeGreaterThan(1);
+    fetcher.mockClear();
+    expect(await read()).toEqual(first);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    f.head.generatedAt = NOW + 61;
+    await expect(read()).rejects.toThrow();
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
   it("checks every raw page hash before accepting the graph", async () => {
     const f = fixture();

@@ -5,7 +5,7 @@ import { ConnectedProposalVoters } from "@/app/dao/components/ProposalVoters";
 import { DAO_MOCK_FEED } from "@/lib/clients/dao/fixtures";
 
 const state = vi.hoisted(() => ({ client: { uid: "first", chain: { id: 1 } } as unknown as PublicClient | null, result: {} as Record<string, string>, settled: true }));
-vi.mock("@/state/protocol", () => ({ useProtocol: () => ({ mainnetPublicClient: state.client }) }));
+vi.mock("@/state/protocol", () => ({ useProtocol: () => ({ publicClient: state.client }) }));
 vi.mock("@/lib/hooks/useEnsIdentities", () => ({ useEnsIdentityLookup: () => ({ identities: state.result, settled: state.settled }) }));
 const source = DAO_MOCK_FEED.proposals.find((proposal) => proposal.events.some((event) => event.type === "vote"))!;
 const event = source.events.find((event) => event.type === "vote")!;

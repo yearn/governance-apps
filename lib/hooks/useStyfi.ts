@@ -8,6 +8,8 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
+import { useGlobalData } from "./useGlobalData";
+import { styfiApyFromFeed, styfiStatsFromFeed } from "@/lib/clients/styfi/onchain";
 import { useProtocol } from "@/state/protocol";
 import { StyfiStakeMode, type StyfiClient } from "@/lib/clients/styfi";
 import { useTx } from "@/lib/tx/useTx";
@@ -129,18 +131,16 @@ export function useStyfiEpoch() {
 }
 
 export function useStyfiApy() {
-  const { styfi, globalData, usesMockBackend } = useProtocol();
-  const globalVersion = globalData?.meta?.timestamp ?? null;
-  const hasApySource = usesMockBackend || !!globalData;
-
-  return useQuery({
-    queryKey: [...styfiKeys.apy(), globalVersion] as const,
+  const { styfi, usesMockBackend } = useProtocol();
+  const feedQuery = useGlobalData(false, styfiApyFromFeed);
+  const mockQuery = useQuery({
+    queryKey: [...styfiKeys.apy(), "mock"],
     queryFn: () => styfi.getApy(),
-    // APY changes slowly
-    enabled: hasApySource,
-    refetchInterval: 60_000,
+    enabled: usesMockBackend,
     staleTime: 60_000,
+    refetchInterval: 60_000,
   });
+  return usesMockBackend ? mockQuery : feedQuery;
 }
 
 export function useStyfiStats() {
@@ -149,7 +149,7 @@ export function useStyfiStats() {
   const globalVersion = globalData?.meta?.timestamp ?? null;
   const connected = usesMockBackend || !!publicClient;
   const chainId = publicClient?.chain?.id ?? null;
-  const hasStatsSource = usesMockBackend || !!globalData || !!publicClient;
+  const feedQuery = useGlobalData(false, styfiStatsFromFeed);
   const hasOnchainStats = !!styfi.getStatsFromChain;
   const { data: overrideSince = 0 } = useQuery({
     queryKey: styfiKeys.statsOverride(),
@@ -179,17 +179,18 @@ export function useStyfiStats() {
 
   const preferOnchain = connected && hasOnchainStats;
 
-  return useQuery({
-    queryKey: [...styfiKeys.stats(), globalVersion, connected, chainId] as const,
+  const liveQuery = useQuery({
+    queryKey: [...styfiKeys.stats(), usesMockBackend ? "mock" : "chain", chainId] as const,
     queryFn: () =>
       preferOnchain && styfi.getStatsFromChain
         ? styfi.getStatsFromChain()
         : styfi.getStats(),
     // Global stats (TVL/Supply)
-    enabled: hasStatsSource,
+    enabled: connected,
     refetchInterval: 60_000,
     staleTime: 60_000,
   });
+  return connected ? liveQuery : feedQuery;
 }
 
 export function useRewardTokenInfo() {

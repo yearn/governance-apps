@@ -11,12 +11,37 @@ export function recoverySourceUrl(value = RECOVERY_FEED_URL, production = true):
   if ((!isDefault && !local) || url.username || url.password || url.search || url.hash) throw new Error("Recovery source is not allowlisted");
   return url;
 }
+// Keep at most one small validated graph per reader. Raw bytes can survive across
+// Worker requests without retaining response streams or request-scoped promises.
+export type RecoveryDocumentCache = {
+  source?: string;
+  documents?: ReadonlyMap<string, Uint8Array>;
+};
+
 /** Fixed-origin graph fetch. Hashes are over published bytes, before JSON decoding. */
-export async function fetchRecoveryEnvelope(source: URL, fetcher: typeof fetch = fetch, now = Math.floor(Date.now() / 1000)): Promise<RecoveryFeedEnvelope> {
+export async function fetchRecoveryEnvelope(source: URL, fetcher: typeof fetch = fetch, now = Math.floor(Date.now() / 1000), cache?: RecoveryDocumentCache): Promise<RecoveryFeedEnvelope> {
   const deadline = Date.now() + 20000;
+  const previous = cache?.source === source.href ? cache.documents : undefined;
+  const verified = new Map<string, Uint8Array>();
+  let retainedBytes = 0;
   let totalBytes = 0;
+  function remember(digest: string, bytes: Uint8Array) {
+    if (!cache || retainedBytes + bytes.byteLength > OBJECT_LIMIT) return;
+    verified.set(digest, bytes);
+    retainedBytes += bytes.byteLength;
+  }
+  function decode(bytes: Uint8Array): unknown {
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  }
   const read = async (url: URL, ref?: RecoveryReference): Promise<unknown> => {
     if (Date.now() >= deadline) throw new Error("Recovery feed timed out");
+    const cached = ref && previous?.get(ref.sha256);
+    if (cached && ref) {
+      totalBytes += cached.byteLength;
+      if (totalBytes > GRAPH_LIMIT) throw new Error("Recovery payload exceeds limits");
+      remember(ref.sha256, cached);
+      return decode(cached);
+    }
     return withFeedRequest(url.href, {
       maximumPayloadBytes: OBJECT_LIMIT, requestTimeoutMs: Math.max(1, deadline - Date.now()),
       createPayloadTooLargeError: () => new Error("Recovery payload exceeds limits"),
@@ -48,8 +73,9 @@ export async function fetchRecoveryEnvelope(source: URL, fetcher: typeof fetch =
       if (ref) {
         const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", raw)), byte => byte.toString(16).padStart(2,"0")).join("");
         if (digest !== ref.sha256) throw new Error("Recovery document digest mismatch");
+        remember(digest, raw);
       }
-      return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw)) as unknown;
+      return decode(raw);
     }, fetcher);
   };
   const head = await read(source);
@@ -64,5 +90,9 @@ export async function fetchRecoveryEnvelope(source: URL, fetcher: typeof fetch =
   }
   const envelope = { head, documents };
   parseRecoveryFeed(envelope, now);
+  if (cache) {
+    cache.source = source.href;
+    cache.documents = verified;
+  }
   return envelope;
 }

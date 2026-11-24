@@ -56,6 +56,47 @@ function toBps(value: string | number, label: string) {
   return numeric;
 }
 
+export function veyfiStatsFromFeed(feed: GlobalData | null): VeyfiGlobalStats | null {
+  if (!feed) return null;
+  const data = feed.global.veyfi;
+  const maxBoostBps = feed.global.maxBoostBps;
+  const feeBps = toBps(data.inventory.feeBps, "inventory.feeBps");
+  const fee = BigInt(Math.trunc(feeBps)) * 10n ** 14n;
+  const tokenMap = new Map(
+    data.tokens.map((token) => [normalizeLlyfiSymbol(token.symbol), token])
+  );
+
+  const tokens: LlyfiGlobalInfo[] = LIQUID_LOCKERS.map((locker) => {
+    const match = tokenMap.get(locker.symbol as string);
+    const redemption = match?.redemption;
+    return {
+      symbol: locker.symbol as LlyfiTokenId,
+      name: locker.name,
+      address: locker.token,
+      redemption: {
+        enabled: redemption?.enabled ?? true,
+        capacity: redemption ? BigInt(redemption.capacity) : 0n,
+        used: redemption ? BigInt(redemption.used) : 0n,
+        inventory: redemption ? BigInt(redemption.inventory) : 0n,
+        fee,
+      },
+    };
+  });
+
+  return {
+    migratedYfi: BigInt(data.migratedYfi),
+    lockedYfi: BigInt(data.lockedYfi),
+    maxBoostMultiplier: toBps(maxBoostBps, "maxBoostBps") / 10000,
+    totalLlyfiStakedPercent:
+      toBps(data.totalLlyfiStakedBps, "totalLlyfiStakedBps") / 10000,
+    inventory: {
+      availableYfi: BigInt(data.inventory.availableYfi),
+      feeBps,
+    },
+    tokens,
+  };
+}
+
 export class OnchainVeyfiClient implements VeyfiClient {
   private chainTimeOffsetSeconds: number | null = null;
   private chainTimeLastFetch: number | null = null;
@@ -459,57 +500,6 @@ export class OnchainVeyfiClient implements VeyfiClient {
     }
   }
 
-  private buildGlobalStatsFromData(): VeyfiGlobalStats {
-    if (!this.globalData?.global?.veyfi) {
-      return {
-        migratedYfi: 0n,
-        lockedYfi: 0n,
-        maxBoostMultiplier: 0,
-        totalLlyfiStakedPercent: 0,
-        inventory: { availableYfi: 0n, feeBps: 0 },
-        tokens: [],
-      };
-    }
-
-    const data = this.globalData.global.veyfi;
-    const maxBoostBps = this.globalData.global.maxBoostBps;
-    const feeBps = toBps(data.inventory.feeBps, "inventory.feeBps");
-    const fee = BigInt(Math.trunc(feeBps)) * 10n ** 14n;
-    const tokenMap = new Map(
-      data.tokens.map((token) => [normalizeLlyfiSymbol(token.symbol), token])
-    );
-
-    const tokens: LlyfiGlobalInfo[] = LIQUID_LOCKERS.map((locker) => {
-      const match = tokenMap.get(locker.symbol as string);
-      const redemption = match?.redemption;
-      return {
-        symbol: locker.symbol as LlyfiTokenId,
-        name: locker.name,
-        address: locker.token,
-        redemption: {
-          enabled: redemption?.enabled ?? true,
-          capacity: redemption ? BigInt(redemption.capacity) : 0n,
-          used: redemption ? BigInt(redemption.used) : 0n,
-          inventory: redemption ? BigInt(redemption.inventory) : 0n,
-          fee,
-        },
-      };
-    });
-
-    return {
-      migratedYfi: BigInt(data.migratedYfi),
-      lockedYfi: BigInt(data.lockedYfi),
-      maxBoostMultiplier: toBps(maxBoostBps, "maxBoostBps") / 10000,
-      totalLlyfiStakedPercent:
-        toBps(data.totalLlyfiStakedBps, "totalLlyfiStakedBps") / 10000,
-      inventory: {
-        availableYfi: BigInt(data.inventory.availableYfi),
-        feeBps,
-      },
-      tokens,
-    };
-  }
-
   private async overlayInventoryFromChain(
     base: VeyfiGlobalStats
   ): Promise<VeyfiGlobalStats> {
@@ -600,8 +590,8 @@ export class OnchainVeyfiClient implements VeyfiClient {
   }
 
   async getGlobalStats(): Promise<VeyfiGlobalStats> {
-    if (this.globalData?.global?.veyfi) {
-      const base = this.buildGlobalStatsFromData();
+    const base = veyfiStatsFromFeed(this.globalData);
+    if (base) {
       if (!this.publicClient) return base;
       try {
         return await this.overlayInventoryFromChain(base);

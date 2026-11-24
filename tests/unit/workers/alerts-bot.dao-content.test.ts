@@ -26,7 +26,7 @@ describe("DAO website feed content", () => {
     vi.stubEnv("DAO_DATA_URL", "https://configured.example/dao.json");
     const upstream = vi.fn(async () => respond(daoContentFeed()));
     vi.stubGlobal("fetch", upstream);
-    const app = { fetch: vi.fn(async () => GET()) };
+    const app = { fetch: vi.fn(async () => GET(new Request("https://app.example/api/dao-data"))) };
     const reader = new DaoAlertContentReader(app, new ContentStorage());
     expect(await reader.read(contentProposal)).toEqual(expectedContent);
     expect(app.fetch).toHaveBeenCalledWith(DAO_APP_FEED_URL, expect.objectContaining({ redirect: "manual", signal: expect.any(AbortSignal) }));

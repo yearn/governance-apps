@@ -22,7 +22,7 @@ export function useStyfiApr() {
   const veyfiAccount = useVeyfiAccount(usesMockBackend);
   const isVisible = useDocumentVisibility();
   const query = useQuery({
-    queryKey: [...styfiAprKeys.all, accountAddress ?? null, globalData?.meta.timestamp ?? null],
+    queryKey: [...styfiAprKeys.all, mainnetPublicClient?.chain?.id ?? null, accountAddress ?? null],
     queryFn: () => {
       if (!mainnetPublicClient) throw new Error("APR data is unavailable.");
       return fetchStyfiAprSnapshot(mainnetPublicClient, globalData, accountAddress);

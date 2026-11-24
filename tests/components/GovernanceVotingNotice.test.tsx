@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { projectDaoVotingPeriods } from "@/lib/clients/dao/voting-notice";
 import GovernanceVotingNotice from "@/app/GovernanceVotingNotice";
 import { DAO_MOCK_FEED, DAO_MOCK_NOW } from "@/lib/clients/dao";
 import type { DaoSnapshot } from "@/lib/clients/dao/types";
@@ -7,6 +8,13 @@ import { dismissVotingPeriods, VOTING_NOTICE_STORAGE_KEY } from "@/lib/voting-no
 
 const { feedQuery, runtimeQuery } = vi.hoisted(() => ({ feedQuery: vi.fn(), runtimeQuery: vi.fn() }));
 vi.mock("@/lib/hooks/useDao", () => ({ useDaoFeed: feedQuery, useDaoMockRuntime: runtimeQuery }));
+
+vi.mock("@/lib/hooks/useDaoNoticePeriods", () => ({
+  useDaoNoticePeriods: () => {
+    const query = feedQuery();
+    return { ...query, data: query.data && projectDaoVotingPeriods(query.data) };
+  },
+}));
 
 let snapshot: DaoSnapshot;
 beforeEach(() => {

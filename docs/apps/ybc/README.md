@@ -1,5 +1,7 @@
 # Yearn Builder's Collective
 
+The voter list can show addresses and saved names before a wallet connects. Live ENS lookups use the connected Mainnet client.
+
 App name / slug: `ybc`
 Route key: `/ybc`
 Beta host: `ybc-beta.dao-ops.com`

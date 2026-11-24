@@ -1,5 +1,7 @@
 # veYFI App Docs
 
+The disconnected summary reads the latest validated global feed. Supply, migration and boost figures update together when the shared feed refreshes.
+
 Scope: legacy veYFI migration and LLYFI tooling under `/veyfi`.
 
 - User stories: [`user-stories.md`](user-stories.md)

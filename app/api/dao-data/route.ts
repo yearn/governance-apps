@@ -1,3 +1,6 @@
+import { getDaoDeployments } from "@/lib/clients/dao/deployment";
+import { adaptDaoFeed } from "@/lib/clients/dao/feed-adapter";
+import { projectDaoVotingPeriods } from "@/lib/clients/dao/voting-notice";
 import { readBoundedJson, withFeedRequest } from "@/lib/feed-transport";
 import { DAO_FEED_TRANSPORT_POLICY } from "@/lib/clients/dao/feed";
 import { DaoFeedError, parseDaoFeed } from "@/lib/schemas/dao-feed";
@@ -6,7 +9,7 @@ import { isDaoEnabled } from "@/lib/runtime/features";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "no-store" };
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!isDaoEnabled()) return new Response(null, { status: 404, headers });
   const url = process.env.DAO_DATA_URL;
   if (!url) return Response.json({ error: "DAO feed is not configured." }, { status: 503, headers });
@@ -17,6 +20,10 @@ export async function GET() {
         return Response.json({ error: "DAO upstream is unavailable." }, { status: 502, headers });
       }
       const feed = parseDaoFeed(await readBoundedJson(upstream, context, DAO_FEED_TRANSPORT_POLICY));
+      if (new URL(request.url).searchParams.get("view") === "voting-periods") {
+        const snapshot = adaptDaoFeed(feed, getDaoDeployments());
+        return Response.json(projectDaoVotingPeriods(snapshot), { headers });
+      }
       return Response.json(feed, { headers });
     });
   } catch (error) {
@@ -28,8 +35,8 @@ export async function GET() {
   }
 }
 
-export async function HEAD() {
-  const response = await GET();
+export async function HEAD(request: Request) {
+  const response = await GET(request);
   await response.body?.cancel();
   return new Response(null, { status: response.status, headers: response.headers });
 }

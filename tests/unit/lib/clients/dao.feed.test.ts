@@ -5,6 +5,7 @@ import { parseDaoFeed, DAO_FEED_MAX_PAYLOAD_BYTES } from "@/lib/schemas/dao-feed
 import { V2_DEPLOYMENTS, v2Hash } from "../../../fixtures/dao-feed-v2";
 import { GET, HEAD } from "@/app/api/dao-data/route";
 
+const apiRequest = new Request("https://app.example/api/dao-data");
 const originalUrl = process.env.DAO_DATA_URL;
 afterEach(() => {
   vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers();
@@ -116,20 +117,36 @@ describe("DAO real transport and snapshot retention", () => {
     await expect(fetchDaoFeed()).rejects.toMatchObject({ kind });
   });
 
+  it("serves voting periods from a configured deployment without proposal bodies", async () => {
+    vi.stubEnv("NEXT_PUBLIC_ENABLE_DAO", "true");
+    vi.stubEnv("DAO_DATA_URL", "https://operator.example/dao.json");
+    vi.stubEnv("NEXT_PUBLIC_DAO_DEPLOYMENTS", JSON.stringify(V2_DEPLOYMENTS));
+    vi.stubGlobal("fetch", vi.fn(async () => respond(saved)));
+    const request = new Request(apiRequest.url + "?view=voting-periods");
+    const response = await GET(request);
+    expect(response.status).toBe(200);
+    const view = await response.json() as { periods: { count: number }[] };
+    expect(view).toMatchObject({ generatedAt: saved.observedAt, blockTimestamp: saved.block.timestamp });
+    expect(view.periods.reduce((sum, p) => sum + p.count, 0)).toBe(saved.proposals.filter(p => p.status === "VOTING").length);
+    expect(view).not.toHaveProperty("proposals");
+    vi.stubEnv("NEXT_PUBLIC_DAO_DEPLOYMENTS", "[]");
+    expect((await GET(request)).ok).toBe(false);
+  });
+
   it("validates the fixed upstream in the real proxy and never uses a mock fallback", async () => {
     vi.stubEnv("NEXT_PUBLIC_RUNTIME_MODE", "production");
     vi.stubEnv("NEXT_PUBLIC_ENABLE_DAO", "true");
     delete process.env.DAO_DATA_URL;
-    expect((await GET()).status).toBe(503);
+    expect((await GET(apiRequest)).status).toBe(503);
     process.env.DAO_DATA_URL = "https://operator.example/dao.json";
     const fetchMock = vi.fn().mockResolvedValueOnce(respond(saved)).mockResolvedValueOnce(respond({ schema: "yearn.dao.feed.v1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const result = await GET();
+    const result = await GET(apiRequest);
     expect(result.status).toBe(200);
     expect(result.headers.get("cache-control")).toBe("no-store");
     expect(parseDaoFeed(await result.json()).proposals[0].id).toBe("0");
     expect(fetchMock.mock.calls[0][0]).toBe("https://operator.example/dao.json");
-    expect((await GET()).status).toBe(409);
+    expect((await GET(apiRequest)).status).toBe(409);
   });
 
   it.each([undefined, "https://operator.example/dao.json"])("gates GET and HEAD before upstream configuration (%s)", async (url) => {
@@ -139,7 +156,7 @@ describe("DAO real transport and snapshot retention", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     for (const request of [GET, HEAD]) {
-      const response = await request();
+      const response = await request(apiRequest);
       expect(response.status).toBe(404);
       expect(await response.text()).toBe("");
     }

@@ -72,7 +72,7 @@ export function YbcPageClient({
   latencyMs,
   hostname,
 }: YbcPageClientProps = {}) {
-  const { mainnetPublicClient, ybcUsesMockBackend } = useProtocol();
+  const { mainnetPublicClient, publicClient, ybcUsesMockBackend } = useProtocol();
   const ybcState = useYbcState({
     scenarioOverride,
     latencyMs,
@@ -84,7 +84,7 @@ export function YbcPageClient({
     [ybcState.data]
   );
   const verifiedEns = useYbcEnsIdentities(
-    mainnetPublicClient,
+    publicClient,
     ensAddresses,
     ybcState.backend === "feed"
   );

@@ -13,6 +13,8 @@ A team-centric finance and operations workspace for registered protocol teams.
 It covers the team directory and lifecycle, period and lifetime reporting,
 permissionless revenue deposits, funding, bonuses, and scoped operator controls.
 
+Visitors can read the validated Teams feed without a wallet or an Ethereum request. The directory displays its observation time and flags a publication older than 30 minutes. When connected on Mainnet, the directory keeps the last verified snapshot visible during refresh. An identical feed reuses its activation. A changed feed must pass the existing transition and canonical checks before it can authorize an action.
+
 ## Naming stance
 
 - Keep the app key and slug stable as `teams`.

@@ -1,5 +1,7 @@
 # Live recovery dashboard and UAT
 
+The API reads the head on every request. A warm Worker can reuse up to 2 MiB of digest-verified document bytes from its last valid graph. It checks the graph size, references and observation times again for each head.
+
 ## Release status
 
 The production and preprod deployment workflows build the live dashboard with `NEXT_PUBLIC_YETH_RECOVERY_LIVE=true`.

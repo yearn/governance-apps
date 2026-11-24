@@ -1,5 +1,9 @@
 # DAO Governance
 
+The voter list can show addresses and saved names before a wallet connects. Live ENS lookups use the connected Mainnet client.
+
+The cross-app voting notice requests only voting periods and counts from the DAO API. The API checks the full publication and configured deployments before projecting it. The browser checks the observation age and voting deadline on each clock tick.
+
 The DAO app displays proposals, supports wallet governance actions, and publishes proposal content.
 Use the current behavior and operator references below.
 The [historical index](delivery/historical-index.md) retains completed delivery records and their source revisions.
