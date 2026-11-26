@@ -32,25 +32,25 @@ const rowClassName = "grid min-w-0 grid-cols-2 gap-x-4 gap-y-2 py-3 xl:grid-cols
 
 /** Live ENS resolution stays outside the view so mock rendering needs no network. */
 export function ConnectedProposalVoters({ proposal, isMock, hostname }: { proposal: DaoProposal; isMock: boolean; hostname?: string }) {
-  const { mainnetPublicClient } = useProtocol();
+  const { publicClient } = useProtocol();
   const [addresses, setAddresses] = useState<string[]>([]);
-  const { identities: verifiedEns, settled } = useEnsIdentityLookup(mainnetPublicClient, addresses, !isMock);
+  const { identities: verifiedEns, settled } = useEnsIdentityLookup(publicClient, addresses, !isMock);
   const batchKey = addresses.map((address) => address.toLowerCase()).sort().join(",");
-  const enabled = !isMock && mainnetPublicClient?.chain?.id === mainnet.id;
+  const enabled = !isMock && publicClient?.chain?.id === mainnet.id;
   const [ensSnapshot, setEnsSnapshot] = useState({
-    latest: verifiedEns, batchKey, enabled, settled, owner: mainnetPublicClient,
+    latest: verifiedEns, batchKey, enabled, settled, owner: publicClient,
     resolved: enabled ? verifiedEns : EMPTY_ENS,
   });
   if (ensSnapshot.latest !== verifiedEns || ensSnapshot.batchKey !== batchKey ||
-      ensSnapshot.enabled !== enabled || ensSnapshot.owner !== mainnetPublicClient || ensSnapshot.settled !== settled) {
-    const resolved = enabled && ensSnapshot.enabled && ensSnapshot.owner === mainnetPublicClient
+      ensSnapshot.enabled !== enabled || ensSnapshot.owner !== publicClient || ensSnapshot.settled !== settled) {
+    const resolved = enabled && ensSnapshot.enabled && ensSnapshot.owner === publicClient
       ? { ...ensSnapshot.resolved } : {};
     // Preserve search results while loading; a settled empty result removes the previous batch's names.
     if (settled) {
       for (const address of addresses) delete resolved[address.toLowerCase()];
       if (enabled) Object.assign(resolved, verifiedEns);
     }
-    setEnsSnapshot({ latest: verifiedEns, batchKey, enabled, settled, owner: mainnetPublicClient, resolved });
+    setEnsSnapshot({ latest: verifiedEns, batchKey, enabled, settled, owner: publicClient, resolved });
   }
   return <ProposalVoters proposal={proposal} isMock={isMock} hostname={hostname} verifiedEns={ensSnapshot.resolved} onVisibleAddressesChange={setAddresses} />;
 }

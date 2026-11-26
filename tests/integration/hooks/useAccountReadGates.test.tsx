@@ -8,14 +8,14 @@ import { useStyfiStake } from "@/lib/hooks/useStyfi";
 
 const mocks = vi.hoisted(() => ({
   styfiRead: vi.fn(), veyfiRead: vi.fn(), prepare: vi.fn(),
-  apr: vi.fn(), voting: vi.fn(), mock: false,
+  apr: vi.fn(), voting: vi.fn(), mock: false, globalTimestamp: 100,
 }));
 vi.mock("@/web3/wagmi", () => ({ wagmiConfig: {} }));
 const address = "0x1111111111111111111111111111111111111111";
 vi.mock("wagmi", () => ({ useAccount: () => ({ address, isConnected: true }) }));
 vi.mock("@/state/identity", () => ({ useIdentity: () => ({ address, isConnected: true, isWrongNetwork: false, chainId: 1 }) }));
 vi.mock("@/state/protocol", () => ({ useProtocol: () => ({
-  usesMockBackend: mocks.mock, publicClient: {}, mainnetPublicClient: {}, globalData: null,
+  usesMockBackend: mocks.mock, publicClient: {}, mainnetPublicClient: { chain: { id: 1 } }, globalData: { meta: { timestamp: mocks.globalTimestamp } },
   styfi: { getAccountState: mocks.styfiRead, prepareStake: mocks.prepare },
   veyfi: { getAccountState: mocks.veyfiRead },
 }) }));
@@ -39,6 +39,19 @@ describe("domain query and write lifecycle", () => {
     await waitFor(() => expect(mocks.voting).toHaveBeenCalledOnce());
     expect(mocks.styfiRead).not.toHaveBeenCalled();
     expect(mocks.veyfiRead).not.toHaveBeenCalled();
+  });
+
+  it("keeps the APR mounted when the shared feed advances", async () => {
+    const snapshot = { baseAprBps: 125, styfixAprBps: 148 };
+    mocks.apr.mockResolvedValue(snapshot);
+    const client = new QueryClient();
+    const { result, rerender } = renderHook(useStyfiApr, { wrapper: wrapper(client) });
+    await waitFor(() => expect(result.current.data).toEqual(snapshot));
+    mocks.globalTimestamp++;
+    rerender();
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.data).toEqual(snapshot);
+    expect(mocks.apr).toHaveBeenCalledTimes(1);
   });
 
   it("reports preparation failure through the transaction state", async () => {

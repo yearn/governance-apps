@@ -1,7 +1,21 @@
+import { DAO_FEED_MAX_PROPOSALS } from "@/lib/schemas/dao-feed";
+import { z } from "@/lib/schemas/zod";
 import { DAO_FEED_STALE_SECONDS } from "./feed";
-import { deriveDaoLifecycleFacts } from "./domain";
 import type { DaoSnapshot } from "./types";
 
+const time = z.number().int().nonnegative();
+export const DaoNoticePeriodsSchema = z.object({
+  generatedAt: time,
+  blockTimestamp: time,
+  chainId: z.literal(1),
+  periods: z.array(z.object({
+    votingAddress: z.string().regex(/^0x[0-9a-f]{40}$/),
+    startsAt: time,
+    endsAt: time,
+    count: z.number().int().positive().max(DAO_FEED_MAX_PROPOSALS),
+  })).max(DAO_FEED_MAX_PROPOSALS),
+});
+export type DaoNoticePeriods = z.infer<typeof DaoNoticePeriodsSchema>;
 export type DaoVotingNotice = {
   proposalCount: number;
   endsAt: number;
@@ -9,37 +23,48 @@ export type DaoVotingNotice = {
   periodKeys: string[];
 };
 
-/** Advertise decision votes only; vetoed participation votes stay on the DAO app. */
-export function deriveDaoVotingNotice(
-  snapshot: DaoSnapshot | undefined,
-  now: number,
-  mode: "mock" | "live"
-): DaoVotingNotice | null {
-  if (!snapshot || !Number.isSafeInteger(now)) return null;
-  const generatedAt = Date.parse(snapshot.generatedAt) / 1000;
-  const fresh = (timestamp: number) => Number.isFinite(timestamp) &&
-    timestamp >= now - DAO_FEED_STALE_SECONDS && timestamp <= now + 60;
-  if (!fresh(generatedAt) || !fresh(snapshot.canonicalBlock.timestamp)) return null;
-
-  const proposals = snapshot.proposals.filter(proposal =>
-    proposal.ref.chainId === snapshot.chainId &&
-    snapshot.contracts.some(contract =>
-      contract.votingAddress.toLowerCase() === proposal.ref.votingAddress.toLowerCase()) &&
-    proposal.protocolStatus === "voting" &&
-    !proposal.retracted && !proposal.flagged && !proposal.vetoed && !proposal.executed &&
-    deriveDaoLifecycleFacts(proposal, now).moderation.votingAvailable
-  );
-  if (proposals.length === 0) return null;
-  const endsAt = Math.min(...proposals.map(proposal => proposal.voteEndsAt));
+export function projectDaoVotingPeriods(snapshot: DaoSnapshot) {
+  const periods = new Map<string, DaoNoticePeriods["periods"][number]>();
+  const contracts = new Set(snapshot.contracts.map(contract => contract.votingAddress.toLowerCase()));
+  for (const proposal of snapshot.proposals) {
+    const votingAddress = proposal.ref.votingAddress.toLowerCase();
+    if (proposal.ref.chainId !== snapshot.chainId || !contracts.has(votingAddress) ||
+        proposal.protocolStatus !== "voting" || proposal.retracted || proposal.flagged ||
+        proposal.vetoed || proposal.executed) continue;
+    const key = [votingAddress, proposal.voteStartsAt, proposal.voteEndsAt].join(":");
+    const period = periods.get(key);
+    if (period) period.count++;
+    else periods.set(key, { votingAddress, startsAt: proposal.voteStartsAt, endsAt: proposal.voteEndsAt, count: 1 });
+  }
   return {
-    proposalCount: proposals.length,
-    endsAt,
-    multipleDeadlines: proposals.some(proposal => proposal.voteEndsAt !== endsAt),
-    // Period identity stays stable as proposals close or a feed is refreshed.
-    // Separate deployments and mock/live data must never share a dismissal.
-    periodKeys: [...new Set(proposals.map(proposal =>
-      [mode, proposal.ref.chainId, proposal.ref.votingAddress.toLowerCase(),
-        proposal.voteStartsAt, proposal.voteEndsAt].join(":")
-    ))].sort(),
+    generatedAt: Date.parse(snapshot.generatedAt) / 1000,
+    blockTimestamp: snapshot.canonicalBlock.timestamp,
+    chainId: snapshot.chainId,
+    periods: [...periods.values()],
   };
+}
+
+export function activeDaoVotingNotice(
+  projection: ReturnType<typeof projectDaoVotingPeriods> | undefined,
+  now: number,
+  mode: "mock" | "live",
+): DaoVotingNotice | null {
+  if (!projection || !Number.isSafeInteger(now)) return null;
+  const fresh = (time: number) => time >= now - DAO_FEED_STALE_SECONDS && time <= now + 60;
+  if (!fresh(projection.generatedAt) || !fresh(projection.blockTimestamp)) return null;
+  const active = projection.periods.filter(period => now >= period.startsAt && now < period.endsAt);
+  if (!active.length) return null;
+  const endsAt = Math.min(...active.map(period => period.endsAt));
+  return {
+    proposalCount: active.reduce((count, period) => count + period.count, 0),
+    endsAt,
+    multipleDeadlines: active.some(period => period.endsAt !== endsAt),
+    periodKeys: active.map(period =>
+      [mode, projection.chainId, period.votingAddress, period.startsAt, period.endsAt].join(":")
+    ).sort(),
+  };
+}
+
+export function deriveDaoVotingNotice(snapshot: DaoSnapshot | undefined, now: number, mode: "mock" | "live") {
+  return activeDaoVotingNotice(snapshot && projectDaoVotingPeriods(snapshot), now, mode);
 }

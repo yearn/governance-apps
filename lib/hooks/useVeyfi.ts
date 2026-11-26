@@ -7,6 +7,8 @@ import {
 } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useAccount } from "wagmi";
+import { useGlobalData } from "./useGlobalData";
+import { veyfiStatsFromFeed } from "@/lib/clients/veyfi/onchain";
 import { useProtocol } from "@/state/protocol";
 import { getRefetchOnWindowFocus } from "@/lib/query/focus-refetch-policy";
 import { styfiKeys } from "@/lib/hooks/useStyfi";
@@ -116,7 +118,7 @@ export function useVeyfiStats() {
   const connected = usesMockBackend || !!publicClient;
   const globalVersion = globalData?.meta?.timestamp ?? null;
   const chainId = publicClient?.chain?.id ?? null;
-  const hasStatsSource = usesMockBackend || !!globalData || !!publicClient;
+  const feedQuery = useGlobalData(false, veyfiStatsFromFeed);
   const hasOnchainStats = !!veyfi.getGlobalStatsFromChain;
   const { data: overrideSince = 0 } = useQuery({
     queryKey: veyfiKeys.statsOverride(),
@@ -146,17 +148,18 @@ export function useVeyfiStats() {
 
   const preferOnchain = connected && hasOnchainStats;
 
-  return useQuery({
-    queryKey: [...veyfiKeys.stats(), connected, globalVersion, chainId] as const,
+  const liveQuery = useQuery({
+    queryKey: [...veyfiKeys.stats(), usesMockBackend ? "mock" : "chain", chainId] as const,
     queryFn: () =>
       preferOnchain && veyfi.getGlobalStatsFromChain
         ? veyfi.getGlobalStatsFromChain()
         : veyfi.getGlobalStats(),
     // Global stats (Migration %, Boost)
-    enabled: hasStatsSource,
+    enabled: connected,
     refetchInterval: 60_000,
     staleTime: 60_000,
   });
+  return connected ? liveQuery : feedQuery;
 }
 
 /**

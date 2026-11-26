@@ -57,22 +57,22 @@ export function ProposalVoters({ proposal, identities, onVisibleAddressesChange 
 
 /** Resolve only the visible voter page, separately from the roster lookup. */
 export function ConnectedProposalVoters({ proposal, identities }: { proposal: YbcProposalRecord; identities: YbcIdentityMap }) {
-  const { mainnetPublicClient } = useProtocol();
+  const { publicClient } = useProtocol();
   const [addresses, setAddresses] = useState<string[]>([]);
-  const lookup = useEnsIdentityLookup(mainnetPublicClient, addresses);
+  const lookup = useEnsIdentityLookup(publicClient, addresses);
   const batchKey = addresses.map((address) => address.toLowerCase()).sort().join(",");
   const [snapshot, setSnapshot] = useState({
-    latest: lookup.identities, batchKey, owner: mainnetPublicClient, settled: lookup.settled,
+    latest: lookup.identities, batchKey, owner: publicClient, settled: lookup.settled,
     resolved: lookup.identities,
   });
   if (snapshot.latest !== lookup.identities || snapshot.batchKey !== batchKey ||
-      snapshot.owner !== mainnetPublicClient || snapshot.settled !== lookup.settled) {
-    const resolved = snapshot.owner === mainnetPublicClient ? { ...snapshot.resolved } : {};
+      snapshot.owner !== publicClient || snapshot.settled !== lookup.settled) {
+    const resolved = snapshot.owner === publicClient ? { ...snapshot.resolved } : {};
     if (lookup.settled) {
       for (const address of addresses) delete resolved[address.toLowerCase()];
       Object.assign(resolved, lookup.identities);
     }
-    setSnapshot({ latest: lookup.identities, batchKey, owner: mainnetPublicClient, settled: lookup.settled, resolved });
+    setSnapshot({ latest: lookup.identities, batchKey, owner: publicClient, settled: lookup.settled, resolved });
   }
   const voterIdentities = { ...identities };
   for (const [address, label] of Object.entries(snapshot.resolved)) {

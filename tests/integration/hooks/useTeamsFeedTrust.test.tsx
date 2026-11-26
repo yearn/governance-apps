@@ -20,6 +20,7 @@ const { accountState, authorityState, mainnetPublicClient } = vi.hoisted(() => (
     current: {
       address: undefined as `0x${string}` | undefined,
       chainId: undefined as number | undefined,
+      status: "connected",
     },
   },
   authorityState: {
@@ -41,7 +42,7 @@ vi.mock("wagmi", () => ({
 vi.mock("@/state/protocol", () => ({
   useOptionalProtocol: () => ({
     mainnetPublicClient,
-    publicClient: null,
+    publicClient: mainnetPublicClient,
     teamsUsesMockBackend: false,
   }),
 }));
@@ -51,7 +52,8 @@ describe("useTeamsState canonical feed trust", () => {
     vi.clearAllMocks();
     accountState.current = {
       address: undefined,
-      chainId: undefined,
+      chainId: 1,
+      status: "connected",
     };
     authorityState.gate = null;
     mainnetPublicClient.getBlock.mockResolvedValue({
@@ -137,6 +139,39 @@ describe("useTeamsState canonical feed trust", () => {
     unmount();
   });
 
+  it("keeps an anonymous directory through a failed refresh without a canonical read", async () => {
+    accountState.current = { status: "disconnected", address: undefined, chainId: undefined };
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(okResponse(feedExample))
+      .mockResolvedValueOnce(new Response(null, { status: 503 })));
+    const { result } = renderHook(() => useTeamsState(), { wrapper: createQueryWrapper() });
+    await waitFor(() => expect(result.current.data?.feed).toEqual(feedExample));
+    expect(result.current.lastUpdatedAt).toBe(feedExample.generatedAt);
+    expect(result.current.warning?.message).toMatch(/30 minutes/);
+    expect(result.current.writeFeed).toBeNull();
+    await act(async () => { await result.current.refetch(); });
+    await waitFor(() => expect(result.current.warning?.message).toMatch(/503/));
+    expect(result.current.isPending).toBe(false);
+    expect(result.current.data?.feed?.blockHash).toBe(feedExample.blockHash);
+    expect(mainnetPublicClient.getChainId).not.toHaveBeenCalled();
+    expect(mainnetPublicClient.readContract).not.toHaveBeenCalled();
+  });
+
+  it("keeps an identical publication mounted across polls", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => okResponse(feedExample)));
+    const queryClient = createTestQueryClient();
+    const { result } = renderHook(() => useTeamsState(), {
+      wrapper: createQueryWrapper(queryClient),
+    });
+    await waitFor(() => expect(result.current.writeFeed).not.toBeNull());
+    const previous = queryClient.getQueryData(teamsKeys.feed());
+    const reads = mainnetPublicClient.readContract.mock.calls.length;
+    await act(() => queryClient.refetchQueries({ queryKey: teamsKeys.feed(), exact: true }));
+    expect(queryClient.getQueryData(teamsKeys.feed())).toBe(previous);
+    expect(mainnetPublicClient.readContract).toHaveBeenCalledTimes(reads);
+    expect(result.current.isPending).toBe(false);
+  });
+
   it("accepts an old canonical snapshot without using age as authorization", async () => {
     mainnetPublicClient.getBlock.mockResolvedValue({
       hash: feedExample.blockHash,
@@ -199,6 +234,8 @@ describe("useTeamsState canonical feed trust", () => {
       expect(result.current.data?.feed?.teams[0]?.owner).toBe(
         feedExample.teams[0]!.owner
       );
+      expect(result.current.isPending).toBe(false);
+      expect(result.current.isLoading).toBe(false);
       expect(result.current.readStatus).toBe("stale");
       expect(result.current.writeFeed).toBeNull();
     });

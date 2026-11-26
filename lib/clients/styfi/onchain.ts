@@ -62,8 +62,16 @@ const BLACKLIST_PROBES: ReadonlyArray<{
   },
 ];
 
-function toBigInt(value: string | number) {
-  return typeof value === "number" ? BigInt(Math.trunc(value)) : BigInt(value);
+export function styfiStatsFromFeed(feed: GlobalData | null): StyfiGlobalStats | null {
+  if (!feed) return null;
+  return {
+    totalSupply: BigInt(feed.global.yfi.totalSupply),
+    totalStaked: BigInt(feed.styfi.staked),
+  };
+}
+
+export function styfiApyFromFeed(feed: GlobalData | null): bigint | null {
+  return feed ? BigInt(feed.styfi.current.aprBps) : null;
 }
 
 export class OnchainStyfiClient implements StyfiClient {
@@ -449,17 +457,7 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getStats(): Promise<StyfiGlobalStats> {
-    if (this.globalData?.global?.yfi && this.globalData?.styfi) {
-      const totalSupply = this.globalData.global.yfi.totalSupply;
-      // Global staked excludes cooldown balances; do not add unstaking here.
-      const totalStaked = BigInt(this.globalData.styfi.staked);
-      return {
-        totalSupply: BigInt(totalSupply),
-        totalStaked,
-      };
-    }
-
-    return this.getStatsFromChain();
+    return styfiStatsFromFeed(this.globalData) ?? this.getStatsFromChain();
   }
 
   async getStatsFromChain(): Promise<StyfiGlobalStats> {
@@ -497,14 +495,7 @@ export class OnchainStyfiClient implements StyfiClient {
   }
 
   async getApy(): Promise<bigint> {
-    const aprBps = this.globalData?.styfi?.current?.aprBps;
-    if (aprBps !== undefined) {
-      return toBigInt(aprBps);
-    }
-
-    // Dynamic APR calculation requires backend indexing of rewards/revenue.
-    // Currently no direct contract view for "Current APR".
-    return 0n;
+    return styfiApyFromFeed(this.globalData) ?? 0n;
   }
 
   async prepareStake(

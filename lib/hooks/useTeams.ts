@@ -44,11 +44,12 @@ import type {
 } from "@/lib/clients/teams/types";
 import type { TeamsFeed } from "@/lib/schemas/teams-feed";
 import { useTeamsData } from "@/lib/hooks/useTeamsData";
-import {
-  getTeamsAuthorityFingerprint,
-  teamsKeys,
-} from "@/lib/hooks/teamsKeys";
+import { teamsKeys } from "@/lib/hooks/teamsKeys";
 import { useOptionalProtocol } from "@/state/protocol";
+
+// The producer's default heartbeat is 15 minutes. Allow a missed heartbeat
+// before warning, since the polling clocks are independent.
+const TEAMS_OBSERVER_STALE_SECONDS = 30 * 60;
 
 const teamsClient = createMockTeamsClient({ latencyMs: 250 });
 export { teamsKeys } from "@/lib/hooks/teamsKeys";
@@ -102,20 +103,15 @@ export function useTeamsScenario(id: TeamsMockScenarioId) {
 
 export function useTeamsState() {
   const queryClient = useQueryClient();
-  const { address, chainId } = useAccount();
+  const { address, chainId, status } = useAccount();
   const protocol = useOptionalProtocol();
   const usesMockBackend = protocol?.teamsUsesMockBackend ?? true;
   const teamsFeed = useTeamsData(!usesMockBackend);
   const latestFeed = teamsFeed.data?.feed ?? null;
   const latestActivationId = teamsFeed.data?.activationId ?? null;
-  const mainnetPublicClient = protocol?.mainnetPublicClient ?? null;
-  const latestAuthorityFingerprint = useMemo(
-    () =>
-      latestFeed
-        ? getTeamsAuthorityFingerprint(latestFeed)
-        : null,
-    [latestFeed]
-  );
+  const mainnetPublicClient = status === "connected" && chainId === 1
+    ? protocol?.publicClient ?? null : null;
+  const latestAuthorityFingerprint = teamsFeed.data?.fingerprint ?? null;
   const [acceptanceState, setAcceptanceState] =
     useState<TeamsAcceptanceState>(() => acceptedTeamsByQueryClient.get(queryClient) ?? {
       acceptedFeed: null,
@@ -146,7 +142,7 @@ export function useTeamsState() {
   });
 
   const nextFeed = latestFeed;
-  const nextVerification = canonicalSnapshot.data ?? null;
+  const nextVerification = mainnetPublicClient ? canonicalSnapshot.data ?? null : null;
   if (
     !usesMockBackend &&
     nextFeed &&
@@ -180,29 +176,28 @@ export function useTeamsState() {
       latestFeed
     );
   const actionStateTrusted =
+    mainnetPublicClient !== null &&
     !usesMockBackend &&
     acceptedFeed !== null &&
     latestFeedVerified &&
     acceptedFeed.activationId === latestActivationId &&
     !canonicalSnapshot.isError &&
     !transitionError;
+  const observerFeed = teamsFeed.data?.observerFeed ?? null;
+  const displayFeed = mainnetPublicClient
+    ? acceptedFeed?.feed ?? (canonicalSnapshot.isError ? null : observerFeed)
+    : observerFeed;
   const feedRuntime = useMemo<TeamsRuntimeState | null>(() => {
-    if (usesMockBackend || !acceptedFeed) return null;
+    if (usesMockBackend || !displayFeed) return null;
     return {
-      ...mapTeamsFeedToRuntimeState(acceptedFeed.feed, address ?? null, {
+      ...mapTeamsFeedToRuntimeState(displayFeed, address ?? null, {
         actionStateTrusted,
         walletChainId: chainId,
       }),
       backend: "feed",
-      feed: acceptedFeed.feed,
+      feed: displayFeed,
     };
-  }, [
-    acceptedFeed,
-    actionStateTrusted,
-    address,
-    chainId,
-    usesMockBackend,
-  ]);
+  }, [displayFeed, actionStateTrusted, address, chainId, usesMockBackend]);
 
   if (usesMockBackend) {
     return {
@@ -216,26 +211,30 @@ export function useTeamsState() {
     };
   }
 
-  const feedError = getTeamsReadError({
-    canonicalSnapshotError: canonicalSnapshot.error,
-    canonicalSnapshotFailed: canonicalSnapshot.isError,
+  const feedError = feedRuntime ? null : getTeamsReadError({
+    canonicalSnapshotError: mainnetPublicClient && canonicalSnapshot.error,
+    canonicalSnapshotFailed: Boolean(mainnetPublicClient && canonicalSnapshot.isError),
     feedError: teamsFeed.error,
     feedFailed: teamsFeed.isError,
-    hasAcceptedFeed: Boolean(feedRuntime),
     isLoading: teamsFeed.isLoading || canonicalSnapshot.isLoading,
-    publicClientAvailable: Boolean(mainnetPublicClient),
   });
-  const warning = feedRuntime
-    ? getTeamsReadWarning({
-        canonicalSnapshotError: canonicalSnapshot.isError
-          ? canonicalSnapshot.error
-          : null,
-        feedError: teamsFeed.isError ? teamsFeed.error : null,
-        latestFeedVerified,
-        publicClientAvailable: Boolean(mainnetPublicClient),
-        transitionError,
-      })
-    : null;
+  let warning: Error | null = null;
+  if (feedRuntime && mainnetPublicClient) {
+    warning = getTeamsReadWarning({
+      canonicalSnapshotError: canonicalSnapshot.isError ? canonicalSnapshot.error : null,
+      feedError: teamsFeed.error,
+      latestFeedVerified,
+      transitionError,
+    });
+  } else if (displayFeed) {
+    warning = teamsFeed.error;
+    if (!warning && displayFeed.blockNumber !== latestFeed?.blockNumber) {
+      warning = new Error("The latest Teams snapshot rolled back. Showing the previous publication.");
+    }
+    if (!warning && teamsFeed.dataUpdatedAt / 1000 - displayFeed.generatedAt > TEAMS_OBSERVER_STALE_SECONDS) {
+      warning = new Error("The Teams feed has not published an update in over 30 minutes.");
+    }
+  }
   const readStatus = feedRuntime
     ? warning
       ? ("stale" as const)
@@ -249,18 +248,12 @@ export function useTeamsState() {
     backend: "feed" as const,
     data: feedRuntime,
     error: feedError,
-    isError: feedError !== null,
-    isPending:
-      teamsFeed.isLoading ||
-      canonicalSnapshot.isLoading ||
-      (!feedRuntime && !feedError),
-    isLoading:
-      teamsFeed.isLoading ||
-      canonicalSnapshot.isLoading ||
-      (!feedRuntime && !feedError),
+    isError: !feedRuntime && feedError !== null,
+    isPending: !feedRuntime && !feedError,
+    isLoading: !feedRuntime && !feedError,
     isRefreshing:
       teamsFeed.isFetching || canonicalSnapshot.isFetching,
-    lastUpdatedAt: acceptedFeed?.snapshot.blockTimestamp ?? null,
+    lastUpdatedAt: mainnetPublicClient && acceptedFeed ? acceptedFeed.snapshot.blockTimestamp : displayFeed?.generatedAt ?? null,
     readStatus,
     writeFeed: actionStateTrusted ? acceptedFeed?.feed ?? null : null,
     refetch: async () => {
@@ -378,26 +371,16 @@ function getTeamsReadError({
   canonicalSnapshotFailed,
   feedError,
   feedFailed,
-  hasAcceptedFeed,
   isLoading,
-  publicClientAvailable,
 }: {
   canonicalSnapshotError: unknown;
   canonicalSnapshotFailed: boolean;
   feedError: unknown;
   feedFailed: boolean;
-  hasAcceptedFeed: boolean;
   isLoading: boolean;
-  publicClientAvailable: boolean;
 }): Error | null {
-  if (hasAcceptedFeed) return null;
   if (feedError instanceof Error) return feedError;
   if (feedFailed) return new Error("Unknown Teams feed error.");
-  if (!publicClientAvailable) {
-    return new Error(
-      "Ethereum Mainnet RPC is unavailable for Teams snapshot verification."
-    );
-  }
   if (canonicalSnapshotError instanceof Error) {
     return canonicalSnapshotError;
   }
@@ -414,22 +397,15 @@ function getTeamsReadWarning({
   canonicalSnapshotError,
   feedError,
   latestFeedVerified,
-  publicClientAvailable,
   transitionError,
 }: {
   canonicalSnapshotError: unknown;
   feedError: unknown;
   latestFeedVerified: boolean;
-  publicClientAvailable: boolean;
   transitionError: Error | null;
 }): Error | null {
   if (feedError instanceof Error) return feedError;
   if (feedError) return new Error("The latest Teams feed refresh failed.");
-  if (!publicClientAvailable) {
-    return new Error(
-      "Ethereum Mainnet RPC is unavailable. Teams actions are paused."
-    );
-  }
   if (canonicalSnapshotError instanceof Error) {
     return canonicalSnapshotError;
   }

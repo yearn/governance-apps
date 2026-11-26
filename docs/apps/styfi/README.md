@@ -1,5 +1,7 @@
 # stYFI App Docs
 
+The summary reads supply and stake directly from the global feed. A new feed publication keeps the APR for the same account and chain visible while its independent 30-second refresh runs.
+
 Scope: `stYFI` and `stYFIx` experiences under `/styfi`.
 
 - User stories: [`user-stories.md`](user-stories.md)
