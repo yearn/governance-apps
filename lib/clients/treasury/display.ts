@@ -124,7 +124,7 @@ export function groupTreasuryAccounts(feed: TreasuryFeed, holdings: TreasuryHold
 
 /** The token service used by yearn.fi. Never accept image URLs from token metadata. */
 export function treasuryAssetIconUrl(asset: TreasuryHolding["asset"]): string {
-  const base = "https://token-assets-one.vercel.app/api";
+  const base = "https://assets.yearn.fi/api";
   return asset.address === null
     ? base + "/chains/" + asset.chainId + "/logo-128.png"
     : base + "/tokens/" + asset.chainId + "/" + asset.address.toLowerCase() + "/logo-128.png";

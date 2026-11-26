@@ -34,12 +34,12 @@ describe("treasury reviewed asset icons", () => {
   it("normalizes address casing without using ticker or metadata URLs", () => {
     const asset = Object.assign(token("0x5AFE3855358E112B5647B952709E6165E1C1EEEE", "Different label"), { logoURI: "https://untrusted.example/image.svg" });
     expect(treasuryAssetIconSource(asset)).toContain("/27032/");
-    expect(treasuryAssetIconSource(token("0x9ae357521153fb07be6f5792ce7a49752638fbb7", "SAFE"))).toBe("https://token-assets-one.vercel.app/api/tokens/1/0x9ae357521153fb07be6f5792ce7a49752638fbb7/logo-128.png");
+    expect(treasuryAssetIconSource(token("0x9ae357521153fb07be6f5792ce7a49752638fbb7", "SAFE"))).toBe("https://assets.yearn.fi/api/tokens/1/0x9ae357521153fb07be6f5792ce7a49752638fbb7/logo-128.png");
   });
 
   it("keeps unlisted assets and native ETH on the fixed Yearn service", () => {
     const unknown = "0x1111111111111111111111111111111111111111";
-    expect(treasuryAssetIconSource(token(unknown, "ENS"))).toBe("https://token-assets-one.vercel.app/api/tokens/1/" + unknown + "/logo-128.png");
-    expect(treasuryAssetIconSource(token(null, "ETH"))).toBe("https://token-assets-one.vercel.app/api/chains/1/logo-128.png");
+    expect(treasuryAssetIconSource(token(unknown, "ENS"))).toBe("https://assets.yearn.fi/api/tokens/1/" + unknown + "/logo-128.png");
+    expect(treasuryAssetIconSource(token(null, "ETH"))).toBe("https://assets.yearn.fi/api/chains/1/logo-128.png");
   });
 });

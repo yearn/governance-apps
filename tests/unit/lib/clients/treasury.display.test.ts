@@ -104,7 +104,7 @@ describe("compact treasury presentation", () => {
 
   it("uses chain and token identity for icons, never symbols or remote metadata URLs", () => {
     const asset = row("a", "1").asset;
-    expect(treasuryAssetIconUrl({ ...asset, address: "0xAbCd000000000000000000000000000000000000", symbol: "https://untrusted.example/logo" })).toBe("https://token-assets-one.vercel.app/api/tokens/1/0xabcd000000000000000000000000000000000000/logo-128.png");
-    expect(treasuryAssetIconUrl({ ...asset, address: null })).toBe("https://token-assets-one.vercel.app/api/chains/1/logo-128.png");
+    expect(treasuryAssetIconUrl({ ...asset, address: "0xAbCd000000000000000000000000000000000000", symbol: "https://untrusted.example/logo" })).toBe("https://assets.yearn.fi/api/tokens/1/0xabcd000000000000000000000000000000000000/logo-128.png");
+    expect(treasuryAssetIconUrl({ ...asset, address: null })).toBe("https://assets.yearn.fi/api/chains/1/logo-128.png");
   });
 });
